@@ -1,0 +1,114 @@
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.external-url=/prometheus"
+    networks:
+      - diaspomoney
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prom_data:/prometheus
+    labels:
+      # Enable Traefik for this service, configure router and specify entrypoint
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`dev.diaspomoney.fr`) && PathPrefix(`/prometheus`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+
+      # Tell Traefik to use the port 9090 to connect to prometheus
+      - "traefik.http.services.prometheus.loadbalancer.server.url=http://prometheus:9090/"
+
+      # Enable TLS for this router & use the 'myresolver' certificates resolver for obtaining SSL certificates
+      - "traefik.http.routers.prometheus.tls=true"
+      - "traefik.http.routers.prometheus.tls.certresolver=myresolver"
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    container_name: cadvisor
+    privileged: true
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - diaspomoney
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/loki/loki-config.yaml"
+    networks:
+      - diaspomoney
+    volumes:
+      - ./loki-config.yaml:/etc/loki/loki-config.yaml
+      - loki-data:/loki
+    labels:
+      # Enable Traefik for this service, configure router and specify entrypoint
+      - "traefik.enable=true"
+      - "traefik.http.routers.loki.rule=Host(`dev.diaspomoney.fr`) && PathPrefix(`/loki`)"
+      - "traefik.http.routers.loki.entrypoints=websecure"
+
+      # Tell Traefik to use the port 3100 to connect to loki
+      - "traefik.http.services.loki.loadbalancer.server.url=http://loki:3100/"
+
+      # Add middleware to strip the prefix
+      - "traefik.http.middlewares.loki-strip.stripprefix.prefixes=/loki"
+      - "traefik.http.routers.loki.middlewares=loki-strip"
+
+      # Enable TLS for this router & use the 'myresolver' certificates resolver for obtaining SSL certificates
+      - "traefik.http.routers.loki.tls=true"
+      - "traefik.http.routers.loki.tls.certresolver=myresolver"
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/promtail/config.yaml"
+    networks:
+      - diaspomoney
+    volumes:
+      - ./promtail-config.yaml:/etc/promtail/config.yaml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log:/var/log:ro
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - "GF_SERVER_DOMAIN=dev.diaspomoney.fr"
+      - "GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana"
+      - "GF_SERVER_SERVE_FROM_SUB_PATH=true"
+    networks:
+      - diaspomoney
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    labels:
+      # Enable Traefik for this service, configure router and specify entrypoint
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`dev.diaspomoney.fr`) && PathPrefix(`/grafana`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+
+      # Tell Traefik to use the port 3000 to connect to grafana
+      - "traefik.http.services.grafana.loadbalancer.server.url=http://grafana:3000"
+
+      # Enable TLS for this router & use the 'myresolver' certificates resolver for obtaining SSL certificates
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.routers.grafana.tls.certresolver=myresolver"
+
+volumes:
+  prom_data:
+  loki-data:
+  grafana-storage:
+
+networks:
+  diaspomoney:
+    driver: bridge
+    name: diaspomoney

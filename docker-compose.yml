@@ -1,0 +1,81 @@
+include:
+  - compose.monitoring.yaml
+
+services:
+  app:
+    env_file: .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: diaspomoney
+    networks:
+      - diaspomoney
+    labels:
+      # Enable Traefik for this service and specify the secure entrypoint (HTTPS)
+      - "traefik.enable=true"
+      - "traefik.http.routers.dev.rule=Host(`dev.diaspomoney.fr`)"
+      - "traefik.http.routers.dev.entrypoints=websecure"
+
+      # Enable TLS for this router & use the 'myresolver' certificates resolver
+      - "traefik.http.routers.dev.tls=true"
+      - "traefik.http.routers.dev.tls.certresolver=myresolver"
+      - "traefik.http.services.dev.loadbalancer.server.port=3000"
+
+      - "traefik.http.middlewares.dev-auth.basicauth.users=bmalar:$argon2i$v=19$m=65536,t=4,p=1$azJjTUloZUIzN1VnWktwZg$fOKQqabEWB2c+zj+G0siuqraSXzRR4+jUNkT3dGCyvg" # Substitute with your username:hashed-password you generated with htpasswd
+      - "traefik.http.routers.dev.middlewares=dev-auth,redirect-to-https"
+
+  reverse-proxy:
+    image: traefik:latest
+    container_name: traefik
+    ports:
+      - "80:80" # HTTP
+      - "443:443" # HTTPS
+      - "8080:8080" # Traefik Dashboard
+    command:
+      - "--api"
+    networks:
+      - diaspomoney
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/etc/traefik/traefik.yml
+      - ./acme.json:/acme.json
+    labels:
+      # Enable Traefik for this service
+      - "traefik.enable=true"
+
+      # Dashboard route
+      - "traefik.http.routers.dashboard-api.rule=Host(`dev.diaspomoney.fr`) && PathPrefix(`/dashboard`) || (PathPrefix(`/debug`) || PathPrefix(`/api/http`) || PathPrefix(`/api/tcp`) || PathPrefix(`/api/udp`) || PathPrefix(`/api/entrypoints`) || PathPrefix(`/api/overview`) || PathPrefix(`/api/rawdata`) || PathPrefix(`/api/version`))" # substitute with your domain name
+      - "traefik.http.routers.dashboard-api.service=api@internal"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$2y$$05$$pgxkF9REvFowxhcdS1SgD.r9Fg1MayXm/R0KewpIljeVkOCVYQGsi" # Substitute with your username:hashed-password you generated with htpasswd
+      - "traefik.http.routers.dashboard-api.middlewares=dashboard-auth,redirect-dashboard"
+      - "traefik.http.routers.dashboard-api.entrypoints=websecure"
+
+      # Enable TLS for this router & use the 'myresolver' certificates resolver for obtaining SSL certificates
+      - "traefik.http.routers.dashboard-api.tls=true"
+      - "traefik.http.routers.dashboard-api.tls.certresolver=myresolver"
+
+      # Redirect /dashboard to /dashboard/
+      - "traefik.http.middlewares.redirect-dashboard.redirectregex.regex=^https?://(.*)/dashboard$$"
+      - "traefik.http.middlewares.redirect-dashboard.redirectregex.replacement=https://$$1/dashboard/"
+      - "traefik.http.middlewares.redirect-dashboard.redirectregex.permanent=true"
+
+  mongodb:
+    image: mongo:7.0
+    container_name: dev-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: diaspomoney
+      MONGO_INITDB_ROOT_USERNAME: diaspomoney
+      MONGO_INITDB_ROOT_PASSWORD: supersecret
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - diaspomoney
+
+volumes:
+  mongodb_data:
+
+networks:
+  diaspomoney:
+    driver: bridge
+    name: diaspomoney
