@@ -1,4 +1,9 @@
-export type providerType = {
+export interface Service {
+  name: string;
+  price: number;
+}
+
+export interface ProviderType {
   id: string | number;
   name: string;
   type: { id: string | number; value: string };
@@ -22,6 +27,40 @@ export type providerType = {
   }[];
   images: string[];
   rating: number;
-  reviews: number;
-  services: { name: string; price: number }[];
-};
+  services: Service[];
+}
+
+export interface ProviderCardProps {
+  provider: ProviderType;
+  onDetails: () => void;
+}
+
+export interface FiltersProps {
+  specialties: string[];
+  filterSpecialty: string;
+  setFilterSpecialty: (value: string) => void;
+  providerTypes: { id: string | number; value: string }[];
+  selectedTypes: string[];
+  setSelectedTypes: (value: string[]) => void;
+  filters: { priceMin: number; priceMax: number };
+  setFilters: (filters: { priceMin: number; priceMax: number }) => void;
+  resetFilters: () => void;
+}
+
+export interface SelectFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+}
+
+export interface SearchBarProps {
+  availableServices: string[];
+  selectedService: string;
+  setSelectedService: (value: string) => void;
+  countries: string[];
+  selectedCountry: string;
+  setSelectedCountry: (value: string) => void;
+  selectedCity: string;
+  setSelectedCity: (value: string) => void;
+}

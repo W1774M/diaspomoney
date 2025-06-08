@@ -26,7 +26,10 @@ export const providers = [
         boundingbox: ["6.5554707", "6.5555707", "2.7428136", "2.7429136"],
       },
     ],
-    images: ["/img/Logo_Diaspo_Horizontal_enrichi.webp"],
+    images: [
+      "/img/Logo_Diaspo_Horizontal_enrichi.webp",
+      // Ajoute d'autres images si besoin, mais MAX 5
+    ].slice(0, 5),
     rating: 4.8,
     reviews: 124,
     services: [
@@ -43,6 +46,12 @@ export const providers = [
         price: 70,
       },
     ],
+    description:
+      "Clinique moderne spécialisée en médecine générale et soins de proximité.",
+    phone: "+237 699 00 00 01",
+    email: "contact@cliniquelapaix2.cm",
+    website: "https://cliniquelapaix2.cm",
+    availabilities: ["2025/12/12 9:30"], // <= tableau de string, vide par défaut // <= tableau de string, vide par défaut
   },
   {
     id: 2,
@@ -69,7 +78,10 @@ export const providers = [
         boundingbox: ["6.5554707", "6.5555707", "2.7428136", "2.7429136"],
       },
     ],
-    images: ["/img/Logo_Diaspo_Horizontal_enrichi.webp"],
+    images: [
+      "/img/Logo_Diaspo_Horizontal_enrichi.webp",
+      // Ajoute d'autres images si besoin, mais MAX 5
+    ].slice(0, 5),
     price: 120,
     rating: 4.6,
     reviews: 87,
@@ -78,6 +90,11 @@ export const providers = [
       { name: "ECG", price: 50 },
       { name: "Suivi patient", price: 50 },
     ],
+    description: "Centre médical de référence en cardiologie et suivi patient.",
+    phone: "+237 699 00 00 02",
+    email: "contact@cmexcellence.cm",
+    website: "https://cmexcellence.cm",
+    availabilities: [], // <= tableau de string, vide par défaut
   },
   {
     id: 3,
@@ -104,7 +121,10 @@ export const providers = [
         boundingbox: ["6.5554707", "6.5555707", "2.7428136", "2.7429136"],
       },
     ],
-    images: ["/img/Logo_Diaspo_Horizontal_enrichi.webp"],
+    images: [
+      "/img/Logo_Diaspo_Horizontal_enrichi.webp",
+      // Ajoute d'autres images si besoin, mais MAX 5
+    ].slice(0, 5),
     distance: "3.7 km",
     price: 60,
     rating: 4.9,
@@ -114,6 +134,12 @@ export const providers = [
       { name: "Vaccination", price: 40 },
       { name: "Suivi croissance", price: 50 },
     ],
+    description:
+      "Médecin pédiatre avec une expertise en vaccination et suivi de croissance.",
+    phone: "+237 699 00 00 03",
+    email: "contact@drkamenirobert.cm",
+    website: "https://drkamenirobert.cm",
+    availabilities: [], // <= tableau de string, vide par défaut
   },
   {
     id: 4,
@@ -140,7 +166,10 @@ export const providers = [
         boundingbox: ["6.5554707", "6.5555707", "2.7428136", "2.7429136"],
       },
     ],
-    images: ["/img/Logo_Diaspo_Horizontal_enrichi.webp"],
+    images: [
+      "/img/Logo_Diaspo_Horizontal_enrichi.webp",
+      // Ajoute d'autres images si besoin, mais MAX 5
+    ].slice(0, 5),
     distance: "3.7 km",
     price: 60,
     rating: 4.9,
@@ -150,6 +179,12 @@ export const providers = [
       { name: "Vaccination", price: 40 },
       { name: "Suivi croissance", price: 50 },
     ],
+    description:
+      "Médecin pédiatre avec une expertise en vaccination et suivi de croissance.",
+    phone: "+237 699 00 00 03",
+    email: "contact@drkamenirobert.cm",
+    website: "https://drkamenirobert.cm",
+    availabilities: [], // <= tableau de string, vide par défaut
   },
   {
     id: 5,
@@ -176,7 +211,10 @@ export const providers = [
         boundingbox: ["6.5554707", "6.5555707", "2.7428136", "2.7429136"],
       },
     ],
-    images: ["/img/Logo_Diaspo_Horizontal_enrichi.webp"],
+    images: [
+      "/img/Logo_Diaspo_Horizontal_enrichi.webp",
+      // Ajoute d'autres images si besoin, mais MAX 5
+    ].slice(0, 5),
     distance: "3.7 km",
     price: 60,
     rating: 4.9,
@@ -186,6 +224,12 @@ export const providers = [
       { name: "Vaccination", price: 40 },
       { name: "Suivi croissance", price: 50 },
     ],
+    description:
+      "Médecin pédiatre avec une expertise en vaccination et suivi de croissance.",
+    phone: "+237 699 00 00 03",
+    email: "contact@drkamenirobert.cm",
+    website: "https://drkamenirobert.cm",
+    availabilities: [], // <= tableau de string, vide par défaut
   },
   {
     id: 6,
@@ -212,7 +256,10 @@ export const providers = [
         boundingbox: ["6.5554707", "6.5555707", "2.7428136", "2.7429136"],
       },
     ],
-    images: ["/img/Logo_Diaspo_Horizontal_enrichi.webp"],
+    images: [
+      "/img/Logo_Diaspo_Horizontal_enrichi.webp",
+      // Ajoute d'autres images si besoin, mais MAX 5
+    ].slice(0, 5),
     distance: "3.7 km",
     price: 60,
     rating: 4.9,
@@ -222,6 +269,12 @@ export const providers = [
       { name: "Vaccination", price: 40 },
       { name: "Suivi croissance", price: 50 },
     ],
+    description:
+      "Médecin pédiatre avec une expertise en vaccination et suivi de croissance.",
+    phone: "+237 699 00 00 03",
+    email: "contact@drkamenirobert.cm",
+    website: "https://drkamenirobert.cm",
+    availabilities: [], // <= tableau de string, vide par défaut
   },
   {
     id: 7,
@@ -357,7 +410,10 @@ export const providers = [
         boundingbox: ["4.6363370", "4.6364370", "9.4725640", "9.4726640"],
       },
     ],
-    images: ["/img/Logo_Diaspo_Horizontal_enrichi.webp"],
+    images: [
+      "/img/Logo_Diaspo_Horizontal_enrichi.webp",
+      // Ajoute d'autres images si besoin, mais MAX 5
+    ].slice(0, 5),
     distance: "3.7 km",
     price: 60,
     rating: 4.9,
@@ -367,5 +423,11 @@ export const providers = [
       { name: "Vaccination", price: 40 },
       { name: "Suivi croissance", price: 50 },
     ],
+    description:
+      "Médecin pédiatre avec une expertise en vaccination et suivi de croissance.",
+    phone: "+237 699 00 00 03",
+    email: "contact@drkamenirobert.cm",
+    website: "https://drkamenirobert.cm",
+    availabilities: ["2025/12/12 9:30"], // <= tableau de string, vide par défaut
   },
 ];
