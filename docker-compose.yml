@@ -11,18 +11,14 @@ services:
     networks:
       - diaspomoney
     labels:
-      # Enable Traefik for this service and specify the secure entrypoint (HTTPS)
       - "traefik.enable=true"
       - "traefik.http.routers.dev.rule=Host(`dev.diaspomoney.fr`)"
       - "traefik.http.routers.dev.entrypoints=websecure"
-
-      # Enable TLS for this router & use the 'myresolver' certificates resolver
       - "traefik.http.routers.dev.tls=true"
       - "traefik.http.routers.dev.tls.certresolver=myresolver"
       - "traefik.http.services.dev.loadbalancer.server.port=3000"
-
-      - "traefik.http.middlewares.dev-auth.basicauth.users=bmalar:$argon2i$v=19$m=65536,t=4,p=1$azJjTUloZUIzN1VnWktwZg$fOKQqabEWB2c+zj+G0siuqraSXzRR4+jUNkT3dGCyvg" # Substitute with your username:hashed-password you generated with htpasswd
-      - "traefik.http.routers.dev.middlewares=dev-auth,redirect-to-https"
+      - "traefik.http.middlewares.dev-auth.basicauth.users=bmalar:$$apr1$$390wxr2v$$CUaK9E5nCoacOOOLmP8Yh."
+      - "traefik.http.routers.dev.middlewares=dev-auth"
 
   reverse-proxy:
     image: traefik:latest

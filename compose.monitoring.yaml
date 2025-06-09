@@ -107,6 +107,7 @@ volumes:
   prom_data:
   loki-data:
   grafana-storage:
+  acme.json:
 
 networks:
   diaspomoney:

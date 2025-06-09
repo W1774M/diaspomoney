@@ -19,7 +19,7 @@ certificatesResolvers:
       # Email address for Let's Encrypt notifications and account management
       email: contact@diaspomoney.fr
       # Storage file for SSL certificates
-      storage: ./acme.json
+      storage: /acme.json
       # Use HTTP challenge for domain verification
       httpChallenge:
         entryPoint: web
