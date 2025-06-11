@@ -17,7 +17,7 @@ services:
       - "traefik.http.routers.dev.tls=true"
       - "traefik.http.routers.dev.tls.certresolver=myresolver"
       - "traefik.http.services.dev.loadbalancer.server.port=3000"
-      - "traefik.http.middlewares.dev-auth.basicauth.users=bmalar:$$apr1$$390wxr2v$$CUaK9E5nCoacOOOLmP8Yh."
+      - "traefik.http.middlewares.dev-auth.basicauth.users=bmalar:$$apr1$$s3JDuTMR$t49dK/5vXqiY3gjX8Rl0P0,admin:$$apr1$$1MNajaMu$$1tAWhCu9n7bj7P/WypAbw1"
       - "traefik.http.routers.dev.middlewares=dev-auth"
 
   reverse-proxy:
@@ -42,7 +42,7 @@ services:
       # Dashboard route
       - "traefik.http.routers.dashboard-api.rule=Host(`dev.diaspomoney.fr`) && PathPrefix(`/dashboard`) || (PathPrefix(`/debug`) || PathPrefix(`/api/http`) || PathPrefix(`/api/tcp`) || PathPrefix(`/api/udp`) || PathPrefix(`/api/entrypoints`) || PathPrefix(`/api/overview`) || PathPrefix(`/api/rawdata`) || PathPrefix(`/api/version`))" # substitute with your domain name
       - "traefik.http.routers.dashboard-api.service=api@internal"
-      - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$2y$$05$$pgxkF9REvFowxhcdS1SgD.r9Fg1MayXm/R0KewpIljeVkOCVYQGsi" # Substitute with your username:hashed-password you generated with htpasswd
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=ChristB:$$apr1$$vm92okl4$$Vf7kx6phmxN15utdqYa.b,bmalar:$$apr1$$390wxr2v$$CUaK9E5nCoacOOOLmP8Yh"
       - "traefik.http.routers.dashboard-api.middlewares=dashboard-auth,redirect-dashboard"
       - "traefik.http.routers.dashboard-api.entrypoints=websecure"
 
