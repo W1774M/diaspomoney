@@ -1,16 +1,30 @@
-export function ServicesButton({setActiveView, label, icon, title, description}: { setActiveView: (view: string) => void, label: string, icon: React.ReactNode, title: string, description: string }) {
+import { ReactNode } from "react";
+
+interface ServicesButtonProps {
+  icon: ReactNode;
+  title: string;
+  description: string;
+  label: string;
+  setActiveView: (view: string) => void;
+}
+
+export function ServicesButton({
+  icon,
+  title,
+  description,
+  label,
+  setActiveView,
+}: ServicesButtonProps) {
   return (
-  <button
-    className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition group hover:cursor-pointer"
-    onClick={() => setActiveView(`/${label}`)}
-  >
-    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4 group-hover:bg-blue-200">
-     {icon}
-    </div>
-    <div className="text-left">
-      <h4 className="font-medium text-gray-900">{title}</h4>
-      <p className="text-sm text-gray-500">{description}</p>
-    </div>
-  </button>
+    <button
+      onClick={() => setActiveView(label)}
+      className="flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left"
+    >
+      <div className="mr-4">{icon}</div>
+      <div>
+        <h4 className="font-semibold">{title}</h4>
+        <p className="text-sm text-gray-600">{description}</p>
+      </div>
+    </button>
   );
 }

@@ -1,4 +1,4 @@
-import LoginForm from "@/components/LoginForm";
+import { LoginForm } from "@/components/features/auth/LoginForm";
 import DefaultTemplate from "@/template/DefaultTemplate";
 import { User } from "lucide-react";
 import Link from "next/link";

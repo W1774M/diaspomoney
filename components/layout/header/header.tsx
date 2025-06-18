@@ -1,8 +1,8 @@
 "use client";
 import { User } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const Header = () => {
   const router = useRouter();
@@ -12,7 +12,7 @@ const Header = () => {
   }
 
   return (
-    <header className="bg-black text-white shadow-sm sticky top-0 z-10">
+    <header className="bg-black text-white shadow-sm sticky top-0 z-10 w-full">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center justify-center">
           <h1
