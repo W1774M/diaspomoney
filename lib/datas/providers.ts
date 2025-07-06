@@ -26,22 +26,22 @@ export const providers = [
         boundingbox: ["6.5554707", "6.5555707", "2.7428136", "2.7429136"],
       },
     ],
-    images: [
-      "/img/Logo_Diaspo_Horizontal_enrichi.webp",
-      // Ajoute d'autres images si besoin, mais MAX 5
-    ].slice(0, 5),
+    images: ["/img/Logo_Diaspo_Horizontal_enrichi.webp"].slice(0, 5),
     rating: 4.8,
     reviews: 124,
     services: [
       {
+        id: 1,
         name: "Consultation générale",
         price: 50,
       },
       {
+        id: 2,
         name: "Analyses",
         price: 45,
       },
       {
+        id: 3,
         name: "Imagerie",
         price: 70,
       },
@@ -51,7 +51,13 @@ export const providers = [
     phone: "+237 699 00 00 01",
     email: "contact@cliniquelapaix2.cm",
     website: "https://cliniquelapaix2.cm",
-    availabilities: ["2025/12/12 9:30"], // <= tableau de string, vide par défaut // <= tableau de string, vide par défaut
+    availabilities: [
+      "2025/12/12 9:30",
+      "2025/12/12 10:30",
+      "2025/12/12 11:30",
+      "2025/12/12 12:30",
+      "2025/12/12 14:30",
+    ], // <= tableau de string, vide par défaut // <= tableau de string, vide par défaut
   },
   {
     id: 2,
@@ -80,21 +86,27 @@ export const providers = [
     ],
     images: [
       "/img/Logo_Diaspo_Horizontal_enrichi.webp",
-      // Ajoute d'autres images si besoin, mais MAX 5
+      "/img/Logo_Diaspo_Horizontal_enrichi.webp",
     ].slice(0, 5),
     price: 120,
     rating: 4.6,
     reviews: 87,
     services: [
-      { name: "Consultation cardiologie", price: 30 },
-      { name: "ECG", price: 50 },
-      { name: "Suivi patient", price: 50 },
+      { id: 4, name: "Consultation cardiologie", price: 30 },
+      { id: 5, name: "ECG", price: 50 },
+      { id: 6, name: "Suivi patient", price: 50 },
     ],
     description: "Centre médical de référence en cardiologie et suivi patient.",
     phone: "+237 699 00 00 02",
     email: "contact@cmexcellence.cm",
     website: "https://cmexcellence.cm",
-    availabilities: [], // <= tableau de string, vide par défaut
+    availabilities: [
+      "2025/12/12 9:30",
+      "2025/12/12 10:30",
+      "2025/12/12 11:30",
+      "2025/12/12 12:30",
+      "2025/12/12 14:30",
+    ], // <= tableau de string, vide par défaut // <= tableau de string, vide par défaut
   },
   {
     id: 3,
@@ -130,9 +142,9 @@ export const providers = [
     rating: 4.9,
     reviews: 156,
     services: [
-      { name: "Consultation pédiatrique", price: 30 },
-      { name: "Vaccination", price: 40 },
-      { name: "Suivi croissance", price: 50 },
+      { id: 7, name: "Consultation pédiatrique", price: 30 },
+      { id: 8, name: "Vaccination", price: 40 },
+      { id: 9, name: "Suivi croissance", price: 50 },
     ],
     description:
       "Médecin pédiatre avec une expertise en vaccination et suivi de croissance.",
@@ -175,9 +187,9 @@ export const providers = [
     rating: 4.9,
     reviews: 156,
     services: [
-      { name: "Consultation pédiatrique", price: 30 },
-      { name: "Vaccination", price: 40 },
-      { name: "Suivi croissance", price: 50 },
+      { id: 10, name: "Consultation pédiatrique", price: 30 },
+      { id: 11, name: "Vaccination", price: 40 },
+      { id: 12, name: "Suivi croissance", price: 50 },
     ],
     description:
       "Médecin pédiatre avec une expertise en vaccination et suivi de croissance.",
@@ -220,9 +232,9 @@ export const providers = [
     rating: 4.9,
     reviews: 156,
     services: [
-      { name: "Consultation pédiatrique", price: 30 },
-      { name: "Vaccination", price: 40 },
-      { name: "Suivi croissance", price: 50 },
+      { id: 13, name: "Consultation pédiatrique", price: 30 },
+      { id: 14, name: "Vaccination", price: 40 },
+      { id: 15, name: "Suivi croissance", price: 50 },
     ],
     description:
       "Médecin pédiatre avec une expertise en vaccination et suivi de croissance.",
@@ -419,9 +431,9 @@ export const providers = [
     rating: 4.9,
     reviews: 156,
     services: [
-      { name: "Consultation pédiatrique", price: 30 },
-      { name: "Vaccination", price: 40 },
-      { name: "Suivi croissance", price: 50 },
+      { id: 16, name: "Consultation pédiatrique", price: 30 },
+      { id: 17, name: "Vaccination", price: 40 },
+      { id: 18, name: "Suivi croissance", price: 50 },
     ],
     description:
       "Médecin pédiatre avec une expertise en vaccination et suivi de croissance.",

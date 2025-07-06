@@ -1,4 +1,5 @@
 export interface Service {
+  id?: number;
   name: string;
   price: number;
 }
@@ -6,7 +7,7 @@ export interface Service {
 export interface ProviderType {
   id: string | number;
   name: string;
-  type: { id: string | number; value: string };
+  type: { id: string | number; value: string; group: string };
   specialty: string;
   recommended: boolean;
   apiGeo: {
@@ -27,7 +28,14 @@ export interface ProviderType {
   }[];
   images: string[];
   rating: number;
+  reviews?: number;
+  distance?: string;
   services: Service[];
+  description?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  availabilities?: string[];
 }
 
 export interface ProviderCardProps {
@@ -63,4 +71,28 @@ export interface SearchBarProps {
   setSelectedCountry: (value: string) => void;
   selectedCity: string;
   setSelectedCity: (value: string) => void;
+}
+
+export interface AppointmentInterface {
+  requester: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+  };
+  recipient: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+  };
+  provider: ProviderType;
+  selectedService: { id: number; name: string; price: number } | null;
+  timeslot: string;
+}
+
+export interface paymentDataInterface {
+  cardNumber: string;
+  expiryDate: string;
+  cvv: string;
+  cardholderName: string;
 }

@@ -15,7 +15,6 @@ import {
 import { useForm } from "@/hooks/forms/useForm";
 import { useAuthStore } from "@/store/auth";
 import { useNotificationStore } from "@/store/notifications";
-import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 
@@ -80,12 +79,7 @@ export function LoginForm() {
   };
 
   return (
-    <motion.div
-      variants={cardVariants}
-      initial="hidden"
-      animate="visible"
-      className="w-full max-w-md mx-auto"
-    >
+    <div className="w-full max-w-md mx-auto">
       <Card>
         <CardHeader>
           <CardTitle>Connexion</CardTitle>
@@ -114,7 +108,11 @@ export function LoginForm() {
               />
             </FormField>
             {error && <p className="text-sm text-destructive mt-2">{error}</p>}
-            <Button type="submit" className="w-full" isLoading={isLoading}>
+            <Button
+              type="submit"
+              className="w-full bg-blue-400 hover:bg-blue-600 cursor-pointer"
+              isLoading={isLoading}
+            >
               Se connecter
             </Button>
           </Form>
@@ -128,6 +126,6 @@ export function LoginForm() {
           </p>
         </CardFooter>
       </Card>
-    </motion.div>
+    </div>
   );
 }

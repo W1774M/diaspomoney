@@ -1,76 +1,190 @@
+import { GoogleLoginButton } from "@/components/features/auth/GoogleLoginButton";
 import { LoginForm } from "@/components/features/auth/LoginForm";
 import DefaultTemplate from "@/template/DefaultTemplate";
-import { User } from "lucide-react";
+import { CreditCard, Shield, TrendingUp, User } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function LoginPage() {
   return (
     <DefaultTemplate>
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="text-center">
-            <div className="inline-block relative bg-black text-white overflow-hidden rounded-full">
-              <User size={50} />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
+        <div className="flex min-h-screen">
+          {/* Sidebar avec branding */}
+          <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 relative overflow-hidden">
+            {/* Pattern de fond */}
+            <div className="absolute inset-0 bg-black/10"></div>
+            <div className="absolute top-0 left-0 w-full h-full">
+              <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full"></div>
+              <div className="absolute top-32 right-16 w-16 h-16 bg-white/10 rounded-full"></div>
+              <div className="absolute bottom-20 left-20 w-12 h-12 bg-white/10 rounded-full"></div>
+              <div className="absolute bottom-32 right-10 w-24 h-24 bg-white/10 rounded-full"></div>
             </div>
-            <h2 className="text-center text-2xl font-extrabold text-gray-900">
-              Connectez-vous à votre compte
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              Ou{" "}
-              <Link
-                href="/register"
-                className="font-medium text-blue-600 hover:text-blue-500"
-              >
-                créez un nouveau compte
-              </Link>
-            </p>
-          </div>
 
-          <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-            <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-              <LoginForm />
+            <div className="relative z-10 flex flex-col justify-center px-12 py-12">
+              <div className="mb-8">
+                <Image
+                  src="/img/Logo_Diaspo_Horizontal_enrichi.webp"
+                  alt="DiaspoMoney"
+                  width={200}
+                  height={60}
+                  className="mb-6"
+                />
+                <h1 className="text-4xl font-bold text-white mb-4">
+                  Bienvenue sur DiaspoMoney
+                </h1>
+                <p className="text-blue-100 text-lg leading-relaxed">
+                  La plateforme de confiance pour vos services en Afrique.
+                  Connectez-vous pour accéder à des milliers de prestataires
+                  qualifiés.
+                </p>
+              </div>
 
-              <div className="mt-6">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300" />
+              {/* Features */}
+              <div className="space-y-6">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-white" />
                   </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">
-                      Ou continuer avec
-                    </span>
+                  <div>
+                    <h3 className="text-white font-semibold">
+                      Paiements Sécurisés
+                    </h3>
+                    <p className="text-blue-100 text-sm">
+                      Transactions protégées par cryptage SSL
+                    </p>
                   </div>
                 </div>
 
-                <div className="mt-6 flex justify-center">
-                  <button
-                    type="button"
-                    className="w-[50px] cursor-pointer inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                  >
-                    <svg
-                      className="h-5 w-5"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
+                <div className="flex items-center space-x-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                    <CreditCard className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold">
+                      Services Premium
+                    </h3>
+                    <p className="text-blue-100 text-sm">
+                      Accès à des prestataires vérifiés et recommandés
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold">
+                      Croissance Continue
+                    </h3>
+                    <p className="text-blue-100 text-sm">
+                      Plus de 1000+ prestataires partenaires
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="mt-12 grid grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">10K+</div>
+                  <div className="text-blue-100 text-sm">Utilisateurs</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">1K+</div>
+                  <div className="text-blue-100 text-sm">Prestataires</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">50K+</div>
+                  <div className="text-blue-100 text-sm">Transactions</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Formulaire de connexion */}
+          <div className="flex-1 flex items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
+            <div className="w-full max-w-md">
+              {/* Header mobile */}
+              <div className="lg:hidden text-center mb-8">
+                <Image
+                  src="/img/Logo_Diaspo_Horizontal_enrichi.webp"
+                  alt="DiaspoMoney"
+                  width={180}
+                  height={54}
+                  className="mx-auto mb-4"
+                />
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full mb-4">
+                    <User className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Connexion
+                  </h2>
+                  <p className="text-gray-600">
+                    Accédez à votre espace personnel
+                  </p>
+                </div>
+
+                {/* Formulaire de connexion */}
+                <LoginForm />
+
+                {/* Séparateur */}
+                <div className="mt-8 mb-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-200" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="px-4 bg-white text-gray-500 font-medium">
+                        Ou continuer avec
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bouton Google */}
+                <GoogleLoginButton />
+
+                {/* Lien d'inscription */}
+                <div className="mt-8 text-center">
+                  <p className="text-gray-600">
+                    Pas encore de compte ?{" "}
+                    <Link
+                      href="/register"
+                      className="font-semibold text-blue-600 hover:text-blue-500 transition-colors duration-200"
                     >
-                      <path
-                        d="M12.0003 4.7455C13.9884 4.7455 15.6004 5.58055 16.7951 7.04535L21.2229 3.61855C19.1994 1.77355 16.0145 0.5 12.0003 0.5C6.4781 0.5 1.73246 3.8787 0.0957031 8.68055L4.65076 12.1723C5.76588 7.87535 8.93653 4.7455 12.0003 4.7455Z"
-                        fill="#EA4335"
-                      />
-                      <path
-                        d="M23.49 12.275C23.49 11.4917 23.4172 10.73 23.28 9.99167H12V14.525H18.47C18.21 16.0333 17.31 17.3417 15.93 18.225L20.37 21.625C22.66 19.4917 23.49 16.1667 23.49 12.275Z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M4.64973 11.83L3.90201 12.4087L0.0947266 8.68C1.73148 3.8782 6.47711 0.5 11.9993 0.5C16.0135 0.5 19.1984 1.77354 21.2219 3.61854L16.7941 7.04535C15.5994 5.58054 13.9874 4.7455 11.9993 4.7455C8.93555 4.7455 5.76548 7.87354 4.64973 11.83Z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M12.0004 23.5C16.0004 23.5 19.3004 22.4583 21.6004 20.4583L17.1606 17.0583C16.0004 17.8583 14.3004 18.3333 12.0004 18.3333C8.9366 18.3333 6.17704 15.2083 5.06191 12L0.514648 15.4C2.64322 20.3333 7.50463 23.5 12.0004 23.5Z"
-                        fill="#34A853"
-                      />
-                    </svg>
-                  </button>
+                      Créer un compte
+                    </Link>
+                  </p>
+                </div>
+
+                {/* Liens utiles */}
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <div className="flex justify-center space-x-6 text-sm">
+                    <Link
+                      href="/help"
+                      className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                    >
+                      Aide
+                    </Link>
+                    <Link
+                      href="/support"
+                      className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                    >
+                      Support
+                    </Link>
+                    <Link
+                      href="/privacy"
+                      className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                    >
+                      Confidentialité
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>

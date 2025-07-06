@@ -1,3 +1,4 @@
+import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { NotificationContainer } from "@/components/ui/Notification";
 import "@/styles/globals.css";
@@ -29,10 +30,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeProvider>
-          {children}
-          <NotificationContainer />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            {children}
+            <NotificationContainer />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

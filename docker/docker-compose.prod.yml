@@ -1,0 +1,65 @@
+include:
+  - compose.monitoring.yaml
+
+services:
+  app:
+    env_file: ../.env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: diaspomoney
+    networks:
+      - diaspomoney
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dev.rule=Host(`dev.diaspomoney.fr`)"
+      - "traefik.http.routers.dev.entrypoints=websecure"
+      - "traefik.http.routers.dev.tls=true"
+      - "traefik.http.routers.dev.tls.certresolver=myresolver"
+      - "traefik.http.services.dev.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.dev-auth.basicauth.users=bmalar:$$apr1$$s3JDuTMR$t49dK/5vXqiY3gjX8Rl0P0,admin:$$apr1$$1MNajaMu$$1tAWhCu9n7bj7P/WypAbw1"
+      - "traefik.http.routers.dev.middlewares=dev-auth"
+
+  reverse-proxy:
+    env_file: ../.env
+    image: traefik:latest
+    container_name: traefik
+    ports:
+      - "80:80" # HTTP
+      - "443:443" # HTTPS
+      - "8080:8080" # Traefik Dashboard
+    command:
+      - "--api"
+    networks:
+      - diaspomoney
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/etc/traefik/traefik.yml
+      - ./acme.json:/acme.json
+    labels:
+      # Enable Traefik for this service
+      - "traefik.enable=true"
+
+      # Dashboard route
+      - "traefik.http.routers.dashboard-api.rule=Host(`dev.diaspomoney.fr`) && PathPrefix(`/dashboard`) || (PathPrefix(`/debug`) || PathPrefix(`/api/http`) || PathPrefix(`/api/tcp`) || PathPrefix(`/api/udp`) || PathPrefix(`/api/entrypoints`) || PathPrefix(`/api/overview`) || PathPrefix(`/api/rawdata`) || PathPrefix(`/api/version`))" # substitute with your domain name
+      - "traefik.http.routers.dashboard-api.service=api@internal"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=ChristB:$$apr1$$vm92okl4$$Vf7kx6phmxN15utdqYa.b,bmalar:$$apr1$$390wxr2v$$CUaK9E5nCoacOOOLmP8Yh"
+      - "traefik.http.routers.dashboard-api.middlewares=dashboard-auth,redirect-dashboard"
+      - "traefik.http.routers.dashboard-api.entrypoints=websecure"
+
+      # Enable TLS for this router & use the 'myresolver' certificates resolver for obtaining SSL certificates
+      - "traefik.http.routers.dashboard-api.tls=true"
+      - "traefik.http.routers.dashboard-api.tls.certresolver=myresolver"
+
+      # Redirect /dashboard to /dashboard/
+      - "traefik.http.middlewares.redirect-dashboard.redirectregex.regex=^https?://(.*)/dashboard$$"
+      - "traefik.http.middlewares.redirect-dashboard.redirectregex.replacement=https://$$1/dashboard/"
+      - "traefik.http.middlewares.redirect-dashboard.redirectregex.permanent=true"
+
+volumes:
+  mongodb_data:
+
+networks:
+  diaspomoney:
+    driver: bridge
+    name: diaspomoney

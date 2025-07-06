@@ -1,5 +1,5 @@
 "use client";
-import { providers } from "@/lib/datas/providers";
+import { useProviders } from "@/hooks/data/useProviders";
 import {
   FiltersProps,
   ProviderCardProps,
@@ -25,6 +25,22 @@ const getAvailableServices = (providers: ProviderType[]) =>
   Array.from(
     new Set(
       providers.flatMap((provider) => provider.services.map((s) => s.name))
+    )
+  );
+
+const getCountries = (providers: ProviderType[]) =>
+  Array.from(
+    new Set(
+      providers
+        .map(
+          (provider) =>
+            provider.apiGeo &&
+            provider.apiGeo[0]?.display_name?.split(",").pop()?.trim()
+        )
+        .filter(
+          (country): country is string =>
+            typeof country === "string" && country.length > 0
+        )
     )
   );
 
@@ -110,14 +126,33 @@ function Filters({
   providerTypes,
   selectedTypes,
   setSelectedTypes,
+  selectedGroup,
+  setSelectedGroup,
   filters,
   setFilters,
   resetFilters,
-}: FiltersProps) {
+}: FiltersProps & {
+  selectedGroup: string;
+  setSelectedGroup: (value: string) => void;
+}) {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <h2 className="text-lg font-semibold mb-4">Filtres</h2>
       <div className="space-y-6">
+        {/* Types */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 mb-2">Types</h3>
+          <select
+            className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={selectedGroup}
+            onChange={(e) => setSelectedGroup(e.target.value)}
+          >
+            <option value="">Tous les types</option>
+            <option value="sante">Santé</option>
+            <option value="edu">Éducation</option>
+            <option value="immo">Immobilier</option>
+          </select>
+        </div>
         {/* Spécialité */}
         <div>
           <h3 className="text-sm font-medium text-gray-700 mb-2">Spécialité</h3>
@@ -299,6 +334,7 @@ function ProviderCard({ provider, onDetails }: ProviderCardProps) {
 // Main Page
 export default function SearchPage() {
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string>(""); // Nouveau état pour le groupe
   const [filterSpecialty, setFilterSpecialty] = useState<string>("");
   const [selectedService, setSelectedService] = useState<string>("");
   const [filters, setFilters] = useState({ priceMin: 0, priceMax: 500 });
@@ -308,114 +344,72 @@ export default function SearchPage() {
   const [selectedCity, setSelectedCity] = useState<string>("");
   const router = useRouter();
 
-  const specialties = useMemo(() => getUniqueSpecialties(providers), []);
-  const providerTypes = useMemo(() => getUniqueProviderTypes(providers), []);
-  const availableServices = useMemo(() => getAvailableServices(providers), []);
+  // Récupérer le type de service depuis l'URL
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const serviceType = urlParams.get("type");
+
+      if (serviceType) {
+        // Mapper les types de service vers les types de prestataires
+        const typeMapping: { [key: string]: string[] } = {
+          sante: ["1", "2", "3", "4"], // Clinique, Centre médical, Médecin, Hopital
+          education: ["5", "6", "7"], // École, Université, Formation
+          btp: ["8", "9", "10"], // Construction, Immobilier, Rénovation
+        };
+
+        const mappedTypes = typeMapping[serviceType] || [];
+        setSelectedTypes(mappedTypes);
+      }
+    }
+  }, []);
+
+  // Utiliser le hook pour récupérer les prestataires filtrés
+  const {
+    providers: filteredProviders,
+    loading,
+    error,
+  } = useProviders({
+    type: selectedTypes.join(","),
+    group: selectedGroup || undefined, // Ajouter le filtrage par groupe
+    specialty: filterSpecialty,
+    service: selectedService,
+    country: selectedCountry,
+    city: selectedCity,
+    priceMax: filters.priceMax,
+    sortBy:
+      sortBy === "Recommandés"
+        ? "recommended"
+        : sortBy === "Prix croissant"
+        ? "price_asc"
+        : sortBy === "Prix décroissant"
+        ? "price_desc"
+        : sortBy === "Meilleures évaluations"
+        ? "rating"
+        : "recommended",
+  });
+
+  // Utiliser le hook pour récupérer TOUS les prestataires (pour les options de filtres)
+  const { providers: allProviders } = useProviders({});
+
+  const specialties = useMemo(
+    () => getUniqueSpecialties(allProviders),
+    [allProviders]
+  );
+  const providerTypes = useMemo(
+    () => getUniqueProviderTypes(allProviders),
+    [allProviders]
+  );
+  const availableServices = useMemo(
+    () => getAvailableServices(allProviders),
+    [allProviders]
+  );
+  const countries = useMemo(() => getCountries(allProviders), [allProviders]);
   const itemsPerPage = 3;
 
-  // Pays dynamiques selon le service sélectionné
-  const countries = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          providers
-            .filter((provider) =>
-              selectedService === ""
-                ? true
-                : provider.services.some(
-                    (service) => service.name === selectedService
-                  )
-            )
-            .map(
-              (provider) =>
-                provider.apiGeo &&
-                provider.apiGeo[0]?.display_name?.split(",").pop()?.trim()
-            )
-            .filter(
-              (country): country is string =>
-                typeof country === "string" && country.length > 0
-            )
-        )
-      ),
-    [selectedService]
-  );
-
-  // Filtrage principal
-  const filteredProviders = useMemo(
-    () =>
-      providers.filter((p) => {
-        const matchType =
-          selectedTypes.length === 0 ||
-          selectedTypes.includes(p.type.id.toString());
-        const matchSpecialty =
-          !filterSpecialty || p.specialty === filterSpecialty;
-        const minPrice = Math.min(...p.services.map((s) => s.price));
-        const matchPrice = minPrice <= filters.priceMax;
-        const matchService =
-          !selectedService ||
-          p.services.some((service) => service.name === selectedService);
-        const matchCountry =
-          !selectedCountry ||
-          (p.apiGeo &&
-            p.apiGeo[0]?.display_name
-              ?.toLowerCase()
-              .includes(selectedCountry.toLowerCase()));
-        const matchCity =
-          !selectedCity ||
-          (p.apiGeo &&
-            p.apiGeo[0]?.display_name
-              ?.toLowerCase()
-              .includes(selectedCity.toLowerCase()));
-        return (
-          matchType &&
-          matchSpecialty &&
-          matchPrice &&
-          matchService &&
-          matchCountry &&
-          matchCity
-        );
-      }),
-    [
-      selectedTypes,
-      filterSpecialty,
-      filters.priceMax,
-      selectedService,
-      selectedCountry,
-      selectedCity,
-    ]
-  );
-
-  // Tri
-  const sortedProviders = useMemo(() => {
-    if (!sortBy || sortBy === "Recommandés") {
-      return [
-        ...filteredProviders.filter((p) => p.recommended),
-        ...filteredProviders.filter((p) => !p.recommended),
-      ];
-    }
-    if (sortBy === "Prix croissant") {
-      return [...filteredProviders].sort(
-        (a, b) =>
-          Math.min(...a.services.map((s) => s.price)) -
-          Math.min(...b.services.map((s) => s.price))
-      );
-    }
-    if (sortBy === "Prix décroissant") {
-      return [...filteredProviders].sort(
-        (a, b) =>
-          Math.max(...b.services.map((s) => s.price)) -
-          Math.max(...a.services.map((s) => s.price))
-      );
-    }
-    if (sortBy === "Meilleures évaluations") {
-      return [...filteredProviders].sort((a, b) => b.rating - a.rating);
-    }
-    return filteredProviders;
-  }, [filteredProviders, sortBy]);
-
   // Pagination
-  const totalPages = Math.ceil(sortedProviders.length / itemsPerPage);
-  const paginatedProviders = sortedProviders.slice(
+  const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);
+  const paginatedProviders = filteredProviders.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -426,6 +420,7 @@ export default function SearchPage() {
 
   const resetFilters = () => {
     setSelectedTypes([]);
+    setSelectedGroup(""); // Réinitialiser le groupe
     setFilterSpecialty("");
     setFilters({ priceMin: 0, priceMax: 500 });
     setCurrentPage(1);
@@ -434,7 +429,7 @@ export default function SearchPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterSpecialty, selectedTypes, filters.priceMax, sortBy]);
+  }, [filterSpecialty, selectedTypes, selectedGroup, filters.priceMax, sortBy]);
 
   return (
     <DefaultTemplate>
@@ -460,6 +455,8 @@ export default function SearchPage() {
                 providerTypes={providerTypes}
                 selectedTypes={selectedTypes}
                 setSelectedTypes={setSelectedTypes}
+                selectedGroup={selectedGroup}
+                setSelectedGroup={setSelectedGroup}
                 filters={filters}
                 setFilters={setFilters}
                 resetFilters={resetFilters}
@@ -469,7 +466,9 @@ export default function SearchPage() {
             <div className="lg:w-3/4">
               <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
                 <h2 className="text-xl font-bold mb-2 sm:mb-0">
-                  {sortedProviders.length} prestataires trouvés
+                  {loading
+                    ? "Chargement..."
+                    : `${filteredProviders.length} prestataires trouvés`}
                 </h2>
                 <div className="flex items-center">
                   <span className="text-gray-700 mr-2">Trier par:</span>
@@ -488,13 +487,26 @@ export default function SearchPage() {
                 </div>
               </div>
               <div className="space-y-6">
-                {paginatedProviders.map((provider) => (
-                  <ProviderCard
-                    key={provider.id}
-                    provider={provider}
-                    onDetails={() => router.push(`/provider/${provider.id}`)}
-                  />
-                ))}
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">
+                      Chargement des prestataires...
+                    </p>
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-8">
+                    <p className="text-red-600">Erreur: {error}</p>
+                  </div>
+                ) : (
+                  paginatedProviders.map((provider: ProviderType) => (
+                    <ProviderCard
+                      key={provider.id}
+                      provider={provider}
+                      onDetails={() => router.push(`/provider/${provider.id}`)}
+                    />
+                  ))
+                )}
               </div>
               {/* Pagination */}
               <div className="mt-8 flex justify-center">

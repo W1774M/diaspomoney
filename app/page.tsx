@@ -11,8 +11,8 @@ import {
 } from "lucide-react";
 
 import { ServicesButton } from "@/components/home/services-button";
-import { useRouter } from "next/navigation";
 import DefaultTemplate from "@/template/DefaultTemplate";
+import { useRouter } from "next/navigation";
 
 function Step({
   number,
@@ -38,8 +38,12 @@ function Step({
 export default function Homepage() {
   const router = useRouter();
 
-  function handleRedirect(path: string) {
-    router.push(path);
+  function handleRedirect(path: string, serviceType?: string) {
+    if (serviceType) {
+      router.push(`${path}?type=${serviceType}`);
+    } else {
+      router.push(path);
+    }
   }
 
   return (
@@ -61,12 +65,12 @@ export default function Homepage() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     className="bg-white text-black px-6 py-3 rounded-md font-semibold hover:bg-gray-100 transition flex items-center justify-center hover:cursor-pointer"
-                    onClick={() => handleRedirect("search")}
+                    onClick={() => handleRedirect("provider")}
                   >
                     Explorer les services
                     <ArrowRight size={18} className="ml-2" />
                   </button>
-                  <button className="border border-white text-white px-6 py-3 rounded-md font-semibold hover:bg-white/10 transition hover:cursor-pointer">
+                  <button className="bg-transparent border border-white text-white px-6 py-3 rounded-md font-semibold hover:bg-white hover:text-black transition hover:cursor-pointer">
                     Voir comment ça marche
                   </button>
                 </div>
@@ -79,21 +83,24 @@ export default function Homepage() {
                   <div className="grid grid-cols-1 gap-4">
                     <ServicesButton
                       setActiveView={handleRedirect}
-                      label="search"
+                      label="provider"
+                      serviceType="sante"
                       icon={<Hospital size={24} className="text-blue-600" />}
                       title="Santé"
                       description="Consultations, soins hospitaliers, médicaments"
                     />
                     <ServicesButton
                       setActiveView={handleRedirect}
-                      label="search"
+                      label="provider"
+                      serviceType="education"
                       icon={<School size={24} className="text-blue-600" />}
                       title="Éducation"
                       description="Frais de scolarité, fournitures, formations"
                     />
                     <ServicesButton
                       setActiveView={handleRedirect}
-                      label="search"
+                      label="provider"
+                      serviceType="btp"
                       icon={<Home size={24} className="text-blue-600" />}
                       title="Immobilier & BTP"
                       description="Construction, rénovation, achat de terrain"
