@@ -402,7 +402,7 @@ export interface ModalSelectServiceProps {
 export interface ModalPreviewProps {
   appointment: AppointmentData;
   paymentData: PaymentData;
-  setModalOpen?: (open: boolean) => void;
+  onFinalValidation?: () => void;
   setSteps?: (step: number) => void;
 }
 

@@ -39,7 +39,11 @@ const Hero = () => {
     }
   }, [currentIndex]);
 
-  const extendedItems = [heroData[heroData.length - 1], ...heroData, heroData[0]];
+  const extendedItems = [
+    heroData[heroData.length - 1],
+    ...heroData,
+    heroData[0],
+  ];
 
   return (
     <div className="relative w-full overflow-hidden">
@@ -53,13 +57,25 @@ const Hero = () => {
       >
         {extendedItems.map((item, index) => (
           <div
-            key={index}
+            key={`hero-slide-${index}`}
             className="flex-shrink-0 flex items-center justify-center w-full min-w-[300px] h-[400px] bg-gray-200 mx-2"
           >
             <div className="flex flex-row items-center w-full h-full">
-              <div style={{backgroundImage: `url('${item.imageUrl}')`, backgroundSize: "cover", backgroundRepeat: "no-repeat", overflow: "hidden"}} className="w-1/2 h-full"></div>
-              <div className={`w-1/2 h-full bg-[${item.bgColor}] flex items-center justify-center p-4`}>
-                <p className="text-lg font-bold">Text for Item {item.description}</p>
+              <div
+                style={{
+                  backgroundImage: `url('${item.imageUrl}')`,
+                  backgroundSize: "cover",
+                  backgroundRepeat: "no-repeat",
+                  overflow: "hidden",
+                }}
+                className="w-1/2 h-full"
+              ></div>
+              <div
+                className={`w-1/2 h-full bg-[${item.bgColor}] flex items-center justify-center p-4`}
+              >
+                <p className="text-lg font-bold">
+                  Text for Item {item.description}
+                </p>
               </div>
             </div>
           </div>

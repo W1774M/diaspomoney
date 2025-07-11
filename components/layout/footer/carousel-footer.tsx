@@ -1,8 +1,8 @@
 "use client";
 
+import { COUNTRIES } from "@/lib/datas/countries";
 import Image from "next/image";
 import { useState } from "react";
-import { COUNTRIES } from "@/lib/datas/countries";
 
 const VISIBLE_COUNT = 3; // On veut voir 2 images à la fois
 
@@ -61,7 +61,7 @@ const CarouselFooter = () => {
       >
         {images.map((image, index) => (
           <div
-            key={index}
+            key={`carousel-img-${index}`}
             className=""
             style={{
               flex: `0 0 ${100 / images.length}%`,

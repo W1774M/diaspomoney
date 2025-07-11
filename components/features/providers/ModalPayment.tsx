@@ -189,7 +189,7 @@ export const ModalPayment = ({
 
     console.log("Paiement effectué", { appointment, paymentData });
     setIsClosing(true);
-    setTimeout(() => setModalOpen?.(false), 300);
+    setTimeout(() => setSteps?.(2), 300);
   }, [
     appointment,
     paymentData,
@@ -197,7 +197,7 @@ export const ModalPayment = ({
     validateExpiryDate,
     validateCVV,
     validateCardholderName,
-    setModalOpen,
+    setSteps,
   ]);
 
   const handleBack = useCallback(() => {

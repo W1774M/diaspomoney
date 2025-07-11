@@ -16,7 +16,7 @@ const FooterLinks = ({
       </h4>
       <ul className="space-y-2">
         {links.map((link, index) => (
-          <li key={index}>
+          <li key={`footer-link-${index}`}>
             <Link
               href={link.href}
               className="text-gray-400 hover:text-white"

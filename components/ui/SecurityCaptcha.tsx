@@ -152,7 +152,7 @@ export function SecurityCaptcha({
           <div className="grid grid-cols-2 gap-3">
             {challenge.options.map((option, index) => (
               <button
-                key={index}
+                key={`captcha-option-${index}`}
                 type="button"
                 onClick={() => setUserAnswer(option.toString())}
                 className={`p-3 rounded-lg border-2 transition-all duration-200 ${

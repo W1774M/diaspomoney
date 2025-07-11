@@ -17,9 +17,16 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 const getUniqueSpecialties = (providers: Provider[]) =>
   [...new Set(providers.map((p) => p.specialty))].sort();
 
-const getUniqueProviderTypes = (providers: Provider[]): Provider["type"][] => [
-  ...new Set(providers.map((p) => p.type)),
-];
+const getUniqueProviderTypes = (providers: Provider[]): Provider["type"][] => {
+  const seen = new Set();
+  return providers
+    .map((p) => p.type)
+    .filter((type) => {
+      if (seen.has(type.id)) return false;
+      seen.add(type.id);
+      return true;
+    });
+};
 
 const getAvailableServices = (providers: Provider[]) =>
   providers
@@ -90,8 +97,8 @@ const SearchBar = React.memo(function SearchBar({
                 autoComplete="off"
               />
               <datalist id="services-list">
-                {availableServices.map((service, idx) => (
-                  <option key={idx} value={service} />
+                {availableServices.map((service) => (
+                  <option key={`service-${service}`} value={service} />
                 ))}
               </datalist>
             </div>
@@ -111,13 +118,11 @@ const SearchBar = React.memo(function SearchBar({
               />
               <datalist id="locations-list">
                 {countries.map((country, idx) => (
-                  <option key={country + idx} value={country} />
+                  <option key={`country-${country}`} value={country} />
                 ))}
-                {["Douala", "Yaoundé", "Bafoussam", "Garoua"].map(
-                  (city, idx) => (
-                    <option key={city + idx} value={city} />
-                  )
-                )}
+                {["Douala", "Yaoundé", "Bafoussam", "Garoua"].map((city) => (
+                  <option key={`city-${city}`} value={city} />
+                ))}
               </datalist>
             </div>
           </div>
@@ -196,8 +201,8 @@ const Filters = React.memo(function Filters({
             onChange={handleSpecialtyChange}
           >
             <option value="">Toutes les spécialités</option>
-            {specialties.map((specialty: string, index: number) => (
-              <option key={index} value={specialty}>
+            {specialties.map((specialty: string) => (
+              <option key={`specialty-${specialty}`} value={specialty}>
                 {specialty}
               </option>
             ))}
@@ -210,7 +215,10 @@ const Filters = React.memo(function Filters({
           </h3>
           <div className="space-y-2">
             {providerTypes.map((type) => (
-              <label key={type.id} className="flex items-center">
+              <label
+                key={`provider-type-key-${type.id}`}
+                className="flex items-center"
+              >
                 <input
                   type="checkbox"
                   className="rounded text-blue-600 focus:ring-blue-500"
@@ -288,7 +296,7 @@ function ProviderCard({ provider, onDetails }: ProviderCardProps) {
               <div className="flex items-center mr-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
-                    key={star}
+                    key={`star-key-${star}`}
                     size={16}
                     className={
                       star <= Math.floor(provider.rating)
@@ -323,7 +331,7 @@ function ProviderCard({ provider, onDetails }: ProviderCardProps) {
             <div className="flex flex-wrap gap-2">
               {provider.services.map((service: Service, index: number) => (
                 <span
-                  key={index}
+                  key={`service-${service.name}`}
                   className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
                 >
                   {service.name}
@@ -540,7 +548,7 @@ export default function SearchPage() {
                   </button>
                   {Array.from({ length: totalPages }, (_, i) => (
                     <button
-                      key={i + 1}
+                      key={`pagination-${i + 1}`}
                       className={`px-4 py-2 border rounded-md ${
                         currentPage === i + 1
                           ? "border-blue-600 bg-blue-600 text-white"

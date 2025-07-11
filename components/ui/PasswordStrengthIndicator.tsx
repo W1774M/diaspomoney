@@ -118,7 +118,10 @@ export function PasswordStrengthIndicator({
           </p>
           <div className="space-y-1">
             {requirements.map((requirement, index) => (
-              <div key={index} className="flex items-center space-x-2 text-sm">
+              <div
+                key={`requirement-${index}`}
+                className="flex items-center space-x-2 text-sm"
+              >
                 {requirement.met ? (
                   <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                 ) : (

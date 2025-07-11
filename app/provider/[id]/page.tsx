@@ -6,7 +6,7 @@ import { Clock, Euro, MapPin, Phone, Star } from "lucide-react";
 import { useSession } from "next-auth/react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 const ModalImage = dynamic(
   () =>
     import("@/components/features/providers/ModalImage").then(
@@ -43,10 +43,15 @@ const ModalSelectService = dynamic(
   { ssr: false }
 );
 
-export default function ProviderPage({ params }: { params: { id: string } }) {
+export default function ProviderPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = React.use(params);
   const { data: session, status } = useSession();
   // const router = useRouter();
-  const { provider, loading, error } = useProvider(params.id);
+  const { provider, loading, error } = useProvider(id);
 
   // Debug: afficher l'état de la session
   console.log("ProviderPage - Status:", status);
@@ -220,6 +225,28 @@ export default function ProviderPage({ params }: { params: { id: string } }) {
 
   // Gestionnaires optimisés
   const handleCloseModal = useCallback(() => {
+    // Vérifier si des données ont été saisies
+    const hasData =
+      appointment.selectedService ||
+      appointment.timeslot ||
+      appointment.requester.firstName ||
+      appointment.requester.lastName ||
+      appointment.requester.email ||
+      appointment.requester.phone ||
+      appointment.recipient.firstName ||
+      appointment.recipient.lastName ||
+      appointment.recipient.phone ||
+      paymentData.cardNumber ||
+      paymentData.expiryDate ||
+      paymentData.cvv ||
+      paymentData.cardholderName;
+
+    if (hasData) {
+      const confirmReset = window.confirm(
+        "Vous allez perdre toutes les données saisies. Voulez-vous vraiment annuler la réservation ?"
+      );
+      if (!confirmReset) return;
+    }
     setModalOpen(false);
     setSteps(0);
     // Réinitialiser les données par défaut avec pré-remplissage utilisateur si connecté
@@ -262,7 +289,7 @@ export default function ProviderPage({ params }: { params: { id: string } }) {
       cvv: "",
       cardholderName: "",
     });
-  }, [setAppointment, setPaymentData, session]);
+  }, [setAppointment, setPaymentData, session, appointment, paymentData]);
 
   const handleModalOpenChange = useCallback(
     (open: boolean) => {
@@ -536,7 +563,10 @@ export default function ProviderPage({ params }: { params: { id: string } }) {
               {/* Bouton de réservation */}
               <button
                 onClick={() => handleModalOpen()}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 hover:scale-[1.02] shadow-lg hover:shadow-xl cursor-pointer"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 hover:scale-[1.02] shadow-lg hover:shadow-xl cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={
+                  loading || !provider || !provider.id || !provider.name
+                }
               >
                 Prendre une réservation
               </button>
@@ -585,7 +615,7 @@ export default function ProviderPage({ params }: { params: { id: string } }) {
               <ModalPreview
                 appointment={appointment}
                 paymentData={paymentData}
-                setModalOpen={handleFinalValidation}
+                onFinalValidation={handleFinalValidation}
                 setSteps={handleModalSteps}
               />
             )}

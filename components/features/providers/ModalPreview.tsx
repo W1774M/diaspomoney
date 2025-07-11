@@ -5,12 +5,17 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAppointment } from "./AppointmentContext";
 
+export interface ModalPreviewPropsExtended
+  extends Omit<ModalPreviewProps, "setModalOpen"> {
+  onFinalValidation?: () => void;
+}
+
 export const ModalPreview = ({
   appointment,
   paymentData,
-  setModalOpen,
+  onFinalValidation,
   setSteps,
-}: ModalPreviewProps) => {
+}: ModalPreviewPropsExtended) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -31,6 +36,29 @@ export const ModalPreview = ({
     return appointment.selectedService?.price || 0;
   }, [appointment.selectedService]);
 
+  // Validation globale avant paiement
+  const isValid = useMemo(() => {
+    return (
+      appointment.selectedService &&
+      appointment.provider &&
+      appointment.provider.id &&
+      appointment.timeslot &&
+      appointment.requester.firstName &&
+      appointment.requester.lastName &&
+      appointment.requester.email &&
+      appointment.requester.phone &&
+      appointment.recipient.firstName &&
+      appointment.recipient.lastName &&
+      appointment.recipient.phone &&
+      paymentData.cardNumber &&
+      paymentData.expiryDate &&
+      paymentData.cvv &&
+      paymentData.cardholderName
+    );
+  }, [appointment, paymentData]);
+
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const { setData } = useAppointment();
   const router = useRouter();
 
@@ -43,8 +71,8 @@ export const ModalPreview = ({
   // Gestionnaires optimisés avec useCallback
   const handleClose = useCallback(() => {
     setIsClosing(true);
-    setTimeout(() => setModalOpen?.(false), 300);
-  }, [setModalOpen]);
+    setTimeout(() => onFinalValidation?.(), 300);
+  }, [onFinalValidation]);
 
   const handleBack = useCallback(() => {
     setIsClosing(true);
@@ -54,6 +82,13 @@ export const ModalPreview = ({
   }, [setSteps]);
 
   const handleConfirmPayment = useCallback(async () => {
+    if (!isValid) {
+      setErrorMsg(
+        "Veuillez remplir tous les champs obligatoires avant de confirmer le paiement."
+      );
+      return;
+    }
+    setErrorMsg(null);
     try {
       // Simulation d'un problème de paiement (à remplacer par votre logique réelle)
       const paymentSuccess = Math.random() > 0.3; // 70% de succès pour tester
@@ -83,7 +118,7 @@ export const ModalPreview = ({
         }
 
         setIsClosing(true);
-        setTimeout(() => setModalOpen?.(false), 300);
+        setTimeout(() => onFinalValidation?.(), 300);
         return;
       }
 
@@ -110,7 +145,7 @@ export const ModalPreview = ({
         `✅ Paiement effectué avec succès ! Un email de confirmation a été envoyé à contact@diaspomoney.fr et à votre adresse email. Numéro de réservation : ${result.reservationNumber}`
       );
       setIsClosing(true);
-      setTimeout(() => setModalOpen?.(false), 300);
+      setTimeout(() => onFinalValidation?.(), 300);
       setData(appointment);
       router.push("/login");
     } catch (err) {
@@ -139,7 +174,7 @@ export const ModalPreview = ({
         );
       }
     }
-  }, [appointment, paymentData, setModalOpen, router, setData]);
+  }, [appointment, paymentData, onFinalValidation, router, setData, isValid]);
 
   return (
     <div
@@ -339,12 +374,16 @@ export const ModalPreview = ({
             Retour
           </button>
           <button
-            className="px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-medium shadow-sm transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+            className="px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-medium shadow-sm transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleConfirmPayment}
+            disabled={!isValid}
           >
             Confirmer le paiement
           </button>
         </div>
+        {errorMsg && (
+          <div className="text-red-600 text-sm mt-2">{errorMsg}</div>
+        )}
       </div>
     </div>
   );
