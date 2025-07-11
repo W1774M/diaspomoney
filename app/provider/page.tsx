@@ -1,50 +1,44 @@
 "use client";
-import { useProviders } from "@/hooks/data/useProviders";
+import { useProviders } from "@/hooks/api";
 import {
   FiltersProps,
+  Provider,
   ProviderCardProps,
-  ProviderType,
   SearchBarProps,
+  Service,
 } from "@/lib/definitions";
 import DefaultTemplate from "@/template/DefaultTemplate";
 import { Clock, MapPin, Star } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-// Helpers
-const getUniqueSpecialties = (providers: ProviderType[]) =>
-  Array.from(new Set(providers.map((p) => p.specialty).filter(Boolean)));
+// Fonctions utilitaires pour extraire les données uniques
+const getUniqueSpecialties = (providers: Provider[]) =>
+  [...new Set(providers.map((p) => p.specialty))].sort();
 
-const getUniqueProviderTypes = (
-  providers: ProviderType[]
-): ProviderType["type"][] =>
-  Array.from(new Map(providers.map((p) => [p.type.id, p.type])).values());
+const getUniqueProviderTypes = (providers: Provider[]): Provider["type"][] => [
+  ...new Set(providers.map((p) => p.type)),
+];
 
-const getAvailableServices = (providers: ProviderType[]) =>
-  Array.from(
-    new Set(
-      providers.flatMap((provider) => provider.services.map((s) => s.name))
+const getAvailableServices = (providers: Provider[]) =>
+  providers
+    .flatMap((p) => p.services)
+    .filter(
+      (service, index, self) =>
+        index === self.findIndex((s) => s.name === service.name)
     )
-  );
+    .map((s) => s.name)
+    .sort();
 
-const getCountries = (providers: ProviderType[]) =>
-  Array.from(
-    new Set(
-      providers
-        .map(
-          (provider) =>
-            provider.apiGeo &&
-            provider.apiGeo[0]?.display_name?.split(",").pop()?.trim()
-        )
-        .filter(
-          (country): country is string =>
-            typeof country === "string" && country.length > 0
-        )
-    )
-  );
+const getCountries = (providers: Provider[]) =>
+  providers
+    .flatMap((p) => p.apiGeo)
+    .map((geo) => geo.name)
+    .filter((name, index, self) => self.indexOf(name) === index)
+    .sort();
 
-function SearchBar({
+const SearchBar = React.memo(function SearchBar({
   availableServices,
   selectedService,
   setSelectedService,
@@ -54,14 +48,31 @@ function SearchBar({
   selectedCity,
   setSelectedCity,
 }: SearchBarProps) {
+  const handleServiceChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSelectedService(e.target.value);
+    },
+    [setSelectedService]
+  );
+
+  const handleLocationChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSelectedCity(e.target.value);
+      setSelectedCountry(e.target.value);
+    },
+    [setSelectedCity, setSelectedCountry]
+  );
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+  }, []);
+
   return (
     <div className="bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] py-6">
       <div className="container mx-auto px-4">
         <form
           className="bg-white rounded-lg p-4 shadow-md"
-          onSubmit={(e) => {
-            e.preventDefault();
-          }}
+          onSubmit={handleSubmit}
         >
           <div className="flex flex-col md:flex-row gap-4">
             {/* Service Autocomplete */}
@@ -74,7 +85,7 @@ function SearchBar({
                 className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Rechercher un service..."
                 value={selectedService}
-                onChange={(e) => setSelectedService(e.target.value)}
+                onChange={handleServiceChange}
                 list="services-list"
                 autoComplete="off"
               />
@@ -94,10 +105,7 @@ function SearchBar({
                 className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Ville, pays..."
                 value={selectedCity || selectedCountry}
-                onChange={(e) => {
-                  setSelectedCity(e.target.value);
-                  setSelectedCountry(e.target.value);
-                }}
+                onChange={handleLocationChange}
                 list="locations-list"
                 autoComplete="off"
               />
@@ -117,9 +125,9 @@ function SearchBar({
       </div>
     </div>
   );
-}
+});
 
-function Filters({
+const Filters = React.memo(function Filters({
   specialties,
   filterSpecialty,
   setFilterSpecialty,
@@ -135,6 +143,32 @@ function Filters({
   selectedGroup: string;
   setSelectedGroup: (value: string) => void;
 }) {
+  const handleGroupChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setSelectedGroup(e.target.value);
+    },
+    [setSelectedGroup]
+  );
+
+  const handleSpecialtyChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setFilterSpecialty(e.target.value);
+    },
+    [setFilterSpecialty]
+  );
+
+  const handleTypeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { value, checked } = e.target;
+      if (checked) {
+        setSelectedTypes([...selectedTypes, value]);
+      } else {
+        setSelectedTypes(selectedTypes.filter((id) => id !== value));
+      }
+    },
+    [selectedTypes, setSelectedTypes]
+  );
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       <h2 className="text-lg font-semibold mb-4">Filtres</h2>
@@ -145,7 +179,7 @@ function Filters({
           <select
             className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={selectedGroup}
-            onChange={(e) => setSelectedGroup(e.target.value)}
+            onChange={handleGroupChange}
           >
             <option value="">Tous les types</option>
             <option value="sante">Santé</option>
@@ -159,7 +193,7 @@ function Filters({
           <select
             className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={filterSpecialty}
-            onChange={(e) => setFilterSpecialty(e.target.value)}
+            onChange={handleSpecialtyChange}
           >
             <option value="">Toutes les spécialités</option>
             {specialties.map((specialty: string, index: number) => (
@@ -182,16 +216,7 @@ function Filters({
                   className="rounded text-blue-600 focus:ring-blue-500"
                   value={type.id}
                   checked={selectedTypes.includes(type.id.toString())}
-                  onChange={(e) => {
-                    const { value, checked } = e.target;
-                    if (checked) {
-                      setSelectedTypes([...selectedTypes, value]);
-                    } else {
-                      setSelectedTypes(
-                        selectedTypes.filter((id) => id !== value)
-                      );
-                    }
-                  }}
+                  onChange={handleTypeChange}
                 />
                 <span className="ml-2 text-gray-700">{type.value}</span>
               </label>
@@ -233,7 +258,7 @@ function Filters({
       </div>
     </div>
   );
-}
+});
 
 function ProviderCard({ provider, onDetails }: ProviderCardProps) {
   return (
@@ -242,11 +267,13 @@ function ProviderCard({ provider, onDetails }: ProviderCardProps) {
         <div className="md:w-1/4">
           <Image
             src={provider.images[0]}
-            width={100}
-            height={50}
+            width={300}
+            height={200}
             alt={provider.name}
-            className="w-full h-full object-fit"
+            className="w-full h-48 md:h-full object-cover"
             loading="lazy"
+            placeholder="blur"
+            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
           />
         </div>
         <div className="p-6 md:w-3/4">
@@ -294,28 +321,21 @@ function ProviderCard({ provider, onDetails }: ProviderCardProps) {
           <div className="mb-4">
             <h4 className="font-medium mb-2">Services disponibles:</h4>
             <div className="flex flex-wrap gap-2">
-              {provider.services.map(
-                (service: { name: string; price: number }, index: number) => (
-                  <span
-                    key={index}
-                    className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
-                  >
-                    {service.name}
-                  </span>
-                )
-              )}
+              {provider.services.map((service: Service, index: number) => (
+                <span
+                  key={index}
+                  className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
+                >
+                  {service.name}
+                </span>
+              ))}
             </div>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 pt-4 border-t border-gray-100">
             <div className="mb-2 sm:mb-0">
               <span className="text-gray-500">Prix à partir de:</span>
               <span className="text-2xl font-bold text-blue-700 ml-2">
-                {Math.min(
-                  ...provider.services.map(
-                    (s: { name: string; price: number }) => s.price
-                  )
-                )}{" "}
-                €
+                {Math.min(...provider.services.map((s: Service) => s.price))} €
               </span>
             </div>
             <button
@@ -499,7 +519,7 @@ export default function SearchPage() {
                     <p className="text-red-600">Erreur: {error}</p>
                   </div>
                 ) : (
-                  paginatedProviders.map((provider: ProviderType) => (
+                  paginatedProviders.map((provider: Provider) => (
                     <ProviderCard
                       key={provider.id}
                       provider={provider}

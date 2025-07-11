@@ -13,36 +13,31 @@ import {
   Input,
 } from "@/components/ui";
 import { useForm } from "@/hooks/forms/useForm";
-import { useAuthStore } from "@/store/auth";
+import { loginSchema, type LoginFormData } from "@/lib/validations";
 import { useNotificationStore } from "@/store/notifications";
+import { signIn, useSession } from "next-auth/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { z } from "zod";
+import { useEffect, useState } from "react";
 
-const loginSchema = z.object({
-  email: z.string().email("Email invalide"),
-  password: z
-    .string()
-    .min(6, "Le mot de passe doit contenir au moins 6 caractères"),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: "easeOut" as const,
-    },
-  },
-};
+// const cardVariants = {
+//   hidden: { opacity: 0, y: 20 },
+//   visible: {
+//     opacity: 1,
+//     y: 0,
+//     transition: {
+//       duration: 0.5,
+//       ease: "easeOut" as const,
+//     },
+//   },
+// };
 
 export function LoginForm() {
   const router = useRouter();
-  const { login, isLoading, error, setError } = useAuthStore();
+  const { data: session, status } = useSession();
   const { addNotification } = useNotificationStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const {
     register,
@@ -56,25 +51,51 @@ export function LoginForm() {
     },
   });
 
-  const onSubmit = async (data: LoginFormData) => {
-    try {
-      await login(data.email, data.password);
-      addNotification({
-        type: "success",
-        message: "Connexion réussie !",
-        duration: 3000,
-      });
+  // Rediriger si déjà connecté
+  useEffect(() => {
+    if (status === "authenticated" && session) {
       router.push("/dashboard");
-    } catch (error) {
+    }
+  }, [status, session, router]);
+
+  const onSubmit = async (data: LoginFormData) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        if (result.error === "CredentialsSignin") {
+          setError("Email ou mot de passe incorrect");
+        } else {
+          setError("Erreur lors de la connexion");
+        }
+        addNotification({
+          type: "error",
+          message: "Email ou mot de passe incorrect",
+          duration: 5000,
+        });
+      } else {
+        addNotification({
+          type: "success",
+          message: "Connexion réussie !",
+          duration: 3000,
+        });
+        router.push("/dashboard");
+      }
+    } catch {
+      setError("Une erreur est survenue");
       addNotification({
         type: "error",
-        message:
-          error instanceof Error ? error.message : "Une erreur est survenue",
-        duration: 5000,
+        message: "Erreur lors de la connexion. Veuillez réessayer.",
       });
-      setError(
-        error instanceof Error ? error.message : "Une erreur est survenue"
-      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -107,13 +128,37 @@ export function LoginForm() {
                 placeholder="••••••••"
               />
             </FormField>
-            {error && <p className="text-sm text-destructive mt-2">{error}</p>}
+            <div className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
+              >
+                Mot de passe oublié ?
+              </Link>
+            </div>
+            {error && (
+              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-600">
+                  {error}
+                  {error.includes("Aucun compte trouvé") && (
+                    <span className="block mt-1">
+                      <a
+                        href="/register"
+                        className="text-blue-600 hover:underline font-medium"
+                      >
+                        Cliquez ici pour vous inscrire
+                      </a>
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
             <Button
               type="submit"
-              className="w-full bg-blue-400 hover:bg-blue-600 cursor-pointer"
-              isLoading={isLoading}
+              className="w-full bg-blue-400 hover:bg-blue-600 cursor-pointer mt-4"
+              disabled={isLoading}
             >
-              Se connecter
+              {isLoading ? "Connexion en cours..." : "Se connecter"}
             </Button>
           </Form>
         </CardContent>

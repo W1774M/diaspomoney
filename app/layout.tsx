@@ -1,16 +1,19 @@
-import { AuthProvider } from "@/components/providers/AuthProvider";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import {
+  AppointmentProvider,
+  AuthProvider,
+  ThemeProvider,
+} from "@/components/features/providers";
 import { NotificationContainer } from "@/components/ui/Notification";
 import "@/styles/globals.css";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 
-const geistSans = Geist({
+const geistSans = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
+const geistMono = Inter({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
@@ -31,10 +34,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <ThemeProvider>
-            {children}
-            <NotificationContainer />
-          </ThemeProvider>
+          <AppointmentProvider>
+            <ThemeProvider>
+              {children}
+              <NotificationContainer />
+            </ThemeProvider>
+          </AppointmentProvider>
         </AuthProvider>
       </body>
     </html>

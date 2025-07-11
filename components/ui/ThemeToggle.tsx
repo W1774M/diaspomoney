@@ -1,4 +1,4 @@
-import { useTheme } from "@/components/providers/ThemeProvider";
+import { useTheme } from "@/components/features/providers";
 import { motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "./Button";

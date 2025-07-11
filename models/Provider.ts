@@ -1,68 +1,19 @@
-import mongoose, { Document, Schema } from "mongoose";
+import { ApiGeo, Provider, ProviderType, Service } from "@/lib/definitions";
+import mongoose, { Schema } from "mongoose";
 
-export interface IService {
-  id?: number;
-  name: string;
-  price: number;
-}
-
-export interface IProviderType {
-  id: string | number;
-  value: string;
-  group: string; // sante, edu, immo
-}
-
-export interface IApiGeo {
-  place_id: number;
-  licence: string;
-  osm_type: string;
-  osm_id: number;
-  lat: string;
-  lon: string;
-  class: string;
-  type: string;
-  place_rank: number;
-  importance: number;
-  addresstype: string;
-  name: string;
-  display_name: string;
-  boundingbox: string[];
-}
-
-export interface IProvider extends Document {
-  id: string | number;
-  name: string;
-  type: IProviderType;
-  specialty: string;
-  recommended: boolean;
-  apiGeo: IApiGeo[];
-  images: string[];
-  rating: number;
-  reviews?: number;
-  distance?: string;
-  services: IService[];
-  description: string;
-  phone: string;
-  email: string;
-  website: string;
-  availabilities: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const ServiceSchema = new Schema<IService>({
+const ServiceSchema = new Schema<Service>({
   id: { type: Number, required: false },
   name: { type: String, required: true },
   price: { type: Number, required: true },
 });
 
-const ProviderTypeSchema = new Schema<IProviderType>({
+const ProviderTypeSchema = new Schema<ProviderType>({
   id: { type: Schema.Types.Mixed, required: true }, // string | number
   value: { type: String, required: true },
   group: { type: String, required: true, enum: ["sante", "edu", "immo"] }, // sante, edu, immo
 });
 
-const ApiGeoSchema = new Schema<IApiGeo>({
+const ApiGeoSchema = new Schema<ApiGeo>({
   place_id: { type: Number, required: true },
   licence: { type: String, required: true },
   osm_type: { type: String, required: true },
@@ -79,7 +30,7 @@ const ApiGeoSchema = new Schema<IApiGeo>({
   boundingbox: [{ type: String }],
 });
 
-const ProviderSchema = new Schema<IProvider>(
+const ProviderSchema = new Schema<Provider>(
   {
     id: { type: Schema.Types.Mixed, required: true, unique: true }, // string | number
     name: { type: String, required: true },
@@ -110,4 +61,4 @@ ProviderSchema.index({ recommended: 1 });
 ProviderSchema.index({ rating: -1 });
 
 export default mongoose.models.Provider ||
-  mongoose.model<IProvider>("Provider", ProviderSchema);
+  mongoose.model<Provider>("Provider", ProviderSchema);

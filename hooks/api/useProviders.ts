@@ -1,39 +1,34 @@
-import { ProviderType } from "@/lib/definitions";
-import { useEffect, useState } from "react";
+import {
+  Provider,
+  UseProvidersOptions,
+  UseProvidersReturn,
+} from "@/lib/definitions";
+import { useEffect, useRef, useState } from "react";
 
-interface UseProvidersOptions {
-  type?: string;
-  group?: string; // Nouveau paramètre pour le groupe
-  specialty?: string;
-  service?: string;
-  country?: string;
-  city?: string;
-  priceMax?: number;
-  recommended?: boolean;
-  sortBy?: string;
-}
+// Cache mémoire simple (clé = JSON.stringify des options)
+const providersCache: Record<string, Provider[]> = {};
 
-interface UseProvidersReturn {
-  providers: ProviderType[];
-  loading: boolean;
-  error: string | null;
-  refetch: () => void;
+function debounce<T extends (...args: any[]) => void>(fn: T, delay: number) {
+  let timer: ReturnType<typeof setTimeout>;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
 }
 
 export function useProviders(
   options: UseProvidersOptions = {}
 ): UseProvidersReturn {
-  const [providers, setProviders] = useState<ProviderType[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchProviders = async () => {
     try {
       setLoading(true);
       setError(null);
-
       const params = new URLSearchParams();
-
       if (options.type) params.append("type", options.type);
       if (options.group) params.append("group", options.group);
       if (options.specialty) params.append("specialty", options.specialty);
@@ -44,17 +39,20 @@ export function useProviders(
         params.append("priceMax", options.priceMax.toString());
       if (options.recommended) params.append("recommended", "true");
       if (options.sortBy) params.append("sortBy", options.sortBy);
-
+      const cacheKey = params.toString();
+      if (providersCache[cacheKey]) {
+        setProviders(providersCache[cacheKey]);
+        setLoading(false);
+        return;
+      }
       const response = await fetch(`/api/providers?${params.toString()}`);
-
       if (!response.ok) {
         throw new Error("Erreur lors de la récupération des prestataires");
       }
-
       const data = await response.json();
-
       if (data.success) {
         setProviders(data.data);
+        providersCache[cacheKey] = data.data;
       } else {
         throw new Error(data.error || "Erreur inconnue");
       }
@@ -66,8 +64,16 @@ export function useProviders(
     }
   };
 
+  // Debounce sur les changements d'options
   useEffect(() => {
-    fetchProviders();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchProviders();
+    }, 350);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     options.type,
     options.group,

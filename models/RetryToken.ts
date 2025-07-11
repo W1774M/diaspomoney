@@ -1,14 +1,7 @@
-import mongoose, { Document, Schema } from "mongoose";
+import { RetryToken } from "@/lib/definitions";
+import mongoose, { Schema } from "mongoose";
 
-export interface IRetryToken extends Document {
-  token: string;
-  appointmentId: string;
-  expiresAt: Date;
-  used: boolean;
-  createdAt: Date;
-}
-
-const RetryTokenSchema = new Schema<IRetryToken>(
+const RetryTokenSchema = new Schema<RetryToken>(
   {
     token: {
       type: String,
@@ -39,4 +32,4 @@ RetryTokenSchema.index({ token: 1 });
 RetryTokenSchema.index({ appointmentId: 1 });
 
 export default mongoose.models.RetryToken ||
-  mongoose.model<IRetryToken>("RetryToken", RetryTokenSchema);
+  mongoose.model<RetryToken>("RetryToken", RetryTokenSchema);

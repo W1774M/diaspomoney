@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get("sortBy") || "recommended";
 
     // Construire le filtre
-    const filter: any = {};
+    const filter: Record<string, unknown> = {};
 
     if (type) {
       const typeIds = type.split(",");
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Construire le tri
-    let sort: any = {};
+    let sort: Record<string, 1 | -1> = {};
     switch (sortBy) {
       case "rating":
         sort = { rating: -1 };

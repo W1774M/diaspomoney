@@ -1,5 +1,5 @@
 import { config } from "@/config/env";
-import { ApiError, ApiResponse } from "@/types/api";
+import { ApiError, ApiResponse } from "@/lib/definitions";
 
 class ApiClient {
   private baseUrl: string;

@@ -1,12 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UseFormProps, useForm as useHookForm } from "react-hook-form";
-import { z } from "zod";
+import { z, ZodTypeAny } from "zod";
 
-export function useForm<T extends z.AnyZodObject>({
+export function useForm<TSchema extends ZodTypeAny>({
   schema,
   ...props
-}: UseFormProps<z.infer<T>> & { schema: T }) {
-  return useHookForm<z.infer<T>>({
+}: UseFormProps<z.infer<TSchema>> & { schema: TSchema }) {
+  return useHookForm<z.infer<TSchema>>({
     resolver: zodResolver(schema),
     ...props,
   });

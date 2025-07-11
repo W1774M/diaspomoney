@@ -1,15 +1,8 @@
-import { ProviderType } from "@/lib/definitions";
+import { Provider, UseProviderReturn } from "@/lib/definitions";
 import { useEffect, useState } from "react";
 
-interface UseProviderReturn {
-  provider: ProviderType | null;
-  loading: boolean;
-  error: string | null;
-  refetch: () => void;
-}
-
 export function useProvider(id: string | number): UseProviderReturn {
-  const [provider, setProvider] = useState<ProviderType | null>(null);
+  const [provider, setProvider] = useState<Provider | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

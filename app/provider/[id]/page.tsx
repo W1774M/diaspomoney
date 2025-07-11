@@ -1,93 +1,174 @@
 "use client";
-import { ModalImage } from "@/components/providers/ModalImage";
-import { ModalIndicator } from "@/components/providers/ModalIndicateur";
-import { ModalPayment } from "@/components/providers/ModalPayment";
-import { ModalPreview } from "@/components/providers/ModalPreview";
-import { ModalSelectService as Modal } from "@/components/providers/Modals";
-import { useProvider } from "@/hooks/data/useProvider";
-import { AppointmentInterface, paymentDataInterface } from "@/lib/definitions";
+import { useProvider } from "@/hooks/api";
+import { AppointmentData, PaymentData, ProviderGroup } from "@/lib/definitions";
 import DefaultTemplate from "@/template/DefaultTemplate";
 import { Clock, Euro, MapPin, Phone, Star } from "lucide-react";
+import { useSession } from "next-auth/react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+const ModalImage = dynamic(
+  () =>
+    import("@/components/features/providers/ModalImage").then(
+      (mod) => mod.ModalImage
+    ),
+  { ssr: false }
+);
+const ModalIndicator = dynamic(
+  () =>
+    import("@/components/features/providers/ModalIndicateur").then(
+      (mod) => mod.ModalIndicator
+    ),
+  { ssr: false }
+);
+const ModalPayment = dynamic(
+  () =>
+    import("@/components/features/providers/ModalPayment").then(
+      (mod) => mod.ModalPayment
+    ),
+  { ssr: false }
+);
+const ModalPreview = dynamic(
+  () =>
+    import("@/components/features/providers/ModalPreview").then(
+      (mod) => mod.ModalPreview
+    ),
+  { ssr: false }
+);
+const ModalSelectService = dynamic(
+  () =>
+    import("@/components/features/providers/Modals").then(
+      (mod) => mod.ModalSelectService
+    ),
+  { ssr: false }
+);
 
-export default function ProviderPage() {
-  const params = useParams();
-  const providerId = params?.id?.[0];
+export default function ProviderPage({ params }: { params: { id: string } }) {
+  const { data: session, status } = useSession();
+  // const router = useRouter();
+  const { provider, loading, error } = useProvider(params.id);
+
+  // Debug: afficher l'état de la session
+  console.log("ProviderPage - Status:", status);
+  console.log("ProviderPage - Session:", session);
 
   // États optimisés avec useMemo pour éviter les recalculs inutiles
   const [openImg, setOpenImg] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [steps, setSteps] = useState(0);
-  const [retryToken, setRetryToken] = useState<string | null>(null);
-  const [retryExpires, setRetryExpires] = useState<string | null>(null);
 
-  // Utiliser le hook pour récupérer le prestataire
-  const { provider, loading, error } = useProvider(providerId || "");
-
-  // État initial optimisé
-  const [appointment, setAppointment] = useState<AppointmentInterface>(() => ({
+  // État pour les données de réservation
+  const [appointment, setAppointment] = useState<AppointmentData>(() => ({
     requester: {
-      firstName: "",
-      lastName: "",
-      phone: "",
-      email: "",
+      firstName: (session?.user as { firstName?: string })?.firstName || "",
+      lastName: (session?.user as { lastName?: string })?.lastName || "",
+      phone: (session?.user as { phone?: string })?.phone || "",
+      email: session?.user?.email || "",
     },
     recipient: {
       firstName: "",
       lastName: "",
       phone: "",
     },
-    provider: {
-      id: 1,
+    provider: provider || {
+      id: "",
       name: "",
-      services: [],
-      type: { id: "", value: "" },
+      type: { id: "", value: "", group: "sante" as const },
       specialty: "",
       recommended: false,
       apiGeo: [],
       images: [],
       rating: 0,
+      services: [],
+      description: "",
+      phone: "",
+      email: "",
+      website: "",
+      availabilities: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
     selectedService: null,
     timeslot: "",
   }));
 
-  const [paymentData, setPaymentData] = useState<paymentDataInterface>({
+  // État pour les données de paiement
+  const [paymentData, setPaymentData] = useState<PaymentData>({
     cardNumber: "",
     expiryDate: "",
     cvv: "",
     cardholderName: "",
   });
 
-  // Fonction optimisée avec useCallback
+  // Mettre à jour les données de l'utilisateur connecté
+  useEffect(() => {
+    if (session?.user) {
+      console.log("Session utilisateur détectée:", session.user);
+      const firstName =
+        (session.user as { firstName?: string })?.firstName ||
+        session.user.name?.split(" ")[0] ||
+        "";
+      const lastName =
+        (session.user as { lastName?: string })?.lastName ||
+        session.user.name?.split(" ").slice(1).join(" ") ||
+        "";
+      const email = session.user.email || "";
+
+      console.log("Données extraites:", { firstName, lastName, email });
+
+      setAppointment((prev) => ({
+        ...prev,
+        requester: {
+          ...prev.requester,
+          firstName,
+          lastName,
+          email,
+        },
+      }));
+    }
+  }, [session]);
+
+  // Mettre à jour les données utilisateur au montage si la session est déjà disponible
+  useEffect(() => {
+    if (
+      session?.user &&
+      !appointment.requester.firstName &&
+      !appointment.requester.email
+    ) {
+      console.log("Initialisation des données utilisateur au montage");
+      const firstName =
+        (session.user as { firstName?: string })?.firstName ||
+        session.user.name?.split(" ")[0] ||
+        "";
+      const lastName =
+        (session.user as { lastName?: string })?.lastName ||
+        session.user.name?.split(" ").slice(1).join(" ") ||
+        "";
+      const email = session.user.email || "";
+
+      setAppointment((prev) => ({
+        ...prev,
+        requester: {
+          ...prev.requester,
+          firstName,
+          lastName,
+          email,
+        },
+      }));
+    }
+  }, [session, appointment.requester.firstName, appointment.requester.email]);
+
+  // Fonction pour ouvrir le modal
   const handleModalOpen = useCallback(() => {
     setModalOpen(true);
   }, [setModalOpen]);
 
-  // Mise à jour du provider optimisée
+  // Mettre à jour le provider dans l'appointment quand il est chargé
   useEffect(() => {
     if (provider) {
       setAppointment((prev) => ({
         ...prev,
-        provider: {
-          id: provider.id,
-          name: provider.name,
-          services: provider.services.map((service: any, index: number) => ({
-            id: index + 1,
-            name: service.name,
-            price: service.price,
-          })),
-          type: provider.type,
-          specialty: provider.specialty,
-          recommended: provider.recommended,
-          apiGeo: provider.apiGeo,
-          images: provider.images,
-          rating: provider.rating,
-          reviews: provider.reviews || 0,
-          distance: provider.distance || "",
-        },
+        provider,
       }));
     }
   }, [provider]);
@@ -100,9 +181,6 @@ export default function ProviderPage() {
       const expires = urlParams.get("expires");
 
       if (retry && expires) {
-        setRetryToken(retry);
-        setRetryExpires(expires);
-
         // Valider le token de retry
         const validateRetryToken = async () => {
           try {
@@ -144,13 +222,13 @@ export default function ProviderPage() {
   const handleCloseModal = useCallback(() => {
     setModalOpen(false);
     setSteps(0);
-    // Réinitialiser les données par défaut
+    // Réinitialiser les données par défaut avec pré-remplissage utilisateur si connecté
     setAppointment({
       requester: {
-        firstName: "",
-        lastName: "",
+        firstName: session?.user?.name?.split(" ")[0] || "",
+        lastName: session?.user?.name?.split(" ").slice(1).join(" ") || "",
         phone: "",
-        email: "",
+        email: session?.user?.email || "",
       },
       recipient: {
         firstName: "",
@@ -161,12 +239,19 @@ export default function ProviderPage() {
         id: 1,
         name: "",
         services: [],
-        type: { id: "", value: "" },
+        type: { id: "", value: "", group: "sante" as const },
         specialty: "",
         recommended: false,
         apiGeo: [],
         images: [],
         rating: 0,
+        description: "",
+        phone: "",
+        email: "",
+        website: "",
+        availabilities: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
       selectedService: null,
       timeslot: "",
@@ -177,7 +262,7 @@ export default function ProviderPage() {
       cvv: "",
       cardholderName: "",
     });
-  }, [setAppointment, setPaymentData]);
+  }, [setAppointment, setPaymentData, session]);
 
   const handleModalOpenChange = useCallback(
     (open: boolean) => {
@@ -195,13 +280,13 @@ export default function ProviderPage() {
     // Fermer le modal et réinitialiser tout
     setModalOpen(false);
     setSteps(0);
-    // Réinitialiser les données par défaut mais garder le prestataire actuel
+    // Réinitialiser les données par défaut mais garder le prestataire actuel avec pré-remplissage utilisateur
     setAppointment({
       requester: {
-        firstName: "",
-        lastName: "",
+        firstName: session?.user?.name?.split(" ")[0] || "",
+        lastName: session?.user?.name?.split(" ").slice(1).join(" ") || "",
         phone: "",
-        email: "",
+        email: session?.user?.email || "",
       },
       recipient: {
         firstName: "",
@@ -212,12 +297,23 @@ export default function ProviderPage() {
         id: 1,
         name: "",
         services: [],
-        type: { id: "", value: "" },
+        type: {
+          id: "",
+          value: "",
+          group: undefined as unknown as ProviderGroup,
+        },
         specialty: "",
         recommended: false,
         apiGeo: [],
         images: [],
         rating: 0,
+        description: "",
+        phone: "",
+        email: "",
+        website: "",
+        availabilities: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       }, // Garder le prestataire actuel ou utiliser un fallback
       selectedService: null,
       timeslot: "",
@@ -228,7 +324,7 @@ export default function ProviderPage() {
       cvv: "",
       cardholderName: "",
     });
-  }, [setAppointment, setPaymentData, provider]);
+  }, [setAppointment, setPaymentData, provider, session]);
 
   // Gestionnaire d'image optimisé
   const handleImageClick = useCallback((imageUrl: string) => {
@@ -357,19 +453,21 @@ export default function ProviderPage() {
                   Services proposés
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {provider.services.map((service: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="service-card flex justify-between bg-gray-50 rounded-lg p-4 border border-blue-300"
-                    >
-                      <h3 className="font-semibold text-gray-800">
-                        {service.name}
-                      </h3>
-                      <span className="text-blue-600 font-bold">
-                        {service.price} €
-                      </span>
-                    </div>
-                  ))}
+                  {provider.services.map(
+                    (service: { name: string; price: number }, idx: number) => (
+                      <div
+                        key={idx}
+                        className="service-card flex justify-between bg-gray-50 rounded-lg p-4 border border-blue-300"
+                      >
+                        <h3 className="font-semibold text-gray-800">
+                          {service.name}
+                        </h3>
+                        <span className="text-blue-600 font-bold">
+                          {service.price} €
+                        </span>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
 
@@ -423,7 +521,7 @@ export default function ProviderPage() {
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-gray-600" />
                     <span className="text-gray-700">
-                      Horaires d'ouverture disponibles
+                      Horaires d&apos;ouverture disponibles
                     </span>
                   </div>
                 </div>
@@ -466,7 +564,7 @@ export default function ProviderPage() {
         {modalOpen && (
           <>
             {steps === 0 && (
-              <Modal
+              <ModalSelectService
                 appointment={appointment}
                 setAppointment={setAppointment}
                 setModalOpen={handleModalOpenChange}

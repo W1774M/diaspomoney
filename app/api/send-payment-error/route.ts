@@ -18,7 +18,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // Fonction pour générer un token de retry valide 15 minutes
-const generateRetryToken = (appointmentId: string) => {
+const generateRetryToken = () => {
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
   return { token, expiresAt };
@@ -59,9 +59,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Génération du token de retry
-    const { token, expiresAt } = generateRetryToken(
-      appointment.provider.id.toString()
-    );
+    const { token, expiresAt } = generateRetryToken();
 
     // URL de retry (à adapter selon votre structure)
     const retryUrl = `${

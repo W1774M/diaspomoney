@@ -1,0 +1,105 @@
+import { connectDatabase } from "@/config/database";
+import { sendEmailVerification } from "@/lib/email";
+import EmailVerificationToken from "@/models/EmailVerificationToken";
+import User from "@/models/User";
+import crypto from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(request: NextRequest) {
+  try {
+    // Connexion à la base de données
+    await connectDatabase();
+
+    // Récupération des données du body
+    const { firstName, lastName, email, password, phone } =
+      await request.json();
+
+    // Validation des données
+    if (!firstName || !lastName || !email || !password) {
+      return NextResponse.json(
+        { error: "Tous les champs obligatoires doivent être remplis" },
+        { status: 400 }
+      );
+    }
+
+    // Vérification de la longueur du mot de passe
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: "Le mot de passe doit contenir au moins 6 caractères" },
+        { status: 400 }
+      );
+    }
+
+    // Vérification si l'utilisateur existe déjà
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "Un compte avec cet email existe déjà" },
+        { status: 409 }
+      );
+    }
+
+    // Création du nouvel utilisateur
+    const newUser = new User({
+      firstName,
+      lastName,
+      email: email.toLowerCase(),
+      password,
+      phone,
+      role: "user",
+      isEmailVerified: false,
+    });
+
+    // Sauvegarde de l'utilisateur
+    await newUser.save();
+
+    // Générer un token de vérification d'email
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 heures
+
+    // Sauvegarder le token
+    const emailToken = new EmailVerificationToken({
+      email: email.toLowerCase(),
+      token: verificationToken,
+      expiresAt,
+    });
+    await emailToken.save();
+
+    // Envoyer l'email de vérification
+    try {
+      await sendEmailVerification(email, verificationToken, firstName);
+    } catch (emailError) {
+      console.error("Erreur envoi email de vérification:", emailError);
+      // Ne pas bloquer l'inscription si l'email échoue
+    }
+
+    // Retourner les informations de l'utilisateur (sans le mot de passe)
+    const userResponse = {
+      id: newUser._id,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
+      email: newUser.email,
+      phone: newUser.phone,
+      role: newUser.role,
+      isEmailVerified: newUser.isEmailVerified,
+      createdAt: newUser.createdAt,
+    };
+
+    return NextResponse.json(
+      {
+        success: true,
+        user: userResponse,
+        message:
+          "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Erreur lors de l'inscription:", error);
+    return NextResponse.json(
+      { error: "Erreur interne du serveur" },
+      { status: 500 }
+    );
+  }
+}

@@ -1,64 +1,7 @@
-import mongoose, { Document, Schema } from "mongoose";
+import { Appointment } from "@/lib/definitions";
+import mongoose, { Schema } from "mongoose";
 
-export interface IAppointment extends Document {
-  reservationNumber: string;
-  requester: {
-    firstName: string;
-    lastName: string;
-    phone: string;
-    email: string;
-  };
-  recipient: {
-    firstName: string;
-    lastName: string;
-    phone: string;
-  };
-  provider: {
-    id: string | number;
-    name: string;
-    services: Array<{
-      id?: number;
-      name: string;
-      price: number;
-    }>;
-    type: { id: string | number; value: string };
-    specialty: string;
-    recommended: boolean;
-    apiGeo: Array<{
-      place_id: number;
-      licence: string;
-      osm_type: string;
-      osm_id: number;
-      lat: string;
-      lon: string;
-      class: string;
-      type: string;
-      place_rank: number;
-      importance: number;
-      addresstype: string;
-      name: string;
-      display_name: string;
-      boundingbox: string[];
-    }>;
-    images: string[];
-    rating: number;
-    reviews?: number;
-    distance?: string;
-  };
-  selectedService: {
-    id?: number;
-    name: string;
-    price: number;
-  } | null;
-  timeslot: string;
-  status: "pending" | "confirmed" | "cancelled" | "completed";
-  paymentStatus: "pending" | "paid" | "failed" | "refunded";
-  totalAmount: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const AppointmentSchema = new Schema<IAppointment>(
+const AppointmentSchema = new Schema<Appointment>(
   {
     reservationNumber: {
       type: String,
@@ -89,6 +32,7 @@ const AppointmentSchema = new Schema<IAppointment>(
       type: {
         id: { type: Schema.Types.Mixed, required: true },
         value: { type: String, required: true },
+        group: { type: String, required: true },
       },
       specialty: { type: String, required: true },
       recommended: { type: Boolean, required: true },
@@ -146,4 +90,4 @@ AppointmentSchema.index({ paymentStatus: 1 });
 AppointmentSchema.index({ createdAt: -1 });
 
 export default mongoose.models.Appointment ||
-  mongoose.model<IAppointment>("Appointment", AppointmentSchema);
+  mongoose.model<Appointment>("Appointment", AppointmentSchema);

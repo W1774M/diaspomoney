@@ -10,7 +10,7 @@ import {
   School,
 } from "lucide-react";
 
-import { ServicesButton } from "@/components/home/services-button";
+import { ServicesButton } from "@/components/features/providers/services-button";
 import DefaultTemplate from "@/template/DefaultTemplate";
 import { useRouter } from "next/navigation";
 

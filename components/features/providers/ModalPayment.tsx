@@ -1,17 +1,12 @@
 "use client";
-import { AppointmentInterface, paymentDataInterface } from "@/lib/definitions";
+import { ModalPaymentProps, PaymentData } from "@/lib/definitions";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-interface ModalPaymentProps {
-  appointment: AppointmentInterface;
-  paymentData: paymentDataInterface;
+interface ModalPaymentPropsExtended extends ModalPaymentProps {
+  paymentData: PaymentData;
   setPaymentData: (
-    paymentData:
-      | paymentDataInterface
-      | ((prev: paymentDataInterface) => paymentDataInterface)
+    paymentData: PaymentData | ((prev: PaymentData) => PaymentData)
   ) => void;
-  setModalOpen?: (open: boolean) => void;
-  setSteps?: (step: number) => void;
 }
 
 export const ModalPayment = ({
@@ -20,7 +15,7 @@ export const ModalPayment = ({
   setPaymentData,
   setModalOpen,
   setSteps,
-}: ModalPaymentProps) => {
+}: ModalPaymentPropsExtended) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -156,7 +151,7 @@ export const ModalPayment = ({
           break;
       }
 
-      setPaymentData((prev: paymentDataInterface) => ({
+      setPaymentData((prev: PaymentData) => ({
         ...prev,
         [name]: processedValue,
       }));
@@ -178,7 +173,7 @@ export const ModalPayment = ({
     }
 
     if (!isExpiryDateValid) {
-      alert("Veuillez saisir une date d'expiration valide (format MM/AA)");
+      alert("Veuillez saisir une date d&apos;expiration valide (format MM/AA)");
       return;
     }
 
@@ -194,17 +189,15 @@ export const ModalPayment = ({
 
     console.log("Paiement effectué", { appointment, paymentData });
     setIsClosing(true);
-    setTimeout(() => {
-      if (setSteps) setSteps(2);
-    }, 300);
+    setTimeout(() => setModalOpen?.(false), 300);
   }, [
-    paymentData,
     appointment,
+    paymentData,
     validateCardNumber,
     validateExpiryDate,
     validateCVV,
     validateCardholderName,
-    setSteps,
+    setModalOpen,
   ]);
 
   const handleBack = useCallback(() => {
@@ -217,7 +210,7 @@ export const ModalPayment = ({
 
   // Fonction pour obtenir la classe CSS d'un champ
   const getFieldClassName = useCallback(
-    (fieldName: keyof paymentDataInterface) => {
+    (fieldName: keyof PaymentData) => {
       const validation = fieldValidations[fieldName];
       if (validation === null) return "border-gray-300";
       return validation
@@ -229,7 +222,7 @@ export const ModalPayment = ({
 
   // Fonction pour afficher l'icône de validation
   const getValidationIcon = useCallback(
-    (fieldName: keyof paymentDataInterface) => {
+    (fieldName: keyof PaymentData) => {
       const validation = fieldValidations[fieldName];
       if (validation === null) return null;
       return validation ? (
@@ -341,7 +334,7 @@ export const ModalPayment = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">
-                  Date d'expiration
+                  Date d&apos;expiration
                 </label>
                 <div className="relative">
                   <input

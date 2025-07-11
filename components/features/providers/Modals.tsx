@@ -1,13 +1,13 @@
 "use client";
-import { AppointmentInterface } from "@/lib/definitions";
+import { AppointmentData, Provider, Service } from "@/lib/definitions";
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 interface ModalSelectServiceProps {
   setModalOpen: (open: boolean) => void;
-  appointment: AppointmentInterface;
-  setAppointment: (appointment: AppointmentInterface) => void;
+  appointment: AppointmentData;
+  setAppointment: (appointment: AppointmentData) => void;
   setSteps: (step: number) => void;
-  provider: any; // Ajout du provider pour accéder aux créneaux
+  provider: Provider;
 }
 
 export const ModalSelectService = ({
@@ -17,6 +17,8 @@ export const ModalSelectService = ({
   setSteps,
   provider,
 }: ModalSelectServiceProps) => {
+  // Debug: afficher les données du demandeur
+  console.log("Modal - Données du demandeur:", appointment.requester);
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [currentStep, setCurrentStep] = useState<
@@ -163,27 +165,6 @@ export const ModalSelectService = ({
     [appointment, setAppointment, formatPhoneNumber]
   );
 
-  const handleChangeSelectedService = useCallback(
-    (e: ChangeEvent<HTMLSelectElement>) => {
-      e.preventDefault();
-
-      const selected = appointment.provider.services.find(
-        (s) => s.id === Number(e.target.value)
-      );
-      setAppointment({
-        ...appointment,
-        selectedService: selected
-          ? {
-              id: selected.id || 0,
-              name: selected.name,
-              price: selected.price,
-            }
-          : null,
-      });
-    },
-    [appointment, setAppointment]
-  );
-
   // Gestionnaire pour la sélection d'un créneau
   const handleTimeslotSelect = useCallback(
     (timeslot: string) => {
@@ -195,7 +176,7 @@ export const ModalSelectService = ({
 
   // Gestionnaire pour la sélection d'un service
   const handleServiceSelect = useCallback(
-    (service: any) => {
+    (service: Service) => {
       setAppointment({ ...appointment, selectedService: service });
       setCurrentStep("details");
     },
@@ -336,7 +317,7 @@ export const ModalSelectService = ({
               </h3>
               <div className="space-y-3">
                 {appointment.provider.services.map(
-                  (service: any, idx: number) => (
+                  (service: Service, idx: number) => (
                     <button
                       key={idx}
                       onClick={() => handleServiceSelect(service)}
@@ -348,7 +329,7 @@ export const ModalSelectService = ({
                             {service.name}
                           </span>
                           <p className="text-sm text-gray-500 mt-1">
-                            {service.description || "Service disponible"}
+                            Service disponible
                           </p>
                         </div>
                         <div className="text-right">
@@ -403,10 +384,31 @@ export const ModalSelectService = ({
 
               {/* Informations du demandeur */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  Informations du demandeur
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Informations du demandeur
+                  </h3>
+                  {(appointment.requester.firstName ||
+                    appointment.requester.lastName ||
+                    appointment.requester.email) && (
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
+                      Pré-rempli depuis votre compte
+                    </span>
+                  )}
+                </div>
+
+                {(appointment.requester.firstName ||
+                  appointment.requester.lastName ||
+                  appointment.requester.email) && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-blue-700">
+                      <span className="font-medium">💡</span> Vos informations
+                      de profil ont été automatiquement remplies. Vous pouvez
+                      les modifier si nécessaire.
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>

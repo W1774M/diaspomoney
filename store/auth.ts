@@ -1,34 +1,49 @@
+import { AuthState } from "@/lib/definitions";
 import { create } from "zustand";
-
-interface AuthState {
-  isLoading: boolean;
-  error: string | null;
-  setError: (error: string | null) => void;
-  login: (email: string, password: string) => Promise<void>;
-}
 
 export const useAuthStore = create<AuthState>((set) => ({
   isLoading: false,
   error: null,
   setError: (error) => set({ error }),
-  login: async (
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    email,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    password
-  ) => {
+  login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      // TODO: Implémenter la logique d'authentification
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      set({ isLoading: false });
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        set({ isLoading: false, error: null });
+        return true;
+      } else {
+        if (data.error === "user_not_found") {
+          set({
+            isLoading: false,
+            error: "Aucun compte trouvé. Veuillez vous enregistrer.",
+          });
+        } else if (data.error === "invalid_password") {
+          set({
+            isLoading: false,
+            error: "Mot de passe incorrect.",
+          });
+        } else {
+          set({
+            isLoading: false,
+            error: "Erreur lors de la connexion",
+          });
+        }
+        return false;
+      }
     } catch (error) {
       set({
         isLoading: false,
         error:
           error instanceof Error ? error.message : "Une erreur est survenue",
       });
-      throw error;
+      return false;
     }
   },
 }));

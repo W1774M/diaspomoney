@@ -1,14 +1,9 @@
 "use client";
-import { AppointmentInterface, paymentDataInterface } from "@/lib/definitions";
+import { ModalPreviewProps } from "@/lib/definitions";
 import { CheckCircle, Clock, User } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-
-interface ModalPreviewProps {
-  appointment: AppointmentInterface;
-  paymentData: paymentDataInterface;
-  setModalOpen?: (open: boolean) => void;
-  setSteps?: (step: number) => void;
-}
+import { useAppointment } from "./AppointmentContext";
 
 export const ModalPreview = ({
   appointment,
@@ -35,6 +30,9 @@ export const ModalPreview = ({
   const totalPrice = useMemo(() => {
     return appointment.selectedService?.price || 0;
   }, [appointment.selectedService]);
+
+  const { setData } = useAppointment();
+  const router = useRouter();
 
   useEffect(() => {
     // Animation d'entrée
@@ -76,7 +74,7 @@ export const ModalPreview = ({
         });
 
         if (errorResponse.ok) {
-          const errorResult = await errorResponse.json();
+          // const errorResult = await errorResponse.json();
           alert(
             `❌ Erreur de paiement détectée. Un email a été envoyé à contact@diaspomoney.fr et à votre adresse email avec un lien pour réessayer le paiement. Le lien est valide 15 minutes.`
           );
@@ -113,6 +111,8 @@ export const ModalPreview = ({
       );
       setIsClosing(true);
       setTimeout(() => setModalOpen?.(false), 300);
+      setData(appointment);
+      router.push("/login");
     } catch (err) {
       console.error("Erreur lors de la confirmation:", err);
 
@@ -133,13 +133,13 @@ export const ModalPreview = ({
         alert(
           "❌ Erreur lors de la confirmation du paiement. Un email d'erreur a été envoyé à contact@diaspomoney.fr et à votre adresse email avec un lien pour réessayer."
         );
-      } catch (emailError) {
+      } catch {
         alert(
           "❌ Erreur lors de la confirmation du paiement. Veuillez réessayer plus tard."
         );
       }
     }
-  }, [appointment, paymentData, setModalOpen]);
+  }, [appointment, paymentData, setModalOpen, router, setData]);
 
   return (
     <div
@@ -294,7 +294,7 @@ export const ModalPreview = ({
                 <div className="flex items-start gap-2">
                   <div className="w-1.5 h-1.5 bg-gray-500 rounded-full mt-2 flex-shrink-0"></div>
                   <span>
-                    Annulation gratuite jusqu'à 24h avant le rendez-vous
+                    Annulation gratuite jusqu&apos;à 24h avant le rendez-vous
                   </span>
                 </div>
                 <div className="flex items-start gap-2">
