@@ -83,11 +83,11 @@ const AppointmentSchema = new Schema<Appointment>(
 );
 
 // Index pour améliorer les performances
-AppointmentSchema.index({ reservationNumber: 1 });
-AppointmentSchema.index({ "requester.email": 1 });
-AppointmentSchema.index({ status: 1 });
-AppointmentSchema.index({ paymentStatus: 1 });
-AppointmentSchema.index({ createdAt: -1 });
+// AppointmentSchema.index({ reservationNumber: 1 });
+// AppointmentSchema.index({ "requester.email": 1 });
+// AppointmentSchema.index({ status: 1 });
+// AppointmentSchema.index({ paymentStatus: 1 });
+// AppointmentSchema.index({ createdAt: -1 });
 
 export default mongoose.models.Appointment ||
   mongoose.model<Appointment>("Appointment", AppointmentSchema);

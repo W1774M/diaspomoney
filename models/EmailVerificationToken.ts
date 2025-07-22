@@ -30,9 +30,9 @@ const EmailVerificationTokenSchema = new Schema<EmailVerificationToken>(
 );
 
 // Index pour améliorer les performances
-EmailVerificationTokenSchema.index({ email: 1 });
-EmailVerificationTokenSchema.index({ token: 1 });
-EmailVerificationTokenSchema.index({ expiresAt: 1 });
+// EmailVerificationTokenSchema.index({ email: 1 });
+// EmailVerificationTokenSchema.index({ token: 1 });
+// EmailVerificationTokenSchema.index({ expiresAt: 1 });
 
 export default mongoose.models.EmailVerificationToken ||
   mongoose.model<EmailVerificationToken>(

@@ -280,9 +280,9 @@ export const ModalSelectService = ({
               <div className="space-y-3">
                 {provider.availabilities &&
                 provider.availabilities.length > 0 ? (
-                  provider.availabilities.map((time: string, idx: number) => (
+                  provider.availabilities.map((time: string, index: number) => (
                     <button
-                      key={idx}
+                      key={index}
                       onClick={() => handleTimeslotSelect(time)}
                       className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 hover:scale-[1.02] cursor-pointer"
                     >
@@ -317,9 +317,9 @@ export const ModalSelectService = ({
               </h3>
               <div className="space-y-3">
                 {appointment.provider.services.map(
-                  (service: Service, idx: number) => (
+                  (service: Service, index: number) => (
                     <button
-                      key={idx}
+                      key={index}
                       onClick={() => handleServiceSelect(service)}
                       className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 hover:scale-[1.02] cursor-pointer"
                     >

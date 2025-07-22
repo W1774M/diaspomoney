@@ -117,8 +117,8 @@ const SearchBar = React.memo(function SearchBar({
                 autoComplete="off"
               />
               <datalist id="locations-list">
-                {countries.map((country, idx) => (
-                  <option key={`country-${country}`} value={country} />
+                {countries.map((country, index) => (
+                  <option key={`country-${country}-${index}`} value={country} />
                 ))}
                 {["Douala", "Yaoundé", "Bafoussam", "Garoua"].map((city) => (
                   <option key={`city-${city}`} value={city} />
@@ -331,7 +331,7 @@ function ProviderCard({ provider, onDetails }: ProviderCardProps) {
             <div className="flex flex-wrap gap-2">
               {provider.services.map((service: Service, index: number) => (
                 <span
-                  key={`service-${service.name}`}
+                  key={`service-${service.name}-${index}`}
                   className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
                 >
                   {service.name}

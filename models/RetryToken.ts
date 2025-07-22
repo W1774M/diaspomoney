@@ -27,9 +27,9 @@ const RetryTokenSchema = new Schema<RetryToken>(
 );
 
 // Index TTL pour supprimer automatiquement les tokens expirés
-RetryTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-RetryTokenSchema.index({ token: 1 });
-RetryTokenSchema.index({ appointmentId: 1 });
+// RetryTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// RetryTokenSchema.index({ token: 1 });
+// RetryTokenSchema.index({ appointmentId: 1 });
 
 export default mongoose.models.RetryToken ||
   mongoose.model<RetryToken>("RetryToken", RetryTokenSchema);

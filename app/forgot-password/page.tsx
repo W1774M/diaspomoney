@@ -1,3 +1,4 @@
+"use client";
 import DefaultTemplate from "@/template/DefaultTemplate";
 
 export default function ForgotPasswordPage() {

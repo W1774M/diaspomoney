@@ -69,8 +69,8 @@ UserSchema.methods.comparePassword = async function (
 };
 
 // Index pour améliorer les performances
-UserSchema.index({ email: 1 });
-UserSchema.index({ role: 1 });
-UserSchema.index({ createdAt: -1 });
+// UserSchema.index({ email: 1 });
+// UserSchema.index({ role: 1 });
+// UserSchema.index({ createdAt: -1 });
 
 export default mongoose.models.User || mongoose.model<User>("User", UserSchema);

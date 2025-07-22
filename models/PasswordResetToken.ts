@@ -30,9 +30,9 @@ const PasswordResetTokenSchema = new Schema<PasswordResetToken>(
 );
 
 // Index pour améliorer les performances
-PasswordResetTokenSchema.index({ email: 1 });
-PasswordResetTokenSchema.index({ token: 1 });
-PasswordResetTokenSchema.index({ expiresAt: 1 });
+// PasswordResetTokenSchema.index({ email: 1 });
+// PasswordResetTokenSchema.index({ token: 1 });
+// PasswordResetTokenSchema.index({ expiresAt: 1 });
 
 export default mongoose.models.PasswordResetToken ||
   mongoose.model<PasswordResetToken>(

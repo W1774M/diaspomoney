@@ -1,6 +1,7 @@
 "use client";
+import { NotificationType } from "@/lib/definitions";
 import { cn } from "@/lib/utils";
-import { NotificationType, useNotificationStore } from "@/store/notifications";
+import { useNotificationStore } from "@/store/notifications";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 

@@ -1,3 +1,4 @@
+"use client";
 import { ResetPasswordForm } from "@/components/features/auth/ResetPasswordForm";
 import DefaultTemplate from "@/template/DefaultTemplate";
 

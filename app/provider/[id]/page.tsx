@@ -481,9 +481,12 @@ export default function ProviderPage({
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {provider.services.map(
-                    (service: { name: string; price: number }, idx: number) => (
+                    (
+                      service: { name: string; price: number },
+                      index: number
+                    ) => (
                       <div
-                        key={idx}
+                        key={index}
                         className="service-card flex justify-between bg-gray-50 rounded-lg p-4 border border-blue-300"
                       >
                         <h3 className="font-semibold text-gray-800">
@@ -506,15 +509,15 @@ export default function ProviderPage({
                     Galerie photos
                   </h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {provider.images.map((image: string, idx: number) => (
+                    {provider.images.map((image: string, index: number) => (
                       <div
-                        key={idx}
+                        key={index}
                         className="relative group cursor-pointer"
                         onClick={() => handleImageClick(image)}
                       >
                         <Image
                           src={image}
-                          alt={`${provider.name} - Image ${idx + 1}`}
+                          alt={`${provider.name} - Image ${index + 1}`}
                           width={200}
                           height={200}
                           className="rounded-lg object-cover w-full h-32 transition-transform duration-200 group-hover:scale-105"

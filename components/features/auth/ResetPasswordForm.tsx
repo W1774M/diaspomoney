@@ -21,10 +21,9 @@ import { ArrowLeft, CheckCircle, Eye, EyeOff, Lock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
-export function ResetPasswordForm() {
-  // const router = useRouter();
+function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -286,5 +285,13 @@ export function ResetPasswordForm() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export function ResetPasswordForm() {
+  return (
+    <Suspense fallback={<div>Chargement en cours ...</div>}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

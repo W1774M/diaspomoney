@@ -55,10 +55,10 @@ const ProviderSchema = new Schema<Provider>(
 );
 
 // Index pour améliorer les performances de recherche
-ProviderSchema.index({ "type.id": 1 });
-ProviderSchema.index({ specialty: 1 });
-ProviderSchema.index({ recommended: 1 });
-ProviderSchema.index({ rating: -1 });
+// ProviderSchema.index({ "type.id": 1 });
+// ProviderSchema.index({ specialty: 1 });
+// ProviderSchema.index({ recommended: 1 });
+// ProviderSchema.index({ rating: -1 });
 
 export default mongoose.models.Provider ||
   mongoose.model<Provider>("Provider", ProviderSchema);
