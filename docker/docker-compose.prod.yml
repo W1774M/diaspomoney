@@ -12,6 +12,7 @@ services:
       - diaspomoney
     labels:
       - "traefik.enable=true"
+      # Route avec authentification (dev.diaspomoney.fr)
       - "traefik.http.routers.dev.rule=Host(`dev.diaspomoney.fr`)"
       - "traefik.http.routers.dev.entrypoints=websecure"
       - "traefik.http.routers.dev.tls=true"
@@ -19,6 +20,12 @@ services:
       - "traefik.http.services.dev.loadbalancer.server.port=3000"
       - "traefik.http.middlewares.dev-auth.basicauth.users=admin:$apr1$wQw6Qn6Q$wQw6Qn6Qw6Qn6Qw6Qn6Qn0"
       - "traefik.http.routers.dev.middlewares=dev-auth"
+      # Nouvelle route sans authentification (app.diaspomoney.fr)
+      - "traefik.http.routers.app.rule=Host(`app.diaspomoney.fr`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls=true"
+      - "traefik.http.routers.app.tls.certresolver=myresolver"
+      - "traefik.http.services.app.loadbalancer.server.port=3000"
 
   reverse-proxy:
     env_file: ../.env
