@@ -43,7 +43,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik.yml:/etc/traefik/traefik.yml
-      - ./acme.json:/acme.json
+      - ../acme.json:/acme.json
     labels:
       # Enable Traefik for this service
       - "traefik.enable=true"
