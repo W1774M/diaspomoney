@@ -17,15 +17,16 @@ services:
       - "traefik.http.routers.dev.entrypoints=websecure"
       - "traefik.http.routers.dev.tls=true"
       - "traefik.http.routers.dev.tls.certresolver=myresolver"
-      - "traefik.http.services.dev.loadbalancer.server.port=3000"
-      - "traefik.http.middlewares.dev-auth.basicauth.users=admin:$apr1$wQw6Qn6Q$wQw6Qn6Qw6Qn6Qw6Qn6Qn0"
+      - "traefik.http.routers.dev.service=diaspomoney-service"
+      - "traefik.http.services.diaspomoney-service.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.dev-auth.basicauth.users=admin:$$apr1$$wQw6Qn6Q$$wQw6Qn6Qw6Qn6Qw6Qn6Qn0"
       - "traefik.http.routers.dev.middlewares=dev-auth"
       # Nouvelle route sans authentification (app.diaspomoney.fr)
       - "traefik.http.routers.app.rule=Host(`app.diaspomoney.fr`)"
       - "traefik.http.routers.app.entrypoints=websecure"
       - "traefik.http.routers.app.tls=true"
       - "traefik.http.routers.app.tls.certresolver=myresolver"
-      - "traefik.http.services.app.loadbalancer.server.port=3000"
+      - "traefik.http.routers.app.service=diaspomoney-service"
 
   reverse-proxy:
     env_file: ../.env
@@ -50,7 +51,7 @@ services:
       # Dashboard route
       - "traefik.http.routers.dashboard-api.rule=Host(`dev.diaspomoney.fr`) && PathPrefix(`/dashboard`) || (PathPrefix(`/debug`) || PathPrefix(`/api/http`) || PathPrefix(`/api/tcp`) || PathPrefix(`/api/udp`) || PathPrefix(`/api/entrypoints`) || PathPrefix(`/api/overview`) || PathPrefix(`/api/rawdata`) || PathPrefix(`/api/version`))" # substitute with your domain name
       - "traefik.http.routers.dashboard-api.service=api@internal"
-      - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$apr1$wQw6Qn6Q$wQw6Qn6Qw6Qn6Qw6Qn6Qn0"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=admin:$$apr1$$wQw6Qn6Q$$wQw6Qn6Qw6Qn6Qw6Qn6Qn0"
       - "traefik.http.routers.dashboard-api.middlewares=dashboard-auth,redirect-dashboard"
       - "traefik.http.routers.dashboard-api.entrypoints=websecure"
 
