@@ -91,3 +91,4 @@ providers:
   docker:
     # Only explicitly exposed containers will be served by Traefik
     exposedByDefault: false
+    filename: /etc/traefik/traefik.yml
