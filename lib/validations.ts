@@ -63,6 +63,22 @@ export const registerSchema = z
           (cleaned.startsWith("+33") && cleaned.length === 12)
         );
       }, "Numéro de téléphone invalide"),
+    dateOfBirth: z
+      .string()
+      .min(1, "La date de naissance est requise")
+      .refine((date) => {
+        const birthDate = new Date(date);
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear();
+        return age >= 18 && age <= 120;
+      }, "Vous devez avoir au moins 18 ans"),
+    countryOfResidence: z.string().min(1, "Le pays de résidence est requis"),
+    targetCountry: z.string().min(1, "Le pays de destination est requis"),
+    targetCity: z.string().min(1, "La ville de destination est requise"),
+    selectedServices: z
+      .string()
+      .min(1, "Veuillez sélectionner au moins un service"),
+    monthlyBudget: z.string().optional(),
     password: z
       .string()
       .min(8, "Le mot de passe doit contenir au moins 8 caractères")
@@ -72,6 +88,21 @@ export const registerSchema = z
           "Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial",
       }),
     confirmPassword: z.string(),
+    securityQuestion: z.string().min(1, "La question de sécurité est requise"),
+    securityAnswer: z
+      .string()
+      .min(1, "La réponse de sécurité est requise")
+      .min(2, "La réponse doit contenir au moins 2 caractères"),
+    termsAccepted: z
+      .boolean()
+      .refine(
+        (val) => val === true,
+        "Vous devez accepter les conditions générales"
+      ),
+    marketingConsent: z.boolean().optional(),
+    kycConsent: z
+      .boolean()
+      .refine((val) => val === true, "Vous devez accepter la vérification KYC"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Les mots de passe ne correspondent pas",

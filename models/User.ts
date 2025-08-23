@@ -24,11 +24,58 @@ const UserSchema = new Schema<User>(
     password: {
       type: String,
       required: true,
-      minlength: 6,
+      minlength: 8,
     },
     phone: {
       type: String,
+      required: true,
       trim: true,
+    },
+    dateOfBirth: {
+      type: Date,
+      required: true,
+    },
+    countryOfResidence: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    targetCountry: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    targetCity: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    selectedServices: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    monthlyBudget: {
+      type: String,
+      trim: true,
+    },
+    securityQuestion: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    securityAnswer: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    marketingConsent: {
+      type: Boolean,
+      default: false,
+    },
+    kycConsent: {
+      type: Boolean,
+      required: true,
     },
     role: {
       type: String,

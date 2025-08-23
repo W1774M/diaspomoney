@@ -130,7 +130,17 @@ export interface User {
   lastName: string;
   email: string;
   password: string;
-  phone?: string;
+  phone: string;
+  dateOfBirth: Date;
+  countryOfResidence: string;
+  targetCountry: string;
+  targetCity: string;
+  selectedServices: string;
+  monthlyBudget?: string;
+  securityQuestion: string;
+  securityAnswer: string;
+  marketingConsent: boolean;
+  kycConsent: boolean;
   role: UserRole;
   isEmailVerified: boolean;
   lastLogin?: Date;

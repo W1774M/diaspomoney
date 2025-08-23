@@ -11,11 +11,42 @@ export async function POST(request: NextRequest) {
     await connectDatabase();
 
     // Récupération des données du body
-    const { firstName, lastName, email, password, phone } =
-      await request.json();
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      phone,
+      dateOfBirth,
+      countryOfResidence,
+      targetCountry,
+      targetCity,
+      selectedServices,
+      monthlyBudget,
+      securityQuestion,
+      securityAnswer,
+      termsAccepted,
+      marketingConsent,
+      kycConsent,
+    } = await request.json();
 
     // Validation des données
-    if (!firstName || !lastName || !email || !password) {
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !password ||
+      !phone ||
+      !dateOfBirth ||
+      !countryOfResidence ||
+      !targetCountry ||
+      !targetCity ||
+      !selectedServices ||
+      !securityQuestion ||
+      !securityAnswer ||
+      !termsAccepted ||
+      !kycConsent
+    ) {
       return NextResponse.json(
         { error: "Tous les champs obligatoires doivent être remplis" },
         { status: 400 }
@@ -23,9 +54,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérification de la longueur du mot de passe
-    if (password.length < 6) {
+    if (password.length < 8) {
       return NextResponse.json(
-        { error: "Le mot de passe doit contenir au moins 6 caractères" },
+        { error: "Le mot de passe doit contenir au moins 8 caractères" },
+        { status: 400 }
+      );
+    }
+
+    // Vérification de l'âge (18 ans minimum)
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    if (age < 18) {
+      return NextResponse.json(
+        { error: "Vous devez avoir au moins 18 ans pour créer un compte" },
         { status: 400 }
       );
     }
@@ -40,13 +82,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Création du nouvel utilisateur
+    // Création du nouvel utilisateur avec tous les nouveaux champs
     const newUser = new User({
       firstName,
       lastName,
       email: email.toLowerCase(),
       password,
       phone,
+      dateOfBirth,
+      countryOfResidence,
+      targetCountry,
+      targetCity,
+      selectedServices,
+      monthlyBudget,
+      securityQuestion,
+      securityAnswer,
+      marketingConsent: marketingConsent || false,
+      kycConsent,
       role: "user",
       isEmailVerified: false,
     });
@@ -81,6 +133,14 @@ export async function POST(request: NextRequest) {
       lastName: newUser.lastName,
       email: newUser.email,
       phone: newUser.phone,
+      dateOfBirth: newUser.dateOfBirth,
+      countryOfResidence: newUser.countryOfResidence,
+      targetCountry: newUser.targetCountry,
+      targetCity: newUser.targetCity,
+      selectedServices: newUser.selectedServices,
+      monthlyBudget: newUser.monthlyBudget,
+      marketingConsent: newUser.marketingConsent,
+      kycConsent: newUser.kycConsent,
       role: newUser.role,
       isEmailVerified: newUser.isEmailVerified,
       createdAt: newUser.createdAt,
