@@ -55,12 +55,17 @@ const FooterComponent = () => {
             label="Services"
             links={[
               {
-                href: "https://diaspomoney.fr/",
+                href: "https://diaspomoney.fr/sante/",
                 text: "Santé",
                 target: "_blank",
                 rel: "noopener noreferrer",
               },
-              { href: "#", text: "Éducation" },
+              {
+                href: "https://diaspomoney.fr/education/",
+                text: "Éducation",
+                target: "_blank",
+                rel: "noopener noreferrer",
+              },
               { href: "#", text: "Immobilier & BTP" },
             ]}
           />
