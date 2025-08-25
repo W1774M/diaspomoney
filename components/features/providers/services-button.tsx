@@ -19,7 +19,7 @@ export function ServicesButton({
 }: ServicesButtonProps) {
   return (
     <button
-      onClick={() => setActiveView(label, serviceType)}
+      // onClick={() => setActiveView(label, serviceType)}
       className="flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left cursor-pointer"
     >
       <div className="mr-4">{icon}</div>

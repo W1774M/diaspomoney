@@ -3,7 +3,7 @@
 export const providers = [
   {
     id: 1,
-    name: "Clinique La Paix 2",
+    name: "clinique pediatrique &genycologique saint Petersburg",
     type: { id: 1, value: "Clinique" },
     specialty: "Médecine générale",
     recommended: true,
@@ -22,7 +22,7 @@ export const providers = [
         importance: 6.378194857705071e-5,
         addresstype: "amenity",
         name: "CLINIQUE LA PAIX",
-        display_name: "CLINIQUE LA PAIX, Idosa, Ipokia, Ogun, Nigeria",
+        display_name: "CLINIQUE LA PAIX, Idosa, Ipokia, Ogun, Cameroun",
         boundingbox: ["6.5554707", "6.5555707", "2.7428136", "2.7429136"],
       },
     ],
@@ -61,8 +61,8 @@ export const providers = [
   },
   {
     id: 2,
-    name: "Centre Médical Excellence",
-    type: { id: 2, value: "Centre médical" },
+    name: "PEUFOG CONSTRUCTION & BTP ",
+    type: { id: 2, value: "BTP" },
     specialty: "Cardiologie",
     recommended: true,
     apiGeo: [
@@ -110,7 +110,7 @@ export const providers = [
   },
   {
     id: 3,
-    name: "Dr. Kameni Robert",
+    name: "BCST – Douala",
     type: { id: 3, value: "Médecin" },
     specialty: "Pédiatrie",
     recommended: false,
@@ -129,7 +129,7 @@ export const providers = [
         importance: 6.378194857705071e-5,
         addresstype: "amenity",
         name: "CLINIQUE LA PAIX",
-        display_name: "CLINIQUE LA PAIX, Idosa, Ipokia, Ogun, Nigeria",
+        display_name: "CLINIQUE LA PAIX, Idosa, Ipokia, Ogun, Cameroun",
         boundingbox: ["6.5554707", "6.5555707", "2.7428136", "2.7429136"],
       },
     ],

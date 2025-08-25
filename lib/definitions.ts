@@ -208,6 +208,19 @@ export interface RetryToken {
   createdAt: Date;
 }
 
+// genicologie, medecine, btp, etc.
+export interface SpecialityType {
+  id?: number;
+  name: string;
+  type: ServiceType;
+}
+
+// SANTE & EDUCATION & IMMOBILIER
+export interface ServiceType {
+  id?: number;
+  name: string;
+}
+
 // ============================================================================
 // INTERFACES FRONTEND
 // ============================================================================

@@ -93,7 +93,7 @@ const Header = () => {
         <div className="flex items-center space-x-4">
           <button
             className="bg-[hsl(23,100%,53%)] text-white px-4 py-2 rounded-md hover:bg-white hover:text-black transition flex items-center cursor-pointer"
-            onClick={() => handleRedirect("/provider")}
+            // onClick={() => handleRedirect("/provider")}
             type="button"
           >
             Transférer un service

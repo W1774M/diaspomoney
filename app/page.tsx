@@ -65,7 +65,7 @@ export default function Homepage() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     className="bg-white text-black px-6 py-3 rounded-md font-semibold hover:bg-gray-100 transition flex items-center justify-center hover:cursor-pointer"
-                    onClick={() => handleRedirect("provider")}
+                    // onClick={() => handleRedirect("provider")}
                   >
                     Explorer les services
                     <ArrowRight size={18} className="ml-2" />
