@@ -1,19 +1,12 @@
 include:
-  - compose.monitoring.yaml
+  - compose.monitoring.yml
 
 networks:
-  traefik:
-    external: true         # réseau partagé pour l'edge
-    name: traefik
-  diaspomoney:
-    driver: bridge         # réseau interne app <-> mongodb
-    external: true
-    name: diaspomoney
+  traefik: {}
 
 volumes:
   traefik_letsencrypt: {}
   traefik_logs: {}
-  mongodb_data: {}
 
 services:
   traefik:
@@ -28,7 +21,7 @@ services:
       - "443:443"
     command:
       - --configFile=/traefik/traefik.yml
-      - --certificatesresolvers.le.acme.email=${LETSENCRYPT_EMAIL}  
+      - --certificatesresolvers.le.acme.email=${LETSENCRYPT_EMAIL}
     environment:
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
     volumes:
@@ -90,24 +83,6 @@ services:
       - traefik.http.middlewares.sec.headers.stsPreload=true
       - traefik.http.routers.app.middlewares=sec@docker
 
-  mongodb:
-    image: mongo:7.0
-    container_name: mongodb
-    restart: unless-stopped
-    env_file:
-      - ../.env
-    volumes:
-      - mongodb_data:/data/db
-      # - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro  # si tu as un init script
-    networks:
-      - diaspomoney
-    healthcheck:
-      test: ["CMD-SHELL", "mongosh --username $$MONGO_INITDB_ROOT_USERNAME --password $$MONGO_INITDB_ROOT_PASSWORD --eval 'db.adminCommand({ ping: 1 })' --authenticationDatabase admin --quiet || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-
 secrets:
   traefik_basicauth:
     file: ./secrets/traefik.htpasswd
-

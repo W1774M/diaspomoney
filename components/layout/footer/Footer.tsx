@@ -117,7 +117,9 @@ const FooterComponent = () => {
             <ul className="space-y-2 mt-5">
               <li className="text-center">
                 <Link
-                  href="#"
+                  href="https://calendly.com/tnpriso/presentation-de-plateforme-diaspomoney-fr?month=2025-08"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-black hover:text-white font-bold uppercase bg-[hsl(25,100%,53%)] px-5 py-2 rounded-full"
                 >
                   Nous Contacter

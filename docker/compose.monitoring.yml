@@ -1,0 +1,101 @@
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.external-url=https://dashboard.diaspomoney.fr/prometheus"
+      - "--web.route-prefix=/prometheus"
+    networks:
+      - diaspomoney
+      - traefik
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prom_data:/prometheus
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.prometheus.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/prometheus`)
+      - traefik.http.routers.prometheus.entrypoints=websecure
+      - traefik.http.routers.prometheus.tls=true
+      - traefik.http.routers.prometheus.tls.certresolver=le
+      - traefik.http.services.prometheus.loadbalancer.server.port=9090
+      - traefik.http.routers.prometheus.middlewares=dash-auth@docker
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    container_name: cadvisor
+    privileged: true
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - diaspomoney
+      - traefik
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/loki/loki-config.yaml"
+    networks:
+      - diaspomoney
+      - traefik
+    volumes:
+      - ./loki-config.yaml:/etc/loki/loki-config.yaml
+      - loki-data:/loki
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.loki.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/loki`)
+      - traefik.http.routers.loki.entrypoints=websecure
+      - traefik.http.services.loki.loadbalancer.server.port=3100
+      - traefik.http.middlewares.loki-strip.stripprefix.prefixes=/loki
+      - traefik.http.routers.loki.middlewares=loki-strip,dash-auth@docker
+      - traefik.http.routers.loki.tls=true
+      - traefik.http.routers.loki.tls.certresolver=le
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/promtail/config.yaml"
+    networks:
+      - diaspomoney
+      - traefik
+    volumes:
+      - ./promtail-config.yaml:/etc/promtail/config.yaml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log:/var/log:ro
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - GF_SERVER_DOMAIN=dashboard.diaspomoney.fr
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    networks:
+      - diaspomoney
+      - traefik
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.grafana.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/grafana`)
+      - traefik.http.routers.grafana.entrypoints=websecure
+      - traefik.http.routers.grafana.tls=true
+      - traefik.http.routers.grafana.tls.certresolver=le
+      - traefik.http.routers.grafana.middlewares=dash-auth@docker
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
+
+volumes:
+  prom_data:
+  loki-data:
+  grafana-storage:
+
