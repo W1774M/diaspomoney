@@ -8,6 +8,8 @@ entryPoints:
           scheme: https
   websecure:
     address: ":443"
+  metrics:
+    address: ":9100"
 
 certificatesResolvers:
   le:
@@ -45,6 +47,7 @@ metrics:
   prometheus:
     addEntryPointsLabels: true
     addServicesLabels: true
+    entryPoint: metrics
 
 log:
   level: DEBUG
@@ -60,5 +63,7 @@ api:
 
 providers:
   docker:
+    endpoint: "unix:///var/run/docker.sock"
+    network: "traefik"
     exposedByDefault: false
 

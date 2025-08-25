@@ -4,8 +4,11 @@ include:
 networks:
   traefik:
     external: true         # réseau partagé pour l'edge
+    name: traefik
   diaspomoney:
     driver: bridge         # réseau interne app <-> mongodb
+    external: true
+    name: diaspomoney
 
 volumes:
   traefik_letsencrypt: {}
@@ -29,9 +32,9 @@ services:
     environment:
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
     volumes:
-      - ./traefik.yml:/traefik/traefik.yml:ro
+      - ./traefik:/traefik:ro
       - ./letsencrypt:/letsencrypt
-      - ./traefik_logs:/var/log/traefik
+      - ./traefik/traefik_logs:/var/log/traefik
       - /var/run/docker.sock:/var/run/docker.sock:ro
     secrets:
       - traefik_basicauth
@@ -44,10 +47,8 @@ services:
       - traefik.http.routers.traefik-dashboard.tls.certresolver=le
       - traefik.http.routers.traefik-dashboard.service=api@internal
         # Middlewares: IP whitelist puis BasicAuth
-      - traefik.http.middlewares.dash-allow.ipallowlist.sourcerange=217.154.22.202/32
-      - traefik.http.middlewares.dash-allow.ipallowlist.ipstrategy.depth=1
       - traefik.http.middlewares.dash-auth.basicauth.usersfile=/run/secrets/traefik_basicauth
-      - traefik.http.routers.traefik-dashboard.middlewares=dash-allow,dash-auth
+      - traefik.http.routers.traefik-dashboard.middlewares=dash-auth
 
   app:
     build:
@@ -84,10 +85,10 @@ services:
       - traefik.http.routers.app.tls.certresolver=le
       - traefik.http.services.app.loadbalancer.server.port=3000
       # Sécurité (HSTS); à activer quand le cert est OK
-      # - traefik.http.middlewares.sec.headers.stsSeconds=31536000
-      # - traefik.http.middlewares.sec.headers.stsIncludeSubdomains=true
-      # - traefik.http.middlewares.sec.headers.stsPreload=true
-      # - traefik.http.routers.app.middlewares=sec@docker
+      - traefik.http.middlewares.sec.headers.stsSeconds=31536000
+      - traefik.http.middlewares.sec.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.sec.headers.stsPreload=true
+      - traefik.http.routers.app.middlewares=sec@docker
 
   mongodb:
     image: mongo:7.0
