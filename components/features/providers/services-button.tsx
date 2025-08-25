@@ -1,22 +1,13 @@
-import { ReactNode } from "react";
-
-interface ServicesButtonProps {
-  icon: ReactNode;
-  title: string;
-  description: string;
-  label: string;
-  serviceType?: string;
-  setActiveView: (view: string, serviceType?: string) => void;
-}
+import { ServicesButtonProps } from "@/lib/definitions";
 
 export function ServicesButton({
   icon,
   title,
   description,
-  label,
-  serviceType,
-  setActiveView,
-}: ServicesButtonProps) {
+}: // label,
+// serviceType,
+// setActiveView,
+ServicesButtonProps) {
   return (
     <button
       // onClick={() => setActiveView(label, serviceType)}

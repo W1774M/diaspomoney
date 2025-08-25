@@ -225,6 +225,15 @@ export interface ServiceType {
 // INTERFACES FRONTEND
 // ============================================================================
 
+export interface ServicesButtonProps {
+  setActiveView?: (view: string, serviceType?: string) => void;
+  label?: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  serviceType?: string;
+}
+
 export interface ProviderCardProps {
   provider: Provider;
   onDetails: () => void;

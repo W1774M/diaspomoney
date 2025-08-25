@@ -88,6 +88,9 @@ export default function Homepage() {
                       icon={<Hospital size={24} className="text-blue-600" />}
                       title="Santé"
                       description="Consultations, soins hospitaliers, médicaments"
+                      onClick={function (): void {
+                        throw new Error("Function not implemented.");
+                      }}
                     />
                     <ServicesButton
                       setActiveView={handleRedirect}
@@ -96,6 +99,9 @@ export default function Homepage() {
                       icon={<School size={24} className="text-blue-600" />}
                       title="Éducation"
                       description="Frais de scolarité, fournitures, formations"
+                      onClick={function (): void {
+                        throw new Error("Function not implemented.");
+                      }}
                     />
                     <ServicesButton
                       setActiveView={handleRedirect}
@@ -104,6 +110,9 @@ export default function Homepage() {
                       icon={<Home size={24} className="text-blue-600" />}
                       title="Immobilier & BTP"
                       description="Construction, rénovation, achat de terrain"
+                      onClick={function (): void {
+                        throw new Error("Function not implemented.");
+                      }}
                     />
                   </div>
                 </div>
