@@ -5,7 +5,8 @@ services:
     restart: unless-stopped
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--web.external-url=/prometheus"
+      - "--web.external-url=https://dashboard.diaspomoney.fr/prometheus"
+      - "--web.route-prefix=/prometheus"
     networks:
       - diaspomoney
       - traefik
@@ -13,17 +14,13 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prom_data:/prometheus
     labels:
-      # Enable Traefik for this service, configure router and specify entrypoint
-      - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/prometheus`)"
-      - "traefik.http.routers.prometheus.entrypoints=websecure"
-
-      # Tell Traefik to use the port 9090 to connect to prometheus
-      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
-
-      # Enable TLS for this router & use the 'le' certificates resolver for obtaining SSL certificates
-      - "traefik.http.routers.prometheus.tls=true"
-      - "traefik.http.routers.prometheus.tls.certresolver=le"
+      - traefik.enable=true
+      - traefik.http.routers.prometheus.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/prometheus`)
+      - traefik.http.routers.prometheus.entrypoints=websecure
+      - traefik.http.routers.prometheus.tls=true
+      - traefik.http.routers.prometheus.tls.certresolver=le
+      - traefik.http.services.prometheus.loadbalancer.server.port=9090
+      - traefik.http.routers.prometheus.middlewares=dash-auth@docker
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor
@@ -52,21 +49,14 @@ services:
       - ./loki-config.yaml:/etc/loki/loki-config.yaml
       - loki-data:/loki
     labels:
-      # Enable Traefik for this service, configure router and specify entrypoint
-      - "traefik.enable=true"
-      - "traefik.http.routers.loki.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/loki`)"
-      - "traefik.http.routers.loki.entrypoints=websecure"
-
-      # Tell Traefik to use the port 3100 to connect to loki
-      - "traefik.http.services.loki.loadbalancer.server.port=3100"
-
-      # Add middleware to strip the prefix
-      - "traefik.http.middlewares.loki-strip.stripprefix.prefixes=/loki"
-      - "traefik.http.routers.loki.middlewares=loki-strip"
-
-      # Enable TLS for this router & use the 'le' certificates resolver for obtaining SSL certificates
-      - "traefik.http.routers.loki.tls=true"
-      - "traefik.http.routers.loki.tls.certresolver=le"
+      - traefik.enable=true
+      - traefik.http.routers.loki.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/loki`)
+      - traefik.http.routers.loki.entrypoints=websecure
+      - traefik.http.services.loki.loadbalancer.server.port=3100
+      - traefik.http.middlewares.loki-strip.stripprefix.prefixes=/loki
+      - traefik.http.routers.loki.middlewares=loki-strip,dash-auth@docker
+      - traefik.http.routers.loki.tls=true
+      - traefik.http.routers.loki.tls.certresolver=le
 
   promtail:
     image: grafana/promtail:latest
@@ -87,26 +77,22 @@ services:
     container_name: grafana
     restart: unless-stopped
     environment:
-      - "GF_SERVER_DOMAIN=dashboard.diaspomoney.fr"
-      - "GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana"
-      - "GF_SERVER_SERVE_FROM_SUB_PATH=true"
+      - GF_SERVER_DOMAIN=dashboard.diaspomoney.fr
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
     networks:
       - diaspomoney
       - traefik
     volumes:
       - grafana-storage:/var/lib/grafana
     labels:
-      # Enable Traefik for this service, configure router and specify entrypoint
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/grafana`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-
-      # Tell Traefik to use the port 3000 to connect to grafana
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-
-      # Enable TLS for this router & use the 'le' certificates resolver for obtaining SSL certificates
-      - "traefik.http.routers.grafana.tls=true"
-      - "traefik.http.routers.grafana.tls.certresolver=le"
+      - traefik.enable=true
+      - traefik.http.routers.grafana.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/grafana`)
+      - traefik.http.routers.grafana.entrypoints=websecure
+      - traefik.http.routers.grafana.tls=true
+      - traefik.http.routers.grafana.tls.certresolver=le
+      - traefik.http.routers.grafana.middlewares=dash-auth@docker
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
 
 volumes:
   prom_data:
