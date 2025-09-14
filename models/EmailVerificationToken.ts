@@ -1,5 +1,11 @@
-import { EmailVerificationToken } from "@/lib/definitions";
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
+
+interface EmailVerificationToken extends Document {
+  email: string;
+  token: string;
+  expiresAt: Date;
+  used: boolean;
+}
 
 const EmailVerificationTokenSchema = new Schema<EmailVerificationToken>(
   {
@@ -34,7 +40,7 @@ const EmailVerificationTokenSchema = new Schema<EmailVerificationToken>(
 // EmailVerificationTokenSchema.index({ token: 1 });
 // EmailVerificationTokenSchema.index({ expiresAt: 1 });
 
-export default mongoose.models.EmailVerificationToken ||
+export default mongoose.models["EmailVerificationToken"] ||
   mongoose.model<EmailVerificationToken>(
     "EmailVerificationToken",
     EmailVerificationTokenSchema

@@ -48,7 +48,7 @@ function checkRateLimit(ip: string, path: string): boolean {
 
   // Vérifier si le chemin doit être ignoré
   if (
-    SECURITY_CONFIG.rateLimit.skipPaths.some((skipPath) =>
+    SECURITY_CONFIG.rateLimit.skipPaths.some(skipPath =>
       path.startsWith(skipPath)
     )
   ) {
@@ -88,25 +88,6 @@ function validateCSRFToken(request: NextRequest): boolean {
   return !!token && !!sessionToken;
 }
 
-// Fonction de sanitisation des headers
-function sanitizeHeaders(headers: Headers): Headers {
-  const sanitized = new Headers(headers);
-
-  // Supprimer les headers sensibles
-  const sensitiveHeaders = [
-    "x-forwarded-for",
-    "x-real-ip",
-    "x-forwarded-proto",
-    "x-forwarded-host",
-  ];
-
-  sensitiveHeaders.forEach((header) => {
-    sanitized.delete(header);
-  });
-
-  return sanitized;
-}
-
 // Middleware principal de sécurité
 export function securityMiddleware(request: NextRequest): NextResponse | null {
   const { pathname } = request.nextUrl;
@@ -142,7 +123,7 @@ export function securityMiddleware(request: NextRequest): NextResponse | null {
     /window\./i,
   ];
 
-  if (suspiciousPatterns.some((pattern) => pattern.test(userAgent))) {
+  if (suspiciousPatterns.some(pattern => pattern.test(userAgent))) {
     return new NextResponse(
       JSON.stringify({ error: "Suspicious request detected" }),
       {

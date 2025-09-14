@@ -1,13 +1,14 @@
-import { useTheme } from "@/components/features/providers";
+import { themeActions, useDispatch, useTheme } from "@/store/simple-store";
 import { motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "./Button";
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const theme = useTheme();
+  const dispatch = useDispatch();
 
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    dispatch(themeActions.toggle());
   };
 
   return (

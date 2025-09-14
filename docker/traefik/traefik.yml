@@ -14,34 +14,13 @@ entryPoints:
 certificatesResolvers:
   le:
     acme:
+      email: contact@diaspomoney.fr
       storage: /letsencrypt/acme.json
       httpChallenge:
         entryPoint: web
 
-http:
-  routers:
-    redirect-to-https:
-      rule: "HostRegexp(`{host:.+}`)"
-      entryPoints: [web]
-      middlewares: [redirect-to-https]
-      service: noop@internal
-
-    redirect-www:
-      rule: "Host(`app.diaspomoney.fr`)"
-      entryPoints: [web, websecure]
-      middlewares: [redirect-www]
-      service: noop@internal
-
-  middlewares:
-    redirect-to-https:
-      redirectScheme:
-        scheme: https
-        permanent: true
-    redirect-www:
-      redirectRegex:
-        regex: "^https?://www\\.(.*)"
-        replacement: "https://$1"
-        permanent: true
+# Configuration HTTP gérée par les labels Docker
+# Les redirections sont maintenant gérées par les labels des services
 
 metrics:
   prometheus:
@@ -64,6 +43,5 @@ api:
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
-    network: "traefik"
+    network: "diaspomoney"
     exposedByDefault: false
-

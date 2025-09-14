@@ -1,234 +1,255 @@
 "use client";
-import { useAppointment } from "@/components/features/providers";
-import DefaultTemplate from "@/template/DefaultTemplate";
-import { CheckCircle, Clock, Mail, Phone, User } from "lucide-react";
-import { useMemo } from "react";
 
-export default function AppointmentRecapPage() {
-  const { data: appointment } = useAppointment();
+import { useAuth } from "@/hooks/auth/useAuth";
+import { findAppointmentById } from "@/mocks";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-  const formattedDate = useMemo(() => {
-    if (!appointment?.timeslot) return "";
-    return new Date(appointment.timeslot).toLocaleDateString("fr-FR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }, [appointment?.timeslot]);
+export default function AppointmentDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+  const [appointment, setAppointment] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
+    if (isAuthenticated) {
+      // Utiliser les mocks pour récupérer l'appointment
+      const foundAppointment = findAppointmentById(params.id);
+      if (foundAppointment) {
+        setAppointment(foundAppointment);
+      }
+      setLoading(false);
+    }
+  }, [params.id, isAuthenticated, isLoading, router]);
+
+  if (isLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (!appointment) {
     return (
-      <DefaultTemplate>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">
-              Aucune réservation en cours
-            </h1>
-            <p className="text-gray-600">
-              Vous n&apos;avez pas de réservation active à afficher.
-            </p>
-          </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            Rendez-vous non trouvé
+          </h2>
+          <p className="text-gray-600">
+            Le rendez-vous que vous recherchez n'existe pas.
+          </p>
+          <button
+            onClick={() => router.push("/dashboard/appointments")}
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Retour aux rendez-vous
+          </button>
         </div>
-      </DefaultTemplate>
+      </div>
     );
   }
 
   return (
-    <DefaultTemplate>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <button
+            onClick={() => router.push("/dashboard/appointments")}
+            className="text-blue-600 hover:text-blue-700 font-medium"
+          >
+            ← Retour aux rendez-vous
+          </button>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Récapitulatif de votre réservation
+              Rendez-vous #{appointment.reservationNumber}
             </h1>
-            <p className="text-gray-600">
-              Détails de votre réservation confirmée
-            </p>
+            <div className="flex items-center space-x-4">
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  appointment.status === "confirmed"
+                    ? "bg-green-100 text-green-800"
+                    : appointment.status === "pending"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : appointment.status === "cancelled"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {appointment.status === "confirmed"
+                  ? "Confirmé"
+                  : appointment.status === "pending"
+                    ? "En attente"
+                    : appointment.status === "cancelled"
+                      ? "Annulé"
+                      : "Terminé"}
+              </span>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  appointment.paymentStatus === "paid"
+                    ? "bg-green-100 text-green-800"
+                    : appointment.paymentStatus === "pending"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : appointment.paymentStatus === "failed"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {appointment.paymentStatus === "paid"
+                  ? "Payé"
+                  : appointment.paymentStatus === "pending"
+                    ? "En attente"
+                    : appointment.paymentStatus === "failed"
+                      ? "Échoué"
+                      : "Remboursé"}
+              </span>
+            </div>
           </div>
 
-          {/* Statut de la réservation */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Informations du prestataire */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Prestataire
+              </h2>
+              <div className="space-y-2">
+                <p>
+                  <strong>Nom:</strong> {appointment.provider?.name}
+                </p>
+                <p>
+                  <strong>Spécialité:</strong> {appointment.provider?.specialty}
+                </p>
+                <p>
+                  <strong>Service:</strong> {appointment.selectedService?.name}
+                </p>
+                <p>
+                  <strong>Prix:</strong> {appointment.selectedService?.price} €
+                </p>
               </div>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Réservation confirmée
-                </h2>
-                <p className="text-green-600 font-medium">
-                  Votre réservation a été confirmée avec succès
+            </div>
+
+            {/* Informations du rendez-vous */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Détails du rendez-vous
+              </h2>
+              <div className="space-y-2">
+                <p>
+                  <strong>Date:</strong>{" "}
+                  {new Date(appointment.date).toLocaleDateString()}
+                </p>
+                <p>
+                  <strong>Heure:</strong> {appointment.time}
+                </p>
+                <p>
+                  <strong>Montant total:</strong> {appointment.totalAmount} €
+                </p>
+                <p>
+                  <strong>Créé le:</strong>{" "}
+                  {new Date(appointment.createdAt).toLocaleDateString()}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Détails du service */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                Détails du service
-              </h3>
-
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Service :</span>
-                  <span className="font-semibold text-gray-900">
-                    {appointment.selectedService?.name}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Prix :</span>
-                  <span className="font-bold text-blue-600 text-lg">
-                    {appointment.selectedService?.price} €
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Prestataire :</span>
-                  <span className="font-semibold text-gray-900">
-                    {appointment.provider.name}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Spécialité :</span>
-                  <span className="text-gray-900">
-                    {appointment.provider.specialty}
-                  </span>
-                </div>
+          {/* Informations du demandeur */}
+          <div className="mt-6 bg-gray-50 rounded-lg p-4">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Informations du demandeur
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p>
+                  <strong>Nom:</strong> {appointment.requester?.firstName}{" "}
+                  {appointment.requester?.lastName}
+                </p>
+                <p>
+                  <strong>Email:</strong> {appointment.requester?.email}
+                </p>
               </div>
-            </div>
-
-            {/* Informations de rendez-vous */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-orange-600" />
-                Rendez-vous
-              </h3>
-
-              <div className="space-y-4">
-                <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-4 h-4 text-orange-600" />
-                    <span className="font-semibold text-orange-800">
-                      Date et heure
-                    </span>
-                  </div>
-                  <p className="text-orange-700 font-medium">{formattedDate}</p>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Statut :</span>
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                    Confirmé
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Paiement :</span>
-                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                    Payé
-                  </span>
-                </div>
+              <div>
+                <p>
+                  <strong>Téléphone:</strong> {appointment.requester?.phone}
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Informations des personnes */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-            {/* Demandeur */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <User className="w-5 h-5 text-green-600" />
-                Demandeur
-              </h3>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      {appointment.requester.firstName}{" "}
-                      {appointment.requester.lastName}
-                    </p>
-                    <p className="text-sm text-gray-600">Demandeur principal</p>
-                  </div>
+          {/* Informations du destinataire */}
+          {appointment.recipient && (
+            <div className="mt-6 bg-gray-50 rounded-lg p-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Informations du destinataire
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p>
+                    <strong>Nom:</strong> {appointment.recipient?.firstName}{" "}
+                    {appointment.recipient?.lastName}
+                  </p>
                 </div>
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gray-400" />
-                    <span>{appointment.requester.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    <span>{appointment.requester.email}</span>
-                  </div>
+                <div>
+                  <p>
+                    <strong>Téléphone:</strong> {appointment.recipient?.phone}
+                  </p>
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Bénéficiaire */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <User className="w-5 h-5 text-purple-600" />
-                Bénéficiaire
-              </h3>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      {appointment.recipient.firstName}{" "}
-                      {appointment.recipient.lastName}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Bénéficiaire du service
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gray-400" />
-                    <span>{appointment.recipient.phone}</span>
-                  </div>
-                </div>
-              </div>
+          {/* Notes */}
+          {appointment.notes && (
+            <div className="mt-6 bg-gray-50 rounded-lg p-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Notes
+              </h2>
+              <p className="text-gray-700">{appointment.notes}</p>
             </div>
-          </div>
+          )}
 
           {/* Actions */}
-          <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Actions disponibles
-            </h3>
-
-            <div className="flex flex-wrap gap-4">
-              <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium">
-                Télécharger la confirmation
-              </button>
-              <button className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 font-medium">
-                Modifier la réservation
-              </button>
-              <button className="px-6 py-3 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors duration-200 font-medium">
-                Annuler la réservation
-              </button>
-            </div>
+          <div className="mt-6 flex justify-end space-x-4">
+            <button
+              onClick={() =>
+                router.push(`/dashboard/appointments/${params.id}/edit`)
+              }
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Modifier
+            </button>
+            <button
+              onClick={() => {
+                if (
+                  confirm("Êtes-vous sûr de vouloir annuler ce rendez-vous ?")
+                ) {
+                  // Ici vous pourriez appeler une API pour annuler le rendez-vous
+                  alert("Rendez-vous annulé");
+                }
+              }}
+              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+            >
+              Annuler
+            </button>
           </div>
         </div>
       </div>
-    </DefaultTemplate>
+    </div>
   );
 }

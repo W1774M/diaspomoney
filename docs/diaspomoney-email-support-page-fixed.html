@@ -1,0 +1,2392 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Email Support - DiaspoMoney</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        /* Couleurs principales DiaspoMoney */
+        --dm-primary: #ff8c00; /* Orange DiaspoMoney (couleurs CI) */
+        --dm-primary-dark: #e67e00; /* Orange foncé */
+        --dm-primary-light: #ffb347; /* Orange clair */
+
+        --dm-secondary: #00853f; /* Vert (couleurs sénégalaises) */
+        --dm-secondary-dark: #006b32;
+        --dm-secondary-light: #20a05a;
+
+        --dm-accent: #002395; /* Bleu français */
+        --dm-accent-light: #1e40af;
+
+        --dm-gold: #ffd700; /* Or */
+        --dm-red: #dc2626; /* Rouge Cameroun */
+
+        /* Nuances de gris */
+        --dm-dark: #1f2937;
+        --dm-gray-800: #374151;
+        --dm-gray-700: #4b5563;
+        --dm-gray-600: #6b7280;
+        --dm-gray-500: #9ca3af;
+        --dm-gray-400: #d1d5db;
+        --dm-gray-300: #e5e7eb;
+        --dm-gray-200: #f3f4f6;
+        --dm-gray-100: #f9fafb;
+
+        --dm-white: #ffffff;
+        --dm-black: #000000;
+
+        /* Gradients DiaspoMoney */
+        --dm-gradient-primary: linear-gradient(
+          135deg,
+          var(--dm-primary),
+          var(--dm-gold)
+        );
+        --dm-gradient-secondary: linear-gradient(
+          135deg,
+          var(--dm-secondary),
+          var(--dm-secondary-light)
+        );
+        --dm-gradient-accent: linear-gradient(
+          135deg,
+          var(--dm-accent),
+          var(--dm-accent-light)
+        );
+        --dm-gradient-africa: linear-gradient(
+          135deg,
+          var(--dm-primary),
+          var(--dm-secondary)
+        );
+
+        /* Shadows */
+        --dm-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --dm-shadow-md:
+          0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --dm-shadow-lg:
+          0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --dm-shadow-xl:
+          0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+        /* Radius */
+        --dm-radius-sm: 6px;
+        --dm-radius-md: 10px;
+        --dm-radius-lg: 16px;
+        --dm-radius-xl: 24px;
+        --dm-radius-full: 9999px;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        line-height: 1.6;
+        color: var(--dm-gray-800);
+        background: var(--dm-gray-100);
+        font-size: 14px;
+        overflow-x: hidden;
+      }
+
+      /* Container */
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      /* DiaspoMoney Header */
+      .dm-header {
+        background: var(--dm-white);
+        border-bottom: 3px solid var(--dm-primary);
+        padding: 16px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: var(--dm-shadow-md);
+      }
+      .dm-logo {
+        display: flex;
+        align-items: center;
+        gap: 16px; /* espace entre logo et texte */
+        text-decoration: none;
+      }
+
+      .logo-container {
+        margin-right: 8px; /* espace avec baseline */
+      }
+
+      .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .dm-logo {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        text-decoration: none;
+      }
+
+      .logo-container {
+        width: 48px;
+        height: 48px;
+        background: var(--dm-gradient-primary);
+        border-radius: var(--dm-radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--dm-white);
+        font-size: 20px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .logo-container::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+          45deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        animation: shimmer 2s infinite;
+      }
+
+      @keyframes shimmer {
+        0% {
+          transform: translateX(-100%) translateY(-100%) rotate(45deg);
+        }
+        100% {
+          transform: translateX(100%) translateY(100%) rotate(45deg);
+        }
+      }
+
+      .logo-text {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .logo-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--dm-dark);
+        line-height: 1;
+      }
+
+      .logo-subtitle {
+        font-size: 11px;
+        color: var(--dm-primary);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-top: 2px;
+      }
+
+      .header-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--dm-gray-600);
+        font-size: 13px;
+      }
+
+      .header-nav a {
+        color: var(--dm-gray-600);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      .header-nav a:hover {
+        color: var(--dm-primary);
+      }
+
+      .header-user {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .user-avatar {
+        width: 36px;
+        height: 36px;
+        background: var(--dm-gradient-secondary);
+        border-radius: var(--dm-radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--dm-white);
+        font-size: 14px;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      .user-avatar:hover {
+        transform: scale(1.05);
+      }
+
+      /* Hero Section */
+      .hero-section {
+        background: var(--dm-gradient-africa);
+        color: var(--dm-white);
+        padding: 48px 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero-section::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><defs><pattern id="grain" width="100" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="30" cy="5" r="1" fill="rgba(255,255,255,0.05)"/><circle cx="50" cy="15" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="70" cy="8" r="1" fill="rgba(255,255,255,0.05)"/><circle cx="90" cy="12" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="20" fill="url(%23grain)"/></svg>');
+        opacity: 0.3;
+      }
+
+      .hero-content {
+        text-align: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 8px 16px;
+        border-radius: var(--dm-radius-full);
+        font-size: 12px;
+        margin-bottom: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .hero-title {
+        font-size: 36px;
+        font-weight: 800;
+        margin-bottom: 16px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .hero-subtitle {
+        font-size: 18px;
+        opacity: 0.9;
+        margin-bottom: 32px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 24px;
+        margin-top: 40px;
+      }
+
+      .stat-item {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: var(--dm-radius-lg);
+        padding: 24px;
+        text-align: center;
+        transition: transform 0.3s ease;
+      }
+
+      .stat-item:hover {
+        transform: translateY(-4px);
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      .stat-value {
+        display: block;
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .stat-label {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      /* Slogan Section */
+      .slogan-section {
+        background: var(--dm-white);
+        padding: 32px 0;
+        border-bottom: 1px solid var(--dm-gray-300);
+      }
+
+      .slogan-content {
+        text-align: center;
+      }
+
+      .dm-slogan {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--dm-dark);
+        font-style: italic;
+        position: relative;
+        display: inline-block;
+      }
+
+      .dm-slogan::before,
+      .dm-slogan::after {
+        content: '"';
+        font-size: 32px;
+        color: var(--dm-primary);
+        font-weight: 700;
+      }
+
+      /* Main Content */
+      .main-content {
+        padding: 40px 0;
+      }
+
+      /* Emergency Alert */
+      .emergency-alert {
+        background: linear-gradient(135deg, var(--dm-red), #ef4444);
+        color: var(--dm-white);
+        padding: 24px;
+        border-radius: var(--dm-radius-lg);
+        margin-bottom: 32px;
+        text-align: center;
+        box-shadow: var(--dm-shadow-lg);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .emergency-alert::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        animation: urgentPulse 2s infinite;
+      }
+
+      @keyframes urgentPulse {
+        0% {
+          left: -100%;
+        }
+        100% {
+          left: 100%;
+        }
+      }
+
+      .alert-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .alert-message {
+        margin-bottom: 20px;
+        font-size: 15px;
+      }
+
+      .alert-actions {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .btn-emergency {
+        background: rgba(255, 255, 255, 0.2);
+        color: var(--dm-white);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        padding: 12px 24px;
+        border-radius: var(--dm-radius-md);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-emergency:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+      }
+
+      /* Content Grid */
+      .content-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 32px;
+        margin-bottom: 40px;
+      }
+
+      /* Support Methods Card */
+      .support-card {
+        background: var(--dm-white);
+        border-radius: var(--dm-radius-lg);
+        box-shadow: var(--dm-shadow-md);
+        overflow: hidden;
+      }
+
+      .card-header {
+        background: linear-gradient(
+          135deg,
+          var(--dm-gray-800),
+          var(--dm-gray-700)
+        );
+        color: var(--dm-white);
+        padding: 20px 24px;
+        position: relative;
+      }
+
+      .card-header::before {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--dm-gradient-primary);
+      }
+
+      .card-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+
+      .card-subtitle {
+        font-size: 13px;
+        opacity: 0.8;
+      }
+
+      .card-content {
+        padding: 8px;
+      }
+
+      /* Method Items */
+      .method-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        border-radius: var(--dm-radius-md);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-bottom: 4px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .method-item:hover {
+        background: var(--dm-gray-100);
+        transform: translateY(-2px);
+        box-shadow: var(--dm-shadow-md);
+      }
+
+      .method-item:active {
+        transform: translateY(0);
+      }
+
+      .method-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--dm-radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        color: var(--dm-white);
+        flex-shrink: 0;
+        position: relative;
+      }
+
+      .method-icon.chat {
+        background: var(--dm-gradient-secondary);
+      }
+      .method-icon.phone {
+        background: var(--dm-gradient-accent);
+      }
+      .method-icon.email {
+        background: var(--dm-gradient-primary);
+      }
+      .method-icon.faq {
+        background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+      }
+
+      .method-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .method-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--dm-dark);
+        margin-bottom: 4px;
+      }
+
+      .method-description {
+        font-size: 13px;
+        color: var(--dm-gray-600);
+        line-height: 1.4;
+      }
+
+      .method-status {
+        padding: 6px 10px;
+        border-radius: var(--dm-radius-full);
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        flex-shrink: 0;
+      }
+
+      .status-online {
+        background: #dcfce7;
+        color: var(--dm-secondary-dark);
+      }
+      .status-available {
+        background: #dbeafe;
+        color: var(--dm-accent);
+      }
+      .status-busy {
+        background: #fef3c7;
+        color: #d97706;
+      }
+
+      /* Contact Form */
+      .contact-form-container {
+        background: var(--dm-white);
+        border-radius: var(--dm-radius-lg);
+        box-shadow: var(--dm-shadow-md);
+        overflow: hidden;
+      }
+
+      .form-content {
+        padding: 24px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--dm-dark);
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid var(--dm-gray-300);
+        border-radius: var(--dm-radius-sm);
+        font-size: 14px;
+        transition: all 0.2s;
+        background: var(--dm-white);
+        font-family: inherit;
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: var(--dm-primary);
+        box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.1);
+      }
+
+      .form-textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+
+      .form-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 12px center;
+        background-repeat: no-repeat;
+        background-size: 16px;
+        padding-right: 40px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border: none;
+        border-radius: var(--dm-radius-sm);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        font-family: inherit;
+      }
+
+      .btn-primary {
+        background: var(--dm-gradient-primary);
+        color: var(--dm-white);
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: var(--dm-shadow-lg);
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .btn-full {
+        width: 100%;
+      }
+
+      /* Success Message */
+      .success-message {
+        background: linear-gradient(
+          135deg,
+          var(--dm-secondary),
+          var(--dm-secondary-light)
+        );
+        color: var(--dm-white);
+        padding: 16px;
+        border-radius: var(--dm-radius-sm);
+        margin-bottom: 20px;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        font-weight: 500;
+      }
+
+      /* Countries Section */
+      .countries-section {
+        margin-bottom: 40px;
+      }
+
+      .section-header {
+        text-align: center;
+        margin-bottom: 32px;
+      }
+
+      .section-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--dm-dark);
+        margin-bottom: 8px;
+      }
+
+      .section-description {
+        font-size: 16px;
+        color: var(--dm-gray-600);
+      }
+
+      .countries-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+      }
+
+      .country-card {
+        background: var(--dm-white);
+        border-radius: var(--dm-radius-lg);
+        padding: 24px;
+        box-shadow: var(--dm-shadow-md);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .country-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+      }
+
+      .country-card.france::before {
+        background: var(--dm-gradient-accent);
+      }
+      .country-card.senegal::before {
+        background: var(--dm-gradient-secondary);
+      }
+      .country-card.cotedivoire::before {
+        background: var(--dm-gradient-primary);
+      }
+      .country-card.cameroun::before {
+        background: linear-gradient(135deg, var(--dm-secondary), var(--dm-red));
+      }
+
+      .country-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--dm-shadow-xl);
+      }
+
+      .country-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .country-flag {
+        width: 32px;
+        height: 24px;
+        border-radius: 4px;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .country-info h3 {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--dm-dark);
+        margin-bottom: 2px;
+      }
+
+      .country-info p {
+        font-size: 12px;
+        color: var(--dm-gray-600);
+      }
+
+      .country-details {
+        space-y: 12px;
+      }
+
+      .country-detail {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 8px;
+        font-size: 13px;
+        color: var(--dm-gray-700);
+      }
+
+      .detail-icon {
+        color: var(--dm-primary);
+        width: 16px;
+        margin-top: 2px;
+        flex-shrink: 0;
+      }
+
+      /* FAQ Section */
+      .faq-section {
+        background: var(--dm-white);
+        border-radius: var(--dm-radius-lg);
+        box-shadow: var(--dm-shadow-md);
+        overflow: hidden;
+      }
+
+      .faq-search {
+        padding: 24px 24px 20px;
+      }
+
+      .search-container {
+        position: relative;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 14px 20px 14px 48px;
+        border: 2px solid var(--dm-gray-300);
+        border-radius: var(--dm-radius-md);
+        font-size: 15px;
+        background: var(--dm-gray-100);
+        transition: all 0.2s;
+      }
+
+      .search-input:focus {
+        background: var(--dm-white);
+        border-color: var(--dm-primary);
+        box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.1);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--dm-gray-500);
+        font-size: 18px;
+      }
+
+      .faq-categories {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 16px;
+        padding: 24px;
+        border-top: 1px solid var(--dm-gray-300);
+      }
+
+      .faq-category {
+        text-align: center;
+        padding: 20px 12px;
+        border: 2px solid var(--dm-gray-300);
+        border-radius: var(--dm-radius-md);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: var(--dm-white);
+      }
+
+      .faq-category:hover {
+        border-color: var(--dm-primary);
+        background: linear-gradient(
+          135deg,
+          rgba(255, 140, 0, 0.05),
+          rgba(255, 140, 0, 0.1)
+        );
+        transform: translateY(-2px);
+        box-shadow: var(--dm-shadow-md);
+      }
+
+      .category-icon {
+        font-size: 28px;
+        color: var(--dm-primary);
+        margin-bottom: 12px;
+        display: block;
+      }
+
+      .category-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--dm-dark);
+        margin-bottom: 4px;
+      }
+
+      .category-desc {
+        font-size: 12px;
+        color: var(--dm-gray-600);
+      }
+
+      /* Chat Widget */
+      .chat-widget {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 64px;
+        height: 64px;
+        background: var(--dm-gradient-primary);
+        border-radius: var(--dm-radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--dm-white);
+        font-size: 26px;
+        cursor: pointer;
+        box-shadow: var(--dm-shadow-xl);
+        transition: all 0.3s ease;
+        z-index: 1000;
+        animation: chatPulse 2s infinite;
+      }
+
+      .chat-widget:hover {
+        transform: scale(1.1);
+      }
+
+      @keyframes chatPulse {
+        0%,
+        100% {
+          box-shadow: var(--dm-shadow-xl);
+        }
+        50% {
+          box-shadow:
+            var(--dm-shadow-xl),
+            0 0 0 8px rgba(255, 140, 0, 0.3);
+        }
+      }
+
+      /* Responsive Design */
+      @media (max-width: 1024px) {
+        .content-grid {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 0 16px;
+        }
+
+        .hero-title {
+          font-size: 28px;
+        }
+
+        .hero-subtitle {
+          font-size: 16px;
+        }
+
+        .hero-stats {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 16px;
+        }
+
+        .countries-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .faq-categories {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .dm-slogan {
+          font-size: 20px;
+        }
+
+        .header-user {
+          display: none;
+        }
+
+        .alert-actions {
+          flex-direction: column;
+          align-items: center;
+        }
+      }
+
+      /* Animations */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .fade-in-up {
+        animation: fadeInUp 0.6s ease-out;
+      }
+
+      .stagger-1 {
+        animation-delay: 0.1s;
+      }
+      .stagger-2 {
+        animation-delay: 0.2s;
+      }
+      .stagger-3 {
+        animation-delay: 0.3s;
+      }
+      .stagger-4 {
+        animation-delay: 0.4s;
+      }
+
+      /* Loading States */
+      .loading {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      .spinner {
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* --- Styles spécifiques Email --- */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        /* Couleurs exactes DiaspoMoney */
+        --dm-orange: #ff8c00;
+        --dm-orange-hover: #e67e00;
+        --dm-orange-light: #ffb347;
+        --dm-black: #000000;
+        --dm-dark: #1a1a1a;
+        --dm-green: #28a745;
+        --dm-green-hover: #218838;
+        --dm-white: #ffffff;
+        --dm-gray-100: #f8f9fa;
+        --dm-gray-200: #e9ecef;
+        --dm-gray-300: #dee2e6;
+        --dm-gray-400: #ced4da;
+        --dm-gray-500: #adb5bd;
+        --dm-gray-600: #6c757d;
+        --dm-gray-700: #495057;
+        --dm-gray-800: #343a40;
+        --dm-gray-900: #212529;
+
+        /* Shadows */
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md:
+          0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg:
+          0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --shadow-xl:
+          0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.5;
+        color: var(--dm-gray-800);
+        background-color: var(--dm-white);
+        font-size: 16px;
+      }
+
+      /* Header DiaspoMoney Exact */
+      .dm-header {
+        background: var(--dm-white);
+        border-bottom: 3px solid var(--dm-primary);
+        padding: 16px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: var(--dm-shadow-md);
+      }
+      .dm-logo {
+        display: flex;
+        align-items: center;
+        gap: 16px; /* espace entre logo et texte */
+        text-decoration: none;
+      }
+
+      .logo-container {
+        margin-right: 8px; /* espace avec baseline */
+      }
+
+      .header-top {
+        background: linear-gradient(135deg, var(--dm-orange), #ff9500);
+        padding: 8px 0;
+        text-align: center;
+        color: var(--dm-white);
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .header-main {
+        padding: 16px 0;
+      }
+
+      .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .dm-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: var(--dm-white);
+      }
+
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        color: var(--dm-orange);
+        font-size: 24px;
+      }
+
+      .logo-text {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--dm-white);
+      }
+
+      .logo-tagline {
+        font-size: 12px;
+        color: var(--dm-gray-400);
+        margin-left: 16px;
+      }
+
+      .header-nav {
+        display: flex;
+        align-items: center;
+        gap: 32px;
+      }
+
+      .nav-link {
+        color: var(--dm-white);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        padding: 8px 0;
+        transition: color 0.2s;
+      }
+
+      .nav-link:hover {
+        color: var(--dm-orange);
+      }
+
+      .nav-link.active {
+        color: var(--dm-orange);
+        border-bottom: 2px solid var(--dm-orange);
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .btn-header {
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+      }
+
+      .btn-green {
+        background-color: var(--dm-green);
+        color: var(--dm-white);
+      }
+
+      .btn-green:hover {
+        background-color: var(--dm-green-hover);
+        transform: translateY(-1px);
+      }
+
+      .btn-outline {
+        background: transparent;
+        color: var(--dm-white);
+        border: 2px solid var(--dm-white);
+      }
+
+      .btn-outline:hover {
+        background-color: var(--dm-white);
+        color: var(--dm-black);
+      }
+
+      /* Container */
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      /* Hero Section Orange */
+      .hero-section {
+        background: linear-gradient(135deg, var(--dm-orange), #ff9500);
+        color: var(--dm-white);
+        padding: 80px 0 100px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero-section::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="20" fill="url(%23dots)"/></svg>');
+        opacity: 0.3;
+      }
+
+      .hero-content {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 60px;
+        align-items: center;
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-text h1 {
+        font-size: 48px;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 24px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .hero-text p {
+        font-size: 18px;
+        margin-bottom: 32px;
+        opacity: 0.95;
+        line-height: 1.6;
+      }
+
+      .hero-buttons {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 28px;
+        border-radius: 25px;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+      }
+
+      .btn-white {
+        background-color: var(--dm-white);
+        color: var(--dm-black);
+      }
+
+      .btn-white:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .btn-outline-white {
+        background: transparent;
+        color: var(--dm-white);
+        border: 2px solid var(--dm-white);
+      }
+
+      .btn-outline-white:hover {
+        background-color: var(--dm-white);
+        color: var(--dm-orange);
+      }
+
+      /* Email Card Hero */
+      .hero-card {
+        background: var(--dm-white);
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: var(--shadow-xl);
+        transform: translateY(-20px);
+        text-align: center;
+      }
+
+      .email-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--dm-orange), #ff9500);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        color: var(--dm-white);
+        margin: 0 auto 24px;
+        animation: float 3s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+
+      .email-address {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--dm-gray-800);
+        margin-bottom: 12px;
+      }
+
+      .email-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #d4edda;
+        color: #155724;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 20px;
+      }
+
+      .response-time {
+        font-size: 14px;
+        color: var(--dm-gray-600);
+        margin-bottom: 20px;
+      }
+
+      .email-now-btn {
+        background: var(--dm-orange);
+        color: var(--dm-white);
+        padding: 12px 24px;
+        border-radius: 25px;
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 16px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+      }
+
+      .email-now-btn:hover {
+        background: var(--dm-orange-hover);
+        transform: translateY(-2px);
+      }
+
+      /* Main Content */
+      .main-content {
+        padding: 60px 0;
+        background-color: var(--dm-gray-100);
+      }
+
+      /* Response Time */
+      .response-info {
+        background: var(--dm-white);
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 40px;
+        text-align: center;
+      }
+
+      .response-header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .response-indicator {
+        width: 60px;
+        height: 60px;
+        background: var(--dm-orange);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--dm-white);
+        font-size: 24px;
+        position: relative;
+      }
+
+      .response-indicator::before {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: var(--dm-orange);
+        opacity: 0.3;
+        animation: ping 2s infinite;
+      }
+
+      @keyframes ping {
+        0% {
+          transform: scale(1);
+          opacity: 0.3;
+        }
+        100% {
+          transform: scale(1.4);
+          opacity: 0;
+        }
+      }
+
+      .response-text h2 {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--dm-gray-800);
+        margin-bottom: 8px;
+      }
+
+      .response-text p {
+        color: var(--dm-gray-600);
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 32px;
+        margin-top: 32px;
+      }
+
+      .stat-item {
+        text-align: center;
+      }
+
+      .stat-number {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--dm-orange);
+        margin-bottom: 8px;
+      }
+
+      .stat-label {
+        font-size: 14px;
+        color: var(--dm-gray-600);
+        font-weight: 500;
+      }
+
+      /* Content Grid */
+      .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        margin-bottom: 60px;
+      }
+
+      /* Info Cards */
+      .info-card {
+        background: var(--dm-white);
+        border-radius: 16px;
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+      }
+
+      .card-header {
+        background: linear-gradient(135deg, var(--dm-black), #2a2a2a);
+        color: var(--dm-white);
+        padding: 24px;
+      }
+
+      .card-title {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .card-subtitle {
+        font-size: 14px;
+        opacity: 0.8;
+      }
+
+      .card-body {
+        padding: 24px;
+      }
+
+      /* Email Types */
+      .email-type {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        border: 2px solid var(--dm-gray-200);
+        border-radius: 12px;
+        margin-bottom: 12px;
+        transition: all 0.2s;
+        cursor: pointer;
+      }
+
+      .email-type:hover {
+        border-color: var(--dm-orange);
+        background: var(--dm-gray-100);
+      }
+
+      .type-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: var(--dm-white);
+        flex-shrink: 0;
+      }
+
+      .type-icon.support {
+        background: var(--dm-orange);
+      }
+      .type-icon.technical {
+        background: #6f42c1;
+      }
+      .type-icon.billing {
+        background: var(--dm-green);
+      }
+      .type-icon.partnership {
+        background: #007bff;
+      }
+
+      .type-content {
+        flex: 1;
+      }
+
+      .type-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--dm-gray-800);
+        margin-bottom: 4px;
+      }
+
+      .type-description {
+        font-size: 13px;
+        color: var(--dm-gray-600);
+        margin-bottom: 4px;
+      }
+
+      .type-email {
+        font-size: 12px;
+        color: var(--dm-orange);
+        font-weight: 600;
+      }
+
+      .type-time {
+        font-size: 12px;
+        color: var(--dm-gray-500);
+        text-align: right;
+      }
+
+      /* Email Best Practices */
+      .best-practices {
+        list-style: none;
+        padding: 0;
+      }
+
+      .practice-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--dm-gray-200);
+      }
+
+      .practice-item:last-child {
+        border-bottom: none;
+      }
+
+      .practice-icon {
+        width: 20px;
+        height: 20px;
+        background: var(--dm-green);
+        color: var(--dm-white);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .practice-text {
+        font-size: 14px;
+        color: var(--dm-gray-700);
+        line-height: 1.5;
+      }
+
+      .practice-text strong {
+        color: var(--dm-gray-800);
+      }
+
+      /* Email Templates */
+      .templates-section {
+        background: var(--dm-white);
+        padding: 80px 0;
+      }
+
+      .section-title {
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--dm-gray-800);
+        text-align: center;
+        margin-bottom: 60px;
+      }
+
+      .templates-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 32px;
+      }
+
+      .template-card {
+        background: var(--dm-white);
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--dm-gray-200);
+        transition: transform 0.2s;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .template-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, var(--dm-orange), #ff9500);
+      }
+
+      .template-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .template-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .template-icon {
+        width: 48px;
+        height: 48px;
+        background: var(--dm-orange);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--dm-white);
+        font-size: 20px;
+      }
+
+      .template-info h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--dm-gray-800);
+        margin-bottom: 4px;
+      }
+
+      .template-info p {
+        font-size: 14px;
+        color: var(--dm-gray-600);
+      }
+
+      .template-preview {
+        background: var(--dm-gray-100);
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--dm-gray-700);
+        font-family: "Monaco", monospace;
+        max-height: 120px;
+        overflow: hidden;
+      }
+
+      .template-actions {
+        display: flex;
+        gap: 12px;
+      }
+
+      .btn-sm {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+
+      .btn-copy {
+        background: var(--dm-gray-200);
+        color: var(--dm-gray-700);
+      }
+
+      .btn-copy:hover {
+        background: var(--dm-gray-300);
+      }
+
+      .btn-use {
+        background: var(--dm-orange);
+        color: var(--dm-white);
+      }
+
+      .btn-use:hover {
+        background: var(--dm-orange-hover);
+      }
+
+      /* Security Notice */
+      .security-notice {
+        background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+        border: 1px solid #2196f3;
+        border-radius: 12px;
+        padding: 20px;
+        margin-top: 32px;
+      }
+
+      .security-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1565c0;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .security-text {
+        font-size: 14px;
+        color: #1565c0;
+        line-height: 1.5;
+      }
+
+      /* Responsive */
+      @media (max-width: 1024px) {
+        .hero-content {
+          grid-template-columns: 1fr;
+          gap: 40px;
+          text-align: center;
+        }
+
+        .content-grid {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+
+        .header-nav {
+          display: none;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .hero-text h1 {
+          font-size: 36px;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+
+        .templates-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .header-actions {
+          display: none;
+        }
+
+        .email-address {
+          font-size: 20px;
+        }
+      }
+
+      /* Animations */
+      .fade-in {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.6s ease;
+      }
+
+      .fade-in.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Loading & Success States */
+      .success-message {
+        background: var(--dm-green);
+        color: var(--dm-white);
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Header exact DiaspoMoney -->
+    <header class="dm-header">
+      <div class="container">
+        <div class="header-content">
+          <a href="/dashboard" class="dm-logo">
+            <div class="logo-container">
+              <i class="fas fa-money-bill-transfer"></i>
+            </div>
+            <div class="logo-text">
+              <span class="logo-title">DiaspoMoney</span>
+              <span class="logo-subtitle">Transfer Services</span>
+            </div>
+          </a>
+
+          <nav class="header-nav">
+            <a href="/dashboard">Dashboard</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>Support Client</span>
+          </nav>
+
+          <div class="header-user">
+            <div class="user-avatar">
+              <i class="fas fa-user"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section Orange -->
+    <section class="hero-section">
+      <div class="container">
+        <div class="hero-content">
+          <div class="hero-text">
+            <h1>Support par Email</h1>
+            <p>
+              Notre équipe d'experts répond à toutes vos questions par email
+              avec un délai garanti de 24h maximum. Support spécialisé par
+              domaine avec suivi personnalisé de votre demande jusqu'à
+              résolution complète.
+            </p>
+            <div class="hero-buttons">
+              <a href="mailto:support@diaspomoney.fr" class="btn btn-white">
+                <i class="fas fa-envelope"></i>
+                Envoyer un email
+              </a>
+              <a href="#templates" class="btn btn-outline-white">
+                <i class="fas fa-file-alt"></i>
+                Modèles d'emails
+              </a>
+            </div>
+          </div>
+
+          <div class="hero-card">
+            <div class="email-icon">
+              <i class="fas fa-envelope"></i>
+            </div>
+            <div class="email-address">support@diaspomoney.fr</div>
+            <div class="email-status">
+              <i class="fas fa-check-circle"></i>
+              <span>Service actif</span>
+            </div>
+            <div class="response-time">
+              <strong>Temps de réponse :</strong> Sous 24h garanties<br />
+              <strong>Horaires :</strong> Traitement 24/7
+            </div>
+            <a href="mailto:support@diaspomoney.fr" class="email-now-btn">
+              <i class="fas fa-paper-plane"></i>
+              Écrire maintenant
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="container">
+        <!-- Response Time Info -->
+        <div class="response-info">
+          <div class="response-header">
+            <div class="response-indicator">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="response-text">
+              <h2>Réponse rapide garantie</h2>
+              <p>
+                Notre engagement : une réponse complète et personnalisée sous
+                24h maximum
+              </p>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-number">18h</div>
+              <div class="stat-label">Temps moyen de réponse</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">96%</div>
+              <div class="stat-label">Emails traités sous 24h</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">4.7/5</div>
+              <div class="stat-label">Satisfaction support email</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div class="content-grid">
+          <!-- Email Types -->
+          <div class="info-card">
+            <div class="card-header">
+              <h2 class="card-title">Adresses spécialisées</h2>
+              <p class="card-subtitle">
+                Contactez directement le bon service pour une réponse optimale
+              </p>
+            </div>
+            <div class="card-body">
+              <div
+                class="email-type"
+                onclick="openEmail('support@diaspomoney.fr')"
+              >
+                <div class="type-icon support">
+                  <i class="fas fa-headset"></i>
+                </div>
+                <div class="type-content">
+                  <div class="type-title">Support général</div>
+                  <div class="type-description">
+                    Questions générales, aide utilisation, information
+                  </div>
+                  <div class="type-email">support@diaspomoney.fr</div>
+                </div>
+                <div class="type-time">24h</div>
+              </div>
+
+              <div
+                class="email-type"
+                onclick="openEmail('technique@diaspomoney.fr')"
+              >
+                <div class="type-icon technical">
+                  <i class="fas fa-cogs"></i>
+                </div>
+                <div class="type-content">
+                  <div class="type-title">Support technique</div>
+                  <div class="type-description">
+                    Problèmes app, connexion, bugs, compte
+                  </div>
+                  <div class="type-email">technique@diaspomoney.fr</div>
+                </div>
+                <div class="type-time">12h</div>
+              </div>
+
+              <div
+                class="email-type"
+                onclick="openEmail('facturation@diaspomoney.fr')"
+              >
+                <div class="type-icon billing">
+                  <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="type-content">
+                  <div class="type-title">Facturation</div>
+                  <div class="type-description">
+                    Paiements, remboursements, factures
+                  </div>
+                  <div class="type-email">facturation@diaspomoney.fr</div>
+                </div>
+                <div class="type-time">24h</div>
+              </div>
+
+              <div
+                class="email-type"
+                onclick="openEmail('partenaires@diaspomoney.fr')"
+              >
+                <div class="type-icon partnership">
+                  <i class="fas fa-handshake"></i>
+                </div>
+                <div class="type-content">
+                  <div class="type-title">Partenariats</div>
+                  <div class="type-description">
+                    Devenir prestataire, collaboration B2B
+                  </div>
+                  <div class="type-email">partenaires@diaspomoney.fr</div>
+                </div>
+                <div class="type-time">48h</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Best Practices -->
+          <div class="info-card">
+            <div class="card-header">
+              <h2 class="card-title">Conseils pour un email efficace</h2>
+              <p class="card-subtitle">
+                Optimisez votre demande pour obtenir une réponse rapide et
+                précise
+              </p>
+            </div>
+            <div class="card-body">
+              <ul class="best-practices">
+                <li class="practice-item">
+                  <div class="practice-icon">
+                    <i class="fas fa-subject"></i>
+                  </div>
+                  <div class="practice-text">
+                    <strong>Objet clair et précis</strong><br />
+                    Exemple : "Problème paiement - Commande #DM123456"
+                  </div>
+                </li>
+                <li class="practice-item">
+                  <div class="practice-icon">
+                    <i class="fas fa-id-card"></i>
+                  </div>
+                  <div class="practice-text">
+                    <strong>Vos informations</strong><br />
+                    Nom, email de compte, numéro de téléphone
+                  </div>
+                </li>
+                <li class="practice-item">
+                  <div class="practice-icon">
+                    <i class="fas fa-list"></i>
+                  </div>
+                  <div class="practice-text">
+                    <strong>Détails du problème</strong><br />
+                    Date, montant, prestataire, code de suivi
+                  </div>
+                </li>
+                <li class="practice-item">
+                  <div class="practice-icon">
+                    <i class="fas fa-paperclip"></i>
+                  </div>
+                  <div class="practice-text">
+                    <strong>Pièces jointes</strong><br />
+                    Captures d'écran, factures, justificatifs
+                  </div>
+                </li>
+                <li class="practice-item">
+                  <div class="practice-icon">
+                    <i class="fas fa-question"></i>
+                  </div>
+                  <div class="practice-text">
+                    <strong>Question précise</strong><br />
+                    Formulez clairement ce que vous attendez
+                  </div>
+                </li>
+              </ul>
+
+              <div class="security-notice">
+                <div class="security-title">
+                  <i class="fas fa-shield-alt"></i>
+                  Sécurité & Confidentialité
+                </div>
+                <div class="security-text">
+                  Tous vos emails sont chiffrés et traités de manière
+                  confidentielle. Ne partagez jamais vos mots de passe par
+                  email. DiaspoMoney ne vous demandera jamais vos codes secrets.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Email Templates -->
+    <section class="templates-section" id="templates">
+      <div class="container">
+        <h2 class="section-title">Modèles d'emails prêts à utiliser</h2>
+        <div class="templates-grid">
+          <div class="template-card fade-in">
+            <div class="template-header">
+              <div class="template-icon">
+                <i class="fas fa-search"></i>
+              </div>
+              <div class="template-info">
+                <h3>Suivi de commande</h3>
+                <p>Pour demander des nouvelles de votre service</p>
+              </div>
+            </div>
+            <div class="template-preview">
+              Objet: Suivi commande #DM[NUMERO] Bonjour, Je souhaite avoir des
+              nouvelles de ma commande passée le [DATE] pour un service [TYPE]
+              au [PAYS]. Référence: #DM[NUMERO] Montant: [MONTANT]€ Prestataire:
+              [NOM] Pouvez-vous me donner l'état d'avancement ? Merci, [VOTRE
+              NOM]
+            </div>
+            <div class="template-actions">
+              <button class="btn btn-sm btn-copy" onclick="copyTemplate(0)">
+                <i class="fas fa-copy"></i> Copier
+              </button>
+              <a
+                href="mailto:support@diaspomoney.fr?subject=Suivi commande"
+                class="btn btn-sm btn-use"
+              >
+                <i class="fas fa-envelope"></i> Utiliser
+              </a>
+            </div>
+            <div class="success-message" id="success-0">
+              <i class="fas fa-check"></i> Template copié dans le presse-papier
+            </div>
+          </div>
+
+          <div class="template-card fade-in">
+            <div class="template-header">
+              <div class="template-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+              </div>
+              <div class="template-info">
+                <h3>Signaler un problème</h3>
+                <p>Pour signaler un dysfonctionnement ou une erreur</p>
+              </div>
+            </div>
+            <div class="template-preview">
+              Objet: Problème [TYPE] - Urgence [NIVEAU] Bonjour, Je rencontre un
+              problème avec [DESCRIPTION]. Détails: - Date: [DATE] - Service:
+              [SERVICE] - Erreur: [MESSAGE] - Impact: [IMPACT] Pouvez-vous
+              m'aider rapidement ? Cordialement, [VOTRE NOM] [TELEPHONE]
+            </div>
+            <div class="template-actions">
+              <button class="btn btn-sm btn-copy" onclick="copyTemplate(1)">
+                <i class="fas fa-copy"></i> Copier
+              </button>
+              <a
+                href="mailto:technique@diaspomoney.fr?subject=Problème technique"
+                class="btn btn-sm btn-use"
+              >
+                <i class="fas fa-envelope"></i> Utiliser
+              </a>
+            </div>
+            <div class="success-message" id="success-1">
+              <i class="fas fa-check"></i> Template copié dans le presse-papier
+            </div>
+          </div>
+
+          <div class="template-card fade-in">
+            <div class="template-header">
+              <div class="template-icon">
+                <i class="fas fa-credit-card"></i>
+              </div>
+              <div class="template-info">
+                <h3>Question facturation</h3>
+                <p>Pour les questions de paiement et remboursement</p>
+              </div>
+            </div>
+            <div class="template-preview">
+              Objet: Question facturation - [REFERENCE] Bonjour, J'ai une
+              question concernant la facturation de [SERVICE]. Référence: [REF]
+              Montant facturé: [MONTANT]€ Date: [DATE] Question: [VOTRE
+              QUESTION] Merci de m'éclairer. Cordialement, [VOTRE NOM]
+            </div>
+            <div class="template-actions">
+              <button class="btn btn-sm btn-copy" onclick="copyTemplate(2)">
+                <i class="fas fa-copy"></i> Copier
+              </button>
+              <a
+                href="mailto:facturation@diaspomoney.fr?subject=Question facturation"
+                class="btn btn-sm btn-use"
+              >
+                <i class="fas fa-envelope"></i> Utiliser
+              </a>
+            </div>
+            <div class="success-message" id="success-2">
+              <i class="fas fa-check"></i> Template copié dans le presse-papier
+            </div>
+          </div>
+
+          <div class="template-card fade-in">
+            <div class="template-header">
+              <div class="template-icon">
+                <i class="fas fa-handshake"></i>
+              </div>
+              <div class="template-info">
+                <h3>Devenir partenaire</h3>
+                <p>Pour proposer vos services comme prestataire</p>
+              </div>
+            </div>
+            <div class="template-preview">
+              Objet: Candidature prestataire [SECTEUR] - [VILLE] Bonjour, Je
+              souhaite devenir partenaire DiaspoMoney. Profil: - Secteur:
+              [SECTEUR] - Localisation: [VILLE, PAYS] - Expérience: [ANNÉES] -
+              Services: [LISTE] - Références: [DISPONIBLE] Pouvons-nous discuter
+              ? Cordialement, [VOTRE NOM] [ENTREPRISE]
+            </div>
+            <div class="template-actions">
+              <button class="btn btn-sm btn-copy" onclick="copyTemplate(3)">
+                <i class="fas fa-copy"></i> Copier
+              </button>
+              <a
+                href="mailto:partenaires@diaspomoney.fr?subject=Candidature prestataire"
+                class="btn btn-sm btn-use"
+              >
+                <i class="fas fa-envelope"></i> Utiliser
+              </a>
+            </div>
+            <div class="success-message" id="success-3">
+              <i class="fas fa-check"></i> Template copié dans le presse-papier
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      // Animation on scroll
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px",
+      };
+
+      const observer = new IntersectionObserver(function (entries) {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          }
+        });
+      }, observerOptions);
+
+      document.querySelectorAll(".fade-in").forEach(el => {
+        observer.observe(el);
+      });
+
+      // Email functions
+      function openEmail(email, subject = "") {
+        let mailtoLink = `mailto:${email}`;
+        if (subject) {
+          mailtoLink += `?subject=${encodeURIComponent(subject)}`;
+        }
+        window.open(mailtoLink);
+      }
+
+      // Template data
+      const templates = [
+        `Objet: Suivi commande #DM[NUMERO]
+
+Bonjour,
+
+Je souhaite avoir des nouvelles de ma commande passée le [DATE] pour un service [TYPE] au [PAYS].
+
+Référence: #DM[NUMERO]
+Montant: [MONTANT]€
+Prestataire: [NOM]
+
+Pouvez-vous me donner l'état d'avancement ?
+
+Merci,
+[VOTRE NOM]`,
+
+        `Objet: Problème [TYPE] - Urgence [NIVEAU]
+
+Bonjour,
+
+Je rencontre un problème avec [DESCRIPTION].
+
+Détails:
+- Date: [DATE]
+- Service: [SERVICE] 
+- Erreur: [MESSAGE]
+- Impact: [IMPACT]
+
+Pouvez-vous m'aider rapidement ?
+
+Cordialement,
+[VOTRE NOM]
+[TELEPHONE]`,
+
+        `Objet: Question facturation - [REFERENCE]
+
+Bonjour,
+
+J'ai une question concernant la facturation de [SERVICE].
+
+Référence: [REF]
+Montant facturé: [MONTANT]€
+Date: [DATE]
+Question: [VOTRE QUESTION]
+
+Merci de m'éclairer.
+
+Cordialement,
+[VOTRE NOM]`,
+
+        `Objet: Candidature prestataire [SECTEUR] - [VILLE]
+
+Bonjour,
+
+Je souhaite devenir partenaire DiaspoMoney.
+
+Profil:
+- Secteur: [SECTEUR]
+- Localisation: [VILLE, PAYS]
+- Expérience: [ANNÉES]
+- Services: [LISTE]
+- Références: [DISPONIBLE]
+
+Pouvons-nous discuter ?
+
+Cordialement,
+[VOTRE NOM]
+[ENTREPRISE]`,
+      ];
+
+      // Copy template function
+      async function copyTemplate(index) {
+        try {
+          await navigator.clipboard.writeText(templates[index]);
+
+          // Show success message
+          const successMsg = document.getElementById(`success-${index}`);
+          successMsg.style.display = "flex";
+
+          // Hide after 3 seconds
+          setTimeout(() => {
+            successMsg.style.display = "none";
+          }, 3000);
+        } catch (err) {
+          console.error("Erreur lors de la copie:", err);
+          // Fallback for older browsers
+          const textArea = document.createElement("textarea");
+          textArea.value = templates[index];
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textArea);
+
+          // Show success message
+          const successMsg = document.getElementById(`success-${index}`);
+          successMsg.style.display = "flex";
+          setTimeout(() => {
+            successMsg.style.display = "none";
+          }, 3000);
+        }
+      }
+
+      // Auto-update response time stats (simulate real-time)
+      function updateResponseStats() {
+        const responseTime = document.querySelector(".stat-number");
+        if (responseTime && responseTime.textContent.includes("h")) {
+          const times = ["16h", "18h", "20h", "22h", "15h"];
+          const randomTime = times[Math.floor(Math.random() * times.length)];
+          responseTime.textContent = randomTime;
+        }
+      }
+
+      // Update every 45 seconds
+      setInterval(updateResponseStats, 45000);
+    </script>
+  </body>
+</html>

@@ -1,5 +1,5 @@
 "use client";
-import { ModalPreviewProps } from "@/lib/definitions";
+import { ModalPreviewProps } from "@/types";
 import { CheckCircle, Clock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -41,7 +41,7 @@ export const ModalPreview = ({
     return (
       appointment.selectedService &&
       appointment.provider &&
-      appointment.provider.id &&
+      appointment.provider._id &&
       appointment.timeslot &&
       appointment.requester.firstName &&
       appointment.requester.lastName &&
@@ -111,7 +111,7 @@ export const ModalPreview = ({
         if (errorResponse.ok) {
           // const errorResult = await errorResponse.json();
           alert(
-            `❌ Erreur de paiement détectée. Un email a été envoyé à contact@diaspomoney.fr et à votre adresse email avec un lien pour réessayer le paiement. Le lien est valide 15 minutes.`
+            "❌ Erreur de paiement détectée. Un email a été envoyé à contact@diaspomoney.fr et à votre adresse email avec un lien pour réessayer le paiement. Le lien est valide 15 minutes."
           );
         } else {
           alert("❌ Erreur de paiement. Veuillez réessayer plus tard.");

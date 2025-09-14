@@ -1,10 +1,10 @@
-import { AuthState } from "@/lib/definitions";
+import { AuthState } from "@/types";
 import { create } from "zustand";
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>(set => ({
   isLoading: false,
   error: null,
-  setError: (error) => set({ error }),
+  setError: error => set({ error }),
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {

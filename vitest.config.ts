@@ -5,9 +5,29 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: "jsdom",
     globals: true,
+    environment: "jsdom",
     setupFiles: ["./test/setup.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      exclude: [
+        "node_modules/",
+        "test/",
+        "**/*.d.ts",
+        "**/*.config.*",
+        "**/*.setup.*",
+        "coverage/",
+        ".next/",
+        "dist/",
+        "build/",
+      ],
+    },
+    include: [
+      "test/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}",
+      "**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}",
+    ],
+    exclude: ["node_modules/", "dist/", ".idea/", ".git/", ".cache/"],
   },
   resolve: {
     alias: {

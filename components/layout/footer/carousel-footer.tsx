@@ -22,14 +22,14 @@ const CarouselFooter = () => {
 
   const handlePrev = () => {
     if (!isTransitioning) {
-      setCurrentIndex((prevIndex) => prevIndex - 1);
+      setCurrentIndex(prevIndex => prevIndex - 1);
       setIsTransitioning(true);
     }
   };
 
   const handleNext = () => {
     if (!isTransitioning) {
-      setCurrentIndex((prevIndex) => prevIndex + 1);
+      setCurrentIndex(prevIndex => prevIndex + 1);
       setIsTransitioning(true);
     }
   };

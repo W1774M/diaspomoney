@@ -1,20 +1,12 @@
 import {
-  Provider,
+  IUser as Provider,
   UseProvidersOptions,
   UseProvidersReturn,
-} from "@/lib/definitions";
+} from "@/types";
 import { useEffect, useRef, useState } from "react";
 
 // Cache mémoire simple (clé = JSON.stringify des options)
 const providersCache: Record<string, Provider[]> = {};
-
-function debounce<T extends (...args: any[]) => void>(fn: T, delay: number) {
-  let timer: ReturnType<typeof setTimeout>;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
-  };
-}
 
 export function useProviders(
   options: UseProvidersOptions = {}

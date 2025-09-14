@@ -1,4 +1,4 @@
-import { Provider, UseProviderReturn } from "@/lib/definitions";
+import { IUser as Provider, UseProviderReturn } from "@/types";
 import { useEffect, useState } from "react";
 
 export function useProvider(id: string | number): UseProviderReturn {

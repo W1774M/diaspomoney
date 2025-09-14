@@ -1,7 +1,7 @@
-import { Appointment } from "@/lib/definitions";
+import { IAppointment } from "@/types";
 import mongoose, { Schema } from "mongoose";
 
-const AppointmentSchema = new Schema<Appointment>(
+const AppointmentSchema = new Schema<IAppointment>(
   {
     reservationNumber: {
       type: String,
@@ -89,5 +89,5 @@ const AppointmentSchema = new Schema<Appointment>(
 // AppointmentSchema.index({ paymentStatus: 1 });
 // AppointmentSchema.index({ createdAt: -1 });
 
-export default mongoose.models.Appointment ||
-  mongoose.model<Appointment>("Appointment", AppointmentSchema);
+export default mongoose.models["Appointment"] ||
+  mongoose.model<IAppointment>("Appointment", AppointmentSchema);

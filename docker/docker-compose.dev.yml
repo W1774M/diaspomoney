@@ -1,0 +1,33 @@
+# Configuration de développement pour DiaspoMoney
+# Ce fichier est combiné avec docker-compose.yml pour l'environnement de développement
+
+networks:
+  diaspomoney: {}
+
+services:
+  app:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    container_name: app-dev
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - diaspomoney
+    ports:
+      - "3000:3000"
+    volumes:
+      # Montage du code source pour le hot reload en développement
+      - ../:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+    command: ["pnpm", "dev", "--", "-H", "0.0.0.0", "-p", "3000"]
+
+  # Mongo Express reste accessible sur le port 8081 en développement
+  # (défini dans docker-compose.yml)

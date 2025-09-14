@@ -38,7 +38,7 @@ export default function LoginForm() {
       console.log("Login attempt with:", formData);
 
       // Simuler une attente d'authentification
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Rediriger vers le dashboard (à adapter selon votre logique)
       router.push("/dashboard");

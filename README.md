@@ -1,328 +1,209 @@
-# DiaspoMoney - Plateforme de Services en Afrique
+# Diaspomoney
 
-[![Tests](https://github.com/diaspomoney/diaspomoney/actions/workflows/test.yml/badge.svg)](https://github.com/diaspomoney/diaspomoney/actions/workflows/test.yml)
-[![Security](https://github.com/diaspomoney/diaspomoney/actions/workflows/security.yml/badge.svg)](https://github.com/diaspomoney/diaspomoney/actions/workflows/security.yml)
-[![Coverage](https://codecov.io/gh/diaspomoney/diaspomoney/branch/main/graph/badge.svg)](https://codecov.io/gh/diaspomoney/diaspomoney)
+Diaspomoney est une plateforme qui permet de trouver et réserver des services en Afrique. La plateforme facilite les transferts de services plutôt que d'argent.
 
-## 🚀 Vue d'ensemble
+## 🚀 Fonctionnalités
 
-DiaspoMoney est une plateforme moderne et sécurisée qui connecte les utilisateurs de la diaspora avec des prestataires de services qualifiés en Afrique. L'application offre une expérience utilisateur fluide avec des fonctionnalités avancées d'authentification, de réservation et de paiement.
+- **Authentification sécurisée** avec NextAuth.js
+- **Gestion des utilisateurs** avec rôles (ADMIN, PROVIDER, CUSTOMER, CSM)
+- **Système de rendez-vous** complet
+- **Gestion des prestataires** avec géolocalisation
+- **Système de facturation** intégré
+- **Interface responsive** avec Tailwind CSS
+- **Base de données MongoDB** avec Mongoose
+- **Tests automatisés** avec Vitest
+- **Déploiement Docker** prêt
 
-## ✨ Fonctionnalités principales
+## 🛠️ Technologies
 
-### 🔐 Authentification sécurisée
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **Styling**: Tailwind CSS 4
+- **Base de données**: MongoDB avec Mongoose
+- **Authentification**: NextAuth.js
+- **Tests**: Vitest, Testing Library
+- **Linting**: ESLint, Prettier
+- **Déploiement**: Docker, Docker Compose
 
-- **Connexion multi-stratégies** : Email/mot de passe et Google OAuth
-- **Validation stricte** : Mots de passe forts avec indicateur visuel
-- **Protection CSRF** : Tokens de sécurité pour tous les formulaires
-- **Rate limiting** : Protection contre les attaques par force brute
-- **Sessions sécurisées** : Gestion avancée des sessions utilisateur
-
-### 🏢 Gestion des prestataires
-
-- **Catalogue complet** : Recherche et filtrage avancés
-- **Profils détaillés** : Informations complètes et avis clients
-- **Services multiples** : Gestion des différents services proposés
-- **Géolocalisation** : Filtrage par pays et région
-
-### 📅 Système de rendez-vous
-
-- **Réservation en ligne** : Interface intuitive pour les rendez-vous
-- **Gestion des créneaux** : Disponibilités en temps réel
-- **Notifications** : Emails de confirmation et rappels
-- **Suivi des statuts** : Pending, confirmé, terminé, annulé
-
-### 💳 Paiements sécurisés
-
-- **Validation des cartes** : Algorithme de Luhn intégré
-- **Protection des données** : Chiffrement des informations sensibles
-- **Gestion des erreurs** : Messages d'erreur clairs et informatifs
-
-### 🛡️ Sécurité avancée
-
-- **Headers de sécurité** : CSP, XSS Protection, Frame Options
-- **Sanitisation automatique** : Protection contre les injections
-- **Validation côté serveur** : Schémas Zod stricts
-- **Captcha intelligent** : Protection contre les bots
-
-## 🛠️ Technologies utilisées
-
-### Frontend
-
-- **Next.js 14** : Framework React avec App Router
-- **React 18** : Bibliothèque UI avec hooks avancés
-- **TypeScript** : Typage statique pour la sécurité
-- **Tailwind CSS** : Framework CSS utilitaire
-- **Zod** : Validation de schémas
-- **React Hook Form** : Gestion des formulaires
-- **NextAuth.js** : Authentification complète
-
-### Backend
-
-- **Next.js API Routes** : API REST intégrée
-- **MongoDB** : Base de données NoSQL
-- **Mongoose** : ODM pour MongoDB
-- **Nodemailer** : Envoi d'emails
-- **bcryptjs** : Hachage des mots de passe
-- **jsonwebtoken** : Gestion des tokens JWT
-
-### Tests et Qualité
-
-- **Vitest** : Framework de tests rapide
-- **React Testing Library** : Tests de composants
-- **MongoDB Memory Server** : Tests d'intégration
-- **ESLint** : Linting du code
-- **Prettier** : Formatage automatique
-
-### DevOps
-
-- **Docker** : Conteneurisation
-- **Docker Compose** : Orchestration multi-services
-- **Traefik** : Reverse proxy et load balancer
-- **Prometheus** : Monitoring
-- **Grafana** : Visualisation des métriques
-
-## 📦 Installation
-
-### Prérequis
+## 📋 Prérequis
 
 - Node.js 18+
 - pnpm (recommandé) ou npm
-- MongoDB 6+
+- MongoDB
 - Docker (optionnel)
 
-### Installation locale
+## 🚀 Installation
+
+### 1. Cloner le repository
 
 ```bash
-# Cloner le repository
-git clone https://github.com/diaspomoney/diaspomoney.git
+git clone <repository-url>
 cd diaspomoney
+```
 
-# Installer les dépendances
+### 2. Installer les dépendances
+
+```bash
 pnpm install
+```
 
-# Configurer les variables d'environnement
-cp .env.example .env.local
-# Éditer .env.local avec vos configurations
+### 3. Configuration de l'environnement
 
-# Lancer la base de données (optionnel avec Docker)
-docker-compose up -d mongodb
+Créer un fichier `.env.local` à la racine du projet :
 
-# Lancer l'application en mode développement
+```env
+# Base de données
+MONGODB_URI=mongodb://localhost:27017/diaspomoney
+
+# NextAuth
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-key
+
+# Email (optionnel)
+EMAIL_SERVER_HOST=smtp.gmail.com
+EMAIL_SERVER_PORT=587
+EMAIL_SERVER_USER=your-email@gmail.com
+EMAIL_SERVER_PASSWORD=your-app-password
+
+# Variables d'environnement supplémentaires
+NODE_ENV=development
+```
+
+### 4. Lancer le développement
+
+```bash
 pnpm dev
 ```
 
-### Installation avec Docker
+L'application sera accessible sur [http://localhost:3000](http://localhost:3000)
+
+## 🐳 Déploiement avec Docker
+
+### 1. Lancer avec Docker Compose
 
 ```bash
-# Cloner et configurer
-git clone https://github.com/diaspomoney/diaspomoney.git
-cd diaspomoney
-
-# Configurer les variables d'environnement
-cp .env.example .env.local
-
-# Lancer avec Docker Compose
+cd docker
 docker-compose up -d
+```
+
+### 2. Lancer en production
+
+```bash
+cd docker
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ## 🧪 Tests
 
-### Exécuter tous les tests
+### Lancer tous les tests
 
 ```bash
 pnpm test
 ```
 
-### Tests spécifiques
+### Tests unitaires
 
 ```bash
-# Tests unitaires
 pnpm test:unit
+```
 
-# Tests d'intégration
+### Tests d'intégration
+
+```bash
 pnpm test:integration
+```
 
-# Tests de sécurité
+### Tests de sécurité
+
+```bash
 pnpm test:security
+```
 
-# Tests avec couverture
+### Couverture de code
+
+```bash
 pnpm test:coverage
 ```
 
-### Interface de tests
-
-```bash
-pnpm test:ui
-```
-
-## 🔒 Sécurité
-
-### Vérifications de sécurité
-
-```bash
-# Audit des dépendances
-pnpm security:audit
-
-# Tests de sécurité complets
-pnpm security:check
-
-# Vérification de qualité complète
-pnpm quality:check
-```
-
-### Fonctionnalités de sécurité implémentées
-
-- ✅ **Validation stricte des données** avec Zod
-- ✅ **Sanitisation automatique** des entrées utilisateur
-- ✅ **Protection CSRF** sur tous les formulaires
-- ✅ **Rate limiting** intelligent
-- ✅ **Headers de sécurité** complets
-- ✅ **Validation des mots de passe** forts
-- ✅ **Protection XSS** et injection
-- ✅ **Sessions sécurisées** avec rotation des tokens
-- ✅ **Captcha** contre les bots
-- ✅ **Chiffrement** des données sensibles
-
-## 📚 Documentation
-
-### Documentation technique
-
-- [API Documentation](./docs/API.md) - Documentation complète de l'API
-- [Components Documentation](./docs/COMPONENTS.md) - Guide des composants React
-- [Database Documentation](./docs/README-DATABASE.md) - Structure de la base de données
-- [Docker Setup](./docs/DOCKER_SETUP.md) - Configuration Docker
-- [Email Setup](./docs/EMAIL_SETUP.md) - Configuration des emails
-
-### Guides utilisateur
-
-- [Guide de démarrage](./docs/GETTING_STARTED.md)
-- [Guide de déploiement](./docs/DEPLOYMENT.md)
-- [Guide de contribution](./docs/CONTRIBUTING.md)
-
-## 🏗️ Architecture
-
-### Structure du projet
+## 📁 Structure du projet
 
 ```
 diaspomoney/
-├── app/                    # Pages Next.js (App Router)
-│   ├── api/               # Routes API
-│   ├── auth/              # Pages d'authentification
-│   ├── dashboard/         # Dashboard utilisateur
-│   └── provider/          # Pages des prestataires
+├── app/                    # Pages et API routes Next.js
+│   ├── api/               # API routes
+│   ├── dashboard/         # Pages du dashboard
+│   └── ...
 ├── components/            # Composants React
-│   ├── ui/               # Composants UI de base
+│   ├── common/           # Composants communs
 │   ├── features/         # Composants spécifiques
-│   └── layout/           # Composants de mise en page
-├── lib/                  # Utilitaires et configurations
-│   ├── validations.ts    # Schémas de validation
-│   ├── server-validation.ts # Validation côté serveur
-│   └── session-security.ts # Gestion des sessions
-├── models/               # Modèles Mongoose
+│   ├── layout/           # Composants de mise en page
+│   └── ui/               # Composants UI de base
+├── config/               # Configuration
 ├── hooks/                # Hooks React personnalisés
+├── lib/                  # Utilitaires et helpers
+├── models/               # Modèles Mongoose
 ├── store/                # État global (Zustand)
-├── middleware/           # Middleware de sécurité
+├── styles/               # Styles globaux
+├── types/                # Types TypeScript
 ├── test/                 # Tests
-│   ├── unit/            # Tests unitaires
-│   ├── integration/     # Tests d'intégration
-│   └── security/        # Tests de sécurité
-└── docs/                # Documentation
+└── docker/               # Configuration Docker
 ```
 
-### Flux de données
+## 🔧 Scripts disponibles
 
-```
-Utilisateur → Interface React → API Routes → MongoDB
-                ↓
-            Validation Zod → Sanitisation → Base de données
-                ↓
-            Session Security → Rate Limiting → Réponse sécurisée
-```
+- `pnpm dev` - Lancer le serveur de développement
+- `pnpm build` - Construire pour la production
+- `pnpm start` - Lancer le serveur de production
+- `pnpm lint` - Linter le code
+- `pnpm test` - Lancer les tests
+- `pnpm type-check` - Vérifier les types TypeScript
+- `pnpm quality:check` - Vérification complète de la qualité
 
-## 🚀 Déploiement
+## 🔐 Sécurité
 
-### Environnements supportés
+- Authentification sécurisée avec NextAuth.js
+- Validation des données avec Zod
+- Protection CSRF
+- Rate limiting
+- Headers de sécurité avec Helmet
+- Validation côté serveur
 
-- **Développement** : Local avec hot reload
-- **Staging** : Tests et validation
-- **Production** : Optimisé et sécurisé
+## 📊 Monitoring
 
-### Plateformes de déploiement
+Le projet inclut une configuration de monitoring avec :
 
-- **Vercel** : Déploiement automatique
-- **Docker** : Conteneurisation complète
-- **AWS** : Infrastructure cloud
-- **On-premise** : Serveurs privés
+- Prometheus pour les métriques
+- Grafana pour la visualisation
+- Loki pour les logs
+- Traefik comme reverse proxy
 
 ## 🤝 Contribution
 
-### Comment contribuer
-
 1. Fork le projet
 2. Créer une branche feature (`git checkout -b feature/AmazingFeature`)
-3. Commit les changements (`git commit -m 'Add AmazingFeature'`)
+3. Commit les changements (`git commit -m 'Add some AmazingFeature'`)
 4. Push vers la branche (`git push origin feature/AmazingFeature`)
 5. Ouvrir une Pull Request
 
-### Standards de code
+## 📝 Licence
 
-- **TypeScript** strict
-- **ESLint** et **Prettier** configurés
-- **Tests** obligatoires pour les nouvelles fonctionnalités
-- **Documentation** mise à jour
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
 
-### Tests avant commit
+## 🆘 Support
 
-```bash
-# Vérification automatique
-pnpm pre-commit
+Pour toute question ou problème :
 
-# Ou manuellement
-pnpm quality:check
-```
+- Ouvrir une issue sur GitHub
+- Consulter la documentation dans le dossier `docs/`
+- Contacter l'équipe de développement
 
-## 📊 Monitoring et Analytics
+## 🔄 Changelog
 
-### Métriques collectées
+### Version 0.1.0
 
-- **Performance** : Temps de réponse, utilisation CPU/RAM
-- **Sécurité** : Tentatives d'attaque, violations de rate limiting
-- **Utilisation** : Pages visitées, actions utilisateurs
-- **Erreurs** : Logs d'erreur, stack traces
-
-### Outils de monitoring
-
-- **Prometheus** : Collecte de métriques
-- **Grafana** : Visualisation des données
-- **Loki** : Centralisation des logs
-- **Traefik** : Monitoring du trafic
-
-## 📄 Licence
-
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
-
-## 📞 Support
-
-### Contact
-
-- **Email** : support@diaspomoney.com
-- **Documentation** : https://docs.diaspomoney.com
-- **Issues** : https://github.com/diaspomoney/diaspomoney/issues
-
-### Équipe
-
-- **Développement** : dev@diaspomoney.com
-- **Sécurité** : security@diaspomoney.com
-- **Support** : support@diaspomoney.com
-
-## 🙏 Remerciements
-
-- **Next.js** pour le framework exceptionnel
-- **Vercel** pour l'hébergement et le déploiement
-- **MongoDB** pour la base de données
-- **Communauté open source** pour les outils et bibliothèques
-
----
-
-**DiaspoMoney** - Connecter la diaspora avec l'Afrique 🌍
+- Refactoring complet du projet
+- Fusion des fichiers en double
+- Amélioration de la structure
+- Ajout des dépendances manquantes
+- Configuration ESLint et Prettier
+- Tests automatisés
+- Documentation complète

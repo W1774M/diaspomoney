@@ -65,12 +65,11 @@ docker network create diaspomoney 2>/dev/null || echo "✅ Réseau diaspomoney e
 # Arrêter les services existants s'ils sont en cours
 echo "🛑 Arrêt des services existants..."
 cd docker
-docker-compose -f docker-compose.prod.yml down 2>/dev/null || true
-docker-compose -f docker-compose.yml down 2>/dev/null || true
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml down 2>/dev/null || echo "Aucun service à arrêter"
 
-# Démarrer MongoDB d'abord
-echo "🐳 Démarrage de MongoDB..."
-docker-compose -f docker-compose.yml up -d mongodb
+# Démarrer les services de production
+echo "🚀 Démarrage des services de production..."
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 
 # Attendre que MongoDB soit prêt
 echo "⏳ Attente que MongoDB soit prêt..."
@@ -139,21 +138,23 @@ echo ""
 echo "🎉 Configuration de production terminée avec succès !"
 echo ""
 echo "📋 Informations importantes :"
-echo "   • MongoDB : mongodb://diaspomoney:supersecret@mongodb:27017/diaspomoney"
+echo "   • MongoDB : mongodb://admin:admin123@mongodb:27017/diaspomoney"
 echo "   • Application : https://app.diaspomoney.fr"
-echo "   • Dashboard Traefik : https://dev.diaspomoney.fr/dashboard/"
-echo "   • Monitoring : https://dev.diaspomoney.fr/grafana/"
+echo "   • Mongo Express : https://mongo.diaspomoney.fr"
+echo "   • Dashboard Traefik : https://dashboard.diaspomoney.fr"
+echo "   • Monitoring : https://dashboard.diaspomoney.fr/grafana/"
 echo ""
 echo "📊 Pour voir les logs des services :"
-echo "   docker logs diaspomoney"
+echo "   docker logs app"
 echo "   docker logs traefik"
-echo "   docker logs dev-mongodb"
+echo "   docker logs mongodb"
+echo "   docker logs mongo-express"
 echo ""
 echo "🛑 Pour arrêter les services :"
-echo "   cd docker && docker-compose -f docker-compose.prod.yml down"
+echo "   cd docker && docker-compose -f docker-compose.yml -f docker-compose.prod.yml down"
 echo ""
 echo "🔄 Pour redémarrer l'application :"
-echo "   docker restart diaspomoney"
+echo "   docker restart app"
 echo ""
 echo "⚠️  N'oubliez pas de configurer vos variables SMTP et OAuth dans .env"
 echo "⚠️  Assurez-vous que vos domaines pointent vers ce serveur" 

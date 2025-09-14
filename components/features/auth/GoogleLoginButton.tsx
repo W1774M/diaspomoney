@@ -1,61 +1,58 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { Button } from "@/components/ui";
+import { useNotificationManager } from "@/components/ui/Notification";
 
 interface GoogleLoginButtonProps {
-  className?: string;
+  onSuccess?: (response: unknown) => void;
+  onError?: (error: unknown) => void;
 }
 
-export function GoogleLoginButton({ className = "" }: GoogleLoginButtonProps) {
-  const [isLoading, setIsLoading] = useState(false);
+export function GoogleLoginButton({ onError }: GoogleLoginButtonProps) {
+  const { addError, addInfo } = useNotificationManager();
 
   const handleGoogleLogin = async () => {
     try {
-      setIsLoading(true);
-      await signIn("google", { callbackUrl: "/" });
+      addInfo("Connexion Google temporairement désactivée");
+
+      if (onError) {
+        onError(new Error("Connexion Google non disponible"));
+      }
     } catch (error) {
       console.error("Erreur lors de la connexion Google:", error);
-    } finally {
-      setIsLoading(false);
+      addError("Erreur lors de la connexion Google");
+
+      if (onError) {
+        onError(error);
+      }
     }
   };
 
   return (
-    <button
+    <Button
       type="button"
       onClick={handleGoogleLogin}
-      disabled={isLoading}
-      className={`w-full flex items-center justify-center px-4 py-3 border border-gray-300 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${className} cursor-pointer`}
+      className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
     >
-      {isLoading ? (
-        <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mr-3"></div>
-      ) : (
-        <svg
-          className="w-5 h-5 mr-3"
+      <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+        <path
           fill="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path
-            d="M12.0003 4.7455C13.9884 4.7455 15.6004 5.58055 16.7951 7.04535L21.2229 3.61855C19.1994 1.77355 16.0145 0.5 12.0003 0.5C6.4781 0.5 1.73246 3.8787 0.0957031 8.68055L4.65076 12.1723C5.76588 7.87535 8.93653 4.7455 12.0003 4.7455Z"
-            fill="#EA4335"
-          />
-          <path
-            d="M23.49 12.275C23.49 11.4917 23.4172 10.73 23.28 9.99167H12V14.525H18.47C18.21 16.0333 17.31 17.3417 15.93 18.225L20.37 21.625C22.66 19.4917 23.49 16.1667 23.49 12.275Z"
-            fill="#4285F4"
-          />
-          <path
-            d="M4.64973 11.83L3.90201 12.4087L0.0947266 8.68C1.73148 3.8782 6.47711 0.5 11.9993 0.5C16.0135 0.5 19.1984 1.77354 21.2219 3.61854L16.7941 7.04535C15.5994 5.58054 13.9874 4.7455 11.9993 4.7455C8.93555 4.7455 5.76548 7.87354 4.64973 11.83Z"
-            fill="#FBBC05"
-          />
-          <path
-            d="M12.0004 23.5C16.0004 23.5 19.3004 22.4583 21.6004 20.4583L17.1606 17.0583C16.0004 17.8583 14.3004 18.3333 12.0004 18.3333C8.9366 18.3333 6.17704 15.2083 5.06191 12L0.514648 15.4C2.64322 20.3333 7.50463 23.5 12.0004 23.5Z"
-            fill="#34A853"
-          />
-        </svg>
-      )}
-      {isLoading ? "Connexion..." : "Continuer avec Google"}
-    </button>
+          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+        />
+        <path
+          fill="currentColor"
+          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+        />
+        <path
+          fill="currentColor"
+          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+        />
+        <path
+          fill="currentColor"
+          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+        />
+      </svg>
+      Continuer avec Google
+    </Button>
   );
 }

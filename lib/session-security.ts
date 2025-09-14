@@ -57,7 +57,7 @@ export function createSession(
 
   // Vérifier le nombre maximum de sessions
   const userSessions = Array.from(activeSessions.values()).filter(
-    (session) => session.userId === userId
+    session => session.userId === userId
   );
 
   if (userSessions.length >= SESSION_CONFIG.maxSessionsPerUser) {
@@ -247,8 +247,7 @@ export function getSessionStats() {
   return {
     activeSessions: activeSessions.size,
     refreshTokens: refreshTokens.size,
-    uniqueUsers: new Set(
-      Array.from(activeSessions.values()).map((s) => s.userId)
-    ).size,
+    uniqueUsers: new Set(Array.from(activeSessions.values()).map(s => s.userId))
+      .size,
   };
 }

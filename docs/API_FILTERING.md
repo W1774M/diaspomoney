@@ -182,7 +182,7 @@ const data = await response.json();
 
 if (data.success) {
   console.log(`${data.count} prestataires de santé trouvés`);
-  data.data.forEach((provider) => {
+  data.data.forEach(provider => {
     console.log(`${provider.name} - ${provider.type.value}`);
   });
 }
