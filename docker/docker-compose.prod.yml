@@ -21,9 +21,6 @@ services:
       - "443:443"
     command:
       - --configFile=/traefik/traefik.yml
-      - --certificatesresolvers.le.acme.email=${LETSENCRYPT_EMAIL}
-    environment:
-      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
     volumes:
       - ./traefik:/traefik:ro
       - ./traefik/letsencrypt:/letsencrypt
