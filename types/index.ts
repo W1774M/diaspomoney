@@ -163,6 +163,8 @@ export interface ProviderType {
 }
 
 export interface ApiGeoLocation {
+  country_code: any;
+  country: any;
   place_id: number;
   licence: string;
   osm_type: string;
@@ -187,6 +189,8 @@ export type ApiGeo = ApiGeoLocation;
 // ============================================================================
 
 export interface IUser extends BaseDocument {
+  price: number;
+  id: string;
   email: string;
   name: string;
   phone?: string;
