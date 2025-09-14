@@ -23,8 +23,10 @@ services:
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --entrypoints.metrics.address=:9100
+      - --certificatesresolvers.le=true
       - --certificatesresolvers.le.acme.email=contact@diaspomoney.fr
       - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.httpchallenge=true
       - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
       - --providers.docker.endpoint=unix:///var/run/docker.sock
       - --providers.docker.network=diaspomoney
