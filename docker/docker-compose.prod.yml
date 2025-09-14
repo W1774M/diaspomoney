@@ -26,7 +26,7 @@ services:
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
     volumes:
       - ./traefik:/traefik:ro
-      - ./letsencrypt:/letsencrypt
+      - ./traefik/letsencrypt:/letsencrypt
       - ./traefik/traefik_logs:/var/log/traefik
       - /var/run/docker.sock:/var/run/docker.sock:ro
     secrets:
@@ -71,7 +71,7 @@ services:
       - "3000"
     labels:
       - traefik.enable=true
-      - traefik.docker.network=traefik
+      - traefik.docker.network=diaspomoney
       # Routage HTTPS (production)
       - traefik.http.routers.app.rule=Host(`app.diaspomoney.fr`)
       - traefik.http.routers.app.entrypoints=websecure
