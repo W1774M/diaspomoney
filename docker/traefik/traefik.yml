@@ -11,7 +11,13 @@ entryPoints:
   metrics:
     address: ":9100"
 
-# certificatesResolvers configuré via les arguments de ligne de commande
+certificatesResolvers:
+  le:
+    acme:
+      email: contact@diaspomoney.fr
+      storage: /letsencrypt/acme.json
+      httpChallenge:
+        entryPoint: web
 
 # Configuration HTTP gérée par les labels Docker
 # Les redirections sont maintenant gérées par les labels des services

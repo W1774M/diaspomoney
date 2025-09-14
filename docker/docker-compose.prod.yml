@@ -23,11 +23,11 @@ services:
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --entrypoints.metrics.address=:9100
-      - --certificatesresolvers.le.acme.caserver=https://acme-v02.api.letsencrypt.org/directory
       - --certificatesresolvers.le.acme.email=contact@diaspomoney.fr
       - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
       - --certificatesresolvers.le.acme.httpchallenge=true
       - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.le.acme.caserver=https://acme-v02.api.letsencrypt.org/directory
       - --providers.docker.endpoint=unix:///var/run/docker.sock
       - --providers.docker.network=diaspomoney
       - --providers.docker.exposedByDefault=false
@@ -43,8 +43,8 @@ services:
       - --global.checkNewVersion=false
       - --global.sendAnonymousUsage=false
     volumes:
-      - ./traefik/letsencrypt:/letsencrypt
-      - ./traefik/traefik_logs:/var/log/traefik
+      - traefik_letsencrypt:/letsencrypt
+      - traefik_logs:/var/log/traefik
       - /var/run/docker.sock:/var/run/docker.sock:ro
     secrets:
       - traefik_basicauth
