@@ -16,7 +16,7 @@ export default function ForgotPasswordPage() {
           </p>
           <form
             className="space-y-4"
-            onSubmit={async (e) => {
+            onSubmit={async e => {
               e.preventDefault();
               const form = e.target as HTMLFormElement;
               const email = (

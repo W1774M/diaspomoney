@@ -1,5 +1,11 @@
-import { RetryToken } from "@/lib/definitions";
 import mongoose, { Schema } from "mongoose";
+
+interface RetryToken {
+  token: string;
+  appointmentId: string;
+  expiresAt: Date;
+  used?: boolean;
+}
 
 const RetryTokenSchema = new Schema<RetryToken>(
   {
@@ -31,5 +37,5 @@ const RetryTokenSchema = new Schema<RetryToken>(
 // RetryTokenSchema.index({ token: 1 });
 // RetryTokenSchema.index({ appointmentId: 1 });
 
-export default mongoose.models.RetryToken ||
+export default mongoose.models["RetryToken"] ||
   mongoose.model<RetryToken>("RetryToken", RetryTokenSchema);

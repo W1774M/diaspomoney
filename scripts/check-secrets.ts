@@ -46,19 +46,19 @@ if (missingSecrets.length > 0) {
   console.log("📝 Ajoutez ces variables dans votre fichier .env.local :");
   console.log("");
 
-  if (!process.env.JWT_SECRET) {
+  if (!process.env["JWT_SECRET"]) {
     console.log(`JWT_SECRET=${crypto.randomBytes(64).toString("hex")}`);
   }
 
-  if (!process.env.NEXTAUTH_SECRET) {
+  if (!process.env["NEXTAUTH_SECRET"]) {
     console.log(`NEXTAUTH_SECRET=${crypto.randomBytes(32).toString("base64")}`);
   }
 
-  if (!process.env.NEXTAUTH_URL) {
+  if (!process.env["NEXTAUTH_URL"]) {
     console.log("NEXTAUTH_URL=http://localhost:3000");
   }
 
-  if (!process.env.MONGODB_URI) {
+  if (!process.env["MONGODB_URI"]) {
     console.log(
       "MONGODB_URI=mongodb://diaspomoney_user:diaspomoney_app_password@localhost:27017/diaspomoney"
     );
@@ -70,10 +70,9 @@ if (missingSecrets.length > 0) {
 
 // Vérifier la sécurité des clés
 console.log("🔍 Vérification de la sécurité des clés...");
-console.log("");
 
-const jwtSecret: string = process.env.JWT_SECRET!;
-const nextAuthSecret: string = process.env.NEXTAUTH_SECRET!;
+const jwtSecret: string = process.env["JWT_SECRET"]!;
+const nextAuthSecret: string = process.env["NEXTAUTH_SECRET"]!;
 
 const warnings: string[] = [];
 
@@ -119,7 +118,7 @@ if (warnings.length > 0) {
 console.log("");
 console.log("🗄️  Vérification de la configuration MongoDB...");
 
-const mongoUri: string | undefined = process.env.MONGODB_URI;
+const mongoUri: string | undefined = process.env["MONGODB_URI"];
 if (mongoUri && mongoUri.includes("localhost:27017")) {
   console.log("✅ Configuration MongoDB locale détectée");
   console.log(

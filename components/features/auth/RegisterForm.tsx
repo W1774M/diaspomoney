@@ -1,4 +1,5 @@
 "use client";
+import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -8,6 +9,8 @@ export function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -61,13 +64,13 @@ export function RegisterForm() {
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleServiceToggle = (service: string) => {
-    setSelectedServices((prev) =>
+    setSelectedServices(prev =>
       prev.includes(service)
-        ? prev.filter((s) => s !== service)
+        ? prev.filter(s => s !== service)
         : [...prev, service]
     );
   };
@@ -171,7 +174,7 @@ export function RegisterForm() {
           <div className="p-10">
             {/* Step Indicator */}
             <div className="flex justify-center mb-8">
-              {[1, 2, 3, 4].map((step) => (
+              {[1, 2, 3, 4].map(step => (
                 <div key={step} className="flex items-center">
                   <div
                     className={`
@@ -180,8 +183,8 @@ export function RegisterForm() {
                       step < currentStep
                         ? "bg-green-500 text-white"
                         : step === currentStep
-                        ? "bg-blue-600 text-white scale-110"
-                        : "bg-gray-200 text-gray-600"
+                          ? "bg-blue-600 text-white scale-110"
+                          : "bg-gray-200 text-gray-600"
                     }
                   `}
                   >
@@ -216,7 +219,7 @@ export function RegisterForm() {
                       <input
                         type="text"
                         value={formData.firstName}
-                        onChange={(e) =>
+                        onChange={e =>
                           handleInputChange("firstName", e.target.value)
                         }
                         className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
@@ -230,7 +233,7 @@ export function RegisterForm() {
                       <input
                         type="text"
                         value={formData.lastName}
-                        onChange={(e) =>
+                        onChange={e =>
                           handleInputChange("lastName", e.target.value)
                         }
                         className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
@@ -246,9 +249,7 @@ export function RegisterForm() {
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e) =>
-                        handleInputChange("email", e.target.value)
-                      }
+                      onChange={e => handleInputChange("email", e.target.value)}
                       className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
                       placeholder="exemple@email.com"
                     />
@@ -262,7 +263,7 @@ export function RegisterForm() {
                       <input
                         type="tel"
                         value={formData.phone}
-                        onChange={(e) =>
+                        onChange={e =>
                           handleInputChange("phone", e.target.value)
                         }
                         className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
@@ -277,7 +278,7 @@ export function RegisterForm() {
                       <input
                         type="date"
                         value={formData.dateOfBirth}
-                        onChange={(e) =>
+                        onChange={e =>
                           handleInputChange("dateOfBirth", e.target.value)
                         }
                         className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
@@ -291,7 +292,7 @@ export function RegisterForm() {
                     </label>
                     <select
                       value={formData.countryOfResidence}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleInputChange("countryOfResidence", e.target.value)
                       }
                       className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
@@ -322,7 +323,7 @@ export function RegisterForm() {
                     </label>
                     <select
                       value={formData.targetCountry}
-                      onChange={(e) => {
+                      onChange={e => {
                         handleInputChange("targetCountry", e.target.value);
                         handleInputChange("targetCity", "");
                       }}
@@ -342,7 +343,7 @@ export function RegisterForm() {
                     </label>
                     <select
                       value={formData.targetCity}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleInputChange("targetCity", e.target.value)
                       }
                       className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
@@ -352,7 +353,7 @@ export function RegisterForm() {
                       {formData.targetCountry &&
                         cities[
                           formData.targetCountry as keyof typeof cities
-                        ]?.map((city) => (
+                        ]?.map(city => (
                           <option
                             key={city}
                             value={city.toLowerCase().replace(/\s+/g, "-")}
@@ -377,7 +378,7 @@ export function RegisterForm() {
                           icon: "🏗️",
                           label: "BTP/Immobilier",
                         },
-                      ].map((service) => (
+                      ].map(service => (
                         <div
                           key={service.id}
                           onClick={() => handleServiceToggle(service.id)}
@@ -403,7 +404,7 @@ export function RegisterForm() {
                     </label>
                     <select
                       value={formData.monthlyBudget}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleInputChange("monthlyBudget", e.target.value)
                       }
                       className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
@@ -431,30 +432,58 @@ export function RegisterForm() {
                       <label className="block mb-2 font-semibold text-gray-700">
                         Mot de passe <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) =>
-                          handleInputChange("password", e.target.value)
-                        }
-                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                        placeholder="••••••••"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={formData.password}
+                          onChange={e =>
+                            handleInputChange("password", e.target.value)
+                          }
+                          className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block mb-2 font-semibold text-gray-700">
                         Confirmer le mot de passe{" "}
                         <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="password"
-                        value={formData.confirmPassword}
-                        onChange={(e) =>
-                          handleInputChange("confirmPassword", e.target.value)
-                        }
-                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                        placeholder="••••••••"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={formData.confirmPassword}
+                          onChange={e =>
+                            handleInputChange("confirmPassword", e.target.value)
+                          }
+                          className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-5 w-5" />
+                          ) : (
+                            <Eye className="h-5 w-5" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -465,7 +494,7 @@ export function RegisterForm() {
                     </label>
                     <select
                       value={formData.securityQuestion}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleInputChange("securityQuestion", e.target.value)
                       }
                       className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
@@ -493,7 +522,7 @@ export function RegisterForm() {
                     <input
                       type="text"
                       value={formData.securityAnswer}
-                      onChange={(e) =>
+                      onChange={e =>
                         handleInputChange("securityAnswer", e.target.value)
                       }
                       className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
@@ -506,7 +535,7 @@ export function RegisterForm() {
                       <input
                         type="checkbox"
                         checked={formData.termsAccepted}
-                        onChange={(e) =>
+                        onChange={e =>
                           handleInputChange("termsAccepted", e.target.checked)
                         }
                         className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
@@ -528,7 +557,7 @@ export function RegisterForm() {
                       <input
                         type="checkbox"
                         checked={formData.marketingConsent}
-                        onChange={(e) =>
+                        onChange={e =>
                           handleInputChange(
                             "marketingConsent",
                             e.target.checked
@@ -546,7 +575,7 @@ export function RegisterForm() {
                       <input
                         type="checkbox"
                         checked={formData.kycConsent}
-                        onChange={(e) =>
+                        onChange={e =>
                           handleInputChange("kycConsent", e.target.checked)
                         }
                         className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"

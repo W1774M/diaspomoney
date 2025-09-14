@@ -1,5 +1,5 @@
 "use client";
-import { ModalPaymentProps, PaymentData } from "@/lib/definitions";
+import { ModalPaymentProps, PaymentData } from "@/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface ModalPaymentPropsExtended extends ModalPaymentProps {
@@ -28,7 +28,9 @@ export const ModalPayment = ({
     let isEven = false;
 
     for (let i = cleaned.length - 1; i >= 0; i--) {
-      let digit = parseInt(cleaned[i]);
+      const char = cleaned[i];
+      if (!char) continue;
+      let digit = parseInt(char);
 
       if (isEven) {
         digit *= 2;
@@ -59,8 +61,13 @@ export const ModalPayment = ({
     const currentYear = currentDate.getFullYear() % 100;
     const currentMonth = currentDate.getMonth() + 1;
 
-    const expYear = parseInt(year);
-    const expMonth = parseInt(month);
+    if (typeof year === "undefined" || typeof month === "undefined")
+      return false;
+
+    const expYear = parseInt(year, 10);
+    const expMonth = parseInt(month, 10);
+
+    if (isNaN(expYear) || isNaN(expMonth)) return false;
 
     if (expYear < currentYear) return false;
     if (expYear === currentYear && expMonth < currentMonth) return false;
@@ -71,7 +78,7 @@ export const ModalPayment = ({
   const formatExpiryDate = useCallback((value: string) => {
     const cleaned = value.replace(/\D/g, "");
     if (cleaned.length >= 2) {
-      return cleaned.slice(0, 2) + "/" + cleaned.slice(2, 4);
+      return `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}`;
     }
     return cleaned;
   }, []);

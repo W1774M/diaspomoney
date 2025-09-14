@@ -129,7 +129,9 @@ export function ForgotPasswordForm() {
         </CardHeader>
         <CardContent className="pt-2 pb-6 px-6">
           <Form onSubmit={handleSubmit(onSubmit)}>
-            <FormField error={errors.email?.message}>
+            <FormField
+              {...(errors.email?.message && { error: errors.email.message })}
+            >
               <FormLabel
                 htmlFor="email"
                 className="text-blue-900 font-semibold"

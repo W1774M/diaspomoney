@@ -66,7 +66,12 @@ const FooterComponent = () => {
                 target: "_blank",
                 rel: "noopener noreferrer",
               },
-              { href: "#", text: "Immobilier & BTP" },
+              {
+                href: "https://diaspomoney.fr",
+                text: "Immobilier & BTP",
+                target: "_blank",
+                rel: "noopener noreferrer",
+              },
             ]}
           />
 
@@ -79,7 +84,7 @@ const FooterComponent = () => {
                 target: "_blank",
                 rel: "noopener noreferrer",
               },
-              { href: "#", text: "Comment ça marche" },
+              { href: "#how-it-works", text: "Comment ça marche" },
               { href: "#", text: "FAQ" },
             ]}
           />

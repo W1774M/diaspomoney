@@ -51,7 +51,7 @@ export function SecurityCaptcha({
     const operation = operations[Math.floor(Math.random() * operations.length)];
     const num1 = Math.floor(Math.random() * 10) + 1;
     const num2 = Math.floor(Math.random() * 10) + 1;
-    const answer = operation.fn(num1, num2);
+    const answer = operation?.fn(num1, num2) || 0;
 
     // Générer des options incorrectes
     const options = [answer];
@@ -66,7 +66,7 @@ export function SecurityCaptcha({
     const shuffledOptions = options.sort(() => Math.random() - 0.5);
 
     setChallenge({
-      question: `Quel est le résultat de ${num1} ${operation.symbol} ${num2} ?`,
+      question: `Quel est le résultat de ${num1} ${operation?.symbol || "+"} ${num2} ?`,
       answer,
       options: shuffledOptions,
     });
@@ -92,7 +92,7 @@ export function SecurityCaptcha({
       }, 500);
     } else {
       // Échec
-      setAttempts((prev) => prev + 1);
+      setAttempts(prev => prev + 1);
       setError("Réponse incorrecte. Veuillez réessayer.");
       setUserAnswer("");
 

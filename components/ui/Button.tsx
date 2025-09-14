@@ -1,5 +1,5 @@
-import { ButtonProps } from "@/lib/definitions";
 import { cn } from "@/lib/utils";
+import { ButtonProps } from "@/types";
 import { forwardRef } from "react";
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -18,10 +18,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
 
     const variants = {
-      primary: "bg-primary text-white hover:bg-primary-dark",
-      secondary: "bg-secondary text-white hover:bg-secondary-dark",
+      primary: "bg-primary text-primary-foreground hover:bg-primary/90",
+      secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
       outline:
-        "border-2 border-primary text-primary hover:bg-primary hover:text-white",
+        "border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground",
       ghost: "hover:bg-muted text-foreground",
     };
 

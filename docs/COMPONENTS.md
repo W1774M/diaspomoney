@@ -212,7 +212,7 @@ import { LoginForm } from "@/components/features/auth";
 
 <LoginForm
   onSuccess={() => router.push("/dashboard")}
-  onError={(error) => setError(error)}
+  onError={error => setError(error)}
 />;
 ```
 

@@ -1,12 +1,12 @@
-import { ThemeState } from "@/lib/definitions";
+import { ThemeState } from "@/types";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export const useThemeStore = create<ThemeState>()(
   persist(
-    (set) => ({
+    set => ({
       theme: "system",
-      setTheme: (theme) => set({ theme }),
+      setTheme: theme => set({ theme }),
     }),
     {
       name: "theme-storage",

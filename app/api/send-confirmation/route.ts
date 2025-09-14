@@ -116,8 +116,8 @@ export async function POST(request: NextRequest) {
             <div class="section">
                 <h3>👤 Informations du demandeur</h3>
                 <p><strong>Nom :</strong> ${appointment.requester.firstName} ${
-      appointment.requester.lastName
-    }</p>
+                  appointment.requester.lastName
+                }</p>
                 <p><strong>Téléphone :</strong> ${
                   appointment.requester.phone
                 }</p>
@@ -127,8 +127,8 @@ export async function POST(request: NextRequest) {
             <div class="section">
                 <h3>👥 Informations du bénéficiaire</h3>
                 <p><strong>Nom :</strong> ${appointment.recipient.firstName} ${
-      appointment.recipient.lastName
-    }</p>
+                  appointment.recipient.lastName
+                }</p>
                 <p><strong>Téléphone :</strong> ${
                   appointment.recipient.phone
                 }</p>
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
 
     // Envoi à contact@diaspomoney.fr
     await sendEmail(
-      process.env.EMAIL_CONTACT || "contact@diaspomoney.fr",
+      process.env["EMAIL_CONTACT"] || "contact@diaspomoney.fr",
       subject,
       emailContent
     );

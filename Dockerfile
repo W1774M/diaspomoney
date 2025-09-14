@@ -35,4 +35,6 @@ RUN npm install -g pnpm && pnpm install --production --frozen-lockfile --ignore-
 EXPOSE 3000
 
 # Démarrer l'application
-CMD ["pnpm", "start","dev","--","-H","0.0.0.0","-p","3000"]
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+CMD ["pnpm", "start"]
