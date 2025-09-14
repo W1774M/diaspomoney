@@ -34,6 +34,8 @@ export default function EditUserPage() {
   useEffect(() => {
     const mockUser: IUser = {
       _id: params["id"] as string,
+      id: params["id"] as string,
+      price: 0,
       email: "jean.dupont@email.com",
       name: "Jean Dupont",
       phone: "+33 1 23 45 67 89",
