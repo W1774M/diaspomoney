@@ -36,10 +36,12 @@ services:
       - --metrics.prometheus.addEntryPointsLabels=true
       - --metrics.prometheus.addServicesLabels=true
       - --metrics.prometheus.entryPoint=metrics
-      - --log.level=DEBUG
+      - --log.level=INFO
       - --log.format=json
       - --log.filePath=/var/log/traefik/traefik.log
       - --accessLog.filePath=/var/log/traefik/access.log
+      - --global.checkNewVersion=false
+      - --global.sendAnonymousUsage=false
     volumes:
       - ./traefik/letsencrypt:/letsencrypt
       - ./traefik/traefik_logs:/var/log/traefik
