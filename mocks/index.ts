@@ -19,16 +19,20 @@ export const MOCK_USERS: IUser[] = [
   // ADMIN users
   {
     _id: "1",
+    id: "1",
     email: "admin@diaspomoney.com",
     password: "password123",
     name: "Admin User (Active)",
     roles: ["ADMIN"],
     status: "ACTIVE",
+    price: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   },
   {
     _id: "2",
+    id: "2",
+    price: 0,
     email: "admin.inactive@diaspomoney.com",
     password: "password123",
     name: "Admin User (Inactive)",
@@ -39,6 +43,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "3",
+    id: "3",
+    price: 0,
     email: "admin.pending@diaspomoney.com",
     password: "password123",
     name: "Admin User (Pending)",
@@ -49,6 +55,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "4",
+    id: "4",
+    price: 0,
     email: "admin.suspended@diaspomoney.com",
     password: "password123",
     name: "Admin User (Suspended)",
@@ -61,6 +69,8 @@ export const MOCK_USERS: IUser[] = [
   // PROVIDER users
   {
     _id: "5",
+    id: "5",
+    price: 0,
     email: "provider@diaspomoney.com",
     password: "password123",
     name: "Provider User (Active)",
@@ -93,6 +103,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "6",
+    id: "6",
+    price: 0,
     email: "provider.inactive@diaspomoney.com",
     password: "password123",
     name: "Provider User (Inactive)",
@@ -104,6 +116,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "7",
+    id: "7",
+    price: 0,
     email: "provider.pending@diaspomoney.com",
     password: "password123",
     name: "Provider User (Pending)",
@@ -115,6 +129,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "8",
+    id: "8",
+    price: 0,
     email: "provider.suspended@diaspomoney.com",
     password: "password123",
     name: "Provider User (Suspended)",
@@ -128,6 +144,8 @@ export const MOCK_USERS: IUser[] = [
   // CUSTOMER users
   {
     _id: "9",
+    id: "9",
+    price: 0,
     email: "customer@diaspomoney.com",
     password: "password123",
     name: "Customer User (Active)",
@@ -138,6 +156,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "10",
+    id: "10",
+    price: 0,
     email: "customer.inactive@diaspomoney.com",
     password: "password123",
     name: "Customer User (Inactive)",
@@ -148,6 +168,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "11",
+    id: "11",
+    price: 0,
     email: "customer.pending@diaspomoney.com",
     password: "password123",
     name: "Customer User (Pending)",
@@ -158,6 +180,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "12",
+    id: "12",
+    price: 0,
     email: "customer.suspended@diaspomoney.com",
     password: "password123",
     name: "Customer User (Suspended)",
@@ -170,6 +194,8 @@ export const MOCK_USERS: IUser[] = [
   // CSM users
   {
     _id: "13",
+    id: "13",
+    price: 0,
     email: "csm@diaspomoney.com",
     password: "password123",
     name: "CSM User (Active)",
@@ -180,6 +206,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "14",
+    id: "14",
+    price: 0,
     email: "csm.inactive@diaspomoney.com",
     password: "password123",
     name: "CSM User (Inactive)",
@@ -190,6 +218,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "15",
+    id: "15",
+    price: 0,
     email: "csm.pending@diaspomoney.com",
     password: "password123",
     name: "CSM User (Pending)",
@@ -200,6 +230,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "16",
+    id: "16",
+    price: 0,
     email: "csm.suspended@diaspomoney.com",
     password: "password123",
     name: "CSM User (Suspended)",
@@ -212,6 +244,8 @@ export const MOCK_USERS: IUser[] = [
   // Utilisateurs avec plusieurs rôles
   {
     _id: "17",
+    id: "17",
+    price: 0,
     email: "admin.provider@diaspomoney.com",
     password: "password123",
     name: "Admin & Provider User",
@@ -223,6 +257,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "18",
+    id: "18",
+    price: 0,
     email: "provider.customer@diaspomoney.com",
     password: "password123",
     name: "Provider & Customer User",
@@ -234,6 +270,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "19",
+    id: "19",
+    price: 0,
     email: "admin.csm@diaspomoney.com",
     password: "password123",
     name: "Admin & CSM User",
@@ -244,6 +282,8 @@ export const MOCK_USERS: IUser[] = [
   },
   {
     _id: "20",
+    id: "20",
+    price: 0,
     email: "all.roles@diaspomoney.com",
     password: "password123",
     name: "Super User (All Roles)",
@@ -257,6 +297,8 @@ export const MOCK_USERS: IUser[] = [
   // example with all fields (provider)
   {
     _id: "21",
+    id: "21",
+    price: 0,
     email: "leldoradoecole@gmail.com",
     password: "password123",
     name: "L'ELDORADO Crèche, Maternelle, Primaire et Collège",
@@ -284,6 +326,8 @@ export const MOCK_USERS: IUser[] = [
         display_name:
           "Avenue Dr Denis Loemba, Losange, Pointe-Noire, Lumumba (arrondissement 1), Pointe-Noire (commune), Pointe-Noire (département), Congo-Brazzaville",
         boundingbox: ["-4.8039035", "-4.8011078", "11.8483804", "11.8499445"],
+        country_code: "CG",
+        country: "Congo-Brazzaville",
       },
       {
         place_id: 34536773,
@@ -302,6 +346,8 @@ export const MOCK_USERS: IUser[] = [
         display_name:
           "Avenue Dr Denis Loemba, Losange, Pointe-Noire, Lumumba (arrondissement 1), Pointe-Noire (commune), Pointe-Noire (département), Congo-Brazzaville",
         boundingbox: ["-4.8006448", "-4.7991889", "11.8457698", "11.8479518"],
+        country_code: "CG",
+        country: "Congo-Brazzaville",
       },
     ],
     images: [

@@ -75,9 +75,9 @@ const SearchBar = React.memo(function SearchBar({
 }: {
   availableServices: string[];
   selectedService: string;
-  setSelectedService: (value: string) => void;
+  setSelectedService: (_value: string) => void;
   selectedCity: string;
-  setSelectedCity: (value: string) => void;
+  setSelectedCity: (_value: string) => void;
 }) {
   const handleServiceChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,17 +258,13 @@ const FilterSidebar = React.memo(function FilterSidebar({
   setSelectedTypes,
   selectedGroup,
   setSelectedGroup,
-  filters,
-  setFilters,
   resetFilters,
 }: {
   providerTypes: { id: string | number; value: string }[];
   selectedTypes: string[];
-  setSelectedTypes: (types: string[]) => void;
+  setSelectedTypes: (_types: string[]) => void;
   selectedGroup: string;
-  setSelectedGroup: (group: string) => void;
-  filters: any;
-  setFilters: (filters: any) => void;
+  setSelectedGroup: (_group: string) => void;
   resetFilters: () => void;
 }) {
   const handleTypeChange = (type: string) => {
@@ -468,20 +464,6 @@ export default function ProvidersPage() {
     setCurrentPage(1);
   };
 
-  const filters = {
-    selectedService,
-    selectedCity,
-    selectedTypes,
-    selectedGroup,
-  };
-
-  const setFilters = (newFilters: any) => {
-    setSelectedService(newFilters.selectedService || "");
-    setSelectedCity(newFilters.selectedCity || "");
-    setSelectedTypes(newFilters.selectedTypes || []);
-    setSelectedGroup(newFilters.selectedGroup || "");
-  };
-
   // Correction: calculer le nombre de pays distincts
   const countries = useMemo(() => {
     const allCountries = Array.isArray(providers)
@@ -540,14 +522,6 @@ export default function ProvidersPage() {
           />
         </div>
         <ProviderStats
-          totalProviders={
-            Array.isArray(MOCK_USERS)
-              ? MOCK_USERS.filter(
-                  user =>
-                    Array.isArray(user.roles) && user.roles.includes("PROVIDER")
-                ).length
-              : 0
-          }
           activeProviders={Array.isArray(providers) ? providers.length : 0}
           totalSpecialties={
             Array.isArray(providerTypes) ? providerTypes.length : 0
@@ -562,8 +536,6 @@ export default function ProvidersPage() {
               setSelectedTypes={setSelectedTypes}
               selectedGroup={selectedGroup}
               setSelectedGroup={setSelectedGroup}
-              filters={filters}
-              setFilters={setFilters}
               resetFilters={resetFilters}
             />
           </div>

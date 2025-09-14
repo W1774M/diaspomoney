@@ -40,7 +40,7 @@ export function LoginForm() {
   const router = useRouter();
   const { addSuccess, addError, addWarning, addInfo } =
     useNotificationManager();
-  const { isLoading, error, isAuthenticated } = useAuth();
+  const { isLoading, error } = useAuth();
   const dispatch = useDispatch();
   const urlStatus = useUrlStatus();
 

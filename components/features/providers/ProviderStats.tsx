@@ -1,15 +1,13 @@
+import { Clock, MapPin, Star, Users } from "lucide-react";
 import React from "react";
-import { Users, MapPin, Star, Clock } from "lucide-react";
 
 interface ProviderStatsProps {
-  totalProviders: number;
   activeProviders: number;
   totalSpecialties: number;
   totalCountries: number;
 }
 
 export const ProviderStats: React.FC<ProviderStatsProps> = ({
-  totalProviders,
   activeProviders,
   totalSpecialties,
   totalCountries,
@@ -22,8 +20,12 @@ export const ProviderStats: React.FC<ProviderStatsProps> = ({
             <Users className="w-6 h-6 text-blue-600" />
           </div>
           <div className="ml-4">
-            <p className="text-sm font-medium text-gray-600">Prestataires actifs</p>
-            <p className="text-2xl font-bold text-gray-900">{activeProviders}</p>
+            <p className="text-sm font-medium text-gray-600">
+              Prestataires actifs
+            </p>
+            <p className="text-2xl font-bold text-gray-900">
+              {activeProviders}
+            </p>
           </div>
         </div>
       </div>
@@ -35,7 +37,9 @@ export const ProviderStats: React.FC<ProviderStatsProps> = ({
           </div>
           <div className="ml-4">
             <p className="text-sm font-medium text-gray-600">Spécialités</p>
-            <p className="text-2xl font-bold text-gray-900">{totalSpecialties}</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {totalSpecialties}
+            </p>
           </div>
         </div>
       </div>

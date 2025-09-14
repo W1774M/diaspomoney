@@ -541,7 +541,7 @@ nous nous engageons à fournir des services de qualité adaptés à vos besoins.
           <h3 className="text-xl font-semibold text-gray-900 mb-4">
             Avis clients
           </h3>
-          <InfiniteReviewsCarousel providerId={provider._id} />
+          <InfiniteReviewsCarousel />
         </div>
       </div>
 

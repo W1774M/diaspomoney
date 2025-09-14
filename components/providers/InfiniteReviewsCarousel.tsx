@@ -2,11 +2,7 @@
 import { MOCK_REVIEWS } from "@/mocks";
 import React from "react";
 
-export function InfiniteReviewsCarousel({
-  providerId,
-}: {
-  providerId: string;
-}) {
+export function InfiniteReviewsCarousel() {
   // Utilise les avis mockés importés
   const reviews = MOCK_REVIEWS;
   // Pour la démo, on fait défiler les avis en boucle
