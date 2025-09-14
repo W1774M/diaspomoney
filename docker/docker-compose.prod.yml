@@ -23,7 +23,7 @@ services:
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --entrypoints.metrics.address=:9100
-      - --certificatesresolvers.le=true
+      - --certificatesresolvers.le.acme.caserver=https://acme-v02.api.letsencrypt.org/directory
       - --certificatesresolvers.le.acme.email=contact@diaspomoney.fr
       - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
       - --certificatesresolvers.le.acme.httpchallenge=true
