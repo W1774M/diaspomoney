@@ -41,7 +41,6 @@ services:
       - --log.filePath=/var/log/traefik/traefik.log
       - --accessLog.filePath=/var/log/traefik/access.log
     volumes:
-      - ./traefik:/traefik:ro
       - ./traefik/letsencrypt:/letsencrypt
       - ./traefik/traefik_logs:/var/log/traefik
       - /var/run/docker.sock:/var/run/docker.sock:ro
