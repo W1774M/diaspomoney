@@ -30,7 +30,7 @@ export default function PublicHeader() {
   return (
     <header
       key={forceUpdate}
-      className="bg-white shadow-sm border-b border-gray-200"
+      className="bg-black shadow-sm border-b border-gray-800"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -50,25 +50,25 @@ export default function PublicHeader() {
           <nav className="hidden md:flex space-x-8">
             <Link
               href="/"
-              className="text-gray-700 hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="text-white hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               Accueil
             </Link>
             <Link
               href="/providers"
-              className="text-gray-700 hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="text-white hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               Prestataires
             </Link>
             <Link
               href="#services"
-              className="text-gray-700 hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="text-white hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               Services
             </Link>
             <Link
               href="#how-it-works"
-              className="text-gray-700 hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="text-white hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
               onClick={e => {
                 e.preventDefault();
                 document.getElementById("how-it-works")?.scrollIntoView({
@@ -80,19 +80,19 @@ export default function PublicHeader() {
             </Link>
             <Link
               href="#about"
-              className="text-gray-700 hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="text-white hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               À propos
             </Link>
             <Link
               href="/support"
-              className="text-gray-700 hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="text-white hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               Support
             </Link>
             <Link
               href="/hotline"
-              className="text-gray-700 hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              className="text-white hover:text-[hsl(25,100%,53%)] px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               Hotline
             </Link>
@@ -110,36 +110,36 @@ export default function PublicHeader() {
               <div className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 transition-colors"
+                  className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-800 transition-colors"
                 >
                   <div className="w-8 h-8 bg-[hsl(25,100%,53%)] rounded-full flex items-center justify-center">
                     <User className="h-4 w-4 text-white" />
                   </div>
-                  <span className="hidden md:block text-sm font-medium text-gray-700">
+                  <span className="hidden md:block text-sm font-medium text-white">
                     {user?.name || "Utilisateur"}
                   </span>
                 </button>
 
                 {/* Dropdown menu */}
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                  <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-700">
                     <Link
                       href="/dashboard"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[hsl(25,100%,53%)]"
+                      className="block px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-[hsl(25,100%,53%)]"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       Dashboard
                     </Link>
                     <Link
                       href="/dashboard/settings"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[hsl(25,100%,53%)]"
+                      className="block px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-[hsl(25,100%,53%)]"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       Paramètres
                     </Link>
                     <button
                       onClick={handleSignOut}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[hsl(25,100%,53%)]"
+                      className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-[hsl(25,100%,53%)]"
                     >
                       Déconnexion
                     </button>
@@ -169,31 +169,31 @@ export default function PublicHeader() {
         {/* Menu mobile */}
         {isMenuOpen && (
           <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-200">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-700">
               <Link
                 href="/"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[hsl(25,100%,53%)] hover:bg-gray-50"
+                className="block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Accueil
               </Link>
               <Link
                 href="/providers"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[hsl(25,100%,53%)] hover:bg-gray-50"
+                className="block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Prestataires
               </Link>
               <Link
                 href="#services"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[hsl(25,100%,53%)] hover:bg-gray-50"
+                className="block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Services
               </Link>
               <Link
                 href="#how-it-works"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[hsl(25,100%,53%)] hover:bg-gray-50"
+                className="block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700"
                 onClick={e => {
                   e.preventDefault();
                   setIsMenuOpen(false);
@@ -206,14 +206,14 @@ export default function PublicHeader() {
               </Link>
               <Link
                 href="/support"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[hsl(25,100%,53%)] hover:bg-gray-50"
+                className="block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Support
               </Link>
               <Link
                 href="/hotline"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[hsl(25,100%,53%)] hover:bg-gray-50"
+                className="block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Hotline
@@ -221,7 +221,7 @@ export default function PublicHeader() {
               {user ? (
                 <Link
                   href="/dashboard"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[hsl(25,100%,53%)] hover:bg-gray-50"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Dashboard
@@ -229,7 +229,7 @@ export default function PublicHeader() {
               ) : (
                 <Link
                   href="/login"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-[hsl(25,100%,53%)] hover:bg-gray-50"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Se connecter
