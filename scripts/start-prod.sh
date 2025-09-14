@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Script de démarrage pour l'environnement de développement
-# Usage: ./scripts/start-dev.sh
+# Script de démarrage pour l'environnement de production
+# Usage: ./scripts/start-prod.sh
 
 set -e
 
-echo "🚀 Démarrage de l'environnement de développement DiaspoMoney"
+echo "🚀 Démarrage de l'environnement de production DiaspoMoney"
 echo "============================================================="
 
 # Obtenir le répertoire du script
@@ -39,24 +39,28 @@ fi
 if [ ! -f "$PROJECT_DIR/.env" ]; then
     echo "📝 Création du fichier .env..."
     cat > "$PROJECT_DIR/.env" << EOF
-# Configuration MongoDB pour le développement
-MONGODB_URI=mongodb://admin:admin123@localhost:27017/diaspomoney?authSource=admin
+# Configuration MongoDB pour la production
+MONGODB_URI=mongodb://admin:admin123@mongodb:27017/diaspomoney?authSource=admin
 
 # Configuration de l'application
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_API_URL=http://localhost:3000/api
+NEXT_PUBLIC_APP_URL=https://app.diaspomoney.fr
+NEXT_PUBLIC_API_URL=https://app.diaspomoney.fr/api
 
 # Configuration NextAuth
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=dev-secret-key
+NEXTAUTH_URL=https://app.diaspomoney.fr
+NEXTAUTH_SECRET=your-super-secret-nextauth-key-here
 
 # Configuration de l'environnement
-NODE_ENV=development
+NODE_ENV=production
 
 # Clés secrètes
-JWT_SECRET=dev-jwt-secret
+JWT_SECRET=your-super-secret-jwt-key-here
+
+# Configuration Let's Encrypt
+LETSENCRYPT_EMAIL=your-email@example.com
 EOF
     echo "✅ Fichier .env créé"
+    echo "⚠️  N'oubliez pas de configurer vos variables dans .env"
 else
     echo "✅ Fichier .env existe déjà"
 fi
@@ -68,24 +72,30 @@ docker network create diaspomoney 2>/dev/null || echo "✅ Réseau diaspomoney e
 # Arrêter les services existants s'ils sont en cours
 echo "🛑 Arrêt des services existants..."
 cd "$DOCKER_DIR"
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml down 2>/dev/null || echo "Aucun service à arrêter"
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml down 2>/dev/null || echo "Aucun service à arrêter"
 
-# Démarrer les services de développement
-echo "🚀 Démarrage des services de développement..."
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
+# Démarrer les services de production
+echo "🚀 Démarrage des services de production..."
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+
+# Attendre que les services soient prêts
+echo "⏳ Attente que les services soient prêts..."
+sleep 15
 
 echo ""
-echo "🎉 Environnement de développement démarré avec succès !"
+echo "🎉 Environnement de production démarré avec succès !"
 echo ""
 echo "📋 Services disponibles :"
-echo "   • Application : http://localhost:3000"
-echo "   • Mongo Express : http://localhost:8081"
-echo "   • MongoDB : mongodb://admin:admin123@localhost:27017/diaspomoney"
+echo "   • Application : https://app.diaspomoney.fr"
+echo "   • Mongo Express : https://mongo.diaspomoney.fr"
+echo "   • Dashboard Traefik : https://dashboard.diaspomoney.fr"
+echo "   • Monitoring : https://dashboard.diaspomoney.fr/grafana/"
 echo ""
 echo "📊 Pour voir les logs :"
-echo "   docker logs app-dev"
-echo "   docker logs mongo-express"
+echo "   docker logs app"
+echo "   docker logs traefik"
 echo "   docker logs mongodb"
+echo "   docker logs mongo-express"
 echo ""
 echo "🛑 Pour arrêter :"
-echo "   cd docker && docker-compose -f docker-compose.yml -f docker-compose.dev.yml down"
+echo "   cd docker && docker-compose -f docker-compose.yml -f docker-compose.prod.yml down"

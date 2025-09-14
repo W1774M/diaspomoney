@@ -29,28 +29,6 @@ const getAvailableServices = (providers: IUser[]) =>
     .filter((service): service is string => Boolean(service))
     .sort();
 
-const getCountries = (providers: IUser[]) => {
-  const allLocations = providers
-    .flatMap(p => p.apiGeo || [])
-    .flatMap(geo => [geo?.name, geo?.display_name])
-    .filter((name): name is string => Boolean(name))
-    .filter((name, index, self) => self.indexOf(name) === index)
-    .sort();
-
-  // Extraire les pays uniques des display_name
-  const countries = allLocations
-    .filter(location => location.includes(","))
-    .map(location => {
-      const parts = location.split(",").map(part => part.trim());
-      return parts[parts.length - 1]; // Dernière partie = pays
-    })
-    .filter((country): country is string => Boolean(country))
-    .filter((country, index, self) => self.indexOf(country) === index)
-    .sort();
-
-  return countries;
-};
-
 // Hook personnalisé pour récupérer les prestataires
 const useProviders = () => {
   const [providers, setProviders] = useState<IUser[]>([]);
@@ -83,17 +61,11 @@ const useProviders = () => {
 const SearchBar = React.memo(function SearchBar({
   selectedService,
   setSelectedService,
-  countries,
-  selectedCountry,
-  setSelectedCountry,
   selectedCity,
   setSelectedCity,
 }: {
   selectedService: string;
   setSelectedService: (value: string) => void;
-  countries: string[];
-  selectedCountry: string;
-  setSelectedCountry: (value: string) => void;
   selectedCity: string;
   setSelectedCity: (value: string) => void;
 }) {
@@ -392,7 +364,6 @@ export default function ProvidersPage() {
 
   // États pour les filtres
   const [selectedService, setSelectedService] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedGroup, setSelectedGroup] = useState("");
@@ -405,7 +376,6 @@ export default function ProvidersPage() {
     () => getAvailableServices(providers),
     [providers]
   );
-  const countries = useMemo(() => getCountries(providers), [providers]);
   const providerTypes = useMemo(
     () => getUniqueProviderTypes(providers),
     [providers]
@@ -537,9 +507,6 @@ export default function ProvidersPage() {
             availableServices={availableServices}
             selectedService={selectedService}
             setSelectedService={setSelectedService}
-            countries={countries}
-            selectedCountry={selectedCountry}
-            setSelectedCountry={setSelectedCountry}
             selectedCity={selectedCity}
             setSelectedCity={setSelectedCity}
           />
