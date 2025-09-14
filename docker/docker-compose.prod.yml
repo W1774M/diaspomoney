@@ -78,15 +78,17 @@ services:
       - traefik.http.routers.app.tls=true
       - traefik.http.routers.app.tls.certresolver=le
       - traefik.http.services.app.loadbalancer.server.port=3000
-      # Routage HTTP temporaire pour debug (à supprimer en production)
+      # Redirection HTTP vers HTTPS
       - traefik.http.routers.app-http.rule=Host(`app.diaspomoney.fr`)
       - traefik.http.routers.app-http.entrypoints=web
-      - traefik.http.routers.app-http.service=app
-      # Sécurité (HSTS); à activer quand le cert est OK
+      - traefik.http.routers.app-http.middlewares=redirect-to-https
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
+      # Sécurité (HSTS)
       - traefik.http.middlewares.sec.headers.stsSeconds=31536000
       - traefik.http.middlewares.sec.headers.stsIncludeSubdomains=true
       - traefik.http.middlewares.sec.headers.stsPreload=true
-      - traefik.http.routers.app.middlewares=sec@docker
+      - traefik.http.routers.app.middlewares=sec
 
 secrets:
   traefik_basicauth:
