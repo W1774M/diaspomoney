@@ -1,123 +1,156 @@
-import nodemailer from "nodemailer";
+// ============================================================================
+// EMAIL SYSTEM (Version temporaire sans Resend)
+// ============================================================================
 
-// Configuration du transporteur email
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: false, // true pour 465, false pour les autres ports
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+import { Resend } from "resend";
 
-// Email de récupération de mot de passe
-export async function sendPasswordResetEmail(
-  email: string,
-  token: string,
-  firstName: string
-) {
-  const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`;
-
-  const mailOptions = {
-    from: `"DiaspoMoney" <${process.env.SMTP_USER}>`,
-    to: email,
-    subject: "Récupération de mot de passe - DiaspoMoney",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #3B82F6, #1E40AF); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">DiaspoMoney</h1>
-          <p style="color: #E0E7FF; margin: 10px 0 0 0;">Récupération de mot de passe</p>
-        </div>
-        
-        <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-          <h2 style="color: #1F2937; margin-bottom: 20px;">Bonjour ${firstName},</h2>
-          
-          <p style="color: #4B5563; line-height: 1.6; margin-bottom: 20px;">
-            Vous avez demandé la récupération de votre mot de passe pour votre compte DiaspoMoney.
-          </p>
-          
-          <p style="color: #4B5563; line-height: 1.6; margin-bottom: 30px;">
-            Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe :
-          </p>
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" style="background: linear-gradient(135deg, #3B82F6, #1E40AF); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-              Réinitialiser mon mot de passe
-            </a>
-          </div>
-          
-          <p style="color: #6B7280; font-size: 14px; margin-top: 30px;">
-            Ce lien expirera dans 1 heure. Si vous n'avez pas demandé cette récupération, 
-            vous pouvez ignorer cet email en toute sécurité.
-          </p>
-          
-          <p style="color: #6B7280; font-size: 14px;">
-            Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :<br>
-            <a href="${resetUrl}" style="color: #3B82F6;">${resetUrl}</a>
-          </p>
-        </div>
-        
-        <div style="text-align: center; margin-top: 20px; color: #6B7280; font-size: 12px;">
-          <p>© 2024 DiaspoMoney. Tous droits réservés.</p>
-        </div>
-      </div>
-    `,
-  };
-
-  return transporter.sendMail(mailOptions);
+const resend = new Resend(process.env["RESEND_API_KEY"]);
+const from = process.env["SMTP_USER"] ?? "no-reply@diaspomoney.fr";
+if (!from) {
+  throw new Error("SMTP_USER environment variable is not set");
 }
 
-// Email de vérification d'email
 export async function sendEmailVerification(
   email: string,
-  token: string,
-  firstName: string
-) {
-  const verifyUrl = `${process.env.NEXTAUTH_URL}/verify-email?token=${token}`;
+  verificationUrl: string
+): Promise<boolean> {
+  const { subject, html } = EmailVerificationTemplate({
+    name: "user",
+    verificationUrl,
+  });
 
-  const mailOptions = {
-    from: `"DiaspoMoney" <${process.env.SMTP_USER}>`,
+  await resend.emails.send({
+    from,
     to: email,
-    subject: "Vérification de votre email - DiaspoMoney",
+    subject,
+    html,
+  });
+  console.log(`[EMAIL] Vérification envoyée à ${email}: ${verificationUrl}`);
+  return true;
+}
+
+export async function sendPasswordReset(
+  email: string,
+  resetUrl: string
+): Promise<boolean> {
+  const { subject, html } = PasswordResetTemplate({ name: "user", resetUrl });
+
+  await resend.emails.send({
+    from,
+    to: email,
+    subject,
+    html,
+  });
+  console.log(`[EMAIL] Reset envoyé à ${email}: ${resetUrl}`);
+  return true;
+}
+
+export async function sendAppointmentConfirmation(
+  email: string,
+  appointmentDate: string,
+  providerName: string,
+  serviceName: string,
+  appointmentUrl: string
+): Promise<boolean> {
+  const { subject, html } = AppointmentConfirmationTemplate({
+    name: "user",
+    appointmentDate,
+    providerName,
+    serviceName,
+    appointmentUrl,
+  });
+
+  await resend.emails.send({
+    from,
+    to: email,
+    subject,
+    html,
+  });
+  console.log(`[EMAIL] Confirmation de RDV envoyée à ${email}`);
+  return true;
+}
+
+// ============================================================================
+// TEMPLATES (Version temporaire)
+// ============================================================================
+
+export function EmailVerificationTemplate({
+  name,
+  verificationUrl,
+}: {
+  name: string;
+  verificationUrl: string;
+}) {
+  return {
+    subject: "Vérifiez votre adresse email - Diaspomoney",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #10B981, #059669); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 24px;">DiaspoMoney</h1>
-          <p style="color: #D1FAE5; margin: 10px 0 0 0;">Vérification de votre compte</p>
-        </div>
-        
-        <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-          <h2 style="color: #1F2937; margin-bottom: 20px;">Bonjour ${firstName},</h2>
-          
-          <p style="color: #4B5563; line-height: 1.6; margin-bottom: 20px;">
-            Merci de vous être inscrit sur DiaspoMoney ! Pour activer votre compte, 
-            veuillez vérifier votre adresse email.
-          </p>
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${verifyUrl}" style="background: linear-gradient(135deg, #10B981, #059669); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-              Vérifier mon email
-            </a>
-          </div>
-          
-          <p style="color: #6B7280; font-size: 14px; margin-top: 30px;">
-            Ce lien expirera dans 24 heures. Si vous n'avez pas créé de compte, 
-            vous pouvez ignorer cet email.
-          </p>
-          
-          <p style="color: #6B7280; font-size: 14px;">
-            Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :<br>
-            <a href="${verifyUrl}" style="color: #10B981;">${verifyUrl}</a>
-          </p>
-        </div>
-        
-        <div style="text-align: center; margin-top: 20px; color: #6B7280; font-size: 12px;">
-          <p>© 2024 DiaspoMoney. Tous droits réservés.</p>
-        </div>
+        <h1>Vérifiez votre adresse email</h1>
+        <p>Bonjour ${name},</p>
+        <p>Merci de vous être inscrit sur Diaspomoney. Pour activer votre compte, 
+        veuillez cliquer sur le lien ci-dessous :</p>
+        <a href="${verificationUrl}" style="background: #000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
+          Vérifier mon email
+        </a>
+        <p>Ce lien expirera dans 24 heures.</p>
       </div>
     `,
   };
+}
 
-  return transporter.sendMail(mailOptions);
+export function PasswordResetTemplate({
+  name,
+  resetUrl,
+}: {
+  name: string;
+  resetUrl: string;
+}) {
+  return {
+    subject: "Réinitialisation de mot de passe - Diaspomoney",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1>Réinitialisation de mot de passe</h1>
+        <p>Bonjour ${name},</p>
+        <p>Vous avez demandé la réinitialisation de votre mot de passe. 
+        Cliquez sur le lien ci-dessous pour créer un nouveau mot de passe :</p>
+        <a href="${resetUrl}" style="background: #000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
+          Réinitialiser mon mot de passe
+        </a>
+        <p>Ce lien expirera dans 1 heure.</p>
+      </div>
+    `,
+  };
+}
+
+export function AppointmentConfirmationTemplate({
+  name,
+  appointmentDate,
+  providerName,
+  serviceName,
+  appointmentUrl,
+}: {
+  name: string;
+  appointmentDate: string;
+  providerName: string;
+  serviceName: string;
+  appointmentUrl: string;
+}) {
+  return {
+    subject: "Confirmation de rendez-vous - Diaspomoney",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1>Confirmation de rendez-vous</h1>
+        <p>Bonjour ${name},</p>
+        <p>Votre rendez-vous a été confirmé avec succès !</p>
+        <div style="background: #f6f9fc; padding: 20px; border-radius: 4px; margin: 20px 0;">
+          <p><strong>Date :</strong> ${appointmentDate}</p>
+          <p><strong>Prestataire :</strong> ${providerName}</p>
+          <p><strong>Service :</strong> ${serviceName}</p>
+        </div>
+        <a href="${appointmentUrl}" style="background: #000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">
+          Voir les détails
+        </a>
+      </div>
+    `,
+  };
 }

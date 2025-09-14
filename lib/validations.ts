@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 // Fonctions utilitaires pour la validation
-const sanitizeString = (value: string) => value.trim().replace(/[<>]/g, "");
+const sanitizeString = (value: string) =>
+  value
+    .trim()
+    .replace(/[<>]/g, "")
+    .replace(/script/gi, "");
 const validatePasswordStrength = (password: string) => {
   const hasUpperCase = /[A-Z]/.test(password);
   const hasLowerCase = /[a-z]/.test(password);
@@ -21,7 +25,7 @@ export const loginSchema = z.object({
     .min(1, "L'email est requis")
     .email("Format d'email invalide")
     .transform(sanitizeString)
-    .refine((email) => email.length <= 254, "Email trop long"),
+    .refine(email => email.length <= 254, "Email trop long"),
   password: z
     .string()
     .min(1, "Le mot de passe est requis")
@@ -37,25 +41,25 @@ export const registerSchema = z
       .min(2, "Le prénom doit contenir au moins 2 caractères")
       .max(50, "Le prénom est trop long")
       .transform(sanitizeString)
-      .refine((name) => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Prénom invalide"),
+      .refine(name => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Prénom invalide"),
     lastName: z
       .string()
       .min(1, "Le nom est requis")
       .min(2, "Le nom doit contenir au moins 2 caractères")
       .max(50, "Le nom est trop long")
       .transform(sanitizeString)
-      .refine((name) => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Nom invalide"),
+      .refine(name => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Nom invalide"),
     email: z
       .string()
       .min(1, "L'email est requis")
       .email("Format d'email invalide")
       .transform(sanitizeString)
-      .refine((email) => email.length <= 254, "Email trop long"),
+      .refine(email => email.length <= 254, "Email trop long"),
     phone: z
       .string()
       .min(1, "Le téléphone est requis")
-      .transform((phone) => phone.replace(/\D/g, ""))
-      .refine((phone) => {
+      .transform(phone => phone.replace(/\D/g, ""))
+      .refine(phone => {
         const cleaned = phone.replace(/\D/g, "");
         return (
           (cleaned.startsWith("0") && cleaned.length === 10) ||
@@ -66,7 +70,7 @@ export const registerSchema = z
     dateOfBirth: z
       .string()
       .min(1, "La date de naissance est requise")
-      .refine((date) => {
+      .refine(date => {
         const birthDate = new Date(date);
         const today = new Date();
         const age = today.getFullYear() - birthDate.getFullYear();
@@ -96,15 +100,15 @@ export const registerSchema = z
     termsAccepted: z
       .boolean()
       .refine(
-        (val) => val === true,
+        val => val === true,
         "Vous devez accepter les conditions générales"
       ),
     marketingConsent: z.boolean().optional(),
     kycConsent: z
       .boolean()
-      .refine((val) => val === true, "Vous devez accepter la vérification KYC"),
+      .refine(val => val === true, "Vous devez accepter la vérification KYC"),
   })
-  .refine((data) => data.password === data.confirmPassword, {
+  .refine(data => data.password === data.confirmPassword, {
     message: "Les mots de passe ne correspondent pas",
     path: ["confirmPassword"],
   });
@@ -121,7 +125,7 @@ export const resetPasswordSchema = z
       }),
     confirmPassword: z.string(),
   })
-  .refine((data) => data.password === data.confirmPassword, {
+  .refine(data => data.password === data.confirmPassword, {
     message: "Les mots de passe ne correspondent pas",
     path: ["confirmPassword"],
   });
@@ -132,7 +136,7 @@ export const forgotPasswordSchema = z.object({
     .min(1, "L'email est requis")
     .email("Format d'email invalide")
     .transform(sanitizeString)
-    .refine((email) => email.length <= 254, "Email trop long"),
+    .refine(email => email.length <= 254, "Email trop long"),
 });
 
 export const appointmentSchema = z.object({
@@ -142,22 +146,22 @@ export const appointmentSchema = z.object({
       .min(2, "Le prénom doit contenir au moins 2 caractères")
       .max(50, "Le prénom est trop long")
       .transform(sanitizeString)
-      .refine((name) => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Prénom invalide"),
+      .refine(name => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Prénom invalide"),
     lastName: z
       .string()
       .min(2, "Le nom doit contenir au moins 2 caractères")
       .max(50, "Le nom est trop long")
       .transform(sanitizeString)
-      .refine((name) => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Nom invalide"),
+      .refine(name => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Nom invalide"),
     email: z
       .string()
       .email("Format d'email invalide")
       .transform(sanitizeString)
-      .refine((email) => email.length <= 254, "Email trop long"),
+      .refine(email => email.length <= 254, "Email trop long"),
     phone: z
       .string()
-      .transform((phone) => phone.replace(/\D/g, ""))
-      .refine((phone) => {
+      .transform(phone => phone.replace(/\D/g, ""))
+      .refine(phone => {
         const cleaned = phone.replace(/\D/g, "");
         return (
           (cleaned.startsWith("0") && cleaned.length === 10) ||
@@ -172,17 +176,17 @@ export const appointmentSchema = z.object({
       .min(2, "Le prénom doit contenir au moins 2 caractères")
       .max(50, "Le prénom est trop long")
       .transform(sanitizeString)
-      .refine((name) => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Prénom invalide"),
+      .refine(name => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Prénom invalide"),
     lastName: z
       .string()
       .min(2, "Le nom doit contenir au moins 2 caractères")
       .max(50, "Le nom est trop long")
       .transform(sanitizeString)
-      .refine((name) => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Nom invalide"),
+      .refine(name => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Nom invalide"),
     phone: z
       .string()
-      .transform((phone) => phone.replace(/\D/g, ""))
-      .refine((phone) => {
+      .transform(phone => phone.replace(/\D/g, ""))
+      .refine(phone => {
         const cleaned = phone.replace(/\D/g, "");
         return (
           (cleaned.startsWith("0") && cleaned.length === 10) ||
@@ -205,14 +209,17 @@ export const paymentSchema = z.object({
   cardNumber: z
     .string()
     .min(1, "Le numéro de carte est requis")
-    .transform((card) => card.replace(/\D/g, ""))
-    .refine((card) => {
+    .transform(card => card.replace(/\D/g, ""))
+    .refine(card => {
       // Algorithme de Luhn pour valider le numéro de carte
       let sum = 0;
       let isEven = false;
 
       for (let i = card.length - 1; i >= 0; i--) {
-        let digit = parseInt(card[i]);
+        const char = card[i];
+        if (char === undefined) continue;
+        let digit = parseInt(char, 10);
+        if (isNaN(digit)) continue;
 
         if (isEven) {
           digit *= 2;
@@ -230,7 +237,7 @@ export const paymentSchema = z.object({
   expiryDate: z
     .string()
     .min(1, "La date d'expiration est requise")
-    .refine((date) => {
+    .refine(date => {
       const regex = /^(0[1-9]|1[0-2])\/([0-9]{2})$/;
       if (!regex.test(date)) return false;
 
@@ -239,8 +246,12 @@ export const paymentSchema = z.object({
       const currentYear = currentDate.getFullYear() % 100;
       const currentMonth = currentDate.getMonth() + 1;
 
-      const expYear = parseInt(year);
-      const expMonth = parseInt(month);
+      if (!year || !month) return false;
+
+      const expYear = parseInt(year, 10);
+      const expMonth = parseInt(month, 10);
+
+      if (isNaN(expYear) || isNaN(expMonth)) return false;
 
       if (expYear < currentYear) return false;
       if (expYear === currentYear && expMonth < currentMonth) return false;
@@ -250,15 +261,15 @@ export const paymentSchema = z.object({
   cvv: z
     .string()
     .min(1, "Le code CVV est requis")
-    .transform((cvv) => cvv.replace(/\D/g, ""))
-    .refine((cvv) => cvv.length >= 3 && cvv.length <= 4, "Code CVV invalide"),
+    .transform(cvv => cvv.replace(/\D/g, ""))
+    .refine(cvv => cvv.length >= 3 && cvv.length <= 4, "Code CVV invalide"),
   cardholderName: z
     .string()
     .min(1, "Le nom du titulaire est requis")
     .min(2, "Le nom doit contenir au moins 2 caractères")
     .max(100, "Le nom est trop long")
     .transform(sanitizeString)
-    .refine((name) => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Nom invalide"),
+    .refine(name => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Nom invalide"),
 });
 
 // Types TypeScript dérivés des schémas

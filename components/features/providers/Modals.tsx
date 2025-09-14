@@ -1,5 +1,5 @@
 "use client";
-import { AppointmentData, Provider, Service } from "@/lib/definitions";
+import { AppointmentData, IUser as Provider, Service } from "@/types";
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 interface ModalSelectServiceProps {
@@ -54,10 +54,10 @@ export const ModalSelectService = ({
         "$1 $2 $3 $4 $5"
       );
     } else if (cleaned.startsWith("33") && cleaned.length === 11) {
-      return (
-        "+" +
-        cleaned.replace(/(\d{2})(\d{1})(\d{2})(\d{2})(\d{2})/, "$1 $2 $3 $4 $5")
-      );
+      return `+${cleaned.replace(
+        /(\d{2})(\d{1})(\d{2})(\d{2})(\d{2})/,
+        "$1 $2 $3 $4 $5"
+      )}`;
     } else if (cleaned.startsWith("+33") && cleaned.length === 12) {
       return cleaned.replace(
         /(\+\d{2})(\d{1})(\d{2})(\d{2})(\d{2})/,
@@ -145,7 +145,7 @@ export const ModalSelectService = ({
           ...appointment,
           requester: {
             ...appointment.requester,
-            [field]: processedValue,
+            [field as string]: processedValue,
           },
         });
       } else if (name.startsWith("recipient.")) {
@@ -157,7 +157,7 @@ export const ModalSelectService = ({
           ...appointment,
           recipient: {
             ...appointment.recipient,
-            [field]: processedValue,
+            [field as string]: processedValue,
           },
         });
       }
@@ -316,31 +316,34 @@ export const ModalSelectService = ({
                 Services disponibles
               </h3>
               <div className="space-y-3">
-                {appointment.provider.services.map(
-                  (service: Service, index: number) => (
-                    <button
-                      key={index}
-                      onClick={() => handleServiceSelect(service)}
-                      className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 hover:scale-[1.02] cursor-pointer"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-medium text-gray-700">
-                            {service.name}
-                          </span>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Service disponible
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-bold text-blue-600">
-                            {service.price} €
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  )
-                )}
+                {appointment.provider.services &&
+                appointment.provider.services.length > 0
+                  ? appointment.provider.services.map(
+                      (service: Service, index: number) => (
+                        <button
+                          key={index}
+                          onClick={() => handleServiceSelect(service)}
+                          className="w-full text-left p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-medium text-gray-700">
+                                {service.name}
+                              </span>
+                              <p className="text-sm text-gray-500 mt-1">
+                                Service disponible
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-bold text-blue-600">
+                                {service.price} €
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      )
+                    )
+                  : null}
               </div>
             </div>
           )}

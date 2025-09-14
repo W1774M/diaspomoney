@@ -5,6 +5,7 @@ import {
 } from "@/components/features/providers";
 import { NotificationContainer } from "@/components/ui/Notification";
 import "@/styles/globals.css";
+import DefaultTemplate from "@/template/DefaultTemplate";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
@@ -36,7 +37,7 @@ export default function RootLayout({
         <AuthProvider>
           <AppointmentProvider>
             <ThemeProvider>
-              {children}
+              <DefaultTemplate>{children}</DefaultTemplate>
               <NotificationContainer />
             </ThemeProvider>
           </AppointmentProvider>

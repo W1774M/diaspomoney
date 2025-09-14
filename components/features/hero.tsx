@@ -9,13 +9,13 @@ const Hero = () => {
   const handleNext = () => {
     if (isTransitioning) return;
     setIsTransitioning(true);
-    setCurrentIndex((prevIndex) => prevIndex + 1);
+    setCurrentIndex(prevIndex => prevIndex + 1);
   };
 
   const handlePrev = () => {
     if (isTransitioning) return;
     setIsTransitioning(true);
-    setCurrentIndex((prevIndex) => prevIndex - 1);
+    setCurrentIndex(prevIndex => prevIndex - 1);
   };
 
   useEffect(() => {
@@ -63,7 +63,7 @@ const Hero = () => {
             <div className="flex flex-row items-center w-full h-full">
               <div
                 style={{
-                  backgroundImage: `url('${item.imageUrl}')`,
+                  backgroundImage: item ? `url('${item.imageUrl}')` : "none",
                   backgroundSize: "cover",
                   backgroundRepeat: "no-repeat",
                   overflow: "hidden",
@@ -71,10 +71,10 @@ const Hero = () => {
                 className="w-1/2 h-full"
               ></div>
               <div
-                className={`w-1/2 h-full bg-[${item.bgColor}] flex items-center justify-center p-4`}
+                className={`w-1/2 h-full bg-[${item?.bgColor || "#ffffff"}] flex items-center justify-center p-4`}
               >
                 <p className="text-lg font-bold">
-                  Text for Item {item.description}
+                  Text for Item {item?.description || ""}
                 </p>
               </div>
             </div>

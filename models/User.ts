@@ -1,19 +1,9 @@
-import { User } from "@/lib/definitions";
+import { IUser, UserRole } from "@/types";
 import bcrypt from "bcryptjs";
 import mongoose, { Schema } from "mongoose";
 
-const UserSchema = new Schema<User>(
+const UserSchema = new Schema<IUser>(
   {
-    firstName: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    lastName: {
-      type: String,
-      required: true,
-      trim: true,
-    },
     email: {
       type: String,
       required: true,
@@ -21,38 +11,126 @@ const UserSchema = new Schema<User>(
       lowercase: true,
       trim: true,
     },
-    password: {
+    name: {
       type: String,
       required: true,
-      minlength: 8,
+      trim: true,
     },
     phone: {
       type: String,
-      required: true,
+      trim: true,
+    },
+    company: {
+      type: String,
+      trim: true,
+    },
+    address: {
+      type: String,
+      trim: true,
+    },
+    roles: {
+      type: [String],
+      enum: ["ADMIN", "PROVIDER", "CUSTOMER", "CSM"],
+      default: ["CUSTOMER"],
+    },
+    status: {
+      type: String,
+      enum: ["ACTIVE", "INACTIVE", "PENDING", "SUSPENDED"],
+      default: "PENDING",
+    },
+    // Champs spécifiques aux prestataires
+    specialty: {
+      type: String,
+      trim: true,
+    },
+    recommended: {
+      type: Boolean,
+      default: false,
+    },
+    apiGeo: [
+      {
+        place_id: Number,
+        licence: String,
+        osm_type: String,
+        osm_id: Number,
+        lat: String,
+        lon: String,
+        class: String,
+        type: String,
+        place_rank: Number,
+        importance: Number,
+        addresstype: String,
+        name: String,
+        display_name: String,
+        boundingbox: [String],
+      },
+    ],
+    // Champs spécifiques aux clients
+    clientNotes: {
+      type: String,
+      trim: true,
+    },
+    // Champs communs
+    avatar: {
+      type: String,
+    },
+    preferences: {
+      language: {
+        type: String,
+        default: "fr",
+      },
+      timezone: {
+        type: String,
+        default: "Europe/Paris",
+      },
+      notifications: {
+        type: Boolean,
+        default: true,
+      },
+    },
+    // Champs d'authentification
+    password: {
+      type: String,
+      minlength: 8,
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    images: [
+      {
+        type: String,
+        trim: true,
+        required: false,
+        default: [],
+      },
+    ],
+    // Champs hérités pour compatibilité
+    firstName: {
+      type: String,
+      trim: true,
+    },
+    lastName: {
+      type: String,
       trim: true,
     },
     dateOfBirth: {
       type: Date,
-      required: true,
     },
     countryOfResidence: {
       type: String,
-      required: true,
       trim: true,
     },
     targetCountry: {
       type: String,
-      required: true,
       trim: true,
     },
     targetCity: {
       type: String,
-      required: true,
       trim: true,
     },
     selectedServices: {
       type: String,
-      required: true,
       trim: true,
     },
     monthlyBudget: {
@@ -61,12 +139,10 @@ const UserSchema = new Schema<User>(
     },
     securityQuestion: {
       type: String,
-      required: true,
       trim: true,
     },
     securityAnswer: {
       type: String,
-      required: true,
       trim: true,
     },
     marketingConsent: {
@@ -74,15 +150,6 @@ const UserSchema = new Schema<User>(
       default: false,
     },
     kycConsent: {
-      type: Boolean,
-      required: true,
-    },
-    role: {
-      type: String,
-      enum: ["user", "admin"],
-      default: "user",
-    },
-    isEmailVerified: {
       type: Boolean,
       default: false,
     },
@@ -97,7 +164,7 @@ const UserSchema = new Schema<User>(
 
 // Hash du mot de passe avant sauvegarde
 UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password") || !this.password) return next();
 
   try {
     const salt = await bcrypt.genSalt(12);
@@ -109,15 +176,45 @@ UserSchema.pre("save", async function (next) {
 });
 
 // Méthode pour comparer les mots de passe
-UserSchema.methods.comparePassword = async function (
+// Méthode pour comparer les mots de passe
+UserSchema.methods["comparePassword"] = async function (
   candidatePassword: string
 ): Promise<boolean> {
-  return bcrypt.compare(candidatePassword, this.password);
+  if (!this["password"]) return false;
+  return bcrypt.compare(candidatePassword, this["password"]);
+};
+
+// Méthode pour vérifier si l'utilisateur a un rôle spécifique
+// Méthode pour vérifier si l'utilisateur a un rôle spécifique
+UserSchema.methods["hasRole"] = function (role: UserRole): boolean {
+  return this["roles"].includes(role);
+};
+
+// Méthode pour vérifier si l'utilisateur a au moins un des rôles
+// Méthode pour vérifier si l'utilisateur a au moins un des rôles
+UserSchema.methods["hasAnyRole"] = function (roles: UserRole[]): boolean {
+  return this["roles"].some((role: UserRole) => roles.includes(role));
+};
+
+// Méthode pour ajouter un rôle
+// Méthode pour ajouter un rôle
+UserSchema.methods["addRole"] = function (role: UserRole): void {
+  if (!this["roles"].includes(role)) {
+    this["roles"].push(role);
+  }
+};
+
+// Méthode pour retirer un rôle
+// Méthode pour retirer un rôle
+UserSchema.methods["removeRole"] = function (role: UserRole): void {
+  this["roles"] = this["roles"].filter((r: UserRole) => r !== role);
 };
 
 // Index pour améliorer les performances
-// UserSchema.index({ email: 1 });
-// UserSchema.index({ role: 1 });
-// UserSchema.index({ createdAt: -1 });
+UserSchema.index({ roles: 1 });
+UserSchema.index({ status: 1 });
+UserSchema.index({ createdAt: -1 });
+UserSchema.index({ specialty: 1 });
 
-export default mongoose.models.User || mongoose.model<User>("User", UserSchema);
+export default mongoose.models["User"] ||
+  mongoose.model<IUser>("User", UserSchema);

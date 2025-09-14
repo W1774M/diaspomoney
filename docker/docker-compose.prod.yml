@@ -72,11 +72,16 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik
+      # Routage HTTPS (production)
       - traefik.http.routers.app.rule=Host(`app.diaspomoney.fr`)
       - traefik.http.routers.app.entrypoints=websecure
       - traefik.http.routers.app.tls=true
       - traefik.http.routers.app.tls.certresolver=le
       - traefik.http.services.app.loadbalancer.server.port=3000
+      # Routage HTTP temporaire pour debug (à supprimer en production)
+      - traefik.http.routers.app-http.rule=Host(`app.diaspomoney.fr`)
+      - traefik.http.routers.app-http.entrypoints=web
+      - traefik.http.routers.app-http.service=app
       # Sécurité (HSTS); à activer quand le cert est OK
       - traefik.http.middlewares.sec.headers.stsSeconds=31536000
       - traefik.http.middlewares.sec.headers.stsIncludeSubdomains=true

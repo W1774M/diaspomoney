@@ -1,178 +1,147 @@
 // Script d'initialisation MongoDB pour DiaspoMoney
-// Ce script s'exécute automatiquement lors du premier démarrage du conteneur MongoDB
+// Ce script s'exécute automatiquement au premier démarrage du conteneur
 
-// Sélectionner la base de données
+print("=== Initialisation de la base de données DiaspoMoney ===");
+
+// Attendre que MongoDB soit prêt
+print("Attente que MongoDB soit prêt...");
+while (!db.adminCommand("ping").ok) {
+  print("MongoDB pas encore prêt, attente...");
+  sleep(1000);
+}
+print("MongoDB est prêt !");
+
+// Créer la base de données diaspomoney
 db = db.getSiblingDB("diaspomoney");
+print("Base de données diaspomoney créée/sélectionnée");
 
 // Créer un utilisateur pour l'application
 db.createUser({
   user: "diaspomoney_user",
-  pwd: "diaspomoney_app_password",
+  pwd: "diaspomoney_pass",
   roles: [
-    {
-      role: "readWrite",
-      db: "diaspomoney",
-    },
+    { role: "readWrite", db: "diaspomoney" },
+    { role: "dbAdmin", db: "diaspomoney" },
   ],
 });
+print("Utilisateur diaspomoney_user créé");
 
-// Créer les collections avec des données de base
-
-// Collection des prestataires
-db.createCollection("providers");
-db.providers.insertMany([
-  {
-    id: 1,
-    name: "Cabinet Médical Dr. Martin",
-    type: { id: "medical", value: "Médecine générale" },
-    specialty: "Médecine générale et consultations",
-    description:
-      "Cabinet médical moderne offrant des soins de qualité pour toute la famille. Consultations sur rendez-vous avec des médecins expérimentés.",
-    services: [
-      { id: 1, name: "Consultation générale", price: 25 },
-      { id: 2, name: "Certificat médical", price: 15 },
-      { id: 3, name: "Vaccination", price: 20 },
-    ],
-    apiGeo: [
-      {
-        display_name: "123 Rue de la Paix, 75001 Paris, France",
-        lat: "48.8566",
-        lon: "2.3522",
-      },
-    ],
-    images: [
-      "/img/providers/cabinet-medical-1.jpg",
-      "/img/providers/cabinet-medical-2.jpg",
-    ],
-    rating: 4.5,
-    reviews: 127,
-    distance: "2.3 km",
-    recommended: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 2,
-    name: "Institut de Beauté Élégance",
-    type: { id: "beauty", value: "Beauté & Bien-être" },
-    specialty: "Soins esthétiques et beauté",
-    description:
-      "Institut de beauté haut de gamme proposant des soins personnalisés et des traitements innovants pour votre bien-être.",
-    services: [
-      { id: 1, name: "Soin du visage", price: 45 },
-      { id: 2, name: "Manucure", price: 25 },
-      { id: 3, name: "Massage relaxant", price: 60 },
-    ],
-    apiGeo: [
-      {
-        display_name: "456 Avenue des Champs, 75008 Paris, France",
-        lat: "48.8698",
-        lon: "2.3077",
-      },
-    ],
-    images: ["/img/providers/beaute-1.jpg", "/img/providers/beaute-2.jpg"],
-    rating: 4.8,
-    reviews: 89,
-    distance: "1.7 km",
-    recommended: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 3,
-    name: "Restaurant Le Gourmet",
-    type: { id: "restaurant", value: "Restauration" },
-    specialty: "Cuisine française traditionnelle",
-    description:
-      "Restaurant gastronomique proposant une cuisine française raffinée dans un cadre élégant et chaleureux.",
-    services: [
-      { id: 1, name: "Menu dégustation", price: 85 },
-      { id: 2, name: "Réservation table", price: 0 },
-      { id: 3, name: "Traiteur événements", price: 150 },
-    ],
-    apiGeo: [
-      {
-        display_name: "789 Boulevard Saint-Germain, 75006 Paris, France",
-        lat: "48.8534",
-        lon: "2.3488",
-      },
-    ],
-    images: [
-      "/img/providers/restaurant-1.jpg",
-      "/img/providers/restaurant-2.jpg",
-    ],
-    rating: 4.6,
-    reviews: 203,
-    distance: "3.1 km",
-    recommended: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-]);
-
-// Collection des réservations
-db.createCollection("appointments");
-db.appointments.createIndex({ "requester.email": 1 });
-db.appointments.createIndex({ "provider.id": 1 });
-db.appointments.createIndex({ timeslot: 1 });
-db.appointments.createIndex({ status: 1 });
-
-// Collection des utilisateurs
+// Création des collections principales selon les models du dossier models/
 db.createCollection("users");
+db.createCollection("appointments");
+db.createCollection("providers");
+db.createCollection("invoices");
+db.createCollection("specialities");
+db.createCollection("emailverificationtokens");
+db.createCollection("passwordresettokens");
+db.createCollection("retrytokens");
+db.createCollection("transactions");
+db.createCollection("wallets");
+db.createCollection("notifications");
+db.createCollection("kycfiles");
+print("Collections principales créées");
+
+// Index pour le model User (models/User.ts)
 db.users.createIndex({ email: 1 }, { unique: true });
-db.users.insertMany([
-  {
-    email: "admin@diaspomoney.fr",
-    password: "$2b$10$hashed_password_here", // À remplacer par un vrai hash
-    firstName: "Admin",
-    lastName: "DiaspoMoney",
-    role: "admin",
-    phone: "+33123456789",
+db.users.createIndex({ phone: 1 });
+db.users.createIndex({ name: 1 });
+db.users.createIndex({ roles: 1 });
+db.users.createIndex({ status: 1 });
+
+// Index pour appointments (models/Appointment.ts)
+db.appointments.createIndex({ userId: 1 });
+db.appointments.createIndex({ providerId: 1 });
+db.appointments.createIndex({ date: 1 });
+
+// Index pour providers (models/Provider.ts)
+db.providers.createIndex({ email: 1 }, { unique: true });
+db.providers.createIndex({ specialityId: 1 });
+db.providers.createIndex({ name: 1 });
+
+// Index pour invoices (models/Invoice.ts)
+db.invoices.createIndex({ userId: 1 });
+db.invoices.createIndex({ appointmentId: 1 });
+db.invoices.createIndex({ providerId: 1 });
+
+// Index pour specialities (models/Speciality.ts)
+db.specialities.createIndex({ name: 1 }, { unique: true });
+
+// Index pour emailverificationtokens (models/EmailVerificationToken.ts)
+db.emailverificationtokens.createIndex({ userId: 1 });
+db.emailverificationtokens.createIndex({ token: 1 }, { unique: true });
+
+// Index pour passwordresettokens (models/PasswordResetToken.ts)
+db.passwordresettokens.createIndex({ userId: 1 });
+db.passwordresettokens.createIndex({ token: 1 }, { unique: true });
+
+// Index pour retrytokens (models/RetryToken.ts)
+db.retrytokens.createIndex({ userId: 1 });
+db.retrytokens.createIndex({ token: 1 }, { unique: true });
+
+// Index pour transactions (models/Transaction.ts)
+db.transactions.createIndex({ userId: 1 });
+db.transactions.createIndex({ walletId: 1 });
+db.transactions.createIndex({ status: 1 });
+db.transactions.createIndex({ type: 1 });
+
+// Index pour wallets (models/Wallet.ts)
+db.wallets.createIndex({ userId: 1 });
+db.wallets.createIndex({ currency: 1 });
+
+// Index pour notifications (models/Notification.ts)
+db.notifications.createIndex({ userId: 1 });
+db.notifications.createIndex({ read: 1 });
+
+// Index pour kycfiles (models/KycFile.ts)
+db.kycfiles.createIndex({ userId: 1 });
+db.kycfiles.createIndex({ status: 1 });
+
+print("Index créés");
+
+// Insérer des données de test (optionnel)
+if (db.users.countDocuments() === 0) {
+  print("Insertion de données de test...");
+
+  // Utilisateur de test conforme au model User.ts
+  db.users.insertOne({
+    email: "test@example.com",
+    name: "Test User",
+    phone: "+1234567890",
+    company: "Test Company",
+    address: "123 Test Street",
+    roles: ["CUSTOMER"],
+    status: "ACTIVE",
+    specialty: null,
+    recommended: false,
+    apiGeo: [],
+    password: "$2a$10$testhash", // Mot de passe hashé fictif
     createdAt: new Date(),
     updatedAt: new Date(),
-  },
-]);
+  });
 
-// Collection des paiements
-db.createCollection("payments");
-db.payments.createIndex({ appointmentId: 1 });
-db.payments.createIndex({ status: 1 });
-db.payments.createIndex({ createdAt: 1 });
+  // Spécialité de test (models/Speciality.ts)
+  db.specialities.insertOne({
+    name: "Médecine Générale",
+    description: "Consultation de médecine générale",
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
 
-// Collection des tokens de retry
-db.createCollection("retry_tokens");
-db.retry_tokens.createIndex({ token: 1 }, { unique: true });
-db.retry_tokens.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index
+  // Wallet de test (models/Wallet.ts)
+  db.wallets.insertOne({
+    userId: db.users.findOne({ email: "test@example.com" })._id,
+    balance: 0,
+    currency: "EUR",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
 
-// Collection des logs d'emails
-db.createCollection("email_logs");
-db.email_logs.createIndex({ recipient: 1 });
-db.email_logs.createIndex({ type: 1 });
-db.email_logs.createIndex({ createdAt: 1 });
+  print("Données de test insérées");
+}
 
-// Collection des erreurs de paiement
-db.createCollection("payment_errors");
-db.payment_errors.createIndex({ appointmentId: 1 });
-db.payment_errors.createIndex({ errorType: 1 });
-db.payment_errors.createIndex({ createdAt: 1 });
-
-// Collection des statistiques
-db.createCollection("statistics");
-db.statistics.insertOne({
-  type: "global",
-  totalAppointments: 0,
-  totalRevenue: 0,
-  totalProviders: 3,
-  totalUsers: 1,
-  lastUpdated: new Date(),
-});
-
-print("✅ Base de données DiaspoMoney initialisée avec succès !");
-print(
-  "📊 Collections créées : providers, appointments, users, payments, retry_tokens, email_logs, payment_errors, statistics"
-);
-print("👤 Utilisateur admin créé : admin@diaspomoney.fr");
-print("🏥 3 prestataires de démonstration ajoutés");
-print(
-  "🔗 Connexion MongoDB : mongodb://diaspomoney_user:diaspomoney_app_password@localhost:27017/diaspomoney"
-);
+print("=== Initialisation terminée avec succès ===");
+print("Base de données: diaspomoney");
+print("Utilisateur admin: admin/admin123");
+print("Utilisateur app: diaspomoney_user/diaspomoney_pass");
+print("Interface web: http://localhost:8081");

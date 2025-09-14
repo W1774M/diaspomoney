@@ -1,5 +1,5 @@
 "use client";
-import { AppointmentData } from "@/lib/definitions";
+import { AppointmentData } from "@/types";
 import { createContext, useContext, useState } from "react";
 
 interface AppointmentContextType {

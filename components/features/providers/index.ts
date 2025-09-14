@@ -6,3 +6,5 @@ export { ModalPayment } from "./ModalPayment";
 export { ModalPreview } from "./ModalPreview";
 export { ModalSelectService } from "./Modals";
 export { ThemeProvider, useTheme } from "./ThemeProvider";
+export { ProviderStats } from "./ProviderStats";
+export { AdvancedFilters } from "./AdvancedFilters";

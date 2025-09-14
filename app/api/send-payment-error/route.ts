@@ -63,8 +63,8 @@ export async function POST(request: NextRequest) {
 
     // URL de retry (à adapter selon votre structure)
     const retryUrl = `${
-      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-    }/provider/${
+      process.env["NEXT_PUBLIC_APP_URL"] || "http://localhost:3000"
+    }/providers/${
       appointment.provider.id
     }?retry=${token}&expires=${expiresAt.getTime()}`;
 
@@ -133,8 +133,8 @@ export async function POST(request: NextRequest) {
             <div class="section">
                 <h3>👤 Informations du demandeur</h3>
                 <p><strong>Nom :</strong> ${appointment.requester.firstName} ${
-      appointment.requester.lastName
-    }</p>
+                  appointment.requester.lastName
+                }</p>
                 <p><strong>Téléphone :</strong> ${
                   appointment.requester.phone
                 }</p>
@@ -144,8 +144,8 @@ export async function POST(request: NextRequest) {
             <div class="section">
                 <h3>👥 Informations du bénéficiaire</h3>
                 <p><strong>Nom :</strong> ${appointment.recipient.firstName} ${
-      appointment.recipient.lastName
-    }</p>
+                  appointment.recipient.lastName
+                }</p>
                 <p><strong>Téléphone :</strong> ${
                   appointment.recipient.phone
                 }</p>
@@ -299,7 +299,7 @@ export async function POST(request: NextRequest) {
 
     // Envoi à l'équipe DiaspoMoney
     await sendEmail(
-      process.env.EMAIL_CONTACT || "contact@diaspomoney.fr",
+      process.env["EMAIL_CONTACT"] || "contact@diaspomoney.fr",
       adminSubject,
       adminEmailContent
     );

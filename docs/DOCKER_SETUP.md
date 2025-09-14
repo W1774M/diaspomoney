@@ -104,7 +104,6 @@ docker-compose -f docker-compose.dev.yml logs mongo-express
 ### 4. Accéder aux interfaces
 
 - **Mongo Express** : http://localhost:8081
-
   - Utilisateur : admin
   - Mot de passe : diaspomoney123
 

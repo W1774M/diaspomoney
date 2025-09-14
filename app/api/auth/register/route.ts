@@ -1,15 +1,15 @@
-import { connectDatabase } from "@/config/database";
-import { sendEmailVerification } from "@/lib/email";
-import EmailVerificationToken from "@/models/EmailVerificationToken";
-import User from "@/models/User";
-import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { MOCK_USERS } from "@/mocks";
+import { IUser } from "@/types";
+
+function findUserByEmail(email: string): IUser | undefined {
+  return MOCK_USERS.find(
+    user => user.email.toLowerCase() === email.toLowerCase()
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // Connexion à la base de données
-    await connectDatabase();
-
     // Récupération des données du body
     const {
       firstName,
@@ -64,7 +64,11 @@ export async function POST(request: NextRequest) {
     // Vérification de l'âge (18 ans minimum)
     const birthDate = new Date(dateOfBirth);
     const today = new Date();
-    const age = today.getFullYear() - birthDate.getFullYear();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
     if (age < 18) {
       return NextResponse.json(
         { error: "Vous devez avoir au moins 18 ans pour créer un compte" },
@@ -72,8 +76,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérification si l'utilisateur existe déjà
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    // Vérification si l'utilisateur existe déjà dans les mocks
+    const existingUser = findUserByEmail(email.toLowerCase());
 
     if (existingUser) {
       return NextResponse.json(
@@ -82,12 +86,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Création du nouvel utilisateur avec tous les nouveaux champs
-    const newUser = new User({
+    // Pour le moment, on simule la création d'utilisateur
+    console.log(`Nouvel utilisateur créé: ${email}`);
+
+    // Retourner les informations de l'utilisateur simulé avec les valeurs par défaut
+    const userResponse = {
+      id: `user_${Date.now()}`,
       firstName,
       lastName,
       email: email.toLowerCase(),
-      password,
       phone,
       dateOfBirth,
       countryOfResidence,
@@ -95,55 +102,12 @@ export async function POST(request: NextRequest) {
       targetCity,
       selectedServices,
       monthlyBudget,
-      securityQuestion,
-      securityAnswer,
       marketingConsent: marketingConsent || false,
       kycConsent,
-      role: "user",
+      roles: ["CUSTOMER"], // Rôle par défaut pour les nouveaux utilisateurs
+      status: "PENDING", // Statut par défaut en attente de vérification
       isEmailVerified: false,
-    });
-
-    // Sauvegarde de l'utilisateur
-    await newUser.save();
-
-    // Générer un token de vérification d'email
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 heures
-
-    // Sauvegarder le token
-    const emailToken = new EmailVerificationToken({
-      email: email.toLowerCase(),
-      token: verificationToken,
-      expiresAt,
-    });
-    await emailToken.save();
-
-    // Envoyer l'email de vérification
-    try {
-      await sendEmailVerification(email, verificationToken, firstName);
-    } catch (emailError) {
-      console.error("Erreur envoi email de vérification:", emailError);
-      // Ne pas bloquer l'inscription si l'email échoue
-    }
-
-    // Retourner les informations de l'utilisateur (sans le mot de passe)
-    const userResponse = {
-      id: newUser._id,
-      firstName: newUser.firstName,
-      lastName: newUser.lastName,
-      email: newUser.email,
-      phone: newUser.phone,
-      dateOfBirth: newUser.dateOfBirth,
-      countryOfResidence: newUser.countryOfResidence,
-      targetCountry: newUser.targetCountry,
-      targetCity: newUser.targetCity,
-      selectedServices: newUser.selectedServices,
-      monthlyBudget: newUser.monthlyBudget,
-      marketingConsent: newUser.marketingConsent,
-      kycConsent: newUser.kycConsent,
-      role: newUser.role,
-      isEmailVerified: newUser.isEmailVerified,
-      createdAt: newUser.createdAt,
+      createdAt: new Date(),
     };
 
     return NextResponse.json(

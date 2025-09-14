@@ -27,39 +27,39 @@ export function PasswordStrengthIndicator({
     const newRequirements: PasswordRequirement[] = [
       {
         label: "Au moins 8 caractères",
-        test: (pwd) => pwd.length >= 8,
+        test: pwd => pwd.length >= 8,
         met: false,
       },
       {
         label: "Au moins une majuscule",
-        test: (pwd) => /[A-Z]/.test(pwd),
+        test: pwd => /[A-Z]/.test(pwd),
         met: false,
       },
       {
         label: "Au moins une minuscule",
-        test: (pwd) => /[a-z]/.test(pwd),
+        test: pwd => /[a-z]/.test(pwd),
         met: false,
       },
       {
         label: "Au moins un chiffre",
-        test: (pwd) => /\d/.test(pwd),
+        test: pwd => /\d/.test(pwd),
         met: false,
       },
       {
         label: "Au moins un caractère spécial",
-        test: (pwd) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
+        test: pwd => /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
         met: false,
       },
     ];
 
-    newRequirements.forEach((req) => {
+    newRequirements.forEach(req => {
       req.met = req.test(password);
     });
 
     setRequirements(newRequirements);
   }, [password]);
 
-  const metRequirements = requirements.filter((req) => req.met).length;
+  const metRequirements = requirements.filter(req => req.met).length;
   const totalRequirements = requirements.length;
   const strengthPercentage = (metRequirements / totalRequirements) * 100;
 
@@ -106,6 +106,10 @@ export function PasswordStrengthIndicator({
           <div
             className={`h-2 rounded-full transition-all duration-300 ${getStrengthColor()}`}
             style={{ width: `${strengthPercentage}%` }}
+            role="progressbar"
+            aria-valuenow={strengthPercentage}
+            aria-valuemin={0}
+            aria-valuemax={100}
           />
         </div>
       </div>

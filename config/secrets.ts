@@ -5,16 +5,16 @@
 export const secretsConfig = {
   // Clé secrète pour JWT (JSON Web Tokens)
   JWT_SECRET:
-    process.env.JWT_SECRET ||
+    process.env["JWT_SECRET"] ||
     "74c594724999427fc22bd6d1cf4c248cb2852b04f1c7c495396ec40b475dd89cd0bc653348455ee541f2a48dcc33da70f09f1198c9c606df58bb4502b7c7d8fe",
 
   // Clé secrète pour NextAuth
   NEXTAUTH_SECRET:
-    process.env.NEXTAUTH_SECRET ||
+    process.env["NEXTAUTH_SECRET"] ||
     "jcysskuV8K4D7pff8a6uAXCC4ui0vRTk5fLbD3+7PiI=",
 
   // URL de base pour NextAuth
-  NEXTAUTH_URL: process.env.NEXTAUTH_URL || "http://localhost:3000",
+  NEXTAUTH_URL: process.env["NEXTAUTH_URL"] || "http://localhost:3000",
 
   // Configuration de sécurité
   security: {
@@ -54,9 +54,7 @@ export const secretsConfig = {
 export const validateSecrets = (): void => {
   const requiredSecrets = ["JWT_SECRET", "NEXTAUTH_SECRET", "NEXTAUTH_URL"];
 
-  const missingSecrets = requiredSecrets.filter(
-    (secret) => !process.env[secret]
-  );
+  const missingSecrets = requiredSecrets.filter(secret => !process.env[secret]);
 
   if (missingSecrets.length > 0) {
     console.warn(
@@ -76,17 +74,17 @@ export const generateNewSecrets = (): void => {
 
   console.log("🔑 Génération de nouvelles clés secrètes...");
   console.log("");
-  console.log("JWT_SECRET=" + crypto.randomBytes(64).toString("hex"));
-  console.log("NEXTAUTH_SECRET=" + crypto.randomBytes(32).toString("base64"));
+  console.log(`JWT_SECRET=${crypto.randomBytes(64).toString("hex")}`);
+  console.log(`NEXTAUTH_SECRET=${crypto.randomBytes(32).toString("base64")}`);
   console.log("");
   console.log("📝 Copiez ces clés dans votre fichier .env.local");
 };
 
 // Vérification de la sécurité des clés
 export const checkSecretsSecurity = (): void => {
-  const jwtSecret = process.env.JWT_SECRET || secretsConfig.JWT_SECRET;
+  const jwtSecret = process.env["JWT_SECRET"] || secretsConfig.JWT_SECRET;
   const nextAuthSecret =
-    process.env.NEXTAUTH_SECRET || secretsConfig.NEXTAUTH_SECRET;
+    process.env["NEXTAUTH_SECRET"] || secretsConfig.NEXTAUTH_SECRET;
 
   const warnings = [];
 
@@ -114,7 +112,7 @@ export const checkSecretsSecurity = (): void => {
 
   if (warnings.length > 0) {
     console.warn("⚠️ Problèmes de sécurité détectés:");
-    warnings.forEach((warning) => console.warn(`   • ${warning}`));
+    warnings.forEach(warning => console.warn(`   • ${warning}`));
   } else {
     console.log("✅ Configuration des clés secrètes sécurisée");
   }

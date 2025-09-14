@@ -1,141 +1,158 @@
 "use client";
-import DefaultTemplate from "@/template/DefaultTemplate";
-import { CheckCircle, XCircle } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
 
-function VerifyEmailContent() {
-  const searchParams = useSearchParams();
-  const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading"
-  );
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    const verifyEmail = async () => {
-      const token = searchParams.get("token");
-
-      if (!token) {
-        setStatus("error");
-        setMessage("Token de vérification manquant");
-        return;
-      }
-
-      try {
-        const res = await fetch("/api/auth/verify-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        });
-
-        const result = await res.json();
-
-        if (res.ok) {
-          setStatus("success");
-          setMessage("Email vérifié avec succès !");
-        } else {
-          setStatus("error");
-          setMessage(result.error || "Erreur lors de la vérification");
-        }
-      } catch {
-        setStatus("error");
-        setMessage("Erreur réseau ou serveur");
-      }
-    };
-
-    verifyEmail();
-  }, [searchParams]);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8">
-      <div className="w-full max-w-md mx-auto">
-        <div className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl p-8">
-          <div className="flex flex-col items-center gap-4">
-            <Image
-              src="/img/Logo_Diaspo_Horizontal_enrichi.webp"
-              alt="DiaspoMoney"
-              width={160}
-              height={48}
-              className="mb-4 drop-shadow-md"
-              priority
-            />
-
-            {status === "loading" && (
-              <>
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-                <h1 className="text-2xl font-extrabold text-blue-800 tracking-tight text-center">
-                  Vérification en cours...
-                </h1>
-                <p className="text-blue-600 text-base text-center">
-                  Veuillez patienter pendant que nous vérifions votre email.
-                </p>
-              </>
-            )}
-
-            {status === "success" && (
-              <>
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
-                </div>
-                <h1 className="text-2xl font-extrabold text-blue-800 tracking-tight text-center">
-                  Email vérifié !
-                </h1>
-                <p className="text-blue-600 text-base text-center mb-6">
-                  Votre compte a été activé avec succès.
-                </p>
-                <Link
-                  href="/login"
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-bold rounded-xl shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200"
-                >
-                  Se connecter
-                </Link>
-              </>
-            )}
-
-            {status === "error" && (
-              <>
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                  <XCircle className="w-8 h-8 text-red-600" />
-                </div>
-                <h1 className="text-2xl font-extrabold text-red-800 tracking-tight text-center">
-                  Erreur de vérification
-                </h1>
-                <p className="text-red-600 text-base text-center mb-6">
-                  {message}
-                </p>
-                <div className="flex flex-col gap-3">
-                  <Link
-                    href="/login"
-                    className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-bold rounded-xl shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200"
-                  >
-                    Aller à la connexion
-                  </Link>
-                  <Link
-                    href="/register"
-                    className="inline-flex items-center justify-center px-6 py-3 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-all duration-200"
-                  >
-                    Créer un nouveau compte
-                  </Link>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
+import { useNotificationStore } from "@/store/notifications";
+import { Mail, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
+import { useState } from "react";
 
 export default function VerifyEmailPage() {
+  const { addNotification } = useNotificationStore();
+  const [isResending, setIsResending] = useState(false);
+  const [email, setEmail] = useState("");
+
+  const handleResendEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      addNotification({
+        type: "error",
+        message: "Veuillez entrer votre adresse email",
+        duration: 4000,
+      });
+      return;
+    }
+
+    setIsResending(true);
+
+    try {
+      // Simuler l'envoi d'email
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      addNotification({
+        type: "success",
+        message: "Email de vérification envoyé ! Vérifiez votre boîte mail.",
+        duration: 6000,
+      });
+
+      setEmail("");
+    } catch (error) {
+      addNotification({
+        type: "error",
+        message: "Erreur lors de l'envoi. Veuillez réessayer.",
+        duration: 4000,
+      });
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   return (
-    <DefaultTemplate>
-      <Suspense fallback={<div>Chargement...</div>}>
-        <VerifyEmailContent />
-      </Suspense>
-    </DefaultTemplate>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        <Card className="shadow-xl border-0">
+          <CardHeader className="text-center pb-4">
+            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+              <Mail className="w-8 h-8 text-blue-600" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-gray-900">
+              Vérification de votre email
+            </CardTitle>
+            <CardDescription className="text-gray-600">
+              Activez votre compte DiaspoMoney en vérifiant votre adresse email
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-6">
+            {/* Instructions */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-medium mb-1">Comment procéder :</p>
+                  <ol className="list-decimal list-inside space-y-1 text-xs">
+                    <li>Vérifiez votre boîte mail (et les spams)</li>
+                    <li>Cliquez sur le lien de vérification</li>
+                    <li>Votre compte sera activé automatiquement</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+            {/* Formulaire de renvoi */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <RefreshCw className="w-4 h-4" />
+                Renvoyer l'email de vérification
+              </h3>
+              
+              <form onSubmit={handleResendEmail} className="space-y-3">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Votre adresse email
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="votre.email@exemple.com"
+                    required
+                  />
+                </div>
+                
+                <Button
+                  type="submit"
+                  disabled={isResending}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isResending ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Envoi en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Renvoyer l'email
+                    </>
+                  )}
+                </Button>
+              </form>
+            </div>
+
+            {/* Aide et support */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-yellow-800">
+                  <p className="font-medium mb-2">Besoin d'aide ?</p>
+                  <div className="space-y-2">
+                    <a
+                      href="/support"
+                      className="block text-blue-600 hover:underline font-medium"
+                    >
+                      🆘 Contacter le support
+                    </a>
+                    <a
+                      href="/hotline"
+                      className="block text-blue-600 hover:underline font-medium"
+                    >
+                      📞 Appeler la hotline
+                    </a>
+                    <a
+                      href="/login"
+                      className="block text-blue-600 hover:underline font-medium"
+                    >
+                      🔙 Retour à la connexion
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

@@ -1,5 +1,7 @@
 networks:
   diaspomoney: {}
+  traefik:
+    external: true
 
 volumes:
   mongodb_data: {}
@@ -9,11 +11,13 @@ services:
     image: mongo:7.0
     container_name: mongodb
     restart: unless-stopped
-    env_file:
-      - ../.env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: diaspomoney
     volumes:
       - mongodb_data:/data/db
-      # - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro  # si tu as un init script
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
       - diaspomoney
     healthcheck:
@@ -34,12 +38,35 @@ services:
       mongodb:
         condition: service_healthy
     environment:
-      ME_CONFIG_MONGODB_URL: ${MONGODB_URI}
-      # Alternative si tu préfères les variables séparées:
-      # ME_CONFIG_MONGODB_SERVER: mongodb
-      # ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      # ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      # Configuration directe pour éviter les problèmes de variables d'environnement
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: admin123
+      ME_CONFIG_MONGODB_AUTH_DATABASE: admin
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin123
     ports:
       - "8081:8081"
     networks:
       - diaspomoney
+      - traefik
+    # Labels Traefik pour la production (ignorés en développement)
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      # Routage HTTPS pour Mongo Express en production
+      - traefik.http.routers.mongo-express.rule=Host(`mongo.diaspomoney.fr`)
+      - traefik.http.routers.mongo-express.entrypoints=websecure
+      - traefik.http.routers.mongo-express.tls=true
+      - traefik.http.routers.mongo-express.tls.certresolver=le
+      - traefik.http.services.mongo-express.loadbalancer.server.port=8081
+      # Authentification basique pour la sécurité
+      - traefik.http.routers.mongo-express.middlewares=mongo-auth
+      - traefik.http.middlewares.mongo-auth.basicauth.usersfile=/run/secrets/traefik_basicauth
+    secrets:
+      - traefik_basicauth
+
+secrets:
+  traefik_basicauth:
+    file: ./secrets/traefik.htpasswd

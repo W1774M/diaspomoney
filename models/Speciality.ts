@@ -1,4 +1,4 @@
-import { SpecialityType } from "@/lib/definitions";
+import { SpecialityType } from "@/types";
 import mongoose, { Schema } from "mongoose";
 
 const SpecialitySchema = new Schema<SpecialityType>(
@@ -12,5 +12,5 @@ const SpecialitySchema = new Schema<SpecialityType>(
   }
 );
 
-export default mongoose.models.SpecialityType ||
+export default mongoose.models["SpecialityType"] ||
   mongoose.model<SpecialityType>("ServiceType", SpecialitySchema);

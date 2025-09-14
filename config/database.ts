@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 // Configuration de la base de données MongoDB
 export const databaseConfig = {
   url:
-    process.env.MONGODB_URI ||
+    process.env["MONGODB_URI"] ||
     "mongodb://diaspomoney_user:diaspomoney_app_password@localhost:27017/diaspomoney",
   options: {
     maxPoolSize: 10,
@@ -56,7 +56,7 @@ const initializeMongoEvents = () => {
     console.log("🔗 MongoDB connecté");
   });
 
-  mongoose.connection.on("error", (err) => {
+  mongoose.connection.on("error", err => {
     console.error("❌ Erreur MongoDB:", err);
   });
 

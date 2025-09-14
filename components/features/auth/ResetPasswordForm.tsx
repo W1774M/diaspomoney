@@ -34,7 +34,7 @@ function ResetPasswordContent() {
 
   useEffect(() => {
     const tokenParam = searchParams.get("token");
-    if (!tokenParam) {
+    if (!tokenParam || tokenParam.trim() === "") {
       setError("Token de réinitialisation manquant");
       return;
     }
@@ -191,11 +191,9 @@ function ResetPasswordContent() {
         <CardContent className="pt-2 pb-6 px-6">
           <Form onSubmit={handleSubmit(onSubmit)}>
             <FormField
-              error={
-                typeof errors.password?.message === "string"
-                  ? errors.password?.message
-                  : undefined
-              }
+              {...(errors.password?.message && {
+                error: errors.password.message,
+              })}
             >
               <FormLabel
                 htmlFor="password"
@@ -226,11 +224,9 @@ function ResetPasswordContent() {
               </div>
             </FormField>
             <FormField
-              error={
-                typeof errors.confirmPassword?.message === "string"
-                  ? errors.confirmPassword?.message
-                  : undefined
-              }
+              {...(errors.confirmPassword?.message && {
+                error: errors.confirmPassword.message,
+              })}
             >
               <FormLabel
                 htmlFor="confirmPassword"
