@@ -21,6 +21,9 @@ services:
       - "443:443"
     command:
       - --configFile=/traefik/traefik.yml
+      - --certificatesresolvers.le.acme.email=contact@diaspomoney.fr
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
     volumes:
       - ./traefik:/traefik:ro
       - ./traefik/letsencrypt:/letsencrypt
