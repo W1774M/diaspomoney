@@ -5,7 +5,6 @@ import { InfiniteReviewsCarousel } from "@/components/providers/index";
 import { StatusBadge } from "@/components/ui";
 import { useNotificationManager } from "@/components/ui/Notification";
 import type { AppointmentFormData } from "@/lib/validations";
-import { MOCK_USERS } from "@/mocks";
 import { IUser } from "@/types";
 import { Building, Calendar, Clock, MapPin, Star } from "lucide-react";
 import Image from "next/image";
@@ -123,22 +122,33 @@ export default function ProviderDetailPage() {
           setLoading(false);
           return;
         }
-        const foundProvider = MOCK_USERS.find(
-          (user: any) =>
-            user._id === providerId &&
-            Array.isArray(user.roles) &&
-            user.roles.includes("PROVIDER") &&
-            user.status === "ACTIVE"
-        );
-        if (foundProvider) {
-          // Correction: Ajout d'un fallback pour availabilities et appointments si absents
-          setProvider({
-            ...foundProvider,
-            availabilities: foundProvider.availabilities || [],
-            appointments: foundProvider.appointmentsAsProvider || [],
-            images: foundProvider.images || [],
-          } as unknown as ProviderType);
-        } else {
+        
+        // Récupérer le prestataire depuis l'API
+        try {
+          const response = await fetch(`/api/providers/${providerId}`);
+          if (response.ok) {
+            const data = await response.json();
+            const foundProvider = data.data;
+            
+            if (foundProvider && 
+                Array.isArray(foundProvider.roles) &&
+                foundProvider.roles.includes("PROVIDER") &&
+                foundProvider.status === "ACTIVE") {
+              // Correction: Ajout d'un fallback pour availabilities et appointments si absents
+              setProvider({
+                ...foundProvider,
+                availabilities: foundProvider.availabilities || [],
+                appointments: foundProvider.appointmentsAsProvider || [],
+                images: foundProvider.images || [],
+              } as unknown as ProviderType);
+            } else {
+              setProvider(null);
+            }
+          } else {
+            setProvider(null);
+          }
+        } catch (error) {
+          console.error("Erreur lors du chargement du prestataire:", error);
           setProvider(null);
         }
       } catch (error) {

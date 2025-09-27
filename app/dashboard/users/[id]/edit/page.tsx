@@ -129,7 +129,7 @@ export default function EditUserPage() {
 
       console.log("Utilisateur mis à jour:", updatedUser);
       alert("Utilisateur mis à jour avec succès !");
-      router.push(`/dashboard/users/${params["id"]}`);
+      params["id"] && router.push(`/dashboard/users/${params["id"]}`);
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
       alert("Erreur lors de la mise à jour de l'utilisateur");

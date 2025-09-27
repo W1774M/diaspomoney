@@ -1,7 +1,6 @@
 "use client";
 
 import { useAuth } from "@/hooks/auth/useAuth";
-import { findAppointmentById } from "@/mocks";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -22,12 +21,26 @@ export default function EditAppointmentPage({
     }
 
     if (isAuthenticated) {
-      // Utiliser les mocks pour récupérer l'appointment
-      const foundAppointment = findAppointmentById(params["id"]);
-      if (foundAppointment) {
-        setAppointment(foundAppointment);
-      }
-      setLoading(false);
+      // Récupérer l'appointment depuis l'API
+      const fetchAppointment = async () => {
+        try {
+          setLoading(true);
+          const response = await fetch(`/api/appointments/${params.id}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            setAppointment(data.appointment);
+          } else {
+            console.error("Erreur lors de la récupération du rendez-vous");
+          }
+        } catch (error) {
+          console.error("Erreur lors de la récupération du rendez-vous:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchAppointment();
     }
   }, [params["id"], isAuthenticated, isLoading, router]);
 
@@ -70,7 +83,7 @@ export default function EditAppointmentPage({
         <div className="mb-6">
           <button
             onClick={() =>
-              router.push(`/dashboard/appointments/${params["id"]}`)
+              params["id"] && router.push(`/dashboard/appointments/${params["id"]}`)
             }
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
@@ -110,7 +123,7 @@ export default function EditAppointmentPage({
             <div className="flex justify-end space-x-4">
               <button
                 onClick={() =>
-                  router.push(`/dashboard/appointments/${params["id"]}`)
+                  params["id"] && router.push(`/dashboard/appointments/${params["id"]}`)
                 }
                 className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
               >
@@ -119,7 +132,7 @@ export default function EditAppointmentPage({
               <button
                 onClick={() => {
                   alert("Modifications sauvegardées");
-                  router.push(`/dashboard/appointments/${params["id"]}`);
+                  params["id"] && router.push(`/dashboard/appointments/${params["id"]}`);
                 }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
               >

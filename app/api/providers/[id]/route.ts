@@ -1,17 +1,16 @@
-import { MOCK_USERS } from "@/mocks";
 import { NextRequest, NextResponse } from "next/server";
+import { UserService } from "@/services/userService";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Trouver l'utilisateur avec le rôle PROVIDER
-    const provider = MOCK_USERS.find(
-      user => user._id === params.id && user.roles.includes("PROVIDER")
-    );
+    // Récupérer l'utilisateur par ID
+    const provider = await UserService.getUserById(params.id);
 
-    if (!provider) {
+    // Vérifier que l'utilisateur a le rôle PROVIDER
+    if (!provider['roles'].includes("PROVIDER")) {
       return NextResponse.json(
         { error: "Prestataire non trouvé" },
         { status: 404 }

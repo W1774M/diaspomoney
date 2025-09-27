@@ -1,6 +1,5 @@
 "use client";
 
-import { MOCK_USERS } from "@/mocks";
 import { Calendar, CheckCircle, Mail, MapPin, Phone, User } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -10,25 +9,45 @@ export default function AppointmentConfirmationPage() {
   const params = useParams();
   const providerId = params["id"] as string;
   const [provider, setProvider] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Récupérer les informations du prestataire
-    const foundProvider = MOCK_USERS.find(
-      user =>
-        user._id === providerId &&
-        user.roles.includes("PROVIDER") &&
-        user.status === "ACTIVE"
-    );
+    // Récupérer les informations du prestataire depuis l'API
+    const fetchProvider = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/providers/${providerId}`);
 
-    if (foundProvider) {
-      setProvider(foundProvider);
-    } else {
-      // Si le prestataire n'est pas trouvé ou n'est pas actif, rediriger
-      router.push("/providers");
-    }
+        if (response.ok) {
+          const data = await response.json();
+          const foundProvider = data.data;
+
+          if (
+            foundProvider &&
+            foundProvider.roles?.includes("PROVIDER") &&
+            foundProvider.status === "ACTIVE"
+          ) {
+            setProvider(foundProvider);
+          } else {
+            // Si le prestataire n'est pas trouvé ou n'est pas actif, rediriger
+            router.push("/providers");
+          }
+        } else {
+          // Si le prestataire n'est pas trouvé, rediriger
+          router.push("/providers");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération du prestataire:", error);
+        router.push("/providers");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProvider();
   }, [providerId, router]);
 
-  if (!provider) {
+  if (loading || !provider) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -87,7 +106,12 @@ export default function AppointmentConfirmationPage() {
               <User className="w-5 h-5 text-gray-400 mr-3" />
               <div>
                 <p className="text-sm text-gray-500">Nom</p>
-                <p className="font-medium text-gray-900">{provider.name}</p>
+                <p className="font-medium text-gray-900">
+                  {provider.name ||
+                    [provider.firstName, provider.lastName]
+                      .filter(Boolean)
+                      .join(" ")}
+                </p>
               </div>
             </div>
             <div className="flex items-center">
@@ -95,7 +119,11 @@ export default function AppointmentConfirmationPage() {
               <div>
                 <p className="text-sm text-gray-500">Spécialité</p>
                 <p className="font-medium text-gray-900">
-                  {provider.specialty}
+                  {provider.specialty ||
+                    (Array.isArray(provider.specialties)
+                      ? provider.specialties.join(", ")
+                      : provider.specialties) ||
+                    "Non spécifié"}
                 </p>
               </div>
             </div>

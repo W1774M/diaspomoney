@@ -178,7 +178,7 @@ export default function EditInvoicePage() {
 
       console.log("Facture mise à jour:", updatedInvoice);
       alert("Facture mise à jour avec succès !");
-      router.push(`/dashboard/invoices/${params["id"]}`);
+      params["id"] && router.push(`/dashboard/invoices/${params["id"]}`);
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
       alert("Erreur lors de la mise à jour de la facture");

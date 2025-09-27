@@ -1,17 +1,15 @@
-import { MOCK_USERS } from "@/mocks";
 import { NextRequest, NextResponse } from "next/server";
+import { UserService } from "@/services/userService";
 
 export async function GET() {
   try {
-    // Filtrer seulement les utilisateurs avec le rôle PROVIDER
-    const providers = MOCK_USERS.filter(user =>
-      user.roles.includes("PROVIDER")
-    );
+    // Récupérer seulement les utilisateurs avec le rôle PROVIDER
+    const result = await UserService.getUsersByRole("PROVIDER");
 
     return NextResponse.json({
       success: true,
-      providers: providers,
-      total: providers.length,
+      providers: result,
+      total: result.length,
     });
   } catch (error) {
     console.error("Erreur lors de la récupération des prestataires:", error);

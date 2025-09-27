@@ -1,7 +1,6 @@
 "use client";
 
-import { useAuth } from "@/hooks/auth/useAuth";
-import { MOCK_APPOINTMENTS } from "@/mocks";
+import { useAuth, useAppointments } from "@/hooks";
 import { APPOINTMENT_STATUSES, PAYMENT_STATUSES } from "@/types";
 import { Calendar, Eye, Plus, Search } from "lucide-react";
 import Link from "next/link";
@@ -9,21 +8,23 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function AppointmentsPage() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
-  const [appointments, setAppointments] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("ALL");
+
+  // Récupérer les rendez-vous depuis la base de données
+  const { appointments } = useAppointments({
+    userId: user?.id, // Filtrer par utilisateur si nécessaire
+    status: statusFilter !== "ALL" ? statusFilter : undefined,
+    limit: 1000,
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/login");
       return;
-    }
-
-    if (isAuthenticated) {
-      setAppointments(MOCK_APPOINTMENTS);
     }
   }, [isAuthenticated, isLoading, router]);
 
@@ -33,7 +34,7 @@ export default function AppointmentsPage() {
       appointment.reservationNumber
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      appointment.provider?.name
+      `${appointment.provider?.firstName} ${appointment.provider?.lastName}`
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
       appointment.requester?.firstName
@@ -233,10 +234,10 @@ export default function AppointmentsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {appointment.provider?.name}
+                          {appointment.provider?.firstName} {appointment.provider?.lastName}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {appointment.provider?.specialty}
+                          {appointment.provider?.specialties?.join(", ")}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -244,7 +245,7 @@ export default function AppointmentsPage() {
                           {new Date(appointment.date).toLocaleDateString()}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {appointment.time}
+                          {appointment['time']}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
