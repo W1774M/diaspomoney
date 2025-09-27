@@ -1,21 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MOCK_USERS, getUsersByRole } from "@/mocks";
+import { UserService } from "@/services/userService";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const role = searchParams.get("role");
+    const status = searchParams.get("status");
+    const limit = searchParams.get("limit");
+    const offset = searchParams.get("offset");
 
-    let users = MOCK_USERS;
+    // Construire les filtres
+    const filters = {
+      role: role || undefined,
+      status: status || undefined,
+      limit: limit ? parseInt(limit) : undefined,
+      offset: offset ? parseInt(offset) : undefined,
+    };
 
-    // Filtrer par rôle si spécifié
-    if (role) {
-      users = getUsersByRole(role);
-    }
+    const result = await UserService.getUsers(filters);
 
     return NextResponse.json({
-      data: users,
-      total: users.length,
+      data: result.data,
+      total: result.total,
+      limit: result.limit,
+      offset: result.offset,
     });
   } catch (error) {
     console.error("Erreur lors de la récupération des utilisateurs:", error);

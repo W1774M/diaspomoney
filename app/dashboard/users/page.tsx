@@ -1,7 +1,6 @@
 "use client";
 
-import { useAuth } from "@/hooks/auth/useAuth";
-import { MOCK_USERS } from "@/mocks";
+import { useAuth, useUsers } from "@/hooks";
 import { IUser, UserRole, UserStatus } from "@/types";
 import {
   Edit,
@@ -18,35 +17,41 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function UsersPage() {
-  const { isAdmin, isCSM, isAuthenticated, isLoading, status } = useAuth();
+  const { isAdmin, isAuthenticated, isLoading, status } = useAuth();
   const router = useRouter();
-  const [users, setUsers] = useState<IUser[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<UserStatus | "ALL">("ALL");
+
+  // Récupérer les utilisateurs depuis la base de données
+  const { users = [], loading } = useUsers({
+    role: roleFilter !== "ALL" ? roleFilter : undefined,
+    status: statusFilter !== "ALL" ? statusFilter : undefined,
+    limit: 1000,
+  });
 
   // Vérifier l'authentification
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
     }
-  }, [status]); // Utiliser seulement le status de la session
+  }, [status, router]);
 
-  // Charger les données
+  // Fix: useState for users to allow deletion
+  const [localUsers, setLocalUsers] = useState<IUser[]>([]);
+
+  // Sync localUsers with fetched users, ensuring type compatibility
   useEffect(() => {
-    if (isAuthenticated && (isAdmin() || isCSM())) {
-      setUsers(MOCK_USERS);
-      setLoading(false);
-    }
-  }, [isAuthenticated]); // Utiliser seulement les valeurs stables
+    setLocalUsers(users as IUser[]);
+  }, [users]);
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = localUsers.filter((user) => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.company?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === "ALL" || user.roles.includes(roleFilter);
+      (user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+      (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+      (user.company?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    const matchesRole =
+      roleFilter === "ALL" || (user.roles?.includes(roleFilter) ?? false);
     const matchesStatus =
       statusFilter === "ALL" || user.status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
@@ -54,17 +59,20 @@ export default function UsersPage() {
 
   const handleDelete = async (id: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
-      setUsers(users.filter(user => user._id !== id));
+      setLocalUsers((prev) => prev.filter((user) => user._id !== id));
+      // Optionally, call an API to delete the user here and refetch
+      // await deleteUser(id);
+      // refetch();
     }
   };
 
-  const handleSendEmail = async (user: IUser) => {
-    console.log("Envoi par email:", user.email);
-    window.open(`mailto:${user.email}`);
+  const handleSendEmail = (user: IUser) => {
+    if (user.email) {
+      window.open(`mailto:${user.email}`);
+    }
   };
 
-  const handleCall = async (user: IUser) => {
-    console.log("Appel:", user.phone);
+  const handleCall = (user: IUser) => {
     if (user.phone) {
       window.open(`tel:${user.phone}`);
     }
@@ -100,12 +108,15 @@ export default function UsersPage() {
     }
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
+    if (!date) return "";
+    const d = typeof date === "string" ? new Date(date) : date;
+    if (isNaN(d.getTime())) return "";
     return new Intl.DateTimeFormat("fr-FR", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
-    }).format(date);
+    }).format(d);
   };
 
   // Afficher un message de chargement ou d'accès refusé
@@ -153,13 +164,13 @@ export default function UsersPage() {
               type="text"
               placeholder="Rechercher un utilisateur..."
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
             />
           </div>
           <select
             value={roleFilter}
-            onChange={e => setRoleFilter(e.target.value as UserRole | "ALL")}
+            onChange={(e) => setRoleFilter(e.target.value as UserRole | "ALL")}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
           >
             <option value="ALL">Tous les rôles</option>
@@ -169,7 +180,7 @@ export default function UsersPage() {
           </select>
           <select
             value={statusFilter}
-            onChange={e =>
+            onChange={(e) =>
               setStatusFilter(e.target.value as UserStatus | "ALL")
             }
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
@@ -190,7 +201,7 @@ export default function UsersPage() {
 
       {/* Users Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-        {filteredUsers.map(user => (
+        {filteredUsers.map((user) => (
           <div
             key={user._id}
             className="bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-200"
@@ -205,7 +216,7 @@ export default function UsersPage() {
                   <p className="text-sm text-gray-500 mt-1">{user.email}</p>
                 </div>
                 <div className="flex flex-col space-y-1 ml-2">
-                  {user.roles.map(role => (
+                  {user.roles?.map((role) => (
                     <span
                       key={role}
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(

@@ -160,7 +160,7 @@ export function RegisterForm() {
       <div className="w-full max-w-2xl mx-auto">
         <div className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl overflow-hidden">
           {/* Header */}
-          <div className="relative bg-gradient-to-r from-gray-800 to-blue-600 text-white p-8 text-center">
+          <div className="relative bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white p-8 text-center">
             <div className='absolute inset-0 bg-[url(&apos;data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>&apos;)] opacity-30'></div>
             <div className="relative z-10">
               <h1 className="text-2xl font-bold mb-2">Rejoignez DiaspoMoney</h1>
@@ -181,9 +181,9 @@ export function RegisterForm() {
                     w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300
                     ${
                       step < currentStep
-                        ? "bg-green-500 text-white"
+                        ? "bg-[hsl(23,100%,53%)] text-white"
                         : step === currentStep
-                          ? "bg-blue-600 text-white scale-110"
+                          ? "bg-[hsl(41,86%,46%)] text-white scale-110"
                           : "bg-gray-200 text-gray-600"
                     }
                   `}
@@ -640,7 +640,7 @@ export function RegisterForm() {
                   <button
                     onClick={handleNext}
                     disabled={isLoading || !validateCurrentStep()}
-                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-bold shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 flex items-center space-x-2 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white font-bold shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 flex items-center space-x-2 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span>
                       {currentStep === 3 ? "Créer mon compte" : "Suivant"}

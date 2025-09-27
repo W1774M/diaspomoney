@@ -1,5 +1,7 @@
-import { findUserByEmail } from "@/mocks";
 import { NextRequest, NextResponse } from "next/server";
+import { UserService } from "@/services/userService";
+import { sendPasswordResetEmail } from "@/lib/email";
+import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,22 +11,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email requis" }, { status: 400 });
     }
 
-    // Vérifier si l'utilisateur existe dans les mocks
-    const user = findUserByEmail(email.toLowerCase());
-    if (!user) {
-      // Pour des raisons de sécurité, on ne révèle pas si l'email existe ou non
-      return NextResponse.json(
-        {
-          success: true,
-          message: "Si cet email existe, vous recevrez un lien de récupération",
-        },
-        { status: 200 }
-      );
+    try {
+      // Vérifier si l'utilisateur existe dans la base de données
+      const user = await UserService.getUserByEmail(email.toLowerCase());
+      
+      // Si on arrive ici, l'utilisateur existe
+      // Générer un token de récupération
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      const resetExpires = new Date(Date.now() + 3600000); // 1 heure
+
+      // Mettre à jour l'utilisateur avec le token
+      await UserService.updateUser(user._id.toString(), {
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetExpires,
+      });
+
+      // Envoyer l'email de réinitialisation
+      await sendPasswordResetEmail(email, resetToken);
+      
+      console.log(`Email de récupération envoyé à ${email}`);
+      
+    } catch (error) {
+      // L'utilisateur n'existe pas, mais on ne révèle pas cette information
+      console.log(`Tentative de récupération pour un email inexistant: ${email}`);
     }
 
-    // Pour le moment, on simule l'envoi d'email
-    console.log(`Email de récupération envoyé à ${email}`);
-
+    // Pour des raisons de sécurité, on ne révèle pas si l'email existe ou non
     return NextResponse.json(
       {
         success: true,

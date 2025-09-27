@@ -6,6 +6,7 @@ import {
   Calendar,
   Clock,
   Eye,
+  AlertTriangle,
   FileText,
   Home,
   LogOut,
@@ -19,7 +20,7 @@ import Logo from "../ui/Logo";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { user, isAdmin, isProvider, isCSM, isAuthenticated, signOut } =
+  const { user, isAdmin, isProvider, isCSM, isAuthenticated, isCustomer, signOut } =
     useAuth();
 
   // Ne pas afficher la sidebar si l'utilisateur n'est pas connecté
@@ -60,16 +61,52 @@ export default function Sidebar() {
       show: isProvider(),
     },
     {
+      name: "Contacts prestataires",
+      href: "/dashboard/providers/contacts",
+      icon: Eye,
+      show: isCSM(),
+    },
+    {
+      name: "Mes beneficiaires",
+      href: "/dashboard/beneficiaries",
+      icon: Users,
+      show: isCustomer(),
+    },
+    {
+      name: "Devenir prestataire",
+      href: "/dashboard/providers/apply",
+      icon: Building,
+      show: isCustomer(),
+    },
+    {
+      name: "Historique des services",
+      href: "/dashboard/services/history",
+      icon: Calendar,
+      show: true,
+    },
+    {
+      name: "Suivi des services",
+      href: "/dashboard/services/tracking",
+      icon: Calendar,
+      show: isCustomer(),
+    },
+    {
       name: "Factures",
       href: "/dashboard/invoices",
       icon: FileText,
       show: true,
     },
     {
-      name: "Contacts prestataires",
-      href: "/dashboard/providers/contacts",
-      icon: Eye,
-      show: isCSM(),
+      name: "Mes Devis",
+      href: "/dashboard/quotes",
+      icon: FileText,
+      show: isCustomer(),
+    },
+    {
+      name: "Réclamations",
+      href: "/dashboard/complaints",
+      icon: AlertTriangle,
+      show: isCustomer(),
     },
   ];
 

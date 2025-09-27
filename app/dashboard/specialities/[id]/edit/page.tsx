@@ -53,7 +53,7 @@ export default function EditSpecialityPage() {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Rediriger vers la page de détail
-      router.push(`/dashboard/specialities/${params["id"]}`);
+      params["id"] && router.push(`/dashboard/specialities/${params["id"]}`);
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
       alert("Erreur lors de la mise à jour de la spécialité");
