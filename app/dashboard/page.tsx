@@ -1,27 +1,30 @@
 "use client";
 
-import { useAuth } from "@/hooks/auth/useAuth";
-import { MOCK_USERS } from "@/mocks";
+import { useAuth, useUsers, useAppointments } from "@/hooks";
 import { Calendar, FileText, Users } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardPage() {
   const { user, isAdmin, isCSM } = useAuth();
+  
+  // Récupérer les données depuis la base de données
+  const { users, total: totalUsers } = useUsers({ limit: 1000 }); // Récupérer tous les utilisateurs pour les stats
+  const { appointments, total: totalAppointments } = useAppointments({ limit: 1000 }); // Récupérer tous les rendez-vous pour les stats
 
   // Statistiques selon le rôle
   const getStats = () => {
     if (isAdmin() || isCSM()) {
       return {
-        users: MOCK_USERS.length,
-        customers: MOCK_USERS.filter(u => u.roles.includes("CUSTOMER")).length,
-        providers: MOCK_USERS.filter(u => u.roles.includes("PROVIDER")).length,
-        appointments: 25, // Simulé
-        invoices: 42, // Simulé
+        users: totalUsers,
+        customers: users.filter(u => u.roles.includes("CUSTOMER")).length,
+        providers: users.filter(u => u.roles.includes("PROVIDER")).length,
+        appointments: totalAppointments,
+        invoices: 42, // TODO: Implémenter useInvoices hook
       };
     } else {
       return {
-        appointments: 3, // Simulé - rendez-vous de l'utilisateur
-        invoices: 5, // Simulé - factures de l'utilisateur
+        appointments: appointments.filter(a => a.userId === user?.id).length,
+        invoices: 5, // TODO: Implémenter useInvoices hook
       };
     }
   };

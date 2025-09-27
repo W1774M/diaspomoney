@@ -13,12 +13,11 @@ import {
   FormLabel,
   Input,
 } from "@/components/ui";
-import { useNotificationManager } from "@/components/ui/Notification";
 import { useForm } from "@/hooks/forms/useForm";
 import { loginSchema, type LoginFormData } from "@/lib/validations";
-import { MOCK_USERS } from "@/mocks";
-import { authActions, useAuth, useDispatch } from "@/store/simple-store";
-import { AlertCircle, Clock, Mail, XCircle } from "lucide-react";
+import { useLogin } from "@/hooks";
+import { useNotificationManager } from "@/components/ui/Notification";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -38,29 +37,24 @@ const useUrlStatus = () => {
 
 export function LoginForm() {
   const router = useRouter();
-  const { addSuccess, addError, addWarning, addInfo } =
-    useNotificationManager();
-  const { isLoading, error } = useAuth();
-  const dispatch = useDispatch();
+  const { login, isLoading: isLoggingIn } = useLogin();
+  const { addInfo, addError } = useNotificationManager();
   const urlStatus = useUrlStatus();
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Vérifier les paramètres d'URL pour les messages de statut
   useEffect(() => {
-    // Prevent infinite loops by checking if we've already processed this status
-    if (urlStatus && !error) {
+    if (urlStatus) {
       if (urlStatus === "pending") {
-        dispatch(authActions.loginFailure("COMPTE_EN_ATTENTE"));
         addInfo(
           "Votre compte est en cours de vérification par notre équipe DiaspoMoney. Veuillez patienter, nous vous contacterons bientôt."
         );
       } else if (urlStatus === "suspended") {
-        dispatch(authActions.loginFailure("COMPTE_SUSPENDU"));
         addError(
           "Votre accès a été refusé car votre compte est suspendu. Veuillez contacter notre support pour plus d'informations."
         );
       }
     }
-  }, [urlStatus, addInfo, addError, error, dispatch]);
+  }, [urlStatus, addInfo, addError]);
 
   const {
     register,
@@ -74,92 +68,17 @@ export function LoginForm() {
     },
   });
 
-  // Vérifier si l'utilisateur est déjà connecté
   useEffect(() => {
-    const session = localStorage.getItem("user-session");
+    const session = typeof window !== "undefined" ? localStorage.getItem("user-session") : null;
     if (session) {
-      // L'utilisateur est déjà connecté, rediriger
       router.push("/dashboard");
     }
   }, [router]);
 
   const onSubmit = async (data: LoginFormData) => {
-    dispatch(authActions.loginStart());
-
-    try {
-      // Simuler un délai de connexion
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Rechercher l'utilisateur dans MOCK_USERS
-      const user = MOCK_USERS.find(u => u.email === data.email);
-
-      if (user && user.password === data.password) {
-        // Vérifier le statut du compte
-        if (user.status === "INACTIVE") {
-          dispatch(authActions.loginFailure("COMPTE_INACTIF"));
-          addWarning(
-            "Votre compte n'est pas encore activé. Veuillez vérifier votre boîte mail et cliquer sur le lien de vérification envoyé par DiaspoMoney."
-          );
-          return;
-        }
-
-        if (user.status === "PENDING") {
-          dispatch(authActions.loginFailure("COMPTE_EN_ATTENTE"));
-          addInfo(
-            "Votre compte est en cours de vérification par notre équipe DiaspoMoney. Veuillez patienter, nous vous contacterons bientôt."
-          );
-          return;
-        }
-
-        if (user.status === "SUSPENDED") {
-          dispatch(authActions.loginFailure("COMPTE_SUSPENDU"));
-          addError(
-            "Votre accès a été refusé car votre compte est suspendu. Veuillez contacter notre support pour plus d'informations."
-          );
-          return;
-        }
-
-        // Seuls les comptes ACTIVE peuvent se connecter
-        if (user.status === "ACTIVE") {
-          // Créer une session locale
-          const session = {
-            user: {
-              id: user._id,
-              email: user.email,
-              name: user.name,
-              roles: user.roles,
-              status: user.status,
-              avatar: user.avatar,
-            },
-            expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24h
-          };
-
-          // Sauvegarder en localStorage
-          localStorage.setItem("user-session", JSON.stringify(session));
-
-          // Déclencher l'événement personnalisé pour notifier les autres composants
-          window.dispatchEvent(new CustomEvent("user-session-changed"));
-
-          // Dispatch success action
-          dispatch(authActions.loginSuccess(user));
-
-          addSuccess("Connexion réussie ! Redirection en cours...");
-
-          // Redirection vers le dashboard
-          setTimeout(() => {
-            router.push("/dashboard");
-          }, 1000);
-        }
-      } else {
-        dispatch(authActions.loginFailure("Email ou mot de passe incorrect"));
-        addError("Email ou mot de passe incorrect");
-      }
-    } catch (err) {
-      console.error("Erreur de connexion:", err);
-      dispatch(authActions.loginFailure("Une erreur est survenue"));
-      addError("Erreur lors de la connexion. Veuillez réessayer.");
-    }
+    await login(data);
   };
+
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -183,12 +102,29 @@ export function LoginForm() {
             </FormField>
             <FormField error={errors.password?.message ?? ""}>
               <FormLabel htmlFor="password">Mot de passe</FormLabel>
-              <Input
-                id="password"
-                type="password"
-                {...register("password")}
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  {...register("password")}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none"
+                  style={{ background: "none", border: "none", padding: 0, margin: 0, lineHeight: 0 }}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </FormField>
             <div className="text-right">
               <Link
@@ -200,7 +136,8 @@ export function LoginForm() {
             </div>
 
             {/* Boutons de test pour les différents statuts */}
-            {/* <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
+            {/* 
+            <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
               <p className="text-xs text-gray-600 mb-2 font-medium">
                 🧪 Test des statuts de compte :
               </p>
@@ -292,7 +229,7 @@ export function LoginForm() {
               </div>
             </div> */}
 
-            {error && (
+            {/* {error && (
               <div
                 className={`mt-2 p-3 border rounded-md ${
                   error === "COMPTE_INACTIF"
@@ -402,14 +339,14 @@ export function LoginForm() {
                   </div>
                 </div>
               </div>
-            )}
+            )} */}
 
             <Button
               type="submit"
               className="w-full bg-blue-400 hover:bg-blue-600 cursor-pointer mt-4"
-              disabled={isLoading}
+              disabled={isLoggingIn}
             >
-              {isLoading ? "Connexion en cours..." : "Se connecter"}
+              {isLoggingIn ? "Connexion en cours..." : "Se connecter"}
             </Button>
 
             {/* Test buttons for different account statuses */}
@@ -439,15 +376,15 @@ export function LoginForm() {
                       );
                     }
                     // Simulate successful login for testing
-                    dispatch(
-                      authActions.loginSuccess({
-                        _id: "test-user",
-                        email: "customer@diaspomoney.com",
-                        name: "Test User",
-                        roles: ["USER"],
-                        status: "ACTIVE",
-                      })
-                    );
+                    // dispatch(
+                    //   authActions.loginSuccess({
+                    //     _id: "test-user",
+                    //     email: "customer@diaspomoney.com",
+                    //     name: "Test User",
+                    //     roles: ["USER"],
+                    //     status: "ACTIVE",
+                    //   })
+                    // );
                   }}
                   className="w-full"
                 >
@@ -458,10 +395,10 @@ export function LoginForm() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    dispatch(authActions.loginFailure("COMPTE_INACTIF"));
-                    addWarning(
-                      "Votre compte n'est pas encore activé. Veuillez vérifier votre boîte mail et cliquer sur le lien de vérification envoyé par DiaspoMoney."
-                    );
+                    // dispatch(authActions.loginFailure("COMPTE_INACTIF"));
+                    // addWarning(
+                    //   "Votre compte n'est pas encore activé. Veuillez vérifier votre boîte mail et cliquer sur le lien de vérification envoyé par DiaspoMoney."
+                    // );
                   }}
                   className="w-full"
                 >
@@ -472,10 +409,10 @@ export function LoginForm() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    dispatch(authActions.loginFailure("COMPTE_EN_ATTENTE"));
-                    addInfo(
-                      "Votre compte est en cours de vérification par notre équipe DiaspoMoney. Veuillez patienter, nous vous contacterons bientôt."
-                    );
+                    // dispatch(authActions.loginFailure("COMPTE_EN_ATTENTE"));
+                    // addInfo(
+                    //   "Votre compte est en cours de vérification par notre équipe DiaspoMoney. Veuillez patienter, nous vous contacterons bientôt."
+                    // );
                   }}
                   className="w-full"
                 >
@@ -486,10 +423,10 @@ export function LoginForm() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    dispatch(authActions.loginFailure("COMPTE_SUSPENDU"));
-                    addError(
-                      "Votre accès a été refusé car votre compte est suspendu. Veuillez contacter notre support pour plus d'informations."
-                    );
+                    // dispatch(authActions.loginFailure("COMPTE_SUSPENDU"));
+                    // addError(
+                    //   "Votre accès a été refusé car votre compte est suspendu. Veuillez contacter notre support pour plus d'informations."
+                    // );
                   }}
                   className="w-full"
                 >

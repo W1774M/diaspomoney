@@ -1,8 +1,6 @@
 "use client";
 
-import { useAuth } from "@/hooks/auth/useAuth";
-import { MOCK_USERS } from "@/mocks";
-import { IUser } from "@/types";
+import { useAuth, useProviders } from "@/hooks";
 import {
   ArrowLeft,
   Building,
@@ -19,42 +17,30 @@ import { useEffect, useState } from "react";
 export default function ProviderContactsPage() {
   const { isCSM, isAuthenticated, isLoading, status } = useAuth();
   const router = useRouter();
-  const [providers, setProviders] = useState<IUser[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const { providers, loading } = useProviders();
 
-  // Vérifier l'authentification et les permissions
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
     }
   }, [status]);
 
-  // Charger les prestataires
-  useEffect(() => {
-    if (isAuthenticated && isCSM()) {
-      const providerUsers = MOCK_USERS.filter(user =>
-        user.roles.includes("PROVIDER")
-      );
-      setProviders(providerUsers);
-      setLoading(false);
-    }
-  }, [isAuthenticated]);
 
   const filteredProviders = providers.filter(provider => {
+    const fullName = `${provider.firstName} ${provider.lastName}`;
     const matchesSearch =
-      provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       provider.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      provider.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      provider.specialty?.toLowerCase().includes(searchTerm.toLowerCase());
+      provider.specialties?.join(", ").toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
-  const handleSendEmail = (provider: IUser) => {
+  const handleSendEmail = (provider: any) => {
     window.open(`mailto:${provider.email}`);
   };
 
-  const handleCall = (provider: IUser) => {
+  const handleCall = (provider: any) => {
     if (provider.phone) {
       window.open(`tel:${provider.phone}`);
     }
@@ -83,7 +69,6 @@ export default function ProviderContactsPage() {
     }).format(date);
   };
 
-  // Afficher un message de chargement
   if (isLoading) {
     return (
       <div className="text-center py-12">
@@ -93,7 +78,6 @@ export default function ProviderContactsPage() {
     );
   }
 
-  // Vérifier les permissions après le chargement
   if (!isLoading && !isAuthenticated) {
     return (
       <div className="text-center py-12">
@@ -174,7 +158,7 @@ export default function ProviderContactsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredProviders.map(provider => (
           <div
-            key={provider._id}
+            key={provider['id']}
             className="bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow duration-200"
           >
             {/* Card Header */}
@@ -182,10 +166,10 @@ export default function ProviderContactsPage() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-lg font-semibold text-gray-900 truncate">
-                    {provider.name}
+                    {provider.firstName} {provider.lastName}
                   </h3>
                   <p className="text-sm text-gray-500 mt-1">
-                    {provider.specialty}
+                    {provider.specialties?.join(", ")}
                   </p>
                 </div>
                 <span
@@ -196,10 +180,10 @@ export default function ProviderContactsPage() {
                   {provider.status}
                 </span>
               </div>
-              {provider.company && (
+              {provider.specialties && provider.specialties.length > 0 && (
                 <p className="text-sm text-gray-600">
                   <Building className="h-4 w-4 inline mr-1" />
-                  {provider.company}
+                  {provider.specialties.join(", ")}
                 </p>
               )}
             </div>
@@ -240,12 +224,12 @@ export default function ProviderContactsPage() {
                   </div>
                 )}
 
-                {provider.address && (
+                {provider.specialties && provider.specialties.length > 0 && (
                   <div className="flex items-start">
                     <MapPin className="h-4 w-4 text-gray-400 mr-3 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-900">
-                        {provider.address}
+                        {provider.specialties.join(", ")}
                       </p>
                     </div>
                   </div>
@@ -256,15 +240,8 @@ export default function ProviderContactsPage() {
               <div className="pt-3 border-t border-gray-100">
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   <span>Membre depuis</span>
-                  <span>{formatDate(provider.createdAt)}</span>
+                  <span>{formatDate(new Date(provider.createdAt))}</span>
                 </div>
-                {provider.recommended && (
-                  <div className="mt-2">
-                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
-                      ⭐ Recommandé
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -272,7 +249,7 @@ export default function ProviderContactsPage() {
             <div className="px-6 py-3 bg-gray-50 rounded-b-lg">
               <div className="flex justify-between items-center">
                 <Link
-                  href={`/dashboard/users/${provider._id}`}
+                  href={`/dashboard/users/${provider['id']}`}
                   className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] text-sm font-medium"
                 >
                   Voir le profil complet

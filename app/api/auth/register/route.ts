@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MOCK_USERS } from "@/mocks";
-import { IUser } from "@/types";
-
-function findUserByEmail(email: string): IUser | undefined {
-  return MOCK_USERS.find(
-    user => user.email.toLowerCase() === email.toLowerCase()
-  );
-}
+import { mongoClient } from "@/lib/mongodb";
+import { sendEmailVerification } from "@/lib/email";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,8 +72,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérification si l'utilisateur existe déjà dans les mocks
-    const existingUser = findUserByEmail(email.toLowerCase());
+    // Connexion à la base de données
+    const client = await mongoClient;
+    const db = client.db();
+    const usersCollection = db.collection("users");
+
+    // Vérification si l'utilisateur existe déjà
+    const existingUser = await usersCollection.findOne({ 
+      email: email.toLowerCase() 
+    });
 
     if (existingUser) {
       return NextResponse.json(
@@ -86,22 +89,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Pour le moment, on simule la création d'utilisateur
-    console.log(`Nouvel utilisateur créé: ${email}`);
+    // Hachage du mot de passe
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Retourner les informations de l'utilisateur simulé avec les valeurs par défaut
-    const userResponse = {
-      id: `user_${Date.now()}`,
+    // Création du nouvel utilisateur
+    const newUser = {
       firstName,
       lastName,
       email: email.toLowerCase(),
+      password: hashedPassword,
       phone,
-      dateOfBirth,
+      dateOfBirth: new Date(dateOfBirth),
       countryOfResidence,
       targetCountry,
       targetCity,
       selectedServices,
-      monthlyBudget,
+      monthlyBudget: monthlyBudget || null,
+      securityQuestion,
+      securityAnswer: await bcrypt.hash(securityAnswer, saltRounds),
       marketingConsent: marketingConsent || false,
       kycConsent,
       roles: ["CUSTOMER"], // Rôle par défaut pour les nouveaux utilisateurs
@@ -110,12 +116,58 @@ export async function POST(request: NextRequest) {
       createdAt: new Date(),
     };
 
+    // Génération du token de vérification email
+    const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 heures
+
+    // Ajout du token à l'utilisateur
+    const userWithToken = {
+      ...newUser,
+      emailVerificationToken,
+      emailVerificationExpires,
+    };
+
+    // Sauvegarde en base de données
+    const result = await usersCollection.insertOne(userWithToken);
+    const savedUser = { ...userWithToken, _id: result.insertedId };
+
+    // Envoi de l'email de vérification
+    try {
+      const verificationUrl = `${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}`;
+      await sendEmailVerification(`${firstName} ${lastName}`, email, verificationUrl);
+      console.log(`[REGISTER] Email de vérification envoyé à ${email}`);
+    } catch (emailError) {
+      console.error("[REGISTER] Erreur lors de l'envoi de l'email:", emailError);
+      // On continue même si l'email échoue, l'utilisateur est créé
+    }
+
+    // Retourner les informations de l'utilisateur (sans le mot de passe)
+    const userResponse = {
+      id: savedUser._id.toString(),
+      firstName: savedUser.firstName,
+      lastName: savedUser.lastName,
+      email: savedUser.email,
+      phone: savedUser.phone,
+      dateOfBirth: savedUser.dateOfBirth,
+      countryOfResidence: savedUser.countryOfResidence,
+      targetCountry: savedUser.targetCountry,
+      targetCity: savedUser.targetCity,
+      selectedServices: savedUser.selectedServices,
+      monthlyBudget: savedUser.monthlyBudget,
+      marketingConsent: savedUser.marketingConsent,
+      kycConsent: savedUser.kycConsent,
+      roles: savedUser.roles,
+      status: savedUser.status,
+      isEmailVerified: savedUser.isEmailVerified,
+      createdAt: savedUser.createdAt,
+    };
+
     return NextResponse.json(
       {
         success: true,
         user: userResponse,
         message:
-          "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
+          "Compte créé avec succès. Un email de vérification a été envoyé à votre adresse email. Veuillez cliquer sur le lien dans l'email pour activer votre compte.",
       },
       { status: 201 }
     );

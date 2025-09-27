@@ -1,12 +1,7 @@
-import { MOCK_USERS } from "@/mocks";
-import { IUser } from "@/types";
 import { NextRequest, NextResponse } from "next/server";
-
-function findUserByEmail(email: string): IUser | undefined {
-  return MOCK_USERS.find(
-    user => user.email.toLowerCase() === email.toLowerCase()
-  );
-}
+import { mongoClient } from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,18 +15,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Recherche de l'utilisateur
-    const user = findUserByEmail(email);
+    // Connexion à la base de données
+    const client = await mongoClient;
+    const db = client.db();
+    const usersCollection = db.collection("users");
 
+    // Recherche de l'utilisateur par email (insensible à la casse)
+    const user = await usersCollection.findOne({
+      email: email.toLowerCase(),
+    });
+
+    console.log(`[LOGIN] Tentative de connexion pour: ${email}`);
+    console.log(`[LOGIN] Utilisateur trouvé:`, user ? "Oui" : "Non");
+    
     if (!user) {
+      console.log(`[LOGIN] Utilisateur non trouvé pour: ${email}`);
       return NextResponse.json(
         { error: "Email ou mot de passe incorrect" },
         { status: 401 }
       );
     }
 
-    // Vérification du mot de passe (simulation)
-    if (password !== user.password) {
+    console.log(`[LOGIN] Statut utilisateur: ${user['status']}`);
+    console.log(`[LOGIN] Email vérifié: ${user['isEmailVerified']}`);
+
+    // Vérification du mot de passe avec bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user['password']);
+    console.log(`[LOGIN] Mot de passe valide: ${isPasswordValid}`);
+    
+    if (!isPasswordValid) {
+      console.log(`[LOGIN] Mot de passe incorrect pour: ${email}`);
       return NextResponse.json(
         { error: "Email ou mot de passe incorrect" },
         { status: 401 }
@@ -39,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérification du statut du compte
-    if (user.status === "INACTIVE") {
+    if (user['status'] === "INACTIVE") {
       return NextResponse.json(
         {
           error:
@@ -50,7 +63,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (user.status === "PENDING") {
+    if (user['status'] === "PENDING") {
       return NextResponse.json(
         {
           error:
@@ -61,7 +74,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (user.status === "SUSPENDED") {
+    if (user['status'] === "SUSPENDED") {
       return NextResponse.json(
         {
           error: "Votre compte a été suspendu. Accès refusé.",
@@ -72,8 +85,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Connexion réussie
+    // On retire le mot de passe du retour
+    // (et potentiellement d'autres champs sensibles)
+    // On convertit _id en string pour le front
     const { password: _, ...userWithoutPassword } = user;
+    if (userWithoutPassword._id && typeof userWithoutPassword._id !== "string") {
+      userWithoutPassword._id = userWithoutPassword._id.toString() as unknown as ObjectId;
+    }
 
+    console.log(`[LOGIN] Connexion réussie pour: ${email}`);
+    
     return NextResponse.json({
       success: true,
       user: userWithoutPassword,

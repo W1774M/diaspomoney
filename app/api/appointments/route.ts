@@ -1,12 +1,32 @@
-import { MOCK_APPOINTMENTS } from "@/mocks";
 import { NextRequest, NextResponse } from "next/server";
+import { AppointmentService } from "@/services/appointmentService";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    const providerId = searchParams.get("providerId");
+    const status = searchParams.get("status");
+    const limit = searchParams.get("limit");
+    const offset = searchParams.get("offset");
+
+    // Construire les filtres
+    const filters = {
+      userId: userId || undefined,
+      providerId: providerId || undefined,
+      status: status || undefined,
+      limit: limit ? parseInt(limit) : undefined,
+      offset: offset ? parseInt(offset) : undefined,
+    };
+
+    const result = await AppointmentService.getAppointments(filters);
+
     return NextResponse.json({
       success: true,
-      appointments: MOCK_APPOINTMENTS,
-      total: MOCK_APPOINTMENTS.length,
+      appointments: result.data,
+      total: result.total,
+      limit: result.limit,
+      offset: result.offset,
     });
   } catch (error) {
     console.error("Erreur lors de la récupération des rendez-vous:", error);
@@ -29,16 +49,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Création d'un nouveau rendez-vous
-    const newAppointment = {
-      id: `appointment_${Date.now()}`,
-      ...appointmentData,
-      status: "PENDING",
-      createdAt: new Date(),
-    };
-
-    // Simulation de l'ajout à la base de données
-    console.log("Nouveau rendez-vous créé:", newAppointment);
+    // Création d'un nouveau rendez-vous via le service
+    const newAppointment = await AppointmentService.createAppointment(appointmentData);
 
     return NextResponse.json({
       success: true,

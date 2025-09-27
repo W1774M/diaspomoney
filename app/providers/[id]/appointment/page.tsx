@@ -3,24 +3,43 @@
 import { Calendar, Clock, Mail, Phone, User } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { MOCK_USERS } from "@/mocks";
 
 export default function AppointmentPage() {
   const router = useRouter();
   const params = useParams();
   // Correction: accès à l'id via index signature pour éviter l'erreur TS
   const providerId = (params as { [key: string]: string })["id"];
+  const [provider, setProvider] = useState<any>(null);
 
   // Vérifier que le prestataire est actif
   const isProviderActive = () => {
-    const provider = MOCK_USERS.find(
-      user =>
-        user._id === providerId &&
-        user.roles.includes("PROVIDER") &&
-        user.status === "ACTIVE"
-    );
-    return !!provider;
+    return provider && 
+           provider.roles.includes("PROVIDER") &&
+           provider.status === "ACTIVE";
   };
+
+  useEffect(() => {
+    // Récupérer les informations du prestataire depuis l'API
+    const fetchProvider = async () => {
+      try {
+        const response = await fetch(`/api/providers/${providerId}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setProvider(data.data);
+        } else {
+          // Si le prestataire n'est pas trouvé, rediriger
+          router.push("/providers");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération du prestataire:", error);
+        router.push("/providers");
+      } finally {
+      }
+    };
+
+    fetchProvider();
+  }, [providerId, router]);
 
   const [formData, setFormData] = useState({
     date: "",

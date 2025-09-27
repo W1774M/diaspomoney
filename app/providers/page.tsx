@@ -1,19 +1,19 @@
 "use client";
 import { ProviderStats } from "@/components/features/providers/ProviderStats";
 import { StatusBadge } from "@/components/ui";
-import { MOCK_USERS } from "@/mocks";
+import { useProviders } from "@/hooks";
 import { IUser } from "@/types";
 import { Clock, MapPin, Star } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
-// Fonctions utilitaires pour extraire les données uniques
-const getUniqueSpecialties = (providers: IUser[]) =>
-  [...new Set(providers.map(p => p.specialty).filter(Boolean))].sort();
+// Utility functions for extracting unique data
+const getUniqueSpecialties = (providers: any[]) =>
+  [...new Set(providers.map((p) => p['specialty']).filter(Boolean))].sort();
 
 const getUniqueProviderTypes = (
-  providers: IUser[]
+  providers: any[]
 ): { id: string | number; value: string }[] => {
   const specialties = getUniqueSpecialties(providers);
   return specialties.map((specialty, index) => ({
@@ -22,49 +22,14 @@ const getUniqueProviderTypes = (
   }));
 };
 
-const getAvailableServices = (providers: IUser[]) =>
+const getAvailableServices = (providers: any[]) =>
   providers
-    .flatMap(p =>
-      p.selectedServices ? p.selectedServices.split(",").map(s => s.trim()) : []
+    .flatMap((p) =>
+      p['selectedServices'] ? p['selectedServices'].split(",").map((s: string) => s.trim()) : []
     )
     .filter((service): service is string => Boolean(service))
     .filter((service, idx, arr) => arr.indexOf(service) === idx)
     .sort();
-
-const useProviders = () => {
-  const [providers, setProviders] = useState<IUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchProviders = async () => {
-      try {
-        setLoading(true);
-        // Correction: MOCK_USERS peut ne pas être défini ou être vide
-        if (!Array.isArray(MOCK_USERS)) {
-          setProviders([]);
-          setError("Aucune donnée de prestataires disponible.");
-        } else {
-          const providerUsers = MOCK_USERS.filter(
-            user =>
-              Array.isArray(user.roles) &&
-              user.roles.includes("PROVIDER") &&
-              user.status === "ACTIVE"
-          );
-          setProviders(providerUsers);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Erreur inconnue");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProviders();
-  }, []);
-
-  return { providers, loading, error };
-};
 
 const SearchBar = React.memo(function SearchBar({
   availableServices,
@@ -115,7 +80,7 @@ const SearchBar = React.memo(function SearchBar({
             type="text"
             placeholder="Rechercher une localisation (pays ou ville)..."
             value={selectedCity}
-            onChange={e => {
+            onChange={(e) => {
               setSelectedCity(e.target.value);
             }}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -189,7 +154,9 @@ const ProviderCard = React.memo(function ProviderCard({
               <div className="flex items-center">
                 <Star className="w-5 h-5 text-yellow-400 mr-1" />
                 <span
-                  className={`font-semibold ${getRatingColor(typeof provider.rating === "number" ? provider.rating : 0)}`}
+                  className={`font-semibold ${getRatingColor(
+                    typeof provider.rating === "number" ? provider.rating : 0
+                  )}`}
                 >
                   {typeof provider.rating === "number"
                     ? provider.rating
@@ -210,7 +177,7 @@ const ProviderCard = React.memo(function ProviderCard({
               <MapPin className="w-4 h-4 mr-2" />
               <span>
                 {provider.apiGeo
-                  .map(geo => geo?.display_name || geo?.name)
+                  .map((geo) => geo?.display_name || geo?.name)
                   .filter(Boolean)
                   .join(", ")}
               </span>
@@ -389,8 +356,8 @@ export default function ProvidersPage() {
     if (selectedService) {
       filtered = filtered.filter(
         p =>
-          typeof p.selectedServices === "string" &&
-          p.selectedServices
+          typeof p['selectedServices'] === "string" &&
+          p['selectedServices']
             .toLowerCase()
             .includes(selectedService.toLowerCase())
       );
@@ -399,8 +366,8 @@ export default function ProvidersPage() {
     if (selectedCity) {
       filtered = filtered.filter(
         p =>
-          Array.isArray(p.apiGeo) &&
-          p.apiGeo.some(
+          Array.isArray(p['apiGeo']) &&
+          p['apiGeo'].some(
             geo =>
               (typeof geo?.name === "string" &&
                 geo.name.toLowerCase().includes(selectedCity.toLowerCase())) ||
@@ -414,22 +381,29 @@ export default function ProvidersPage() {
 
     if (selectedTypes.length > 0) {
       filtered = filtered.filter(p =>
-        selectedTypes.includes(p.specialty || "")
+        selectedTypes.includes(p['specialty'] || "")
       );
     }
 
     if (selectedGroup) {
-      filtered = filtered.filter(p => p.specialty === selectedGroup);
+      // Fix: filter by group, not by specialty
+      filtered = filtered.filter(p => {
+        // Assume provider.group is the group field, fallback to specialty if not present
+        // If you have a real group field, use it. Otherwise, you may need to map specialties to groups.
+        // For now, let's check both.
+        const group = p['group'] || p['specialty'];
+        return group === selectedGroup;
+      });
     }
 
     // Tri
     if (sortBy === "Prix croissant") {
-      filtered = [...filtered].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+      filtered = [...filtered].sort((a, b) => (a['price'] ?? 0) - (b['price'] ?? 0));
     } else if (sortBy === "Prix décroissant") {
-      filtered = [...filtered].sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+      filtered = [...filtered].sort((a, b) => (b['price'] ?? 0) - (a['price'] ?? 0));
     } else if (sortBy === "Meilleures évaluations") {
       filtered = [...filtered].sort(
-        (a, b) => (b.rating ?? 0) - (a.rating ?? 0)
+        (a, b) => (b['rating'] ?? 0) - (a['rating'] ?? 0)
       );
     }
     // "Recommandés" = pas de tri supplémentaire
@@ -469,8 +443,8 @@ export default function ProvidersPage() {
     const allCountries = Array.isArray(providers)
       ? providers
           .flatMap(p =>
-            Array.isArray(p.apiGeo)
-              ? p.apiGeo
+            Array.isArray(p['apiGeo'])
+              ? p['apiGeo']
                   .map(geo =>
                     geo?.country_code
                       ? String(geo.country_code).toUpperCase()
@@ -585,13 +559,13 @@ export default function ProvidersPage() {
                   </p>
                 </div>
               ) : (
-                paginatedProviders.map((provider: IUser) => (
+                paginatedProviders.map((provider: any) => (
                   <ProviderCard
-                    key={provider._id || provider.id || Math.random()}
+                    key={provider['_id'] || provider['id'] || Math.random()}
                     provider={provider}
                     onDetails={() => {
-                      if (provider._id) {
-                        router.push(`/providers/${provider._id}`);
+                      if (provider['_id']) {
+                        router.push(`/providers/${provider['_id']}`);
                       }
                     }}
                   />

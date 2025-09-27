@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findAppointmentById } from "@/mocks";
+import { AppointmentService } from "@/services/appointmentService";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const appointment = findAppointmentById(params.id);
-
-    if (!appointment) {
-      return NextResponse.json(
-        { error: "Rendez-vous non trouvé" },
-        { status: 404 }
-      );
-    }
+    const appointment = await AppointmentService.getAppointmentById(params.id);
 
     return NextResponse.json({
       success: true,
