@@ -1,0 +1,9 @@
+probleme quand je me deconnecte en cliquant sur les buttons deconnection sur la sidebar et sur la navbar, je suis normalement rediriger vers la page login mais comme je suis lier au compte google dans ma sessions il me garde connecter sur les pages, j'ai quand-même acces au dashboard même si sur la navbar c'est le bouton se connecter qui apparait plutôt que le menu authentifié
+
+Corriger la partie connexion afin de retirer l'inscription à 1 étape 
+
+Dans la partie provider mettre en place le suivi comme sur Mural
+
+Retirer la checkbook de KYC dans le register pour l'ajouter lors du premier paiement de service
+
+Voir pour rediriger tout suite après l'enregistrement grace à 0auth vers le dashboard. 

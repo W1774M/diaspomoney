@@ -1,10 +1,11 @@
 "use client";
 import { Eye, EyeOff } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 export function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +30,24 @@ export function RegisterForm() {
     marketingConsent: false,
     kycConsent: false,
   });
+
+  const oauthProvider = useMemo(() => searchParams?.get("oauth") || "", [searchParams]);
+  const oauthEmail = useMemo(() => searchParams?.get("email") || "", [searchParams]);
+  const oauthName = useMemo(() => searchParams?.get("name") || "", [searchParams]);
+  const oauthProviderAccountId = useMemo(() => searchParams?.get("providerAccountId") || "", [searchParams]);
+
+  useEffect(() => {
+    if (!oauthEmail && !oauthName) return;
+    const name = (oauthName || "").trim();
+    const [first, ...rest] = name.split(" ");
+    const last = rest.join(" ").trim();
+    setFormData(prev => ({
+      ...prev,
+      email: oauthEmail || prev.email,
+      firstName: first || prev.firstName,
+      lastName: last || prev.lastName,
+    }));
+  }, [oauthEmail, oauthName]);
 
   const totalSteps = 4;
 
@@ -93,6 +112,12 @@ export function RegisterForm() {
           selectedServices.length > 0
         );
       case 3:
+        if (oauthProvider) {
+          return (
+            formData.termsAccepted &&
+            formData.kycConsent
+          );
+        }
         return (
           formData.password &&
           formData.confirmPassword &&
@@ -133,6 +158,14 @@ export function RegisterForm() {
       const submitData = {
         ...formData,
         selectedServices: selectedServices.join(","),
+        oauth: oauthProvider
+          ? {
+              provider: oauthProvider,
+              providerAccountId: oauthProviderAccountId,
+            }
+          : undefined,
+        // Si OAuth, on n'envoie pas le mot de passe
+        ...(oauthProvider ? { password: undefined, confirmPassword: undefined } : {}),
       };
 
       const res = await fetch("/api/auth/register", {
@@ -369,6 +402,14 @@ export function RegisterForm() {
                       Services qui vous intéressent{" "}
                       <span className="text-red-500">*</span>
                     </label>
+                    <p className="text-sm text-gray-500 mb-3">
+                      Sélectionnez au moins un service (choix multiples possibles)
+                      {selectedServices.length > 0 && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                          {selectedServices.length} sélectionné{selectedServices.length > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                       {[
                         { id: "health", icon: "🏥", label: "Santé" },
@@ -378,23 +419,44 @@ export function RegisterForm() {
                           icon: "🏗️",
                           label: "BTP/Immobilier",
                         },
-                      ].map(service => (
-                        <div
-                          key={service.id}
-                          onClick={() => handleServiceToggle(service.id)}
-                          className={`
-                            border-2 rounded-xl p-4 text-center cursor-pointer transition-all duration-300 hover:border-blue-400 hover:transform hover:-translate-y-1
-                            ${
-                              selectedServices.includes(service.id)
-                                ? "border-blue-500 bg-blue-50"
-                                : "border-gray-200 bg-gray-50"
-                            }
-                          `}
-                        >
-                          <div className="text-2xl mb-2">{service.icon}</div>
-                          <div className="font-medium">{service.label}</div>
-                        </div>
-                      ))}
+                      ].map(service => {
+                        const isSelected = selectedServices.includes(service.id);
+                        return (
+                          <div
+                            key={service.id}
+                            role="checkbox"
+                            aria-checked={isSelected}
+                            tabIndex={0}
+                            onKeyDown={e => {
+                              if (e.key === " " || e.key === "Enter") {
+                                e.preventDefault();
+                                handleServiceToggle(service.id);
+                              }
+                            }}
+                            onClick={() => handleServiceToggle(service.id)}
+                            className={`relative border-2 rounded-2xl p-5 text-center cursor-pointer transition-all duration-300
+                              ${
+                                isSelected
+                                  ? "border-blue-600 bg-blue-50 shadow-md ring-2 ring-blue-200"
+                                  : "border-gray-200 bg-white hover:border-blue-400 hover:shadow"
+                              }
+                            `}
+                          >
+                            {isSelected && (
+                              <span className="absolute top-3 right-3 inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs shadow">
+                                ✓
+                              </span>
+                            )}
+                            <div className="text-3xl mb-3">{service.icon}</div>
+                            <div className={`font-semibold ${isSelected ? "text-blue-700" : "text-gray-800"}`}>
+                              {service.label}
+                            </div>
+                            <div className="mt-2 text-xs text-gray-500">
+                              {isSelected ? "Sélectionné" : "Cliquer pour sélectionner"}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -427,108 +489,114 @@ export function RegisterForm() {
                     Sécurité et conditions
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block mb-2 font-semibold text-gray-700">
-                        Mot de passe <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          value={formData.password}
-                          onChange={e =>
-                            handleInputChange("password", e.target.value)
-                          }
-                          className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                          placeholder="••••••••"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-5 w-5" />
-                          ) : (
-                            <Eye className="h-5 w-5" />
-                          )}
-                        </button>
+                  {!oauthProvider && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block mb-2 font-semibold text-gray-700">
+                          Mot de passe <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            value={formData.password}
+                            onChange={e =>
+                              handleInputChange("password", e.target.value)
+                            }
+                            className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                            placeholder="••••••••"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block mb-2 font-semibold text-gray-700">
+                          Confirmer le mot de passe{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={formData.confirmPassword}
+                            onChange={e =>
+                              handleInputChange("confirmPassword", e.target.value)
+                            }
+                            className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                            placeholder="••••••••"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowConfirmPassword(!showConfirmPassword)
+                            }
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <label className="block mb-2 font-semibold text-gray-700">
-                        Confirmer le mot de passe{" "}
-                        <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showConfirmPassword ? "text" : "password"}
-                          value={formData.confirmPassword}
+                  )}
+
+                  {!oauthProvider && (
+                    <>
+                      <div>
+                        <label className="block mb-2 font-semibold text-gray-700">
+                          Question de sécurité{" "}
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={formData.securityQuestion}
                           onChange={e =>
-                            handleInputChange("confirmPassword", e.target.value)
+                            handleInputChange("securityQuestion", e.target.value)
                           }
-                          className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                          placeholder="••••••••"
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setShowConfirmPassword(!showConfirmPassword)
-                          }
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
                         >
-                          {showConfirmPassword ? (
-                            <EyeOff className="h-5 w-5" />
-                          ) : (
-                            <Eye className="h-5 w-5" />
-                          )}
-                        </button>
+                          <option value="">Choisissez une question</option>
+                          <option value="pet">
+                            Nom de votre premier animal de compagnie ?
+                          </option>
+                          <option value="school">
+                            Nom de votre école primaire ?
+                          </option>
+                          <option value="mother">
+                            Nom de jeune fille de votre mère ?
+                          </option>
+                          <option value="city">
+                            Ville de naissance de votre père ?
+                          </option>
+                        </select>
                       </div>
-                    </div>
-                  </div>
 
-                  <div>
-                    <label className="block mb-2 font-semibold text-gray-700">
-                      Question de sécurité{" "}
-                      <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={formData.securityQuestion}
-                      onChange={e =>
-                        handleInputChange("securityQuestion", e.target.value)
-                      }
-                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                    >
-                      <option value="">Choisissez une question</option>
-                      <option value="pet">
-                        Nom de votre premier animal de compagnie ?
-                      </option>
-                      <option value="school">
-                        Nom de votre école primaire ?
-                      </option>
-                      <option value="mother">
-                        Nom de jeune fille de votre mère ?
-                      </option>
-                      <option value="city">
-                        Ville de naissance de votre père ?
-                      </option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block mb-2 font-semibold text-gray-700">
-                      Réponse <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.securityAnswer}
-                      onChange={e =>
-                        handleInputChange("securityAnswer", e.target.value)
-                      }
-                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                      placeholder="Votre réponse"
-                    />
-                  </div>
+                      <div>
+                        <label className="block mb-2 font-semibold text-gray-700">
+                          Réponse <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.securityAnswer}
+                          onChange={e =>
+                            handleInputChange("securityAnswer", e.target.value)
+                          }
+                          className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                          placeholder="Votre réponse"
+                        />
+                      </div>
+                    </>
+                  )}
 
                   <div className="space-y-4">
                     <label className="flex items-start space-x-3 cursor-pointer">
