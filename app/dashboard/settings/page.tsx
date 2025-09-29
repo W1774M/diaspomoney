@@ -54,6 +54,7 @@ export default function SettingsPage() {
     newPassword: "",
     confirmPassword: "",
   });
+  const [noLocalPassword, setNoLocalPassword] = useState(false);
 
   // Charger les données utilisateur
   useEffect(() => {
@@ -390,49 +391,140 @@ export default function SettingsPage() {
                 <p className="text-gray-600 mt-1">
                   Gérez votre mot de passe et vos paramètres de sécurité
                 </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {user?.oauth?.google?.linked && (
+                    <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                      <span>Compte lié à Google</span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await fetch("/api/users/oauth/unlink", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ provider: "google" }),
+                          });
+                          window.location.reload();
+                        }}
+                        className="ml-1 px-2 py-0.5 rounded bg-green-600 text-white hover:bg-green-700"
+                      >
+                        Délier
+                      </button>
+                    </div>
+                  )}
+                  {user?.oauth?.facebook?.linked && (
+                    <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                      <span>Compte lié à Facebook</span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await fetch("/api/users/oauth/unlink", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ provider: "facebook" }),
+                          });
+                          window.location.reload();
+                        }}
+                        className="ml-1 px-2 py-0.5 rounded bg-blue-600 text-white hover:bg-blue-700"
+                      >
+                        Délier
+                      </button>
+                    </div>
+                  )}
+                  {!user?.oauth?.google?.linked && !user?.oauth?.facebook?.linked && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">
+                      Aucun compte social lié
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {!user?.oauth?.google?.linked && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        // redirection NextAuth pour lier Google
+                        window.location.href = "/api/auth/signin/google?callbackUrl=/dashboard/settings";
+                      }}
+                      className="px-3 py-1 rounded text-xs font-medium bg-green-600 text-white hover:bg-green-700"
+                    >
+                      Lier Google
+                    </button>
+                  )}
+                  {!user?.oauth?.facebook?.linked && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        window.location.href = "/api/auth/signin/facebook?callbackUrl=/dashboard/settings";
+                      }}
+                      className="px-3 py-1 rounded text-xs font-medium bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                      Lier Facebook
+                    </button>
+                  )}
+                </div>
               </div>
 
               <form onSubmit={handleSecuritySubmit} className="p-6">
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mot de passe actuel *
-                    </label>
-                    <div className="relative">
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h3 className="text-sm font-medium text-yellow-900 mb-1">
+                      Compte créé via un fournisseur (Google/Facebook) ?
+                    </h3>
+                    <p className="text-sm text-yellow-800">
+                      Vous pouvez lier un mot de passe local pour vous connecter sans votre fournisseur.
+                    </p>
+                    <label className="mt-3 inline-flex items-center space-x-2">
                       <input
-                        type={showPassword ? "text" : "password"}
-                        required
-                        value={securityData.currentPassword}
-                        onChange={e =>
-                          setSecurityData({
-                            ...securityData,
-                            currentPassword: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                        type="checkbox"
+                        className="w-4 h-4"
+                        checked={noLocalPassword}
+                        onChange={e => setNoLocalPassword(e.target.checked)}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <Eye className="h-5 w-5 text-gray-400" />
-                        )}
-                      </button>
-                    </div>
+                      <span className="text-sm text-yellow-900">
+                        Je n'ai pas encore de mot de passe local
+                      </span>
+                    </label>
                   </div>
+                  {!noLocalPassword && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mot de passe actuel *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          required
+                          value={securityData.currentPassword}
+                          onChange={e =>
+                            setSecurityData({
+                              ...securityData,
+                              currentPassword: e.target.value,
+                            })
+                          }
+                          className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-5 w-5 text-gray-400" />
+                          ) : (
+                            <Eye className="h-5 w-5 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nouveau mot de passe *
+                      Nouveau mot de passe {noLocalPassword ? "" : "*"}
                     </label>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
-                        required
+                        required={!noLocalPassword}
                         value={securityData.newPassword}
                         onChange={e =>
                           setSecurityData({
@@ -458,12 +550,12 @@ export default function SettingsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Confirmer le nouveau mot de passe *
+                      Confirmer le nouveau mot de passe {noLocalPassword ? "" : "*"}
                     </label>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
-                        required
+                        required={!noLocalPassword}
                         value={securityData.confirmPassword}
                         onChange={e =>
                           setSecurityData({

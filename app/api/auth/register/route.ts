@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
       termsAccepted,
       marketingConsent,
       kycConsent,
+      oauth,
     } = await request.json();
 
     // Validation des données
@@ -31,15 +32,14 @@ export async function POST(request: NextRequest) {
       !firstName ||
       !lastName ||
       !email ||
-      !password ||
+      (!oauth && !password) ||
       !phone ||
       !dateOfBirth ||
       !countryOfResidence ||
       !targetCountry ||
       !targetCity ||
       !selectedServices ||
-      !securityQuestion ||
-      !securityAnswer ||
+      (!oauth && (!securityQuestion || !securityAnswer)) ||
       !termsAccepted ||
       !kycConsent
     ) {
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérification de la longueur du mot de passe
-    if (password.length < 8) {
+    if (!oauth && password.length < 8) {
       return NextResponse.json(
         { error: "Le mot de passe doit contenir au moins 8 caractères" },
         { status: 400 }
@@ -91,14 +91,14 @@ export async function POST(request: NextRequest) {
 
     // Hachage du mot de passe
     const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = password ? await bcrypt.hash(password, saltRounds) : undefined;
 
     // Création du nouvel utilisateur
-    const newUser = {
+    const newUser: any = {
       firstName,
       lastName,
       email: email.toLowerCase(),
-      password: hashedPassword,
+      ...(hashedPassword ? { password: hashedPassword } : {}),
       phone,
       dateOfBirth: new Date(dateOfBirth),
       countryOfResidence,
@@ -111,34 +111,47 @@ export async function POST(request: NextRequest) {
       marketingConsent: marketingConsent || false,
       kycConsent,
       roles: ["CUSTOMER"], // Rôle par défaut pour les nouveaux utilisateurs
-      status: "PENDING", // Statut par défaut en attente de vérification
-      isEmailVerified: false,
+      status: oauth ? "ACTIVE" : "PENDING", // Activer directement si OAuth
+      isEmailVerified: !!oauth,
       createdAt: new Date(),
     };
 
-    // Génération du token de vérification email
-    const emailVerificationToken = crypto.randomBytes(32).toString('hex');
-    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 heures
+    // Si inscription via OAuth, marquer le provider comme lié et email vérifié
+    if (oauth && oauth.provider) {
+      newUser.oauth = newUser.oauth || {};
+      newUser.oauth[oauth.provider] = {
+        linked: true,
+        providerAccountId: oauth.providerAccountId,
+      };
+      newUser.emailVerified = true;
+    }
 
-    // Ajout du token à l'utilisateur
-    const userWithToken = {
-      ...newUser,
-      emailVerificationToken,
-      emailVerificationExpires,
-    };
+    // Génération du token de vérification email (sauf OAuth)
+    const userWithToken = (() => {
+      if (oauth) return newUser;
+      const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+      const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      return {
+        ...newUser,
+        emailVerificationToken,
+        emailVerificationExpires,
+      };
+    })();
 
     // Sauvegarde en base de données
     const result = await usersCollection.insertOne(userWithToken);
     const savedUser = { ...userWithToken, _id: result.insertedId };
 
-    // Envoi de l'email de vérification
-    try {
-      const verificationUrl = `${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}`;
-      await sendEmailVerification(`${firstName} ${lastName}`, email, verificationUrl);
-      console.log(`[REGISTER] Email de vérification envoyé à ${email}`);
-    } catch (emailError) {
-      console.error("[REGISTER] Erreur lors de l'envoi de l'email:", emailError);
-      // On continue même si l'email échoue, l'utilisateur est créé
+    // Envoi de l'email de vérification uniquement hors OAuth
+    if (!oauth) {
+      try {
+        const verificationUrl = `${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/verify-email?token=${(userWithToken as any).emailVerificationToken}`;
+        await sendEmailVerification(`${firstName} ${lastName}`, email, verificationUrl);
+        console.log(`[REGISTER] Email de vérification envoyé à ${email}`);
+      } catch (emailError) {
+        console.error("[REGISTER] Erreur lors de l'envoi de l'email:", emailError);
+        // On continue même si l'email échoue, l'utilisateur est créé
+      }
     }
 
     // Retourner les informations de l'utilisateur (sans le mot de passe)
@@ -166,8 +179,9 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         user: userResponse,
-        message:
-          "Compte créé avec succès. Un email de vérification a été envoyé à votre adresse email. Veuillez cliquer sur le lien dans l'email pour activer votre compte.",
+        message: oauth
+          ? "Compte créé et activé via OAuth. Bienvenue !"
+          : "Compte créé avec succès. Un email de vérification a été envoyé à votre adresse email.",
       },
       { status: 201 }
     );

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui";
 import { useNotificationManager } from "@/components/ui/Notification";
+import { signIn } from "next-auth/react";
 
 interface GoogleLoginButtonProps {
   onSuccess?: (response: unknown) => void;
@@ -13,11 +14,8 @@ export function GoogleLoginButton({ onError }: GoogleLoginButtonProps) {
 
   const handleGoogleLogin = async () => {
     try {
-      addInfo("Connexion Google temporairement désactivée");
-
-      if (onError) {
-        onError(new Error("Connexion Google non disponible"));
-      }
+      addInfo("Redirection vers Google...");
+      await signIn("google", { callbackUrl: "/dashboard" });
     } catch (error) {
       console.error("Erreur lors de la connexion Google:", error);
       addError("Erreur lors de la connexion Google");

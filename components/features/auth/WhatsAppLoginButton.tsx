@@ -11,11 +11,17 @@ export function WhatsAppLoginButton({ onError }: WhatsAppLoginButtonProps) {
 
   const handleWhatsAppLogin = async () => {
     try {
-      addInfo("Connexion WhatsApp temporairement désactivée");
+      const phone = process.env["NEXT_PUBLIC_WHATSAPP_PHONE"] ?? "";
+      const message = process.env["NEXT_PUBLIC_WHATSAPP_MESSAGE"] ?? "Bonjour, je souhaite me connecter avec WhatsApp";
 
-      if (onError) {
-        onError(new Error("Connexion WhatsApp non disponible"));
+      if (!phone) {
+        throw new Error("NEXT_PUBLIC_WHATSAPP_PHONE manquant");
       }
+
+      const encoded = encodeURIComponent(message);
+      const url = `https://wa.me/${phone}?text=${encoded}`;
+      addInfo("Ouverture de WhatsApp...");
+      window.location.href = url;
     } catch (error) {
       console.error("Erreur lors de la connexion WhatsApp:", error);
       addError("Erreur lors de la connexion WhatsApp");

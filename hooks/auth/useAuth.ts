@@ -13,12 +13,13 @@ interface User {
     image: string;
     name: string;
   };
+  oauth?: {
+    google?: { linked?: boolean; providerAccountId?: string };
+    facebook?: { linked?: boolean; providerAccountId?: string };
+  };
 }
 
-interface Session {
-  user: User;
-  expires: string;
-}
+// legacy type removed
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -27,40 +28,28 @@ export function useAuth() {
   const router = useRouter();
 
   useEffect(() => {
-    const checkSession = () => {
+    const fetchMe = async () => {
       try {
-        const sessionData = localStorage.getItem("user-session");
-        if (sessionData) {
-          const session: Session = JSON.parse(sessionData);
-
-          // Vérifier si la session n'est pas expirée
-          if (new Date(session.expires) > new Date()) {
-            // Vérifier le statut de l'utilisateur
-            if (session.user.status === "ACTIVE") {
-              setUser(session.user);
-              setIsAuthenticated(true);
-            } else {
-              // Utilisateur non actif, supprimer la session
-              console.warn(
-                `Session supprimée pour utilisateur ${session.user.email} avec statut ${session.user.status}`
-              );
-              localStorage.removeItem("user-session");
-              setUser(null);
-              setIsAuthenticated(false);
-            }
-          } else {
-            // Session expirée, la supprimer
-            localStorage.removeItem("user-session");
-            setUser(null);
-            setIsAuthenticated(false);
-          }
-        } else {
+        const res = await fetch("/api/users/me", { cache: "no-store" });
+        if (!res.ok) {
           setUser(null);
           setIsAuthenticated(false);
+          return;
         }
-      } catch (error) {
-        console.error("Erreur lors de la vérification de session:", error);
-        localStorage.removeItem("user-session");
+        const data = await res.json();
+        const me = data.user as any;
+        setUser({
+          id: me.id,
+          email: me.email,
+          name: me.name,
+          roles: (me as any).roles || ["CUSTOMER"],
+          status: (me as any).status || "ACTIVE",
+          avatar: (me as any).avatar || { image: "", name: me.name },
+          oauth: (me as any).oauth || {},
+        });
+        setIsAuthenticated(((me as any).status || "ACTIVE") === "ACTIVE");
+      } catch (e) {
+        console.error("useAuth /api/users/me error:", e);
         setUser(null);
         setIsAuthenticated(false);
       } finally {
@@ -68,41 +57,12 @@ export function useAuth() {
       }
     };
 
-    // Vérifier la session au montage
-    checkSession();
-
-    // Écouter les changements de localStorage pour détecter les connexions/déconnexions
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "user-session") {
-        checkSession();
-      }
-    };
-
-    // Écouter les événements de stockage (pour les changements dans d'autres onglets)
-    window.addEventListener("storage", handleStorageChange);
-
-    // Écouter les événements personnalisés pour les changements dans le même onglet
-    const handleCustomStorageChange = () => {
-      checkSession();
-    };
-
-    window.addEventListener("user-session-changed", handleCustomStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener(
-        "user-session-changed",
-        handleCustomStorageChange
-      );
-    };
+    fetchMe();
   }, []);
 
   const signOut = () => {
-    localStorage.removeItem("user-session");
     setUser(null);
     setIsAuthenticated(false);
-    // Déclencher l'événement personnalisé pour notifier les autres composants
-    window.dispatchEvent(new CustomEvent("user-session-changed"));
     router.push("/login");
   };
 

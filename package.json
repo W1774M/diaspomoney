@@ -36,7 +36,7 @@
     "fix-deps:win": "powershell -ExecutionPolicy Bypass -File scripts/fix-dependencies.ps1"
   },
   "dependencies": {
-    "@auth/mongodb-adapter": "^2.0.0",
+    "@auth/mongodb-adapter": "^3.10.0",
     "@hookform/resolvers": "^5.1.1",
     "@react-email/components": "^0.0.15",
     "@sentry/nextjs": "^10.15.0",
@@ -51,6 +51,7 @@
     "mongoose": "^8.16.0",
     "nanoid": "^5.0.0",
     "next": "15.3.0",
+    "next-auth": "5.0.0-beta.29",
     "nodemailer": "^7.0.4",
     "rate-limiter-flexible": "^4.0.1",
     "react": "^19.0.0",
@@ -95,6 +96,7 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@sentry/cli",
       "@tailwindcss/oxide",
       "esbuild",
       "sharp",

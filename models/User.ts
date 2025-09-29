@@ -2,8 +2,7 @@ import { IUser, UserRole } from "@/types";
 import bcrypt from "bcryptjs";
 import mongoose, { Schema } from "mongoose";
 
-const UserSchema = new Schema<IUser>(
-  {
+const userDefinition = {
     email: {
       type: String,
       required: true,
@@ -156,19 +155,30 @@ const UserSchema = new Schema<IUser>(
     lastLogin: {
       type: Date,
     },
-  },
-  {
-    timestamps: true,
-  }
-);
+    oauth: {
+      google: {
+        linked: { type: Boolean, default: false },
+        providerAccountId: { type: String },
+      },
+      facebook: {
+        linked: { type: Boolean, default: false },
+        providerAccountId: { type: String },
+      },
+    },
+} as any;
+
+const UserSchema = new Schema<IUser>(userDefinition, {
+  timestamps: true,
+});
 
 // Hash du mot de passe avant sauvegarde
 UserSchema.pre("save", async function (next) {
-  if (!this.isModified("password") || !this.password) return next();
+  const self = this as any;
+  if (!self.isModified("password") || !self.password) return next();
 
   try {
     const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
+    self.password = await bcrypt.hash(self.password, salt);
     next();
   } catch (error) {
     next(error as Error);
@@ -180,8 +190,9 @@ UserSchema.pre("save", async function (next) {
 UserSchema.methods["comparePassword"] = async function (
   candidatePassword: string
 ): Promise<boolean> {
-  if (!this["password"]) return false;
-  return bcrypt.compare(candidatePassword, this["password"]);
+  const self = this as any;
+  if (!self["password"]) return false;
+  return bcrypt.compare(candidatePassword, self["password"]);
 };
 
 // Méthode pour vérifier si l'utilisateur a un rôle spécifique

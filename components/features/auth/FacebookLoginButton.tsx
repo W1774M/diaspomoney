@@ -1,4 +1,5 @@
 import { useNotificationManager } from "@/components/ui/Notification";
+import { signIn } from "next-auth/react";
 
 interface FacebookLoginButtonProps {
   onSuccess?: (response: unknown) => void;
@@ -10,11 +11,8 @@ export function FacebookLoginButton({ onError }: FacebookLoginButtonProps) {
 
   const handleFacebookLogin = async () => {
     try {
-      addInfo("Connexion Facebook temporairement désactivée");
-
-      if (onError) {
-        onError(new Error("Connexion Facebook non disponible"));
-      }
+      addInfo("Redirection vers Facebook...");
+      await signIn("facebook", { callbackUrl: "/dashboard" });
     } catch (error) {
       console.error("Erreur lors de la connexion Facebook:", error);
       addError("Erreur lors de la connexion Facebook");

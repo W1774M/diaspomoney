@@ -3,7 +3,6 @@
 import { useAuth } from "@/hooks/auth/useAuth";
 import {
   Building,
-  Calendar,
   Clock,
   Eye,
   AlertTriangle,
@@ -11,8 +10,8 @@ import {
   Home,
   LogOut,
   Settings,
-  UserPlus,
   Users,
+  Package,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -29,84 +28,77 @@ export default function Sidebar() {
   }
 
   const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: Home, show: true },
+    { name: "Dashboard", key: "dashboard", href: "/dashboard", icon: Home, show: true },
+    { name: "Services", key: "services", href: "/dashboard/services", icon: Package, show: true },
+    {
+      name: "Mes beneficiaires",
+      key: "beneficiaries",    
+      href: "/dashboard/beneficiaries",
+      icon: Users,
+      show: isCustomer(),
+    },
+    {
+      name: "Facturation",
+      key: "billing",
+      values: [
+        {
+          name: "Factures",
+          key: "invoices",
+          href: "/dashboard/invoices",
+          icon: FileText,
+          show: true,
+        },
+        {
+          name: "Mes Devis",
+          key: "quotes",
+          href: "/dashboard/quotes",
+          icon: FileText,
+          show: isCustomer(),
+        },
+        {
+          name: "Bon de paiement",
+          key: "payment-receipts",
+          href: "/dashboard/payment-receipts",
+          icon: FileText,
+          show: isCustomer(),
+        },
+      ],
+      show: true,
+    },
     {
       name: "Utilisateurs",
+      key: "users",
       href: "/dashboard/users",
       icon: Users,
       show: isAdmin(),
     },
     {
-      name: "Nouveaux prestataires",
-      href: "/dashboard/providers/new",
-      icon: UserPlus,
-      show: isCSM(),
-    },
-    {
       name: "Spécialités",
+      key: "specialities",
       href: "/dashboard/specialities",
       icon: Building,
       show: isAdmin(),
     },
     {
-      name: "Rendez-vous",
-      href: "/dashboard/appointments",
-      icon: Calendar,
-      show: true,
-    },
-    {
       name: "Mes disponibilités",
+      key: "availabilities",
       href: "/dashboard/availabilities",
       icon: Clock,
       show: isProvider(),
     },
     {
       name: "Contacts prestataires",
+      key: "providers-contacts",
       href: "/dashboard/providers/contacts",
       icon: Eye,
       show: isCSM(),
     },
     {
-      name: "Mes beneficiaires",
-      href: "/dashboard/beneficiaries",
-      icon: Users,
-      show: isCustomer(),
-    },
-    {
-      name: "Devenir prestataire",
-      href: "/dashboard/providers/apply",
-      icon: Building,
-      show: isCustomer(),
-    },
-    {
-      name: "Historique des services",
-      href: "/dashboard/services/history",
-      icon: Calendar,
-      show: true,
-    },
-    {
-      name: "Suivi des services",
-      href: "/dashboard/services/tracking",
-      icon: Calendar,
-      show: isCustomer(),
-    },
-    {
-      name: "Factures",
-      href: "/dashboard/invoices",
-      icon: FileText,
-      show: true,
-    },
-    {
-      name: "Mes Devis",
-      href: "/dashboard/quotes",
-      icon: FileText,
-      show: isCustomer(),
-    },
-    {
       name: "Réclamations",
+      key: "complaints",    
       href: "/dashboard/complaints",
       icon: AlertTriangle,
-      show: isCustomer(),
+      show: true,
     },
   ];
 
@@ -120,10 +112,11 @@ export default function Sidebar() {
           <div className="w-10 h-10 bg-[hsl(25,100%,53%)] rounded-full flex items-center justify-center">
             {/* <User className="h-5 w-5 text-white" /> */}
             <Logo
-              src={user?.avatar?.image || ""}
+              src={user?.avatar?.image || "/img/Logo_Diaspo_Horizontal_enrichi.webp"}
               width={60}
               height={60}
-              alt={user?.avatar?.name || ""}
+              alt={user?.avatar?.name || user?.name || "Utilisateur"}
+              fallbackText={(user?.name || "U").slice(0, 1)}
             />
           </div>
           <div className="flex-1 min-w-0">
@@ -150,21 +143,59 @@ export default function Sidebar() {
       <nav className="p-6">
         <div className="space-y-2">
           {visibleNavigation.map(item => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
-                  isActive
-                    ? "text-gray-700 bg-[hsl(25,100%,53%)]/10"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                }`}
-              >
-                <item.icon className="h-5 w-5 mr-3" />
-                {item.name}
-              </Link>
-            );
+            // Si href est défini, afficher un lien
+            if (item.href) {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
+                    isActive
+                      ? "text-gray-700 bg-[hsl(25,100%,53%)]/10"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  }`}
+                >
+                  {item.icon && <item.icon className="h-5 w-5 mr-3" />}
+                  {item.name}
+                </Link>
+              );
+            }
+            // Sinon, si values est défini, afficher les sous-liens
+            if (item.values && Array.isArray(item.values)) {
+              // Filtrer les sous-items visibles
+              const visibleSubItems = item.values.filter((subItem) => subItem.show);
+              if (visibleSubItems.length === 0) return null;
+              return (
+                <div key={item.name} className="flex flex-col px-3 py-2 rounded-lg bg-gray-50">
+                  <div className="flex items-center mb-1">
+                    {/* item.icon n'existe pas sur ce type, donc on ne l'affiche pas */}
+                    <span className="text-gray-700 text-sm font-semibold">{item.name}</span>
+                  </div>
+                  <div className="flex flex-col ml-4">
+                    {visibleSubItems.map((subItem) => {
+                      const isActive = pathname === subItem.href;
+                      return (
+                        <Link
+                          key={subItem.key}
+                          href={subItem.href}
+                          className={`flex items-center px-2 py-1 rounded transition-colors text-sm ${
+                            isActive
+                              ? "text-gray-700 bg-[hsl(25,100%,53%)]/10"
+                              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                          }`}
+                        >
+                          {subItem.icon && <subItem.icon className="h-4 w-4 mr-2" />}
+                          {subItem.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+            // Sinon, rien afficher
+            return null;
           })}
         </div>
 

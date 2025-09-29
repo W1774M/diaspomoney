@@ -233,6 +233,16 @@ export interface IUser extends BaseDocument {
   kycConsent?: boolean;
   isEmailVerified?: boolean;
   lastLogin?: Date;
+  oauth?: {
+    google?: {
+      linked: boolean;
+      providerAccountId?: string;
+    };
+    facebook?: {
+      linked: boolean;
+      providerAccountId?: string;
+    };
+  };
   // Champs pour les prestataires (alias pour compatibilité)
   services?: Service[];
   availability?: Availability[];
