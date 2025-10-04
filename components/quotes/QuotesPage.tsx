@@ -9,7 +9,7 @@ import QuotesHeader from "./QuotesHeader";
 import QuotesTable from "./QuotesTable";
 
 const QuotesPage = React.memo(function QuotesPage() {
-  const { isCustomer } = useAuth();
+  const { isCustomer: _isCustomer } = useAuth();
   const router = useRouter();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -134,7 +134,8 @@ const QuotesPage = React.memo(function QuotesPage() {
     [updateFilter]
   );
 
-  if (!isCustomer()) {
+  // Correct type check for customer access
+  if (!_isCustomer) {
     return (
       <div className="text-center py-12">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">

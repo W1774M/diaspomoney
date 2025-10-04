@@ -14,7 +14,7 @@ import ServicesStats from "./ServicesStats";
 const ServicesPage = React.memo(function ServicesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { loading, error } = useProviders();
+  const { loading, error: _error } = useProviders();
   const [isClient, setIsClient] = useState(false);
 
   const providers = [
@@ -257,7 +257,7 @@ const ServicesPage = React.memo(function ServicesPage() {
         <ServicesProviderList
           providers={paginatedProviders}
           loading={loading}
-          error={error}
+          error={_error}
           onProviderSelect={handleProviderSelect}
         />
 

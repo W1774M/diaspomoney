@@ -6,7 +6,7 @@ interface WhatsAppLoginButtonProps {
   onError?: (error: unknown) => void;
 }
 
-export function WhatsAppLoginButton({ onError }: WhatsAppLoginButtonProps) {
+export function WhatsAppLoginButton({ onError: _onError }: WhatsAppLoginButtonProps) {
   const { addInfo, addError } = useNotificationManager();
 
   const handleWhatsAppLogin = async () => {
@@ -26,8 +26,8 @@ export function WhatsAppLoginButton({ onError }: WhatsAppLoginButtonProps) {
       console.error("Erreur lors de la connexion WhatsApp:", error);
       addError("Erreur lors de la connexion WhatsApp");
 
-      if (onError) {
-        onError(error);
+      if (_onError) {
+        _onError(error);
       }
     }
   };

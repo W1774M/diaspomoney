@@ -9,7 +9,9 @@ interface GoogleLoginButtonProps {
   onError?: (error: unknown) => void;
 }
 
-export function GoogleLoginButton({ onError }: GoogleLoginButtonProps) {
+export function GoogleLoginButton({
+  onError: _onError,
+}: GoogleLoginButtonProps) {
   const { addError, addInfo } = useNotificationManager();
 
   const handleGoogleLogin = async () => {
@@ -20,8 +22,8 @@ export function GoogleLoginButton({ onError }: GoogleLoginButtonProps) {
       console.error("Erreur lors de la connexion Google:", error);
       addError("Erreur lors de la connexion Google");
 
-      if (onError) {
-        onError(error);
+      if (_onError) {
+        _onError(error);
       }
     }
   };

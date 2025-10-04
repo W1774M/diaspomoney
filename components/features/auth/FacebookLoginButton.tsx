@@ -6,7 +6,9 @@ interface FacebookLoginButtonProps {
   onError?: (error: unknown) => void;
 }
 
-export function FacebookLoginButton({ onError }: FacebookLoginButtonProps) {
+export function FacebookLoginButton({
+  onError: _onError,
+}: FacebookLoginButtonProps) {
   const { addInfo, addError } = useNotificationManager();
 
   const handleFacebookLogin = async () => {
@@ -17,8 +19,8 @@ export function FacebookLoginButton({ onError }: FacebookLoginButtonProps) {
       console.error("Erreur lors de la connexion Facebook:", error);
       addError("Erreur lors de la connexion Facebook");
 
-      if (onError) {
-        onError(error);
+      if (_onError) {
+        _onError(error);
       }
     }
   };

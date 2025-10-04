@@ -4,7 +4,11 @@ import { DashboardServicesTabsProps } from "@/types/dashboard-services";
 import React from "react";
 
 const DashboardServicesTabs = React.memo<DashboardServicesTabsProps>(
-  function DashboardServicesTabs({ tabs, activeTab, onTabChange }) {
+  function DashboardServicesTabs({
+    tabs,
+    activeTab,
+    onTabChange: _onTabChange,
+  }) {
     return (
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
@@ -15,7 +19,7 @@ const DashboardServicesTabs = React.memo<DashboardServicesTabsProps>(
             return (
               <button
                 key={tab.id}
-                onClick={() => onTabChange(tab.id)}
+                onClick={() => _onTabChange(tab.id)}
                 className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   isActive
                     ? "border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]"

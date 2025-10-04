@@ -4,7 +4,8 @@ import { BookingForm } from "@/components/features/providers/BookingForm";
 import { InfiniteReviewsCarousel } from "@/components/providers/index";
 import { StatusBadge } from "@/components/ui";
 import { useNotificationManager } from "@/components/ui/Notification";
-import type { AppointmentFormData } from "@/lib/validations";
+import { capitalize } from "@/lib/utils";
+import type { BookingFormData } from "@/lib/validations";
 import { findProviderById, getProviderRatingStats } from "@/mocks";
 import { IUser } from "@/types";
 import { Building, Calendar, MapPin, Star } from "lucide-react";
@@ -114,7 +115,7 @@ export default function ProviderDetailPage() {
     setShowBookingForm(false);
   };
 
-  const handleFormSubmit = async (_data: AppointmentFormData) => {
+  const handleFormSubmit = async (data: BookingFormData) => {
     try {
       // Ici on pourrait envoyer les données à l'API
       // console.log("Données du formulaire:", data);
@@ -252,7 +253,7 @@ export default function ProviderDetailPage() {
                 : "bg-blue-100 text-blue-800 border border-blue-200"
             }`}
           >
-            {provider.category}
+            {capitalize(provider.category)}
           </span>
         )}
       </div>

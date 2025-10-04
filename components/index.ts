@@ -1,5 +1,5 @@
-export * from "./appointments";
 export * from "./beneficiaries";
+export * from "./bookings";
 export * from "./complaints";
 export * from "./dashboard";
 export * from "./dashboard-services";

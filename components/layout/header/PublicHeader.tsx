@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function PublicHeader() {
-  const { user, signOut, isAuthenticated } = useAuth();
+  const { user, signOut, isAuthenticated: _isAuthenticated } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(0);
@@ -22,10 +22,10 @@ export default function PublicHeader() {
   useEffect(() => {
     console.log("PublicHeader - Auth state changed:", {
       user,
-      isAuthenticated,
+      isAuthenticated: _isAuthenticated,
     });
     setForceUpdate(prev => prev + 1);
-  }, [isAuthenticated, user]);
+  }, [_isAuthenticated, user]);
 
   return (
     <header

@@ -139,7 +139,7 @@ export const forgotPasswordSchema = z.object({
     .refine(email => email.length <= 254, "Email trop long"),
 });
 
-export const appointmentSchema = z.object({
+export const bookingSchema = z.object({
   requester: z.object({
     firstName: z
       .string()
@@ -363,5 +363,5 @@ export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
-export type AppointmentFormData = z.infer<typeof appointmentSchema>;
+export type BookingFormData = z.infer<typeof bookingSchema>;
 export type PaymentFormData = z.infer<typeof paymentSchema>;

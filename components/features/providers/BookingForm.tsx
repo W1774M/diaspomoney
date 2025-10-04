@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { useForm } from "@/hooks/forms";
 import { calculatePriceWithCommission } from "@/lib/services/utils";
 import { processPaymentWithStripe, validateCardWithStripe } from "@/lib/stripe";
-import { appointmentSchema, type AppointmentFormData } from "@/lib/validations";
+import { bookingSchema, type BookingFormData } from "@/lib/validations";
 import {
   AlertCircle,
   CheckCircle,
@@ -43,7 +43,7 @@ interface BookingFormProps {
     availabilities?: { start: string; end: string }[];
   };
   onClose: () => void;
-  onSubmit: (_data: AppointmentFormData) => void;
+  onSubmit: (data: BookingFormData) => void;
 }
 
 // Helper to ensure error prop is always a string (never undefined)
@@ -105,7 +105,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
     watch,
     setValue,
   } = useForm({
-    schema: appointmentSchema,
+    schema: bookingSchema,
     defaultValues: {
       requester: {
         firstName: "",
@@ -217,7 +217,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
     };
   }, [setValue, watchedValues.requester]);
 
-  const handleFormSubmit = async (data: AppointmentFormData) => {
+  const handleFormSubmit = async (data: BookingFormData) => {
     setIsSubmitting(true);
     setPaymentError(null);
 

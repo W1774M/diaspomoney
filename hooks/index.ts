@@ -4,7 +4,7 @@ export { useForgotPassword } from "./auth/useForgotPassword";
 export { useLogin } from "./auth/useLogin";
 
 // Data hooks
-export { useAppointments } from "./useAppointments";
+export { useBookings } from "./useBookings";
 export { useProviders } from "./useProviders";
 export { useUsers } from "./useUsers";
 
@@ -29,8 +29,8 @@ export * from "./settings";
 // Beneficiaries hooks
 export * from "./beneficiaries";
 
-// Appointments hooks
-export * from "./appointments";
+// Bookings hooks
+export * from "./bookings";
 
 // Complaints hooks
 export * from "./complaints";
