@@ -23,7 +23,7 @@ const DashboardStats = React.memo<DashboardStatsProps>(function DashboardStats({
 
       <DashboardStatCard
         title={isAdmin || isCSM ? "Tous les rendez-vous" : "Mes rendez-vous"}
-        value={stats.appointments}
+        value={stats.bookings}
         icon={Calendar as any}
         color="orange"
       />

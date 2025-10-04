@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import React from "react";
 
 const ComplaintsHeader = React.memo<ComplaintsHeaderProps>(
-  function ComplaintsHeader({ onNewComplaint }) {
+  function ComplaintsHeader({ onNewComplaint: _onNewComplaint }) {
     const router = useRouter();
 
     return (
@@ -26,7 +26,7 @@ const ComplaintsHeader = React.memo<ComplaintsHeaderProps>(
         </button>
       </div>
     );
-  },
+  }
 );
 
 ComplaintsHeader.displayName = "ComplaintsHeader";

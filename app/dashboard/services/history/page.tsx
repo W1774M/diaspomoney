@@ -22,7 +22,7 @@ export default function HistoryServicesPage() {
       time: provider.availabilities?.[0]?.split("-")[0] || "14:30",
       location: provider.address || "En ligne",
       status: index === 2 ? "cancelled" : "completed",
-      rating: index === 2 ? null : provider.rating || 4.5,
+      rating: index === 2 ? null : 4.5,
       type: provider.specialty?.toLowerCase() || "professional",
       duration: "45 min",
       company: provider.company,

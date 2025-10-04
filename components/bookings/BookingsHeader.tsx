@@ -6,7 +6,7 @@ import Link from "next/link";
 import React from "react";
 
 const BookingsHeader = React.memo<BookingsHeaderProps>(function BookingsHeader({
-  onNewBooking,
+  onNewBooking: _onNewBooking,
 }) {
   return (
     <div className="mb-8">

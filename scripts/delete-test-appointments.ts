@@ -1,11 +1,11 @@
 import { connectDatabase } from "../config/database";
-import Appointment from "../models/Appointment";
+import Booking from "../models/Booking";
 
 async function deleteTestAppointments() {
   try {
     await connectDatabase();
 
-    const result = await Appointment.deleteMany({
+    const result = await Booking.deleteMany({
       "requester.email": "test@diaspomoney.com",
     });
 

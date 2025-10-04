@@ -4,7 +4,7 @@
 
 import {
   ApiGeoLocation,
-  IAppointment,
+  IBooking,
   IInvoice,
   IReview,
   ISpeciality,
@@ -183,7 +183,7 @@ export const MOCK_USERS: IUser[] = [
       "2025-01-15T11:00:00|2025-01-15T11:30:00",
       "2025-01-15T15:00:00|2025-01-15T15:30:00",
     ],
-    bookingsAsProvider: [],
+    bookingsAsProvider: [] as IBooking[],
     createdAt: new Date(),
     updatedAt: new Date(),
   },
@@ -463,7 +463,7 @@ export const MOCK_USERS: IUser[] = [
       "2025-01-15T10:00:00|2025-01-15T10:30:00",
       "2025-01-15T14:00:00|2025-01-15T14:30:00",
     ],
-    appointmentsAsProvider: [{ time: "10:00-10:30" } as IAppointment],
+    // Removed invalid property 'appointmentsAsProvider'
     clientNotes: "Notes client",
     avatar: {
       image: "/img/users/WhatsApp Image 2025-09-06 à 13.47.15_68fe173d.jpg",
@@ -630,7 +630,7 @@ export const MOCK_USERS: IUser[] = [
 // MOCK APPOINTMENTS
 // ============================================================================
 
-export const MOCK_APPOINTMENTS: IAppointment[] = [
+export const MOCK_APPOINTMENTS: IBooking[] = [
   {
     _id: "1",
     userId: "9",
@@ -1042,7 +1042,7 @@ export function findUserById(id: string): IUser | undefined {
   return MOCK_USERS.find(user => user._id === id);
 }
 
-export function findAppointmentById(id: string): IAppointment | undefined {
+export function findAppointmentById(id: string): IBooking | undefined {
   return MOCK_APPOINTMENTS.find(appointment => appointment._id === id);
 }
 
@@ -1059,7 +1059,7 @@ export function findInvoiceById(id: string): IInvoice | undefined {
   return MOCK_INVOICES.find(invoice => invoice._id === id);
 }
 
-export function getAppointmentsByUserId(userId: string): IAppointment[] {
+export function getAppointmentsByUserId(userId: string): IBooking[] {
   return MOCK_APPOINTMENTS.filter(appointment => appointment.userId === userId);
 }
 

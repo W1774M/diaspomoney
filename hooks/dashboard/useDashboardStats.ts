@@ -1,6 +1,6 @@
 "use client";
 
-import { useAppointments, useUsers } from "@/hooks";
+import { useBookings, useInvoices, useUsers } from "@/hooks";
 import { DashboardStats } from "@/types/dashboard";
 import { useMemo } from "react";
 
@@ -16,8 +16,15 @@ export function useDashboardStats({
   isCSM,
 }: UseDashboardStatsProps): DashboardStats {
   const { users = [], total: totalUsers } = useUsers({ limit: 1000 });
-  const { appointments = [], total: totalAppointments } = useAppointments({
+  const { bookings = [], total: totalBookings } = useBookings({
     limit: 1000,
+  });
+  const { total: totalInvoices } = useInvoices({
+    limit: 1000,
+    userId: userId || undefined,
+    isAdmin,
+    isProvider: false,
+    isCustomer: false,
   });
 
   return useMemo(() => {
@@ -25,21 +32,27 @@ export function useDashboardStats({
       return {
         users: totalUsers,
         customers: users.filter(u => u.roles.includes("CUSTOMER")).length,
-        providers: users.filter(u => u.roles.includes("PROVIDER")).length,
-        appointments: totalAppointments,
-        invoices: 42, // TODO: Implémenter useInvoices hook
-      };
-    } else {
-      return {
-        appointments: appointments.filter(a => a.userId === userId).length,
-        invoices: 5, // TODO: Implémenter useInvoices hook
+        providers: users.filter(
+          u =>
+            u.roles.includes("{PROVIDER:INSTITUTION}") ||
+            u.roles.includes("{PROVIDER:INDIVIDUAL}")
+        ).length,
+        bookings: totalBookings,
+        invoices: totalInvoices,
       };
     }
+
+    // Pour les utilisateurs non-admin
+    return {
+      bookings: bookings.filter(a => a.userId === userId).length,
+      invoices: totalInvoices,
+    };
   }, [
     users,
     totalUsers,
-    appointments,
-    totalAppointments,
+    bookings,
+    totalBookings,
+    totalInvoices,
     userId,
     isAdmin,
     isCSM,

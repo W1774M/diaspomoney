@@ -20,7 +20,7 @@ export default function UpcomingServicesPage() {
       location: provider.address || "En ligne",
       status: index === 0 ? "confirmed" : "pending",
       type: provider.specialty?.toLowerCase() || "professional",
-      rating: provider.rating || 4.5,
+      rating: 4.5,
       specialty: provider.specialty,
       company: provider.company,
     }));
