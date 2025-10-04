@@ -2,6 +2,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { SimplifiedRegisterForm } from "./SimplifiedRegisterForm";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -47,6 +48,13 @@ export function RegisterForm() {
     [searchParams]
   );
 
+  // Vérifier si c'est un flux d'inscription simplifiée post-paiement
+  const isSimplifiedRegistration = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const bookingData = localStorage.getItem("bookingData");
+    return !!bookingData;
+  }, []);
+
   useEffect(() => {
     if (!oauthEmail && !oauthName) return;
     const name = (oauthName || "").trim();
@@ -61,6 +69,11 @@ export function RegisterForm() {
   }, [oauthEmail, oauthName]);
 
   const totalSteps = 4;
+
+  // Si c'est une inscription simplifiée, utiliser le composant simplifié
+  if (isSimplifiedRegistration) {
+    return <SimplifiedRegisterForm />;
+  }
 
   // Données des villes par pays
   const cities = {

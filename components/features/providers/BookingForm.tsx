@@ -22,6 +22,7 @@ import {
   User,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { PopupRegisterForm } from "../auth/PopupRegisterForm";
 
 interface BookingFormProps {
   provider: {
@@ -67,8 +68,9 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
     "idle" | "validating" | "processing" | "success" | "error"
   >("idle");
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [showRegisterPopup, setShowRegisterPopup] = useState(false);
   const [expandedConsignes, setExpandedConsignes] = useState<Set<number>>(
-    new Set()
+    new Set(),
   );
   const [kycConsent, setKycConsent] = useState(false);
 
@@ -217,6 +219,44 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
     };
   }, [setValue, watchedValues.requester]);
 
+  // Fonction pour traiter le paiement après l'inscription
+  const processPaymentAfterRegistration = async (
+    data: BookingFormData,
+    token: string,
+    totalPrice: number,
+  ) => {
+    try {
+      setPaymentStatus("processing");
+
+      const paymentResult = await processPaymentWithStripe(token, totalPrice);
+
+      if (!paymentResult.success) {
+        setPaymentStatus("error");
+        setPaymentError(
+          paymentResult.error || "Erreur lors du traitement du paiement",
+        );
+        return;
+      }
+
+      setPaymentStatus("success");
+
+      // Attendre un peu pour montrer le succès
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Soumettre le formulaire avec les données de paiement
+      await onSubmit({
+        ...data,
+        paymentId: paymentResult.paymentId,
+      });
+
+      onClose();
+    } catch (error) {
+      console.error("Erreur lors du traitement du paiement:", error);
+      setPaymentStatus("error");
+      setPaymentError("Une erreur inattendue s'est produite");
+    }
+  };
+
   const handleFormSubmit = async (data: BookingFormData) => {
     setIsSubmitting(true);
     setPaymentError(null);
@@ -241,8 +281,83 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
         if (!validationResult.valid) {
           setPaymentStatus("error");
           setPaymentError(
-            validationResult.error || "Erreur de validation de la carte"
+            validationResult.error || "Erreur de validation de la carte",
           );
+          return;
+        }
+
+        // Si l'utilisateur n'est pas authentifié, sauvegarder les données de booking et ouvrir l'inscription dans une popup
+        if (!isAuthenticated) {
+          // Calculer le prix total
+          let basePrice = 0;
+          if (watchedValues.consultationMode === "video") {
+            // Pour les consultations vidéo, utiliser le prix du service "Consultation"
+            const consultationService = provider["services"]?.find(
+              (service: any) => service.name === "Consultation",
+            );
+            basePrice = consultationService?.price || provider["price"] || 0;
+          } else {
+            // Pour les autres cas, utiliser le service sélectionné ou le prix du provider
+            basePrice =
+              watchedValues.selectedService?.price || provider["price"] || 0;
+          }
+          const totalPrice = calculatePriceWithCommission(basePrice);
+
+          // Sauvegarder les données de booking dans localStorage
+          const bookingData = {
+            requester: data.requester,
+            recipient: data.recipient,
+            country: data.country,
+            address1: data.address1,
+            address2: data.address2,
+            postalCode: data.postalCode,
+            city: data.city,
+            timeslot: data.timeslot,
+            selectedService: data.selectedService,
+            consultationMode: data.consultationMode,
+            provider: {
+              id: provider._id,
+              name: provider.name,
+              specialty: provider.specialty,
+            },
+            totalPrice: totalPrice,
+          };
+
+          localStorage.setItem("bookingData", JSON.stringify(bookingData));
+
+          // Ouvrir l'inscription dans une popup
+          const popup = window.open(
+            "/register-popup",
+            "registerPopup",
+            "width=800,height=900,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no",
+          );
+
+          // Écouter les messages de la popup
+          const handleMessage = (event: MessageEvent) => {
+            if (event.data.type === "REGISTRATION_SUCCESS") {
+              // L'inscription a réussi, traiter le paiement
+              popup?.close();
+              window.removeEventListener("message", handleMessage);
+
+              // Traiter le paiement maintenant que l'utilisateur est inscrit
+              processPaymentAfterRegistration(
+                data,
+                validationResult.token!,
+                totalPrice,
+              );
+            }
+          };
+
+          window.addEventListener("message", handleMessage);
+
+          // Nettoyer l'écouteur si la popup est fermée manuellement
+          const checkClosed = setInterval(() => {
+            if (popup?.closed) {
+              window.removeEventListener("message", handleMessage);
+              clearInterval(checkClosed);
+            }
+          }, 1000);
+
           return;
         }
 
@@ -253,7 +368,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
         if (watchedValues.consultationMode === "video") {
           // Pour les consultations vidéo, utiliser le prix du service "Consultation"
           const consultationService = provider["services"]?.find(
-            (service: any) => service.name === "Consultation"
+            (service: any) => service.name === "Consultation",
           );
           basePrice = consultationService?.price || provider["price"] || 0;
         } else {
@@ -265,13 +380,13 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
 
         const paymentResult = await processPaymentWithStripe(
           validationResult.token!,
-          totalPrice
+          totalPrice,
         );
 
         if (!paymentResult.success) {
           setPaymentStatus("error");
           setPaymentError(
-            paymentResult.error || "Erreur lors du traitement du paiement"
+            paymentResult.error || "Erreur lors du traitement du paiement",
           );
           return;
         }
@@ -1515,10 +1630,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                   city: watchedValues.city,
                   isBillingDefault: watchedValues.isBillingDefault,
                 };
-                localStorage.setItem(
-                  "bookingFormData",
-                  JSON.stringify(formData)
-                );
+                localStorage.setItem("bookingData", JSON.stringify(formData));
                 window.location.href = "/login";
               }}
             >
@@ -1544,11 +1656,9 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                   city: watchedValues.city,
                   isBillingDefault: watchedValues.isBillingDefault,
                 };
-                localStorage.setItem(
-                  "bookingFormData",
-                  JSON.stringify(formData)
-                );
-                window.location.href = "/register";
+                localStorage.setItem("bookingData", JSON.stringify(formData));
+                // Ouvrir la popup d'inscription
+                setShowRegisterPopup(true);
               }}
             >
               Créer un compte
@@ -1687,7 +1797,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                     if (watchedValues.consultationMode === "video") {
                       // Chercher le service "Consultation" dans les services du provider
                       const consultationService = provider["services"]?.find(
-                        (service: any) => service.name === "Consultation"
+                        (service: any) => service.name === "Consultation",
                       );
                       return (
                         consultationService?.price || provider["price"] || 0
@@ -1712,7 +1822,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                     if (watchedValues.consultationMode === "video") {
                       // Pour les consultations vidéo, utiliser le prix du service "Consultation"
                       const consultationService = provider["services"]?.find(
-                        (service: any) => service.name === "Consultation"
+                        (service: any) => service.name === "Consultation",
                       );
                       basePrice =
                         consultationService?.price || provider["price"] || 0;
@@ -1729,7 +1839,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 </span>
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                (incl. commission DiaspoMoney 15%)
+                (incl. commission DiaspoMoney 20%)
               </div>
             </div>
           </div>
@@ -1964,7 +2074,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               {watchedValues.timeslot &&
                 (() => {
                   const [startIso, endIso] = String(
-                    watchedValues.timeslot
+                    watchedValues.timeslot,
                   ).split("|");
                   const formatTime = (iso?: string) =>
                     iso
@@ -1995,6 +2105,18 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           </div>
         </aside>
       </div>
+
+      {/* Popup d'inscription */}
+      {showRegisterPopup && (
+        <PopupRegisterForm
+          onClose={() => setShowRegisterPopup(false)}
+          onSuccess={() => {
+            // Après inscription réussie, continuer vers l'étape de paiement
+            setCurrentStep(7);
+            setShowRegisterPopup(false);
+          }}
+        />
+      )}
     </div>
   );
 }
