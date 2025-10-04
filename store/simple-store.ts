@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 // ============================================================================
 // ACTIONS
@@ -94,7 +93,10 @@ const themeReducer = (state: any, action: AppAction) => {
 const notificationReducer = (state: any, action: AppAction) => {
   switch (action.type) {
     case NOTIFICATION_ACTIONS.ADD:
-      const id = Math.random().toString(36).substring(7);
+      // Use a more stable ID generation to prevent hydration mismatches
+      const id = `notification-${Date.now()}-${Math.floor(
+        Math.random() * 1000
+      )}`;
       const newNotification = { ...action.payload, id };
       return {
         ...state,
@@ -162,52 +164,35 @@ interface AppState {
   dispatch: (action: AppAction) => void;
 }
 
-export const useSimpleStore = create<AppState>()(
-  persist(
-    (set, get) => ({
-      theme: "system",
-      notifications: [],
-      auth: {
-        isLoading: false,
-        error: null,
-        user: null,
-        isAuthenticated: false,
-      },
+export const useSimpleStore = create<AppState>()((set, get) => ({
+  theme: "system",
+  notifications: [],
+  auth: {
+    isLoading: false,
+    error: null,
+    user: null,
+    isAuthenticated: false,
+  },
 
-      dispatch: (action: AppAction) => {
-        const currentState = get();
+  dispatch: (action: AppAction) => {
+    const currentState = get();
 
-        // Apply the appropriate reducer based on action type
-        const sliceName = action.type.split("/")[0]?.toLowerCase();
-        if (!sliceName) return;
+    // Apply the appropriate reducer based on action type
+    const sliceName = action.type.split("/")[0]?.toLowerCase();
+    if (!sliceName) return;
 
-        if (sliceName === "theme") {
-          const newThemeState = themeReducer(currentState, action);
-          set({ theme: newThemeState.theme });
-        } else if (sliceName === "notification") {
-          const newNotificationState = notificationReducer(
-            currentState,
-            action
-          );
-          set({ notifications: newNotificationState.notifications });
-        } else if (sliceName === "auth") {
-          const newAuthState = authReducer(currentState.auth, action);
-          set({ auth: newAuthState });
-        }
-      },
-    }),
-    {
-      name: "diaspomoney-simple-store",
-      partialize: state => ({
-        theme: state.theme,
-        auth: {
-          user: state.auth.user,
-          isAuthenticated: state.auth.isAuthenticated,
-        },
-      }),
+    if (sliceName === "theme") {
+      const newThemeState = themeReducer(currentState, action);
+      set({ theme: newThemeState.theme });
+    } else if (sliceName === "notification") {
+      const newNotificationState = notificationReducer(currentState, action);
+      set({ notifications: newNotificationState.notifications });
+    } else if (sliceName === "auth") {
+      const newAuthState = authReducer(currentState.auth, action);
+      set({ auth: newAuthState });
     }
-  )
-);
+  },
+}));
 
 // ============================================================================
 // SELECTORS

@@ -4,12 +4,17 @@ import Logo from "@/components/ui/Logo";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { Menu, User } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export default function Header() {
-  const { user, signOut } = useAuth();
+function Header() {
+  const { user, signOut, isSigningOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleSignOut = () => {
     signOut();
@@ -36,15 +41,18 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             {/* Bouton "Transférer un service" - toujours visible */}
             <Link
-              href="/providers"
-              onClick={e => e.preventDefault()}
+              href="/services"
+              onClick={() => {
+                // Reset les filtres en naviguant vers /services sans paramètres
+                window.history.replaceState({}, "", "/services");
+              }}
               className="hidden md:inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,45%)] transition-colors"
             >
               Transférer un service
             </Link>
 
             {/* Menu utilisateur - visible seulement si connecté */}
-            {user ? (
+            {isClient && user ? (
               <div className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -77,14 +85,15 @@ export default function Header() {
                     </Link>
                     <button
                       onClick={handleSignOut}
-                      className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-[hsl(25,100%,53%)]"
+                      disabled={isSigningOut}
+                      className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-[hsl(25,100%,53%)] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Déconnexion
+                      {isSigningOut ? "Déconnexion..." : "Déconnexion"}
                     </button>
                   </div>
                 )}
               </div>
-            ) : (
+            ) : isClient ? (
               /* Bouton "Se connecter" - visible seulement si non connecté */
               <Link
                 href="/login"
@@ -93,7 +102,7 @@ export default function Header() {
                 <User className="h-4 w-4 mr-2 text-[hsl(25,100%,53%)]" />
                 Se connecter
               </Link>
-            )}
+            ) : null}
 
             {/* Menu mobile */}
             <button
@@ -109,7 +118,7 @@ export default function Header() {
         {isMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-700">
-              {user ? (
+              {isClient && user ? (
                 /* Menu mobile pour utilisateur connecté */
                 <>
                   <Link
@@ -134,9 +143,13 @@ export default function Header() {
                     Factures
                   </Link>
                   <Link
-                    href="/providers"
+                    href="/services"
                     className="block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700"
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      // Reset les filtres en naviguant vers /services sans paramètres
+                      window.history.replaceState({}, "", "/services");
+                    }}
                   >
                     Transférer un service
                   </Link>
@@ -152,18 +165,23 @@ export default function Header() {
                       handleSignOut();
                       setIsMenuOpen(false);
                     }}
-                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700"
+                    disabled={isSigningOut}
+                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Déconnexion
+                    {isSigningOut ? "Déconnexion..." : "Déconnexion"}
                   </button>
                 </>
-              ) : (
+              ) : isClient ? (
                 /* Menu mobile pour utilisateur non connecté */
                 <>
                   <Link
-                    href="/providers"
+                    href="/services"
                     className="block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700"
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      // Reset les filtres en naviguant vers /services sans paramètres
+                      window.history.replaceState({}, "", "/services");
+                    }}
                   >
                     Transférer un service
                   </Link>
@@ -175,7 +193,7 @@ export default function Header() {
                     Se connecter
                   </Link>
                 </>
-              )}
+              ) : null}
             </div>
           </div>
         )}
@@ -183,3 +201,5 @@ export default function Header() {
     </header>
   );
 }
+
+export default Header;

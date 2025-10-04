@@ -2,43 +2,63 @@
 // EMAIL SYSTEM (Version temporaire sans Resend)
 // ============================================================================
 
-import { AppointmentConfirmationTemplate, EmailVerificationTemplate, PasswordResetTemplate } from "@/template/EmailTemplate";
+import {
+  AppointmentConfirmationTemplate,
+  EmailVerificationTemplate,
+  PasswordResetTemplate,
+} from "@/template/EmailTemplate";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env["RESEND_API_KEY"]);
 const from = process.env["SMTP_USER"] ?? "no-reply@diaspomoney.fr";
-if (!from) {
-  throw new Error("SMTP_USER environment variable is not set");
+
+// Check if we have a valid Resend API key
+const hasValidApiKey =
+  process.env["RESEND_API_KEY"] &&
+  process.env["RESEND_API_KEY"] !== "your-resend-api-key-here";
+
+if (!hasValidApiKey) {
+  console.warn(
+    "[EMAIL] RESEND_API_KEY not configured. Email sending will be simulated."
+  );
 }
 
-export async function  sendEmailVerification(
+export async function sendEmailVerification(
   name: string,
   email: string,
-  verificationUrl: string,
+  verificationUrl: string
 ): Promise<boolean> {
-
   try {
-  const { subject, html } = EmailVerificationTemplate({
-    name,
-    verificationUrl,
-  });
+    const { subject, html } = EmailVerificationTemplate({
+      name,
+      verificationUrl,
+    });
 
-  const { data, error } = await resend.emails.send({
-    from,
-    to: email,
-    subject,
-    html,
-  });
-  if (error) {
-    console.error(`[EMAIL] Erreur lors de l'envoi de l'email:`, error);
-    return false;
-  }
-  console.log(`[EMAIL] Vérification envoyée à ${email}: ${verificationUrl}`);
-  console.log(`[EMAIL] Email envoyé avec succès: ${data}`);
-  
-  return true;
+    // If no valid API key, simulate email sending for development
+    if (!hasValidApiKey) {
+      console.log(
+        `[EMAIL] [SIMULATION] Vérification envoyée à ${email}: ${verificationUrl}`
+      );
+      console.log(`[EMAIL] [SIMULATION] Subject: ${subject}`);
+      return true;
+    }
+
+    const { data, error } = await resend.emails.send({
+      from,
+      to: email,
+      subject,
+      html,
+    });
+    if (error) {
+      console.error("[EMAIL] Erreur lors de l'envoi de l'email:", error);
+      return false;
+    }
+    console.log(`[EMAIL] Vérification envoyée à ${email}: ${verificationUrl}`);
+    console.log(`[EMAIL] Email envoyé avec succès: ${data}`);
+
+    return true;
   } catch (error) {
-    console.error(`[EMAIL] Erreur lors de l'envoi de l'email:`, error);
+    console.error("[EMAIL] Erreur lors de l'envoi de l'email:", error);
     return false;
   }
 }
@@ -68,11 +88,11 @@ export async function sendAppointmentConfirmation(
 ): Promise<boolean> {
   const { subject, html } = AppointmentConfirmationTemplate({
     name: "user",
-    appointmentDate,  
+    appointmentDate,
     providerName,
     serviceName,
     appointmentUrl,
-  });   
+  });
 
   await resend.emails.send({
     from,
@@ -84,7 +104,10 @@ export async function sendAppointmentConfirmation(
   return true;
 }
 
-export async function sendPasswordResetEmail(email: string, resetToken: string) {
+export async function sendPasswordResetEmail(
+  email: string,
+  resetToken: string
+) {
   const resetUrl = `${process.env["NEXTAUTH_URL"]}/reset-password?token=${resetToken}`;
 
   const { subject, html } = PasswordResetTemplate({ name: "user", resetUrl });

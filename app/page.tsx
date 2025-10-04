@@ -1,16 +1,4 @@
 "use client";
-import {
-  ArrowRight,
-  CheckCircle,
-  Clock,
-  CreditCard,
-  Home,
-  Hospital,
-  PhoneCall,
-  School,
-} from "lucide-react";
-
-import { ServicesButton } from "@/components/features/providers/services-button";
 import { useRouter } from "next/navigation";
 
 function Step({
@@ -37,11 +25,11 @@ function Step({
 export default function Homepage() {
   const router = useRouter();
 
-  function handleRedirect(path: string, serviceType?: string) {
+  function handleRedirect(serviceType?: string) {
     if (serviceType) {
-      router.push(`${path}?type=${serviceType}`);
+      router.push(`/services?type=${serviceType}`);
     } else {
-      router.push(path);
+      router.push("/services");
     }
   }
 
@@ -63,10 +51,9 @@ export default function Homepage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   className="bg-white text-black px-6 py-3 rounded-md font-semibold hover:bg-gray-100 transition flex items-center justify-center hover:cursor-pointer"
-                  // onClick={() => handleRedirect("provider")}
+                  onClick={() => handleRedirect()}
                 >
-                  Explorer les services
-                  <ArrowRight size={18} className="ml-2" />
+                  Explorer les services →
                 </button>
                 <button
                   className="bg-transparent border border-white text-white px-6 py-3 rounded-md font-semibold hover:bg-white hover:text-black transition hover:cursor-pointer"
@@ -86,39 +73,48 @@ export default function Homepage() {
                   Quel service souhaitez-vous transférer ?
                 </h3>
                 <div className="grid grid-cols-1 gap-4">
-                  <ServicesButton
-                    setActiveView={handleRedirect}
-                    label="provider"
-                    serviceType="sante"
-                    icon={<Hospital size={24} className="text-blue-600" />}
-                    title="Santé"
-                    description="Consultations, soins hospitaliers, médicaments"
-                    onClick={function (): void {
-                      throw new Error("Function not implemented.");
-                    }}
-                  />
-                  <ServicesButton
-                    setActiveView={handleRedirect}
-                    label="provider"
-                    serviceType="education"
-                    icon={<School size={24} className="text-blue-600" />}
-                    title="Éducation"
-                    description="Frais de scolarité, fournitures, formations"
-                    onClick={function (): void {
-                      throw new Error("Function not implemented.");
-                    }}
-                  />
-                  <ServicesButton
-                    setActiveView={handleRedirect}
-                    label="provider"
-                    serviceType="btp"
-                    icon={<Home size={24} className="text-blue-600" />}
-                    title="Immobilier & BTP"
-                    description="Construction, rénovation, achat de terrain"
-                    onClick={function (): void {
-                      throw new Error("Function not implemented.");
-                    }}
-                  />
+                  <div
+                    className="flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left cursor-pointer"
+                    onClick={() => handleRedirect("HEALTH")}
+                  >
+                    <div className="mr-4">
+                      <span className="text-blue-600 text-2xl">🏥</span>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Santé</h4>
+                      <p className="text-sm text-gray-600">
+                        Consultations, soins hospitaliers, médicaments
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className="flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left cursor-pointer"
+                    onClick={() => handleRedirect("EDU")}
+                  >
+                    <div className="mr-4">
+                      <span className="text-blue-600 text-2xl">🎓</span>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Éducation</h4>
+                      <p className="text-sm text-gray-600">
+                        Frais de scolarité, fournitures, formations
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className="flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left cursor-pointer"
+                    onClick={() => handleRedirect("IMMO")}
+                  >
+                    <div className="mr-4">
+                      <span className="text-blue-600 text-2xl">🏠</span>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Immobilier</h4>
+                      <p className="text-sm text-gray-600">
+                        Achat, location, gestion immobilière
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -163,7 +159,7 @@ export default function Homepage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-4">
-                <CheckCircle size={24} />
+                <span className="text-2xl">✅</span>
               </div>
               <h3 className="text-lg font-semibold mb-2">
                 Prestataires vérifiés
@@ -176,7 +172,7 @@ export default function Homepage() {
 
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
-                <CreditCard size={24} />
+                <span className="text-2xl">💳</span>
               </div>
               <h3 className="text-lg font-semibold mb-2">
                 Économies garanties
@@ -189,7 +185,7 @@ export default function Homepage() {
 
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mb-4">
-                <Clock size={24} />
+                <span className="text-2xl">⏰</span>
               </div>
               <h3 className="text-lg font-semibold mb-2">
                 Suivi en temps réel
@@ -202,7 +198,7 @@ export default function Homepage() {
 
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mb-4">
-                <PhoneCall size={24} />
+                <span className="text-2xl">📞</span>
               </div>
               <h3 className="text-lg font-semibold mb-2">Support local</h3>
               <p className="text-gray-600">

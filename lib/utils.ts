@@ -105,10 +105,13 @@ export function getPriorityColor(priority: string): string {
 }
 
 /**
- * Generate a unique ID
+ * Generate a unique ID (stable for hydration)
  */
 export function generateId(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  // Use a more stable approach to prevent hydration mismatches
+  const timestamp = Date.now().toString(36);
+  const random = Math.floor(Math.random() * 1000).toString(36);
+  return `${timestamp}-${random}`;
 }
 
 /**
@@ -168,7 +171,7 @@ export function slugify(str: string): string {
  */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   return (...args: Parameters<T>) => {
@@ -196,9 +199,9 @@ export function deepClone<T>(obj: T): T {
         try {
           // Use type assertion to avoid 'any' and lint errors
           (clonedObj as Record<string, unknown>)[key] = deepClone(
-            (obj as Record<string, unknown>)[key]
+            (obj as Record<string, unknown>)[key],
           );
-        } catch (error) {
+        } catch {
           // Handle circular references by setting to undefined
           (clonedObj as Record<string, unknown>)[key] = undefined;
         }

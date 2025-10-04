@@ -3,11 +3,12 @@
 import { ISpeciality } from "@/types";
 import { ArrowLeft, Building, Save } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function EditSpecialityPage() {
-  const params = useParams();
+  // const params = useParams();
+  const specialityId = "temp-speciality-id"; // TODO: Get from URL params
   const router = useRouter();
   const [speciality, setSpeciality] = useState<ISpeciality | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +21,7 @@ export default function EditSpecialityPage() {
   // Simuler la récupération des données
   useEffect(() => {
     const mockSpeciality: ISpeciality = {
-      _id: params["id"] as string,
+      _id: specialityId as string,
       name: "Cardiologie",
       description: "Spécialité médicale du cœur",
       group: "sante",
@@ -39,7 +40,7 @@ export default function EditSpecialityPage() {
       });
       setLoading(false);
     }, 500);
-  }, [params["id"]]);
+  }, [specialityId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +54,7 @@ export default function EditSpecialityPage() {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Rediriger vers la page de détail
-      params["id"] && router.push(`/dashboard/specialities/${params["id"]}`);
+      specialityId && router.push(`/dashboard/specialities/${specialityId}`);
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
       alert("Erreur lors de la mise à jour de la spécialité");

@@ -12,19 +12,20 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+// import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function UserDetailPage() {
-  const params = useParams();
+  // const params = useParams();
+  const userId = "temp-user-id"; // TODO: Get from URL params
   const [user, setUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Simuler des données pour l'exemple
   useEffect(() => {
     const mockUser: IUser = {
-      _id: params["id"] as string,
-      id: params["id"] as string,
+      _id: userId as string,
+      id: userId as string,
       price: 0,
       email: "jean.dupont@email.com",
       name: "Jean Dupont",
@@ -48,7 +49,7 @@ export default function UserDetailPage() {
     };
     setUser(mockUser);
     setLoading(false);
-  }, [params["id"]]);
+  }, [userId]);
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -318,8 +319,8 @@ export default function UserDetailPage() {
                   {user.preferences?.language === "fr"
                     ? "Français"
                     : user.preferences?.language === "en"
-                      ? "English"
-                      : "Español"}
+                    ? "English"
+                    : "Español"}
                 </p>
               </div>
               <div>

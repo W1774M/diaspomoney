@@ -2,25 +2,49 @@
 
 import { useAuth } from "@/hooks/auth/useAuth";
 import {
+  AlertTriangle,
   Building,
+  ChevronDown,
+  ChevronRight,
   Clock,
   Eye,
-  AlertTriangle,
   FileText,
   Home,
   LogOut,
+  Package,
   Settings,
   Users,
-  Package,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import Logo from "../ui/Logo";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { user, isAdmin, isProvider, isCSM, isAuthenticated, isCustomer, signOut } =
-    useAuth();
+  const {
+    user,
+    isAdmin,
+    isProvider,
+    isCSM,
+    isAuthenticated,
+    isCustomer,
+    signOut,
+    isSigningOut,
+  } = useAuth();
+  const [isBillingExpanded, setIsBillingExpanded] = useState(false);
+
+  // Ouvrir automatiquement la section facturation si on est sur une page de facturation
+  useEffect(() => {
+    const billingPaths = [
+      "/dashboard/invoices",
+      "/dashboard/quotes",
+      "/dashboard/payment-receipts",
+    ];
+    if (billingPaths.includes(pathname)) {
+      setIsBillingExpanded(true);
+    }
+  }, [pathname]);
 
   // Ne pas afficher la sidebar si l'utilisateur n'est pas connecté
   if (!isAuthenticated) {
@@ -28,11 +52,23 @@ export default function Sidebar() {
   }
 
   const navigation = [
-    { name: "Dashboard", key: "dashboard", href: "/dashboard", icon: Home, show: true },
-    { name: "Services", key: "services", href: "/dashboard/services", icon: Package, show: true },
     {
-      name: "Mes beneficiaires",
-      key: "beneficiaries",    
+      name: "Dashboard",
+      key: "dashboard",
+      href: "/dashboard",
+      icon: Home,
+      show: true,
+    },
+    {
+      name: "Services",
+      key: "services",
+      href: "/dashboard/services",
+      icon: Package,
+      show: true,
+    },
+    {
+      name: "Mes bénéficiaires",
+      key: "beneficiaries",
       href: "/dashboard/beneficiaries",
       icon: Users,
       show: isCustomer(),
@@ -40,6 +76,7 @@ export default function Sidebar() {
     {
       name: "Facturation",
       key: "billing",
+      icon: FileText,
       values: [
         {
           name: "Factures",
@@ -53,7 +90,7 @@ export default function Sidebar() {
           key: "quotes",
           href: "/dashboard/quotes",
           icon: FileText,
-          show: isCustomer(),
+          show: isCustomer() || isProvider(),
         },
         {
           name: "Bon de paiement",
@@ -91,11 +128,11 @@ export default function Sidebar() {
       key: "providers-contacts",
       href: "/dashboard/providers/contacts",
       icon: Eye,
-      show: isCSM(),
+      show: isCSM() || isAdmin(),
     },
     {
       name: "Réclamations",
-      key: "complaints",    
+      key: "complaints",
       href: "/dashboard/complaints",
       icon: AlertTriangle,
       show: true,
@@ -105,14 +142,17 @@ export default function Sidebar() {
   const visibleNavigation = navigation.filter(item => item.show);
 
   return (
-    <aside className="w-64 bg-white shadow-sm border-r min-h-screen">
+    <aside className="w-64 bg-white shadow-sm border-r min-h-screen flex flex-col">
       {/* Section utilisateur en haut */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-[hsl(25,100%,53%)] rounded-full flex items-center justify-center">
             {/* <User className="h-5 w-5 text-white" /> */}
             <Logo
-              src={user?.avatar?.image || "/img/Logo_Diaspo_Horizontal_enrichi.webp"}
+              src={
+                user?.avatar?.image ||
+                "/img/Logo_Diaspo_Horizontal_enrichi.webp"
+              }
               width={60}
               height={60}
               alt={user?.avatar?.name || user?.name || "Utilisateur"}
@@ -140,8 +180,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="p-6">
-        <div className="space-y-2">
+      <nav className="p-6 flex flex-col flex-1">
+        <div className="space-y-2 flex-1">
           {visibleNavigation.map(item => {
             // Si href est défini, afficher un lien
             if (item.href) {
@@ -161,36 +201,63 @@ export default function Sidebar() {
                 </Link>
               );
             }
-            // Sinon, si values est défini, afficher les sous-liens
+            // Sinon, si values est défini, afficher les sous-liens avec chevron
             if (item.values && Array.isArray(item.values)) {
               // Filtrer les sous-items visibles
-              const visibleSubItems = item.values.filter((subItem) => subItem.show);
+              const visibleSubItems = item.values.filter(
+                subItem => subItem.show
+              );
               if (visibleSubItems.length === 0) return null;
+
+              // Vérifier si un sous-item est actif
+              const hasActiveSubItem = visibleSubItems.some(
+                subItem => pathname === subItem.href
+              );
+
               return (
-                <div key={item.name} className="flex flex-col px-3 py-2 rounded-lg bg-gray-50">
-                  <div className="flex items-center mb-1">
-                    {/* item.icon n'existe pas sur ce type, donc on ne l'affiche pas */}
-                    <span className="text-gray-700 text-sm font-semibold">{item.name}</span>
-                  </div>
-                  <div className="flex flex-col ml-4">
-                    {visibleSubItems.map((subItem) => {
-                      const isActive = pathname === subItem.href;
-                      return (
-                        <Link
-                          key={subItem.key}
-                          href={subItem.href}
-                          className={`flex items-center px-2 py-1 rounded transition-colors text-sm ${
-                            isActive
-                              ? "text-gray-700 bg-[hsl(25,100%,53%)]/10"
-                              : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                          }`}
-                        >
-                          {subItem.icon && <subItem.icon className="h-4 w-4 mr-2" />}
-                          {subItem.name}
-                        </Link>
-                      );
-                    })}
-                  </div>
+                <div key={item.name} className="flex flex-col">
+                  <button
+                    onClick={() => setIsBillingExpanded(!isBillingExpanded)}
+                    className={`flex items-center justify-between w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                      hasActiveSubItem
+                        ? "text-gray-700 bg-[hsl(25,100%,53%)]/10"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      {item.icon && <item.icon className="h-5 w-5 mr-3" />}
+                      <span className="text-sm font-medium">{item.name}</span>
+                    </div>
+                    {isBillingExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-gray-500" />
+                    )}
+                  </button>
+
+                  {isBillingExpanded && (
+                    <div className="flex flex-col ml-4 mt-1">
+                      {visibleSubItems.map(subItem => {
+                        const isActive = pathname === subItem.href;
+                        return (
+                          <Link
+                            key={subItem.key}
+                            href={subItem.href}
+                            className={`flex items-center px-3 py-2 rounded-lg transition-colors text-sm ${
+                              isActive
+                                ? "text-gray-700 bg-[hsl(25,100%,53%)]/10"
+                                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                            }`}
+                          >
+                            {subItem.icon && (
+                              <subItem.icon className="h-4 w-4 mr-2" />
+                            )}
+                            {subItem.name}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             }
@@ -199,7 +266,8 @@ export default function Sidebar() {
           })}
         </div>
 
-        <div className="mt-8 pt-6 border-t border-gray-200 space-y-2">
+        {/* Section séparée pour les actions utilisateur en bas */}
+        <div className="pt-6 border-t border-gray-200 space-y-2">
           <Link
             href="/dashboard/settings"
             className="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg hover:text-gray-900"
@@ -210,10 +278,11 @@ export default function Sidebar() {
 
           <button
             onClick={signOut}
-            className="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg hover:text-gray-900 w-full"
+            disabled={isSigningOut}
+            className="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg hover:text-gray-900 w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <LogOut className="h-5 w-5 mr-3" />
-            Déconnexion
+            {isSigningOut ? "Déconnexion..." : "Déconnexion"}
           </button>
         </div>
       </nav>

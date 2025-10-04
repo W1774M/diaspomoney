@@ -12,31 +12,43 @@ import { CreditCard, Shield, TrendingUp, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export default function LoginPage() {
   const { data: appointmentData } = useAppointment();
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && appointmentData) {
-      router.push("/dashboard/appointments");
-    } else if (!isLoading && isAuthenticated) {
-      router.push("/dashboard");
+    // Redirige uniquement si l'utilisateur est authentifié et que le loading est terminé
+    if (!isLoading && isAuthenticated && !hasRedirected.current) {
+      // console.log("[Login] User authenticated, redirecting to dashboard");
+      hasRedirected.current = true;
+      // Délai pour éviter les conflits de redirection
+      setTimeout(() => {
+        if (appointmentData) {
+          router.replace("/dashboard/appointments");
+        } else {
+          router.replace("/dashboard");
+        }
+      }, 200);
     }
   }, [isAuthenticated, isLoading, appointmentData, router]);
 
   // Afficher un loader pendant la vérification
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        suppressHydrationWarning
+      >
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]"></div>
       </div>
     );
   }
 
-  // Rediriger si déjà connecté
+  // Rediriger si déjà connecté (sécurité supplémentaire)
   if (isAuthenticated) {
     return null;
   }

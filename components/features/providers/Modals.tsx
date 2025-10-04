@@ -1,5 +1,10 @@
 "use client";
-import { AppointmentData, IUser as Provider, Service } from "@/types";
+import {
+  AppointmentData,
+  IUser as Provider,
+  ProviderService,
+  Service,
+} from "@/types";
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 interface ModalSelectServiceProps {
@@ -176,8 +181,17 @@ export const ModalSelectService = ({
 
   // Gestionnaire pour la sélection d'un service
   const handleServiceSelect = useCallback(
-    (service: Service) => {
-      setAppointment({ ...appointment, selectedService: service });
+    (service: ProviderService) => {
+      // Convertir ProviderService en Service
+      const serviceForAppointment: Service = {
+        id: parseInt(service.id) || 0,
+        name: service.name,
+        price: service.price,
+      };
+      setAppointment({
+        ...appointment,
+        selectedService: serviceForAppointment,
+      });
       setCurrentStep("details");
     },
     [appointment, setAppointment]
@@ -319,7 +333,7 @@ export const ModalSelectService = ({
                 {appointment.provider.services &&
                 appointment.provider.services.length > 0
                   ? appointment.provider.services.map(
-                      (service: Service, index: number) => (
+                      (service: ProviderService, index: number) => (
                         <button
                           key={index}
                           onClick={() => handleServiceSelect(service)}

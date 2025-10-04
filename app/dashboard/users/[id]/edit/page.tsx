@@ -3,11 +3,12 @@
 import { IUser, USER_ROLES, USER_STATUSES } from "@/types";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function EditUserPage() {
-  const params = useParams();
+  // const params = useParams();
+  const userId = "temp-user-id"; // TODO: Get from URL params
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -33,9 +34,8 @@ export default function EditUserPage() {
   // Simuler des données pour l'exemple
   useEffect(() => {
     const mockUser: IUser = {
-      _id: params["id"] as string,
-      id: params["id"] as string,
-      price: 0,
+      _id: userId as string,
+      id: userId as string,
       email: "jean.dupont@email.com",
       name: "Jean Dupont",
       phone: "+33 1 23 45 67 89",
@@ -80,7 +80,7 @@ export default function EditUserPage() {
       },
     });
     setLoading(false);
-  }, [params["id"]]);
+  }, [userId]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -129,7 +129,7 @@ export default function EditUserPage() {
 
       console.log("Utilisateur mis à jour:", updatedUser);
       alert("Utilisateur mis à jour avec succès !");
-      params["id"] && router.push(`/dashboard/users/${params["id"]}`);
+      userId && router.push(`/dashboard/users/${userId}`);
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
       alert("Erreur lors de la mise à jour de l'utilisateur");
@@ -153,7 +153,7 @@ export default function EditUserPage() {
       <div className="mb-8">
         <div className="flex items-center mb-4">
           <Link
-            href={`/dashboard/users/${params["id"]}`}
+            href={`/dashboard/users/${userId}`}
             className="flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] mr-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -409,7 +409,7 @@ export default function EditUserPage() {
         {/* Actions */}
         <div className="flex justify-end space-x-4">
           <Link
-            href={`/dashboard/users/${params["id"]}`}
+            href={`/dashboard/users/${userId}`}
             className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Annuler

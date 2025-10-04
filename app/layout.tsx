@@ -1,12 +1,11 @@
 import {
   AppointmentProvider,
   AuthProvider,
-  ThemeProvider,
 } from "@/components/features/providers";
-import { NotificationContainer } from "@/components/ui/Notification";
+// import NotificationContainer from "@/components/ui/Notification";
 import "@/styles/globals.css";
 import DefaultTemplate from "@/template/DefaultTemplate";
-import type { Metadata } from "next";
+// import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 
@@ -20,10 +19,10 @@ const geistMono = Inter({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "Diaspomoney",
-  description: "Le lieu parfait pour acheter vos services pour la diaspora",
-};
+// export const metadata: Metadata = {
+//   title: "Diaspomoney",
+//   description: "Le lieu parfait pour acheter vos services pour la diaspora",
+// };
 
 export default function RootLayout({
   children,
@@ -62,10 +61,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         {/* End Google Tag Manager (noscript) */}
         <AuthProvider>
           <AppointmentProvider>
-            <ThemeProvider>
-              <DefaultTemplate>{children}</DefaultTemplate>
-              <NotificationContainer />
-            </ThemeProvider>
+            <DefaultTemplate>{children}</DefaultTemplate>
           </AppointmentProvider>
         </AuthProvider>
       </body>

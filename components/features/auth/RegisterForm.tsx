@@ -28,13 +28,24 @@ export function RegisterForm() {
     securityAnswer: "",
     termsAccepted: false,
     marketingConsent: false,
-    kycConsent: false,
   });
 
-  const oauthProvider = useMemo(() => searchParams?.get("oauth") || "", [searchParams]);
-  const oauthEmail = useMemo(() => searchParams?.get("email") || "", [searchParams]);
-  const oauthName = useMemo(() => searchParams?.get("name") || "", [searchParams]);
-  const oauthProviderAccountId = useMemo(() => searchParams?.get("providerAccountId") || "", [searchParams]);
+  const oauthProvider = useMemo(
+    () => searchParams?.get("oauth") || "",
+    [searchParams]
+  );
+  const oauthEmail = useMemo(
+    () => searchParams?.get("email") || "",
+    [searchParams]
+  );
+  const oauthName = useMemo(
+    () => searchParams?.get("name") || "",
+    [searchParams]
+  );
+  const oauthProviderAccountId = useMemo(
+    () => searchParams?.get("providerAccountId") || "",
+    [searchParams]
+  );
 
   useEffect(() => {
     if (!oauthEmail && !oauthName) return;
@@ -113,10 +124,7 @@ export function RegisterForm() {
         );
       case 3:
         if (oauthProvider) {
-          return (
-            formData.termsAccepted &&
-            formData.kycConsent
-          );
+          return formData.termsAccepted;
         }
         return (
           formData.password &&
@@ -124,8 +132,7 @@ export function RegisterForm() {
           formData.password === formData.confirmPassword &&
           formData.securityQuestion &&
           formData.securityAnswer &&
-          formData.termsAccepted &&
-          formData.kycConsent
+          formData.termsAccepted
         );
       default:
         return true;
@@ -165,7 +172,9 @@ export function RegisterForm() {
             }
           : undefined,
         // Si OAuth, on n'envoie pas le mot de passe
-        ...(oauthProvider ? { password: undefined, confirmPassword: undefined } : {}),
+        ...(oauthProvider
+          ? { password: undefined, confirmPassword: undefined }
+          : {}),
       };
 
       const res = await fetch("/api/auth/register", {
@@ -216,8 +225,8 @@ export function RegisterForm() {
                       step < currentStep
                         ? "bg-[hsl(23,100%,53%)] text-white"
                         : step === currentStep
-                          ? "bg-[hsl(41,86%,46%)] text-white scale-110"
-                          : "bg-gray-200 text-gray-600"
+                        ? "bg-[hsl(41,86%,46%)] text-white scale-110"
+                        : "bg-gray-200 text-gray-600"
                     }
                   `}
                   >
@@ -403,10 +412,12 @@ export function RegisterForm() {
                       <span className="text-red-500">*</span>
                     </label>
                     <p className="text-sm text-gray-500 mb-3">
-                      Sélectionnez au moins un service (choix multiples possibles)
+                      Sélectionnez au moins un service (choix multiples
+                      possibles)
                       {selectedServices.length > 0 && (
                         <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                          {selectedServices.length} sélectionné{selectedServices.length > 1 ? "s" : ""}
+                          {selectedServices.length} sélectionné
+                          {selectedServices.length > 1 ? "s" : ""}
                         </span>
                       )}
                     </p>
@@ -420,7 +431,9 @@ export function RegisterForm() {
                           label: "BTP/Immobilier",
                         },
                       ].map(service => {
-                        const isSelected = selectedServices.includes(service.id);
+                        const isSelected = selectedServices.includes(
+                          service.id
+                        );
                         return (
                           <div
                             key={service.id}
@@ -448,11 +461,17 @@ export function RegisterForm() {
                               </span>
                             )}
                             <div className="text-3xl mb-3">{service.icon}</div>
-                            <div className={`font-semibold ${isSelected ? "text-blue-700" : "text-gray-800"}`}>
+                            <div
+                              className={`font-semibold ${
+                                isSelected ? "text-blue-700" : "text-gray-800"
+                              }`}
+                            >
                               {service.label}
                             </div>
                             <div className="mt-2 text-xs text-gray-500">
-                              {isSelected ? "Sélectionné" : "Cliquer pour sélectionner"}
+                              {isSelected
+                                ? "Sélectionné"
+                                : "Cliquer pour sélectionner"}
                             </div>
                           </div>
                         );
@@ -528,7 +547,10 @@ export function RegisterForm() {
                             type={showConfirmPassword ? "text" : "password"}
                             value={formData.confirmPassword}
                             onChange={e =>
-                              handleInputChange("confirmPassword", e.target.value)
+                              handleInputChange(
+                                "confirmPassword",
+                                e.target.value
+                              )
                             }
                             className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
                             placeholder="••••••••"
@@ -561,7 +583,10 @@ export function RegisterForm() {
                         <select
                           value={formData.securityQuestion}
                           onChange={e =>
-                            handleInputChange("securityQuestion", e.target.value)
+                            handleInputChange(
+                              "securityQuestion",
+                              e.target.value
+                            )
                           }
                           className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
                         >
@@ -636,22 +661,6 @@ export function RegisterForm() {
                       <span className="text-sm text-gray-700">
                         Je souhaite recevoir des informations sur les nouveaux
                         services et promotions DiaspoMoney
-                      </span>
-                    </label>
-
-                    <label className="flex items-start space-x-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.kycConsent}
-                        onChange={e =>
-                          handleInputChange("kycConsent", e.target.checked)
-                        }
-                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700">
-                        J'autorise DiaspoMoney à vérifier mon identité dans le
-                        cadre de la réglementation KYC (Know Your Customer){" "}
-                        <span className="text-red-500">*</span>
                       </span>
                     </label>
                   </div>

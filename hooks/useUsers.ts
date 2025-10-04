@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { QueryOptimizer } from "@/lib/database/query-optimizer";
+import { useEffect, useState } from "react";
 
 export interface User {
   _id: string;
@@ -29,22 +30,15 @@ export const useUsers = (options: UseUsersOptions = {}) => {
     setError(null);
 
     try {
-      const searchParams = new URLSearchParams();
-      
-      if (options.role) searchParams.append("role", options.role);
-      if (options.status) searchParams.append("status", options.status);
-      if (options.limit) searchParams.append("limit", options.limit.toString());
-      if (options.offset) searchParams.append("offset", options.offset.toString());
+      // Utiliser QueryOptimizer avec cache
+      const filters = {
+        ...(options.role && { roles: { $in: [options.role] } }),
+        ...(options.status && { status: options.status }),
+      };
 
-      const response = await fetch(`/api/users?${searchParams.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error("Erreur lors de la récupération des utilisateurs");
-      }
-
-      const data = await response.json();
-      setUsers(data.data);
-      setTotal(data.total);
+      const result = await QueryOptimizer.getUsersList(filters);
+      setUsers(result || []);
+      setTotal(result?.length || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
@@ -61,6 +55,6 @@ export const useUsers = (options: UseUsersOptions = {}) => {
     loading,
     error,
     total,
-    refetch: fetchUsers
+    refetch: fetchUsers,
   };
 };

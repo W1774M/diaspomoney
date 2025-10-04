@@ -10,7 +10,7 @@ export {
 export { Form, FormDescription, FormField, FormLabel } from "./Form";
 export { Input } from "./Input";
 export { default as Logo } from "./Logo";
-export { NotificationContainer } from "./Notification";
+export { default as NotificationContainer } from "./Notification";
 export { PageTransition } from "./PageTransition";
 export { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 export { PhoneInput } from "./PhoneInput";

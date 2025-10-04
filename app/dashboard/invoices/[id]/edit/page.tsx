@@ -4,11 +4,12 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { IInvoice, INVOICE_STATUSES, InvoiceStatus } from "@/types";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function EditInvoicePage() {
-  const params = useParams();
+  // const params = useParams();
+  const invoiceId = "temp-id"; // TODO: Get from URL params
   const router = useRouter();
   const { isAdmin, isAuthenticated, isLoading, status } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -36,7 +37,7 @@ export default function EditInvoicePage() {
   // Simuler des données pour l'exemple
   useEffect(() => {
     const mockInvoice: IInvoice = {
-      _id: (Array.isArray(params["id"]) ? params["id"][0] : params["id"]) || "",
+      _id: invoiceId,
       invoiceNumber: "FACT-2024-001",
       customerId: "1",
       providerId: "4",
@@ -80,7 +81,7 @@ export default function EditInvoicePage() {
       items: mockInvoice.items,
     });
     setLoading(false);
-  }, [params["id"]]);
+  }, [invoiceId]);
 
   const handleInputChange = <K extends keyof typeof formData>(
     field: K,
@@ -178,7 +179,7 @@ export default function EditInvoicePage() {
 
       console.log("Facture mise à jour:", updatedInvoice);
       alert("Facture mise à jour avec succès !");
-      params["id"] && router.push(`/dashboard/invoices/${params["id"]}`);
+      invoiceId && router.push(`/dashboard/invoices/${invoiceId}`);
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
       alert("Erreur lors de la mise à jour de la facture");
@@ -248,7 +249,7 @@ export default function EditInvoicePage() {
       <div className="mb-8">
         <div className="flex items-center mb-4">
           <Link
-            href={`/dashboard/invoices/${params["id"]}`}
+            href={`/dashboard/invoices/${invoiceId}`}
             className="flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] mr-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -529,7 +530,7 @@ export default function EditInvoicePage() {
         {/* Actions */}
         <div className="flex justify-end space-x-4">
           <Link
-            href={`/dashboard/invoices/${params["id"]}`}
+            href={`/dashboard/invoices/${invoiceId}`}
             className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Annuler

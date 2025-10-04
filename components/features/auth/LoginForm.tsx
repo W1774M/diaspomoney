@@ -13,13 +13,12 @@ import {
   FormLabel,
   Input,
 } from "@/components/ui";
+import { useNotificationManager } from "@/components/ui/Notification";
+import { useLogin } from "@/hooks";
 import { useForm } from "@/hooks/forms/useForm";
 import { loginSchema, type LoginFormData } from "@/lib/validations";
-import { useLogin } from "@/hooks";
-import { useNotificationManager } from "@/components/ui/Notification";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 // Custom hook for URL status handling
@@ -36,7 +35,7 @@ const useUrlStatus = () => {
 };
 
 export function LoginForm() {
-  const router = useRouter();
+  // const router = useRouter();
   const { login, isLoading: isLoggingIn } = useLogin();
   const { addInfo, addError } = useNotificationManager();
   const urlStatus = useUrlStatus();
@@ -68,17 +67,11 @@ export function LoginForm() {
     },
   });
 
-  useEffect(() => {
-    const session = typeof window !== "undefined" ? localStorage.getItem("user-session") : null;
-    if (session) {
-      router.push("/dashboard");
-    }
-  }, [router]);
+  // NextAuth gère désormais la session via cookies; aucun contrôle localStorage nécessaire
 
   const onSubmit = async (data: LoginFormData) => {
     await login(data);
   };
-
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -113,10 +106,20 @@ export function LoginForm() {
                 <button
                   type="button"
                   tabIndex={-1}
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={
+                    showPassword
+                      ? "Masquer le mot de passe"
+                      : "Afficher le mot de passe"
+                  }
+                  onClick={() => setShowPassword(v => !v)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none"
-                  style={{ background: "none", border: "none", padding: 0, margin: 0, lineHeight: 0 }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    margin: 0,
+                    lineHeight: 0,
+                  }}
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -350,7 +353,7 @@ export function LoginForm() {
             </Button>
 
             {/* Test buttons for different account statuses */}
-            {process.env.NODE_ENV === "test" && (
+            {process.env["NODE_ENV"] === "test" && (
               <div className="mt-4 space-y-2">
                 <Button
                   type="button"
