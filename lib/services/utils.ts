@@ -95,7 +95,7 @@ export function getAvailabilityStatus(
  */
 export function calculatePriceWithCommission(
   basePrice: number,
-  commissionRate: number = 0.15
+  commissionRate: number = 0.2
 ): number {
   return Math.round(basePrice * (1 + commissionRate));
 }
@@ -105,7 +105,7 @@ export function calculatePriceWithCommission(
  */
 export function getCommissionAmount(
   basePrice: number,
-  commissionRate: number = 0.15
+  commissionRate: number = 0.2
 ): number {
   return Math.round(basePrice * commissionRate);
 }

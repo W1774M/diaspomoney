@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { mongoClient } from "@/lib/mongodb";
 import { sendEmailVerification } from "@/lib/email";
+import { mongoClient } from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,24 +25,33 @@ export async function POST(request: NextRequest) {
       marketingConsent,
       kycConsent,
       oauth,
+      isSimplifiedRegistration,
     } = await request.json();
 
     // Validation des données
-    if (
-      !firstName ||
-      !lastName ||
-      !email ||
-      (!oauth && !password) ||
-      !phone ||
-      !dateOfBirth ||
-      !countryOfResidence ||
-      !targetCountry ||
-      !targetCity ||
-      !selectedServices ||
-      (!oauth && (!securityQuestion || !securityAnswer)) ||
-      !termsAccepted ||
-      !kycConsent
-    ) {
+    const requiredFields = [
+      !firstName,
+      !lastName,
+      !email,
+      !oauth && !password,
+      !phone,
+      !countryOfResidence,
+      !oauth && (!securityQuestion || !securityAnswer),
+      !termsAccepted,
+    ];
+
+    // Pour l'inscription simplifiée, les champs de destination et services ne sont pas obligatoires
+    if (!isSimplifiedRegistration) {
+      requiredFields.push(
+        !dateOfBirth,
+        !targetCountry,
+        !targetCity,
+        !selectedServices,
+        !kycConsent
+      );
+    }
+
+    if (requiredFields.some(field => field)) {
       return NextResponse.json(
         { error: "Tous les champs obligatoires doivent être remplis" },
         { status: 400 }
@@ -57,19 +66,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérification de l'âge (18 ans minimum)
-    const birthDate = new Date(dateOfBirth);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    if (age < 18) {
-      return NextResponse.json(
-        { error: "Vous devez avoir au moins 18 ans pour créer un compte" },
-        { status: 400 }
-      );
+    // Vérification de l'âge (18 ans minimum) - seulement si dateOfBirth est fournie
+    if (dateOfBirth) {
+      const birthDate = new Date(dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      if (age < 18) {
+        return NextResponse.json(
+          { error: "Vous devez avoir au moins 18 ans pour créer un compte" },
+          { status: 400 }
+        );
+      }
     }
 
     // Connexion à la base de données
@@ -78,8 +89,8 @@ export async function POST(request: NextRequest) {
     const usersCollection = db.collection("users");
 
     // Vérification si l'utilisateur existe déjà
-    const existingUser = await usersCollection.findOne({ 
-      email: email.toLowerCase() 
+    const existingUser = await usersCollection.findOne({
+      email: email.toLowerCase(),
     });
 
     if (existingUser) {
@@ -91,7 +102,9 @@ export async function POST(request: NextRequest) {
 
     // Hachage du mot de passe
     const saltRounds = 12;
-    const hashedPassword = password ? await bcrypt.hash(password, saltRounds) : undefined;
+    const hashedPassword = password
+      ? await bcrypt.hash(password, saltRounds)
+      : undefined;
 
     // Création du nouvel utilisateur
     const newUser: any = {
@@ -100,16 +113,16 @@ export async function POST(request: NextRequest) {
       email: email.toLowerCase(),
       ...(hashedPassword ? { password: hashedPassword } : {}),
       phone,
-      dateOfBirth: new Date(dateOfBirth),
+      ...(dateOfBirth ? { dateOfBirth: new Date(dateOfBirth) } : {}),
       countryOfResidence,
-      targetCountry,
-      targetCity,
-      selectedServices,
-      monthlyBudget: monthlyBudget || null,
+      ...(targetCountry ? { targetCountry } : {}),
+      ...(targetCity ? { targetCity } : {}),
+      ...(selectedServices ? { selectedServices } : {}),
+      ...(monthlyBudget ? { monthlyBudget } : {}),
       securityQuestion,
       securityAnswer: await bcrypt.hash(securityAnswer, saltRounds),
       marketingConsent: marketingConsent || false,
-      kycConsent,
+      ...(kycConsent ? { kycConsent } : {}),
       roles: ["CUSTOMER"], // Rôle par défaut pour les nouveaux utilisateurs
       status: oauth ? "ACTIVE" : "PENDING", // Activer directement si OAuth
       isEmailVerified: !!oauth,
@@ -129,8 +142,10 @@ export async function POST(request: NextRequest) {
     // Génération du token de vérification email (sauf OAuth)
     const userWithToken = (() => {
       if (oauth) return newUser;
-      const emailVerificationToken = crypto.randomBytes(32).toString('hex');
-      const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const emailVerificationToken = crypto.randomBytes(32).toString("hex");
+      const emailVerificationExpires = new Date(
+        Date.now() + 24 * 60 * 60 * 1000
+      );
       return {
         ...newUser,
         emailVerificationToken,
@@ -145,11 +160,20 @@ export async function POST(request: NextRequest) {
     // Envoi de l'email de vérification uniquement hors OAuth
     if (!oauth) {
       try {
-        const verificationUrl = `${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/verify-email?token=${(userWithToken as any).emailVerificationToken}`;
-        await sendEmailVerification(`${firstName} ${lastName}`, email, verificationUrl);
+        const verificationUrl = `${
+          process.env["NEXTAUTH_URL"] || "http://localhost:3000"
+        }/verify-email?token=${(userWithToken as any).emailVerificationToken}`;
+        await sendEmailVerification(
+          `${firstName} ${lastName}`,
+          email,
+          verificationUrl
+        );
         console.log(`[REGISTER] Email de vérification envoyé à ${email}`);
       } catch (emailError) {
-        console.error("[REGISTER] Erreur lors de l'envoi de l'email:", emailError);
+        console.error(
+          "[REGISTER] Erreur lors de l'envoi de l'email:",
+          emailError
+        );
         // On continue même si l'email échoue, l'utilisateur est créé
       }
     }
@@ -179,7 +203,9 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         user: userResponse,
-        message: oauth
+        message: isSimplifiedRegistration
+          ? "Compte créé avec succès ! Votre réservation est confirmée."
+          : oauth
           ? "Compte créé et activé via OAuth. Bienvenue !"
           : "Compte créé avec succès. Un email de vérification a été envoyé à votre adresse email.",
       },
