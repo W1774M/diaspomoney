@@ -15,11 +15,7 @@ export type UserRole =
   | "CSM";
 export type UserStatus = "ACTIVE" | "INACTIVE" | "PENDING" | "SUSPENDED";
 export type InvoiceStatus = "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED";
-export type AppointmentStatus =
-  | "pending"
-  | "confirmed"
-  | "cancelled"
-  | "completed";
+export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 export type ProviderGroup = "sante" | "edu" | "immo";
 export type ProviderCategory = "HEALTH" | "IMMO" | "EDU";
@@ -54,7 +50,7 @@ export interface ProviderService {
 // ENUM CONSTANTS
 // ============================================================================
 
-export const APPOINTMENT_STATUSES = [
+export const BOOKING_STATUSES = [
   { value: "pending", label: "En attente" },
   { value: "confirmed", label: "Confirmé" },
   { value: "cancelled", label: "Annulé" },
@@ -297,7 +293,7 @@ export interface IUser extends BaseDocument {
   distance?: string;
   availabilities?: string[];
   comparePassword?(candidatePassword: string): Promise<boolean>;
-  appointmentsAsProvider?: IAppointment[];
+  bookingsAsProvider?: IBooking[];
 }
 
 // User input types
@@ -338,16 +334,16 @@ export interface CreateUserInput {
 export type UpdateUserInput = Partial<CreateUserInput>;
 
 // ============================================================================
-// APPOINTMENT INTERFACES
+// BOOKING INTERFACES
 // ============================================================================
 
-export interface IAppointment extends BaseDocument {
+export interface IBooking extends BaseDocument {
   userId: string;
   providerId: string;
   serviceId: string;
   date: Date;
   time: string;
-  status: AppointmentStatus;
+  status: BookingStatus;
   notes?: string;
   price: number;
   paymentStatus: PaymentStatus;
@@ -356,7 +352,7 @@ export interface IAppointment extends BaseDocument {
   cancellationReason?: string;
   cancelledAt?: Date;
   cancelledBy?: string;
-  // Legacy Appointment fields
+  // Legacy Booking fields
   reservationNumber?: string;
   requester?: {
     firstName: string;
@@ -758,7 +754,7 @@ export interface AppointmentListItem {
     price: number;
   } | null;
   timeslot: string;
-  status: AppointmentStatus;
+  status: BookingStatus;
   paymentStatus: PaymentStatus;
   totalAmount: number;
   createdAt: string;
@@ -965,4 +961,39 @@ export interface AvailabilityRule {
   startDate?: string; // For monthly/custom rules
   endDate?: string; // For monthly/custom rules
   timeSlots: TimeSlot[];
+}
+
+// ============================================================================
+// BOOKING LIST ITEM INTERFACES
+// ============================================================================
+
+export interface BookingListItem {
+  _id: string;
+  userId: string;
+  providerId: string;
+  date: Date;
+  status: string;
+  paymentStatus: string;
+  reservationNumber: string;
+  totalAmount: number;
+  requester: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  provider: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UseBookingsReturn {
+  bookings: BookingListItem[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => void;
 }

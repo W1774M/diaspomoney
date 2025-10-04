@@ -1,3 +1,4 @@
+/* eslint-disable import/no-anonymous-default-export */
 import { FlatCompat } from "@eslint/eslintrc";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -12,6 +13,9 @@ const compat = new FlatCompat({
 });
 
 export default [
+  {
+    ignores: ["node_modules/**", ".next/**", "out/**", "dist/**", "build/**"],
+  },
   ...compat.extends("next/core-web-vitals"),
   {
     files: ["**/*.{js,jsx,ts,tsx}"],

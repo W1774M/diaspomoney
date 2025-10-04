@@ -23,9 +23,13 @@ export function useAppointment() {
 
 interface AppointmentProviderProps {
   children: React.ReactNode;
+  data?: AppointmentData;
 }
 
-export function AppointmentProvider({ children }: AppointmentProviderProps) {
+export function AppointmentProvider({
+  children,
+  data: _data,
+}: AppointmentProviderProps) {
   const [data, setData] = useState<AppointmentData | null>(null);
 
   return (
