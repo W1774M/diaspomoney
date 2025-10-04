@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import CarouselFooter from "./carousel-footer";
+// import CarouselFooter from "./carousel-footer";
 
 const FooterLinks = ({
   links,
@@ -139,7 +139,10 @@ const FooterComponent = () => {
             </h4>
             <ul className="space-y-2">
               <li>
-                <CarouselFooter />
+                {/* <CarouselFooter /> */}
+                <div className="text-center text-gray-400">
+                  Cameroun – Côte d'Ivoire – Sénégal…
+                </div>
               </li>
               <li className="text-center">
                 Cameroun – Côte d’Ivoire – Sénégal…

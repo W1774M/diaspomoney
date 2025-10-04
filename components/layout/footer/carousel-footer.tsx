@@ -6,7 +6,7 @@ import { useState } from "react";
 
 const VISIBLE_COUNT = 3; // On veut voir 2 images à la fois
 
-const CarouselFooter = () => {
+function CarouselFooter() {
   // On commence à 2 pour être sur les vraies images (visibles)
   const [currentIndex, setCurrentIndex] = useState(VISIBLE_COUNT);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -92,6 +92,6 @@ const CarouselFooter = () => {
       </button>
     </div>
   );
-};
+}
 
 export default CarouselFooter;

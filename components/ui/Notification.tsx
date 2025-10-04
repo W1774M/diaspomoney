@@ -25,7 +25,7 @@ const notificationStyles: Record<NotificationType, string> = {
   info: "bg-blue-500 text-white",
 };
 
-export function NotificationContainer() {
+export default function NotificationContainer() {
   const notifications = useNotifications();
   const dispatch = useDispatch();
 
@@ -103,7 +103,7 @@ export const useNotificationManager = () => {
           type: "success",
           message,
           duration,
-        })
+        }),
       );
     },
 
@@ -113,7 +113,7 @@ export const useNotificationManager = () => {
           type: "error",
           message,
           duration,
-        })
+        }),
       );
     },
 
@@ -123,7 +123,7 @@ export const useNotificationManager = () => {
           type: "warning",
           message,
           duration,
-        })
+        }),
       );
     },
 
@@ -133,7 +133,7 @@ export const useNotificationManager = () => {
           type: "info",
           message,
           duration,
-        })
+        }),
       );
     },
   };

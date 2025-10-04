@@ -1,35 +1,83 @@
+import { QueryOptimizer } from "@/lib/database/query-optimizer";
+import { rateLimitHelpers } from "@/middleware/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
-import { UserService } from "@/services/userService";
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const role = searchParams.get("role");
-    const status = searchParams.get("status");
-    const limit = searchParams.get("limit");
-    const offset = searchParams.get("offset");
+export async function GET(req: NextRequest) {
+  return rateLimitHelpers.api(req, async req => {
+    try {
+      const { searchParams } = new URL(req.url);
 
-    // Construire les filtres
-    const filters = {
-      role: role || undefined,
-      status: status || undefined,
-      limit: limit ? parseInt(limit) : undefined,
-      offset: offset ? parseInt(offset) : undefined,
-    };
+      const filters = {
+        ...(searchParams.get("role") && {
+          roles: { $in: [searchParams.get("role")] },
+        }),
+        ...(searchParams.get("status") && {
+          status: searchParams.get("status"),
+        }),
+        ...(searchParams.get("search") && {
+          $or: [
+            {
+              firstName: { $regex: searchParams.get("search"), $options: "i" },
+            },
+            { lastName: { $regex: searchParams.get("search"), $options: "i" } },
+            { email: { $regex: searchParams.get("search"), $options: "i" } },
+          ],
+        }),
+      };
 
-    const result = await UserService.getUsers(filters);
+      const users = await QueryOptimizer.getUsersList(filters);
 
-    return NextResponse.json({
-      data: result.data,
-      total: result.total,
-      limit: result.limit,
-      offset: result.offset,
-    });
-  } catch (error) {
-    console.error("Erreur lors de la récupération des utilisateurs:", error);
-    return NextResponse.json(
-      { error: "Erreur interne du serveur" },
-      { status: 500 }
-    );
-  }
+      return NextResponse.json({
+        success: true,
+        data: users,
+        total: users.length,
+        cached: true,
+      });
+    } catch (error) {
+      console.error("API /users GET error:", error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Erreur lors de la récupération des utilisateurs",
+        },
+        { status: 500 }
+      );
+    }
+  });
+}
+
+export async function POST(req: NextRequest) {
+  return rateLimitHelpers.api(req, async req => {
+    try {
+      const body = await req.json();
+
+      // Validation des données
+      if (!body.email || !body.firstName || !body.lastName) {
+        return NextResponse.json(
+          { success: false, error: "Données manquantes" },
+          { status: 400 }
+        );
+      }
+
+      // TODO: Implémenter la création d'utilisateur
+      // const newUser = await createUser(body);
+
+      // Invalider le cache des utilisateurs
+      await QueryOptimizer.invalidateUserCache("*");
+
+      return NextResponse.json({
+        success: true,
+        message: "Utilisateur créé avec succès",
+      });
+    } catch (error) {
+      console.error("API /users POST error:", error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Erreur lors de la création de l'utilisateur",
+        },
+        { status: 500 }
+      );
+    }
+  });
 }

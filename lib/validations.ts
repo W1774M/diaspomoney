@@ -203,6 +203,92 @@ export const appointmentSchema = z.object({
       price: z.number().positive(),
     })
     .nullable(),
+  // Champs additionnels pour le flux institution/individuel
+  consultationMode: z.enum(["video", "cabinet"] as const).optional(),
+  hasConsultedBefore: z.boolean().optional(),
+  // Champs d'adresse de facturation
+  country: z
+    .string()
+    .min(1, "Le pays est requis")
+    .min(2, "Le pays doit contenir au moins 2 caractères")
+    .max(50, "Le pays est trop long")
+    .transform(sanitizeString)
+    .refine(name => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Nom de pays invalide"),
+  address1: z
+    .string()
+    .min(1, "L'adresse 1 est requise")
+    .min(5, "L'adresse doit contenir au moins 5 caractères")
+    .max(100, "L'adresse est trop longue")
+    .transform(sanitizeString),
+  address2: z
+    .string()
+    .max(100, "L'adresse 2 est trop longue")
+    .transform(sanitizeString)
+    .optional(),
+  postalCode: z
+    .string()
+    .min(1, "Le code postal est requis")
+    .min(4, "Le code postal doit contenir au moins 4 caractères")
+    .max(10, "Le code postal est trop long")
+    .transform(sanitizeString)
+    .refine(code => /^[0-9A-Za-z\s-]+$/.test(code), "Code postal invalide"),
+  city: z
+    .string()
+    .min(1, "La ville est requise")
+    .min(2, "La ville doit contenir au moins 2 caractères")
+    .max(50, "La ville est trop longue")
+    .transform(sanitizeString)
+    .refine(name => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Nom de ville invalide"),
+  isBillingDefault: z.boolean().optional(),
+  // Champs de paiement
+  cardNumber: z
+    .string()
+    .min(1, "Le numéro de carte est requis")
+    .transform(card => card.replace(/\D/g, ""))
+    .refine(card => {
+      // Algorithme de Luhn pour valider le numéro de carte
+      let sum = 0;
+      let isEven = false;
+      for (let i = card.length - 1; i >= 0; i--) {
+        let digit = parseInt(card[i] || "0");
+        if (isEven) {
+          digit *= 2;
+          if (digit > 9) digit -= 9;
+        }
+        sum += digit;
+        isEven = !isEven;
+      }
+      return sum % 10 === 0;
+    }, "Numéro de carte invalide"),
+  expiryDate: z
+    .string()
+    .min(1, "La date d'expiration est requise")
+    .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, "Format de date invalide (MM/AA)")
+    .refine((date: string) => {
+      if (!date) return false;
+      const [month, year] = date.split("/");
+      if (!month || !year) return false;
+      const monthNum = parseInt(month, 10);
+      const yearNum = parseInt(year, 10);
+      if (isNaN(monthNum) || isNaN(yearNum)) return false;
+      // Set expiry to the last day of the month at 23:59:59
+      const expiry = new Date(2000 + yearNum, monthNum, 0, 23, 59, 59, 999);
+      const now = new Date();
+      return expiry > now;
+    }, "La carte a expiré"),
+  cvv: z
+    .string()
+    .min(1, "Le CVV est requis")
+    .regex(/^\d{3,4}$/, "CVV invalide"),
+  cardholderName: z
+    .string()
+    .min(1, "Le nom du titulaire est requis")
+    .min(2, "Le nom doit contenir au moins 2 caractères")
+    .max(50, "Le nom est trop long")
+    .transform(sanitizeString)
+    .refine(name => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Nom invalide"),
+  // Champ optionnel pour l'ID de paiement
+  paymentId: z.string().optional(),
 });
 
 export const paymentSchema = z.object({

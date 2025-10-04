@@ -1,6 +1,5 @@
 "use client";
 
-import { useAuth } from "@/hooks/auth/useAuth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -9,51 +8,41 @@ export default function AppointmentDetailPage({
 }: {
   params: { id: string };
 }) {
-  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [appointment, setAppointment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Authentication is handled by the layout, no need to check here
+
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login");
-      return;
-    }
+    // Récupérer l'appointment depuis l'API
+    const fetchAppointment = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/appointments/${params.id}`);
 
-    if (isAuthenticated) {
-      // Récupérer l'appointment depuis l'API
-      const fetchAppointment = async () => {
-        try {
-          setLoading(true);
-          const response = await fetch(`/api/appointments/${params.id}`);
-          
-          if (response.ok) {
-            const data = await response.json();
-            setAppointment(data.appointment);
-          } else {
-            console.error("Erreur lors de la récupération du rendez-vous");
-          }
-        } catch (error) {
-          console.error("Erreur lors de la récupération du rendez-vous:", error);
-        } finally {
-          setLoading(false);
+        if (response.ok) {
+          const data = await response.json();
+          setAppointment(data.appointment);
+        } else {
+          console.error("Erreur lors de la récupération du rendez-vous");
         }
-      };
+      } catch (error) {
+        console.error("Erreur lors de la récupération du rendez-vous:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      fetchAppointment();
-    }
-  }, [params.id, isAuthenticated, isLoading, router]);
+    fetchAppointment();
+  }, [params.id]);
 
-  if (isLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
   }
 
   if (!appointment) {

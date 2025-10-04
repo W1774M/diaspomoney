@@ -1,12 +1,18 @@
 // ============================================================================
-// TYPES DE BASE
+// BASE TYPES
 // ============================================================================
 
 export type Theme = "light" | "dark" | "system";
 export type NotificationType = "success" | "error" | "info" | "warning";
 
-// Types d'énumération
-export type UserRole = "ADMIN" | "PROVIDER" | "CUSTOMER" | "CSM";
+// Enum types
+export type UserRole =
+  | "ADMIN"
+  | "PROVIDER"
+  | "{PROVIDER:INSTITUTION}"
+  | "{PROVIDER:INDIVIDUAL}"
+  | "CUSTOMER"
+  | "CSM";
 export type UserStatus = "ACTIVE" | "INACTIVE" | "PENDING" | "SUSPENDED";
 export type InvoiceStatus = "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED";
 export type AppointmentStatus =
@@ -16,9 +22,36 @@ export type AppointmentStatus =
   | "completed";
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 export type ProviderGroup = "sante" | "edu" | "immo";
+export type ProviderCategory = "HEALTH" | "IMMO" | "EDU";
+
+// Address types
+export interface Address {
+  id?: string;
+  country: string;
+  address1: string;
+  address2?: string;
+  postalCode: string;
+  city: string;
+  isDefault?: boolean;
+  isBillingDefault?: boolean;
+}
+
+export interface UserAddresses {
+  addresses: Address[];
+  defaultBillingAddress?: string; // Default billing address ID
+}
+
+// Provider service interface
+export interface ProviderService {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+  isVideoAvailable?: boolean;
+}
 
 // ============================================================================
-// CONSTANTES D'ÉNUMÉRATION
+// ENUM CONSTANTS
 // ============================================================================
 
 export const APPOINTMENT_STATUSES = [
@@ -79,7 +112,7 @@ export const USER_STATUSES = [
 ] as const;
 
 // ============================================================================
-// INTERFACES DE BASE
+// BASE INTERFACES
 // ============================================================================
 
 export interface BaseDocument {
@@ -89,7 +122,7 @@ export interface BaseDocument {
 }
 
 // ============================================================================
-// INTERFACES API
+// API INTERFACES
 // ============================================================================
 
 export interface ApiResponse<T> {
@@ -113,7 +146,7 @@ export interface PaginatedResponse<T> {
 }
 
 // ============================================================================
-// INTERFACES STORE (ZUSTAND)
+// STORE INTERFACES (ZUSTAND)
 // ============================================================================
 
 export interface ThemeState {
@@ -142,7 +175,7 @@ export interface AuthState {
 }
 
 // ============================================================================
-// INTERFACES DOMAINE
+// DOMAIN INTERFACES
 // ============================================================================
 
 export interface Service {
@@ -181,30 +214,35 @@ export interface ApiGeoLocation {
   boundingbox: string[];
 }
 
-// Alias pour compatibilité
+// Alias for compatibility
 export type ApiGeo = ApiGeoLocation;
 
 // ============================================================================
-// INTERFACE USER UNIFIÉE
+// UNIFIED USER INTERFACE
 // ============================================================================
 
 export interface IUser extends BaseDocument {
-  price: number;
   id: string;
   email: string;
   name: string;
+  description?: string;
   phone?: string;
   company?: string;
   address?: string;
+  addresses?: UserAddresses;
   roles: UserRole[];
   status: UserStatus;
-  // Champs spécifiques aux prestataires
+  // Provider-specific fields
   specialty?: string;
+  acceptsFirstConsultation?: boolean;
+  acceptsVideoConsultation?: boolean;
   recommended?: boolean;
+  services?: ProviderService[]; // Services with prices
+  category?: ProviderCategory; // Category of the provider (HEALTH, BTP, IMMO)
   apiGeo?: ApiGeoLocation[];
-  // Champs spécifiques aux clients
+  // Client-specific fields
   clientNotes?: string;
-  // Champs communs
+  // Common fields
   avatar?: {
     image: string;
     name: string;
@@ -214,11 +252,11 @@ export interface IUser extends BaseDocument {
     timezone: string;
     notifications: boolean;
   };
-  // Champs d'authentification
+  // Auth fields
   password?: string;
   emailVerified?: boolean;
   image?: string;
-  // Champs hérités de l'ancienne interface User
+  // Legacy User fields
   firstName?: string;
   lastName?: string;
   dateOfBirth?: Date;
@@ -243,11 +281,8 @@ export interface IUser extends BaseDocument {
       providerAccountId?: string;
     };
   };
-  // Champs pour les prestataires (alias pour compatibilité)
-  services?: Service[];
+  // Provider alias fields for compatibility
   availability?: Availability[];
-  rating?: number;
-  reviewCount?: number;
   isVerified?: boolean;
   isRecommended?: boolean;
   location?: ApiGeoLocation;
@@ -265,7 +300,7 @@ export interface IUser extends BaseDocument {
   appointmentsAsProvider?: IAppointment[];
 }
 
-// Types d'entrée pour User
+// User input types
 export interface CreateUserInput {
   email: string;
   name: string;
@@ -285,7 +320,7 @@ export interface CreateUserInput {
     notifications: boolean;
   };
   password?: string;
-  // Champs hérités
+  // Legacy fields
   firstName?: string;
   lastName?: string;
   dateOfBirth?: Date;
@@ -303,7 +338,7 @@ export interface CreateUserInput {
 export type UpdateUserInput = Partial<CreateUserInput>;
 
 // ============================================================================
-// INTERFACES APPOINTMENT
+// APPOINTMENT INTERFACES
 // ============================================================================
 
 export interface IAppointment extends BaseDocument {
@@ -321,7 +356,7 @@ export interface IAppointment extends BaseDocument {
   cancellationReason?: string;
   cancelledAt?: Date;
   cancelledBy?: string;
-  // Champs hérités de l'ancienne interface Appointment
+  // Legacy Appointment fields
   reservationNumber?: string;
   requester?: {
     firstName: string;
@@ -360,7 +395,7 @@ export interface CreateAppointmentInput {
   time: string;
   notes?: string;
   price: number;
-  // Champs hérités
+  // Legacy fields
   reservationNumber?: string;
   requester?: {
     firstName: string;
@@ -381,7 +416,7 @@ export interface CreateAppointmentInput {
 export type UpdateAppointmentInput = Partial<CreateAppointmentInput>;
 
 // ============================================================================
-// INTERFACES AVAILABILITY
+// AVAILABILITY INTERFACES
 // ============================================================================
 
 export interface Availability {
@@ -391,13 +426,13 @@ export interface Availability {
   isAvailable: boolean;
 }
 
-// Alias pour compatibilité - Provider est maintenant un User avec le rôle PROVIDER
+// Compatibility alias - Provider is now a User with PROVIDER role
 export type IProvider = IUser;
 export type CreateProviderInput = CreateUserInput;
 export type UpdateProviderInput = UpdateUserInput;
 
 // ============================================================================
-// INTERFACES INVOICE
+// INVOICE INTERFACES
 // ============================================================================
 
 export interface IInvoice extends BaseDocument {
@@ -437,7 +472,7 @@ export interface CreateInvoiceInput {
 export type UpdateInvoiceInput = Partial<CreateInvoiceInput>;
 
 // ============================================================================
-// INTERFACES PROJECT
+// PROJECT INTERFACES
 // ============================================================================
 
 export interface IProject extends BaseDocument {
@@ -450,7 +485,7 @@ export interface IProject extends BaseDocument {
   endDate?: Date;
   budget: number;
   currency: string;
-  tasks: string[]; // IDs des tâches
+  tasks: string[]; // Task IDs
   userId: string;
 }
 
@@ -476,7 +511,7 @@ export interface CreateProjectInput {
 export type UpdateProjectInput = Partial<CreateProjectInput>;
 
 // ============================================================================
-// INTERFACES TASK
+// TASK INTERFACES
 // ============================================================================
 
 export interface ITask extends BaseDocument {
@@ -508,7 +543,7 @@ export interface CreateTaskInput {
 export type UpdateTaskInput = Partial<CreateTaskInput>;
 
 // ============================================================================
-// INTERFACES CLIENT
+// CLIENT INTERFACES
 // ============================================================================
 
 export interface IClient extends BaseDocument {
@@ -538,7 +573,7 @@ export interface CreateClientInput {
 export type UpdateClientInput = Partial<CreateClientInput>;
 
 // ============================================================================
-// INTERFACES TOKENS
+// TOKEN INTERFACES
 // ============================================================================
 
 export interface IEmailVerificationToken extends BaseDocument {
@@ -565,7 +600,7 @@ export interface IRetryToken extends BaseDocument {
 }
 
 // ============================================================================
-// INTERFACES SPECIALITY
+// SPECIALITY INTERFACES
 // ============================================================================
 
 export interface ISpeciality extends BaseDocument {
@@ -582,16 +617,33 @@ export interface SpecialityType {
 }
 
 // ============================================================================
-// INTERFACES REVIEW
+// REVIEW INTERFACES
 // ============================================================================
 
 export interface IReview extends BaseDocument {
   author: string;
   text: string;
+  rating: number; // Note de 1 à 5
+  providerId: string; // ID du provider évalué
+  customerId: string; // ID du client qui a donné l'avis
+  appointmentId?: string; // ID du rendez-vous lié (optionnel)
+}
+
+// Interface pour les statistiques de rating d'un provider
+export interface ProviderRatingStats {
+  averageRating: number; // Note moyenne calculée
+  totalReviews: number; // Nombre total d'avis
+  ratingDistribution: {
+    5: number; // Nombre d'avis 5 étoiles
+    4: number; // Nombre d'avis 4 étoiles
+    3: number; // Nombre d'avis 3 étoiles
+    2: number; // Nombre d'avis 2 étoiles
+    1: number; // Nombre d'avis 1 étoile
+  };
 }
 
 // ============================================================================
-// INTERFACES FRONTEND
+// FRONTEND INTERFACES
 // ============================================================================
 
 export interface ServicesButtonProps {
@@ -664,7 +716,7 @@ export interface PaymentData {
 }
 
 // ============================================================================
-// INTERFACES HOOKS
+// HOOKS INTERFACES
 // ============================================================================
 
 export interface UseProvidersOptions {
@@ -721,7 +773,7 @@ export interface UseAppointmentsReturn {
 }
 
 // ============================================================================
-// INTERFACES NEXT-AUTH
+// NEXT-AUTH INTERFACES
 // ============================================================================
 
 export interface NextAuthSession {
@@ -758,7 +810,7 @@ export interface NextAuthJWT {
 }
 
 // ============================================================================
-// INTERFACES CONFIGURATION
+// CONFIGURATION INTERFACES
 // ============================================================================
 
 export interface Config {
@@ -782,7 +834,7 @@ export interface Config {
 }
 
 // ============================================================================
-// INTERFACES COMPOSANTS
+// COMPONENT INTERFACES
 // ============================================================================
 
 export interface ModalPaymentProps {
@@ -864,36 +916,39 @@ export interface GoogleLoginButtonProps {
 // ============================================================================
 
 export function isAdmin(user: IUser | null): boolean {
-  return user?.roles.includes("ADMIN") || false;
+  return !!user?.roles?.includes("ADMIN");
 }
 
 export function isProvider(user: IUser | null): boolean {
-  return user?.roles.includes("PROVIDER") || false;
+  return (
+    !!user?.roles?.includes("{PROVIDER:INSTITUTION}") ||
+    !!user?.roles?.includes("{PROVIDER:INDIVIDUAL}")
+  );
 }
 
 export function isCustomer(user: IUser | null): boolean {
-  return user?.roles.includes("CUSTOMER") || false;
+  return !!user?.roles?.includes("CUSTOMER");
 }
 
 export function isCSM(user: IUser | null): boolean {
-  return user?.roles.includes("CSM") || false;
+  return !!user?.roles?.includes("CSM");
 }
 
 export function hasRole(user: IUser | null, role: UserRole): boolean {
-  return user?.roles.includes(role) || false;
+  return !!user?.roles?.includes(role);
 }
 
 export function hasAnyRole(user: IUser | null, roles: UserRole[]): boolean {
-  return user?.roles.some(role => roles.includes(role)) || false;
+  return !!user?.roles?.some(role => roles.includes(role));
 }
 
 // ============================================================================
-// TYPES POUR LES DISPONIBILITÉS
+// AVAILABILITY TYPES
 // ============================================================================
 
 export interface TimeSlot {
   id: string;
-  dayOfWeek: number; // 0 = Dimanche, 1 = Lundi, etc.
+  dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
   startTime: string; // Format HH:MM
   endTime: string; // Format HH:MM
   isActive: boolean;
@@ -907,7 +962,7 @@ export interface AvailabilityRule {
   providerId: string;
   createdAt: Date;
   updatedAt: Date;
-  startDate?: string; // Pour les règles mensuelles et personnalisées
-  endDate?: string; // Pour les règles mensuelles et personnalisées
+  startDate?: string; // For monthly/custom rules
+  endDate?: string; // For monthly/custom rules
   timeSlots: TimeSlot[];
 }

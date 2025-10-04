@@ -22,19 +22,19 @@ export class AppointmentService {
 
       // Construire la requête de filtrage
       const query: any = {};
-      
+
       if (filters.userId) {
         query.userId = new ObjectId(filters.userId);
       }
-      
+
       if (filters.providerId) {
         query.providerId = new ObjectId(filters.providerId);
       }
-      
+
       if (filters.status) {
         query.status = filters.status;
       }
-      
+
       if (filters.dateFrom || filters.dateTo) {
         query.date = {};
         if (filters.dateFrom) {
@@ -47,11 +47,11 @@ export class AppointmentService {
 
       // Exécuter la requête avec pagination
       const cursor = collection.find(query).sort({ date: -1 });
-      
+
       if (filters.limit) {
         cursor.limit(filters.limit);
       }
-      
+
       if (filters.offset) {
         cursor.skip(filters.offset);
       }
@@ -63,7 +63,7 @@ export class AppointmentService {
         data: appointments,
         total,
         limit: filters.limit,
-        offset: filters.offset || 0
+        offset: filters.offset || 0,
       };
     } catch (error) {
       console.error("Erreur lors de la récupération des rendez-vous:", error);
@@ -78,9 +78,9 @@ export class AppointmentService {
     try {
       const db = await getDatabase();
       const collection = db.collection("appointments");
-      
+
       const appointment = await collection.findOne({ _id: new ObjectId(id) });
-      
+
       if (!appointment) {
         throw new Error("Rendez-vous non trouvé");
       }
@@ -99,24 +99,28 @@ export class AppointmentService {
     try {
       const db = await getDatabase();
       const collection = db.collection("appointments");
-      
-      // Générer un numéro de réservation unique
-      const reservationNumber = `APT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-      
+
+      // Générer un numéro de réservation unique (stable for hydration)
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 10000)
+        .toString(36)
+        .toUpperCase();
+      const reservationNumber = `APT-${timestamp}-${random}`;
+
       const newAppointment = {
         ...appointmentData,
         reservationNumber,
         status: "pending",
         paymentStatus: "pending",
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
-      
+
       const result = await collection.insertOne(newAppointment);
-      
+
       return {
         _id: result.insertedId,
-        ...newAppointment
+        ...newAppointment,
       };
     } catch (error) {
       console.error("Erreur lors de la création du rendez-vous:", error);
@@ -131,12 +135,12 @@ export class AppointmentService {
     try {
       const db = await getDatabase();
       const collection = db.collection("appointments");
-      
+
       const result = await collection.updateOne(
         { _id: new ObjectId(id) },
         { $set: { ...updateData, updatedAt: new Date() } }
       );
-      
+
       if (result.matchedCount === 0) {
         throw new Error("Rendez-vous non trouvé");
       }
@@ -155,9 +159,9 @@ export class AppointmentService {
     try {
       const db = await getDatabase();
       const collection = db.collection("appointments");
-      
+
       const result = await collection.deleteOne({ _id: new ObjectId(id) });
-      
+
       if (result.deletedCount === 0) {
         throw new Error("Rendez-vous non trouvé");
       }
@@ -176,16 +180,18 @@ export class AppointmentService {
     try {
       const db = await getDatabase();
       const collection = db.collection("appointments");
-      
-      const stats = await collection.aggregate([
-        {
-          $group: {
-            _id: "$status",
-            count: { $sum: 1 }
-          }
-        }
-      ]).toArray();
-      
+
+      const stats = await collection
+        .aggregate([
+          {
+            $group: {
+              _id: "$status",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray();
+
       return stats;
     } catch (error) {
       console.error("Erreur lors de la récupération des statistiques:", error);

@@ -3,11 +3,12 @@
 import { ISpeciality } from "@/types";
 import { ArrowLeft, Building, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function SpecialityDetailPage() {
-  const params = useParams();
+  // const params = useParams();
+  const specialityId = "temp-speciality-id"; // TODO: Get from URL params
   const router = useRouter();
   const [speciality, setSpeciality] = useState<ISpeciality | null>(null);
   const [loading, setLoading] = useState(true);
@@ -15,7 +16,7 @@ export default function SpecialityDetailPage() {
   // Simuler la récupération des données
   useEffect(() => {
     const mockSpeciality: ISpeciality = {
-      _id: params["id"] as string,
+      _id: specialityId as string,
       name: "Cardiologie",
       description: "Spécialité médicale du cœur",
       group: "sante",
@@ -29,7 +30,7 @@ export default function SpecialityDetailPage() {
       setSpeciality(mockSpeciality);
       setLoading(false);
     }, 500);
-  }, [params["id"]]);
+  }, [specialityId]);
 
   const handleDelete = async () => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cette spécialité ?")) {

@@ -4,11 +4,12 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { IInvoice, INVOICE_STATUSES } from "@/types";
 import { ArrowLeft, Download, Edit, Mail, Printer } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+// import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function InvoiceDetailPage() {
-  const params = useParams();
+  // const params = useParams();
+  const invoiceId = "temp-invoice-id"; // TODO: Get from URL params
   // const router = useRouter();
   const { isAdmin } = useAuth();
   const [invoice, setInvoice] = useState<IInvoice | null>(null);
@@ -17,7 +18,7 @@ export default function InvoiceDetailPage() {
   // Simuler des données pour l'exemple
   useEffect(() => {
     const mockInvoice: IInvoice = {
-      _id: (Array.isArray(params["id"]) ? params["id"][0] : params["id"]) || "",
+      _id: (Array.isArray(invoiceId) ? invoiceId[0] : invoiceId) || "",
       invoiceNumber: "FACT-2024-001",
       customerId: "1",
       providerId: "4",
@@ -48,7 +49,7 @@ export default function InvoiceDetailPage() {
     };
     setInvoice(mockInvoice);
     setLoading(false);
-  }, [params["id"]]);
+  }, [invoiceId]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

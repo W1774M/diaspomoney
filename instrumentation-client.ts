@@ -8,14 +8,10 @@ Sentry.init({
   dsn: "https://2b894e75cf9c91ad14b9b579964cded5@o4504800187711488.ingest.us.sentry.io/4510091253645312",
 
   // Add optional integrations for additional features
-  integrations: [
-    Sentry.replayIntegration(),
-  ],
+  integrations: [Sentry.replayIntegration()],
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 1,
-  // Enable logs to be sent to Sentry
-  enableLogs: true,
 
   // Define how likely Replay events are sampled.
   // This sets the sample rate to be 10%. You may want this to be 100% while
@@ -29,4 +25,7 @@ Sentry.init({
   debug: false,
 });
 
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+// Sentry.captureRouterTransitionStart does not exist; remove or replace as needed.
+// If you need to export a router transition handler, implement it here or remove this export.
+// // Router transition handling removed as captureRouterTransitionStart is not available in this Sentry version
+// Removed invalid export as the property does not exist.

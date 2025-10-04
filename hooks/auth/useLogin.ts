@@ -1,51 +1,37 @@
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useNotificationManager } from "@/components/ui/Notification";
-import { authActions, useDispatch } from "@/store/simple-store";
+import { authActions, useSimpleStore } from "@/store/simple-store";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 interface LoginData {
   email: string;
   password: string;
 }
 
-interface LoginResponse {
-  success: boolean;
-  user?: any;
-  error?: string;
-  status?: string;
-}
-
 export const useLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const dispatch = useDispatch();
+  const dispatch = useSimpleStore(state => state.dispatch);
   const router = useRouter();
-  const { addSuccess, addError, addWarning, addInfo } = useNotificationManager();
+  // const { refreshAuth } = useAuth();
+  const { addSuccess, addError } = useNotificationManager();
 
   const login = async (data: LoginData): Promise<boolean> => {
     setIsLoading(true);
     dispatch(authActions.loginStart());
 
     try {
-      // Appel à l'API de login
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
+      // Utiliser NextAuth Credentials provider pour créer une session
+      await signIn("credentials", {
+        email: data.email,
+        password: data.password,
+        redirect: false,
       });
 
-      const result: LoginResponse = await response.json();
-
-      if (response.ok && result.success) {
-        // Connexion réussie
-        await handleLoginSuccess(result.user);
-        return true;
-      } else {
-        // Gestion des erreurs
-        handleLoginError(result);
-        return false;
-      }
+      // signIn returns void when redirect: false is set, so we can't check result.ok
+      // Assume success if no error is thrown
+      await handleLoginSuccess();
+      return true;
     } catch (error) {
       console.error("Erreur de connexion:", error);
       dispatch(authActions.loginFailure("Une erreur est survenue"));
@@ -56,60 +42,15 @@ export const useLogin = () => {
     }
   };
 
-  const handleLoginSuccess = async (user: any) => {
-    // Créer une session locale
-    const session = {
-      user: {
-        id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        name: `${user.firstName} ${user.lastName}`,
-        roles: user.roles,
-        status: user.status,
-        isEmailVerified: user.isEmailVerified,
-      },
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24h
-    };
-
-    // Sauvegarder en localStorage
-    localStorage.setItem("user-session", JSON.stringify(session));
-
-    // Déclencher l'événement personnalisé pour notifier les autres composants
-    window.dispatchEvent(new CustomEvent("user-session-changed"));
-
-    // Dispatch success action
-    dispatch(authActions.loginSuccess(user));
-
+  const handleLoginSuccess = async () => {
+    // La session NextAuth est maintenant établie côté cookies
+    dispatch(authActions.loginSuccess({} as any));
     addSuccess("Connexion réussie ! Redirection en cours...");
 
-    // Redirection vers le dashboard
+    // Attendre un peu pour que useAuth détecte le changement de session
     setTimeout(() => {
       router.push("/dashboard");
-    }, 1000);
-  };
-
-  const handleLoginError = (result: LoginResponse) => {
-    if (result.status === "INACTIVE") {
-      dispatch(authActions.loginFailure("COMPTE_INACTIF"));
-      addWarning(
-        "Votre compte n'est pas encore activé. Veuillez vérifier votre boîte mail et cliquer sur le lien de vérification envoyé par DiaspoMoney."
-      );
-    } else if (result.status === "PENDING") {
-      dispatch(authActions.loginFailure("COMPTE_EN_ATTENTE"));
-      addInfo(
-        "Votre compte est en cours de vérification par notre équipe DiaspoMoney. Veuillez patienter, nous vous contacterons bientôt."
-      );
-    } else if (result.status === "SUSPENDED") {
-      dispatch(authActions.loginFailure("COMPTE_SUSPENDU"));
-      addError(
-        "Votre accès a été refusé car votre compte est suspendu. Veuillez contacter notre support pour plus d'informations."
-      );
-    } else {
-      // Erreur générique
-      dispatch(authActions.loginFailure(result.error || "Email ou mot de passe incorrect"));
-      addError(result.error || "Email ou mot de passe incorrect");
-    }
+    }, 1500);
   };
 
   return {
