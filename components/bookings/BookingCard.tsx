@@ -19,9 +19,9 @@ import React from "react";
 
 const BookingCard = React.memo<BookingCardProps>(function BookingCard({
   booking,
-  onView,
-  onEdit,
-  onCancel,
+  onView: _onView,
+  onEdit: _onEdit,
+  onCancel: _onCancel,
 }) {
   const providerName = getProviderName(booking);
   const requesterName = getRequesterName(booking);
@@ -71,7 +71,7 @@ const BookingCard = React.memo<BookingCardProps>(function BookingCard({
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <Link
-          href={`/dashboard/appointments/${appointment._id}`}
+          href={`/dashboard/bookings/${booking._id}`}
           className="inline-flex items-center text-blue-600 hover:text-blue-900"
         >
           <Eye className="h-4 w-4 mr-1" />

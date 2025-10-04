@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  appointmentSchema,
+  bookingSchema,
   loginSchema,
   paymentSchema,
   registerSchema,
@@ -71,7 +71,7 @@ export const validateLogin = (data: unknown) =>
 export const validateRegister = (data: unknown) =>
   validateAndSanitize(registerSchema, data);
 export const validateAppointment = (data: unknown) =>
-  validateAndSanitize(appointmentSchema, data);
+  validateAndSanitize(bookingSchema, data);
 export const validatePayment = (data: unknown) =>
   validateAndSanitize(paymentSchema, data);
 

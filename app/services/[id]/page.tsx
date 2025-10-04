@@ -115,7 +115,7 @@ export default function ProviderDetailPage() {
     setShowBookingForm(false);
   };
 
-  const handleFormSubmit = async (data: BookingFormData) => {
+  const handleFormSubmit = async (_data: BookingFormData) => {
     try {
       // Ici on pourrait envoyer les données à l'API
       // console.log("Données du formulaire:", data);

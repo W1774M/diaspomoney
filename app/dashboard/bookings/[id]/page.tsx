@@ -74,7 +74,7 @@ export default function BookingDetailPage({
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <button
-            onClick={() => router.push("/dashboard/appointments")}
+            onClick={() => router.push("/dashboard/bookings")}
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
             ← Retour aux rendez-vous
@@ -84,44 +84,44 @@ export default function BookingDetailPage({
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Rendez-vous #{appointment.reservationNumber}
+              Rendez-vous #{booking.reservationNumber}
             </h1>
             <div className="flex items-center space-x-4">
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  appointment.status === "confirmed"
+                  booking.status === "confirmed"
                     ? "bg-green-100 text-green-800"
-                    : appointment.status === "pending"
+                    : booking.status === "pending"
                     ? "bg-yellow-100 text-yellow-800"
-                    : appointment.status === "cancelled"
+                    : booking.status === "cancelled"
                     ? "bg-red-100 text-red-800"
                     : "bg-gray-100 text-gray-800"
                 }`}
               >
-                {appointment.status === "confirmed"
+                {booking.status === "confirmed"
                   ? "Confirmé"
-                  : appointment.status === "pending"
+                  : booking.status === "pending"
                   ? "En attente"
-                  : appointment.status === "cancelled"
+                  : booking.status === "cancelled"
                   ? "Annulé"
                   : "Terminé"}
               </span>
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  appointment.paymentStatus === "paid"
+                  booking.paymentStatus === "paid"
                     ? "bg-green-100 text-green-800"
-                    : appointment.paymentStatus === "pending"
+                    : booking.paymentStatus === "pending"
                     ? "bg-yellow-100 text-yellow-800"
-                    : appointment.paymentStatus === "failed"
+                    : booking.paymentStatus === "failed"
                     ? "bg-red-100 text-red-800"
                     : "bg-gray-100 text-gray-800"
                 }`}
               >
-                {appointment.paymentStatus === "paid"
+                {booking.paymentStatus === "paid"
                   ? "Payé"
-                  : appointment.paymentStatus === "pending"
+                  : booking.paymentStatus === "pending"
                   ? "En attente"
-                  : appointment.paymentStatus === "failed"
+                  : booking.paymentStatus === "failed"
                   ? "Échoué"
                   : "Remboursé"}
               </span>
@@ -136,16 +136,16 @@ export default function BookingDetailPage({
               </h2>
               <div className="space-y-2">
                 <p>
-                  <strong>Nom:</strong> {appointment.provider?.name}
+                  <strong>Nom:</strong> {booking.provider?.name}
                 </p>
                 <p>
-                  <strong>Spécialité:</strong> {appointment.provider?.specialty}
+                  <strong>Spécialité:</strong> {booking.provider?.specialty}
                 </p>
                 <p>
-                  <strong>Service:</strong> {appointment.selectedService?.name}
+                  <strong>Service:</strong> {booking.selectedService?.name}
                 </p>
                 <p>
-                  <strong>Prix:</strong> {appointment.selectedService?.price} €
+                  <strong>Prix:</strong> {booking.selectedService?.price} €
                 </p>
               </div>
             </div>
@@ -158,17 +158,17 @@ export default function BookingDetailPage({
               <div className="space-y-2">
                 <p>
                   <strong>Date:</strong>{" "}
-                  {new Date(appointment.date).toLocaleDateString()}
+                  {new Date(booking.date).toLocaleDateString()}
                 </p>
                 <p>
-                  <strong>Heure:</strong> {appointment.time}
+                  <strong>Heure:</strong> {booking.time}
                 </p>
                 <p>
-                  <strong>Montant total:</strong> {appointment.totalAmount} €
+                  <strong>Montant total:</strong> {booking.totalAmount} €
                 </p>
                 <p>
                   <strong>Créé le:</strong>{" "}
-                  {new Date(appointment.createdAt).toLocaleDateString()}
+                  {new Date(booking.createdAt).toLocaleDateString()}
                 </p>
               </div>
             </div>
@@ -182,23 +182,23 @@ export default function BookingDetailPage({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p>
-                  <strong>Nom:</strong> {appointment.requester?.firstName}{" "}
-                  {appointment.requester?.lastName}
+                  <strong>Nom:</strong> {booking.requester?.firstName}{" "}
+                  {booking.requester?.lastName}
                 </p>
                 <p>
-                  <strong>Email:</strong> {appointment.requester?.email}
+                  <strong>Email:</strong> {booking.requester?.email}
                 </p>
               </div>
               <div>
                 <p>
-                  <strong>Téléphone:</strong> {appointment.requester?.phone}
+                  <strong>Téléphone:</strong> {booking.requester?.phone}
                 </p>
               </div>
             </div>
           </div>
 
           {/* Informations du destinataire */}
-          {appointment.recipient && (
+          {booking.recipient && (
             <div className="mt-6 bg-gray-50 rounded-lg p-4">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Informations du destinataire
@@ -206,13 +206,13 @@ export default function BookingDetailPage({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p>
-                    <strong>Nom:</strong> {appointment.recipient?.firstName}{" "}
-                    {appointment.recipient?.lastName}
+                    <strong>Nom:</strong> {booking.recipient?.firstName}{" "}
+                    {booking.recipient?.lastName}
                   </p>
                 </div>
                 <div>
                   <p>
-                    <strong>Téléphone:</strong> {appointment.recipient?.phone}
+                    <strong>Téléphone:</strong> {booking.recipient?.phone}
                   </p>
                 </div>
               </div>
@@ -220,12 +220,12 @@ export default function BookingDetailPage({
           )}
 
           {/* Notes */}
-          {appointment.notes && (
+          {booking.notes && (
             <div className="mt-6 bg-gray-50 rounded-lg p-4">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Notes
               </h2>
-              <p className="text-gray-700">{appointment.notes}</p>
+              <p className="text-gray-700">{booking.notes}</p>
             </div>
           )}
 
@@ -233,7 +233,7 @@ export default function BookingDetailPage({
           <div className="mt-6 flex justify-end space-x-4">
             <button
               onClick={() =>
-                router.push(`/dashboard/appointments/${params.id}/edit`)
+                router.push(`/dashboard/bookings/${params.id}/edit`)
               }
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
             >

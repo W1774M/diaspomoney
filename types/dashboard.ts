@@ -3,7 +3,7 @@ export interface DashboardStats {
   users?: number;
   customers?: number;
   providers?: number;
-  appointments: number;
+  bookings: number;
   invoices: number;
 }
 

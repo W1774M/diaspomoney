@@ -51,6 +51,7 @@ export function InfiniteReviewsCarousel({
       }, 3000);
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [reviews.length]);
 
   if (reviews.length === 0) {
