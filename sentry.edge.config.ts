@@ -5,12 +5,16 @@
 
 import * as Sentry from "@sentry/nextjs";
 
+// Configuration de Sentry pour les edge features
+const isProduction = process.env.NODE_ENV === "production";
+const dsn = process.env["SENTRY_DSN"] || "";
+
 Sentry.init({
-  dsn: "https://2b894e75cf9c91ad14b9b579964cded5@o4504800187711488.ingest.us.sentry.io/4510091253645312",
-
+  dsn: isProduction ? dsn : "",
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
-
+  tracesSampleRate: isProduction ? 1 : 0,
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
+  // Désactiver Sentry en développement
+  enabled: isProduction,
 });

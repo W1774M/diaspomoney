@@ -22,7 +22,6 @@ import {
   User,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { PopupRegisterForm } from "../auth/PopupRegisterForm";
 
 interface BookingFormProps {
   provider: {
@@ -68,11 +67,12 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
     "idle" | "validating" | "processing" | "success" | "error"
   >("idle");
   const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [showRegisterPopup, setShowRegisterPopup] = useState(false);
   const [expandedConsignes, setExpandedConsignes] = useState<Set<number>>(
-    new Set(),
+    new Set()
   );
   const [kycConsent, setKycConsent] = useState(false);
+  // Indique qu'une inscription vient d'être effectuée (sans connexion auto)
+  const [registrationCompleted, setRegistrationCompleted] = useState(false);
 
   const { user, isAuthenticated } = useAuth();
 
@@ -158,6 +158,35 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
     }
   }, [isAuthenticated, setValue]);
 
+  // Écouter les messages de la popup d'inscription
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === "REGISTRATION_SUCCESS") {
+        // L'inscription a réussi, passer directement à l'étape de paiement
+        setRegistrationCompleted(true);
+        setCurrentStep(7);
+      }
+    };
+
+    const handleFocus = () => {
+      // Si une inscription/connexion vient d'être réalisée, avancer
+      if (
+        (registrationCompleted || (isAuthenticated && user)) &&
+        currentStep === 6
+      ) {
+        setCurrentStep(7);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [isAuthenticated, user, currentStep]);
+
   const watchedValues = watch();
   const totalSteps = 7;
 
@@ -223,7 +252,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
   const processPaymentAfterRegistration = async (
     data: BookingFormData,
     token: string,
-    totalPrice: number,
+    totalPrice: number
   ) => {
     try {
       setPaymentStatus("processing");
@@ -233,7 +262,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
       if (!paymentResult.success) {
         setPaymentStatus("error");
         setPaymentError(
-          paymentResult.error || "Erreur lors du traitement du paiement",
+          paymentResult.error || "Erreur lors du traitement du paiement"
         );
         return;
       }
@@ -281,7 +310,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
         if (!validationResult.valid) {
           setPaymentStatus("error");
           setPaymentError(
-            validationResult.error || "Erreur de validation de la carte",
+            validationResult.error || "Erreur de validation de la carte"
           );
           return;
         }
@@ -293,7 +322,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           if (watchedValues.consultationMode === "video") {
             // Pour les consultations vidéo, utiliser le prix du service "Consultation"
             const consultationService = provider["services"]?.find(
-              (service: any) => service.name === "Consultation",
+              (service: any) => service.name === "Consultation"
             );
             basePrice = consultationService?.price || provider["price"] || 0;
           } else {
@@ -329,7 +358,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           const popup = window.open(
             "/register-popup",
             "registerPopup",
-            "width=800,height=900,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no",
+            "width=800,height=900,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no"
           );
 
           // Écouter les messages de la popup
@@ -343,7 +372,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               processPaymentAfterRegistration(
                 data,
                 validationResult.token!,
-                totalPrice,
+                totalPrice
               );
             }
           };
@@ -368,7 +397,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
         if (watchedValues.consultationMode === "video") {
           // Pour les consultations vidéo, utiliser le prix du service "Consultation"
           const consultationService = provider["services"]?.find(
-            (service: any) => service.name === "Consultation",
+            (service: any) => service.name === "Consultation"
           );
           basePrice = consultationService?.price || provider["price"] || 0;
         } else {
@@ -380,13 +409,13 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
 
         const paymentResult = await processPaymentWithStripe(
           validationResult.token!,
-          totalPrice,
+          totalPrice
         );
 
         if (!paymentResult.success) {
           setPaymentStatus("error");
           setPaymentError(
-            paymentResult.error || "Erreur lors du traitement du paiement",
+            paymentResult.error || "Erreur lors du traitement du paiement"
           );
           return;
         }
@@ -510,7 +539,8 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
 
       case 7:
         // Étape 7: Paiement
-        if (!isAuthenticated) return false;
+        // Autoriser après inscription (sans connexion auto)
+        if (!isAuthenticated && !registrationCompleted) return false;
         return (
           watchedValues.cardNumber &&
           watchedValues.expiryDate &&
@@ -530,8 +560,12 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
   const renderStepIndicator = () => null; // Retiré à la demande
 
   const renderStep1 = () => {
-    const isInstitution = provider["roles"]?.includes("{PROVIDER:INSTITUTION}");
-    const isIndividual = provider["roles"]?.includes("{PROVIDER:INDIVIDUAL}");
+    const isInstitution =
+      provider["roles"]?.includes("{PROVIDER:INSTITUTION}") ||
+      provider.role === "{PROVIDER:INSTITUTION}";
+    const isIndividual =
+      provider["roles"]?.includes("{PROVIDER:INDIVIDUAL}") ||
+      provider.role === "{PROVIDER:INDIVIDUAL}";
     const videoAllowed = provider.acceptsVideoConsultation !== false;
     const firstConsultationAllowed =
       provider.acceptsFirstConsultation !== false;
@@ -735,10 +769,10 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               </h3>
             </div>
 
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
               <div className="flex items-start">
                 <svg
-                  className="w-5 h-5 text-red-600 mt-0.5 mr-3 flex-shrink-0"
+                  className="w-5 h-5 text-amber-600 mt-0.5 mr-3 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -751,13 +785,12 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                   />
                 </svg>
                 <div>
-                  <h4 className="text-sm font-medium text-red-800 mb-1">
-                    Première consultation non autorisée
+                  <h4 className="text-sm font-medium text-amber-800 mb-1">
+                    Ce soignant n'accepte pas de nouveaux patients
                   </h4>
-                  <p className="text-sm text-red-700">
-                    Ce médecin n&apos;accepte pas de nouveaux patients. Veuillez
-                    choisir un autre prestataire ou contacter directement le
-                    secrétariat.
+                  <p className="text-sm text-amber-700">
+                    Veuillez choisir un autre prestataire ou contacter
+                    directement le secrétariat.
                   </p>
                 </div>
               </div>
@@ -766,14 +799,23 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => (window.location.href = "/services")}
+                onClick={() => {
+                  const category = provider["category"];
+                  const url = category
+                    ? `/services?type=${category}`
+                    : "/services";
+                  window.location.href = url;
+                }}
                 className="flex-1 bg-[hsl(25,100%,53%)] text-white py-3 px-4 rounded-md font-medium hover:bg-[hsl(25,100%,45%)] transition-colors"
               >
                 Voir d&apos;autres prestataires
               </button>
               <button
                 type="button"
-                onClick={() => setCurrentStep(0)}
+                onClick={() => {
+                  setValue("hasConsultedBefore", undefined as any);
+                  setCurrentStep(1);
+                }}
                 className="flex-1 bg-gray-500 text-white py-3 px-4 rounded-md font-medium hover:bg-gray-600 transition-colors"
               >
                 Retour
@@ -786,97 +828,37 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
       // Si première consultation autorisée ou consultation de suivi
       return (
         <div className="space-y-4">
-          <div className="text-center mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Mode de consultation
-            </h3>
-            <p className="text-gray-600">
-              Choisissez comment vous souhaitez réaliser la consultation
+          {/* Question: Avez-vous déjà consulté ce soignant ? */}
+          <div className="mb-4">
+            <p className="text-sm font-medium text-gray-900 mb-2">
+              Avez-vous déjà consulté ce soignant ?
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {provider.acceptsVideoConsultation !== false && (
+            <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setValue("consultationMode", "video")}
-                className={`flex flex-col items-center justify-center p-6 border rounded-lg transition-colors
-                  ${
-                    watchedValues.consultationMode === "video"
-                      ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]"
-                      : "border-gray-300 hover:border-gray-400"
-                  }`}
+                onClick={() => setValue("hasConsultedBefore", true)}
+                className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${
+                  watchedValues.hasConsultedBefore === true
+                    ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] text-[hsl(25,100%,35%)]"
+                    : "border-gray-300 text-gray-700 hover:border-gray-400"
+                }`}
               >
-                <svg
-                  className={`w-8 h-8 mb-2 ${
-                    watchedValues.consultationMode === "video"
-                      ? "text-[hsl(25,100%,53%)]"
-                      : "text-gray-500"
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                  />
-                </svg>
-                <span className="font-medium text-gray-900">Vidéo</span>
-                <span className="text-sm text-gray-500">
-                  Consultation à distance
-                </span>
+                Oui
               </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setValue("consultationMode", "cabinet")}
-              className={`flex flex-col items-center justify-center p-6 border rounded-lg transition-colors
-                ${
-                  watchedValues.consultationMode === "cabinet"
-                    ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]"
-                    : "border-gray-300 hover:border-gray-400"
+              <button
+                type="button"
+                onClick={() => setValue("hasConsultedBefore", false)}
+                className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${
+                  watchedValues.hasConsultedBefore === false
+                    ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] text-[hsl(25,100%,35%)]"
+                    : "border-gray-300 text-gray-700 hover:border-gray-400"
                 }`}
-            >
-              <svg
-                className={`w-8 h-8 mb-2 ${
-                  watchedValues.consultationMode === "cabinet"
-                    ? "text-[hsl(25,100%,53%)]"
-                    : "text-gray-500"
-                }`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                />
-              </svg>
-              <span className="font-medium text-gray-900">Cabinet</span>
-              <span className="text-sm text-gray-500">
-                Consultation en personne
-              </span>
-            </button>
+                Non
+              </button>
+            </div>
           </div>
-
-          <div className="pt-4 border-t">
-            <label className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                {...register("hasConsultedBefore")}
-                className="rounded border-gray-300 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)]"
-              />
-              <span className="text-sm text-gray-700">
-                J&apos;ai déjà consulté ce prestataire
-              </span>
-            </label>
-          </div>
+          {/* La sélection Oui/Non ci-dessus constitue l'étape 1 pour INDIVIDUAL */}
         </div>
       );
     }
@@ -1045,6 +1027,93 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
 
   const renderStep2 = () => {
     const isInstitution = provider["roles"]?.includes("{PROVIDER:INSTITUTION}");
+    const isIndividual =
+      provider["roles"]?.includes("{PROVIDER:INDIVIDUAL}") ||
+      provider.role === "{PROVIDER:INDIVIDUAL}";
+
+    // INDIVIDUAL: si aucun mode encore choisi, afficher le choix du mode ici
+    if (isIndividual && !watchedValues.consultationMode) {
+      return (
+        <div className="space-y-4">
+          <div className="text-center mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Mode de consultation
+            </h3>
+            <p className="text-gray-600">
+              Choisissez comment vous souhaitez réaliser la consultation
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {provider.acceptsVideoConsultation !== false && (
+              <button
+                type="button"
+                onClick={() => setValue("consultationMode", "video")}
+                className={`flex flex-col items-center justify-center p-6 border rounded-lg transition-colors ${
+                  watchedValues.consultationMode === "video"
+                    ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]"
+                    : "border-gray-300 hover:border-gray-400"
+                }`}
+              >
+                <svg
+                  className={`w-8 h-8 mb-2 ${
+                    watchedValues.consultationMode === "video"
+                      ? "text-[hsl(25,100%,53%)]"
+                      : "text-gray-500"
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                </svg>
+                <span className="font-medium text-gray-900">Vidéo</span>
+                <span className="text-sm text-gray-500">
+                  Consultation à distance
+                </span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setValue("consultationMode", "cabinet")}
+              className={`flex flex-col items-center justify-center p-6 border rounded-lg transition-colors ${
+                watchedValues.consultationMode === "cabinet"
+                  ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]"
+                  : "border-gray-300 hover:border-gray-400"
+              }`}
+            >
+              <svg
+                className={`w-8 h-8 mb-2 ${
+                  watchedValues.consultationMode === "cabinet"
+                    ? "text-[hsl(25,100%,53%)]"
+                    : "text-gray-500"
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
+              </svg>
+              <span className="font-medium text-gray-900">Cabinet</span>
+              <span className="text-sm text-gray-500">
+                Consultation en personne
+              </span>
+            </button>
+          </div>
+        </div>
+      );
+    }
 
     // Si consultation vidéo, afficher un message de confirmation
     if (watchedValues.consultationMode === "video") {
@@ -1581,7 +1650,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
   );
 
   const renderStep6 = () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !registrationCompleted) {
       // Utilisateur non connecté - afficher les options de connexion/inscription
       return (
         <div className="space-y-4">
@@ -1615,7 +1684,6 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               type="button"
               className="w-full bg-[hsl(25,100%,53%)] text-white py-3 px-4 rounded-md font-medium hover:bg-[hsl(25,100%,45%)] transition-colors"
               onClick={() => {
-                // Sauvegarder les données du formulaire
                 const formData = {
                   requester: watchedValues.requester,
                   recipient: watchedValues.recipient,
@@ -1631,7 +1699,12 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                   isBillingDefault: watchedValues.isBillingDefault,
                 };
                 localStorage.setItem("bookingData", JSON.stringify(formData));
-                window.location.href = "/login";
+                // Ouvrir la connexion dans une nouvelle fenêtre
+                window.open(
+                  "/login",
+                  "_blank",
+                  "width=800,height=600,scrollbars=yes,resizable=yes"
+                );
               }}
             >
               Se connecter
@@ -1657,8 +1730,12 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                   isBillingDefault: watchedValues.isBillingDefault,
                 };
                 localStorage.setItem("bookingData", JSON.stringify(formData));
-                // Ouvrir la popup d'inscription
-                setShowRegisterPopup(true);
+                // Ouvrir l'inscription dans une nouvelle page
+                window.open(
+                  "/register-popup",
+                  "_blank",
+                  "width=800,height=600,scrollbars=yes,resizable=yes"
+                );
               }}
             >
               Créer un compte
@@ -1681,7 +1758,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           </p>
         </div>
 
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+        {/* <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
             <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
               <User className="w-4 h-4 text-green-600" />
@@ -1695,7 +1772,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               </p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Formulaire de paiement */}
         <div className="space-y-4">
@@ -1797,7 +1874,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                     if (watchedValues.consultationMode === "video") {
                       // Chercher le service "Consultation" dans les services du provider
                       const consultationService = provider["services"]?.find(
-                        (service: any) => service.name === "Consultation",
+                        (service: any) => service.name === "Consultation"
                       );
                       return (
                         consultationService?.price || provider["price"] || 0
@@ -1822,7 +1899,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                     if (watchedValues.consultationMode === "video") {
                       // Pour les consultations vidéo, utiliser le prix du service "Consultation"
                       const consultationService = provider["services"]?.find(
-                        (service: any) => service.name === "Consultation",
+                        (service: any) => service.name === "Consultation"
                       );
                       basePrice =
                         consultationService?.price || provider["price"] || 0;
@@ -1939,76 +2016,93 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
     }
   };
 
-  const renderNavigationButtons = () => (
-    <div className="flex justify-between pt-6">
-      <Button
-        type="button"
-        variant="outline"
-        onClick={
-          currentStep === 1
-            ? () => {
-                resetFormState();
-                onClose();
-              }
-            : prevStep
-        }
-        disabled={isSubmitting}
-      >
-        {currentStep === 1 ? "Annuler" : "Précédent"}
-      </Button>
+  const renderNavigationButtons = () => {
+    const isIndividual =
+      provider["roles"]?.includes("{PROVIDER:INDIVIDUAL}") ||
+      provider.role === "{PROVIDER:INDIVIDUAL}";
+    const firstConsultationAllowed =
+      provider.acceptsFirstConsultation !== false;
+    const isFirstConsultation = watchedValues.hasConsultedBefore === false;
 
-      {currentStep < totalSteps ? (
+    const shouldHideFooter =
+      currentStep === 1 &&
+      isIndividual &&
+      isFirstConsultation &&
+      !firstConsultationAllowed;
+
+    if (shouldHideFooter) return null;
+
+    return (
+      <div className="flex justify-between pt-6">
         <Button
           type="button"
-          variant="primary"
-          onClick={() => {
-            // Si la vidéo n'est pas autorisée et qu'aucun mode n'est sélectionné, rediriger vers /services
-            if (
-              provider.acceptsVideoConsultation === false &&
-              !watchedValues.consultationMode
-            ) {
-              window.location.href = "/services";
-              return;
+          variant="outline"
+          onClick={
+            currentStep === 1
+              ? () => {
+                  resetFormState();
+                  onClose();
+                }
+              : prevStep
+          }
+          disabled={isSubmitting}
+        >
+          {currentStep === 1 ? "Annuler" : "Précédent"}
+        </Button>
+
+        {currentStep < totalSteps ? (
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => {
+              // Si la vidéo n'est pas autorisée et qu'aucun mode n'est sélectionné, rediriger vers /services
+              if (
+                provider.acceptsVideoConsultation === false &&
+                !watchedValues.consultationMode
+              ) {
+                window.location.href = "/services";
+                return;
+              }
+              nextStep();
+            }}
+            disabled={!canProceedToNext() || isSubmitting}
+            data-testid="next-button"
+          >
+            {provider.acceptsVideoConsultation === false &&
+            !watchedValues.consultationMode
+              ? "Voir d'autres prestataires"
+              : "Suivant"}
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={
+              !canProceedToNext() ||
+              isSubmitting ||
+              paymentStatus === "validating" ||
+              paymentStatus === "processing"
             }
-            nextStep();
-          }}
-          disabled={!canProceedToNext() || isSubmitting}
-          data-testid="next-button"
-        >
-          {provider.acceptsVideoConsultation === false &&
-          !watchedValues.consultationMode
-            ? "Voir d'autres prestataires"
-            : "Suivant"}
-        </Button>
-      ) : (
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={
-            !canProceedToNext() ||
-            isSubmitting ||
-            paymentStatus === "validating" ||
-            paymentStatus === "processing"
-          }
-          isLoading={
-            isSubmitting ||
-            paymentStatus === "validating" ||
-            paymentStatus === "processing"
-          }
-        >
-          {currentStep === 7
-            ? paymentStatus === "validating"
-              ? "Validation en cours..."
-              : paymentStatus === "processing"
-              ? "Traitement du paiement..."
-              : paymentStatus === "success"
-              ? "Paiement validé !"
-              : "Payer et confirmer"
-            : "Confirmer le rendez-vous"}
-        </Button>
-      )}
-    </div>
-  );
+            isLoading={
+              isSubmitting ||
+              paymentStatus === "validating" ||
+              paymentStatus === "processing"
+            }
+          >
+            {currentStep === 7
+              ? paymentStatus === "validating"
+                ? "Validation en cours..."
+                : paymentStatus === "processing"
+                ? "Traitement du paiement..."
+                : paymentStatus === "success"
+                ? "Paiement validé !"
+                : "Payer et confirmer"
+              : "Confirmer le rendez-vous"}
+          </Button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="bg-white rounded-lg p-6 w-[90vw] sm:w-[80vw] md:w-[70vw] lg:w-[60vw] xl:w-[50vw] mx-4 max-h-[90vh] overflow-y-auto">
@@ -2017,6 +2111,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           Prise de rendez-vous
         </h2>
         <button
+          title="Fermer"
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600"
           type="button"
@@ -2074,7 +2169,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               {watchedValues.timeslot &&
                 (() => {
                   const [startIso, endIso] = String(
-                    watchedValues.timeslot,
+                    watchedValues.timeslot
                   ).split("|");
                   const formatTime = (iso?: string) =>
                     iso
@@ -2105,18 +2200,6 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           </div>
         </aside>
       </div>
-
-      {/* Popup d'inscription */}
-      {showRegisterPopup && (
-        <PopupRegisterForm
-          onClose={() => setShowRegisterPopup(false)}
-          onSuccess={() => {
-            // Après inscription réussie, continuer vers l'étape de paiement
-            setCurrentStep(7);
-            setShowRegisterPopup(false);
-          }}
-        />
-      )}
     </div>
   );
 }

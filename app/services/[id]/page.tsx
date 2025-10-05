@@ -397,6 +397,7 @@ export default function ProviderDetailPage() {
         <div className="flex flex-wrap gap-2">
           {provider.images.map((image, index) => (
             <button
+              aria-label={`Voir la photo ${index + 1}`}
               key={index}
               type="button"
               className="focus:outline-none"
@@ -513,11 +514,15 @@ export default function ProviderDetailPage() {
         <div className="mb-6">
           <button
             onClick={() => {
-              // Utiliser l'historique du navigateur pour revenir à la page précédente
+              // Revenir si possible, sinon fallback en conservant la catégorie du prestataire
               if (window.history.length > 1) {
                 router.back();
+                return;
+              }
+              const category = provider?.category;
+              if (category) {
+                router.push(`/services?type=${category}`);
               } else {
-                // Fallback vers /services si pas d'historique
                 router.push("/services");
               }
             }}

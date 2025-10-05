@@ -22,7 +22,13 @@ interface BookingData {
   city: string;
 }
 
-export function SimplifiedRegisterForm() {
+interface SimplifiedRegisterFormProps {
+  onSuccess?: () => void;
+}
+
+export function SimplifiedRegisterForm({
+  onSuccess,
+}: SimplifiedRegisterFormProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,13 +58,15 @@ export function SimplifiedRegisterForm() {
     if (bookingData) {
       try {
         const parsedData: BookingData = JSON.parse(bookingData);
+        // Normaliser le pays pour correspondre aux options du select
+        const normalizedCountry = parsedData.country || "";
         setFormData(prev => ({
           ...prev,
           firstName: parsedData.requester.firstName,
           lastName: parsedData.requester.lastName,
           email: parsedData.requester.email,
           phone: parsedData.requester.phone,
-          countryOfResidence: parsedData.country,
+          countryOfResidence: normalizedCountry,
           address1: parsedData.address1,
           address2: parsedData.address2 || "",
           postalCode: parsedData.postalCode,
@@ -116,7 +124,18 @@ export function SimplifiedRegisterForm() {
 
       if (res.ok) {
         localStorage.removeItem("bookingData");
-        router.push("/dashboard");
+
+        // Si on est dans une popup, notifier la fenêtre parent
+        if (window.opener) {
+          // Envoyer un message à la fenêtre parent pour indiquer que l'inscription a réussi
+          window.opener.postMessage({ type: "REGISTRATION_SUCCESS" }, "*");
+        }
+
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          router.push("/dashboard");
+        }
       } else {
         setError(result.error || "Erreur lors de l'inscription");
       }
@@ -164,141 +183,8 @@ export function SimplifiedRegisterForm() {
             {/* Form */}
             <div className="space-y-6">
               <h3 className="text-xl font-bold text-gray-800 mb-6">
-                Informations personnelles
+                Sécurité du compte
               </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block mb-2 font-semibold text-gray-700">
-                    Prénom <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.firstName}
-                    onChange={e =>
-                      handleInputChange("firstName", e.target.value)
-                    }
-                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                    placeholder="Votre prénom"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-2 font-semibold text-gray-700">
-                    Nom <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.lastName}
-                    onChange={e =>
-                      handleInputChange("lastName", e.target.value)
-                    }
-                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                    placeholder="Votre nom"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block mb-2 font-semibold text-gray-700">
-                  Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={e => handleInputChange("email", e.target.value)}
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                  placeholder="exemple@email.com"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-2 font-semibold text-gray-700">
-                  Téléphone <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={e => handleInputChange("phone", e.target.value)}
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                  placeholder="Votre numéro"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-2 font-semibold text-gray-700">
-                  Pays de résidence <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.countryOfResidence}
-                  onChange={e =>
-                    handleInputChange("countryOfResidence", e.target.value)
-                  }
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                >
-                  <option value="">Sélectionnez votre pays</option>
-                  <option value="france">France</option>
-                  <option value="germany">Allemagne</option>
-                  <option value="italy">Italie</option>
-                  <option value="spain">Espagne</option>
-                  <option value="uk">Royaume-Uni</option>
-                  <option value="other">Autre</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block mb-2 font-semibold text-gray-700">
-                  Adresse 1 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.address1}
-                  onChange={e => handleInputChange("address1", e.target.value)}
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                  placeholder="Votre adresse principale"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-2 font-semibold text-gray-700">
-                  Adresse 2 (optionnel)
-                </label>
-                <input
-                  type="text"
-                  value={formData.address2}
-                  onChange={e => handleInputChange("address2", e.target.value)}
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                  placeholder="Complément d'adresse"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block mb-2 font-semibold text-gray-700">
-                    Code postal <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.postalCode}
-                    onChange={e =>
-                      handleInputChange("postalCode", e.target.value)
-                    }
-                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                    placeholder="Code postal"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-2 font-semibold text-gray-700">
-                    Ville <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.city}
-                    onChange={e => handleInputChange("city", e.target.value)}
-                    className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                    placeholder="Votre ville"
-                  />
-                </div>
-              </div>
 
               <h3 className="text-xl font-bold text-gray-800 mb-6 mt-8">
                 Sécurité et conditions
@@ -369,6 +255,7 @@ export function SimplifiedRegisterForm() {
                   Question de sécurité <span className="text-red-500">*</span>
                 </label>
                 <select
+                  title="Question de sécurité"
                   value={formData.securityQuestion}
                   onChange={e =>
                     handleInputChange("securityQuestion", e.target.value)

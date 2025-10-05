@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2024",
+    "target": "esnext",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -41,7 +41,7 @@
       "@/models/*": ["./models/*"],
       "@/store/*": ["./store/*"],
       "@/middleware/*": ["./middleware/*"],
-      "@/test/*": ["./test/*"],
+      "@/test/*": ["tests/*"],
       "@/scripts/*": ["./scripts/*"],
       "@/docker/*": ["./docker/*"],
       "@/docs/*": ["./docs/*"],
@@ -54,8 +54,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "test/**/*.ts",
-    "test/**/*.tsx"
+    "tests/**/*.ts",
+    "tests/**/*.tsx"
   ],
   "exclude": ["node_modules", ".next", "out", "dist", "build", "coverage"]
 }

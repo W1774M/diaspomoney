@@ -69,11 +69,11 @@ export const MOCK_USERS: IUser[] = [
     email: "provider@diaspomoney.com",
     password: "password123",
     name: "Provider User (Active)",
-    roles: ["{PROVIDER:INSTITUTION}"],
+    roles: ["{PROVIDER:INDIVIDUAL}"],
     status: "ACTIVE",
     specialty: "Médecine générale",
     category: "HEALTH",
-    acceptsFirstConsultation: true,
+    acceptsFirstConsultation: false,
     acceptsVideoConsultation: true,
     company: "Clinique Horizon",
     phone: "+33 1 23 45 67 89",
@@ -119,23 +119,23 @@ export const MOCK_USERS: IUser[] = [
     // Créneaux rapides sur 3 jours à venir, découpés en tranches de 30min
     availabilities: [
       // Jour 1 (aujourd'hui)
-      "2025-10-03T09:00:00|2025-10-03T09:30:00",
-      "2025-10-03T09:30:00|2025-10-03T10:00:00",
-      "2025-10-03T10:00:00|2025-10-03T10:30:00",
-      "2025-10-03T14:00:00|2025-10-03T14:30:00",
-      "2025-10-03T14:30:00|2025-10-03T15:00:00",
-      // Jour 2 (demain)
-      "2025-10-04T09:00:00|2025-10-04T09:30:00",
-      "2025-10-04T09:30:00|2025-10-04T10:00:00",
-      "2025-10-04T10:00:00|2025-10-04T10:30:00",
-      "2025-10-04T14:00:00|2025-10-04T14:30:00",
-      "2025-10-04T14:30:00|2025-10-04T15:00:00",
-      // Jour 3 (après-demain)
       "2025-10-05T09:00:00|2025-10-05T09:30:00",
       "2025-10-05T09:30:00|2025-10-05T10:00:00",
       "2025-10-05T10:00:00|2025-10-05T10:30:00",
       "2025-10-05T14:00:00|2025-10-05T14:30:00",
       "2025-10-05T14:30:00|2025-10-05T15:00:00",
+      // Jour 2 (demain)
+      "2025-10-06T09:00:00|2025-10-06T09:30:00",
+      "2025-10-06T09:30:00|2025-10-06T10:00:00",
+      "2025-10-06T10:00:00|2025-10-06T10:30:00",
+      "2025-10-06T14:00:00|2025-10-06T14:30:00",
+      "2025-10-06T14:30:00|2025-10-06T15:00:00",
+      // Jour 3 (après-demain)
+      "2025-10-07T09:00:00|2025-10-07T09:30:00",
+      "2025-10-05T09:30:00|2025-10-05T10:00:00",
+      "2025-10-07T10:00:00|2025-10-07T10:30:00",
+      "2025-10-07T14:00:00|2025-10-07T14:30:00",
+      "2025-10-07T14:30:00|2025-10-07T15:00:00",
     ],
     bookings: [{ start: "10:00", end: "10:30" }],
     createdAt: new Date(),
@@ -623,6 +623,97 @@ export const MOCK_USERS: IUser[] = [
     },
     createdAt: new Date(),
     updatedAt: new Date(),
+  },
+];
+
+// ============================================================================
+// PARTNERS (Homepage carousel / future DB model)
+// ============================================================================
+
+export interface IPartner {
+  id: string;
+  name: string;
+  logo: string;
+  description: string;
+  website: string;
+  category: string;
+  services: string[];
+  location: string;
+  established: string; // year as string for now
+}
+
+export const MOCK_PARTNERS: IPartner[] = [
+  {
+    id: "1",
+    name: "Clinique Santé Plus",
+    logo: "/img/partners/clinic-1.jpg",
+    description:
+      "Clinique médicale moderne offrant des soins de qualité avec une équipe de professionnels expérimentés. Spécialisée dans la médecine générale et les consultations spécialisées.",
+    website: "https://clinique-sante-plus.com",
+    category: "Santé",
+    services: ["Consultations", "Examens", "Urgences", "Spécialistes"],
+    location: "Dakar, Sénégal",
+    established: "2015",
+  },
+  {
+    id: "2",
+    name: "Institut Éducatif Excellence",
+    logo: "/img/partners/education-1.jpg",
+    description:
+      "Établissement d'enseignement supérieur reconnu pour son excellence académique et ses programmes innovants. Formation de qualité pour les étudiants du monde entier.",
+    website: "https://institut-excellence.edu",
+    category: "Éducation",
+    services: ["Formations", "Certifications", "Bourses", "Orientation"],
+    location: "Abidjan, Côte d'Ivoire",
+    established: "2010",
+  },
+  {
+    id: "3",
+    name: "Immobilier Premium",
+    logo: "/img/partners/real-estate-1.jpg",
+    description:
+      "Agence immobilière de référence offrant des services complets pour l'achat, la vente et la location de biens immobiliers de qualité.",
+    website: "https://immobilier-premium.com",
+    category: "Immobilier",
+    services: ["Achat/Vente", "Location", "Gestion", "Conseil"],
+    location: "Douala, Cameroun",
+    established: "2012",
+  },
+  {
+    id: "4",
+    name: "Tech Solutions",
+    logo: "/img/partners/tech-1.jpg",
+    description:
+      "Entreprise technologique innovante spécialisée dans le développement de solutions digitales pour les entreprises modernes.",
+    website: "https://tech-solutions.com",
+    category: "Technologie",
+    services: ["Développement", "Consulting", "Formation", "Support"],
+    location: "Paris, France",
+    established: "2018",
+  },
+  {
+    id: "5",
+    name: "Banque Diaspora",
+    logo: "/img/partners/bank-1.jpg",
+    description:
+      "Institution financière dédiée à la diaspora africaine, offrant des services bancaires adaptés et des solutions de transfert d'argent.",
+    website: "https://banque-diaspora.com",
+    category: "Finance",
+    services: ["Comptes", "Transferts", "Crédits", "Investissements"],
+    location: "Lyon, France",
+    established: "2016",
+  },
+  {
+    id: "6",
+    name: "Lusinage",
+    logo: "https://lusinage.fr/asset/images/logo/lusinage.png",
+    description:
+      "Conception et fabrication de pièces mécaniques de haute précision, pour vos prototypes comme vos pièces de production, en usinage CNC et impression 3D.  adaptés et des solutions de transfert d'argent.",
+    website: "https://lusinage.fr",
+    category: "Usinage",
+    services: ["Usinage CNC", "Impression 3D"],
+    location: "Rouen, France",
+    established: "2021",
   },
 ];
 

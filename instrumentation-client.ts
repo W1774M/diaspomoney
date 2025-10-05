@@ -5,7 +5,7 @@
 import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
-  dsn: "https://2b894e75cf9c91ad14b9b579964cded5@o4504800187711488.ingest.us.sentry.io/4510091253645312",
+  dsn: process.env["SENTRY_DSN"] ?? "",
 
   // Add optional integrations for additional features
   integrations: [Sentry.replayIntegration()],
@@ -25,7 +25,5 @@ Sentry.init({
   debug: false,
 });
 
-// Sentry.captureRouterTransitionStart does not exist; remove or replace as needed.
-// If you need to export a router transition handler, implement it here or remove this export.
-// // Router transition handling removed as captureRouterTransitionStart is not available in this Sentry version
+// Router transition handling removed as captureRouterTransitionStart is not available in this Sentry version
 // Removed invalid export as the property does not exist.

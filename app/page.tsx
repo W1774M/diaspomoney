@@ -1,4 +1,5 @@
 "use client";
+import { InfiniteCarousel } from "@/components/features/partners/InfiniteCarousel";
 import { useRouter } from "next/navigation";
 
 function Step({
@@ -207,6 +208,23 @@ export default function Homepage() {
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Section partenaires */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Nos partenaires
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Découvrez nos partenaires de confiance qui partagent notre vision
+              d'un service de qualité pour la diaspora africaine.
+            </p>
+          </div>
+
+          <InfiniteCarousel />
         </div>
       </section>
     </div>
