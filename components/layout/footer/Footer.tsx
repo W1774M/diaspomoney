@@ -36,7 +36,7 @@ const FooterComponent = () => {
   return (
     <footer className="bg-black text-white py-8">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 items-start gap-8 mb-8">
           <div>
             <Image
               width={300}
@@ -67,7 +67,7 @@ const FooterComponent = () => {
                 rel: "noopener noreferrer",
               },
               {
-                href: "https://diaspomoney.fr",
+                href: "https://diaspomoney.fr/immobilier/",
                 text: "Immobilier & BTP",
                 target: "_blank",
                 rel: "noopener noreferrer",
@@ -84,16 +84,53 @@ const FooterComponent = () => {
                 target: "_blank",
                 rel: "noopener noreferrer",
               },
-              { href: "#how-it-works", text: "Comment ça marche" },
-              { href: "#", text: "FAQ" },
+              { href: "/#how-it-works", text: "Comment ça marche" },
             ]}
           />
 
           <FooterLinks
             label="Contact"
             links={[
-              { href: "#", text: "contact@diaspomoney.fr" },
-              { href: "#", text: "+33 6 51 27 65 70" },
+              {
+                href: "/support",
+                text: "Centre de support",
+                target: "_blank",
+                rel: "noopener noreferrer",
+              },
+              {
+                href: "/hotline",
+                text: "Hotline",
+                target: "_blank",
+                rel: "noopener noreferrer",
+              },
+              {
+                href: "mailto:support@diaspomoney.fr",
+                text: "Email support",
+              },
+              { href: "#", text: "FAQ" },
+            ]}
+          />
+          <FooterLinks
+            label="Mentions légales"
+            links={[
+              {
+                href: "https://diaspomoney.fr/conditions-generales-dutilisation-cgu/",
+                text: "CGU",
+                target: "_blank",
+                rel: "noopener noreferrer",
+              },
+              {
+                href: "https://diaspomoney.fr/conditions-generales-de-vente-cgv/",
+                text: "CGV",
+                target: "_blank",
+                rel: "noopener noreferrer",
+              },
+              {
+                href: "https://diaspomoney.fr/politique-de-confidentialite-p2c/",
+                text: "Politique de confidentialité",
+                target: "_blank",
+                rel: "noopener noreferrer",
+              },
             ]}
           />
         </div>
@@ -155,14 +192,6 @@ const FooterComponent = () => {
           <p className="text-gray-400 text-sm">
             © 2025 DiaspoMoney. Tous droits réservés.
           </p>
-          <div className="flex space-x-4 mt-4 md:mt-0">
-            <a href="#" className="text-gray-400 hover:text-white text-sm">
-              Conditions générales
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white text-sm">
-              Politique de confidentialité
-            </a>
-          </div>
         </div>
       </div>
     </footer>

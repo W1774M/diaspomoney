@@ -28,7 +28,7 @@ export default function Homepage() {
 
   function handleRedirect(serviceType?: string) {
     if (serviceType) {
-      router.push(`/services?type=${serviceType}`);
+      router.push(`/services?t=${serviceType}`);
     } else {
       router.push("/services");
     }
@@ -76,7 +76,7 @@ export default function Homepage() {
                 <div className="grid grid-cols-1 gap-4">
                   <div
                     className="flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left cursor-pointer"
-                    onClick={() => handleRedirect("HEALTH")}
+                    onClick={() => handleRedirect("health")}
                   >
                     <div className="mr-4">
                       <span className="text-blue-600 text-2xl">🏥</span>
@@ -90,7 +90,7 @@ export default function Homepage() {
                   </div>
                   <div
                     className="flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left cursor-pointer"
-                    onClick={() => handleRedirect("EDU")}
+                    onClick={() => handleRedirect("edu")}
                   >
                     <div className="mr-4">
                       <span className="text-blue-600 text-2xl">🎓</span>
@@ -104,7 +104,7 @@ export default function Homepage() {
                   </div>
                   <div
                     className="flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left cursor-pointer"
-                    onClick={() => handleRedirect("IMMO")}
+                    onClick={() => handleRedirect("immo")}
                   >
                     <div className="mr-4">
                       <span className="text-blue-600 text-2xl">🏠</span>
