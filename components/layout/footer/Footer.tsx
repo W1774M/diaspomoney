@@ -143,7 +143,7 @@ const FooterComponent = () => {
             <Image
               width={100}
               height={50}
-              src="/img/logos/map_of_france-1024x725.png"
+              src="https://diaspomoney.fr/wp-content/uploads/2025/03/map_of_france_1-Converti-1536x1087.png"
               alt="DiaspoMoney logo"
             />
             <p className="text-sm font-bold">Seine Innopolis,</p>
