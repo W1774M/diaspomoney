@@ -1,9 +1,0 @@
-node_modules
-.next
-.git 
-.DS_Store
-out
-npm-debug.log
-Dockerfile
-docker-compose.yml
-*.md
