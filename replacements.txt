@@ -1,0 +1,3 @@
+regex:sk_live[_-][0-9A-Za-z]+=>YOUR_STRIPE_SECRET_KEY
+regex:pk_live[_-][0-9A-Za-z]+=>YOUR_STRIPE_PUBLISHABLE_KEY
+regex:whsec[_-][0-9A-Za-z]+=>YOUR_STRIPE_WEBHOOK_SECRET
