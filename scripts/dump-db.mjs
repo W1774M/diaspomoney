@@ -13,7 +13,10 @@ function parseArgs(argv) {
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--collections" || a === "-c") {
-      args.collections = (argv[++i] || "").split(",").map(s => s.trim()).filter(Boolean);
+      args.collections = (argv[++i] || "")
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean);
     } else if (a === "--out" || a === "-o") {
       args.out = argv[++i];
     } else if (a === "--uri") {
@@ -102,5 +105,3 @@ async function main() {
 }
 
 main();
-
-
