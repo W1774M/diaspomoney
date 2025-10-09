@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Cross-browser text size adjust support */
+html,
+:host {
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
 :root {
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;

@@ -1,7 +1,6 @@
 "use client";
 
 import ExternalImage from "@/components/common/ExternalImage";
-import { MOCK_PARTNERS } from "@/mocks";
 import { ExternalLink, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -122,7 +121,22 @@ export function InfiniteCarousel() {
   const carouselRef = useRef<HTMLDivElement>(null);
 
   // Données des partenaires
-  const partners: Partner[] = (MOCK_PARTNERS as unknown as Partner[]) || [];
+  const [partners, setPartners] = useState<Partner[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/partners", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setPartners((data?.partners as Partner[]) || []);
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Stratégie d'infinite loop sans recul: on place l'index au milieu d'une piste triplée
   const track: Partner[] = [...partners, ...partners, ...partners];
@@ -180,9 +194,7 @@ export function InfiniteCarousel() {
               ? "transition-none"
               : "transition-transform duration-1000 ease-in-out"
           }`}
-          style={{
-            transform: `translateX(-${currentIndex * itemWidthPct}%)`,
-          }}
+          style={{ transform: `translateX(-${currentIndex * itemWidthPct}%)` }}
           onTransitionEnd={handleTransitionEnd}
         >
           {track.map((partner, index) => (
@@ -208,19 +220,17 @@ export function InfiniteCarousel() {
                 />
 
                 {/* Image du partenaire */}
-                <div className="aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
-                      <span className="text-2xl font-bold text-[hsl(25,100%,53%)]">
-                        {partner.name.charAt(0)}
-                      </span>
-                    </div>
-                    <h3 className="font-semibold text-gray-800 text-sm">
-                      {partner.name}
-                    </h3>
-                    <p className="text-xs text-gray-600">{partner.category}</p>
-                  </div>
-                </div>
+                <span
+                  className={
+                    "aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center"
+                  }
+                  style={{
+                    backgroundImage: `url(${partner.logo})`,
+                    backgroundSize: "auto 100%",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "center",
+                  }}
+                ></span>
 
                 {/* Contenu */}
                 <div className="p-4">

@@ -2,6 +2,13 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
+  // Attach a request-id (existing or generated) to the request
+  const incomingReqId = request.headers.get("x-request-id");
+  const requestId =
+    incomingReqId ||
+    globalThis.crypto?.randomUUID?.() ||
+    `${Date.now()}-${Math.random()}`;
+
   const { pathname } = request.nextUrl;
 
   // Vérifier si l'utilisateur est sur une page protégée
@@ -43,7 +50,9 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set("x-request-id", requestId);
+  return response;
 }
 
 export const config = {

@@ -1,5 +1,6 @@
 "use client";
 
+import { StripeCheckout } from "@/components/payments/StripeCheckout";
 import {
   Button,
   Form,
@@ -11,7 +12,6 @@ import {
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useForm } from "@/hooks/forms";
 import { calculatePriceWithCommission } from "@/lib/services/utils";
-import { processPaymentWithStripe, validateCardWithStripe } from "@/lib/stripe";
 import { bookingSchema, type BookingFormData } from "@/lib/validations";
 import {
   AlertCircle,
@@ -251,33 +251,12 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
   // Fonction pour traiter le paiement après l'inscription
   const processPaymentAfterRegistration = async (
     data: BookingFormData,
-    token: string,
-    totalPrice: number
+    paymentId: string
   ) => {
     try {
-      setPaymentStatus("processing");
-
-      const paymentResult = await processPaymentWithStripe(token, totalPrice);
-
-      if (!paymentResult.success) {
-        setPaymentStatus("error");
-        setPaymentError(
-          paymentResult.error || "Erreur lors du traitement du paiement"
-        );
-        return;
-      }
-
       setPaymentStatus("success");
-
-      // Attendre un peu pour montrer le succès
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Soumettre le formulaire avec les données de paiement
-      await onSubmit({
-        ...data,
-        paymentId: paymentResult.paymentId,
-      });
-
+      await new Promise(resolve => setTimeout(resolve, 800));
+      await onSubmit({ ...data, paymentId });
       onClose();
     } catch (error) {
       console.error("Erreur lors du traitement du paiement:", error);
@@ -291,31 +270,9 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
     setPaymentError(null);
 
     try {
-      // Si on est à l'étape 7, traiter le paiement
+      // Si on est à l'étape 7, laisser StripeCheckout gérer la confirmation
       if (currentStep === 7 && isAuthenticated) {
-        setPaymentStatus("validating");
-
-        // Validation de la carte avec Stripe
-        const cardData = {
-          number: data.cardNumber || "",
-          exp_month: parseInt((data.expiryDate || "").split("/")[0] || "0"),
-          exp_year:
-            2000 + parseInt((data.expiryDate || "").split("/")[1] || "0"),
-          cvc: data.cvv || "",
-          name: data.cardholderName || "",
-        };
-
-        const validationResult = await validateCardWithStripe(cardData);
-
-        if (!validationResult.valid) {
-          setPaymentStatus("error");
-          setPaymentError(
-            validationResult.error || "Erreur de validation de la carte"
-          );
-          return;
-        }
-
-        // Si l'utilisateur n'est pas authentifié, sauvegarder les données de booking et ouvrir l'inscription dans une popup
+        // Si l'utilisateur n'est pas authentifié, sauvegarder les données et ouvrir l'inscription
         if (!isAuthenticated) {
           // Calculer le prix total
           let basePrice = 0;
@@ -368,12 +325,8 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               popup?.close();
               window.removeEventListener("message", handleMessage);
 
-              // Traiter le paiement maintenant que l'utilisateur est inscrit
-              processPaymentAfterRegistration(
-                data,
-                validationResult.token!,
-                totalPrice
-              );
+              // Le paiement sera confirmé via StripeCheckout après inscription
+              // Rien à faire ici
             }
           };
 
@@ -390,48 +343,8 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           return;
         }
 
-        setPaymentStatus("processing");
-
-        // Traitement du paiement avec commission
-        let basePrice = 0;
-        if (watchedValues.consultationMode === "video") {
-          // Pour les consultations vidéo, utiliser le prix du service "Consultation"
-          const consultationService = provider["services"]?.find(
-            (service: any) => service.name === "Consultation"
-          );
-          basePrice = consultationService?.price || provider["price"] || 0;
-        } else {
-          // Pour les autres cas, utiliser le service sélectionné ou le prix du provider
-          basePrice =
-            watchedValues.selectedService?.price || provider["price"] || 0;
-        }
-        const totalPrice = calculatePriceWithCommission(basePrice);
-
-        const paymentResult = await processPaymentWithStripe(
-          validationResult.token!,
-          totalPrice
-        );
-
-        if (!paymentResult.success) {
-          setPaymentStatus("error");
-          setPaymentError(
-            paymentResult.error || "Erreur lors du traitement du paiement"
-          );
-          return;
-        }
-
-        setPaymentStatus("success");
-
-        // Attendre un peu pour montrer le succès
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // Soumettre le formulaire avec les données de paiement
-        await onSubmit({
-          ...data,
-          paymentId: paymentResult.paymentId,
-        });
-
-        onClose();
+        // Le bouton de paiement Stripe prendra le relais
+        return;
       } else {
         // Pour les autres étapes, soumettre normalement
         await onSubmit(data);
@@ -538,19 +451,9 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
         return kycConsent;
 
       case 7:
-        // Étape 7: Paiement
-        // Autoriser après inscription (sans connexion auto)
+        // Étape 7: Paiement géré par Stripe Elements
         if (!isAuthenticated && !registrationCompleted) return false;
-        return (
-          watchedValues.cardNumber &&
-          watchedValues.expiryDate &&
-          watchedValues.cvv &&
-          watchedValues.cardholderName &&
-          !errors.cardNumber &&
-          !errors.expiryDate &&
-          !errors.cvv &&
-          !errors.cardholderName
-        );
+        return true;
 
       default:
         return true;
@@ -1779,49 +1682,51 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
               <CreditCard className="w-4 h-4 mr-2" />
-              Informations de carte bancaire
+              Paiement sécurisé
             </h4>
 
-            <div className="space-y-3">
-              <FormField error={getErrorMessage(errors.cardNumber?.message)}>
-                <FormLabel htmlFor="cardNumber">Numéro de carte *</FormLabel>
-                <Input
-                  id="cardNumber"
-                  placeholder="1234 5678 9012 3456"
-                  {...register("cardNumber")}
+            {(() => {
+              let basePrice = 0;
+              if (watchedValues.consultationMode === "video") {
+                const consultationService = provider["services"]?.find(
+                  (service: any) => service.name === "Consultation"
+                );
+                basePrice =
+                  consultationService?.price || provider["price"] || 0;
+              } else {
+                basePrice =
+                  watchedValues.selectedService?.price ||
+                  provider["price"] ||
+                  0;
+              }
+              const totalPrice = calculatePriceWithCommission(basePrice);
+              const amountInCents = Math.round(totalPrice * 100);
+              return (
+                <StripeCheckout
+                  amountInMinorUnit={amountInCents}
+                  currency="eur"
+                  customerEmail={watchedValues?.requester?.email}
+                  metadata={{
+                    providerId: String(provider._id || ""),
+                    consultationMode: String(
+                      watchedValues.consultationMode || ""
+                    ),
+                  }}
+                  onSuccess={async (paymentId: string) => {
+                    setPaymentStatus("success");
+                    await onSubmit({
+                      ...watchedValues,
+                      paymentId,
+                    } as any);
+                    onClose();
+                  }}
+                  onError={(msg: string) => {
+                    setPaymentStatus("error");
+                    setPaymentError(msg);
+                  }}
                 />
-              </FormField>
-
-              <div className="grid grid-cols-2 gap-3">
-                <FormField error={getErrorMessage(errors.expiryDate?.message)}>
-                  <FormLabel htmlFor="expiryDate">
-                    Date d&apos;expiration *
-                  </FormLabel>
-                  <Input
-                    id="expiryDate"
-                    placeholder="MM/AA"
-                    {...register("expiryDate")}
-                  />
-                </FormField>
-                <FormField error={getErrorMessage(errors.cvv?.message)}>
-                  <FormLabel htmlFor="cvv">CVV *</FormLabel>
-                  <Input id="cvv" placeholder="123" {...register("cvv")} />
-                </FormField>
-              </div>
-
-              <FormField
-                error={getErrorMessage(errors.cardholderName?.message)}
-              >
-                <FormLabel htmlFor="cardholderName">
-                  Nom du titulaire *
-                </FormLabel>
-                <Input
-                  id="cardholderName"
-                  placeholder="Jean Dupont"
-                  {...register("cardholderName")}
-                />
-              </FormField>
-            </div>
+              );
+            })()}
           </div>
 
           {/* Résumé de la commande */}
