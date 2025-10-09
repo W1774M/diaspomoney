@@ -66,6 +66,11 @@ services:
       # Authentification basique pour la sécurité
       - traefik.http.routers.mongo-express.middlewares=mongo-auth
       - traefik.http.middlewares.mongo-auth.basicauth.usersfile=/run/secrets/traefik_basicauth
+      - traefik.http.routers.mongo-express-http.rule=Host(mongo.diaspomoney.fr)
+      - traefik.http.routers.mongo-express-http.entrypoints=web
+      - traefik.http.routers.mongo-express-http.middlewares=redirect-to-https
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
     secrets:
       - traefik_basicauth
 
