@@ -177,16 +177,13 @@ temp/
 
 # Turbo
 .turbo
-<<<<<<< HEAD
 
 # Sentry Config File
 .env.sentry-build-plugin
-=======
-
 # Backups 
 backups
 
 #Traefik
 docker/traefik/
->>>>>>> d19c04b (feat: wip)
-docker/traefik/traefik_logs/*.log
+
+pnpm-lock.yaml
