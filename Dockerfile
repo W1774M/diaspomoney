@@ -13,6 +13,9 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile
 # Copier tout le projet
 COPY . .
 
+# S'assurer que le dossier public existe (au cas où .dockerignore ou le repo ne l'inclut pas)
+RUN test -d public || mkdir -p public
+
 # Construire l'application Next.js
 RUN pnpm run build
 
