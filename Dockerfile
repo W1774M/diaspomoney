@@ -26,7 +26,7 @@ WORKDIR /app
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/
 COPY --from=builder /app/.next /app/.next
 COPY --from=builder /app/public /app/public
-COPY --from=builder /app/next.config.ts /app/
+COPY --from=builder /app/next.config.mjs /app/
 
 # Installer uniquement les dépendances nécessaires pour exécuter l'application
 RUN npm install -g pnpm && pnpm install --production --frozen-lockfile --ignore-scripts

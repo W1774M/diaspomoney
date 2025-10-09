@@ -249,21 +249,21 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
   }, [setValue, watchedValues.requester]);
 
   // Fonction pour traiter le paiement après l'inscription
-  const processPaymentAfterRegistration = async (
-    data: BookingFormData,
-    paymentId: string
-  ) => {
-    try {
-      setPaymentStatus("success");
-      await new Promise(resolve => setTimeout(resolve, 800));
-      await onSubmit({ ...data, paymentId });
-      onClose();
-    } catch (error) {
-      console.error("Erreur lors du traitement du paiement:", error);
-      setPaymentStatus("error");
-      setPaymentError("Une erreur inattendue s'est produite");
-    }
-  };
+  // const processPaymentAfterRegistration = async (
+  //   data: BookingFormData,
+  //   paymentId: string
+  // ) => {
+  //   try {
+  //     setPaymentStatus("success");
+  //     await new Promise(resolve => setTimeout(resolve, 800));
+  //     await onSubmit({ ...data, paymentId });
+  //     onClose();
+  //   } catch (error) {
+  //     console.error("Erreur lors du traitement du paiement:", error);
+  //     setPaymentStatus("error");
+  //     setPaymentError("Une erreur inattendue s'est produite");
+  //   }
+  // };
 
   const handleFormSubmit = async (data: BookingFormData) => {
     setIsSubmitting(true);
