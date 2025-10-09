@@ -29,7 +29,7 @@ function Header() {
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0">
               <Logo
-                src="/img/logos/Logo_DispoMoney_horiz_CMJN_web.png"
+                src="https://diaspomoney.fr/wp-content/uploads/2025/03/Logo_Diaspo_Horizontal_enrichi.webp"
                 width={200}
                 height={100}
                 alt="Diaspomoney"
@@ -108,6 +108,8 @@ function Header() {
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="md:hidden p-2 text-gray-400 hover:text-[hsl(25,100%,53%)] transition-colors"
+              aria-label="Ouvrir le menu mobile"
+              title="Ouvrir le menu mobile"
             >
               <Menu className="h-5 w-5" />
             </button>

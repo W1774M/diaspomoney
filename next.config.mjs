@@ -8,13 +8,25 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**.diaspomoney.com",
+        hostname: "diaspomoney.fr",
         port: "",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "**.diaspomoney.fr",
+        hostname: "www.diaspomoney.fr",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "diaspomoney.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.diaspomoney.com",
         port: "",
         pathname: "/**",
       },

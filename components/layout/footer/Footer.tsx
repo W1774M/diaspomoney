@@ -41,7 +41,7 @@ const FooterComponent = () => {
             <Image
               width={300}
               height={100}
-              src="/img/logos/Logo_DispoMoney_horiz_White _web.png"
+              src="https://diaspomoney.fr/wp-content/uploads/elementor/thumbs/Logo_DispoMoney_horiz_White-r4cjdg7wv320biozt7wn5l3jqbpge79tslitjic064.webp"
               alt="DiaspoMoney logo"
               className=""
             />
