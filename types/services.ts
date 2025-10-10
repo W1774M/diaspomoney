@@ -1,5 +1,4 @@
 import { Provider } from "@/hooks/useProviders";
-import { IUser } from ".";
 
 // Services Types and Interfaces
 
@@ -26,7 +25,7 @@ export interface ServiceStats {
 }
 
 export interface ServiceCardProps {
-  provider: IUser;
+  provider: Provider;
   onDetails: () => void;
 }
 

@@ -1,14 +1,14 @@
+import { Provider } from "@/hooks/useProviders";
 import { getProviderRatingStats } from "@/mocks";
-import { IUser } from "@/types";
 
 /**
  * Extract unique specialties from providers
  */
-export function getUniqueSpecialties(providers: IUser[]): string[] {
+export function getUniqueSpecialties(providers: Provider[]): string[] {
   return [
     ...new Set(
       providers
-        .map(p => p.specialty)
+        .flatMap(p => p.specialties || [])
         .filter((specialty): specialty is string => Boolean(specialty))
     ),
   ].sort();
@@ -17,10 +17,12 @@ export function getUniqueSpecialties(providers: IUser[]): string[] {
 /**
  * Extract unique services from providers
  */
-export function getAvailableServices(providers: IUser[]): string[] {
+export function getAvailableServices(providers: Provider[]): string[] {
   return providers
     .flatMap(p =>
-      p.selectedServices ? p.selectedServices.split(",").map(s => s.trim()) : []
+      p["selectedServices"]
+        ? p["selectedServices"].split(",").map((s: string) => s.trim())
+        : []
     )
     .filter((service, idx, arr) => arr.indexOf(service) === idx)
     .sort();
@@ -29,7 +31,7 @@ export function getAvailableServices(providers: IUser[]): string[] {
 /**
  * Extract unique cities from providers
  */
-export function getAvailableCities(providers: IUser[]): string[] {
+export function getAvailableCities(providers: Provider[]): string[] {
   return [
     ...new Set(
       providers
@@ -42,39 +44,40 @@ export function getAvailableCities(providers: IUser[]): string[] {
 /**
  * Format provider name with company
  */
-export function formatProviderName(provider: IUser): string {
-  return provider.company
-    ? `${provider.name} (${provider.company})`
-    : provider.name;
+export function formatProviderName(provider: Provider): string {
+  const name = `${provider.firstName} ${provider.lastName}`;
+  return provider["company"] ? `${name} (${provider["company"]})` : name;
 }
 
 /**
  * Get provider rating display
  */
 
-export function getProviderRating(provider: IUser): number {
+export function getProviderRating(provider: Provider): number {
   const stats = getProviderRatingStats(provider._id);
-  return stats?.averageRating || 0;
+  return stats?.averageRating || provider.rating || 0;
 }
 
 /**
  * Check if provider is available
  */
-export function isProviderAvailable(provider: IUser): boolean {
+export function isProviderAvailable(provider: Provider): boolean {
   return (
     provider.status === "ACTIVE" &&
-    Array.isArray(provider.availabilities) &&
-    provider.availabilities.length > 0
+    Array.isArray(provider["availabilities"]) &&
+    provider["availabilities"].length > 0
   );
 }
 
 /**
  * Get provider's primary service
  */
-export function getPrimaryService(provider: IUser): string {
-  if (!provider.selectedServices) return "Service non spécifié";
+export function getPrimaryService(provider: Provider): string {
+  if (!provider["selectedServices"]) return "Service non spécifié";
 
-  const services = provider.selectedServices.split(",").map(s => s.trim());
+  const services = provider["selectedServices"]
+    .split(",")
+    .map((s: string) => s.trim());
   return services[0] || "Service non spécifié";
 }
 
@@ -82,10 +85,10 @@ export function getPrimaryService(provider: IUser): string {
  * Get provider's availability status
  */
 export function getAvailabilityStatus(
-  provider: IUser
+  provider: Provider
 ): "available" | "busy" | "offline" {
   if (provider.status !== "ACTIVE") return "offline";
-  if (!provider.availabilities || provider.availabilities.length === 0)
+  if (!provider["availabilities"] || provider["availabilities"].length === 0)
     return "offline";
   return "available";
 }
@@ -113,12 +116,15 @@ export function getCommissionAmount(
 /**
  * Get service price by service name
  */
-export function getServicePrice(provider: IUser, serviceName: string): number {
-  if (!provider.services || !Array.isArray(provider.services)) {
+export function getServicePrice(
+  provider: Provider,
+  serviceName: string
+): number {
+  if (!provider["services"] || !Array.isArray(provider["services"])) {
     return (provider as any).price || 0; // Fallback to provider base price
   }
 
-  const service = provider.services.find(
+  const service = provider["services"].find(
     s =>
       s.name.toLowerCase().includes(serviceName.toLowerCase()) ||
       serviceName.toLowerCase().includes(s.name.toLowerCase())
@@ -130,6 +136,6 @@ export function getServicePrice(provider: IUser, serviceName: string): number {
 /**
  * Get consultation price (for video consultation)
  */
-export function getConsultationPrice(provider: IUser): number {
+export function getConsultationPrice(provider: Provider): number {
   return getServicePrice(provider, "consultation");
 }

@@ -22,17 +22,17 @@ const ServicesProviderCard = React.memo<ServiceCardProps>(
           {/* Avatar */}
           <div className="flex-shrink-0">
             <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-              {provider.avatar?.image ? (
+              {provider["avatar"]?.image ? (
                 <Image
-                  src={provider.avatar.image}
-                  alt={provider.avatar.name}
+                  src={provider["avatar"].image}
+                  alt={provider["avatar"].name}
                   width={64}
                   height={64}
                   className="w-full h-full object-cover"
                 />
               ) : (
                 <span className="text-2xl font-bold text-gray-600">
-                  {provider.name.charAt(0).toUpperCase()}
+                  {provider.firstName.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
@@ -46,7 +46,7 @@ const ServicesProviderCard = React.memo<ServiceCardProps>(
                   {providerName}
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  {provider.specialty}
+                  {provider.specialties?.[0] || "Spécialité non spécifiée"}
                 </p>
 
                 {/* Rating */}
@@ -87,8 +87,8 @@ const ServicesProviderCard = React.memo<ServiceCardProps>(
                     </div>
                   )}
 
-                  {provider.availabilities &&
-                    provider.availabilities.length > 0 && (
+                  {provider["availabilities"] &&
+                    provider["availabilities"].length > 0 && (
                       <div className="flex items-center text-sm text-gray-600">
                         <Clock className="h-4 w-4 mr-1" />
                         <span>Disponible</span>
