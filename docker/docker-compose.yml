@@ -11,9 +11,11 @@ services:
     image: mongo:7.0
     container_name: mongodb
     restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-admin123}
       MONGO_INITDB_DATABASE: ${MONGODB_DB:-diaspomoney}
     volumes:
       - mongodb_data:/data/db
