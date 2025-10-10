@@ -3,6 +3,7 @@ include:
 
 networks:
   traefik: {}
+  diaspomoney: {}
 
 volumes:
   traefik_letsencrypt: {}
