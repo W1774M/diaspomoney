@@ -89,7 +89,8 @@ import_json_file() {
     # Importer le fichier JSON via Docker
     if docker exec "$MONGO_CONTAINER" mongosh "$MONGO_DB" --eval "
         db.$collection.drop();
-        db.$collection.insertMany($(cat $container_file));
+        const data = JSON.parse(require('fs').readFileSync('$container_file', 'utf8'));
+        db.$collection.insertMany(data);
         print('Documents insérés: ' + db.$collection.countDocuments());
     " > /dev/null 2>&1; then
         log_success "Importation réussie: $json_file -> $collection"
