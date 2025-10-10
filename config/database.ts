@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 export const databaseConfig = {
   url:
     process.env["MONGODB_URI"] ||
-    "mongodb://diaspomoney_user:diaspomoney_app_password@localhost:27017/diaspomoney",
+    "mongodb://admin:admin123@localhost:27017/diaspomoney?authSource=admin",
   options: {
     maxPoolSize: 10,
     serverSelectionTimeoutMS: 5000,

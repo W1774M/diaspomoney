@@ -1,12 +1,13 @@
 #!/bin/bash
 
-# Script de démarrage pour l'environnement de développement
-# Usage: ./scripts/start-dev.sh
+# Script de configuration de l'environnement de développement DiaspoMoney
+# Usage: ./scripts/dev-setup.sh
 
 set -e
 
-echo "🚀 Démarrage de l'environnement de développement DiaspoMoney"
-echo "============================================================="
+echo "🚀 Configuration de l'environnement de développement DiaspoMoney"
+echo "================================================================"
+
 
 # Obtenir le répertoire du script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,27 +37,35 @@ if [ ! -d "$DOCKER_DIR" ]; then
 fi
 
 # Créer le fichier .env s'il n'existe pas
-if [ ! -f "$PROJECT_DIR/.env" ]; then
+if [ ! -f "$PROJECT_DIR/.env" ]; then   
     echo "📝 Création du fichier .env..."
     cat > "$PROJECT_DIR/.env" << EOF
-# Configuration MongoDB pour le développement
-MONGODB_URI=mongodb://admin:admin123@localhost:27017/diaspomoney?authSource=admin
+# Configuration MongoDB
+MONGODB_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@localhost:27017/diaspomoney
+
+# Configuration SMTP pour l'envoi d'emails
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
 
 # Configuration de l'application
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_API_URL=http://localhost:3000/api
 
-# Configuration NextAuth
+# Configuration Redis (optionnel)
+REDIS_URL=redis://localhost:6379
+
+# Clés secrètes
+JWT_SECRET=your-super-secret-jwt-key-here
+NEXTAUTH_SECRET=your-nextauth-secret-key-here
 NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=dev-secret-key
 
 # Configuration de l'environnement
 NODE_ENV=development
-
-# Clés secrètes
-JWT_SECRET=dev-jwt-secret
 EOF
     echo "✅ Fichier .env créé"
+    echo "⚠️  N'oubliez pas de configurer vos variables SMTP dans .env"
 else
     echo "✅ Fichier .env existe déjà"
 fi
@@ -65,27 +74,68 @@ fi
 echo "🌐 Création du réseau Docker..."
 docker network create diaspomoney 2>/dev/null || echo "✅ Réseau diaspomoney existe déjà"
 
+
 # Arrêter les services existants s'ils sont en cours
 echo "🛑 Arrêt des services existants..."
 cd "$DOCKER_DIR"
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml down 2>/dev/null || echo "Aucun service à arrêter"
+docker-compose -f docker-compose.yml down 2>/dev/null || echo "Aucun service à arrêter"
 
-# Démarrer les services de développement
-echo "🚀 Démarrage des services de développement..."
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
+# Démarrer les services Docker
+echo "🐳 Démarrage des services Docker..."
+cd "$DOCKER_DIR"
+docker-compose -f docker-compose.yml up -d
+
+# Attendre que MongoDB soit prêt
+echo "⏳ Attente que MongoDB soit prêt..."
+sleep 10
+
+# Vérifier que les services sont démarrés
+echo "🔍 Vérification des services..."
+cd "$DOCKER_DIR"
+if docker-compose -f docker-compose.yml ps | grep -q "Up"; then
+    echo "✅ Tous les services sont démarrés"
+else
+    echo "❌ Erreur lors du démarrage des services"
+    docker-compose -f docker-compose.yml logs
+    exit 1
+fi
+
+# Vérifier la connexion MongoDB
+echo "🔗 Test de connexion MongoDB..."
+if docker exec mongodb mongosh --username admin --password admin123 --authenticationDatabase admin --eval "db.adminCommand('ping')" > /dev/null 2>&1; then
+    echo "✅ Connexion MongoDB réussie"
+    echo "🔗 Connexion MongoDB : mongodb://admin:admin123@localhost:27017/diaspomoney?authSource=admin"
+else
+    echo "❌ Erreur de connexion MongoDB"
+    echo "📋 Logs MongoDB :"
+    cd "$DOCKER_DIR" && docker-compose -f docker-compose.yml logs mongodb
+    exit 1
+fi
+
+# Installer les dépendances si nécessaire
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installation des dépendances..."
+    pnpm install
+else
+    echo "✅ Dépendances déjà installées"
+fi
 
 echo ""
-echo "🎉 Environnement de développement démarré avec succès !"
+echo "🎉 Configuration terminée avec succès !"
 echo ""
-echo "📋 Services disponibles :"
+echo "📋 Informations importantes :"
+echo "   • MongoDB : mongodb://admin:admin123@localhost:27017/diaspomoney?authSource=admin"
+echo "   • Mongo Express : http://localhost:8081 (admin/admin123)"
+echo "   • Redis : redis://localhost:6379"
 echo "   • Application : http://localhost:3000"
-echo "   • Mongo Express : http://localhost:8081"
-echo "   • MongoDB : mongodb://admin:admin123@localhost:27017/diaspomoney"
 echo ""
-echo "📊 Pour voir les logs :"
-echo "   docker logs app-dev"
-echo "   docker logs mongo-express"
-echo "   docker logs mongodb"
+echo "🚀 Pour démarrer l'application :"
+echo "   pnpm dev"
 echo ""
-echo "🛑 Pour arrêter :"
-echo "   cd docker && docker-compose -f docker-compose.yml -f docker-compose.dev.yml down"
+echo "📊 Pour voir les logs des services :"
+echo "   cd docker && docker-compose -f docker-compose.yml logs && cd ../"
+echo ""
+echo "🛑 Pour arrêter les services :"
+echo "   cd docker && docker-compose -f docker-compose.yml down && cd ../"
+echo ""
+echo "⚠️  N'oubliez pas de configurer vos variables SMTP dans .env pour l'envoi d'emails" 

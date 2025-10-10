@@ -16,6 +16,7 @@ export default function ProtectedRoute({
   fallback = null,
 }: ProtectedRouteProps) {
   const { isAuthenticated, isAdmin, isLoading, user } = useAuth();
+  const { isOAuthUser } = useOAuthStatus();
   const router = useRouter();
 
   useEffect(() => {
@@ -26,6 +27,12 @@ export default function ProtectedRoute({
 
     // Vérifier si l'utilisateur est actif
     if (!isLoading && isAuthenticated && user && user.status !== "ACTIVE") {
+      // Pour les utilisateurs OAuth, ils sont toujours considérés comme actifs
+      if (isOAuthUser) {
+        // Les utilisateurs OAuth ne devraient jamais être bloqués
+        return;
+      }
+
       // Rediriger vers la page appropriée selon le statut
       if (user.status === "INACTIVE") {
         router.push("/verify-email");
@@ -43,7 +50,15 @@ export default function ProtectedRoute({
       router.push("/dashboard");
       return;
     }
-  }, [isAuthenticated, isLoading, requireAdmin, isAdmin, router, user]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    requireAdmin,
+    isAdmin,
+    router,
+    user,
+    isOAuthUser,
+  ]);
 
   // Afficher un message de chargement pendant la vérification
   if (isLoading) {
@@ -58,11 +73,14 @@ export default function ProtectedRoute({
   // Ne pas afficher le contenu si non connecté, utilisateur non actif, ou si admin requis mais non admin
   if (
     !isAuthenticated ||
-    (user && user.status !== "ACTIVE") ||
+    (user && user.status !== "ACTIVE" && !isOAuthUser) ||
     (requireAdmin && !isAdmin())
   ) {
     return fallback;
   }
 
   return <>{children}</>;
+}
+function useOAuthStatus(): { isOAuthUser: any } {
+  throw new Error("Function not implemented.");
 }

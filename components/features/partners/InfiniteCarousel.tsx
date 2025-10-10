@@ -118,6 +118,7 @@ export function InfiniteCarousel() {
   const [hoveredPartnerId, setHoveredPartnerId] = useState<string | null>(null);
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [visibleItems, setVisibleItems] = useState(5);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   // Données des partenaires
@@ -138,22 +139,84 @@ export function InfiniteCarousel() {
     };
   }, []);
 
-  // Stratégie d'infinite loop sans recul: on place l'index au milieu d'une piste triplée
-  const track: Partner[] = [...partners, ...partners, ...partners];
+  // Gestion de la responsivité
+  useEffect(() => {
+    const updateVisibleItems = () => {
+      const width = window.innerWidth;
+      if (width < 480) {
+        setVisibleItems(1); // Très petit mobile: 1 item
+      } else if (width < 640) {
+        setVisibleItems(1); // Mobile: 1 item
+      } else if (width < 768) {
+        setVisibleItems(2); // Small tablet: 2 items
+      } else if (width < 1024) {
+        setVisibleItems(3); // Tablet: 3 items
+      } else if (width < 1280) {
+        setVisibleItems(4); // Desktop: 4 items
+      } else {
+        setVisibleItems(5); // Large desktop: 5 items
+      }
+    };
+
+    updateVisibleItems();
+    window.addEventListener("resize", updateVisibleItems);
+    return () => window.removeEventListener("resize", updateVisibleItems);
+  }, []);
+
   const baseLength = partners.length;
-  const startIndex = baseLength; // début au milieu
+
+  // Gestion des différents cas de pagination
+  const getCarouselConfig = () => {
+    if (baseLength === 0) {
+      return {
+        track: [],
+        startIndex: 0,
+        itemWidthPct: 100,
+        showIndicators: false,
+        showNavigation: false,
+      };
+    }
+
+    if (baseLength <= visibleItems) {
+      // Moins d'items que la capacité visible - pas de carousel infini
+      return {
+        track: partners,
+        startIndex: 0,
+        itemWidthPct: 100 / baseLength,
+        showIndicators: false,
+        showNavigation: false,
+      };
+    }
+
+    // Plus d'items que la capacité visible - carousel infini
+    const track = [...partners, ...partners, ...partners];
+    const startIndex = baseLength;
+
+    return {
+      track,
+      startIndex,
+      itemWidthPct: 100 / visibleItems,
+      showIndicators: true,
+      showNavigation: true,
+    };
+  };
+
+  const config = getCarouselConfig();
+  const { track, startIndex, itemWidthPct, showIndicators, showNavigation } =
+    config;
 
   // Initialiser l'index au milieu au premier rendu
   useEffect(() => {
-    if (baseLength > 0) setCurrentIndex(startIndex);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseLength]);
+    if (baseLength > 0 && showNavigation) {
+      setCurrentIndex(startIndex);
+    } else if (baseLength > 0) {
+      setCurrentIndex(0);
+    }
+  }, [baseLength, startIndex, showNavigation]);
 
-  // Largeur d'un item (1/5 de la largeur du conteneur)
-  const itemWidthPct = 100 / 5;
-
+  // Auto-scroll seulement si navigation activée
   useEffect(() => {
-    if (hoveredPartnerId || baseLength === 0) return;
+    if (hoveredPartnerId || baseLength === 0 || !showNavigation) return;
 
     const interval = setInterval(() => {
       setDisableTransition(false);
@@ -161,10 +224,12 @@ export function InfiniteCarousel() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [hoveredPartnerId, baseLength]);
+  }, [hoveredPartnerId, baseLength, showNavigation]);
 
   // Gérer la fin de transition pour recaler l'index au milieu sans animation
   const handleTransitionEnd = () => {
+    if (!showNavigation) return;
+
     if (currentIndex >= startIndex + baseLength) {
       setDisableTransition(true);
       setCurrentIndex(startIndex);
@@ -184,6 +249,25 @@ export function InfiniteCarousel() {
     setSelectedPartner(null);
   };
 
+  // Cas spécial: aucun partenaire
+  if (baseLength === 0) {
+    return (
+      <div className="w-full flex flex-col items-center py-12">
+        <div className="bg-gray-50 rounded-lg p-8 shadow-sm w-full max-w-md text-center">
+          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl text-gray-400">🤝</span>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Aucun partenaire disponible
+          </h3>
+          <p className="text-gray-600">
+            Nos partenaires seront bientôt disponibles. Revenez plus tard !
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="relative overflow-hidden">
@@ -200,7 +284,8 @@ export function InfiniteCarousel() {
           {track.map((partner, index) => (
             <div
               key={`${partner.id}-${index}`}
-              className="w-1/5 flex-shrink-0 px-4"
+              className="flex-shrink-0 px-1 sm:px-2 md:px-4"
+              style={{ width: `${itemWidthPct}%` }}
             >
               <div
                 className={`relative bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transition-all duration-300 ${
@@ -221,9 +306,7 @@ export function InfiniteCarousel() {
 
                 {/* Image du partenaire */}
                 <span
-                  className={
-                    "aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center"
-                  }
+                  className="aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center"
                   style={{
                     backgroundImage: `url(${partner.logo})`,
                     backgroundSize: "auto 100%",
@@ -233,24 +316,24 @@ export function InfiniteCarousel() {
                 ></span>
 
                 {/* Contenu */}
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 text-sm mb-1">
+                <div className="p-2 sm:p-3 md:p-4">
+                  <h3 className="font-semibold text-gray-900 text-xs sm:text-sm mb-1 line-clamp-2">
                     {partner.name}
                   </h3>
-                  <p className="text-xs text-gray-600 mb-2">
+                  <p className="text-xs text-gray-600 mb-2 line-clamp-1">
                     {partner.category}
                   </p>
                 </div>
 
                 {/* Bouton d'action visible au hover */}
                 <div
-                  className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 transition-opacity duration-300 ${
+                  className={`absolute bottom-2 sm:bottom-3 md:bottom-4 left-1/2 transform -translate-x-1/2 z-20 transition-opacity duration-300 ${
                     hoveredPartnerId === partner.id
                       ? "opacity-100"
                       : "opacity-0"
                   }`}
                 >
-                  <button className="bg-white text-[hsl(25,100%,53%)] px-4 py-2 rounded-full text-xs font-semibold shadow-lg hover:bg-gray-50 transition-colors">
+                  <button className="bg-white text-[hsl(25,100%,53%)] px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-full text-xs font-semibold shadow-lg hover:bg-gray-50 transition-colors">
                     Voir détails
                   </button>
                 </div>
@@ -259,24 +342,32 @@ export function InfiniteCarousel() {
           ))}
         </div>
 
-        {/* Indicateurs de position */}
-        <div className="flex justify-center mt-6 space-x-2">
-          {partners.map((_, index) => (
-            <button
-              title="Indicateur de position"
-              key={index}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                index === (currentIndex - startIndex + baseLength) % baseLength
-                  ? "bg-[hsl(25,100%,53%)]"
-                  : "bg-gray-300"
-              }`}
-              onClick={() => {
-                setDisableTransition(false);
-                setCurrentIndex(startIndex + index);
-              }}
-            />
-          ))}
-        </div>
+        {/* Indicateurs de position - seulement si navigation activée et plus de partenaires que visible */}
+        {showIndicators && baseLength > visibleItems && (
+          <div className="flex justify-center mt-6 space-x-2">
+            {Array.from(
+              { length: Math.ceil(baseLength / visibleItems) },
+              (_, index) => (
+                <button
+                  title="Indicateur de position"
+                  key={index}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    Math.floor(
+                      ((currentIndex - startIndex + baseLength) % baseLength) /
+                        visibleItems
+                    ) === index
+                      ? "bg-[hsl(25,100%,53%)]"
+                      : "bg-gray-300"
+                  }`}
+                  onClick={() => {
+                    setDisableTransition(false);
+                    setCurrentIndex(startIndex + index * visibleItems);
+                  }}
+                />
+              )
+            )}
+          </div>
+        )}
       </div>
 
       {/* Modal des détails du partenaire */}

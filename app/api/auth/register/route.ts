@@ -46,9 +46,12 @@ export async function POST(request: NextRequest) {
         !dateOfBirth,
         !targetCountry,
         !targetCity,
-        !selectedServices,
-        !kycConsent
+        !selectedServices
       );
+      // kycConsent n'est obligatoire que s'il est fourni dans la requête
+      if (kycConsent !== undefined) {
+        requiredFields.push(!kycConsent);
+      }
     }
 
     if (requiredFields.some(field => field)) {

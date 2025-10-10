@@ -3,168 +3,172 @@ import bcrypt from "bcryptjs";
 import mongoose, { Schema } from "mongoose";
 
 const userDefinition = {
-    email: {
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  phone: {
+    type: String,
+    trim: true,
+  },
+  company: {
+    type: String,
+    trim: true,
+  },
+  address: {
+    type: String,
+    trim: true,
+  },
+  roles: {
+    type: [String],
+    enum: ["ADMIN", "PROVIDER", "CUSTOMER", "CSM"],
+    default: ["CUSTOMER"],
+  },
+  status: {
+    type: String,
+    enum: ["ACTIVE", "INACTIVE", "PENDING", "SUSPENDED"],
+    default: "PENDING",
+  },
+  // Champs spécifiques aux prestataires
+  specialty: {
+    type: String,
+    trim: true,
+  },
+  recommended: {
+    type: Boolean,
+    default: false,
+  },
+  apiGeo: [
+    {
+      place_id: Number,
+      licence: String,
+      osm_type: String,
+      osm_id: Number,
+      lat: String,
+      lon: String,
+      class: String,
       type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
+      place_rank: Number,
+      importance: Number,
+      addresstype: String,
+      name: String,
+      display_name: String,
+      boundingbox: [String],
     },
-    name: {
+  ],
+  // Champs spécifiques aux clients
+  clientNotes: {
+    type: String,
+    trim: true,
+  },
+  // Champs communs
+  avatar: {
+    type: String,
+  },
+  preferences: {
+    language: {
       type: String,
-      required: true,
-      trim: true,
+      default: "fr",
     },
-    phone: {
+    timezone: {
       type: String,
-      trim: true,
+      default: "Europe/Paris",
     },
-    company: {
-      type: String,
-      trim: true,
-    },
-    address: {
-      type: String,
-      trim: true,
-    },
-    roles: {
-      type: [String],
-      enum: ["ADMIN", "PROVIDER", "CUSTOMER", "CSM"],
-      default: ["CUSTOMER"],
-    },
-    status: {
-      type: String,
-      enum: ["ACTIVE", "INACTIVE", "PENDING", "SUSPENDED"],
-      default: "PENDING",
-    },
-    // Champs spécifiques aux prestataires
-    specialty: {
-      type: String,
-      trim: true,
-    },
-    recommended: {
+    notifications: {
       type: Boolean,
-      default: false,
+      default: true,
     },
-    apiGeo: [
-      {
-        place_id: Number,
-        licence: String,
-        osm_type: String,
-        osm_id: Number,
-        lat: String,
-        lon: String,
-        class: String,
-        type: String,
-        place_rank: Number,
-        importance: Number,
-        addresstype: String,
-        name: String,
-        display_name: String,
-        boundingbox: [String],
-      },
-    ],
-    // Champs spécifiques aux clients
-    clientNotes: {
+  },
+  // Champs d'authentification
+  password: {
+    type: String,
+    minlength: 8,
+  },
+  emailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  isEmailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  images: [
+    {
       type: String,
       trim: true,
+      required: false,
+      default: [],
     },
-    // Champs communs
-    avatar: {
-      type: String,
+  ],
+  // Champs hérités pour compatibilité
+  firstName: {
+    type: String,
+    trim: true,
+  },
+  lastName: {
+    type: String,
+    trim: true,
+  },
+  dateOfBirth: {
+    type: Date,
+  },
+  countryOfResidence: {
+    type: String,
+    trim: true,
+  },
+  targetCountry: {
+    type: String,
+    trim: true,
+  },
+  targetCity: {
+    type: String,
+    trim: true,
+  },
+  selectedServices: {
+    type: String,
+    trim: true,
+  },
+  monthlyBudget: {
+    type: String,
+    trim: true,
+  },
+  securityQuestion: {
+    type: String,
+    trim: true,
+  },
+  securityAnswer: {
+    type: String,
+    trim: true,
+  },
+  marketingConsent: {
+    type: Boolean,
+    default: false,
+  },
+  kycConsent: {
+    type: Boolean,
+    default: false,
+  },
+  lastLogin: {
+    type: Date,
+  },
+  oauth: {
+    google: {
+      linked: { type: Boolean, default: false },
+      providerAccountId: { type: String },
     },
-    preferences: {
-      language: {
-        type: String,
-        default: "fr",
-      },
-      timezone: {
-        type: String,
-        default: "Europe/Paris",
-      },
-      notifications: {
-        type: Boolean,
-        default: true,
-      },
+    facebook: {
+      linked: { type: Boolean, default: false },
+      providerAccountId: { type: String },
     },
-    // Champs d'authentification
-    password: {
-      type: String,
-      minlength: 8,
-    },
-    emailVerified: {
-      type: Boolean,
-      default: false,
-    },
-    images: [
-      {
-        type: String,
-        trim: true,
-        required: false,
-        default: [],
-      },
-    ],
-    // Champs hérités pour compatibilité
-    firstName: {
-      type: String,
-      trim: true,
-    },
-    lastName: {
-      type: String,
-      trim: true,
-    },
-    dateOfBirth: {
-      type: Date,
-    },
-    countryOfResidence: {
-      type: String,
-      trim: true,
-    },
-    targetCountry: {
-      type: String,
-      trim: true,
-    },
-    targetCity: {
-      type: String,
-      trim: true,
-    },
-    selectedServices: {
-      type: String,
-      trim: true,
-    },
-    monthlyBudget: {
-      type: String,
-      trim: true,
-    },
-    securityQuestion: {
-      type: String,
-      trim: true,
-    },
-    securityAnswer: {
-      type: String,
-      trim: true,
-    },
-    marketingConsent: {
-      type: Boolean,
-      default: false,
-    },
-    kycConsent: {
-      type: Boolean,
-      default: false,
-    },
-    lastLogin: {
-      type: Date,
-    },
-    oauth: {
-      google: {
-        linked: { type: Boolean, default: false },
-        providerAccountId: { type: String },
-      },
-      facebook: {
-        linked: { type: Boolean, default: false },
-        providerAccountId: { type: String },
-      },
-    },
+  },
 } as any;
 
 const UserSchema = new Schema<IUser>(userDefinition, {

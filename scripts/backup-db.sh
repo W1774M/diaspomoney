@@ -1,304 +1,311 @@
 #!/bin/bash
 
-# Script de backup de la base de données DiaspoMoney
-# Usage: ./scripts/backup-db.sh [options]
+set -e
 
-set -e  # Arrêter en cas d'erreur
+# ============================================================================
+# SCRIPT DE SAUVEGARDE DE BASE DE DONNÉES
+# ============================================================================
+# Ce script crée deux types de sauvegardes :
+# 1. Export CSV/Excel envoyé par email
+# 2. Backup MongoDB natif pour réintégration facile
+# ============================================================================
 
-# Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-BACKUP_DIR="$PROJECT_DIR/backups"
-DATE=$(date +"%Y%m%d_%H%M%S")
+BACKUPS_DIR="$PROJECT_DIR/backups"
+
+# Charger les variables d'environnement
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    . "$PROJECT_DIR/.env"
+    set +a
+fi
+
+# Configuration MongoDB
+MONGODB_URI_EFFECTIVE="${MONGODB_URI:-mongodb://admin:admin123@localhost:27017/diaspomoney?authSource=admin}"
 DB_NAME="diaspomoney"
-CONTAINER_NAME="mongodb"
 
-# Couleurs pour l'affichage
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Configuration email (Resend API)
+RESEND_API_KEY="${RESEND_API_KEY:-re_eB7EYahQ_38j5cShU5cch8M2AsegHBuHP}"
+EMAIL_FROM="${EMAIL_FROM:-no-reply@diaspomoney.fr}"
+EMAIL_TO="${EMAIL_TO:-b.malar@diaspomoney.fr}"
 
-# Fonctions utilitaires
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
+# Timestamp pour les noms de fichiers
+TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+USERNAME=$(whoami)
+BACKUP_NAME="backup_manuel_${TIMESTAMP}_${USERNAME}"
 
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
+echo "🗄️  DiaspoMoney - Sauvegarde de base de données"
+echo "📅 Timestamp: $TIMESTAMP"
+echo "👤 Utilisateur: $USERNAME"
+echo "📧 Email de destination: $EMAIL_TO"
 
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
+# Créer le répertoire backups s'il n'existe pas
+mkdir -p "$BACKUPS_DIR"
 
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+# ============================================================================
+# ÉTAPE 1: VÉRIFICATION DE LA CONNEXION MONGODB
+# ============================================================================
 
-# Fonction d'aide
-show_help() {
-    echo "Script de backup de la base de données DiaspoMoney"
-    echo ""
-    echo "Usage: $0 [options]"
-    echo ""
-    echo "Options:"
-    echo "  -h, --help              Afficher cette aide"
-    echo "  -f, --full              Backup complet (toutes les collections)"
-    echo "  -c, --collections       Backup des collections spécifiques (séparées par des virgules)"
-    echo "  -d, --directory         Répertoire de destination (défaut: ./backups)"
-    echo "  -k, --keep-days         Garder les backups pendant X jours (défaut: 30)"
-    echo "  -v, --verbose           Mode verbeux"
-    echo "  --dry-run               Simulation sans exécuter le backup"
-    echo ""
-    echo "Exemples:"
-    echo "  $0                      # Backup complet par défaut"
-    echo "  $0 -f                   # Backup complet explicite"
-    echo "  $0 -c users,appointments # Backup des collections users et appointments"
-    echo "  $0 -d /tmp/backups      # Backup dans /tmp/backups"
-    echo "  $0 -k 7                 # Garder les backups pendant 7 jours"
-    echo ""
-}
+echo "🔗 Vérification de la connexion MongoDB..."
+if ! docker exec mongodb mongosh --username $MONGO_INITDB_ROOT_USERNAME --password $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "db.adminCommand('ping')" > /dev/null 2>&1; then
+    echo "❌ MongoDB n'est pas accessible. Démarrez d'abord les services avec ./scripts/start-dev.sh"
+    exit 1
+fi
+echo "✅ MongoDB est accessible"
 
-# Variables par défaut
-FULL_BACKUP=true
-COLLECTIONS=""
-VERBOSE=false
-DRY_RUN=false
-KEEP_DAYS=30
+# ============================================================================
+# ÉTAPE 2: EXPORT CSV/EXCEL POUR EMAIL
+# ============================================================================
 
-# Parsing des arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -h|--help)
-            show_help
-            exit 0
-            ;;
-        -f|--full)
-            FULL_BACKUP=true
-            shift
-            ;;
-        -c|--collections)
-            COLLECTIONS="$2"
-            FULL_BACKUP=false
-            shift 2
-            ;;
-        -d|--directory)
-            BACKUP_DIR="$2"
-            shift 2
-            ;;
-        -k|--keep-days)
-            KEEP_DAYS="$2"
-            shift 2
-            ;;
-        -v|--verbose)
-            VERBOSE=true
-            shift
-            ;;
-        --dry-run)
-            DRY_RUN=true
-            shift
-            ;;
-        *)
-            log_error "Option inconnue: $1"
-            show_help
-            exit 1
-            ;;
-    esac
-done
+echo "📊 Export des données en format CSV/Excel..."
 
-# Vérifications préliminaires
-check_prerequisites() {
-    log_info "Vérification des prérequis..."
+# Créer un répertoire temporaire pour les exports (sous backups pour compatibilité Linux/CI)
+TEMP_DIR="$BACKUPS_DIR/run_$TIMESTAMP"
+mkdir -p "$TEMP_DIR"
+
+# Collections à exporter
+COLLECTIONS=("users" "appointments" "invoices" "specialities" "partners" "providers" "transactions" "wallets" "notifications")
+
+# Exporter chaque collection en CSV
+for collection in "${COLLECTIONS[@]}"; do
+    echo "📋 Export de la collection: $collection"
     
-    # Vérifier si Docker est installé
-    if ! command -v docker &> /dev/null; then
-        log_error "Docker n'est pas installé ou n'est pas dans le PATH"
-        exit 1
-    fi
+    # Vérifier si la collection existe et contient des données
+    count=$(docker exec mongodb mongosh --username $MONGO_INITDB_ROOT_USERNAME --password $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "db.$collection.countDocuments()" diaspomoney --quiet)
     
-    # Vérifier si le conteneur MongoDB est en cours d'exécution
-    if ! docker ps | grep -q "$CONTAINER_NAME"; then
-        log_error "Le conteneur MongoDB '$CONTAINER_NAME' n'est pas en cours d'exécution"
-        log_info "Démarrage du conteneur..."
-        if ! docker start "$CONTAINER_NAME"; then
-            log_error "Impossible de démarrer le conteneur MongoDB"
-            exit 1
-        fi
-        # Attendre que MongoDB soit prêt
-        log_info "Attente que MongoDB soit prêt..."
-        sleep 10
-    fi
-    
-    # Créer le répertoire de backup s'il n'existe pas
-    mkdir -p "$BACKUP_DIR"
-    
-    log_success "Prérequis vérifiés"
-}
-
-# Fonction de backup
-perform_backup() {
-    local backup_file=""
-    
-    if [ "$FULL_BACKUP" = true ]; then
-        log_info "Début du backup complet de la base de données '$DB_NAME'..."
-        backup_file="$BACKUP_DIR/${DB_NAME}_full_${DATE}.gz"
-        
-        if [ "$DRY_RUN" = true ]; then
-            log_info "DRY RUN: Backup complet vers $backup_file"
-            return
-        fi
-        
-        # Backup complet avec mongodump
-        if docker exec "$CONTAINER_NAME" mongodump \
-            --db "$DB_NAME" \
-            --gzip \
-            --archive="/tmp/backup.gz" \
-            --quiet; then
-            
-            # Copier le fichier de backup du conteneur
-            docker cp "$CONTAINER_NAME:/tmp/backup.gz" "$backup_file"
-            
-            # Nettoyer le fichier temporaire dans le conteneur
-            docker exec "$CONTAINER_NAME" rm -f /tmp/backup.gz
-            
-            log_success "Backup complet réussi: $backup_file"
+    if [ "$count" -gt 0 ]; then
+        # Export JSON (array) dans le container puis copie sur l'hôte
+        if docker exec mongodb mongoexport --username $MONGO_INITDB_ROOT_USERNAME --password $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --db "$DB_NAME" --collection "$collection" --out "/tmp/${collection}.json" --jsonArray >/dev/null 2>&1; then
+            docker cp "mongodb:/tmp/${collection}.json" "$TEMP_DIR/${collection}.json"
+            docker exec mongodb rm -f "/tmp/${collection}.json" >/dev/null 2>&1 || true
         else
-            log_error "Échec du backup complet"
-            exit 1
-        fi
-    else
-        if [ -z "$COLLECTIONS" ]; then
-            log_error "Aucune collection spécifiée pour le backup partiel"
-            exit 1
+            echo "⚠️  Échec d'export JSON via mongoexport pour $collection"
+            continue
         fi
         
-        log_info "Début du backup des collections: $COLLECTIONS"
-        backup_file="$BACKUP_DIR/${DB_NAME}_collections_${DATE}.gz"
-        
-        if [ "$DRY_RUN" = true ]; then
-            log_info "DRY RUN: Backup des collections vers $backup_file"
-            return
-        fi
-        
-        # Backup des collections spécifiques
-        local collections_array=(${COLLECTIONS//,/ })
-        local collection_args=""
-        
-        for collection in "${collections_array[@]}"; do
-            collection_args="$collection_args --collection $collection"
-        done
-        
-        if docker exec "$CONTAINER_NAME" mongodump \
-            --db "$DB_NAME" \
-            $collection_args \
-            --gzip \
-            --archive="/tmp/backup.gz" \
-            --quiet; then
-            
-            # Copier le fichier de backup du conteneur
-            docker cp "$CONTAINER_NAME:/tmp/backup.gz" "$backup_file"
-            
-            # Nettoyer le fichier temporaire dans le conteneur
-            docker exec "$CONTAINER_NAME" rm -f /tmp/backup.gz
-            
-            log_success "Backup des collections réussi: $backup_file"
-        else
-            log_error "Échec du backup des collections"
-            exit 1
-        fi
-    fi
-    
-    # Afficher la taille du fichier de backup
-    if [ -f "$backup_file" ]; then
-        local size=$(du -h "$backup_file" | cut -f1)
-        log_info "Taille du backup: $size"
-    fi
-}
-
-# Fonction de nettoyage des anciens backups
-cleanup_old_backups() {
-    log_info "Nettoyage des backups de plus de $KEEP_DAYS jours..."
-    
-    local deleted_count=0
-    local current_time=$(date +%s)
-    local cutoff_time=$((current_time - KEEP_DAYS * 24 * 60 * 60))
-    
-    for backup_file in "$BACKUP_DIR"/*.gz; do
-        if [ -f "$backup_file" ]; then
-            local file_time=$(stat -c %Y "$backup_file" 2>/dev/null || stat -f %m "$backup_file" 2>/dev/null)
-            if [ "$file_time" -lt "$cutoff_time" ]; then
-                if [ "$DRY_RUN" = true ]; then
-                    log_info "DRY RUN: Suppression de $backup_file"
-                else
-                    rm -f "$backup_file"
-                    log_info "Supprimé: $backup_file"
-                fi
-                ((deleted_count++))
+        # Convertir JSON en CSV (approche simple)
+        if [ -s "$TEMP_DIR/${collection}.json" ]; then
+            # Utiliser mongoexport directement en CSV si possible
+            if docker exec mongodb mongoexport --username $MONGO_INITDB_ROOT_USERNAME --password $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --db diaspomoney --collection "$collection" --type csv --out "/tmp/${collection}.csv" >/dev/null 2>&1; then
+                docker cp "mongodb:/tmp/${collection}.csv" "$TEMP_DIR/"
+                docker exec mongodb rm -f "/tmp/${collection}.csv"
+                echo "✅ CSV créé pour $collection"
+            else
+                # Fallback: conversion manuelle JSON vers CSV
+                node -e "
+                    const fs = require('fs');
+                    try {
+                        const content = fs.readFileSync('$TEMP_DIR/${collection}.json', 'utf8');
+                        const lines = content.trim().split('\n').filter(line => line.trim());
+                        if (lines.length === 0) {
+                            console.log('⚠️  Fichier JSON vide pour $collection');
+                            process.exit(0);
+                        }
+                        
+                        const data = lines.map(line => {
+                            try { return JSON.parse(line); } 
+                            catch(e) { return null; }
+                        }).filter(item => item !== null);
+                        
+                        if (data.length === 0) {
+                            console.log('⚠️  Aucune donnée valide pour $collection');
+                            process.exit(0);
+                        }
+                        
+                        const keys = Object.keys(data[0]);
+                        const csv = [keys.join(',')];
+                        
+                        data.forEach(row => {
+                            const values = keys.map(key => {
+                                const val = row[key];
+                                if (val === null || val === undefined) return '';
+                                if (typeof val === 'object') return '\"' + JSON.stringify(val).replace(/\"/g, '\"\"') + '\"';
+                                return '\"' + String(val).replace(/\"/g, '\"\"') + '\"';
+                            });
+                            csv.push(values.join(','));
+                        });
+                        
+                        fs.writeFileSync('$TEMP_DIR/${collection}.csv', csv.join('\n'));
+                        console.log('✅ CSV créé pour $collection');
+                    } catch (error) {
+                        console.log('⚠️  Erreur conversion CSV pour $collection:', error.message);
+                    }
+                " 2>/dev/null || echo "⚠️  Échec de conversion CSV pour $collection"
             fi
         fi
-    done
-    
-    if [ "$deleted_count" -gt 0 ]; then
-        log_success "$deleted_count ancien(s) backup(s) supprimé(s)"
     else
-        log_info "Aucun ancien backup à supprimer"
+        echo "⚠️  Collection $collection vide, ignorée"
     fi
-}
+done
 
-# Fonction de vérification de l'intégrité
-verify_backup() {
-    if [ "$DRY_RUN" = true ]; then
-        return
-    fi
+# Créer un fichier Excel si possible (avec LibreOffice ou Python)
+echo "📈 Création du fichier Excel..."
+if command -v python3 >/dev/null 2>&1; then
+    python3 -c "
+import pandas as pd
+import os
+import glob
+
+csv_files = glob.glob('$TEMP_DIR/*.csv')
+if csv_files:
+    with pd.ExcelWriter('$TEMP_DIR/backup_diaspomoney.xlsx', engine='openpyxl') as writer:
+        for csv_file in csv_files:
+            collection_name = os.path.basename(csv_file).replace('.csv', '')
+            try:
+                df = pd.read_csv(csv_file)
+                df.to_excel(writer, sheet_name=collection_name[:31], index=False)
+                print(f'✅ Ajouté {collection_name} au fichier Excel')
+            except Exception as e:
+                print(f'⚠️  Erreur avec {collection_name}: {e}')
+    print('✅ Fichier Excel créé: backup_diaspomoney.xlsx')
+else
+    print('⚠️  Python3 non disponible, création Excel ignorée')
+" 2>/dev/null || echo "⚠️  Impossible de créer le fichier Excel"
+fi
+
+# ============================================================================
+# ÉTAPE 3: ENVOI PAR EMAIL
+# ============================================================================
+
+echo "📧 Envoi des données par email..."
+
+# Zipper les CSV pour l'email
+EMAIL_ZIP="$BACKUPS_DIR/csv_export_${TIMESTAMP}.zip"
+if command -v zip >/dev/null 2>&1; then
+    echo "📦 Création du ZIP avec zip..."
+    (cd "$TEMP_DIR" && zip -q -r "$EMAIL_ZIP" *.csv 2>/dev/null || true)
+elif command -v powershell >/dev/null 2>&1; then
+    echo "📦 Création du ZIP avec PowerShell..."
+    EMAIL_ZIP="$BACKUPS_DIR/csv_export_${TIMESTAMP}.zip"
+    powershell -Command "Compress-Archive -Path '$TEMP_DIR/*.csv' -DestinationPath '$EMAIL_ZIP' -Force" 2>/dev/null || echo "Erreur PowerShell"
+else
+    EMAIL_ZIP="$BACKUPS_DIR/csv_export_${TIMESTAMP}.tar.gz"
+    echo "📦 Création du TAR.GZ avec tar..."
+    echo "📁 Répertoire source: $TEMP_DIR"
+    echo "📁 Fichiers CSV disponibles:"
+    ls -la "$TEMP_DIR"/*.csv 2>/dev/null || echo "Aucun fichier CSV trouvé"
+    (cd "$TEMP_DIR" && tar -czf "$EMAIL_ZIP" *.csv 2>/dev/null || echo "Erreur tar")
+fi
+
+echo "📁 Archive créée: $EMAIL_ZIP"
+if [ -f "$EMAIL_ZIP" ]; then
+    echo "✅ Archive créée avec succès"
+    ls -la "$EMAIL_ZIP" 2>/dev/null || echo "Archive trouvée mais ls échoue"
+else
+    echo "❌ Archive non créée"
+fi
+
+EMAIL_SENT=0
+
+if [ -f "$EMAIL_ZIP" ] && [ -n "$RESEND_API_KEY" ]; then
+    echo "📤 Envoi via Resend API..."
     
-    log_info "Vérification de l'intégrité du backup..."
+    # Encoder le fichier zip en base64
+    ZIP_B64=$(base64 -w 0 "$EMAIL_ZIP" 2>/dev/null || base64 -b 0 "$EMAIL_ZIP" 2>/dev/null)
     
-    # Trouver le fichier de backup le plus récent
-    local latest_backup=$(find "$BACKUP_DIR" -name "*.gz" -type f -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2-)
-    
-    if [ -z "$latest_backup" ]; then
-        log_warning "Aucun fichier de backup trouvé pour la vérification"
-        return
-    fi
-    
-    log_info "Vérification de: $latest_backup"
-    
-    # Vérifier que le fichier n'est pas corrompu
-    if gzip -t "$latest_backup" 2>/dev/null; then
-        log_success "Le fichier de backup est valide"
+    if [ -n "$ZIP_B64" ]; then
+        # Créer un fichier JSON temporaire
+        JSON_FILE="/tmp/resend_$$.json"
+        cat > "$JSON_FILE" <<EOF
+{
+  "from": "$EMAIL_FROM",
+  "to": ["$EMAIL_TO"],
+  "subject": "Sauvegarde DiaspoMoney - $TIMESTAMP",
+  "html": "<h2>Sauvegarde DiaspoMoney</h2><p>Bonjour,</p><p>Voici la sauvegarde CSV de la base DiaspoMoney.</p><ul><li><strong>Utilisateur:</strong> $USERNAME</li><li><strong>Base:</strong> $DB_NAME</li><li><strong>Collections:</strong> ${COLLECTIONS[*]}</li><li><strong>Date:</strong> $TIMESTAMP</li></ul><p>Les fichiers CSV sont joints à cet email.</p>",
+  "attachments": [
+    {
+      "filename": "$(basename "$EMAIL_ZIP")",
+      "content": "$ZIP_B64",
+      "type": "application/zip"
+    }
+  ]
+}
+EOF
+        
+        # Envoyer via curl
+        RESPONSE=$(curl -s -k -w "%{http_code}" -X POST "https://api.resend.com/emails" \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d @"$JSON_FILE")
+        
+        # Nettoyer le fichier temporaire
+        rm -f "$JSON_FILE"
+        
+        HTTP_CODE="${RESPONSE: -3}"
+        
+        if [ "$HTTP_CODE" = "200" ]; then
+            EMAIL_SENT=1
+            echo "✅ Email envoyé avec succès à $EMAIL_TO"
+        else
+            echo "⚠️  Erreur Resend API (HTTP $HTTP_CODE)"
+            echo "Réponse: ${RESPONSE%???}"
+        fi
     else
-        log_error "Le fichier de backup est corrompu: $latest_backup"
-        exit 1
+        echo "⚠️  Impossible d'encoder le fichier zip"
     fi
-}
-
-# Fonction principale
-main() {
-    log_info "=== Script de Backup DiaspoMoney ==="
-    log_info "Date: $(date)"
-    log_info "Répertoire de backup: $BACKUP_DIR"
-    log_info "Mode: $([ "$FULL_BACKUP" = true ] && echo "Complet" || echo "Partiel: $COLLECTIONS")"
-    log_info "Conservation: $KEEP_DAYS jours"
-    
-    if [ "$DRY_RUN" = true ]; then
-        log_warning "MODE DRY RUN - Aucune action ne sera effectuée"
+else
+    if [ ! -f "$EMAIL_ZIP" ]; then
+        echo "⚠️  Archive CSV absente, envoi ignoré"
+    else
+        echo "⚠️  RESEND_API_KEY non configuré, envoi ignoré"
     fi
-    
-    check_prerequisites
-    perform_backup
-    cleanup_old_backups
-    verify_backup
-    
-    log_success "=== Backup terminé avec succès ==="
-    
-    # Afficher un résumé
-    local total_backups=$(find "$BACKUP_DIR" -name "*.gz" -type f | wc -l)
-    local total_size=$(du -sh "$BACKUP_DIR" | cut -f1)
-    log_info "Total des backups: $total_backups"
-    log_info "Espace utilisé: $total_size"
-}
+fi
 
-# Exécution du script
-main "$@"
+# ============================================================================
+# ÉTAPE 4: BACKUP RÉIMPORTABLE (JSON + métadonnées)
+# ============================================================================
+
+echo "💾 Préparation du backup réimportable (JSON)..."
+
+BACKUP_PATH="$BACKUPS_DIR/$BACKUP_NAME"
+mkdir -p "$BACKUP_PATH/$DB_NAME"
+
+# Copier les exports JSON dans le dossier de backup
+cp "$TEMP_DIR"/*.json "$BACKUP_PATH/$DB_NAME/" 2>/dev/null || true
+
+# Créer un fichier de métadonnées
+cat > "$BACKUP_PATH/metadata.json" << EOF
+{
+  "backup_date": "$(date -Iseconds)",
+  "backup_name": "$BACKUP_NAME",
+  "user": "$USERNAME",
+  "database": "$DB_NAME",
+  "mongodb_uri": "$MONGODB_URI_EFFECTIVE",
+  "collections": [$(printf '"%s",' "${COLLECTIONS[@]}" | sed 's/,$//')],
+  "restore_command": "for f in ./$DB_NAME/*.json; do c=\$(basename \"$f\" .json); mongoimport --username $MONGO_INITDB_ROOT_USERNAME --password $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --db $DB_NAME --collection \"$c\" --file \"$f\" --jsonArray; done"
+}
+EOF
+
+# Compresser le backup
+echo "🗜️  Compression du backup..."
+cd "$BACKUPS_DIR"
+tar -czf "${BACKUP_NAME}.tar.gz" "$BACKUP_NAME"
+rm -rf "$BACKUP_NAME"
+echo "✅ Backup compressé: ${BACKUP_NAME}.tar.gz"
+
+# ============================================================================
+# ÉTAPE 5: NETTOYAGE ET RÉSUMÉ
+# ============================================================================
+
+# Nettoyer les fichiers temporaires
+rm -rf "$TEMP_DIR"
+
+echo ""
+echo "🎉 Sauvegarde terminée avec succès !"
+echo ""
+echo "📋 Résumé :"
+echo "   • Backup natif: $BACKUPS_DIR/${BACKUP_NAME}.tar.gz"
+if [ "$EMAIL_SENT" -eq 1 ]; then
+    echo "   • Email envoyé à: $EMAIL_TO"
+else
+    echo "   • Email non envoyé (Python3 indisponible ou RESEND_API_KEY manquant)"
+fi
+echo "   • Collections sauvegardées: ${COLLECTIONS[*]}"
+echo ""
+echo "🔄 Pour restaurer le backup :"
+echo "   cd $BACKUPS_DIR"
+echo "   tar -xzf ${BACKUP_NAME}.tar.gz"
+echo "   mongorestore --username $MONGO_INITDB_ROOT_USERNAME --password $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --db $DB_NAME ./$DB_NAME"
+echo ""

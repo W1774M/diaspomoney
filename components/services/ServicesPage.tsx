@@ -1,9 +1,7 @@
 "use client";
 
 import { useProviders } from "@/hooks";
-import { useServiceFilters, useServiceStats } from "@/hooks/services";
-import { getUsersByRole } from "@/mocks";
-import { IUser } from "@/types";
+import { Provider } from "@/hooks/useProviders";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import ServicesFilters from "./ServicesFilters";
@@ -14,27 +12,85 @@ import ServicesStats from "./ServicesStats";
 const ServicesPage = React.memo(function ServicesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { loading, error: _error } = useProviders();
   const [isClient, setIsClient] = useState(false);
-
-  const providers = [
-    ...getUsersByRole("{PROVIDER:INDIVIDUAL}"),
-    ...getUsersByRole("{PROVIDER:INSTITUTION}"),
-  ];
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  // État local pour les filtres
+  const [filters, setFilters] = useState({
+    category: "",
+    service: "",
+    city: "",
+    specialty: "",
+    rating: 0,
+  });
+
+  // Utiliser le hook useProviders avec les filtres
   const {
-    filters,
-    filteredProviders,
-    availableServices,
-    availableSpecialties,
-    updateFilter,
-    clearFilters,
-    hasActiveFilters,
-  } = useServiceFilters(providers as any);
+    providers,
+    loading,
+    error: _error,
+    refetch,
+  } = useProviders({
+    category: filters.category,
+    city: filters.city,
+    specialty: filters.specialty,
+    service: filters.service,
+    ...(filters.rating > 0 && { minRating: filters.rating }),
+  });
+
+  // Fonctions de gestion des filtres
+  const updateFilter = useCallback((key: string, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setFilters({
+      category: "",
+      service: "",
+      city: "",
+      specialty: "",
+      rating: 0,
+    });
+  }, []);
+
+  const hasActiveFilters = Object.values(filters).some(
+    value => value !== "" && value !== 0
+  );
+
+  // Extraire les services et spécialités disponibles
+  const availableServices = React.useMemo(() => {
+    const services = new Set<string>();
+    providers.forEach(provider => {
+      if (provider["services"]) {
+        provider["services"].forEach((service: string) =>
+          services.add(service)
+        );
+      }
+    });
+    return Array.from(services).sort();
+  }, [providers]);
+
+  const availableSpecialties = React.useMemo(() => {
+    const specialties = new Set<string>();
+    providers.forEach(provider => {
+      if (provider.specialties) {
+        provider.specialties.forEach((specialty: string) =>
+          specialties.add(specialty)
+        );
+      }
+    });
+    return Array.from(specialties).sort();
+  }, [providers]);
+
+  // Recharger les données quand les filtres changent
+  useEffect(() => {
+    if (isClient) {
+      refetch();
+    }
+  }, [filters, refetch, isClient]);
 
   // Gérer le filtrage par catégorie depuis l'URL (clé courte "t" et valeurs en lowercase)
   useEffect(() => {
@@ -47,14 +103,31 @@ const ServicesPage = React.memo(function ServicesPage() {
     }
   }, [searchParams, updateFilter]);
 
-  const stats = useServiceStats(providers as any);
+  // Calculer les statistiques
+  const stats = React.useMemo(() => {
+    const totalProviders = providers.length;
+    const activeProviders = providers.filter(p => p.status === "ACTIVE").length;
+    const averageRating =
+      providers.length > 0
+        ? providers.reduce((sum, p) => sum + (p.rating || 0), 0) /
+          providers.length
+        : 0;
+
+    return {
+      totalProviders,
+      activeProviders,
+      averageRating: Math.round(averageRating * 10) / 10,
+      specialties: availableSpecialties,
+      services: availableServices,
+    };
+  }, [providers, availableSpecialties, availableServices]);
 
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   const handleProviderSelect = useCallback(
-    (provider: IUser) => {
+    (provider: Provider) => {
       router.push(`/services/${provider._id}`);
     },
     [router]
@@ -89,10 +162,10 @@ const ServicesPage = React.memo(function ServicesPage() {
   );
 
   // Logique de pagination
-  const totalPages = Math.ceil(filteredProviders.length / itemsPerPage);
+  const totalPages = Math.ceil(providers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedProviders = filteredProviders.slice(startIndex, endIndex);
+  const paginatedProviders = providers.slice(startIndex, endIndex);
 
   // Reset de la page quand les filtres changent
   useEffect(() => {
@@ -252,13 +325,23 @@ const ServicesPage = React.memo(function ServicesPage() {
         )}
 
         {/* Results */}
-        {isClient && (
+        {isClient && providers.length > 0 && (
           <div className="mb-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">
-                {filteredProviders.length} prestataire
-                {filteredProviders.length !== 1 ? "s" : ""} trouvé
-                {filteredProviders.length !== 1 ? "s" : ""}
+                {providers.length} prestataire
+                {providers.length !== 1 ? "s" : ""} trouvé
+                {providers.length !== 1 ? "s" : ""}
+                {filters.category && (
+                  <span className="text-sm font-normal text-gray-600 ml-2">
+                    dans la catégorie{" "}
+                    <span className="text-[hsl(25,100%,53%)]">
+                      {filters.category === "HEALTH" && "Santé"}
+                      {filters.category === "EDU" && "Éducation"}
+                      {filters.category === "IMMO" && "Immobilier"}
+                    </span>
+                  </span>
+                )}
                 {totalPages > 1 && (
                   <span className="text-sm font-normal text-gray-600 ml-2">
                     (Page {currentPage} sur {totalPages})
@@ -273,13 +356,86 @@ const ServicesPage = React.memo(function ServicesPage() {
           </div>
         )}
 
+        {/* No Results Message */}
+        {isClient && !loading && providers.length === 0 && (
+          <div className="text-center py-12">
+            <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <svg
+                className="w-12 h-12 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {filters.category ? (
+                <>
+                  Aucun prestataire trouvé dans la catégorie{" "}
+                  <span className="text-[hsl(25,100%,53%)]">
+                    {filters.category === "HEALTH" && "Santé"}
+                    {filters.category === "EDU" && "Éducation"}
+                    {filters.category === "IMMO" && "Immobilier"}
+                  </span>
+                </>
+              ) : (
+                "Aucun prestataire trouvé"
+              )}
+            </h3>
+            <p className="text-gray-500 mb-6">
+              {filters.category ? (
+                <>
+                  Il n&apos;y a actuellement aucun prestataire disponible dans
+                  cette catégorie.
+                  <br />
+                  Essayez de modifier vos filtres ou de revenir à tous les
+                  services.
+                </>
+              ) : (
+                "Essayez de modifier vos critères de recherche ou vos filtres."
+              )}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              {filters.category && (
+                <button
+                  onClick={() => {
+                    updateFilter("category", "");
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("t");
+                    window.history.replaceState({}, "", url.toString());
+                  }}
+                  className="px-6 py-3 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors"
+                >
+                  Voir tous les services
+                </button>
+              )}
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Effacer les filtres
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Provider List */}
-        <ServicesProviderList
-          providers={paginatedProviders}
-          loading={loading}
-          error={_error}
-          onProviderSelect={handleProviderSelect}
-        />
+        {isClient && (loading || providers.length > 0) && (
+          <ServicesProviderList
+            providers={paginatedProviders}
+            loading={loading}
+            error={_error}
+            onProviderSelect={handleProviderSelect}
+          />
+        )}
 
         {/* Pagination */}
         {isClient && totalPages > 1 && (

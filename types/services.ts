@@ -1,3 +1,4 @@
+import { Provider } from "@/hooks/useProviders";
 import { IUser } from ".";
 
 // Services Types and Interfaces
@@ -46,8 +47,8 @@ export interface ServiceFiltersProps {
 }
 
 export interface ServiceProviderListProps {
-  providers: IUser[];
+  providers: Provider[];
   loading: boolean;
   error: string | null;
-  onProviderSelect: (provider: IUser) => void;
+  onProviderSelect: (provider: Provider) => void;
 }

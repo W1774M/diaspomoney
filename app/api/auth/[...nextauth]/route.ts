@@ -96,33 +96,60 @@ export const {
           email: String(email).toLowerCase(),
         });
         if (!existing) {
-          const baseUrl =
-            (process.env["NEXTAUTH_URL"] as string) || "http://localhost:3000";
+          // Créer automatiquement le compte OAuth sans passer par le formulaire
           const provider = account?.provider || "oauth";
-          const callbackParams = new URLSearchParams({
-            oauth: provider,
-            email: email,
-          });
-          if (account?.providerAccountId) {
-            callbackParams.set("providerAccountId", account.providerAccountId);
-          }
-          if ((profile as any)?.name) {
-            callbackParams.set("name", String((profile as any).name));
-          }
-          if ((profile as any)?.picture) {
-            callbackParams.set("image", String((profile as any).picture));
-          }
-          const redirectUrl = `${baseUrl}/register?${callbackParams.toString()}`;
-          if (debug)
-            console.log(
-              "[AUTH][signIn] Email inconnu → redirection vers:",
-              redirectUrl
+          const name = (profile as any)?.name || "";
+          const [firstName, ...rest] = name.split(" ");
+          const lastName = rest.join(" ").trim();
+
+          const newUser = {
+            firstName: firstName || "Utilisateur",
+            lastName: lastName || "OAuth",
+            email: email.toLowerCase(),
+            phone: "", // Sera complété plus tard
+            countryOfResidence: "", // Sera complété plus tard
+            roles: ["CUSTOMER"],
+            status: "ACTIVE",
+            isEmailVerified: true,
+            emailVerified: true,
+            oauth: {
+              [provider]: {
+                linked: true,
+                providerAccountId: account?.providerAccountId,
+              },
+            },
+            createdAt: new Date(),
+            lastLogin: new Date(),
+          };
+
+          try {
+            await users.insertOne(newUser);
+            if (debug) {
+              console.log(
+                "[AUTH][signIn] Compte OAuth créé automatiquement pour:",
+                email
+              );
+            }
+            return true; // Autoriser la connexion
+          } catch (error) {
+            console.error(
+              "[AUTH][signIn] Erreur création compte OAuth:",
+              error
             );
-          return redirectUrl;
+            return false;
+          }
         }
         // Marquer le user comme lié au provider si pas encore fait
         const provider = account?.provider;
-        const update: any = { $set: { lastLogin: new Date() } };
+        const update: any = {
+          $set: {
+            lastLogin: new Date(),
+            // S'assurer que les utilisateurs OAuth restent actifs
+            status: "ACTIVE",
+            isEmailVerified: true,
+            emailVerified: true,
+          },
+        };
         if (provider === "google") {
           update.$set["oauth.google.linked"] = true;
           update.$set["oauth.google.providerAccountId"] =

@@ -30,7 +30,19 @@ const nextConfig = {
         port: "",
         pathname: "/**",
       },
+      // Configuration plus permissive pour le développement
+      {
+        protocol: "https",
+        hostname: "**",
+        port: "",
+        pathname: "/**",
+      },
     ],
+    // Configuration pour permettre toutes les images externes en développement
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Désactiver la validation stricte en développement
+    unoptimized: process.env.NODE_ENV === "development",
   },
 
   // Configuration expérimentale

@@ -4,26 +4,36 @@ import {
   FacebookLoginButton,
   GoogleLoginButton,
   LoginForm,
-  WhatsAppLoginButton,
+  OAuthProfileCompletion,
 } from "@/components/features/auth";
 import { useAppointment } from "@/components/features/providers";
+import { CustomImage } from "@/components/ui/CustomImage";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { useOAuthProfileCheck } from "@/hooks/auth/useOAuthProfileCheck";
 import { CreditCard, Shield, TrendingUp, User } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function LoginPage() {
   const { data: appointmentData } = useAppointment();
   const { isAuthenticated, isLoading } = useAuth();
+  const { needsProfileCompletion, userProfile, isChecking } =
+    useOAuthProfileCheck();
   const router = useRouter();
   const hasRedirected = useRef(false);
+  const [profileCompleted, setProfileCompleted] = useState(false);
 
   useEffect(() => {
-    // Redirige uniquement si l'utilisateur est authentifié et que le loading est terminé
-    if (!isLoading && isAuthenticated && !hasRedirected.current) {
-      // console.log("[Login] User authenticated, redirecting to dashboard");
+    // Redirige uniquement si l'utilisateur est authentifié, le loading est terminé et le profil est complété
+    if (
+      !isLoading &&
+      !isChecking &&
+      isAuthenticated &&
+      !needsProfileCompletion &&
+      !hasRedirected.current &&
+      profileCompleted
+    ) {
       hasRedirected.current = true;
       // Délai pour éviter les conflits de redirection
       setTimeout(() => {
@@ -34,10 +44,18 @@ export default function LoginPage() {
         }
       }, 200);
     }
-  }, [isAuthenticated, isLoading, appointmentData, router]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    isChecking,
+    needsProfileCompletion,
+    appointmentData,
+    router,
+    profileCompleted,
+  ]);
 
   // Afficher un loader pendant la vérification
-  if (isLoading) {
+  if (isLoading || isChecking) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
@@ -48,8 +66,18 @@ export default function LoginPage() {
     );
   }
 
-  // Rediriger si déjà connecté (sécurité supplémentaire)
-  if (isAuthenticated) {
+  // Afficher la complétion du profil OAuth si nécessaire
+  if (isAuthenticated && needsProfileCompletion && userProfile) {
+    return (
+      <OAuthProfileCompletion
+        user={userProfile}
+        onComplete={() => setProfileCompleted(true)}
+      />
+    );
+  }
+
+  // Rediriger si déjà connecté et profil complété (sécurité supplémentaire)
+  if (isAuthenticated && !needsProfileCompletion) {
     return null;
   }
 
@@ -69,8 +97,8 @@ export default function LoginPage() {
 
           <div className="relative z-10 flex flex-col justify-center px-12 py-12">
             <div className="mb-8">
-              <Image
-                src="/img/Logo_Diaspo_Horizontal_enrichi.webp"
+              <CustomImage
+                src="https://diaspomoney.fr/wp-content/uploads/2025/03/Logo_Diaspo_Horizontal_enrichi.webp"
                 alt="DiaspoMoney"
                 width={200}
                 height={60}
@@ -155,15 +183,13 @@ export default function LoginPage() {
           <div className="w-full max-w-md">
             {/* Header mobile */}
             <div className="lg:hidden text-center mb-8">
-              <Image
-                src="/img/Logo_Diaspo_Horizontal_enrichi.webp"
+              <CustomImage
+                src="https://diaspomoney.fr/wp-content/uploads/2025/03/Logo_Diaspo_Horizontal_enrichi.webp"
                 alt="DiaspoMoney"
                 width={180}
                 height={54}
                 className="mx-auto mb-4"
                 priority
-                placeholder="blur"
-                blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
               />
             </div>
 
@@ -202,9 +228,6 @@ export default function LoginPage() {
 
               {/* Bouton Facebook */}
               <FacebookLoginButton />
-
-              {/* Bouton WhatsApp */}
-              <WhatsAppLoginButton />
 
               {/* Liens utiles */}
               <div className="mt-6 pt-6 border-t border-gray-100">

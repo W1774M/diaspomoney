@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { useState } from "react";
+import { CustomImage } from "./CustomImage";
 
 interface LogoProps {
   src: string;
@@ -20,7 +20,8 @@ const Logo = ({
 }: LogoProps) => {
   const [imageError, setImageError] = useState(false);
 
-  const shouldShowFallback = (!src || src.trim().length === 0 || imageError) && !!fallbackText;
+  const shouldShowFallback =
+    (!src || src.trim().length === 0 || imageError) && !!fallbackText;
 
   if (shouldShowFallback) {
     return (
@@ -34,7 +35,7 @@ const Logo = ({
   }
 
   return (
-    <Image
+    <CustomImage
       src={src}
       width={width}
       height={height}

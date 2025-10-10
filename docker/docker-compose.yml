@@ -1,7 +1,7 @@
 networks:
   diaspomoney: {}
   traefik:
-    external: true
+    external: false
 
 volumes:
   mongodb_data: {}
