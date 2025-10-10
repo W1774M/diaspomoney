@@ -9,7 +9,7 @@ set -e
 MONGO_HOST=${MONGO_HOST:-"localhost"}
 MONGO_PORT=${MONGO_PORT:-"27017"}
 MONGO_DB=${MONGO_DB:-"diaspomoney"}
-MONGO_CONTAINER=${MONGO_CONTAINER:-"diaspomoney-mongodb"}
+MONGO_CONTAINER=${MONGO_CONTAINER:-"mongodb"}
 DATA_DIR="./data"
 
 # Couleurs pour les messages
@@ -92,7 +92,7 @@ import_json_file() {
         const data = JSON.parse(require('fs').readFileSync('$container_file', 'utf8'));
         db.$collection.insertMany(data);
         print('Documents insérés: ' + db.$collection.countDocuments());
-    " > /dev/null 2>&1; then
+    "; then
         log_success "Importation réussie: $json_file -> $collection"
     else
         log_error "Échec de l'importation: $json_file -> $collection"
