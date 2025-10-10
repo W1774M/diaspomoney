@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script d'importation de données JSON dans MongoDB
+# Script d'importation de données JSON dans MongoDB via Docker
 # Usage: ./scripts/import-data.sh [collection_name] [json_file]
 
 set -e
@@ -9,6 +9,7 @@ set -e
 MONGO_HOST=${MONGO_HOST:-"localhost"}
 MONGO_PORT=${MONGO_PORT:-"27017"}
 MONGO_DB=${MONGO_DB:-"diaspomoney"}
+MONGO_CONTAINER=${MONGO_CONTAINER:-"diaspomoney-mongodb"}
 DATA_DIR="./data"
 
 # Couleurs pour les messages
@@ -35,14 +36,32 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Fonction pour vérifier si MongoDB est accessible
+# Fonction pour vérifier si le conteneur MongoDB est accessible
 check_mongo_connection() {
-    log_info "Vérification de la connexion MongoDB..."
-    if ! mongosh --host $MONGO_HOST --port $MONGO_PORT --eval "db.runCommand('ping')" > /dev/null 2>&1; then
-        log_error "Impossible de se connecter à MongoDB sur $MONGO_HOST:$MONGO_PORT"
+    log_info "Vérification de la connexion MongoDB via Docker..."
+    
+    # Vérifier si le conteneur existe et est en cours d'exécution
+    if ! docker ps | grep -q "$MONGO_CONTAINER"; then
+        log_error "Le conteneur MongoDB '$MONGO_CONTAINER' n'est pas en cours d'exécution"
+        log_info "Démarrage du conteneur MongoDB..."
+        
+        # Essayer de démarrer le conteneur
+        if docker start "$MONGO_CONTAINER" > /dev/null 2>&1; then
+            log_success "Conteneur MongoDB démarré"
+        else
+            log_error "Impossible de démarrer le conteneur MongoDB"
+            log_info "Veuillez démarrer votre environnement Docker avec: docker-compose up -d"
+            exit 1
+        fi
+    fi
+    
+    # Vérifier la connexion MongoDB dans le conteneur
+    if ! docker exec "$MONGO_CONTAINER" mongosh --eval "db.runCommand('ping')" > /dev/null 2>&1; then
+        log_error "Impossible de se connecter à MongoDB dans le conteneur '$MONGO_CONTAINER'"
         exit 1
     fi
-    log_success "Connexion MongoDB établie"
+    
+    log_success "Connexion MongoDB établie via Docker"
 }
 
 # Fonction pour importer un fichier JSON dans une collection
@@ -63,10 +82,14 @@ import_json_file() {
         return 1
     fi
     
-    # Importer le fichier JSON
-    if mongosh $MONGO_DB --eval "
+    # Copier le fichier JSON dans le conteneur
+    local container_file="/tmp/$(basename "$json_file")"
+    docker cp "$json_file" "$MONGO_CONTAINER:$container_file"
+    
+    # Importer le fichier JSON via Docker
+    if docker exec "$MONGO_CONTAINER" mongosh "$MONGO_DB" --eval "
         db.$collection.drop();
-        db.$collection.insertMany($(cat $json_file));
+        db.$collection.insertMany($(cat $container_file));
         print('Documents insérés: ' + db.$collection.countDocuments());
     " > /dev/null 2>&1; then
         log_success "Importation réussie: $json_file -> $collection"
@@ -74,6 +97,9 @@ import_json_file() {
         log_error "Échec de l'importation: $json_file -> $collection"
         return 1
     fi
+    
+    # Nettoyer le fichier temporaire dans le conteneur
+    docker exec "$MONGO_CONTAINER" rm -f "$container_file"
 }
 
 # Fonction pour importer tous les fichiers JSON du dossier data
@@ -106,7 +132,52 @@ create_mock_data() {
     mkdir -p "$DATA_DIR"
     
     # Générer les données JSON à partir des mocks
-
+    cat > "$DATA_DIR/users.json" << 'EOF'
+[
+  {
+    "_id": "1",
+    "email": "admin@diaspomoney.com",
+    "password": "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KjKqK2",
+    "firstName": "Admin",
+    "lastName": "User",
+    "roles": ["ADMIN"],
+    "status": "ACTIVE",
+    "isEmailVerified": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "2",
+    "email": "provider@diaspomoney.com",
+    "password": "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KjKqK2",
+    "firstName": "Dr. Jean",
+    "lastName": "Dupont",
+    "roles": ["PROVIDER"],
+    "status": "ACTIVE",
+    "specialties": ["Médecine générale"],
+    "phone": "+33 1 23 45 67 89",
+    "address": "12 Rue de la Paix, 75002 Paris",
+    "city": "Paris",
+    "country": "France",
+    "rating": 4.5,
+    "reviewCount": 10,
+    "isEmailVerified": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "3",
+    "email": "customer@diaspomoney.com",
+    "password": "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KjKqK2",
+    "firstName": "Marie",
+    "lastName": "Martin",
+    "roles": ["CUSTOMER"],
+    "status": "ACTIVE",
+    "isEmailVerified": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+]
 EOF
 
     cat > "$DATA_DIR/partners.json" << 'EOF'
@@ -212,6 +283,37 @@ EOF
 ]
 EOF
 
+    cat > "$DATA_DIR/specialities.json" << 'EOF'
+[
+  {
+    "_id": "1",
+    "name": "Médecine générale",
+    "description": "Soins de santé primaires et consultations générales",
+    "group": "sante",
+    "isActive": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "2",
+    "name": "Droit civil",
+    "description": "Conseils juridiques en droit civil et commercial",
+    "group": "edu",
+    "isActive": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "3",
+    "name": "Immobilier",
+    "description": "Services immobiliers et transactions",
+    "group": "immo",
+    "isActive": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+]
+EOF
 
     log_success "Données de test créées dans $DATA_DIR"
 }
@@ -230,12 +332,13 @@ show_help() {
     echo "  --host HOST         Host MongoDB (défaut: localhost)"
     echo "  --port PORT         Port MongoDB (défaut: 27017)"
     echo "  --db DATABASE       Base de données (défaut: diaspomoney)"
+    echo "  --container CONTAINER  Nom du conteneur MongoDB (défaut: diaspomoney-mongodb)"
     echo ""
     echo "Exemples:"
     echo "  $0 create-mock"
     echo "  $0 import-all"
     echo "  $0 import users ./data/users.json"
-    echo "  $0 --host localhost --port 27017 import-all"
+    echo "  $0 --container mongodb import-all"
 }
 
 # Fonction principale
@@ -253,6 +356,10 @@ main() {
                 ;;
             --db)
                 MONGO_DB="$2"
+                shift 2
+                ;;
+            --container)
+                MONGO_CONTAINER="$2"
                 shift 2
                 ;;
             import-all)
@@ -281,7 +388,7 @@ main() {
         esac
     done
     
-    # Vérifier la connexion MongoDB
+    # Vérifier la connexion MongoDB via Docker
     check_mongo_connection
     
     # Exécuter la commande
