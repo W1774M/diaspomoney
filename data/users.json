@@ -1,0 +1,53 @@
+[
+  {
+    "_id": "1",
+    "email": "admin@diaspomoney.com",
+    "password": "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KjKqK2",
+    "firstName": "Admin",
+    "lastName": "User",
+    "roles": [
+      "ADMIN"
+    ],
+    "status": "ACTIVE",
+    "isEmailVerified": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "2",
+    "email": "provider@diaspomoney.com",
+    "password": "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KjKqK2",
+    "firstName": "Dr. Jean",
+    "lastName": "Dupont",
+    "roles": [
+      "PROVIDER"
+    ],
+    "status": "ACTIVE",
+    "specialties": [
+      "Médecine générale"
+    ],
+    "phone": "+33 1 23 45 67 89",
+    "address": "12 Rue de la Paix, 75002 Paris",
+    "city": "Paris",
+    "country": "France",
+    "rating": 4.5,
+    "reviewCount": 10,
+    "isEmailVerified": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "3",
+    "email": "customer@diaspomoney.com",
+    "password": "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8KjKqK2",
+    "firstName": "Marie",
+    "lastName": "Martin",
+    "roles": [
+      "CUSTOMER"
+    ],
+    "status": "ACTIVE",
+    "isEmailVerified": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+]

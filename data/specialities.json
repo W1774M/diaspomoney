@@ -1,0 +1,29 @@
+[
+  {
+    "_id": "1",
+    "name": "Médecine générale",
+    "description": "Soins de santé primaires et consultations générales",
+    "group": "sante",
+    "isActive": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "2",
+    "name": "Droit civil",
+    "description": "Conseils juridiques en droit civil et commercial",
+    "group": "edu",
+    "isActive": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "3",
+    "name": "Immobilier",
+    "description": "Services immobiliers et transactions",
+    "group": "immo",
+    "isActive": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+]

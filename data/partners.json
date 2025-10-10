@@ -1,0 +1,38 @@
+[
+  {
+    "_id": "1",
+    "name": "Lusinage",
+    "logo": "https://lusinage.fr/asset/images/logo/lusinage.png",
+    "description": "Conception et fabrication de pièces mécaniques de haute précision",
+    "website": "https://lusinage.fr",
+    "category": "Usinage",
+    "services": [
+      "Usinage CNC",
+      "Impression 3D"
+    ],
+    "location": "Rouen, France",
+    "established": "2021",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "2",
+    "name": "BPI France",
+    "logo": "https://www.bpifrance.fr/themes/custom/bpi_main/logo.svg",
+    "description": "Bpifrance est le résultat de nombreux regroupements",
+    "website": "https://www.bpifrance.fr",
+    "category": "Finance",
+    "services": [
+      "Creation",
+      "Innovation",
+      "Financement",
+      "Investissement",
+      "International",
+      "Conseil"
+    ],
+    "location": "Paris, France",
+    "established": "1995",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+]
