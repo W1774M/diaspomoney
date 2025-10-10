@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 
 # Installer les dépendances
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+RUN npm install -g pnpm && pnpm install --no-frozen-lockfile
 
 # Copier tout le projet
 COPY . .
@@ -32,7 +32,7 @@ COPY --from=builder /app/public /app/public
 COPY --from=builder /app/next.config.mjs /app/
 
 # Installer uniquement les dépendances nécessaires pour exécuter l'application
-RUN npm install -g pnpm && pnpm install --production --frozen-lockfile --ignore-scripts
+RUN npm install -g pnpm && pnpm install --production --no-frozen-lockfile --ignore-scripts
 
 # Exposer le port de l'application
 EXPOSE 3000
