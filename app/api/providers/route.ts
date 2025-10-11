@@ -102,6 +102,7 @@ export async function GET(request: NextRequest) {
       total: filteredProviders.length,
       limit,
       offset,
+      hasResults: filteredProviders.length > 0,
     });
   } catch (error) {
     console.error("Erreur lors de la récupération des prestataires:", error);

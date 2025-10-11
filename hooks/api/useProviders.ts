@@ -56,7 +56,7 @@ export function useProviders(
     }
   };
 
-  // Debounce sur les changements d'options
+  // Debounce sur les changements d'options avec protection contre les boucles
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -77,6 +77,14 @@ export function useProviders(
     options.recommended,
     options.sortBy,
   ]);
+
+  // Éviter les appels répétés quand il n'y a pas de providers
+  useEffect(() => {
+    if (providers.length === 0 && !loading && !error) {
+      // Ne pas refaire d'appel si on vient de recevoir un tableau vide
+      return;
+    }
+  }, [providers.length, loading, error]);
 
   return {
     providers,

@@ -1,7 +1,7 @@
 "use client";
 
-import { useProviders } from "@/hooks";
-import { Provider } from "@/hooks/useProviders";
+import { useProvidersOptimized } from "@/hooks/api/useProvidersOptimized";
+import { Provider } from "@/hooks/api/useProvidersOptimized";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import ServicesFilters from "./ServicesFilters";
@@ -27,13 +27,14 @@ const ServicesPage = React.memo(function ServicesPage() {
     rating: 0,
   });
 
-  // Utiliser le hook useProviders avec les filtres
+  // Utiliser le hook useProvidersOptimized avec les filtres
   const {
     providers,
     loading,
     error: _error,
+    hasResults,
     refetch,
-  } = useProviders({
+  } = useProvidersOptimized({
     category: filters.category,
     city: filters.city,
     specialty: filters.specialty,
@@ -434,6 +435,7 @@ const ServicesPage = React.memo(function ServicesPage() {
             loading={loading}
             error={_error}
             onProviderSelect={handleProviderSelect}
+            hasResults={hasResults}
           />
         )}
 
