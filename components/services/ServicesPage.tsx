@@ -1,7 +1,9 @@
 "use client";
 
-import { useProvidersOptimized } from "@/hooks/api/useProvidersOptimized";
-import { Provider } from "@/hooks/api/useProvidersOptimized";
+import {
+  Provider,
+  useProvidersOptimized,
+} from "@/hooks/api/useProvidersOptimized";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import ServicesFilters from "./ServicesFilters";
@@ -435,7 +437,6 @@ const ServicesPage = React.memo(function ServicesPage() {
             loading={loading}
             error={_error}
             onProviderSelect={handleProviderSelect}
-            hasResults={hasResults}
           />
         )}
 
