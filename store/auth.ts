@@ -17,7 +17,6 @@ export const useAuthStore = create<AuthState>(set => ({
 
       if (res.ok) {
         set({ isLoading: false, error: null });
-        return true;
       } else {
         if (data.error === "user_not_found") {
           set({
@@ -35,7 +34,6 @@ export const useAuthStore = create<AuthState>(set => ({
             error: "Erreur lors de la connexion",
           });
         }
-        return false;
       }
     } catch (error) {
       set({
@@ -43,7 +41,6 @@ export const useAuthStore = create<AuthState>(set => ({
         error:
           error instanceof Error ? error.message : "Une erreur est survenue",
       });
-      return false;
     }
   },
 }));

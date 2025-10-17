@@ -28,7 +28,6 @@ export function middleware(request: NextRequest) {
 
     // Si pas de token, rediriger vers login
     if (!sessionToken) {
-      // console.log("[Middleware] No session token, redirecting to login");
       return NextResponse.redirect(new URL("/login", request.url));
     }
   }
@@ -43,7 +42,6 @@ export function middleware(request: NextRequest) {
       request.cookies.get("__Secure-authjs.session-token");
 
     if (sessionToken) {
-      // console.log(
       //   "[Middleware] User already authenticated, redirecting to dashboard"
       // );
       return NextResponse.redirect(new URL("/dashboard", request.url));

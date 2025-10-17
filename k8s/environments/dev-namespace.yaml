@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: diaspomoney-dev
+  labels:
+    name: diaspomoney-dev
+    environment: development
+    tier: frontend
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: diaspomoney-dev-infra
+  labels:
+    name: diaspomoney-dev-infra
+    environment: development
+    tier: infrastructure

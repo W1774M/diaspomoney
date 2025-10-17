@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: diaspomoney-rct
+  labels:
+    name: diaspomoney-rct
+    environment: recette
+    tier: frontend
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: diaspomoney-rct-infra
+  labels:
+    name: diaspomoney-rct-infra
+    environment: recette
+    tier: infrastructure

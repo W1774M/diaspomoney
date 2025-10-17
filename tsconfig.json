@@ -41,12 +41,10 @@
       "@/models/*": ["./models/*"],
       "@/store/*": ["./store/*"],
       "@/middleware/*": ["./middleware/*"],
-      "@/test/*": ["tests/*"],
       "@/scripts/*": ["./scripts/*"],
       "@/docker/*": ["./docker/*"],
       "@/docs/*": ["./docs/*"],
-      "@/public/*": ["./public/*"],
-      "@/template/*": ["./template/*"]
+      "@/public/*": ["./public/*"]
     }
   },
   "include": [

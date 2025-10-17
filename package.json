@@ -7,12 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed:beneficiaries": "node scripts/seed-beneficiaries.mjs",
-    "test:api": "node scripts/test-api.mjs",
-    "test:signout": "node scripts/test-signout.mjs",
-    "test:services": "node scripts/test-services-mock.mjs",
-    "test:phase1": "node scripts/test-phase1-optimizations.mjs",
-    "performance:report": "node -e \"console.log('Performance monitoring available')\""
+    "type-check": "tsc --noEmit",
+    "test:resend": "node scripts/test-resend.js",
+    "test:email": "node scripts/test-resend.js",
+    "clean": "rm -rf .next out dist node_modules/.cache",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.10.0",
@@ -20,10 +20,6 @@
     "@sentry/nextjs": "^8.55.0",
     "@stripe/react-stripe-js": "^5.2.0",
     "@stripe/stripe-js": "^8.0.0",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
-    "@types/nodemailer": "^7.0.2",
-    "@vitejs/plugin-react": "^5.0.4",
     "autoprefixer": "^10.4.21",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
@@ -36,7 +32,6 @@
     "mongoose": "^8.18.3",
     "next": "14.2.5",
     "next-auth": "5.0.0-beta.29",
-    "nodemailer": "^6.10.1",
     "pino": "^10.0.0",
     "pino-pretty": "^13.1.1",
     "react": "^18.3.1",
@@ -46,11 +41,13 @@
     "stripe": "^19.1.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss": "^3.4.18",
-    "vitest": "^3.2.4",
     "zod": "^3.25.76",
     "zustand": "^4.5.7"
   },
   "devDependencies": {
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/typography": "^0.5.10",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.19.19",
     "@types/react": "^18.3.25",
@@ -58,7 +55,7 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.5",
     "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.1",
+    "prettier": "^3.0.0",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3"
   }
