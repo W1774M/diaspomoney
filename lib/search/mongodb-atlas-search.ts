@@ -4,8 +4,8 @@
  * Alternative à Elasticsearch
  */
 
-import { MongoClient, Db } from 'mongodb';
 import * as Sentry from '@sentry/nextjs';
+import { Db, MongoClient } from 'mongodb';
 
 export interface SearchConfig {
   indexName: string;
@@ -69,29 +69,31 @@ export class MongoDBAtlasSearch {
   /**
    * Créer un index de recherche
    */
-  async createSearchIndex(collectionName: string, config: SearchConfig): Promise<void> {
+  async createSearchIndex(
+    _collectionName: string,
+    config: SearchConfig
+  ): Promise<void> {
     try {
       if (!this.isConnected) {
         await this.connect();
       }
 
-      const indexDefinition = {
-        name: config.indexName,
-        type: 'search',
-        definition: {
-          mappings: {
-            fields: this.buildFieldMappings(config.fields),
-            ...(config.analyzers && { analyzers: config.analyzers }),
-            ...(config.synonyms && { synonyms: config.synonyms })
-          }
-        }
-      };
+      // const _indexDefinition = {
+      //   name: config.indexName,
+      //   type: 'search',
+      //   definition: {
+      //     mappings: {
+      //       fields: this.buildFieldMappings(config.fields),
+      //       ...(config.analyzers && { analyzers: config.analyzers }),
+      //       ...(config.synonyms && { synonyms: config.synonyms }),
+      //     },
+      //   },
+      // };
 
       // Note: En production, utilisez l'API Atlas Search
       // await this.db.collection(collectionName).createSearchIndex(indexDefinition);
-      
-      console.log(`✅ Search index created: ${config.indexName}`);
 
+      console.log(`✅ Search index created: ${config.indexName}`);
     } catch (error) {
       console.error('❌ Error creating search index:', error);
       Sentry.captureException(error);
@@ -104,7 +106,7 @@ export class MongoDBAtlasSearch {
    */
   async search<T = any>(
     collectionName: string,
-    indexName: string,
+    _indexName: string,
     query: SearchQuery
   ): Promise<SearchResult<T>> {
     try {
@@ -113,10 +115,10 @@ export class MongoDBAtlasSearch {
       }
 
       const startTime = Date.now();
-      
+
       // Construire la requête de recherche
-      const searchQuery = this.buildSearchQuery(query);
-      
+      // const _searchQuery = this.buildSearchQuery(query);
+
       // En production, utilisez l'opérateur $search
       // const pipeline = [
       //   { $search: { index: indexName, ...searchQuery } },
@@ -140,15 +142,15 @@ export class MongoDBAtlasSearch {
 
       // Exécuter la requête
       const cursor = collection.find(mongoQuery);
-      
+
       if (query.sort) {
         cursor.sort(query.sort);
       }
-      
+
       if (query.limit) {
         cursor.limit(query.limit);
       }
-      
+
       if (query.offset) {
         cursor.skip(query.offset);
       }
@@ -158,11 +160,10 @@ export class MongoDBAtlasSearch {
       const took = Date.now() - startTime;
 
       return {
-        hits,
+        hits: hits as T[],
         total,
-        took
+        took,
       };
-
     } catch (error) {
       console.error('❌ Error searching:', error);
       Sentry.captureException(error);
@@ -201,123 +202,46 @@ export class MongoDBAtlasSearch {
   /**
    * Construire les mappings de champs
    */
-  private buildFieldMappings(fields: SearchField[]): Record<string, any> {
-    const mappings: Record<string, any> = {};
+  // private buildFieldMappings(fields: SearchField[]): Record<string, any> {
+  //   const mappings: Record<string, any> = {};
 
-    fields.forEach(field => {
-      const fieldConfig: any = {
-        type: field.type
-      };
+  //   fields.forEach(field => {
+  //     const fieldConfig: any = {
+  //       type: field.type,
+  //     };
 
-      if (field.analyzer) fieldConfig.analyzer = field.analyzer;
-      if (field.searchAnalyzer) fieldConfig.searchAnalyzer = field.searchAnalyzer;
-      if (field.indexAnalyzer) fieldConfig.indexAnalyzer = field.indexAnalyzer;
-      if (field.searchable !== undefined) fieldConfig.searchable = field.searchable;
-      if (field.facetable !== undefined) fieldConfig.facetable = field.facetable;
-      if (field.sortable !== undefined) fieldConfig.sortable = field.sortable;
+  //     if (field.analyzer) fieldConfig.analyzer = field.analyzer;
+  //     if (field.searchAnalyzer)
+  //       fieldConfig.searchAnalyzer = field.searchAnalyzer;
+  //     if (field.indexAnalyzer) fieldConfig.indexAnalyzer = field.indexAnalyzer;
+  //     if (field.searchable !== undefined)
+  //       fieldConfig.searchable = field.searchable;
+  //     if (field.facetable !== undefined)
+  //       fieldConfig.facetable = field.facetable;
+  //     if (field.sortable !== undefined) fieldConfig.sortable = field.sortable;
 
-      mappings[field.name] = fieldConfig;
-    });
+  //     mappings[field.name] = fieldConfig;
+  //   });
 
-    return mappings;
-  }
+  //   return mappings;
+  // }
 
   /**
    * Construire la requête de recherche
    */
-  private buildSearchQuery(query: SearchQuery): any {
-    const searchQuery: any = {};
-
-    if (query.text) {
-      searchQuery.text = {
-        query: query.text,
-        path: ['name', 'description', 'specialties', 'content']
-      };
-    }
-
-    if (query.filters) {
-      searchQuery.compound = {
-        filter: Object.entries(query.filters).map(([field, value]) => ({
-          [field]: { $eq: value }
-        }))
-      };
-    }
-
-    if (query.facets) {
-      searchQuery.facets = query.facets.reduce((acc, facet) => {
-        acc[facet] = { type: 'string' };
-        return acc;
-      }, {} as Record<string, any>);
-    }
-
-    return searchQuery;
-  }
-
-  /**
-   * Fermer la connexion
-   */
-  async disconnect(): Promise<void> {
-    try {
-      await this.client.close();
-      this.isConnected = false;
-      console.log('✅ MongoDB Atlas Search disconnected');
-    } catch (error) {
-      console.error('❌ Error disconnecting:', error);
-      Sentry.captureException(error);
-    }
-  }
+  // private buildSearchQuery(query: SearchQuery): any {
+  //   return query;
+  // }
 }
-
-// Configuration des index de recherche
-export const SEARCH_INDEXES = {
-  providers: {
-    indexName: 'providers_search',
-    fields: [
-      { name: 'name', type: 'string', searchable: true, sortable: true },
-      { name: 'description', type: 'string', searchable: true },
-      { name: 'specialties', type: 'string', searchable: true, facetable: true },
-      { name: 'category', type: 'string', facetable: true, sortable: true },
-      { name: 'rating', type: 'number', sortable: true },
-      { name: 'location.city', type: 'string', facetable: true },
-      { name: 'location.country', type: 'string', facetable: true },
-      { name: 'isVerified', type: 'boolean', facetable: true }
-    ]
-  },
-  properties: {
-    indexName: 'properties_search',
-    fields: [
-      { name: 'title', type: 'string', searchable: true, sortable: true },
-      { name: 'description', type: 'string', searchable: true },
-      { name: 'type', type: 'string', facetable: true },
-      { name: 'price', type: 'number', sortable: true },
-      { name: 'area', type: 'number', sortable: true },
-      { name: 'location.city', type: 'string', facetable: true },
-      { name: 'location.country', type: 'string', facetable: true },
-      { name: 'features', type: 'string', searchable: true, facetable: true }
-    ]
-  },
-  schools: {
-    indexName: 'schools_search',
-    fields: [
-      { name: 'name', type: 'string', searchable: true, sortable: true },
-      { name: 'description', type: 'string', searchable: true },
-      { name: 'type', type: 'string', facetable: true },
-      { name: 'level', type: 'string', facetable: true },
-      { name: 'rating', type: 'number', sortable: true },
-      { name: 'location.city', type: 'string', facetable: true },
-      { name: 'location.country', type: 'string', facetable: true },
-      { name: 'programs.name', type: 'string', searchable: true }
-    ]
-  }
-};
 
 // Instance singleton
 let searchInstance: MongoDBAtlasSearch | null = null;
 
 export const getSearchInstance = (): MongoDBAtlasSearch => {
   if (!searchInstance) {
-    const connectionString = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-    const databaseName = process.env.MONGODB_DATABASE || 'diaspomoney';
+    const connectionString =
+      process.env['MONGODB_URI'] || 'mongodb://localhost:27017';
+    const databaseName = process.env['MONGODB_DATABASE'] || 'diaspomoney';
     searchInstance = new MongoDBAtlasSearch(connectionString, databaseName);
   }
   return searchInstance;

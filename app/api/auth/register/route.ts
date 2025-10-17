@@ -3,15 +3,15 @@
  * Endpoint d'inscription
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/services/auth/auth.service';
-import { securityManager } from '@/lib/security/advanced-security';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import { authService } from '@/services/auth/auth.service';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, firstName, lastName, phone, country, consents } = body;
+    const { email, password, firstName, lastName, phone, country, consents } =
+      body;
 
     // Validation des entrées
     if (!email || !password || !firstName || !lastName || !country) {
@@ -30,13 +30,13 @@ export async function POST(request: NextRequest) {
 
     // Sanitisation des entrées
     const sanitizedData = {
-      email: securityManager.sanitizeInput(email),
-      password: securityManager.sanitizeInput(password),
-      firstName: securityManager.sanitizeInput(firstName),
-      lastName: securityManager.sanitizeInput(lastName),
-      phone: phone ? securityManager.sanitizeInput(phone) : undefined,
-      country: securityManager.sanitizeInput(country),
-      consents: securityManager.sanitizeInput(consents)
+      email: email.trim().toLowerCase(),
+      password: password,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      phone: phone ? phone.trim() : undefined,
+      country: country.trim(),
+      consents: consents,
     };
 
     // Tentative d'inscription
@@ -49,36 +49,39 @@ export async function POST(request: NextRequest) {
       timestamp: new Date(),
       labels: {
         country: sanitizedData.country,
-        has_phone: sanitizedData.phone ? 'true' : 'false'
+        has_phone: sanitizedData.phone ? 'true' : 'false',
       },
-      type: 'counter'
+      type: 'counter',
     });
 
     // Retourner la réponse
-    return NextResponse.json({
-      success: true,
-      user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      expiresIn: result.expiresIn,
-      message: 'Compte créé avec succès. Vérifiez votre email pour activer votre compte.'
-    }, { status: 201 });
-
+    return NextResponse.json(
+      {
+        success: true,
+        user: result.user,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresIn: result.expiresIn,
+        message:
+          'Compte créé avec succès. Vérifiez votre email pour activer votre compte.',
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Erreur register API:', error);
-    
+
     // Enregistrer les métriques d'échec
     monitoringManager.recordMetric({
       name: 'auth_registrations_failed',
       value: 1,
       timestamp: new Date(),
-      type: 'counter'
+      type: 'counter',
     });
 
     return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : 'Erreur d\'inscription',
-        success: false 
+      {
+        error: error instanceof Error ? error.message : "Erreur d'inscription",
+        success: false,
       },
       { status: 400 }
     );

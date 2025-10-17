@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { MOCK_INVOICES } from "@/mocks";
-import { IInvoice } from "@/types";
-import { useEffect, useMemo, useState } from "react";
+import { MOCK_INVOICES } from '@/mocks';
+import { IInvoice } from '@/types';
+import { useEffect, useMemo, useState } from 'react';
 
 interface UseInvoicesProps {
   limit?: number;
@@ -85,7 +85,7 @@ export function useInvoices({
   }, [userId, isAdmin, isProvider, isCustomer]);
 
   return {
-    invoices,
+    invoices: invoices as unknown as IInvoice[],
     total,
     loading,
     error,

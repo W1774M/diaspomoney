@@ -10,15 +10,21 @@ import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import * as Sentry from '@sentry/nextjs';
 
 // Configuration Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
+const stripe = new Stripe(process.env['STRIPE_SECRET_KEY']!, {
+  apiVersion: '2025-09-30.clover',
 });
 
 export interface PaymentIntent {
   id: string;
   amount: number;
   currency: string;
-  status: 'requires_payment_method' | 'requires_confirmation' | 'requires_action' | 'processing' | 'succeeded' | 'canceled';
+  status:
+    | 'requires_payment_method'
+    | 'requires_confirmation'
+    | 'requires_action'
+    | 'processing'
+    | 'succeeded'
+    | 'canceled';
   clientSecret: string;
   paymentMethod?: string;
   metadata: Record<string, string>;
@@ -65,7 +71,7 @@ export interface PaymentResult {
 
 export class PaymentService {
   private static instance: PaymentService;
-  
+
   static getInstance(): PaymentService {
     if (!PaymentService.instance) {
       PaymentService.instance = new PaymentService();
@@ -100,13 +106,13 @@ export class PaymentService {
         metadata: {
           ...metadata,
           source: 'diaspomoney',
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         },
         automatic_payment_methods: {
           enabled: true,
         },
         confirmation_method: 'manual',
-        capture_method: 'automatic'
+        capture_method: 'automatic',
       });
 
       // Enregistrer les métriques
@@ -116,9 +122,9 @@ export class PaymentService {
         timestamp: new Date(),
         labels: {
           currency: currency.toLowerCase(),
-          amount_range: this.getAmountRange(amount)
+          amount_range: this.getAmountRange(amount),
         },
-        type: 'counter'
+        type: 'counter',
       });
 
       return {
@@ -127,9 +133,8 @@ export class PaymentService {
         currency: paymentIntent.currency,
         status: paymentIntent.status as any,
         clientSecret: paymentIntent.client_secret!,
-        metadata: paymentIntent.metadata
+        metadata: paymentIntent.metadata,
       };
-
     } catch (error) {
       console.error('Erreur createPaymentIntent:', error);
       Sentry.captureException(error);
@@ -145,9 +150,10 @@ export class PaymentService {
     paymentMethodId?: string
   ): Promise<PaymentResult> {
     try {
-      const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
-        payment_method: paymentMethodId
-      });
+      const paymentIntent = await stripe.paymentIntents.confirm(
+        paymentIntentId,
+        paymentMethodId ? { payment_method: paymentMethodId } : undefined
+      );
 
       // Enregistrer les métriques
       monitoringManager.recordMetric({
@@ -156,15 +162,15 @@ export class PaymentService {
         timestamp: new Date(),
         labels: {
           status: paymentIntent.status,
-          currency: paymentIntent.currency
+          currency: paymentIntent.currency,
         },
-        type: 'counter'
+        type: 'counter',
       });
 
       if (paymentIntent.status === 'succeeded') {
         return {
           success: true,
-          transactionId: paymentIntent.id
+          transactionId: paymentIntent.id,
         };
       } else if (paymentIntent.status === 'requires_action') {
         return {
@@ -172,23 +178,22 @@ export class PaymentService {
           requiresAction: true,
           nextAction: {
             type: 'redirect_to_url',
-            url: paymentIntent.next_action?.redirect_to_url?.url
-          }
+            url: paymentIntent.next_action?.redirect_to_url?.url || '',
+          },
         };
       } else {
         return {
           success: false,
-          error: `Payment failed with status: ${paymentIntent.status}`
+          error: `Payment failed with status: ${paymentIntent.status}`,
         };
       }
-
     } catch (error) {
       console.error('Erreur confirmPaymentIntent:', error);
       Sentry.captureException(error);
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erreur inconnue'
+        error: error instanceof Error ? error.message : 'Erreur inconnue',
       };
     }
   }
@@ -200,26 +205,37 @@ export class PaymentService {
     try {
       const paymentMethods = await stripe.paymentMethods.list({
         customer: customerId,
-        type: 'card'
+        type: 'card',
       });
 
-      return paymentMethods.data.map(pm => ({
+      return paymentMethods.data.map((pm: any) => ({
         id: pm.id,
         type: pm.type as any,
-        card: pm.card ? {
-          brand: pm.card.brand,
-          last4: pm.card.last4,
-          expMonth: pm.card.exp_month,
-          expYear: pm.card.exp_year
-        } : undefined,
-        sepa_debit: pm.sepa_debit ? {
-          last4: pm.sepa_debit.last4,
-          bank_code: pm.sepa_debit.bank_code || ''
-        } : undefined,
+        card: pm.card
+          ? {
+              brand: pm.card.brand,
+              last4: pm.card.last4,
+              expMonth: pm.card.exp_month,
+              expYear: pm.card.exp_year,
+            }
+          : {
+              brand: '',
+              last4: '',
+              expMonth: 0,
+              expYear: 0,
+            },
+        sepa_debit: pm.sepa_debit
+          ? {
+              last4: pm.sepa_debit.last4,
+              bank_code: pm.sepa_debit.bank_code || '',
+            }
+          : {
+              last4: '',
+              bank_code: '',
+            },
         isDefault: false, // TODO: Gérer les méthodes par défaut
-        createdAt: new Date(pm.created * 1000)
+        createdAt: new Date(pm.created * 1000),
       }));
-
     } catch (error) {
       console.error('Erreur getPaymentMethods:', error);
       Sentry.captureException(error);
@@ -236,23 +252,32 @@ export class PaymentService {
   ): Promise<PaymentMethod> {
     try {
       // Attacher la méthode de paiement au client
-      const paymentMethod = await stripe.paymentMethods.attach(paymentMethodId, {
-        customer: customerId
-      });
+      const paymentMethod = await stripe.paymentMethods.attach(
+        paymentMethodId,
+        {
+          customer: customerId,
+        }
+      );
 
       return {
         id: paymentMethod.id,
         type: paymentMethod.type as any,
-        card: paymentMethod.card ? {
-          brand: paymentMethod.card.brand,
-          last4: paymentMethod.card.last4,
-          expMonth: paymentMethod.card.exp_month,
-          expYear: paymentMethod.card.exp_year
-        } : undefined,
+        card: paymentMethod.card
+          ? {
+              brand: paymentMethod.card.brand,
+              last4: paymentMethod.card.last4,
+              expMonth: paymentMethod.card.exp_month,
+              expYear: paymentMethod.card.exp_year,
+            }
+          : {
+              brand: '',
+              last4: '',
+              expMonth: 0,
+              expYear: 0,
+            },
         isDefault: false,
-        createdAt: new Date(paymentMethod.created * 1000)
+        createdAt: new Date(paymentMethod.created * 1000),
       };
-
     } catch (error) {
       console.error('Erreur addPaymentMethod:', error);
       Sentry.captureException(error);
@@ -266,7 +291,6 @@ export class PaymentService {
   async removePaymentMethod(paymentMethodId: string): Promise<void> {
     try {
       await stripe.paymentMethods.detach(paymentMethodId);
-
     } catch (error) {
       console.error('Erreur removePaymentMethod:', error);
       Sentry.captureException(error);
@@ -285,12 +309,12 @@ export class PaymentService {
     try {
       const refund = await stripe.refunds.create({
         payment_intent: paymentIntentId,
-        amount: amount ? Math.round(amount * 100) : undefined,
+        amount: amount ? Math.round(amount * 100) : 0,
         reason: reason as any,
         metadata: {
           source: 'diaspomoney',
-          refunded_at: new Date().toISOString()
-        }
+          refunded_at: new Date().toISOString(),
+        },
       });
 
       // Enregistrer les métriques
@@ -299,23 +323,23 @@ export class PaymentService {
         value: 1,
         timestamp: new Date(),
         labels: {
-          reason: reason || 'requested_by_customer'
+          reason: reason || 'requested_by_customer',
         },
-        type: 'counter'
+        type: 'counter',
       });
 
       return {
         success: true,
-        transactionId: refund.id
+        transactionId: refund.id,
       };
-
     } catch (error) {
       console.error('Erreur refundPayment:', error);
       Sentry.captureException(error);
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erreur de remboursement'
+        error:
+          error instanceof Error ? error.message : 'Erreur de remboursement',
       };
     }
   }
@@ -328,26 +352,29 @@ export class PaymentService {
       const event = stripe.webhooks.constructEvent(
         payload,
         signature,
-        process.env.STRIPE_WEBHOOK_SECRET!
+        process.env['STRIPE_WEBHOOK_SECRET']!
       );
 
       switch (event.type) {
         case 'payment_intent.succeeded':
-          await this.handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
+          await this.handlePaymentSucceeded(
+            event.data.object as Stripe.PaymentIntent
+          );
           break;
-          
+
         case 'payment_intent.payment_failed':
-          await this.handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
+          await this.handlePaymentFailed(
+            event.data.object as Stripe.PaymentIntent
+          );
           break;
-          
+
         case 'charge.dispute.created':
           await this.handleDisputeCreated(event.data.object as Stripe.Dispute);
           break;
-          
+
         default:
           console.log(`Webhook non géré: ${event.type}`);
       }
-
     } catch (error) {
       console.error('Erreur handleWebhook:', error);
       Sentry.captureException(error);
@@ -358,7 +385,9 @@ export class PaymentService {
   /**
    * Gérer le succès d'un paiement
    */
-  private async handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent): Promise<void> {
+  private async handlePaymentSucceeded(
+    paymentIntent: Stripe.PaymentIntent
+  ): Promise<void> {
     try {
       // TODO: Mettre à jour le statut de la transaction
       // await transactionService.updateTransactionStatus(
@@ -374,11 +403,10 @@ export class PaymentService {
         timestamp: new Date(),
         labels: {
           currency: paymentIntent.currency,
-          payment_method: 'stripe'
+          payment_method: 'stripe',
         },
-        type: 'counter'
+        type: 'counter',
       });
-
     } catch (error) {
       console.error('Erreur handlePaymentSucceeded:', error);
       Sentry.captureException(error);
@@ -388,18 +416,19 @@ export class PaymentService {
   /**
    * Gérer l'échec d'un paiement
    */
-  private async handlePaymentFailed(_paymentIntent: Stripe.PaymentIntent): Promise<void> {
+  private async handlePaymentFailed(
+    _paymentIntent: Stripe.PaymentIntent
+  ): Promise<void> {
     try {
       // TODO: Mettre à jour le statut de la transaction
       // await transactionService.updateTransactionStatus(
       //   paymentIntent.metadata.transactionId,
       //   'FAILED',
-      //   { 
+      //   {
       //     stripePaymentIntentId: paymentIntent.id,
       //     failureReason: paymentIntent.last_payment_error?.message
       //   }
       // );
-
     } catch (error) {
       console.error('Erreur handlePaymentFailed:', error);
       Sentry.captureException(error);
@@ -413,9 +442,8 @@ export class PaymentService {
     try {
       // TODO: Notifier l'équipe de support
       // TODO: Mettre en quarantaine la transaction
-      
-      console.log(`Dispute créée: ${dispute.id} pour ${dispute.amount}`);
 
+      console.log(`Dispute créée: ${dispute.id} pour ${dispute.amount}`);
     } catch (error) {
       console.error('Erreur handleDisputeCreated:', error);
       Sentry.captureException(error);
@@ -432,22 +460,22 @@ export class PaymentService {
         enabled: true,
         currencies: ['EUR', 'USD', 'GBP'],
         countries: ['FR', 'DE', 'ES', 'IT', 'BE', 'NL'],
-        fees: { percentage: 0.014, fixed: 0.25 }
+        fees: { percentage: 0.014, fixed: 0.25 },
       },
       {
         name: 'PayPal',
         enabled: false, // À implémenter
         currencies: ['EUR', 'USD'],
         countries: ['FR', 'DE', 'ES', 'IT'],
-        fees: { percentage: 0.034, fixed: 0.35 }
+        fees: { percentage: 0.034, fixed: 0.35 },
       },
       {
         name: 'Orange Money',
         enabled: false, // À implémenter
         currencies: ['XOF', 'XAF'],
         countries: ['SN', 'CI', 'CM', 'BF'],
-        fees: { percentage: 0.02, fixed: 0.10 }
-      }
+        fees: { percentage: 0.02, fixed: 0.1 },
+      },
     ];
   }
 

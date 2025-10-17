@@ -28,7 +28,13 @@ export interface AuditLog {
   };
   details: Record<string, any>;
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  category: 'AUTHENTICATION' | 'AUTHORIZATION' | 'DATA_ACCESS' | 'DATA_MODIFICATION' | 'SYSTEM' | 'SECURITY';
+  category:
+    | 'AUTHENTICATION'
+    | 'AUTHORIZATION'
+    | 'DATA_ACCESS'
+    | 'DATA_MODIFICATION'
+    | 'SYSTEM'
+    | 'SECURITY';
   outcome: 'SUCCESS' | 'FAILURE' | 'WARNING';
   riskScore: number; // 0-100
   complianceFlags: string[];
@@ -92,14 +98,18 @@ export class AuditLoggingSystem {
     } = {}
   ): Promise<AuditLog> {
     try {
-      const auditLog: AuditLog = {
+      const auditLog: Omit<AuditLog, 'userId' | 'sessionId' | 'resourceId'> & {
+        userId?: string | undefined;
+        sessionId?: string | undefined;
+        resourceId?: string | undefined;
+      } = {
         id: `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         timestamp: new Date(),
-        userId: options.userId,
-        sessionId: options.sessionId,
+        userId: options.userId ?? undefined,
+        sessionId: options.sessionId ?? undefined,
         action,
         resource,
-        resourceId: options.resourceId,
+        resourceId: options.resourceId || '',
         method: options.method || 'UNKNOWN',
         ipAddress: options.ipAddress || 'unknown',
         userAgent: options.userAgent || 'unknown',
@@ -107,22 +117,23 @@ export class AuditLoggingSystem {
         severity: options.severity || 'LOW',
         category: options.category || 'SYSTEM',
         outcome: options.outcome || 'SUCCESS',
-        riskScore: options.riskScore || this.calculateRiskScore(action, details),
+        riskScore:
+          options.riskScore || this.calculateRiskScore(action, details),
         complianceFlags: options.complianceFlags || [],
-        retentionPeriod: options.retentionPeriod || 2555 // 7 ans par défaut
+        retentionPeriod: options.retentionPeriod || 2555, // 7 ans par défaut
       };
 
       // Sauvegarder en base de données
-      await this.saveAuditLog(auditLog);
+      await this.saveAuditLog(auditLog as AuditLog);
 
       // Mettre en cache pour les requêtes rapides
-      await this.cacheAuditLog(auditLog);
+      await this.cacheAuditLog(auditLog as AuditLog);
 
       // Envoyer à Sentry si critique
       if (auditLog.severity === 'CRITICAL' || auditLog.riskScore > 80) {
         Sentry.captureMessage(`Critical Audit Event: ${action}`, {
           level: 'error',
-          extra: auditLog
+          extra: auditLog,
         });
       }
 
@@ -136,13 +147,12 @@ export class AuditLoggingSystem {
           resource,
           severity: auditLog.severity,
           category: auditLog.category,
-          outcome: auditLog.outcome
+          outcome: auditLog.outcome,
         },
-        type: 'counter'
+        type: 'counter',
       });
 
-      return auditLog;
-
+      return auditLog as unknown as AuditLog;
     } catch (error) {
       console.error('❌ Audit logging error:', error);
       Sentry.captureException(error);
@@ -153,7 +163,7 @@ export class AuditLoggingSystem {
   /**
    * Rechercher des logs d'audit
    */
-  async searchAuditLogs(query: AuditQuery): Promise<{
+  async searchAuditLogs(_query: AuditQuery): Promise<{
     logs: AuditLog[];
     total: number;
     hasMore: boolean;
@@ -170,9 +180,8 @@ export class AuditLoggingSystem {
       return {
         logs,
         total,
-        hasMore: false
+        hasMore: false,
       };
-
     } catch (error) {
       console.error('❌ Audit search error:', error);
       throw error;
@@ -182,7 +191,9 @@ export class AuditLoggingSystem {
   /**
    * Obtenir les statistiques d'audit
    */
-  async getAuditStats(period: 'day' | 'week' | 'month' = 'day'): Promise<AuditStats> {
+  async getAuditStats(
+    _period: 'day' | 'week' | 'month' = 'day'
+  ): Promise<AuditStats> {
     try {
       // TODO: Calculer les statistiques depuis la base de données
       return {
@@ -193,9 +204,8 @@ export class AuditLoggingSystem {
         averageRiskScore: 0,
         complianceIssues: 0,
         topActions: [],
-        topUsers: []
+        topUsers: [],
       };
-
     } catch (error) {
       console.error('❌ Audit stats error:', error);
       throw error;
@@ -227,13 +237,13 @@ export class AuditLoggingSystem {
       if (suspiciousLogins.length > 0) {
         anomalies.push({
           type: 'SUSPICIOUS_LOGINS',
-          description: `Multiple failed login attempts detected`,
+          description: 'Multiple failed login attempts detected',
           severity: 'HIGH',
           recommendations: [
             'Review login patterns',
             'Consider implementing account lockout',
-            'Enable 2FA for affected users'
-          ]
+            'Enable 2FA for affected users',
+          ],
         });
       }
 
@@ -242,28 +252,29 @@ export class AuditLoggingSystem {
       if (unauthorizedAccess.length > 0) {
         anomalies.push({
           type: 'UNAUTHORIZED_ACCESS',
-          description: `Unauthorized access attempts detected`,
+          description: 'Unauthorized access attempts detected',
           severity: 'CRITICAL',
           recommendations: [
             'Immediately review access logs',
             'Block suspicious IP addresses',
-            'Notify security team'
-          ]
+            'Notify security team',
+          ],
         });
       }
 
       // Détecter les modifications de données suspectes
-      const suspiciousModifications = await this.detectSuspiciousModifications(userId);
+      const suspiciousModifications =
+        await this.detectSuspiciousModifications(userId);
       if (suspiciousModifications.length > 0) {
         anomalies.push({
           type: 'SUSPICIOUS_MODIFICATIONS',
-          description: `Unusual data modification patterns detected`,
+          description: 'Unusual data modification patterns detected',
           severity: 'MEDIUM',
           recommendations: [
             'Review data modification logs',
             'Verify user permissions',
-            'Consider additional monitoring'
-          ]
+            'Consider additional monitoring',
+          ],
         });
       }
 
@@ -272,9 +283,8 @@ export class AuditLoggingSystem {
 
       return {
         anomalies,
-        riskLevel
+        riskLevel,
       };
-
     } catch (error) {
       console.error('❌ Anomaly detection error:', error);
       throw error;
@@ -301,7 +311,7 @@ export class AuditLoggingSystem {
   }> {
     try {
       const reportId = `audit_report_${Date.now()}`;
-      
+
       // TODO: Générer le rapport complet
       const summary = {
         totalLogs: 0,
@@ -310,8 +320,8 @@ export class AuditLoggingSystem {
         recommendations: [
           'Implement additional monitoring for high-risk activities',
           'Review and update access control policies',
-          'Conduct regular security training for staff'
-        ]
+          'Conduct regular security training for staff',
+        ],
       };
 
       // Enregistrer l'audit de génération de rapport
@@ -322,21 +332,20 @@ export class AuditLoggingSystem {
           reportId,
           startDate,
           endDate,
-          format
+          format,
         },
         {
           category: 'SYSTEM',
           severity: 'LOW',
-          outcome: 'SUCCESS'
+          outcome: 'SUCCESS',
         }
       );
 
       return {
         reportId,
         format,
-        summary
+        summary,
       };
-
     } catch (error) {
       console.error('❌ Audit report generation error:', error);
       throw error;
@@ -350,9 +359,8 @@ export class AuditLoggingSystem {
     try {
       // TODO: Sauvegarder en base de données
       // await AuditLog.create(auditLog);
-      
-      console.log(`✅ Audit log saved: ${auditLog.id}`);
 
+      console.log(`✅ Audit log saved: ${auditLog.id}`);
     } catch (error) {
       console.error('❌ Save audit log error:', error);
       throw error;
@@ -366,7 +374,6 @@ export class AuditLoggingSystem {
     try {
       const cacheKey = `audit:${auditLog.id}`;
       await redis.set(cacheKey, JSON.stringify(auditLog), 3600); // 1 heure
-
     } catch (error) {
       console.error('❌ Cache audit log error:', error);
       // Ne pas faire échouer l'opération principale
@@ -376,7 +383,10 @@ export class AuditLoggingSystem {
   /**
    * Calculer le score de risque
    */
-  private calculateRiskScore(action: string, details: Record<string, any>): number {
+  private calculateRiskScore(
+    action: string,
+    details: Record<string, any>
+  ): number {
     let score = 0;
 
     // Actions à haut risque
@@ -393,15 +403,15 @@ export class AuditLoggingSystem {
     }
 
     // Détails suspects
-    if (details.suspiciousActivity) {
+    if (details['suspiciousActivity']) {
       score += 20;
     }
 
-    if (details.multipleAttempts) {
+    if (details['multipleAttempts']) {
       score += 15;
     }
 
-    if (details.unusualLocation) {
+    if (details['unusualLocation']) {
       score += 10;
     }
 
@@ -411,8 +421,12 @@ export class AuditLoggingSystem {
   /**
    * Calculer le niveau de risque
    */
-  private calculateRiskLevel(anomalies: Array<{ severity: string }>): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
-    const criticalCount = anomalies.filter(a => a.severity === 'CRITICAL').length;
+  private calculateRiskLevel(
+    anomalies: Array<{ severity: string }>
+  ): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
+    const criticalCount = anomalies.filter(
+      a => a.severity === 'CRITICAL'
+    ).length;
     const highCount = anomalies.filter(a => a.severity === 'HIGH').length;
 
     if (criticalCount > 0) return 'CRITICAL';
@@ -424,7 +438,7 @@ export class AuditLoggingSystem {
   /**
    * Détecter les connexions suspectes
    */
-  private async detectSuspiciousLogins(userId?: string): Promise<any[]> {
+  private async detectSuspiciousLogins(_userId?: string): Promise<any[]> {
     // TODO: Implémenter la détection
     return [];
   }
@@ -432,7 +446,7 @@ export class AuditLoggingSystem {
   /**
    * Détecter les accès non autorisés
    */
-  private async detectUnauthorizedAccess(userId?: string): Promise<any[]> {
+  private async detectUnauthorizedAccess(_userId?: string): Promise<any[]> {
     // TODO: Implémenter la détection
     return [];
   }
@@ -440,7 +454,9 @@ export class AuditLoggingSystem {
   /**
    * Détecter les modifications suspectes
    */
-  private async detectSuspiciousModifications(userId?: string): Promise<any[]> {
+  private async detectSuspiciousModifications(
+    _userId?: string
+  ): Promise<any[]> {
     // TODO: Implémenter la détection
     return [];
   }

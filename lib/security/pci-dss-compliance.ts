@@ -3,16 +3,16 @@
  * Conformité PCI-DSS pour la sécurité des paiements
  */
 
-import { fieldEncryption, SENSITIVE_FIELDS } from './field-encryption';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import * as Sentry from '@sentry/nextjs';
+import { fieldEncryption } from './field-encryption';
 
 export interface PCIAuditLog {
   id: string;
   timestamp: Date;
   event: string;
-  userId?: string;
-  transactionId?: string;
+  userId?: string | undefined;
+  transactionId?: string | undefined;
   ipAddress: string;
   userAgent: string;
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -70,17 +70,20 @@ export class PCIDSSCompliance {
     severity: PCIAuditLog['severity'] = 'LOW'
   ): Promise<void> {
     try {
-      const auditLog: PCIAuditLog = {
+      const auditLog: Omit<PCIAuditLog, 'userId' | 'transactionId'> & {
+        userId?: string | undefined;
+        transactionId?: string | undefined;
+      } = {
         id: `pci_audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         timestamp: new Date(),
         event,
-        userId,
-        transactionId,
-        ipAddress: details.ipAddress || 'unknown',
-        userAgent: details.userAgent || 'unknown',
+        userId: userId ?? undefined,
+        transactionId: transactionId ?? undefined,
+        ipAddress: details['ipAddress'] || 'unknown',
+        userAgent: details['userAgent'] || 'unknown',
         severity,
         details,
-        complianceStatus: this.assessComplianceStatus(event, details)
+        complianceStatus: this.assessComplianceStatus(event, details),
       };
 
       // TODO: Sauvegarder en base de données
@@ -90,7 +93,7 @@ export class PCIDSSCompliance {
       if (severity === 'CRITICAL') {
         Sentry.captureMessage(`PCI Critical Event: ${event}`, {
           level: 'error',
-          extra: { userId, transactionId, details }
+          extra: { userId, transactionId, details },
         });
       }
 
@@ -102,11 +105,10 @@ export class PCIDSSCompliance {
         labels: {
           event,
           severity,
-          compliance_status: auditLog.complianceStatus
+          compliance_status: auditLog.complianceStatus,
         },
-        type: 'counter'
+        type: 'counter',
       });
-
     } catch (error) {
       console.error('❌ PCI audit logging error:', error);
       Sentry.captureException(error);
@@ -116,13 +118,16 @@ export class PCIDSSCompliance {
   /**
    * Chiffrer les données de carte de crédit
    */
-  async encryptCardData(cardData: {
-    number: string;
-    expiryMonth: string;
-    expiryYear: string;
-    cvv: string;
-    holderName: string;
-  }, userId: string): Promise<{
+  async encryptCardData(
+    cardData: {
+      number: string;
+      expiryMonth: string;
+      expiryYear: string;
+      cvv: string;
+      holderName: string;
+    },
+    userId: string
+  ): Promise<{
     encryptedNumber: string;
     encryptedCVV: string;
     encryptedHolderName: string;
@@ -130,14 +135,22 @@ export class PCIDSSCompliance {
   }> {
     try {
       // Chiffrer le numéro de carte
-      const encryptedNumber = fieldEncryption.encrypt('cardNumber', cardData.number, userId);
-      
+      const encryptedNumber = fieldEncryption.encrypt(
+        'cardNumber',
+        cardData.number,
+        userId
+      );
+
       // Chiffrer le CVV
       const encryptedCVV = fieldEncryption.encrypt('cvv', cardData.cvv, userId);
-      
+
       // Chiffrer le nom du titulaire
-      const encryptedHolderName = fieldEncryption.encrypt('cardHolderName', cardData.holderName, userId);
-      
+      const encryptedHolderName = fieldEncryption.encrypt(
+        'cardHolderName',
+        cardData.holderName,
+        userId
+      );
+
       // Générer un token de référence
       const token = fieldEncryption.generateEncryptionToken();
 
@@ -149,7 +162,7 @@ export class PCIDSSCompliance {
         {
           cardLast4: cardData.number.slice(-4),
           token,
-          encryptionMethod: 'AES-256-GCM'
+          encryptionMethod: 'AES-256-GCM',
         },
         'MEDIUM'
       );
@@ -158,16 +171,15 @@ export class PCIDSSCompliance {
         encryptedNumber: JSON.stringify(encryptedNumber),
         encryptedCVV: JSON.stringify(encryptedCVV),
         encryptedHolderName: JSON.stringify(encryptedHolderName),
-        token
+        token,
       };
-
     } catch (error) {
       console.error('❌ Card data encryption error:', error);
       await this.logPCIAudit(
         'CARD_DATA_ENCRYPTION_FAILED',
         userId,
         undefined,
-        { error: error.message },
+        { error: (error as Error).message },
         'HIGH'
       );
       throw error;
@@ -196,14 +208,14 @@ export class PCIDSSCompliance {
         JSON.parse(encryptedData.encryptedNumber),
         userId
       );
-      
+
       // Déchiffrer le CVV
       const decryptedCVV = fieldEncryption.decrypt(
         'cvv',
         JSON.parse(encryptedData.encryptedCVV),
         userId
       );
-      
+
       // Déchiffrer le nom du titulaire
       const decryptedHolderName = fieldEncryption.decrypt(
         'cardHolderName',
@@ -218,7 +230,7 @@ export class PCIDSSCompliance {
         undefined,
         {
           cardLast4: decryptedNumber.slice(-4),
-          decryptionMethod: 'AES-256-GCM'
+          decryptionMethod: 'AES-256-GCM',
         },
         'MEDIUM'
       );
@@ -226,16 +238,15 @@ export class PCIDSSCompliance {
       return {
         number: decryptedNumber,
         cvv: decryptedCVV,
-        holderName: decryptedHolderName
+        holderName: decryptedHolderName,
       };
-
     } catch (error) {
       console.error('❌ Card data decryption error:', error);
       await this.logPCIAudit(
         'CARD_DATA_DECRYPTION_FAILED',
         userId,
         undefined,
-        { error: error.message },
+        { error: (error as Error).message },
         'HIGH'
       );
       throw error;
@@ -245,7 +256,9 @@ export class PCIDSSCompliance {
   /**
    * Effectuer un scan de sécurité PCI
    */
-  async performSecurityScan(scanType: PCISecurityScan['scanType']): Promise<PCISecurityScan> {
+  async performSecurityScan(
+    scanType: PCISecurityScan['scanType']
+  ): Promise<PCISecurityScan> {
     try {
       const scan: PCISecurityScan = {
         id: `pci_scan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -253,17 +266,17 @@ export class PCIDSSCompliance {
         scanType,
         status: 'PASSED',
         findings: [],
-        remediationSteps: []
+        remediationSteps: [],
       };
 
       // Simulation d'un scan de sécurité
       const findings = await this.runSecurityChecks(scanType);
       scan.findings = findings;
-      
+
       // Déterminer le statut
       const criticalFindings = findings.filter(f => f.severity === 'CRITICAL');
       const highFindings = findings.filter(f => f.severity === 'HIGH');
-      
+
       if (criticalFindings.length > 0) {
         scan.status = 'FAILED';
       } else if (highFindings.length > 0) {
@@ -282,13 +295,12 @@ export class PCIDSSCompliance {
           scanType,
           status: scan.status,
           findingsCount: findings.length,
-          criticalCount: criticalFindings.length
+          criticalCount: criticalFindings.length,
         },
         scan.status === 'FAILED' ? 'HIGH' : 'LOW'
       );
 
       return scan;
-
     } catch (error) {
       console.error('❌ Security scan error:', error);
       throw error;
@@ -314,86 +326,87 @@ export class PCIDSSCompliance {
           id: '1.1',
           title: 'Install and maintain a firewall configuration',
           status: 'COMPLIANT' as const,
-          details: 'Firewall properly configured'
+          details: 'Firewall properly configured',
         },
         {
           id: '2.1',
           title: 'Do not use vendor-supplied defaults',
           status: 'COMPLIANT' as const,
-          details: 'All default passwords changed'
+          details: 'All default passwords changed',
         },
         {
           id: '3.1',
           title: 'Protect stored cardholder data',
           status: 'COMPLIANT' as const,
-          details: 'Card data encrypted with AES-256-GCM'
+          details: 'Card data encrypted with AES-256-GCM',
         },
         {
           id: '4.1',
           title: 'Encrypt transmission of cardholder data',
           status: 'COMPLIANT' as const,
-          details: 'All transmissions use TLS 1.3'
+          details: 'All transmissions use TLS 1.3',
         },
         {
           id: '5.1',
           title: 'Use and regularly update anti-virus software',
           status: 'COMPLIANT' as const,
-          details: 'Anti-virus software installed and updated'
+          details: 'Anti-virus software installed and updated',
         },
         {
           id: '6.1',
           title: 'Develop and maintain secure systems',
           status: 'COMPLIANT' as const,
-          details: 'Secure development practices implemented'
+          details: 'Secure development practices implemented',
         },
         {
           id: '7.1',
           title: 'Restrict access to cardholder data',
           status: 'COMPLIANT' as const,
-          details: 'Access restricted based on business need'
+          details: 'Access restricted based on business need',
         },
         {
           id: '8.1',
           title: 'Assign unique ID to each person',
           status: 'COMPLIANT' as const,
-          details: 'Unique IDs assigned to all users'
+          details: 'Unique IDs assigned to all users',
         },
         {
           id: '9.1',
           title: 'Restrict physical access to cardholder data',
           status: 'COMPLIANT' as const,
-          details: 'Physical access properly restricted'
+          details: 'Physical access properly restricted',
         },
         {
           id: '10.1',
           title: 'Track and monitor all access',
           status: 'COMPLIANT' as const,
-          details: 'Comprehensive audit logging implemented'
+          details: 'Comprehensive audit logging implemented',
         },
         {
           id: '11.1',
           title: 'Regularly test security systems',
           status: 'COMPLIANT' as const,
-          details: 'Regular security testing performed'
+          details: 'Regular security testing performed',
         },
         {
           id: '12.1',
           title: 'Maintain a security policy',
           status: 'COMPLIANT' as const,
-          details: 'Security policy documented and maintained'
-        }
+          details: 'Security policy documented and maintained',
+        },
       ];
 
-      const compliantCount = requirements.filter(r => r.status === 'COMPLIANT').length;
+      const compliantCount = requirements.filter(
+        r => r.status === 'COMPLIANT'
+      ).length;
       const score = Math.round((compliantCount / requirements.length) * 100);
       const isCompliant = score >= 100;
 
       return {
         isCompliant,
         score,
-        requirements
+        requirements,
       };
-
     } catch (error) {
       console.error('❌ PCI compliance check error:', error);
       throw error;
@@ -403,7 +416,7 @@ export class PCIDSSCompliance {
   /**
    * Exécuter les vérifications de sécurité
    */
-  private async runSecurityChecks(scanType: string): Promise<PCIFinding[]> {
+  private async runSecurityChecks(_scanType: string): Promise<PCIFinding[]> {
     const findings: PCIFinding[] = [];
 
     // Vérifications de base
@@ -412,7 +425,7 @@ export class PCIDSSCompliance {
       severity: 'LOW',
       category: 'ENCRYPTION',
       description: 'Data encryption status verified',
-      recommendation: 'Continue current encryption practices'
+      recommendation: 'Continue current encryption practices',
     });
 
     findings.push({
@@ -420,7 +433,7 @@ export class PCIDSSCompliance {
       severity: 'LOW',
       category: 'ACCESS',
       description: 'Access controls properly configured',
-      recommendation: 'Maintain current access control policies'
+      recommendation: 'Maintain current access control policies',
     });
 
     return findings;
@@ -448,16 +461,19 @@ export class PCIDSSCompliance {
   /**
    * Évaluer le statut de conformité
    */
-  private assessComplianceStatus(event: string, details: Record<string, any>): PCIAuditLog['complianceStatus'] {
+  private assessComplianceStatus(
+    event: string,
+    _details: Record<string, any>
+  ): PCIAuditLog['complianceStatus'] {
     // Logique d'évaluation basée sur l'événement et les détails
     if (event.includes('FAILED') || event.includes('ERROR')) {
       return 'NON_COMPLIANT';
     }
-    
+
     if (event.includes('WARNING') || event.includes('SUSPICIOUS')) {
       return 'REVIEW_REQUIRED';
     }
-    
+
     return 'COMPLIANT';
   }
 
@@ -474,7 +490,7 @@ export class PCIDSSCompliance {
           dataType: 'CARD_DATA',
           encryptionStatus: 'ENCRYPTED',
           transmissionMethod: 'HTTPS',
-          complianceStatus: 'COMPLIANT'
+          complianceStatus: 'COMPLIANT',
         },
         {
           id: 'flow_2',
@@ -483,7 +499,7 @@ export class PCIDSSCompliance {
           dataType: 'CARD_DATA',
           encryptionStatus: 'ENCRYPTED',
           transmissionMethod: 'TLS',
-          complianceStatus: 'COMPLIANT'
+          complianceStatus: 'COMPLIANT',
         },
         {
           id: 'flow_3',
@@ -492,12 +508,11 @@ export class PCIDSSCompliance {
           dataType: 'CARD_DATA',
           encryptionStatus: 'ENCRYPTED',
           transmissionMethod: 'HTTPS',
-          complianceStatus: 'COMPLIANT'
-        }
+          complianceStatus: 'COMPLIANT',
+        },
       ];
 
       return dataFlows;
-
     } catch (error) {
       console.error('❌ Monitor data flows error:', error);
       throw error;

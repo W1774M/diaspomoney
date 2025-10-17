@@ -1,10 +1,10 @@
-import { ApiError, ApiResponse } from "@/types";
+import { ApiError, ApiResponse } from '@/types';
 
 class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env["NEXT_PUBLIC_API_URL"] || "/api";
+    this.baseUrl = process.env['NEXT_PUBLIC_API_URL'] || '/api';
   }
 
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
@@ -15,7 +15,9 @@ class ApiClient {
 
     const data = await response.json();
     return {
+      success: true,
       data,
+      timestamp: new Date().toISOString(),
       status: response.status,
     };
   }
@@ -27,9 +29,9 @@ class ApiClient {
 
   async post<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
     });
@@ -38,9 +40,9 @@ class ApiClient {
 
   async put<T>(endpoint: string, data: unknown): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: "PUT",
+      method: 'PUT',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
     });
@@ -49,7 +51,7 @@ class ApiClient {
 
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
     return this.handleResponse<T>(response);
   }

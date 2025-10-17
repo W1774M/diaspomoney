@@ -14,9 +14,9 @@ export const MONITORING_CONFIG = {
     transactionSuccessRate: 'transaction_success_rate',
     revenuePerMinute: 'revenue_per_minute',
     activeUsers: 'active_users',
-    conversionRate: 'conversion_rate'
+    conversionRate: 'conversion_rate',
   },
-  
+
   // Métriques techniques
   TECHNICAL_METRICS: {
     responseTime: 'http_request_duration_seconds',
@@ -24,17 +24,17 @@ export const MONITORING_CONFIG = {
     throughput: 'http_requests_per_second',
     databaseConnections: 'mongodb_connections_current',
     memoryUsage: 'nodejs_memory_usage_bytes',
-    cpuUsage: 'nodejs_cpu_usage_percent'
+    cpuUsage: 'nodejs_cpu_usage_percent',
   },
-  
+
   // Seuils d'alerte
   ALERT_THRESHOLDS: {
     highErrorRate: 0.01, // 1%
     highLatency: 0.5, // 500ms
     lowTransactionSuccessRate: 0.95, // 95%
     highMemoryUsage: 0.8, // 80%
-    highCpuUsage: 0.7 // 70%
-  }
+    highCpuUsage: 0.7, // 70%
+  },
 };
 
 // Interface pour les métriques
@@ -63,36 +63,36 @@ export class MonitoringManager {
   private static instance: MonitoringManager;
   private metrics: Map<string, Metric[]> = new Map();
   private alerts: Alert[] = [];
-  
+
   static getInstance(): MonitoringManager {
     if (!MonitoringManager.instance) {
       MonitoringManager.instance = new MonitoringManager();
     }
     return MonitoringManager.instance;
   }
-  
+
   // Enregistrer une métrique
   recordMetric(metric: Metric): void {
     if (!this.metrics.has(metric.name)) {
       this.metrics.set(metric.name, []);
     }
-    
+
     const metricList = this.metrics.get(metric.name)!;
     metricList.push(metric);
-    
+
     // Garder seulement les 1000 dernières métriques par nom
     if (metricList.length > 1000) {
       metricList.shift();
     }
-    
+
     // Vérifier les seuils d'alerte
     this.checkAlertThresholds(metric);
   }
-  
+
   // Vérifier les seuils d'alerte
   private checkAlertThresholds(metric: Metric): void {
     const thresholds = MONITORING_CONFIG.ALERT_THRESHOLDS;
-    
+
     switch (metric.name) {
       case 'error_rate':
         if (metric.value > thresholds.highErrorRate) {
@@ -104,11 +104,11 @@ export class MonitoringManager {
             threshold: thresholds.highErrorRate,
             currentValue: metric.value,
             timestamp: new Date(),
-            resolved: false
+            resolved: false,
           });
         }
         break;
-        
+
       case 'response_time':
         if (metric.value > thresholds.highLatency) {
           this.createAlert({
@@ -119,11 +119,11 @@ export class MonitoringManager {
             threshold: thresholds.highLatency,
             currentValue: metric.value,
             timestamp: new Date(),
-            resolved: false
+            resolved: false,
           });
         }
         break;
-        
+
       case 'transaction_success_rate':
         if (metric.value < thresholds.lowTransactionSuccessRate) {
           this.createAlert({
@@ -134,64 +134,68 @@ export class MonitoringManager {
             threshold: thresholds.lowTransactionSuccessRate,
             currentValue: metric.value,
             timestamp: new Date(),
-            resolved: false
+            resolved: false,
           });
         }
         break;
     }
   }
-  
+
   // Créer une alerte
   createAlert(alert: Alert): void {
     this.alerts.push(alert);
-    
+
     // Envoyer à Sentry
     Sentry.captureMessage(alert.message, {
       level: alert.severity === 'critical' ? 'error' : 'warning',
       tags: {
         alertId: alert.id,
         metric: alert.metric,
-        severity: alert.severity
+        severity: alert.severity,
       },
       extra: {
         threshold: alert.threshold,
-        currentValue: alert.currentValue
-      }
+        currentValue: alert.currentValue,
+      },
     });
-    
+
     // TODO: Envoyer notification (Slack, email, etc.)
     console.log(`🚨 ALERT: ${alert.message}`);
   }
-  
+
   // Obtenir les métriques
   getMetrics(name?: string): Metric[] {
     if (name) {
       return this.metrics.get(name) || [];
     }
-    
+
     const allMetrics: Metric[] = [];
     for (const metrics of this.metrics.values()) {
       allMetrics.push(...metrics);
     }
-    
+
     return allMetrics;
   }
-  
+
   // Obtenir les alertes
   getAlerts(severity?: string, resolved?: boolean): Alert[] {
     let filteredAlerts = this.alerts;
-    
+
     if (severity) {
-      filteredAlerts = filteredAlerts.filter(alert => alert.severity === severity);
+      filteredAlerts = filteredAlerts.filter(
+        alert => alert.severity === severity
+      );
     }
-    
+
     if (resolved !== undefined) {
-      filteredAlerts = filteredAlerts.filter(alert => alert.resolved === resolved);
+      filteredAlerts = filteredAlerts.filter(
+        alert => alert.resolved === resolved
+      );
     }
-    
+
     return filteredAlerts;
   }
-  
+
   // Résoudre une alerte
   resolveAlert(alertId: string): void {
     const alert = this.alerts.find(a => a.id === alertId);
@@ -200,7 +204,7 @@ export class MonitoringManager {
       console.log(`✅ Alert resolved: ${alertId}`);
     }
   }
-  
+
   // Obtenir les statistiques
   getStats(): {
     totalMetrics: number;
@@ -208,18 +212,22 @@ export class MonitoringManager {
     activeAlerts: number;
     criticalAlerts: number;
   } {
-    const totalMetrics = Array.from(this.metrics.values())
-      .reduce((sum, metrics) => sum + metrics.length, 0);
-    
+    const totalMetrics = Array.from(this.metrics.values()).reduce(
+      (sum, metrics) => sum + metrics.length,
+      0
+    );
+
     const totalAlerts = this.alerts.length;
     const activeAlerts = this.alerts.filter(a => !a.resolved).length;
-    const criticalAlerts = this.alerts.filter(a => !a.resolved && a.severity === 'critical').length;
-    
+    const criticalAlerts = this.alerts.filter(
+      a => !a.resolved && a.severity === 'critical'
+    ).length;
+
     return {
       totalMetrics,
       totalAlerts,
       activeAlerts,
-      criticalAlerts
+      criticalAlerts,
     };
   }
 }
@@ -231,13 +239,13 @@ export function recordPerformanceMetric(
   labels: Record<string, string> = {}
 ): void {
   const monitoring = MonitoringManager.getInstance();
-  
+
   monitoring.recordMetric({
     name,
     value,
     timestamp: new Date(),
     labels,
-    type: 'gauge'
+    type: 'gauge',
   });
 }
 
@@ -248,13 +256,13 @@ export function recordBusinessMetric(
   labels: Record<string, string> = {}
 ): void {
   const monitoring = MonitoringManager.getInstance();
-  
+
   monitoring.recordMetric({
     name,
     value,
     timestamp: new Date(),
     labels,
-    type: 'counter'
+    type: 'counter',
   });
 }
 
@@ -263,37 +271,37 @@ export function monitoringMiddleware(request: NextRequest) {
   const startTime = Date.now();
   const method = request.method;
   const pathname = request.nextUrl.pathname;
-  
+
   return (response: NextResponse) => {
     const endTime = Date.now();
     const duration = endTime - startTime;
-    
+
     // Enregistrer les métriques de performance
     recordPerformanceMetric('http_request_duration_seconds', duration / 1000, {
       method,
       path: pathname,
-      status: response.status.toString()
+      status: response.status.toString(),
     });
-    
+
     recordPerformanceMetric('http_requests_total', 1, {
       method,
       path: pathname,
-      status: response.status.toString()
+      status: response.status.toString(),
     });
-    
+
     // Enregistrer les métriques d'erreur
     if (response.status >= 400) {
       recordPerformanceMetric('http_errors_total', 1, {
         method,
         path: pathname,
-        status: response.status.toString()
+        status: response.status.toString(),
       });
     }
-    
+
     // Ajouter les headers de monitoring
     response.headers.set('X-Response-Time', duration.toString());
     response.headers.set('X-Request-ID', crypto.randomUUID());
-    
+
     return response;
   };
 }
@@ -306,7 +314,7 @@ export function monitorTransaction(
   status: 'initiated' | 'completed' | 'failed' | 'refunded'
 ): void {
   const monitoring = MonitoringManager.getInstance();
-  
+
   // Enregistrer la métrique de transaction
   monitoring.recordMetric({
     name: 'transactions_total',
@@ -315,11 +323,11 @@ export function monitorTransaction(
     labels: {
       transaction_id: transactionId,
       currency,
-      status
+      status,
     },
-    type: 'counter'
+    type: 'counter',
   });
-  
+
   // Enregistrer la métrique de revenus
   if (status === 'completed') {
     monitoring.recordMetric({
@@ -328,27 +336,30 @@ export function monitorTransaction(
       timestamp: new Date(),
       labels: {
         currency,
-        transaction_id: transactionId
+        transaction_id: transactionId,
       },
-      type: 'counter'
+      type: 'counter',
     });
   }
-  
+
   // Calculer le taux de succès
-  const recentTransactions = monitoring.getMetrics('transactions_total')
+  const recentTransactions = monitoring
+    .getMetrics('transactions_total')
     .filter(m => Date.now() - m.timestamp.getTime() < 5 * 60 * 1000); // 5 minutes
-  
-  const completedTransactions = recentTransactions.filter(m => m.labels?.status === 'completed').length;
+
+  const completedTransactions = recentTransactions.filter(
+    m => m.labels?.['status'] === 'completed'
+  ).length;
   const totalTransactions = recentTransactions.length;
-  
+
   if (totalTransactions > 0) {
     const successRate = completedTransactions / totalTransactions;
-    
+
     monitoring.recordMetric({
       name: 'transaction_success_rate',
       value: successRate,
       timestamp: new Date(),
-      type: 'gauge'
+      type: 'gauge',
     });
   }
 }
@@ -356,16 +367,16 @@ export function monitorTransaction(
 // Fonction pour surveiller les utilisateurs actifs
 export function monitorActiveUsers(userId: string, action: string): void {
   const monitoring = MonitoringManager.getInstance();
-  
+
   monitoring.recordMetric({
     name: 'active_users_total',
     value: 1,
     timestamp: new Date(),
     labels: {
       user_id: userId,
-      action
+      action,
     },
-    type: 'counter'
+    type: 'counter',
   });
 }
 

@@ -5,9 +5,9 @@
  */
 
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import { random } from '@/lib/utils';
 import { notificationService } from '@/services/notification/notification.service';
 import * as Sentry from '@sentry/nextjs';
-import { round, random } from '@/lib/utils';
 
 export interface School {
   id: string;
@@ -51,7 +51,13 @@ export interface EducationalProgram {
   id: string;
   name: string;
   description: string;
-  level: 'PRIMARY' | 'SECONDARY' | 'BACHELOR' | 'MASTER' | 'PHD' | 'CERTIFICATE';
+  level:
+    | 'PRIMARY'
+    | 'SECONDARY'
+    | 'BACHELOR'
+    | 'MASTER'
+    | 'PHD'
+    | 'CERTIFICATE';
   duration: number; // months
   credits?: number;
   requirements: string[];
@@ -81,7 +87,14 @@ export interface Course {
 }
 
 export interface CourseSchedule {
-  day: 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+  day:
+    | 'MONDAY'
+    | 'TUESDAY'
+    | 'WEDNESDAY'
+    | 'THURSDAY'
+    | 'FRIDAY'
+    | 'SATURDAY'
+    | 'SUNDAY';
   startTime: string;
   endTime: string;
   room?: string;
@@ -90,7 +103,14 @@ export interface CourseSchedule {
 
 export interface SchoolFacility {
   name: string;
-  type: 'LIBRARY' | 'LABORATORY' | 'GYM' | 'CAFETERIA' | 'DORMITORY' | 'TRANSPORT' | 'OTHER';
+  type:
+    | 'LIBRARY'
+    | 'LABORATORY'
+    | 'GYM'
+    | 'CAFETERIA'
+    | 'DORMITORY'
+    | 'TRANSPORT'
+    | 'OTHER';
   description: string;
   capacity?: number;
   isAvailable: boolean;
@@ -209,7 +229,13 @@ export interface Enrollment {
 export interface EnrollmentDocument {
   id: string;
   name: string;
-  type: 'TRANSCRIPT' | 'DIPLOMA' | 'BIRTH_CERTIFICATE' | 'ID_CARD' | 'PHOTO' | 'OTHER';
+  type:
+    | 'TRANSCRIPT'
+    | 'DIPLOMA'
+    | 'BIRTH_CERTIFICATE'
+    | 'ID_CARD'
+    | 'PHOTO'
+    | 'OTHER';
   url: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   uploadedAt: Date;
@@ -546,7 +572,7 @@ export class EducationService {
         date,
         status,
         recordedBy,
-        notes,
+        notes: notes || '',
       };
 
       // TODO: Sauvegarder en base de données
@@ -622,29 +648,29 @@ export class EducationService {
   /**
    * Calculer la moyenne générale
    */
-  private _calculateGPA(grades: any[]): number {
-    if (!grades || grades.length === 0) return 0;
+  // private _calculateGPA(grades: any[]): number {
+  //   if (!grades || grades.length === 0) return 0;
 
-    const totalPoints = grades.reduce((sum: number, grade: any) => {
-      const percentage = (grade.grade / grade.maxGrade) * 100;
-      let points = 0;
+  //   const totalPoints = grades.reduce((sum: number, grade: any) => {
+  //     const percentage = (grade.grade / grade.maxGrade) * 100;
+  //     let points = 0;
 
-      if (percentage >= 90) points = 4.0;
-      else if (percentage >= 85) points = 3.7;
-      else if (percentage >= 80) points = 3.3;
-      else if (percentage >= 75) points = 3.0;
-      else if (percentage >= 70) points = 2.7;
-      else if (percentage >= 65) points = 2.3;
-      else if (percentage >= 60) points = 2.0;
-      else if (percentage >= 55) points = 1.7;
-      else if (percentage >= 50) points = 1.3;
-      else if (percentage >= 45) points = 1.0;
+  //     if (percentage >= 90) points = 4.0;
+  //     else if (percentage >= 85) points = 3.7;
+  //     else if (percentage >= 80) points = 3.3;
+  //     else if (percentage >= 75) points = 3.0;
+  //     else if (percentage >= 70) points = 2.7;
+  //     else if (percentage >= 65) points = 2.3;
+  //     else if (percentage >= 60) points = 2.0;
+  //     else if (percentage >= 55) points = 1.7;
+  //     else if (percentage >= 50) points = 1.3;
+  //     else if (percentage >= 45) points = 1.0;
 
-      return sum + points;
-    }, 0);
+  //     return sum + points;
+  //   }, 0);
 
-    return round(totalPoints / grades.length, 2);
-  }
+  //   return round(totalPoints / grades.length, 2);
+  // }
 }
 
 // Export de l'instance singleton

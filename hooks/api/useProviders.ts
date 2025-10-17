@@ -1,70 +1,77 @@
-import {
-  IUser as Provider,
-  UseProvidersOptions,
-  UseProvidersReturn,
-} from "@/types";
-import { useEffect, useRef, useState } from "react";
+import type { IUser as Provider } from '@/types';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-// Cache mémoire simple (clé = JSON.stringify des options)
+// Simple in-memory cache (key = JSON.stringify(options))
 const providersCache: Record<string, Provider[]> = {};
 
 export function useProviders(
-  options: UseProvidersOptions = {}
-): UseProvidersReturn {
+  options: any = {
+    type: undefined,
+    group: undefined,
+    specialty: undefined,
+    service: undefined,
+    country: undefined,
+    city: undefined,
+    priceMax: undefined,
+  }
+): any {
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchProviders = async () => {
+  // Create params key based on all possible options
+  // const _getCacheKey = useCallback((): string => {
+  //   // Only include defined fields to prevent cache pollution
+  //   const entries = Object.entries(options).filter(
+  //     ([, v]) => v !== undefined && v !== null && v !== ''
+  //   );
+  //   return new URLSearchParams(entries as [string, string][]).toString();
+  // }, [options]);
+
+  const fetchProviders = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const params = new URLSearchParams();
+    if (options.type) params.append('type', options.type);
+    if (options.group) params.append('group', options.group);
+    if (options.specialty) params.append('specialty', options.specialty);
+    if (options.service) params.append('service', options.service);
+    if (options.country) params.append('country', options.country);
+    if (options.city) params.append('city', options.city);
+    if (options.priceMax !== undefined && options.priceMax !== null)
+      params.append('priceMax', String(options.priceMax));
+    if (options.recommended) params.append('recommended', 'true');
+    if (options.sortBy) params.append('sortBy', options.sortBy);
+
+    const cacheKey = params.toString();
+    if (providersCache[cacheKey]) {
+      setProviders(providersCache[cacheKey]);
+      setLoading(false);
+      return;
+    }
     try {
-      setLoading(true);
-      setError(null);
-      const params = new URLSearchParams();
-      if (options.type) params.append("type", options.type);
-      if (options.group) params.append("group", options.group);
-      if (options.specialty) params.append("specialty", options.specialty);
-      if (options.service) params.append("service", options.service);
-      if (options.country) params.append("country", options.country);
-      if (options.city) params.append("city", options.city);
-      if (options.priceMax)
-        params.append("priceMax", options.priceMax.toString());
-      if (options.recommended) params.append("recommended", "true");
-      if (options.sortBy) params.append("sortBy", options.sortBy);
-      const cacheKey = params.toString();
-      if (providersCache[cacheKey]) {
-        setProviders(providersCache[cacheKey]);
-        setLoading(false);
-        return;
-      }
       const response = await fetch(`/api/providers?${params.toString()}`);
       if (!response.ok) {
-        throw new Error("Erreur lors de la récupération des prestataires");
+        throw new Error('Erreur lors de la récupération des prestataires');
       }
       const data = await response.json();
-      if (data.success) {
+      if (data?.success && Array.isArray(data.data)) {
         setProviders(data.data);
         providersCache[cacheKey] = data.data;
       } else {
-        throw new Error(data.error || "Erreur inconnue");
+        throw new Error(data?.error || 'Erreur inconnue');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
-      console.error("Erreur useProviders:", err);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Erreur useProviders:', err);
+      }
     } finally {
       setLoading(false);
     }
-  };
-
-  // Debounce sur les changements d'options avec protection contre les boucles
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      fetchProviders();
-    }, 350);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    // it's ok to not include providersCache or setProviders as dependencies
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     options.type,
@@ -78,12 +85,27 @@ export function useProviders(
     options.sortBy,
   ]);
 
-  // Éviter les appels répétés quand il n'y a pas de providers
+  // Debounce fetching providers on options change
   useEffect(() => {
-    if (providers.length === 0 && !loading && !error) {
-      // Ne pas refaire d'appel si on vient de recevoir un tableau vide
-      return;
-    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchProviders();
+    }, 350);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [fetchProviders]);
+
+  // Prevent unneeded calls when there are no providers, loading is false, and there is no error.
+  // This effect is now redundant with our debounce/fetch logic and can be safely omitted,
+  // but kept here in case of business logic extension.
+  useEffect(() => {
+    // Intentionally left blank, reserved for future enhancements.
+    // Could trigger a re-fetch if needed by business rules.
+    // if (providers.length === 0 && !loading && !error) {
+    //   return;
+    // }
   }, [providers.length, loading, error]);
 
   return {

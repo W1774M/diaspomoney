@@ -4,9 +4,9 @@
  * Basé sur la charte de développement
  */
 
-import User from '@/models/User';
-import { securityManager } from '@/lib/security/advanced-security';
+// import User from '@/models/User';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import { securityManager } from '@/lib/security/advanced-security';
 import * as Sentry from '@sentry/nextjs';
 import { userService } from '../user/user.service';
 
@@ -21,7 +21,11 @@ export interface TransactionData {
   metadata?: Record<string, any>;
 }
 
-export type PaymentMethod = 'CARD' | 'BANK_TRANSFER' | 'MOBILE_MONEY' | 'PAYPAL';
+export type PaymentMethod =
+  | 'CARD'
+  | 'BANK_TRANSFER'
+  | 'MOBILE_MONEY'
+  | 'PAYPAL';
 export type PaymentProvider = 'STRIPE' | 'MPESA' | 'MOBILE_MONEY' | 'PAYPAL';
 export type TransactionStatus =
   | 'INITIATED'
@@ -97,7 +101,12 @@ export class TransactionService {
    */
   async createTransaction(data: TransactionData): Promise<Transaction> {
     try {
-      if (!data.payerId || !data.beneficiaryId || typeof data.amount !== 'number' || !data.currency) {
+      if (
+        !data.payerId ||
+        !data.beneficiaryId ||
+        typeof data.amount !== 'number' ||
+        !data.currency
+      ) {
         throw new Error('Données de transaction incomplètes');
       }
       if (data.amount <= 0) {
@@ -108,13 +117,19 @@ export class TransactionService {
       if (!payer || !payer.isActive) {
         throw new Error('Payeur non trouvé ou inactif');
       }
-      const beneficiary = await userService.getUserProfile(data.beneficiaryId as string);
+      const beneficiary = await userService.getUserProfile(
+        data.beneficiaryId as string
+      );
       if (!beneficiary || !beneficiary.isActive) {
         throw new Error('Bénéficiaire non trouvé ou inactif');
       }
 
       // Calculer les frais
-      const fees = this.calculateFees(data.amount, data.currency, data.serviceType);
+      const fees = this.calculateFees(
+        data.amount,
+        data.currency,
+        data.serviceType
+      );
       const totalAmount = data.amount + fees;
 
       // Créer la transaction
@@ -139,7 +154,11 @@ export class TransactionService {
       } as Transaction;
 
       // Détecter les anomalies
-      await securityManager.detectAnomalies(data.payerId, 'TRANSACTION_CREATED', transaction);
+      await securityManager.detectAnomalies(
+        data.payerId,
+        'TRANSACTION_CREATED',
+        transaction
+      );
 
       return transaction as Transaction;
     } catch (error) {
@@ -152,10 +171,16 @@ export class TransactionService {
   /**
    * Récupérer une transaction par ID
    */
-  async getTransaction(_transactionId: string, _userId: string): Promise<Transaction | null> {
+  async getTransaction(
+    _transactionId: string,
+    _userId: string
+  ): Promise<Transaction | null> {
     try {
       // FIXME: DB fetch to be implemented
-      const transaction = await transactionService['getTransaction'](_transactionId, _userId);
+      const transaction = await transactionService['getTransaction'](
+        _transactionId,
+        _userId
+      );
       return transaction;
     } catch (error) {
       console.error('Erreur getTransaction:', error);
@@ -167,7 +192,10 @@ export class TransactionService {
   /**
    * Récupérer les transactions avec filtres
    */
-  async getTransactions(_userId: string, _filters: TransactionFilters = {}): Promise<Transaction[]> {
+  async getTransactions(
+    _userId: string,
+    _filters: TransactionFilters = {}
+  ): Promise<Transaction[]> {
     try {
       // FIXME: DB fetch to be implemented
       return [];
@@ -182,9 +210,9 @@ export class TransactionService {
    * Mettre à jour le statut d'une transaction
    */
   async updateTransactionStatus(
-    transactionId: string,
+    _transactionId: string,
     status: Transaction['status'],
-    metadata?: Record<string, any>
+    _metadata?: Record<string, any>
   ): Promise<Transaction> {
     try {
       // FIXME: Update in database to be implemented
@@ -195,9 +223,9 @@ export class TransactionService {
         value: 1,
         timestamp: new Date(),
         labels: {
-          status: status.toLowerCase()
+          status: status.toLowerCase(),
         },
-        type: 'counter'
+        type: 'counter',
       });
 
       // Si la transaction est complétée, enregistrer les revenus (to be done when DB fetch is implemented)
@@ -236,7 +264,10 @@ export class TransactionService {
   /**
    * Obtenir les statistiques des transactions
    */
-  async getTransactionStats(_userId: string, _filters: TransactionFilters = {}): Promise<TransactionStats> {
+  async getTransactionStats(
+    _userId: string,
+    _filters: TransactionFilters = {}
+  ): Promise<TransactionStats> {
     try {
       // FIXME: Compute real stats from DB
       return {
@@ -245,7 +276,7 @@ export class TransactionService {
         successRate: 0,
         averageAmount: 0,
         currencyBreakdown: {},
-        serviceTypeBreakdown: {}
+        serviceTypeBreakdown: {},
       };
     } catch (error) {
       console.error('Erreur getTransactionStats:', error);
@@ -261,8 +292,8 @@ export class TransactionService {
     try {
       // FIXME: Intégrer un API réel de taux de change
       const rates: Record<string, Record<string, number>> = {
-        'EUR': { 'USD': 1.08, 'XAF': 655.96, 'GNF': 9200 },
-        'USD': { 'EUR': 0.93, 'XAF': 607.37, 'GNF': 8518 }
+        EUR: { USD: 1.08, XAF: 655.96, GNF: 9200 },
+        USD: { EUR: 0.93, XAF: 607.37, GNF: 8518 },
       };
       return rates[from]?.[to] || 1;
     } catch (error) {
@@ -274,9 +305,13 @@ export class TransactionService {
   /**
    * Calculer les frais de transaction
    */
-  private calculateFees(amount: number, currency: string, _serviceType: string): number {
+  private calculateFees(
+    amount: number,
+    currency: string,
+    _serviceType: string
+  ): number {
     const baseRate = 0.025;
-    const fixedFee = 0.30;
+    const fixedFee = 0.3;
     let amountInEUR = amount;
     if (currency !== 'EUR') {
       // FIXME: Utiliser taux réel, non hardcodé
@@ -284,8 +319,8 @@ export class TransactionService {
     }
     const percentageFee = amountInEUR * baseRate;
     const totalFees = percentageFee + fixedFee;
-    const minFee = 0.50;
-    const maxFee = 50.00;
+    const minFee = 0.5;
+    const maxFee = 50.0;
     return Math.max(minFee, Math.min(maxFee, totalFees));
   }
 }

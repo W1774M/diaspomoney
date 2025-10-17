@@ -37,9 +37,12 @@ export const buttonSizes = {
 
 // Variantes de boutons
 export const buttonVariants = {
-  solid: 'bg-diaspomoney-500 text-white hover:bg-diaspomoney-600 focus:ring-diaspomoney-500',
-  outline: 'border border-diaspomoney-500 text-diaspomoney-500 hover:bg-diaspomoney-50 focus:ring-diaspomoney-500',
-  ghost: 'text-diaspomoney-500 hover:bg-diaspomoney-50 focus:ring-diaspomoney-500',
+  solid:
+    'bg-diaspomoney-500 text-white hover:bg-diaspomoney-600 focus:ring-diaspomoney-500',
+  outline:
+    'border border-diaspomoney-500 text-diaspomoney-500 hover:bg-diaspomoney-50 focus:ring-diaspomoney-500',
+  ghost:
+    'text-diaspomoney-500 hover:bg-diaspomoney-50 focus:ring-diaspomoney-500',
   link: 'text-diaspomoney-500 underline hover:text-diaspomoney-600 focus:ring-diaspomoney-500',
 } as const;
 
@@ -51,19 +54,24 @@ export const buttonShapes = {
 } as const;
 
 // Classes de base pour les boutons
-export const buttonBase = 'inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+export const buttonBase =
+  'inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
 
 // Classes de base pour les cartes
-export const cardBase = 'bg-white rounded-lg shadow-sm border border-gray-200 p-6';
+export const cardBase =
+  'bg-white rounded-lg shadow-sm border border-gray-200 p-6';
 
 // Classes de base pour les inputs
-export const inputBase = 'block w-full rounded-md border-gray-300 shadow-sm focus:border-diaspomoney-500 focus:ring-diaspomoney-500 sm:text-sm';
+export const inputBase =
+  'block w-full rounded-md border-gray-300 shadow-sm focus:border-diaspomoney-500 focus:ring-diaspomoney-500 sm:text-sm';
 
 // Classes de base pour les modales
-export const modalBase = 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
+export const modalBase =
+  'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
 
 // Classes de base pour les notifications
-export const notificationBase = 'fixed top-4 right-4 z-50 max-w-sm w-full bg-white rounded-lg shadow-lg border border-gray-200 p-4';
+export const notificationBase =
+  'fixed top-4 right-4 z-50 max-w-sm w-full bg-white rounded-lg shadow-lg border border-gray-200 p-4';
 
 // Classes d'animation
 export const animations = {
@@ -113,7 +121,7 @@ export function createButton({
   shape = 'rounded',
   status,
   className,
-  ...props
+  // ..._props
 }: {
   variant?: keyof typeof buttonVariants;
   size?: keyof typeof buttonSizes;
@@ -123,24 +131,20 @@ export function createButton({
   [key: string]: any;
 }) {
   const baseClasses = buttonBase;
-  const variantClasses = status ? statusColors[status] : buttonVariants[variant];
+  const variantClasses = status
+    ? statusColors[status]
+    : buttonVariants[variant];
   const sizeClasses = buttonSizes[size];
   const shapeClasses = buttonShapes[shape];
-  
-  return cn(
-    baseClasses,
-    variantClasses,
-    sizeClasses,
-    shapeClasses,
-    className
-  );
+
+  return cn(baseClasses, variantClasses, sizeClasses, shapeClasses, className);
 }
 
 // Créer une carte avec les classes appropriées
 export function createCard({
   variant = 'default',
   className,
-  ...props
+  // ..._props
 }: {
   variant?: 'default' | 'elevated' | 'outlined';
   className?: string;
@@ -151,17 +155,17 @@ export function createCard({
     elevated: 'bg-white rounded-lg shadow-lg border border-gray-200 p-6',
     outlined: 'bg-white rounded-lg border-2 border-gray-200 p-6',
   };
-  
+
   return cn(variants[variant], className);
 }
 
 // Créer un input avec les classes appropriées
 export function createInput({
-  variant = 'default',
+  // _variant = 'default',
   size = 'md',
   status,
   className,
-  ...props
+  // ..._props
 }: {
   variant?: 'default' | 'filled' | 'outlined';
   size?: 'sm' | 'md' | 'lg';
@@ -175,12 +179,16 @@ export function createInput({
     md: 'text-base py-2',
     lg: 'text-lg py-3',
   };
-  const statusClasses = status ? {
-    success: 'border-success-500 focus:border-success-500 focus:ring-success-500',
-    warning: 'border-warning-500 focus:border-warning-500 focus:ring-warning-500',
-    error: 'border-error-500 focus:border-error-500 focus:ring-error-500',
-  }[status] : '';
-  
+  const statusClasses = status
+    ? {
+        success:
+          'border-success-500 focus:border-success-500 focus:ring-success-500',
+        warning:
+          'border-warning-500 focus:border-warning-500 focus:ring-warning-500',
+        error: 'border-error-500 focus:border-error-500 focus:ring-error-500',
+      }[status]
+    : '';
+
   return cn(baseClasses, sizeClasses[size], statusClasses, className);
 }
 
@@ -188,7 +196,7 @@ export function createInput({
 export function createNotification({
   type = 'info',
   className,
-  ...props
+  // ..._props
 }: {
   type?: 'success' | 'warning' | 'error' | 'info';
   className?: string;
@@ -200,30 +208,8 @@ export function createNotification({
     error: 'border-error-200 bg-error-50',
     info: 'border-diaspomoney-200 bg-diaspomoney-50',
   };
-  
+
   return cn(notificationBase, typeClasses[type], className);
 }
 
-// === EXPORTS ===
-export {
-  // Réexport des utilitaires pour faciliter l'import
-  cn,
-  brandColors,
-  statusColors,
-  buttonSizes,
-  buttonVariants,
-  buttonShapes,
-  buttonBase,
-  cardBase,
-  inputBase,
-  modalBase,
-  notificationBase,
-  animations,
-  responsive,
-  spacing,
-  typography,
-  createButton,
-  createCard,
-  createInput,
-  createNotification,
-};
+// Suppression du bloc d'exports redondant pour éviter les conflits de déclaration

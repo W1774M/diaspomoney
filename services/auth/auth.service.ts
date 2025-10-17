@@ -4,19 +4,11 @@
  * Basé sur la charte de développement
  */
 
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import User from '@/models/User';
 import { securityManager } from '@/lib/security/advanced-security';
+import User from '@/models/User';
 import * as Sentry from '@sentry/nextjs';
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  role: string;
-  isVerified: boolean;
-  kycStatus: string;
-}
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 export interface LoginCredentials {
   email: string;
@@ -37,6 +29,14 @@ export interface RegisterData {
   }>;
 }
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  role: string;
+  isVerified: boolean;
+  kycStatus: string;
+}
+
 export interface AuthResponse {
   user: AuthUser;
   accessToken: string;
@@ -50,10 +50,12 @@ export interface TwoFactorData {
   backupCodes: string[];
 }
 
-export class AuthService {
+class AuthService {
   private static instance: AuthService;
-  
-  static getInstance(): AuthService {
+
+  private constructor() {}
+
+  public static getInstance(): AuthService {
     if (!AuthService.instance) {
       AuthService.instance = new AuthService();
     }
@@ -61,81 +63,56 @@ export class AuthService {
   }
 
   /**
-   * Authentification utilisateur
+   * Connexion utilisateur
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      // Validation des entrées
-      if (!credentials.email || !credentials.password) {
-        throw new Error('Email et mot de passe requis');
-      }
+      // Vérifier les identifiants
+      const userDoc = await (User as any)
+        .findOne({
+          email: credentials.email.toLowerCase(),
+        })
+        .exec();
 
-      // Recherche de l'utilisateur
-      const user = await User.findOne({ 
-        email: credentials.email.toLowerCase() 
-      });
-
-      if (!user) {
-        // Enregistrer la tentative d'échec pour la sécurité
-        await securityManager.detectAnomalies('unknown', 'LOGIN_FAILED', {
-          email: credentials.email,
-          ip: 'unknown'
-        });
+      if (!userDoc || userDoc.status !== 'ACTIVE') {
         throw new Error('Identifiants invalides');
       }
 
-      // Vérification du mot de passe
-      const isValidPassword = await securityManager.verifyPassword(
-        credentials.password, 
-        user.password
+      // Vérifier le mot de passe
+      const isPasswordValid = await userDoc.comparePassword(
+        credentials.password
       );
 
-      if (!isValidPassword) {
-        await securityManager.detectAnomalies(user.id, 'LOGIN_FAILED');
+      if (!isPasswordValid) {
         throw new Error('Identifiants invalides');
-      }
-
-      // Vérification du statut du compte
-      if (!user.isActive) {
-        throw new Error('Compte désactivé');
-      }
-
-      if (!user.isEmailVerified) {
-        throw new Error('Email non vérifié');
       }
 
       // Génération des tokens
       const tokens = securityManager.generateTokens({
-        id: user.id,
-        email: user.email,
-        role: user.role
+        id: userDoc._id?.toString() || userDoc.id,
+        email: userDoc.email,
+        role: userDoc.roles[0] || 'CUSTOMER',
       });
 
       // Mise à jour de la dernière connexion
-      await User.updateOne(
-        { _id: user.id },
-        { 
-          lastLoginAt: new Date(),
-          loginCount: (user.loginCount || 0) + 1
-        }
-      );
-
-      // Enregistrer l'événement de connexion
-      await securityManager.detectAnomalies(user.id, 'LOGIN_SUCCESS');
+      await (User as any)
+        .findByIdAndUpdate(userDoc._id, {
+          lastLogin: new Date(),
+        })
+        .exec();
 
       return {
         user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          isVerified: user.isEmailVerified,
-          kycStatus: user.kycStatus || 'PENDING'
+          id: userDoc._id?.toString() || userDoc.id,
+          email: userDoc.email,
+          role: userDoc.roles[0] || 'CUSTOMER',
+          isVerified: userDoc.isEmailVerified,
+          kycStatus: 'PENDING',
         },
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
-        expiresIn: 15 * 60 // 15 minutes
+        expiresIn: 15 * 60, // 15 minutes
       };
-
     } catch (error) {
       console.error('Erreur login:', error);
       Sentry.captureException(error);
@@ -149,71 +126,73 @@ export class AuthService {
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
       // Validation des données
-      const validation = securityManager.validatePassword(data.password);
-      if (!validation.isValid) {
-        throw new Error(`Mot de passe invalide: ${validation.errors.join(', ')}`);
+      if (data.password.length < 8) {
+        throw new Error('Le mot de passe doit contenir au moins 8 caractères');
       }
 
       // Vérifier si l'utilisateur existe déjà
-      const existingUser = await User.findOne({ 
-        email: data.email.toLowerCase() 
-      });
+      const existingUserDoc = await (User as any)
+        .findOne({
+          email: data.email.toLowerCase(),
+        })
+        .exec();
 
-      if (existingUser) {
+      if (existingUserDoc) {
         throw new Error('Un compte avec cet email existe déjà');
       }
 
       // Hacher le mot de passe
-      const hashedPassword = await securityManager.hashPassword(data.password);
+      const hashedPassword = await bcrypt.hash(data.password, 12);
 
       // Créer l'utilisateur
       const user = new User({
         email: data.email.toLowerCase(),
         password: hashedPassword,
+        name: `${data.firstName} ${data.lastName}`,
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone,
-        country: data.country,
-        role: 'PAYER', // Rôle par défaut
-        isActive: true,
+        countryOfResidence: data.country,
+        roles: ['CUSTOMER'], // Rôle par défaut
+        status: 'ACTIVE',
         isEmailVerified: false,
-        kycStatus: 'PENDING',
-        consents: data.consents,
-        createdAt: new Date()
+        marketingConsent:
+          data.consents.find(c => c.type === 'MARKETING')?.granted || false,
+        kycConsent:
+          data.consents.find(c => c.type === 'ANALYTICS')?.granted || false,
       });
 
       await user.save();
 
       // Générer le token de vérification email
-      const emailVerificationToken = jwt.sign(
-        { userId: user.id, type: 'email_verification' },
-        process.env.JWT_SECRET!,
-        { expiresIn: '24h' }
-      );
+      // const emailVerificationToken = jwt.sign(
+      //   { userId: user._id?.toString() || user.id, type: "email_verification" },
+      //   process.env["JWT_SECRET"]!,
+      //   { expiresIn: "24h" },
+      // );
 
       // TODO: Envoyer l'email de vérification
       // await this.sendVerificationEmail(user.email, emailVerificationToken);
 
       // Génération des tokens
       const tokens = securityManager.generateTokens({
-        id: user.id,
+        id: user._id?.toString() || user.id,
         email: user.email,
-        role: user.role
+        role: user.roles[0] || 'CUSTOMER',
       });
 
       return {
         user: {
-          id: user.id,
+          id: user._id?.toString() || user.id,
           email: user.email,
-          role: user.role,
+          role: user.roles[0] || 'CUSTOMER',
           isVerified: false,
-          kycStatus: 'PENDING'
+          kycStatus: 'PENDING',
         },
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
-        expiresIn: 15 * 60
+        expiresIn: 15 * 60,
       };
-
     } catch (error) {
       console.error('Erreur registration:', error);
       Sentry.captureException(error);
@@ -227,34 +206,37 @@ export class AuthService {
   async refreshToken(refreshToken: string): Promise<AuthResponse> {
     try {
       // Vérifier le refresh token
-      const decoded = await securityManager.verifyToken(refreshToken, 'refresh');
-      
+      const decoded = await securityManager.verifyToken(
+        refreshToken,
+        'refresh'
+      );
+
       // Récupérer l'utilisateur
-      const user = await User.findById(decoded.userId);
-      if (!user || !user.isActive) {
+      const userDoc = await (User as any).findById(decoded.userId).exec();
+
+      if (!userDoc || userDoc.status !== 'ACTIVE') {
         throw new Error('Utilisateur non trouvé ou inactif');
       }
 
       // Générer de nouveaux tokens
       const tokens = securityManager.generateTokens({
-        id: user.id,
-        email: user.email,
-        role: user.role
+        id: userDoc._id?.toString() || userDoc.id,
+        email: userDoc.email,
+        role: userDoc.roles[0] || 'CUSTOMER',
       });
 
       return {
         user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          isVerified: user.isEmailVerified,
-          kycStatus: user.kycStatus || 'PENDING'
+          id: userDoc._id?.toString() || userDoc.id,
+          email: userDoc.email,
+          role: userDoc.roles[0] || 'CUSTOMER',
+          isVerified: userDoc.isEmailVerified,
+          kycStatus: 'PENDING',
         },
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
-        expiresIn: 15 * 60
+        expiresIn: 15 * 60,
       };
-
     } catch (error) {
       console.error('Erreur refresh token:', error);
       throw new Error('Token de rafraîchissement invalide');
@@ -268,10 +250,9 @@ export class AuthService {
     try {
       // Blacklister le token
       securityManager.blacklistToken(accessToken);
-      
+
       // TODO: Nettoyer les sessions Redis
       // await redis.del(`session:${userId}`);
-      
     } catch (error) {
       console.error('Erreur logout:', error);
       throw error;
@@ -284,20 +265,20 @@ export class AuthService {
   async verifyToken(token: string): Promise<AuthUser> {
     try {
       const decoded = await securityManager.verifyToken(token);
-      
-      const user = await User.findById(decoded.userId);
-      if (!user || !user.isActive) {
+
+      const userDoc = await (User as any).findById(decoded.userId).exec();
+
+      if (!userDoc || userDoc.status !== 'ACTIVE') {
         throw new Error('Utilisateur non trouvé ou inactif');
       }
 
       return {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        isVerified: user.isEmailVerified,
-        kycStatus: user.kycStatus || 'PENDING'
+        id: userDoc._id?.toString() || userDoc.id,
+        email: userDoc.email,
+        role: userDoc.roles[0] || 'CUSTOMER',
+        isVerified: userDoc.isEmailVerified,
+        kycStatus: 'PENDING',
       };
-
     } catch (error) {
       console.error('Erreur vérification token:', error);
       throw new Error('Token invalide');
@@ -315,21 +296,22 @@ export class AuthService {
       const backupCodes = ['123456', '789012', '345678', '901234', '567890'];
 
       // Sauvegarder le secret temporairement
-      await User.updateOne(
-        { _id: userId },
-        { 
-          twoFactorSecret: secret,
-          twoFactorBackupCodes: backupCodes,
-          twoFactorEnabled: false // Pas encore activé
-        }
-      );
+      await (User as any)
+        .updateOne(
+          { _id: userId },
+          {
+            twoFactorSecret: secret,
+            twoFactorBackupCodes: backupCodes,
+            twoFactorEnabled: false, // Pas encore activé
+          }
+        )
+        .exec();
 
       return {
         secret,
         qrCode,
-        backupCodes
+        backupCodes,
       };
-
     } catch (error) {
       console.error('Erreur setup 2FA:', error);
       throw error;
@@ -339,21 +321,19 @@ export class AuthService {
   /**
    * Activation 2FA
    */
-  async enable2FA(userId: string, token: string): Promise<boolean> {
+  async enable2FA(userId: string, _token: string): Promise<boolean> {
     try {
       // TODO: Vérifier le token 2FA avec speakeasy
       const isValid = true; // À remplacer par la vérification réelle
 
       if (isValid) {
-        await User.updateOne(
-          { _id: userId },
-          { twoFactorEnabled: true }
-        );
+        await (User as any)
+          .updateOne({ _id: userId }, { twoFactorEnabled: true })
+          .exec();
         return true;
       }
 
       return false;
-
     } catch (error) {
       console.error('Erreur activation 2FA:', error);
       throw error;
@@ -363,10 +343,10 @@ export class AuthService {
   /**
    * Vérification 2FA
    */
-  async verify2FA(userId: string, token: string): Promise<boolean> {
+  async verify2FA(userId: string, _token: string): Promise<boolean> {
     try {
-      const user = await User.findById(userId);
-      if (!user || !user.twoFactorEnabled) {
+      const userDoc = await (User as any).findById(userId).exec();
+      if (!userDoc || !userDoc.twoFactorEnabled) {
         return false;
       }
 
@@ -374,7 +354,6 @@ export class AuthService {
       const isValid = true; // À remplacer par la vérification réelle
 
       return isValid;
-
     } catch (error) {
       console.error('Erreur vérification 2FA:', error);
       return false;
@@ -382,67 +361,78 @@ export class AuthService {
   }
 
   /**
-   * Réinitialisation du mot de passe
+   * Demande de réinitialisation du mot de passe
    */
-  async requestPasswordReset(email: string): Promise<void> {
+  async requestPasswordReset(email: string): Promise<boolean> {
     try {
-      const user = await User.findOne({ email: email.toLowerCase() });
-      if (!user) {
+      const userDoc = await (User as any)
+        .findOne({ email: email.toLowerCase() })
+        .exec();
+      if (!userDoc) {
         // Ne pas révéler si l'email existe ou non
-        return;
+        return false;
       }
 
       // Générer le token de reset
-      const resetToken = jwt.sign(
-        { userId: user.id, type: 'password_reset' },
-        process.env.JWT_SECRET!,
-        { expiresIn: '1h' }
-      );
+      // const resetToken = jwt.sign(
+      //   {
+      //     userId: userDoc._id?.toString() || userDoc.id,
+      //     type: "password_reset",
+      //   },
+      //   process.env["JWT_SECRET"]!,
+      //   { expiresIn: "1h" },
+      // );
 
       // TODO: Envoyer l'email de reset
       // await this.sendPasswordResetEmail(user.email, resetToken);
 
+      return true;
     } catch (error) {
       console.error('Erreur request password reset:', error);
-      throw error;
+      return false;
     }
   }
 
   /**
    * Réinitialisation du mot de passe
    */
-  async resetPassword(token: string, newPassword: string): Promise<void> {
+  async resetPassword(token: string, newPassword: string): Promise<boolean> {
     try {
       // Vérifier le token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      const decoded = jwt.verify(token, process.env['JWT_SECRET']!) as any;
       if (decoded.type !== 'password_reset') {
-        throw new Error('Token invalide');
+        return false;
       }
 
       // Validation du nouveau mot de passe
-      const validation = securityManager.validatePassword(newPassword);
-      if (!validation.isValid) {
-        throw new Error(`Mot de passe invalide: ${validation.errors.join(', ')}`);
+      if (newPassword.length < 8) {
+        return false;
       }
 
       // Hacher le nouveau mot de passe
-      const hashedPassword = await securityManager.hashPassword(newPassword);
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
 
       // Mettre à jour le mot de passe
-      await User.updateOne(
-        { _id: decoded.userId },
-        { 
-          password: hashedPassword,
-          passwordChangedAt: new Date()
-        }
-      );
+      await (User as any)
+        .updateOne(
+          { _id: decoded.userId },
+          {
+            password: hashedPassword,
+            passwordChangedAt: new Date(),
+          }
+        )
+        .exec();
 
+      return true;
     } catch (error) {
       console.error('Erreur reset password:', error);
-      throw error;
+      return false;
     }
   }
 }
 
 // Export de l'instance singleton
 export const authService = AuthService.getInstance();
+
+// Export des méthodes individuelles pour compatibilité
+export const { requestPasswordReset, resetPassword } = authService;

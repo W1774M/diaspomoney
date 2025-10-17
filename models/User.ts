@@ -1,6 +1,6 @@
-import { User, UserRole } from "@/types/user";
-import bcrypt from "bcryptjs";
-import mongoose, { Schema } from "mongoose";
+import { User, UserRole } from '@/types/user';
+import bcrypt from 'bcryptjs';
+import mongoose, { Schema } from 'mongoose';
 
 const userDefinition = {
   email: {
@@ -29,13 +29,13 @@ const userDefinition = {
   },
   roles: {
     type: [String],
-    enum: ["ADMIN", "PROVIDER", "CUSTOMER", "BENEFICIARY", "CSM"],
-    default: ["CUSTOMER"],
+    enum: ['ADMIN', 'PROVIDER', 'CUSTOMER', 'BENEFICIARY', 'CSM'],
+    default: ['CUSTOMER'],
   },
   status: {
     type: String,
-    enum: ["ACTIVE", "INACTIVE", "PENDING", "SUSPENDED"],
-    default: "PENDING",
+    enum: ['ACTIVE', 'INACTIVE', 'PENDING', 'SUSPENDED'],
+    default: 'PENDING',
   },
   // Champs spécifiques aux prestataires
   specialty: {
@@ -50,11 +50,11 @@ const userDefinition = {
   providerInfo: {
     type: {
       type: String,
-      enum: ["INDIVIDUAL", "INSTITUTION"],
+      enum: ['INDIVIDUAL', 'INSTITUTION'],
     },
     category: {
       type: String,
-      enum: ["HEALTH", "BTP", "EDUCATION"],
+      enum: ['HEALTH', 'BTP', 'EDUCATION'],
     },
     specialties: [String],
     description: String,
@@ -109,58 +109,72 @@ const userDefinition = {
     },
     // Disponibilité
     availability: {
-      monday: [{
-        start: String,
-        end: String,
-        isAvailable: { type: Boolean, default: true },
-        maxBookings: { type: Number, default: 1 },
-        currentBookings: { type: Number, default: 0 },
-      }],
-      tuesday: [{
-        start: String,
-        end: String,
-        isAvailable: { type: Boolean, default: true },
-        maxBookings: { type: Number, default: 1 },
-        currentBookings: { type: Number, default: 0 },
-      }],
-      wednesday: [{
-        start: String,
-        end: String,
-        isAvailable: { type: Boolean, default: true },
-        maxBookings: { type: Number, default: 1 },
-        currentBookings: { type: Number, default: 0 },
-      }],
-      thursday: [{
-        start: String,
-        end: String,
-        isAvailable: { type: Boolean, default: true },
-        maxBookings: { type: Number, default: 1 },
-        currentBookings: { type: Number, default: 0 },
-      }],
-      friday: [{
-        start: String,
-        end: String,
-        isAvailable: { type: Boolean, default: true },
-        maxBookings: { type: Number, default: 1 },
-        currentBookings: { type: Number, default: 0 },
-      }],
-      saturday: [{
-        start: String,
-        end: String,
-        isAvailable: { type: Boolean, default: true },
-        maxBookings: { type: Number, default: 1 },
-        currentBookings: { type: Number, default: 0 },
-      }],
-      sunday: [{
-        start: String,
-        end: String,
-        isAvailable: { type: Boolean, default: true },
-        maxBookings: { type: Number, default: 1 },
-        currentBookings: { type: Number, default: 0 },
-      }],
+      monday: [
+        {
+          start: String,
+          end: String,
+          isAvailable: { type: Boolean, default: true },
+          maxBookings: { type: Number, default: 1 },
+          currentBookings: { type: Number, default: 0 },
+        },
+      ],
+      tuesday: [
+        {
+          start: String,
+          end: String,
+          isAvailable: { type: Boolean, default: true },
+          maxBookings: { type: Number, default: 1 },
+          currentBookings: { type: Number, default: 0 },
+        },
+      ],
+      wednesday: [
+        {
+          start: String,
+          end: String,
+          isAvailable: { type: Boolean, default: true },
+          maxBookings: { type: Number, default: 1 },
+          currentBookings: { type: Number, default: 0 },
+        },
+      ],
+      thursday: [
+        {
+          start: String,
+          end: String,
+          isAvailable: { type: Boolean, default: true },
+          maxBookings: { type: Number, default: 1 },
+          currentBookings: { type: Number, default: 0 },
+        },
+      ],
+      friday: [
+        {
+          start: String,
+          end: String,
+          isAvailable: { type: Boolean, default: true },
+          maxBookings: { type: Number, default: 1 },
+          currentBookings: { type: Number, default: 0 },
+        },
+      ],
+      saturday: [
+        {
+          start: String,
+          end: String,
+          isAvailable: { type: Boolean, default: true },
+          maxBookings: { type: Number, default: 1 },
+          currentBookings: { type: Number, default: 0 },
+        },
+      ],
+      sunday: [
+        {
+          start: String,
+          end: String,
+          isAvailable: { type: Boolean, default: true },
+          maxBookings: { type: Number, default: 1 },
+          currentBookings: { type: Number, default: 0 },
+        },
+      ],
       timezone: {
         type: String,
-        default: "UTC",
+        default: 'UTC',
       },
     },
     // Tarification
@@ -169,27 +183,31 @@ const userDefinition = {
       currency: String,
       pricingModel: {
         type: String,
-        enum: ["FIXED", "HOURLY", "PER_SQM", "CUSTOM"],
-        default: "FIXED",
+        enum: ['FIXED', 'HOURLY', 'PER_SQM', 'CUSTOM'],
+        default: 'FIXED',
       },
-      discounts: [{
-        type: { type: String, enum: ["PERCENTAGE", "FIXED"] },
-        value: Number,
-        conditions: String,
-      }],
+      discounts: [
+        {
+          type: { type: String, enum: ['PERCENTAGE', 'FIXED'] },
+          value: Number,
+          conditions: String,
+        },
+      ],
     },
     // Documents professionnels
-    documents: [{
-      id: String,
-      name: String,
-      type: {
-        type: String,
-        enum: ["LICENSE", "CERTIFICATE", "INSURANCE", "PORTFOLIO", "OTHER"],
+    documents: [
+      {
+        id: String,
+        name: String,
+        type: {
+          type: String,
+          enum: ['LICENSE', 'CERTIFICATE', 'INSURANCE', 'PORTFOLIO', 'OTHER'],
+        },
+        url: String,
+        uploadedAt: { type: Date, default: Date.now },
+        expiresAt: Date,
       },
-      url: String,
-      uploadedAt: { type: Date, default: Date.now },
-      expiresAt: Date,
-    }],
+    ],
   },
   apiGeo: [
     {
@@ -221,11 +239,11 @@ const userDefinition = {
   preferences: {
     language: {
       type: String,
-      default: "fr",
+      default: 'fr',
     },
     timezone: {
       type: String,
-      default: "Europe/Paris",
+      default: 'Europe/Paris',
     },
     notifications: {
       type: Boolean,
@@ -321,9 +339,9 @@ const UserSchema = new Schema<User>(userDefinition, {
 });
 
 // Hash du mot de passe avant sauvegarde
-UserSchema.pre("save", async function (next) {
+UserSchema.pre('save', async function (next) {
   const self = this as any;
-  if (!self.isModified("password") || !self.password) return next();
+  if (!self.isModified('password') || !self.password) return next();
 
   try {
     const salt = await bcrypt.genSalt(12);
@@ -335,39 +353,33 @@ UserSchema.pre("save", async function (next) {
 });
 
 // Méthode pour comparer les mots de passe
-// Méthode pour comparer les mots de passe
-UserSchema.methods["comparePassword"] = async function (
+UserSchema.methods['comparePassword'] = async function (
   candidatePassword: string
 ): Promise<boolean> {
-  const self = this as any;
-  if (!self["password"]) return false;
-  return bcrypt.compare(candidatePassword, self["password"]);
+  if (!this['password']) return false;
+  return bcrypt.compare(candidatePassword, this['password']);
 };
 
 // Méthode pour vérifier si l'utilisateur a un rôle spécifique
-// Méthode pour vérifier si l'utilisateur a un rôle spécifique
-UserSchema.methods["hasRole"] = function (role: UserRole): boolean {
-  return this["roles"].includes(role);
+UserSchema.methods['hasRole'] = function (role: UserRole): boolean {
+  return this['roles'].includes(role);
 };
 
 // Méthode pour vérifier si l'utilisateur a au moins un des rôles
-// Méthode pour vérifier si l'utilisateur a au moins un des rôles
-UserSchema.methods["hasAnyRole"] = function (roles: UserRole[]): boolean {
-  return this["roles"].some((role: UserRole) => roles.includes(role));
+UserSchema.methods['hasAnyRole'] = function (roles: UserRole[]): boolean {
+  return this['roles'].some((role: UserRole) => roles.includes(role));
 };
 
 // Méthode pour ajouter un rôle
-// Méthode pour ajouter un rôle
-UserSchema.methods["addRole"] = function (role: UserRole): void {
-  if (!this["roles"].includes(role)) {
-    this["roles"].push(role);
+UserSchema.methods['addRole'] = function (role: UserRole): void {
+  if (!this['roles'].includes(role)) {
+    this['roles'].push(role);
   }
 };
 
 // Méthode pour retirer un rôle
-// Méthode pour retirer un rôle
-UserSchema.methods["removeRole"] = function (role: UserRole): void {
-  this["roles"] = this["roles"].filter((r: UserRole) => r !== role);
+UserSchema.methods['removeRole'] = function (role: UserRole): void {
+  this['roles'] = this['roles'].filter((r: UserRole) => r !== role);
 };
 
 // Index pour améliorer les performances
@@ -376,5 +388,5 @@ UserSchema.index({ status: 1 });
 UserSchema.index({ createdAt: -1 });
 UserSchema.index({ specialty: 1 });
 
-export default mongoose.models["User"] ||
-  mongoose.model<User>("User", UserSchema);
+export default mongoose.models['User'] ||
+  mongoose.model<User>('User', UserSchema);

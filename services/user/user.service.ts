@@ -4,8 +4,8 @@
  * Basé sur la charte de développement
  */
 
-import User from '@/models/User';
 import { securityManager } from '@/lib/security/advanced-security';
+import User from '@/models/User';
 import * as Sentry from '@sentry/nextjs';
 
 export interface UserProfile {
@@ -49,7 +49,12 @@ export interface Beneficiary extends BeneficiaryData {
 }
 
 export interface KYCDocument {
-  type: 'ID_CARD' | 'PASSPORT' | 'DRIVER_LICENSE' | 'UTILITY_BILL' | 'BANK_STATEMENT';
+  type:
+    | 'ID_CARD'
+    | 'PASSPORT'
+    | 'DRIVER_LICENSE'
+    | 'UTILITY_BILL'
+    | 'BANK_STATEMENT';
   fileUrl: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   uploadedAt: Date;
@@ -67,7 +72,7 @@ export interface KYCData {
 
 export class UserService {
   private static instance: UserService;
-  
+
   static getInstance(): UserService {
     if (!UserService.instance) {
       UserService.instance = new UserService();
@@ -80,7 +85,7 @@ export class UserService {
    */
   async getUserProfile(userId: string): Promise<UserProfile> {
     try {
-      const user = await User.findById(userId);
+      const user = await (User as any).findById(userId).exec();
       if (!user) {
         throw new Error('Utilisateur non trouvé');
       }
@@ -97,9 +102,8 @@ export class UserService {
         isEmailVerified: user.isEmailVerified,
         kycStatus: user.kycStatus || 'PENDING',
         createdAt: user.createdAt,
-        updatedAt: user.updatedAt
+        updatedAt: user.updatedAt,
       };
-
     } catch (error) {
       console.error('Erreur getUserProfile:', error);
       Sentry.captureException(error);
@@ -110,7 +114,10 @@ export class UserService {
   /**
    * Mettre à jour le profil utilisateur
    */
-  async updateUserProfile(userId: string, data: UpdateProfileData): Promise<UserProfile> {
+  async updateUserProfile(
+    userId: string,
+    data: UpdateProfileData
+  ): Promise<UserProfile> {
     try {
       // Validation des données
       if (data.phone && !this.isValidPhone(data.phone)) {
@@ -122,11 +129,11 @@ export class UserService {
       }
 
       // Mise à jour de l'utilisateur
-      const updatedUser = await User.findByIdAndUpdate(
+      const updatedUser = await (User as any).findByIdAndUpdate(
         userId,
-        { 
+        {
           ...data,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
         { new: true }
       );
@@ -150,9 +157,8 @@ export class UserService {
         isEmailVerified: updatedUser.isEmailVerified,
         kycStatus: updatedUser.kycStatus || 'PENDING',
         createdAt: updatedUser.createdAt,
-        updatedAt: updatedUser.updatedAt
+        updatedAt: updatedUser.updatedAt,
       };
-
     } catch (error) {
       console.error('Erreur updateUserProfile:', error);
       Sentry.captureException(error);
@@ -166,25 +172,21 @@ export class UserService {
   async deleteUserAccount(userId: string): Promise<void> {
     try {
       // Anonymiser au lieu de supprimer (pour les enregistrements légaux/financiers)
-      await User.findByIdAndUpdate(
-        userId,
-        {
-          email: `deleted_${userId}@anonymized.com`,
-          phone: null,
-          firstName: '[DELETED]',
-          lastName: '[DELETED]',
-          isActive: false,
-          deletedAt: new Date(),
-          gdprDeleted: true
-        }
-      );
+      await (User as any).findByIdAndUpdate(userId, {
+        email: `deleted_${userId}@anonymized.com`,
+        phone: null,
+        firstName: '[DELETED]',
+        lastName: '[DELETED]',
+        isActive: false,
+        deletedAt: new Date(),
+        gdprDeleted: true,
+      });
 
       // Supprimer les données non essentielles
       // TODO: Supprimer les documents, notifications, etc.
-      
+
       // Enregistrer l'événement de suppression
       await securityManager.detectAnomalies(userId, 'USER_DELETED');
-
     } catch (error) {
       console.error('Erreur deleteUserAccount:', error);
       Sentry.captureException(error);
@@ -195,7 +197,10 @@ export class UserService {
   /**
    * Ajouter un bénéficiaire
    */
-  async addBeneficiary(userId: string, data: BeneficiaryData): Promise<Beneficiary> {
+  async addBeneficiary(
+    userId: string,
+    data: BeneficiaryData
+  ): Promise<Beneficiary> {
     try {
       // Validation des données
       if (!data.firstName || !data.lastName) {
@@ -223,14 +228,13 @@ export class UserService {
         ...data,
         isActive: true,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       // TODO: Sauvegarder en base de données
       // await Beneficiary.create(beneficiary);
 
       return beneficiary;
-
     } catch (error) {
       console.error('Erreur addBeneficiary:', error);
       Sentry.captureException(error);
@@ -245,10 +249,9 @@ export class UserService {
     try {
       // TODO: Récupérer depuis la base de données
       // const beneficiaries = await Beneficiary.find({ payerId: userId, isActive: true });
-      
+
       // Simulation pour l'instant
       return [];
-
     } catch (error) {
       console.error('Erreur getBeneficiaries:', error);
       Sentry.captureException(error);
@@ -259,7 +262,10 @@ export class UserService {
   /**
    * Supprimer un bénéficiaire
    */
-  async removeBeneficiary(_userId: string, _beneficiaryId: string): Promise<void> {
+  async removeBeneficiary(
+    _userId: string,
+    _beneficiaryId: string
+  ): Promise<void> {
     try {
       // TODO: Vérifier que le bénéficiaire appartient à l'utilisateur
       // TODO: Désactiver le bénéficiaire
@@ -267,7 +273,6 @@ export class UserService {
       //   { id: beneficiaryId, payerId: userId },
       //   { isActive: false, updatedAt: new Date() }
       // );
-
     } catch (error) {
       console.error('Erreur removeBeneficiary:', error);
       Sentry.captureException(error);
@@ -278,7 +283,10 @@ export class UserService {
   /**
    * Soumettre les documents KYC
    */
-  async submitKYCDocuments(userId: string, documents: KYCDocument[]): Promise<KYCData> {
+  async submitKYCDocuments(
+    userId: string,
+    documents: KYCDocument[]
+  ): Promise<KYCData> {
     try {
       // Validation des documents
       if (documents.length === 0) {
@@ -288,33 +296,33 @@ export class UserService {
       // Vérifier les types de documents requis
       const requiredTypes = ['ID_CARD', 'PASSPORT'];
       const submittedTypes = documents.map(doc => doc.type);
-      const hasRequiredType = requiredTypes.some(type => submittedTypes.includes(type));
+      const hasRequiredType = requiredTypes.some(type =>
+        submittedTypes.includes(type as any)
+      );
 
       if (!hasRequiredType) {
-        throw new Error('Au moins une pièce d\'identité requise (carte d\'identité ou passeport)');
+        throw new Error(
+          "Au moins une pièce d'identité requise (carte d'identité ou passeport)"
+        );
       }
 
       // Créer les données KYC
       const kycData: KYCData = {
         documents,
         status: 'PENDING',
-        submittedAt: new Date()
+        submittedAt: new Date(),
       };
 
       // TODO: Sauvegarder en base de données
       // await KYC.create({ userId, ...kycData });
 
       // Mettre à jour le statut KYC de l'utilisateur
-      await User.findByIdAndUpdate(
-        userId,
-        { 
-          kycStatus: 'IN_REVIEW',
-          kycSubmittedAt: new Date()
-        }
-      );
+      await (User as any).findByIdAndUpdate(userId, {
+        kycStatus: 'IN_REVIEW',
+        kycSubmittedAt: new Date(),
+      });
 
       return kycData;
-
     } catch (error) {
       console.error('Erreur submitKYCDocuments:', error);
       Sentry.captureException(error);
@@ -332,7 +340,6 @@ export class UserService {
       // return kyc;
 
       return null;
-
     } catch (error) {
       console.error('Erreur getKYCStatus:', error);
       Sentry.captureException(error);
@@ -345,7 +352,7 @@ export class UserService {
    */
   async exportUserData(userId: string): Promise<any> {
     try {
-      const user = await User.findById(userId);
+      const user = await (User as any).findById(userId).exec();
       if (!user) {
         throw new Error('Utilisateur non trouvé');
       }
@@ -365,16 +372,15 @@ export class UserService {
           country: user.country,
           role: user.role,
           createdAt: user.createdAt,
-          updatedAt: user.updatedAt
+          updatedAt: user.updatedAt,
         },
         // transactions: transactions.map(t => t.toJSON()),
         // beneficiaries: beneficiaries.map(b => b.toJSON()),
         // kyc: kyc?.toJSON(),
-        exported_at: new Date().toISOString()
+        exported_at: new Date().toISOString(),
       };
 
       return exportData;
-
     } catch (error) {
       console.error('Erreur exportUserData:', error);
       Sentry.captureException(error);
@@ -395,8 +401,26 @@ export class UserService {
    */
   private isValidCountry(country: string): boolean {
     const validCountries = [
-      'FR', 'DE', 'ES', 'IT', 'BE', 'NL', 'CH', 'AT', 'LU', 'IE',
-      'SN', 'CI', 'CM', 'BF', 'ML', 'NE', 'TD', 'GN', 'LR', 'SL'
+      'FR',
+      'DE',
+      'ES',
+      'IT',
+      'BE',
+      'NL',
+      'CH',
+      'AT',
+      'LU',
+      'IE',
+      'SN',
+      'CI',
+      'CM',
+      'BF',
+      'ML',
+      'NE',
+      'TD',
+      'GN',
+      'LR',
+      'SL',
     ];
     return validCountries.includes(country.toUpperCase());
   }

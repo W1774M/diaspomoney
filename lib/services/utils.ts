@@ -1,5 +1,5 @@
-import { Provider } from "@/hooks/useProviders";
-import { getProviderRatingStats } from "@/mocks";
+import { Provider } from '@/hooks/useProviders';
+import { getProviderRatingStats } from '@/mocks';
 
 /**
  * Extract unique specialties from providers
@@ -20,8 +20,8 @@ export function getUniqueSpecialties(providers: Provider[]): string[] {
 export function getAvailableServices(providers: Provider[]): string[] {
   return providers
     .flatMap(p =>
-      p["selectedServices"]
-        ? p["selectedServices"].split(",").map((s: string) => s.trim())
+      p['selectedServices']
+        ? p['selectedServices'].split(',').map((s: string) => s.trim())
         : []
     )
     .filter((service, idx, arr) => arr.indexOf(service) === idx)
@@ -46,7 +46,7 @@ export function getAvailableCities(providers: Provider[]): string[] {
  */
 export function formatProviderName(provider: Provider): string {
   const name = `${provider.firstName} ${provider.lastName}`;
-  return provider["company"] ? `${name} (${provider["company"]})` : name;
+  return provider['company'] ? `${name} (${provider['company']})` : name;
 }
 
 /**
@@ -54,8 +54,8 @@ export function formatProviderName(provider: Provider): string {
  */
 
 export function getProviderRating(provider: Provider): number {
-  const stats = getProviderRatingStats(provider._id);
-  return stats?.averageRating || provider.rating || 0;
+  const stats = getProviderRatingStats();
+  return (stats as any)?.averageRating || provider.rating || 0;
 }
 
 /**
@@ -63,9 +63,9 @@ export function getProviderRating(provider: Provider): number {
  */
 export function isProviderAvailable(provider: Provider): boolean {
   return (
-    provider.status === "ACTIVE" &&
-    Array.isArray(provider["availabilities"]) &&
-    provider["availabilities"].length > 0
+    provider.status === 'ACTIVE' &&
+    Array.isArray(provider['availabilities']) &&
+    provider['availabilities'].length > 0
   );
 }
 
@@ -73,12 +73,12 @@ export function isProviderAvailable(provider: Provider): boolean {
  * Get provider's primary service
  */
 export function getPrimaryService(provider: Provider): string {
-  if (!provider["selectedServices"]) return "Service non spécifié";
+  if (!provider['selectedServices']) return 'Service non spécifié';
 
-  const services = provider["selectedServices"]
-    .split(",")
+  const services = provider['selectedServices']
+    .split(',')
     .map((s: string) => s.trim());
-  return services[0] || "Service non spécifié";
+  return services[0] || 'Service non spécifié';
 }
 
 /**
@@ -86,11 +86,11 @@ export function getPrimaryService(provider: Provider): string {
  */
 export function getAvailabilityStatus(
   provider: Provider
-): "available" | "busy" | "offline" {
-  if (provider.status !== "ACTIVE") return "offline";
-  if (!provider["availabilities"] || provider["availabilities"].length === 0)
-    return "offline";
-  return "available";
+): 'available' | 'busy' | 'offline' {
+  if (provider.status !== 'ACTIVE') return 'offline';
+  if (!provider['availabilities'] || provider['availabilities'].length === 0)
+    return 'offline';
+  return 'available';
 }
 
 /**
@@ -120,11 +120,11 @@ export function getServicePrice(
   provider: Provider,
   serviceName: string
 ): number {
-  if (!provider["services"] || !Array.isArray(provider["services"])) {
+  if (!provider['services'] || !Array.isArray(provider['services'])) {
     return (provider as any).price || 0; // Fallback to provider base price
   }
 
-  const service = provider["services"].find(
+  const service = provider['services'].find(
     s =>
       s.name.toLowerCase().includes(serviceName.toLowerCase()) ||
       serviceName.toLowerCase().includes(s.name.toLowerCase())
@@ -137,5 +137,5 @@ export function getServicePrice(
  * Get consultation price (for video consultation)
  */
 export function getConsultationPrice(provider: Provider): number {
-  return getServicePrice(provider, "consultation");
+  return getServicePrice(provider, 'consultation');
 }

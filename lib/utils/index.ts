@@ -2,14 +2,7 @@
  * Utilitaires - DiaspoMoney
  */
 
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { VALIDATION } from '@/lib/constants';
-
-// === UTILITAIRES DE STYLE ===
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 // Réexport des utilitaires Tailwind
 export * from './tailwind';
@@ -32,7 +25,10 @@ export function isValidUUID(uuid: string): boolean {
 }
 
 // === UTILITAIRES DE FORMATAGE ===
-export function formatCurrency(amount: number, currency: string = 'EUR'): string {
+export function formatCurrency(
+  amount: number,
+  currency: string = 'EUR'
+): string {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: currency,
@@ -57,7 +53,10 @@ export function formatDateTime(date: Date, locale: string = 'fr-FR'): string {
   }).format(date);
 }
 
-export function formatRelativeTime(date: Date, locale: string = 'fr-FR'): string {
+export function formatRelativeTime(
+  date: Date,
+  locale: string = 'fr-FR'
+): string {
   const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
   const diff = date.getTime() - Date.now();
   const seconds = Math.round(diff / 1000);
@@ -87,11 +86,12 @@ export function slugify(str: string): string {
 
 export function truncate(str: string, length: number): string {
   if (str.length <= length) return str;
-  return str.slice(0, length) + '...';
+  return `${str.slice(0, length)}...`;
 }
 
 export function generateId(length: number = 8): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const chars =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -158,7 +158,7 @@ export function deepClone<T>(obj: T): T {
 export function pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
   const result = {} as Pick<T, K>;
   keys.forEach(key => {
-    if (key in obj) {
+    if (obj != null && Object.prototype.hasOwnProperty.call(obj, key)) {
       result[key] = obj[key];
     }
   });
@@ -186,16 +186,26 @@ export function unique<T>(array: T[]): T[] {
   return [...new Set(array)];
 }
 
-export function groupBy<T, K extends keyof T>(array: T[], key: K): Record<string, T[]> {
-  return array.reduce((groups, item) => {
-    const group = String(item[key]);
-    groups[group] = groups[group] || [];
-    groups[group].push(item);
-    return groups;
-  }, {} as Record<string, T[]>);
+export function groupBy<T, K extends keyof T>(
+  array: T[],
+  key: K
+): Record<string, T[]> {
+  return array.reduce(
+    (groups, item) => {
+      const group = String(item[key]);
+      groups[group] = groups[group] || [];
+      groups[group].push(item);
+      return groups;
+    },
+    {} as Record<string, T[]>
+  );
 }
 
-export function sortBy<T>(array: T[], key: keyof T, order: 'asc' | 'desc' = 'asc'): T[] {
+export function sortBy<T>(
+  array: T[],
+  key: keyof T,
+  order: 'asc' | 'desc' = 'asc'
+): T[] {
   return [...array].sort((a, b) => {
     const aVal = a[key];
     const bVal = b[key];
@@ -214,7 +224,11 @@ export function chunk<T>(array: T[], size: number): T[][] {
 }
 
 // === UTILITAIRES DE PAGINATION ===
-export function paginate<T>(array: T[], page: number, limit: number): {
+export function paginate<T>(
+  array: T[],
+  page: number,
+  limit: number
+): {
   data: T[];
   pagination: {
     page: number;
@@ -235,8 +249,8 @@ export function paginate<T>(array: T[], page: number, limit: number): {
       page,
       limit,
       total,
-      pages
-    }
+      pages,
+    },
   };
 }
 
@@ -250,7 +264,8 @@ export function sanitizeInput(input: string): string {
 }
 
 export function generateToken(length: number = 32): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const chars =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -260,7 +275,7 @@ export function generateToken(length: number = 32): string {
 
 export function maskEmail(email: string): string {
   const [local, domain] = email.split('@');
-  if (local.length <= 2) return email;
+  if (local == null || local.length <= 2) return email;
   return `${local[0]}${'*'.repeat(local.length - 2)}${local[local.length - 1]}@${domain}`;
 }
 
@@ -275,56 +290,19 @@ export function logLevel(level: string): number {
     error: 0,
     warn: 1,
     info: 2,
-    debug: 3
+    debug: 3,
   };
   return levels[level as keyof typeof levels] ?? 2;
 }
 
-export function formatLogMessage(level: string, message: string, metadata?: any): string {
+export function formatLogMessage(
+  level: string,
+  message: string,
+  metadata?: any
+): string {
   const timestamp = new Date().toISOString();
   const meta = metadata ? ` ${JSON.stringify(metadata)}` : '';
   return `[${timestamp}] ${level.toUpperCase()}: ${message}${meta}`;
 }
 
-// === UTILITAIRES D'EXPORT ===
-export {
-  // Réexport des utilitaires pour faciliter l'import
-  cn,
-  isValidEmail,
-  isValidPhone,
-  isValidPassword,
-  isValidUUID,
-  formatCurrency,
-  formatDate,
-  formatDateTime,
-  formatRelativeTime,
-  capitalize,
-  slugify,
-  truncate,
-  generateId,
-  addDays,
-  addHours,
-  addMinutes,
-  isToday,
-  isTomorrow,
-  isYesterday,
-  clamp,
-  round,
-  random,
-  percentage,
-  deepClone,
-  pick,
-  omit,
-  isEmpty,
-  unique,
-  groupBy,
-  sortBy,
-  chunk,
-  paginate,
-  sanitizeInput,
-  generateToken,
-  maskEmail,
-  maskPhone,
-  logLevel,
-  formatLogMessage
-};
+// Suppression du bloc de réexport redondant pour éviter les doublons

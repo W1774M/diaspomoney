@@ -3,9 +3,9 @@
  * DiaspoMoney - Architecture Company-Grade
  */
 
-import React, { useState, useCallback } from 'react';
-import Image from 'next/image';
 import { getAssetURL, optimizeImage } from '@/config/cdn';
+import Image from 'next/image';
+import React, { useCallback, useState } from 'react';
 
 export interface OptimizedImageProps {
   src: string;
@@ -49,10 +49,10 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
   // Optimiser l'URL de l'image avec CDN
   const optimizedSrc = optimizeImage(src, {
-    width,
-    height,
+    width: width ?? 100,
+    height: height ?? 100,
     quality,
-    format
+    format,
   });
 
   // Gérer le chargement
@@ -71,20 +71,20 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   // Si erreur, afficher une image de fallback
   if (hasError) {
     return (
-      <div 
+      <div
         className={`bg-gray-200 flex items-center justify-center ${className}`}
         style={{ width, height, ...style }}
         onClick={onClick}
       >
-        <svg 
-          className="w-8 h-8 text-gray-400" 
-          fill="currentColor" 
-          viewBox="0 0 20 20"
+        <svg
+          className='w-8 h-8 text-gray-400'
+          fill='currentColor'
+          viewBox='0 0 20 20'
         >
-          <path 
-            fillRule="evenodd" 
-            d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" 
-            clipRule="evenodd" 
+          <path
+            fillRule='evenodd'
+            d='M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z'
+            clipRule='evenodd'
           />
         </svg>
       </div>
@@ -109,31 +109,24 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   // Rendu avec ou sans dimensions fixes
   if (fill) {
     return (
-      <div className="relative">
+      <div className='relative'>
         {isLoading && (
-          <div className="absolute inset-0 bg-gray-200 animate-pulse rounded" />
+          <div className='absolute inset-0 bg-gray-200 animate-pulse rounded' />
         )}
-        <Image
-          {...imageProps}
-          fill
-        />
+        <Image {...imageProps} fill />
       </div>
     );
   }
 
   return (
-    <div className="relative">
+    <div className='relative'>
       {isLoading && (
-        <div 
-          className="absolute inset-0 bg-gray-200 animate-pulse rounded"
+        <div
+          className='absolute inset-0 bg-gray-200 animate-pulse rounded'
           style={{ width, height }}
         />
       )}
-      <Image
-        {...imageProps}
-        width={width}
-        height={height}
-      />
+      <Image {...imageProps} width={width} height={height} />
     </div>
   );
 };
@@ -149,7 +142,7 @@ export const UserAvatar: React.FC<{
     sm: 'w-8 h-8',
     md: 'w-12 h-12',
     lg: 'w-16 h-16',
-    xl: 'w-24 h-24'
+    xl: 'w-24 h-24',
   };
 
   const initials = name
@@ -161,7 +154,9 @@ export const UserAvatar: React.FC<{
 
   if (!src) {
     return (
-      <div className={`${sizeClasses[size]} bg-blue-500 text-white rounded-full flex items-center justify-center font-semibold ${className}`}>
+      <div
+        className={`${sizeClasses[size]} bg-blue-500 text-white rounded-full flex items-center justify-center font-semibold ${className}`}
+      >
         {initials}
       </div>
     );
@@ -174,7 +169,7 @@ export const UserAvatar: React.FC<{
       width={size === 'sm' ? 32 : size === 'md' ? 48 : size === 'lg' ? 64 : 96}
       height={size === 'sm' ? 32 : size === 'md' ? 48 : size === 'lg' ? 64 : 96}
       quality={90}
-      format="webp"
+      format='webp'
       className={`${sizeClasses[size]} rounded-full object-cover ${className}`}
     />
   );
@@ -191,23 +186,25 @@ export const ProductImage: React.FC<{
   const aspectClasses = {
     square: 'aspect-square',
     video: 'aspect-video',
-    portrait: 'aspect-[3/4]'
+    portrait: 'aspect-[3/4]',
   };
 
   return (
-    <div className={`relative overflow-hidden rounded-lg ${aspectClasses[aspectRatio]} ${className}`}>
+    <div
+      className={`relative overflow-hidden rounded-lg ${aspectClasses[aspectRatio]} ${className}`}
+    >
       <OptimizedImage
         src={src}
         alt={alt}
         fill
         quality={90}
-        format="webp"
-        className="object-cover"
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        format='webp'
+        className='object-cover'
+        sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
       />
       {title && (
-        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2">
-          <p className="text-sm font-medium truncate">{title}</p>
+        <div className='absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2'>
+          <p className='text-sm font-medium truncate'>{title}</p>
         </div>
       )}
     </div>
@@ -218,16 +215,19 @@ export const ProductImage: React.FC<{
 export const useImagePreloader = () => {
   const preloadImage = useCallback((src: string): Promise<void> => {
     return new Promise((resolve, reject) => {
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => resolve();
       img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
       img.src = getAssetURL(src);
     });
   }, []);
 
-  const preloadImages = useCallback(async (sources: string[]): Promise<void[]> => {
-    return Promise.all(sources.map(preloadImage));
-  }, [preloadImage]);
+  const preloadImages = useCallback(
+    async (sources: string[]): Promise<void[]> => {
+      return Promise.all(sources.map(preloadImage));
+    },
+    [preloadImage]
+  );
 
   return { preloadImage, preloadImages };
 };

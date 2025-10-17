@@ -1,8 +1,8 @@
-import { Resend } from 'resend';
 import type { EmailOptions, EmailTemplate } from '@/types/email';
+import { Resend } from 'resend';
 
 // Configuration Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env['RESEND_API_KEY']);
 
 // Types importés depuis types/email.ts
 
@@ -62,7 +62,7 @@ export const emailTemplates = {
       
       --
       DiaspoMoney - Connecter l'Europe à l'Afrique
-    `
+    `,
   }),
 
   // Email de réinitialisation de mot de passe
@@ -124,11 +124,16 @@ export const emailTemplates = {
       
       --
       DiaspoMoney - Connecter l'Europe à l'Afrique
-    `
+    `,
   }),
 
   // Email de confirmation de paiement
-  paymentConfirmation: (name: string, amount: number, currency: string, service: string): EmailTemplate => ({
+  paymentConfirmation: (
+    name: string,
+    amount: number,
+    currency: string,
+    service: string
+  ): EmailTemplate => ({
     subject: `Confirmation de paiement - ${service}`,
     html: `
       <!DOCTYPE html>
@@ -188,12 +193,21 @@ export const emailTemplates = {
       
       --
       DiaspoMoney - Connecter l'Europe à l'Afrique
-    `
+    `,
   }),
 
   // Email de notification de rendez-vous
-  appointmentNotification: (name: string, provider: string, date: string, time: string, type: 'confirmation' | 'reminder'): EmailTemplate => ({
-    subject: type === 'confirmation' ? 'Rendez-vous confirmé' : 'Rappel de rendez-vous',
+  appointmentNotification: (
+    name: string,
+    provider: string,
+    date: string,
+    time: string,
+    type: 'confirmation' | 'reminder'
+  ): EmailTemplate => ({
+    subject:
+      type === 'confirmation'
+        ? 'Rendez-vous confirmé'
+        : 'Rappel de rendez-vous',
     html: `
       <!DOCTYPE html>
       <html>
@@ -250,8 +264,8 @@ export const emailTemplates = {
       
       --
       DiaspoMoney - Connecter l'Europe à l'Afrique
-    `
-  })
+    `,
+  }),
 };
 
 // Fonction principale d'envoi d'email
@@ -262,12 +276,12 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       to: Array.isArray(options.to) ? options.to : [options.to],
       subject: options.subject,
       html: options.html,
-      text: options.text,
-      reply_to: options.replyTo,
+      text: options.text ?? '', // Ensure text is always a string (Resend type requires string)
+      reply_to: options.replyTo || [],
       tags: options.tags || [
         { name: 'service', value: 'diaspomoney' },
-        { name: 'environment', value: process.env.NODE_ENV || 'development' }
-      ]
+        { name: 'environment', value: process.env.NODE_ENV || 'development' },
+      ],
     });
 
     if (error) {
@@ -278,15 +292,19 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     console.log('✅ Email envoyé avec succès:', data);
     return true;
   } catch (error) {
-    console.error('❌ Erreur lors de l\'envoi d\'email:', error);
+    console.error("❌ Erreur lors de l'envoi d'email:", error);
     return false;
   }
 }
 
 // Fonctions spécialisées
-export async function sendWelcomeEmail(email: string, name: string, verificationUrl: string): Promise<boolean> {
+export async function sendWelcomeEmail(
+  email: string,
+  name: string,
+  verificationUrl: string
+): Promise<boolean> {
   const template = emailTemplates.welcome(name, verificationUrl);
-  
+
   return await sendEmail({
     to: email,
     subject: template.subject,
@@ -294,14 +312,18 @@ export async function sendWelcomeEmail(email: string, name: string, verification
     text: template.text,
     tags: [
       { name: 'type', value: 'welcome' },
-      { name: 'user', value: email }
-    ]
+      { name: 'user', value: email },
+    ],
   });
 }
 
-export async function sendPasswordResetEmail(email: string, name: string, resetUrl: string): Promise<boolean> {
+export async function sendPasswordResetEmail(
+  email: string,
+  name: string,
+  resetUrl: string
+): Promise<boolean> {
   const template = emailTemplates.passwordReset(name, resetUrl);
-  
+
   return await sendEmail({
     to: email,
     subject: template.subject,
@@ -309,20 +331,25 @@ export async function sendPasswordResetEmail(email: string, name: string, resetU
     text: template.text,
     tags: [
       { name: 'type', value: 'password_reset' },
-      { name: 'user', value: email }
-    ]
+      { name: 'user', value: email },
+    ],
   });
 }
 
 export async function sendPaymentConfirmationEmail(
-  email: string, 
-  name: string, 
-  amount: number, 
-  currency: string, 
+  email: string,
+  name: string,
+  amount: number,
+  currency: string,
   service: string
 ): Promise<boolean> {
-  const template = emailTemplates.paymentConfirmation(name, amount, currency, service);
-  
+  const template = emailTemplates.paymentConfirmation(
+    name,
+    amount,
+    currency,
+    service
+  );
+
   return await sendEmail({
     to: email,
     subject: template.subject,
@@ -331,8 +358,8 @@ export async function sendPaymentConfirmationEmail(
     tags: [
       { name: 'type', value: 'payment_confirmation' },
       { name: 'user', value: email },
-      { name: 'amount', value: amount.toString() }
-    ]
+      { name: 'amount', value: amount.toString() },
+    ],
   });
 }
 
@@ -344,8 +371,14 @@ export async function sendAppointmentNotificationEmail(
   time: string,
   type: 'confirmation' | 'reminder'
 ): Promise<boolean> {
-  const template = emailTemplates.appointmentNotification(name, provider, date, time, type);
-  
+  const template = emailTemplates.appointmentNotification(
+    name,
+    provider,
+    date,
+    time,
+    type
+  );
+
   return await sendEmail({
     to: email,
     subject: template.subject,
@@ -354,8 +387,8 @@ export async function sendAppointmentNotificationEmail(
     tags: [
       { name: 'type', value: `appointment_${type}` },
       { name: 'user', value: email },
-      { name: 'provider', value: provider }
-    ]
+      { name: 'provider', value: provider },
+    ],
   });
 }
 
@@ -367,7 +400,7 @@ export async function testEmailConnection(): Promise<boolean> {
       to: 'test@diaspomoney.fr',
       subject: 'Test de connexion Resend',
       html: '<p>Test de connexion Resend réussi !</p>',
-      text: 'Test de connexion Resend réussi !'
+      text: 'Test de connexion Resend réussi !',
     });
 
     if (error) {

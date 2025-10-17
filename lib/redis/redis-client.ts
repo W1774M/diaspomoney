@@ -3,8 +3,8 @@
  * Client Redis pour cache, sessions et rate limiting
  */
 
-import Redis from 'ioredis';
 import * as Sentry from '@sentry/nextjs';
+import Redis, { RedisOptions } from 'ioredis';
 
 export interface RedisConfig {
   host: string;
@@ -20,36 +20,37 @@ export interface RedisConfig {
 
 export class RedisClient {
   private client: Redis;
-  private isConnected: boolean = false;
+  // private _isConnected: boolean = false;
 
   constructor(config: RedisConfig) {
-    this.client = new Redis({
+    // ioredis only accepts actual RedisOptions – see https://github.com/luin/ioredis/blob/master/API.md
+    // Remove unsupported options and duplicates, and handle events separately.
+    const options: RedisOptions = {
       host: config.host,
       port: config.port,
-      password: config.password,
-      db: config.db || 0,
-      retryDelayOnFailover: config.retryDelayOnFailover || 100,
-      maxRetriesPerRequest: config.maxRetriesPerRequest || 3,
-      lazyConnect: config.lazyConnect || true,
-      keepAlive: config.keepAlive || 30000,
-      family: config.family || 4,
-      // Configuration pour la production
+      password: config.password ?? '',
+      db: config.db ?? 0,
+      maxRetriesPerRequest: config.maxRetriesPerRequest ?? 3,
+      lazyConnect: config.lazyConnect ?? true,
+      keepAlive: config.keepAlive ?? 30000,
+      family: config.family ?? 4,
       enableReadyCheck: true,
-      maxRetriesPerRequest: 3,
-      retryDelayOnFailover: 100,
-      // Gestion des erreurs
-      onError: (error) => {
-        console.error('❌ Redis Error:', error);
-        Sentry.captureException(error);
-      },
-      onConnect: () => {
-        console.log('✅ Redis Connected');
-        this.isConnected = true;
-      },
-      onDisconnect: () => {
-        console.log('⚠️ Redis Disconnected');
-        this.isConnected = false;
-      }
+    };
+
+    this.client = new Redis(options);
+
+    // Hook up events
+    this.client.on('error', (error: unknown) => {
+      console.error('❌ Redis Error:', error);
+      Sentry.captureException(error);
+    });
+
+    this.client.on('connect', () => {
+      console.log('✅ Redis Connected');
+    });
+
+    this.client.on('close', () => {
+      console.log('⚠️ Redis Disconnected');
     });
   }
 
@@ -58,8 +59,8 @@ export class RedisClient {
    */
   async connect(): Promise<void> {
     try {
-      await this.client.connect();
-      this.isConnected = true;
+      // ioredis automatically connects unless lazyConnect is true
+      await this.client.connect?.();
     } catch (error) {
       console.error('❌ Redis connection failed:', error);
       Sentry.captureException(error);
@@ -76,6 +77,7 @@ export class RedisClient {
       return result === 'PONG';
     } catch (error) {
       console.error('❌ Redis ping failed:', error);
+      Sentry.captureException(error);
       return false;
     }
   }
@@ -98,7 +100,7 @@ export class RedisClient {
    */
   async set(key: string, value: string, ttl?: number): Promise<boolean> {
     try {
-      if (ttl) {
+      if (ttl !== undefined && ttl !== null) {
         await this.client.setex(key, ttl, value);
       } else {
         await this.client.set(key, value);
@@ -184,11 +186,15 @@ export class RedisClient {
    */
   async incrWithExpiry(key: string, ttl: number): Promise<number> {
     try {
+      // Atomically increment and set expiry using pipeline
       const pipeline = this.client.pipeline();
       pipeline.incr(key);
       pipeline.expire(key, ttl);
       const results = await pipeline.exec();
-      return results?.[0]?.[1] as number || 0;
+      // The first command in the pipeline is incr
+      return typeof results?.[0]?.[1] === 'number'
+        ? (results[0][1] as number)
+        : 0;
     } catch (error) {
       console.error('❌ Redis incrWithExpiry error:', error);
       Sentry.captureException(error);
@@ -200,19 +206,19 @@ export class RedisClient {
    * Rate limiting
    */
   async rateLimit(
-    key: string, 
-    limit: number, 
+    key: string,
+    limit: number,
     window: number
   ): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
     try {
       const current = await this.incrWithExpiry(key, window);
       const remaining = Math.max(0, limit - current);
-      const resetTime = Date.now() + (window * 1000);
-      
+      const resetTime = Date.now() + window * 1000;
+
       return {
         allowed: current <= limit,
         remaining,
-        resetTime
+        resetTime,
       };
     } catch (error) {
       console.error('❌ Redis rateLimit error:', error);
@@ -220,7 +226,7 @@ export class RedisClient {
       return {
         allowed: false,
         remaining: 0,
-        resetTime: Date.now()
+        resetTime: Date.now(),
       };
     }
   }
@@ -229,8 +235,8 @@ export class RedisClient {
    * Cache avec TTL
    */
   async cache<T>(
-    key: string, 
-    fetcher: () => Promise<T>, 
+    key: string,
+    fetcher: () => Promise<T>,
     ttl: number = 3600
   ): Promise<T> {
     try {
@@ -255,7 +261,11 @@ export class RedisClient {
   /**
    * Session management
    */
-  async setSession(sessionId: string, data: any, ttl: number = 86400): Promise<boolean> {
+  async setSession(
+    sessionId: string,
+    data: any,
+    ttl: number = 86400
+  ): Promise<boolean> {
     try {
       const key = `session:${sessionId}`;
       return await this.set(key, JSON.stringify(data), ttl);
@@ -320,7 +330,6 @@ export class RedisClient {
   async disconnect(): Promise<void> {
     try {
       await this.client.quit();
-      this.isConnected = false;
       console.log('✅ Redis disconnected');
     } catch (error) {
       console.error('❌ Redis disconnect error:', error);
@@ -338,14 +347,14 @@ export class RedisClient {
 
 // Configuration Redis
 const redisConfig: RedisConfig = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-  db: parseInt(process.env.REDIS_DB || '0'),
+  host: process.env['REDIS_HOST'] || 'localhost',
+  port: parseInt(process.env['REDIS_PORT'] || '6379', 10),
+  password: process.env['REDIS_PASSWORD'] || '',
+  db: parseInt(process.env['REDIS_DB'] || '0', 10),
   retryDelayOnFailover: 100,
   maxRetriesPerRequest: 3,
   lazyConnect: true,
-  keepAlive: 30000
+  keepAlive: 30000,
 };
 
 // Instance singleton

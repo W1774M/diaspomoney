@@ -3,8 +3,8 @@
  * Chiffrement au niveau des champs pour PCI-DSS et GDPR
  */
 
-import crypto from 'crypto';
 import * as Sentry from '@sentry/nextjs';
+import crypto from 'crypto';
 
 export interface EncryptionConfig {
   algorithm: string;
@@ -26,12 +26,13 @@ export class FieldEncryption {
   private config: EncryptionConfig;
 
   constructor() {
-    this.masterKey = process.env.ENCRYPTION_MASTER_KEY || this.generateMasterKey();
+    this.masterKey =
+      process.env['ENCRYPTION_MASTER_KEY'] || this.generateMasterKey();
     this.config = {
       algorithm: 'aes-256-gcm',
       keyLength: 32,
       ivLength: 16,
-      tagLength: 16
+      tagLength: 16,
     };
   }
 
@@ -55,7 +56,13 @@ export class FieldEncryption {
    */
   private deriveKey(fieldName: string, userId?: string): Buffer {
     const salt = `${fieldName}:${userId || 'global'}`;
-    return crypto.pbkdf2Sync(this.masterKey, salt, 100000, this.config.keyLength, 'sha256');
+    return crypto.pbkdf2Sync(
+      this.masterKey,
+      salt,
+      100000,
+      this.config.keyLength,
+      'sha256'
+    );
   }
 
   /**
@@ -68,19 +75,18 @@ export class FieldEncryption {
       const key = this.deriveKey(fieldName, userId);
       const iv = crypto.randomBytes(this.config.ivLength);
       const cipher = crypto.createCipher(this.config.algorithm, key);
-      cipher.setAAD(Buffer.from(fieldName));
+      (cipher as any).setAAD(Buffer.from(fieldName));
 
       let encrypted = cipher.update(value, 'utf8', 'hex');
       encrypted += cipher.final('hex');
-      const tag = cipher.getAuthTag();
+      const tag = (cipher as any).getAuthTag();
 
       return {
         encrypted,
         iv: iv.toString('hex'),
         tag: tag.toString('hex'),
-        algorithm: this.config.algorithm
+        algorithm: this.config.algorithm,
       };
-
     } catch (error) {
       console.error('❌ Field encryption error:', error);
       Sentry.captureException(error);
@@ -91,23 +97,26 @@ export class FieldEncryption {
   /**
    * Déchiffrer un champ sensible
    */
-  decrypt(fieldName: string, encryptedField: EncryptedField, userId?: string): string {
+  decrypt(
+    fieldName: string,
+    encryptedField: EncryptedField,
+    userId?: string
+  ): string {
     try {
       if (!encryptedField || !encryptedField.encrypted) return '';
 
       const key = this.deriveKey(fieldName, userId);
-      const iv = Buffer.from(encryptedField.iv, 'hex');
+      // const _iv = Buffer.from(encryptedField.iv, 'hex');
       const tag = Buffer.from(encryptedField.tag, 'hex');
       const decipher = crypto.createDecipher(encryptedField.algorithm, key);
-      
-      decipher.setAAD(Buffer.from(fieldName));
-      decipher.setAuthTag(tag);
+
+      (decipher as any).setAAD(Buffer.from(fieldName));
+      (decipher as any).setAuthTag(tag);
 
       let decrypted = decipher.update(encryptedField.encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
 
       return decrypted;
-
     } catch (error) {
       console.error('❌ Field decryption error:', error);
       Sentry.captureException(error);
@@ -118,7 +127,11 @@ export class FieldEncryption {
   /**
    * Chiffrer un objet avec plusieurs champs
    */
-  encryptObject(obj: Record<string, any>, fieldsToEncrypt: string[], userId?: string): Record<string, any> {
+  encryptObject(
+    obj: Record<string, any>,
+    fieldsToEncrypt: string[],
+    userId?: string
+  ): Record<string, any> {
     const encrypted = { ...obj };
 
     for (const field of fieldsToEncrypt) {
@@ -133,11 +146,19 @@ export class FieldEncryption {
   /**
    * Déchiffrer un objet avec plusieurs champs
    */
-  decryptObject(obj: Record<string, any>, fieldsToDecrypt: string[], userId?: string): Record<string, any> {
+  decryptObject(
+    obj: Record<string, any>,
+    fieldsToDecrypt: string[],
+    userId?: string
+  ): Record<string, any> {
     const decrypted = { ...obj };
 
     for (const field of fieldsToDecrypt) {
-      if (obj[field] && typeof obj[field] === 'object' && obj[field].encrypted) {
+      if (
+        obj[field] &&
+        typeof obj[field] === 'object' &&
+        obj[field].encrypted
+      ) {
         decrypted[field] = this.decrypt(field, obj[field], userId);
       }
     }
@@ -151,7 +172,9 @@ export class FieldEncryption {
   hashForSearch(fieldName: string, value: string, userId?: string): string {
     try {
       const salt = `${fieldName}:${userId || 'global'}`;
-      return crypto.pbkdf2Sync(value, salt, 10000, 32, 'sha256').toString('hex');
+      return crypto
+        .pbkdf2Sync(value, salt, 10000, 32, 'sha256')
+        .toString('hex');
     } catch (error) {
       console.error('❌ Hash for search error:', error);
       Sentry.captureException(error);
@@ -169,7 +192,11 @@ export class FieldEncryption {
   /**
    * Vérifier l'intégrité d'un champ chiffré
    */
-  verifyIntegrity(fieldName: string, encryptedField: EncryptedField, userId?: string): boolean {
+  verifyIntegrity(
+    fieldName: string,
+    encryptedField: EncryptedField,
+    userId?: string
+  ): boolean {
     try {
       const decrypted = this.decrypt(fieldName, encryptedField, userId);
       return decrypted !== null && decrypted !== '';
@@ -190,9 +217,9 @@ export const SENSITIVE_FIELDS = {
     'address',
     'dateOfBirth',
     'nationalId',
-    'passportNumber'
+    'passportNumber',
   ],
-  
+
   // Données financières (PCI-DSS)
   FINANCIAL: [
     'cardNumber',
@@ -200,25 +227,20 @@ export const SENSITIVE_FIELDS = {
     'bankAccount',
     'iban',
     'swiftCode',
-    'routingNumber'
+    'routingNumber',
   ],
-  
+
   // Données médicales (HIPAA-like)
   MEDICAL: [
     'medicalHistory',
     'diagnosis',
     'prescription',
     'allergies',
-    'bloodType'
+    'bloodType',
   ],
-  
+
   // Données d'authentification
-  AUTH: [
-    'password',
-    'twoFactorSecret',
-    'recoveryCodes',
-    'apiKeys'
-  ]
+  AUTH: ['password', 'twoFactorSecret', 'recoveryCodes', 'apiKeys'],
 };
 
 // Instance singleton

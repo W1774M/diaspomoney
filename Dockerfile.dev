@@ -1,0 +1,26 @@
+FROM node:18-alpine
+
+# Installer les dépendances système nécessaires
+RUN apk add --no-cache libc6-compat
+
+# Définir le répertoire de travail
+WORKDIR /app
+
+# Copier les fichiers de configuration des dépendances
+COPY package*.json ./
+COPY pnpm-lock.yaml ./
+
+# Installer pnpm
+RUN npm install -g pnpm
+
+# Installer les dépendances
+RUN pnpm install --frozen-lockfile
+
+# Copier le code source
+COPY . .
+
+# Exposer le port
+EXPOSE 3000
+
+# Commande par défaut pour le développement
+CMD ["npm", "run", "dev"]

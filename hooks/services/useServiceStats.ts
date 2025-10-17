@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { IUser } from "@/types";
-import { ServiceStats } from "@/types/services";
-import { useMemo } from "react";
+import { IUser } from '@/types';
+import { ServiceStats } from '@/types/services';
+import { useMemo } from 'react';
 
 export function useServiceStats(providers: IUser[]): ServiceStats {
   return useMemo(() => {
-    const activeProviders = providers.filter(p => p.status === "ACTIVE");
+    const activeProviders = providers.filter(p => p.status === 'ACTIVE');
 
     const specialties = [
       ...new Set(
@@ -18,9 +18,7 @@ export function useServiceStats(providers: IUser[]): ServiceStats {
 
     const services = providers
       .flatMap(p =>
-        p.selectedServices
-          ? p.selectedServices.split(",").map(s => s.trim())
-          : []
+        p.selectedServices ? p.selectedServices.map(s => s.trim()) : []
       )
       .filter((service, idx, arr) => arr.indexOf(service) === idx)
       .sort();

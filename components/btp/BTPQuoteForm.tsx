@@ -2,22 +2,34 @@
  * BTP Quote Form - DiaspoMoney
  * Formulaire de demande de devis BTP
  */
-
+'use client';
+import { Button } from '@/components/ui/Button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
+import { ProviderType } from '@/types';
+import { Badge, Building2, Calculator, Mail, Phone } from 'lucide-react';
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Building2, Calculator, MapPin, Phone, Mail, Calendar } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/Select';
+import { Separator } from '../ui/Separator';
+import { Textarea } from '../ui/Textarea';
 
 interface BTPQuoteFormProps {
   provider?: {
     id: string;
     name: string;
-    type: 'INDIVIDUAL' | 'INSTITUTION';
+    type: ProviderType;
     specialties: string[];
     rating: number;
     reviewCount: number;
@@ -30,9 +42,9 @@ interface BTPQuoteFormProps {
 
 interface QuoteFormData {
   projectType: string;
-  area: number;
+  area: number | string;
   features: string[];
-  budget: number;
+  budget: number | string;
   timeline: string;
   location: {
     city: string;
@@ -47,34 +59,42 @@ interface QuoteFormData {
   urgency: 'LOW' | 'MEDIUM' | 'HIGH';
 }
 
+// Utility: validate email (simple regex)
+const isValidEmail = (email: string) => /^\S+@\S+\.\S+$/.test(email);
+
+// Utility: validate French-style phone (very basic, just checks digits and optional +)
+const isValidPhone = (phone: string) =>
+  phone.trim() === '' || /^[+]?[0-9\s\-]+$/.test(phone.trim());
+
 export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
   const [formData, setFormData] = useState<QuoteFormData>({
     projectType: '',
-    area: 0,
+    area: '',
     features: [],
-    budget: 0,
+    budget: '',
     timeline: '',
     location: {
       city: '',
-      country: ''
+      country: '',
     },
     contact: {
       name: '',
       email: '',
-      phone: ''
+      phone: '',
     },
     description: '',
-    urgency: 'MEDIUM'
+    urgency: 'MEDIUM',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [estimatedCost, setEstimatedCost] = useState<number | null>(null);
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
   const projectTypes = [
     { value: 'NEW_CONSTRUCTION', label: 'Construction neuve' },
     { value: 'RENOVATION', label: 'Rénovation' },
     { value: 'EXTENSION', label: 'Extension' },
-    { value: 'REPAIR', label: 'Réparation' }
+    { value: 'REPAIR', label: 'Réparation' },
   ];
 
   const features = [
@@ -83,7 +103,7 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
     { value: 'garage', label: 'Garage' },
     { value: 'terrasse', label: 'Terrasse' },
     { value: 'climatisation', label: 'Climatisation' },
-    { value: 'sécurité', label: 'Système de sécurité' }
+    { value: 'sécurité', label: 'Système de sécurité' },
   ];
 
   const handleFeatureToggle = (feature: string) => {
@@ -91,21 +111,26 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
       ...prev,
       features: prev.features.includes(feature)
         ? prev.features.filter(f => f !== feature)
-        : [...prev.features, feature]
+        : [...prev.features, feature],
     }));
   };
 
   const calculateEstimate = () => {
-    if (!formData.projectType || !formData.area) return;
+    const area =
+      typeof formData.area === 'number'
+        ? formData.area
+        : parseInt(formData.area);
 
-    const baseCostPerSqm = 150000; // XOF par m²
+    if (!formData.projectType || !area || isNaN(area)) return;
+
+    const baseCostPerSqm = 150000; // XOF per m²
     const featureMultipliers: Record<string, number> = {
-      'piscine': 1.2,
-      'jardin': 1.1,
-      'garage': 1.15,
-      'terrasse': 1.05,
-      'climatisation': 1.1,
-      'sécurité': 1.05
+      piscine: 1.2,
+      jardin: 1.1,
+      garage: 1.15,
+      terrasse: 1.05,
+      climatisation: 1.1,
+      sécurité: 1.05,
     };
 
     let multiplier = 1;
@@ -113,269 +138,459 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
       multiplier *= featureMultipliers[feature] || 1;
     }
 
-    const estimate = formData.area * baseCostPerSqm * multiplier;
+    const estimate = area * baseCostPerSqm * multiplier;
     setEstimatedCost(estimate);
   };
 
+  const validateForm = () => {
+    const errors: { [key: string]: string } = {};
+    if (!formData.projectType) errors['projectType'] = 'Type de projet requis';
+    const areaNum =
+      typeof formData.area === 'number'
+        ? formData.area
+        : parseInt(formData.area);
+
+    if (!formData.area || isNaN(areaNum) || areaNum <= 0)
+      errors['area'] = 'Surface requise (>0)';
+
+    if (!formData.location.city.trim()) errors['city'] = 'Ville requise';
+
+    if (!formData.location.country) errors['country'] = 'Pays requis';
+
+    if (!formData.contact.name.trim()) errors['name'] = 'Nom requis';
+
+    if (!formData.contact.email.trim()) errors['email'] = 'Email requis';
+    else if (!isValidEmail(formData.contact.email))
+      errors['email'] = 'Email invalide';
+    if (formData.contact.phone && !isValidPhone(formData.contact.phone))
+      errors['phone'] = 'Numéro de téléphone invalide';
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // const _handleInputNumber =
+  //   (key: keyof QuoteFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  //     const val = e.target.value.replace(/[^0-9]/g, '');
+  //     setFormData(prev => ({
+  //       ...prev,
+  //       [key]: val,
+  //     }));
+  //     setFormErrors(errs => ({ ...errs, [key]: '' }));
+  //   };
+
+  const handleInput =
+    (key: keyof QuoteFormData) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setFormData(prev => ({
+        ...prev,
+        [key]: e.target.value,
+      }));
+      setFormErrors(errs => ({ ...errs, [key]: '' }));
+    };
+
+  const handleInputLocation =
+    (subkey: keyof QuoteFormData['location']) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData(prev => ({
+        ...prev,
+        location: { ...prev.location, [subkey]: e.target.value },
+      }));
+      setFormErrors(errs => ({ ...errs, [subkey]: '' }));
+    };
+
+  const handleInputContact =
+    (subkey: keyof QuoteFormData['contact']) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData(prev => ({
+        ...prev,
+        contact: { ...prev.contact, [subkey]: e.target.value },
+      }));
+      setFormErrors(errs => ({ ...errs, [subkey]: '' }));
+    };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
     setIsSubmitting(true);
 
     try {
-      // TODO: Envoyer la demande de devis
-      console.log('Demande de devis BTP:', formData);
-      
-      // Simulation d'envoi
+      // TODO: Envoyer la demande de devis (simulate)
+      // console.log('Demande de devis BTP:', formData);
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Afficher un message de succès
       alert('Votre demande de devis a été envoyée avec succès !');
-      
+      setFormData({
+        projectType: '',
+        area: '',
+        features: [],
+        budget: '',
+        timeline: '',
+        location: {
+          city: '',
+          country: '',
+        },
+        contact: {
+          name: '',
+          email: '',
+          phone: '',
+        },
+        description: '',
+        urgency: 'MEDIUM',
+      });
+      setEstimatedCost(null);
+      setFormErrors({});
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Erreur envoi devis:', error);
-      alert('Erreur lors de l\'envoi de la demande');
+      alert("Erreur lors de l'envoi de la demande");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const disableEstimate =
+    !formData.projectType ||
+    !formData.area ||
+    (typeof formData.area === 'string' && parseInt(formData.area) <= 0);
+
+  const disableSubmit =
+    isSubmitting ||
+    !formData.projectType ||
+    !formData.area ||
+    (typeof formData.area === 'string' && parseInt(formData.area) <= 0) ||
+    !formData.contact.name.trim() ||
+    !formData.contact.email.trim() ||
+    Object.keys(formErrors).length > 0;
+
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className='max-w-4xl mx-auto p-6 space-y-6'>
       {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold flex items-center justify-center gap-2">
-          <Building2 className="h-8 w-8 text-blue-600" />
+      <div className='text-center space-y-2'>
+        <h1 className='text-3xl font-bold flex items-center justify-center gap-2'>
+          <Building2 className='h-8 w-8 text-blue-600' />
           Demande de Devis BTP
         </h1>
-        <p className="text-gray-600">
+        <p className='text-gray-600'>
           Obtenez un devis personnalisé pour votre projet de construction
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
         {/* Formulaire principal */}
-        <div className="lg:col-span-2">
+        <div className='lg:col-span-2'>
           <Card>
             <CardHeader>
               <CardTitle>Informations du projet</CardTitle>
               <CardDescription>
-                Remplissez les détails de votre projet pour obtenir un devis précis
+                Remplissez les détails de votre projet pour obtenir un devis
+                précis
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className='space-y-6' noValidate>
                 {/* Type de projet */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Type de projet *</label>
+                <div className='space-y-2'>
+                  <label className='text-sm font-medium'>
+                    Type de projet *
+                  </label>
                   <Select
                     value={formData.projectType}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, projectType: value }))}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setFormData(prev => ({
+                        ...prev,
+                        projectType: e.target.value,
+                      }))
+                    }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionnez le type de projet" />
+                      <SelectValue>Sélectionnez le type de projet</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {projectTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
+                      {projectTypes.map(type => (
+                        <SelectItem key={type.value}>
+                          <div>{type.label}</div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {formErrors['projectType'] && (
+                    <p className='text-red-500 text-xs'>
+                      {formErrors['projectType']}
+                    </p>
+                  )}
                 </div>
 
                 {/* Surface et budget */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Surface (m²) *</label>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='space-y-2'>
+                    <label className='text-sm font-medium'>
+                      Surface (m²) *
+                    </label>
                     <Input
-                      type="number"
-                      placeholder="Ex: 120"
-                      value={formData.area || ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        area: parseInt(e.target.value) || 0 
-                      }))}
+                      type='number'
+                      min={1}
+                      placeholder='Ex: 120'
+                      value={formData.area}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        // Only digits, no negative or decimal.
+                        let val = e.target.value.replace(/[^0-9]/g, '');
+                        if (val.length > 7) val = val.slice(0, 7); // Limit input
+                        setFormData(prev => ({ ...prev, area: val }));
+                        setFormErrors(fe => ({ ...fe, area: '' }));
+                      }}
+                      inputMode='numeric'
+                      required
                     />
+                    {formErrors['area'] && (
+                      <p className='text-red-500 text-xs'>
+                        {formErrors['area']}
+                      </p>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Budget estimé (XOF)</label>
+                  <div className='space-y-2'>
+                    <label className='text-sm font-medium'>
+                      Budget estimé (XOF)
+                    </label>
                     <Input
-                      type="number"
-                      placeholder="Ex: 50000000"
-                      value={formData.budget || ''}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        budget: parseInt(e.target.value) || 0 
-                      }))}
+                      type='number'
+                      min={0}
+                      placeholder='Ex: 50000000'
+                      value={formData.budget}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        let val = e.target.value.replace(/[^0-9]/g, '');
+                        if (val.length > 11) val = val.slice(0, 11);
+                        setFormData(prev => ({ ...prev, budget: val }));
+                        setFormErrors(fe => ({ ...fe, budget: '' }));
+                      }}
+                      inputMode='numeric'
                     />
                   </div>
                 </div>
 
                 {/* Fonctionnalités */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Fonctionnalités souhaitées</label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {features.map((feature) => (
-                      <button
-                        key={feature.value}
-                        type="button"
-                        onClick={() => handleFeatureToggle(feature.value)}
-                        className={`p-2 rounded-md border text-sm transition-colors ${
-                          formData.features.includes(feature.value)
-                            ? 'bg-blue-50 border-blue-200 text-blue-700'
-                            : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        {feature.label}
-                      </button>
-                    ))}
+                <div className='space-y-2'>
+                  <label className='text-sm font-medium'>
+                    Fonctionnalités souhaitées
+                  </label>
+                  <div className='grid grid-cols-2 md:grid-cols-3 gap-2'>
+                    {features.map(
+                      (feature: { value: string; label: string }) => (
+                        <Button
+                          key={feature.value}
+                          onClick={() => handleFeatureToggle(feature.value)}
+                          className={`p-2 rounded-md border text-sm transition-colors outline-none focus:ring-2 focus:ring-blue-400 ${
+                            formData.features.includes(feature.value)
+                              ? 'bg-blue-50 border-blue-200 text-blue-700'
+                              : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                          }`}
+                          aria-pressed={formData.features.includes(
+                            feature.value
+                          )}
+                        >
+                          {feature.label}
+                        </Button>
+                      )
+                    )}
                   </div>
                 </div>
 
                 {/* Localisation */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Ville *</label>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='space-y-2'>
+                    <label className='text-sm font-medium'>Ville *</label>
                     <Input
-                      placeholder="Ex: Dakar"
+                      placeholder='Ex: Dakar'
                       value={formData.location.city}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        location: { ...prev.location, city: e.target.value }
-                      }))}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleInputLocation('city')(e)
+                      }
+                      required
                     />
+                    {formErrors['city'] && (
+                      <p className='text-red-500 text-xs'>
+                        {formErrors['city']}
+                      </p>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Pays *</label>
+                  <div className='space-y-2'>
+                    <label className='text-sm font-medium'>Pays *</label>
                     <Select
                       value={formData.location.country}
-                      onValueChange={(value) => setFormData(prev => ({ 
-                        ...prev, 
-                        location: { ...prev.location, country: value }
-                      }))}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          location: {
+                            ...prev.location,
+                            country: e.target.value,
+                          },
+                        }))
+                      }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Sélectionnez le pays" />
+                        <SelectValue>Sélectionnez le pays</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="SN">Sénégal</SelectItem>
-                        <SelectItem value="CI">Côte d'Ivoire</SelectItem>
-                        <SelectItem value="CM">Cameroun</SelectItem>
-                        <SelectItem value="BF">Burkina Faso</SelectItem>
-                        <SelectItem value="ML">Mali</SelectItem>
+                        <SelectItem>Sénégal</SelectItem>
+                        <SelectItem>Côte d&apos;Ivoire</SelectItem>
+                        <SelectItem>Cameroun</SelectItem>
+                        <SelectItem>Burkina Faso</SelectItem>
+                        <SelectItem>Mali</SelectItem>
                       </SelectContent>
                     </Select>
+                    {formErrors['country'] && (
+                      <p className='text-red-500 text-xs'>
+                        {formErrors['country']}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* Délai */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Délai souhaité</label>
+                <div className='space-y-2'>
+                  <label className='text-sm font-medium'>Délai souhaité</label>
                   <Select
                     value={formData.timeline}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, timeline: value }))}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setFormData(prev => ({
+                        ...prev,
+                        timeline: e.target.value,
+                      }))
+                    }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionnez le délai" />
+                      <SelectValue>Sélectionnez le délai</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1-3">1-3 mois</SelectItem>
-                      <SelectItem value="3-6">3-6 mois</SelectItem>
-                      <SelectItem value="6-12">6-12 mois</SelectItem>
-                      <SelectItem value="12+">Plus de 12 mois</SelectItem>
+                      <SelectItem>1-3 mois</SelectItem>
+                      <SelectItem>3-6 mois</SelectItem>
+                      <SelectItem>6-12 mois</SelectItem>
+                      <SelectItem>Plus de 12 mois</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Description */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Description du projet</label>
+                <div className='space-y-2'>
+                  <label className='text-sm font-medium'>
+                    Description du projet
+                  </label>
                   <Textarea
-                    placeholder="Décrivez votre projet en détail..."
+                    placeholder='Décrivez votre projet en détail...'
                     value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      handleInput('description')(e as any)
+                    }
                     rows={4}
                   />
                 </div>
 
                 {/* Urgence */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Niveau d'urgence</label>
+                <div className='space-y-2'>
+                  <label className='text-sm font-medium'>
+                    Niveau d&apos;urgence
+                  </label>
                   <Select
                     value={formData.urgency}
-                    onValueChange={(value: 'LOW' | 'MEDIUM' | 'HIGH') => setFormData(prev => ({ ...prev, urgency: value }))}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setFormData(prev => ({
+                        ...prev,
+                        urgency: e.target.value as 'LOW' | 'MEDIUM' | 'HIGH',
+                      }))
+                    }
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue>
+                        Sélectionnez le niveau d&apos;urgence
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="LOW">Faible</SelectItem>
-                      <SelectItem value="MEDIUM">Moyenne</SelectItem>
-                      <SelectItem value="HIGH">Élevée</SelectItem>
+                      <SelectItem>Faible</SelectItem>
+                      <SelectItem>Moyenne</SelectItem>
+                      <SelectItem>Élevée</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Informations de contact */}
                 <Separator />
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Informations de contact</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Nom complet *</label>
+                <div className='space-y-4'>
+                  <h3 className='text-lg font-semibold'>
+                    Informations de contact
+                  </h3>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <div className='space-y-2'>
+                      <label className='text-sm font-medium'>
+                        Nom complet *
+                      </label>
                       <Input
-                        placeholder="Votre nom"
+                        placeholder='Votre nom'
                         value={formData.contact.name}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          contact: { ...prev.contact, name: e.target.value }
-                        }))}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleInputContact('name')(e)
+                        }
+                        required
                       />
+                      {formErrors['name'] && (
+                        <p className='text-red-500 text-xs'>
+                          {formErrors['name']}
+                        </p>
+                      )}
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Email *</label>
+                    <div className='space-y-2'>
+                      <label className='text-sm font-medium'>Email *</label>
                       <Input
-                        type="email"
-                        placeholder="votre@email.com"
+                        type='email'
+                        placeholder='votre@email.com'
                         value={formData.contact.email}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          contact: { ...prev.contact, email: e.target.value }
-                        }))}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleInputContact('email')(e)
+                        }
+                        required
                       />
+                      {formErrors['email'] && (
+                        <p className='text-red-500 text-xs'>
+                          {formErrors['email']}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Téléphone</label>
+                  <div className='space-y-2'>
+                    <label className='text-sm font-medium'>Téléphone</label>
                     <Input
-                      type="tel"
-                      placeholder="+221 33 123 45 67"
+                      type='tel'
+                      placeholder='+221 33 123 45 67'
                       value={formData.contact.phone}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        contact: { ...prev.contact, phone: e.target.value }
-                      }))}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleInputContact('phone')(e)
+                      }
+                      maxLength={20}
                     />
+                    {formErrors['phone'] && (
+                      <p className='text-red-500 text-xs'>
+                        {formErrors['phone']}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* Boutons d'action */}
-                <div className="flex gap-4">
+                <div className='flex gap-4'>
                   <Button
-                    type="button"
-                    variant="outline"
+                    type='button'
+                    variant='outline'
                     onClick={calculateEstimate}
-                    disabled={!formData.projectType || !formData.area}
-                    className="flex items-center gap-2"
+                    disabled={disableEstimate}
+                    className='flex items-center gap-2'
                   >
-                    <Calculator className="h-4 w-4" />
+                    <Calculator className='h-4 w-4' />
                     Estimer le coût
                   </Button>
                   <Button
-                    type="submit"
-                    disabled={isSubmitting || !formData.projectType || !formData.area || !formData.contact.name || !formData.contact.email}
-                    className="flex-1"
+                    type='submit'
+                    disabled={disableSubmit}
+                    className='flex-1'
                   >
                     {isSubmitting ? 'Envoi en cours...' : 'Demander un devis'}
                   </Button>
@@ -386,26 +601,31 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className='space-y-6'>
           {/* Estimation */}
-          {estimatedCost && (
+          {typeof estimatedCost === 'number' && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calculator className="h-5 w-5" />
+                <CardTitle className='flex items-center gap-2'>
+                  <Calculator className='h-5 w-5' />
                   Estimation
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center space-y-2">
-                  <div className="text-3xl font-bold text-blue-600">
+                <div className='text-center space-y-2'>
+                  <div className='text-3xl font-bold text-blue-600'>
                     {estimatedCost.toLocaleString()} XOF
                   </div>
-                  <p className="text-sm text-gray-600">
-                    Estimation basée sur {formData.area} m²
+                  <p className='text-sm text-gray-600'>
+                    Estimation basée sur{' '}
+                    {typeof formData.area === 'string'
+                      ? parseInt(formData.area) || 0
+                      : formData.area}{' '}
+                    m²
                   </p>
-                  <Badge variant="outline">
-                    {formData.features.length} fonctionnalité{formData.features.length > 1 ? 's' : ''}
+                  <Badge>
+                    {formData.features.length} fonctionnalit
+                    {formData.features.length > 1 ? 'és' : 'é'}
                   </Badge>
                 </div>
               </CardContent>
@@ -418,42 +638,42 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
               <CardHeader>
                 <CardTitle>Prestataire sélectionné</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className='space-y-4'>
                 <div>
-                  <h4 className="font-semibold">{provider.name}</h4>
-                  <Badge variant={provider.type === 'INSTITUTION' ? 'default' : 'secondary'}>
-                    {provider.type === 'INSTITUTION' ? 'Institution' : 'Indépendant'}
+                  <h4 className='font-semibold'>{provider.name}</h4>
+                  <Badge>
+                    {provider.type === ProviderType.INSTITUTION
+                      ? 'Institution'
+                      : 'Indépendant'}
                   </Badge>
                 </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-4 w-4" />
+
+                <div className='space-y-2'>
+                  <div className='flex items-center gap-2 text-sm'>
+                    <Phone className='h-4 w-4' />
                     {provider.contact.phone}
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-4 w-4" />
+                  <div className='flex items-center gap-2 text-sm'>
+                    <Mail className='h-4 w-4' />
                     {provider.contact.email}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-500">★</span>
-                    <span className="font-medium">{provider.rating}</span>
+                <div className='flex items-center gap-2'>
+                  <div className='flex items-center gap-1'>
+                    <span className='text-yellow-500'>★</span>
+                    <span className='font-medium'>{provider.rating}</span>
                   </div>
-                  <span className="text-sm text-gray-600">
+                  <span className='text-sm text-gray-600'>
                     ({provider.reviewCount} avis)
                   </span>
                 </div>
 
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">Spécialités:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {provider.specialties.map((specialty) => (
-                      <Badge key={specialty} variant="outline" className="text-xs">
-                        {specialty}
-                      </Badge>
+                <div className='space-y-1'>
+                  <p className='text-sm font-medium'>Spécialités :</p>
+                  <div className='flex flex-wrap gap-1'>
+                    {provider.specialties.map((specialty: string) => (
+                      <Badge key={specialty}>{specialty}</Badge>
                     ))}
                   </div>
                 </div>
@@ -466,32 +686,40 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
             <CardHeader>
               <CardTitle>Comment ça marche ?</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">
+            <CardContent className='space-y-3'>
+              <div className='flex items-start gap-3'>
+                <div className='w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600'>
                   1
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Remplissez le formulaire</p>
-                  <p className="text-xs text-gray-600">Décrivez votre projet en détail</p>
+                  <p className='text-sm font-medium'>
+                    Remplissez le formulaire
+                  </p>
+                  <p className='text-xs text-gray-600'>
+                    Décrivez votre projet en détail
+                  </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">
+              <div className='flex items-start gap-3'>
+                <div className='w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600'>
                   2
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Recevez des devis</p>
-                  <p className="text-xs text-gray-600">Jusqu'à 3 devis personnalisés</p>
+                  <p className='text-sm font-medium'>Recevez des devis</p>
+                  <p className='text-xs text-gray-600'>
+                    Jusqu&apos;à 3 devis personnalisés
+                  </p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600">
+              <div className='flex items-start gap-3'>
+                <div className='w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-semibold text-blue-600'>
                   3
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Comparez et choisissez</p>
-                  <p className="text-xs text-gray-600">Sélectionnez le meilleur prestataire</p>
+                  <p className='text-sm font-medium'>Comparez et choisissez</p>
+                  <p className='text-xs text-gray-600'>
+                    Sélectionnez le meilleur prestataire
+                  </p>
                 </div>
               </div>
             </CardContent>

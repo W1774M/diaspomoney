@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { getProviderRatingStats } from "@/mocks";
-import { IUser } from "@/types";
-import { ServiceFilters } from "@/types/services";
-import { useCallback, useMemo, useState } from "react";
+import { getProviderRatingStats } from '@/mocks';
+import { IUser } from '@/types';
+import { ServiceFilters } from '@/types/services';
+import { useCallback, useMemo, useState } from 'react';
 
 export function useServiceFilters(providers: IUser[]) {
   const [filters, setFilters] = useState<ServiceFilters>({
-    service: "",
-    city: "",
-    specialty: "",
+    service: '',
+    city: '',
+    specialty: '',
     rating: 0,
-    category: "",
+    category: '',
   });
 
   // Extract unique data from providers
@@ -19,7 +19,7 @@ export function useServiceFilters(providers: IUser[]) {
     return providers
       .flatMap(p =>
         p.selectedServices
-          ? p.selectedServices.split(",").map((s: string) => s.trim())
+          ? p.selectedServices.map((s: string) => s.trim())
           : []
       )
       .filter((service): service is string => Boolean(service))
@@ -54,7 +54,8 @@ export function useServiceFilters(providers: IUser[]) {
       if (
         filters.service &&
         !provider.selectedServices
-          ?.toLowerCase()
+          ?.join(',')
+          .toLowerCase()
           .includes(filters.service.toLowerCase())
       ) {
         return false;
@@ -75,8 +76,8 @@ export function useServiceFilters(providers: IUser[]) {
 
       // Rating filter - utiliser les statistiques de rating dynamiques
       if (filters.rating > 0) {
-        const ratingStats = getProviderRatingStats(provider._id);
-        if (ratingStats.averageRating < filters.rating) {
+        const ratingStats = getProviderRatingStats();
+        if ((ratingStats as any).averageRating < filters.rating) {
           return false;
         }
       }
@@ -95,7 +96,7 @@ export function useServiceFilters(providers: IUser[]) {
       console.log(`Providers avant filtrage: ${providers.length}`);
       console.log(`Providers après filtrage: ${result.length}`);
       console.log(
-        "Providers filtrés:",
+        'Providers filtrés:',
         result.map(p => ({ name: p.name, category: p.category }))
       );
     }
@@ -112,17 +113,17 @@ export function useServiceFilters(providers: IUser[]) {
 
   const clearFilters = useCallback(() => {
     setFilters({
-      service: "",
-      city: "",
-      specialty: "",
+      service: '',
+      city: '',
+      specialty: '',
       rating: 0,
-      category: "",
+      category: '',
     });
   }, []);
 
   const hasActiveFilters = useMemo(() => {
     return Object.values(filters).some(value =>
-      typeof value === "string" ? value.length > 0 : value > 0
+      typeof value === 'string' ? value.length > 0 : value > 0
     );
   }, [filters]);
 

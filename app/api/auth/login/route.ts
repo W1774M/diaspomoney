@@ -3,10 +3,9 @@
  * Endpoint d'authentification
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/services/auth/auth.service';
-import { securityManager } from '@/lib/security/advanced-security';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import { authService } from '@/services/auth/auth.service';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,14 +21,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Sanitisation des entrées
-    const sanitizedEmail = securityManager.sanitizeInput(email);
-    const sanitizedPassword = securityManager.sanitizeInput(password);
+    const sanitizedEmail = email.trim().toLowerCase();
+    const sanitizedPassword = password;
 
     // Tentative de connexion
     const result = await authService.login({
       email: sanitizedEmail,
       password: sanitizedPassword,
-      rememberMe: rememberMe || false
+      rememberMe: rememberMe || false,
     });
 
     // Enregistrer les métriques
@@ -38,9 +37,9 @@ export async function POST(request: NextRequest) {
       value: 1,
       timestamp: new Date(),
       labels: {
-        user_role: result.user.role
+        user_role: result.user.role,
       },
-      type: 'counter'
+      type: 'counter',
     });
 
     // Retourner la réponse
@@ -49,24 +48,23 @@ export async function POST(request: NextRequest) {
       user: result.user,
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
-      expiresIn: result.expiresIn
+      expiresIn: result.expiresIn,
     });
-
   } catch (error) {
     console.error('Erreur login API:', error);
-    
+
     // Enregistrer les métriques d'échec
     monitoringManager.recordMetric({
       name: 'auth_logins_failed',
       value: 1,
       timestamp: new Date(),
-      type: 'counter'
+      type: 'counter',
     });
 
     return NextResponse.json(
-      { 
+      {
         error: error instanceof Error ? error.message : 'Erreur de connexion',
-        success: false 
+        success: false,
       },
       { status: 401 }
     );
