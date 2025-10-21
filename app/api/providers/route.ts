@@ -1,4 +1,4 @@
-import { UserService } from "@/services/userService";
+import { userService } from "@/services/user/user.service";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Récupérer les prestataires avec filtres
-    const result = await UserService.getUsers(filters);
+    const result = await userService.getUsers(filters);
 
     // Appliquer les filtres supplémentaires côté serveur si nécessaire
     let filteredProviders = result.data;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { UserService } from "@/services/userService";
+import { userService } from "@/services/user/user.service";
 
 export async function GET(
   _request: NextRequest,
@@ -7,10 +7,10 @@ export async function GET(
 ) {
   try {
     // Récupérer l'utilisateur par ID
-    const provider = await UserService.getUserById(params.id);
+    const provider = await userService.getUserProfile(params.id);
 
     // Vérifier que l'utilisateur a le rôle PROVIDER
-    if (!provider['roles'].includes("PROVIDER")) {
+    if (!provider.role.includes("PROVIDER")) {
       return NextResponse.json(
         { error: "Prestataire non trouvé" },
         { status: 404 }

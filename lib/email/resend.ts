@@ -271,8 +271,18 @@ export const emailTemplates = {
 // Fonction principale d'envoi d'email
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
+    console.log('📧 sendEmail appelée avec options:', {
+      to: options.to,
+      subject: options.subject,
+      from: options.from || 'DiaspoMoney <onboarding@resend.dev>',
+    });
+
     const { data, error } = await resend.emails.send({
-      from: options.from || 'DiaspoMoney <noreply@diaspomoney.fr>',
+      from:
+        options.from ||
+        (process.env.NODE_ENV === 'production'
+          ? 'DiaspoMoney <noreply@diaspomoney.fr>'
+          : 'DiaspoMoney <onboarding@resend.dev>'),
       to: Array.isArray(options.to) ? options.to : [options.to],
       subject: options.subject,
       html: options.html,
@@ -303,16 +313,31 @@ export async function sendWelcomeEmail(
   name: string,
   verificationUrl: string
 ): Promise<boolean> {
-  const template = emailTemplates.welcome(name, verificationUrl);
+  // En développement, utiliser l'email autorisé par Resend
+  // En production, utiliser l'email original
+  const targetEmail =
+    process.env.NODE_ENV === 'development'
+      ? 'malarbillaudrey@gmail.com'
+      : email;
+
+  console.log('📧 Envoi email de bienvenue à:', targetEmail);
+  console.log('📧 Email original:', email);
+
+  // Test avec un template simple
+  const simpleTemplate = {
+    subject: `Bienvenue sur DiaspoMoney, ${name} !`,
+    html: `<p>Bonjour ${name},</p><p>Bienvenue sur DiaspoMoney !</p><p><a href="${verificationUrl}">Vérifier mon email</a></p>`,
+    text: `Bonjour ${name},\n\nBienvenue sur DiaspoMoney !\n\nVérifiez votre email : ${verificationUrl}`,
+  };
 
   return await sendEmail({
-    to: email,
-    subject: template.subject,
-    html: template.html,
-    text: template.text,
+    to: targetEmail,
+    subject: simpleTemplate.subject,
+    html: simpleTemplate.html,
+    text: simpleTemplate.text,
     tags: [
       { name: 'type', value: 'welcome' },
-      { name: 'user', value: email },
+      { name: 'user_email', value: email.replace(/[^a-zA-Z0-9@._-]/g, '_') },
     ],
   });
 }

@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { CustomImage } from "./CustomImage";
+'use client';
+
+import Image from 'next/image';
+import { useState } from 'react';
 
 interface LogoProps {
   src: string;
@@ -16,7 +18,7 @@ const Logo = ({
   height,
   alt,
   fallbackText,
-  className = "",
+  className = '',
 }: LogoProps) => {
   const [imageError, setImageError] = useState(false);
 
@@ -35,7 +37,7 @@ const Logo = ({
   }
 
   return (
-    <CustomImage
+    <Image
       src={src}
       width={width}
       height={height}

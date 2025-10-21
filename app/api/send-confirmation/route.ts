@@ -1,37 +1,5 @@
-import { config } from "@/config/env";
-import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
-
-// Configuration du transporteur email
-const transporter = nodemailer.createTransport({
-  host: config.smtp.host,
-  port: config.smtp.port,
-  secure: false, // true pour 465, false pour les autres ports
-  auth: {
-    user: config.smtp.user,
-    pass: config.smtp.pass,
-  },
-  tls: {
-    rejectUnauthorized: false, // Ignorer les certificats auto-signés
-  },
-});
-
-// Fonction pour envoyer un email
-const sendEmail = async (to: string, subject: string, html: string) => {
-  // En mode développement, simuler l'envoi d'email
-  if (config.isDevelopment) {
-    console.log("📧 [DEV] Email simulé :", { to, subject });
-    console.log("📧 [DEV] Contenu HTML :", html.substring(0, 200) + "...");
-    return { messageId: "dev-" + Date.now() };
-  }
-
-  return await transporter.sendMail({
-    from: config.smtp.user,
-    to,
-    subject,
-    html,
-  });
-};
+import { sendEmail } from '@/lib/email/resend';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,22 +9,22 @@ export async function POST(request: NextRequest) {
     // Validation des données
     if (!appointment || !paymentData) {
       return NextResponse.json(
-        { error: "Données manquantes" },
+        { error: 'Données manquantes' },
         { status: 400 }
       );
     }
 
     // Formatage de la date
     const formattedDate = appointment.timeslot
-      ? new Date(appointment.timeslot).toLocaleDateString("fr-FR", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
+      ? new Date(appointment.timeslot).toLocaleDateString('fr-FR', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
         })
-      : "Non spécifié";
+      : 'Non spécifié';
 
     // Génération d'un numéro de réservation unique
     const reservationNumber = `RES-${Date.now()}-${Math.random()
@@ -95,7 +63,7 @@ export async function POST(request: NextRequest) {
             <div class="highlight">
                 <h2>Numéro de réservation : ${reservationNumber}</h2>
                 <p><strong>Date de réservation :</strong> ${new Date().toLocaleDateString(
-                  "fr-FR"
+                  'fr-FR'
                 )}</p>
             </div>
 
@@ -150,7 +118,7 @@ export async function POST(request: NextRequest) {
                 <h3>📍 Adresse du prestataire</h3>
                 <p>${
                   appointment.provider.apiGeo[0]?.display_name ||
-                  "Adresse non spécifiée"
+                  'Adresse non spécifiée'
                 }</p>
             </div>
 
@@ -183,19 +151,23 @@ export async function POST(request: NextRequest) {
     const subject = `Confirmation de réservation - ${reservationNumber} - DiaspoMoney`;
 
     // Envoi à contact@diaspomoney.fr
-    await sendEmail(
-      process.env["EMAIL_CONTACT"] || "contact@diaspomoney.fr",
+    await sendEmail({
+      to: process.env['EMAIL_CONTACT'] || 'contact@diaspomoney.fr',
       subject,
-      emailContent
-    );
+      html: emailContent,
+    });
 
     // Envoi au client
-    await sendEmail(appointment.requester.email, subject, emailContent);
+    await sendEmail({
+      to: appointment.requester.email,
+      subject,
+      html: emailContent,
+    });
 
     return NextResponse.json(
       {
         success: true,
-        message: "Email de confirmation envoyé avec succès",
+        message: 'Email de confirmation envoyé avec succès',
         reservationNumber,
       },
       { status: 200 }

@@ -4,11 +4,14 @@
  * Basé sur la charte de développement
  */
 
+import { sendWelcomeEmail } from '@/lib/email/resend';
+import dbConnect from '@/lib/mongodb';
 import { securityManager } from '@/lib/security/advanced-security';
 import User from '@/models/User';
 import * as Sentry from '@sentry/nextjs';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { notificationService } from '../notification/notification.service';
 
 export interface LoginCredentials {
   email: string;
@@ -18,15 +21,24 @@ export interface LoginCredentials {
 
 export interface RegisterData {
   email: string;
-  password: string;
+  password?: string;
   firstName: string;
   lastName: string;
   phone?: string;
   country: string;
-  consents: Array<{
-    type: 'MARKETING' | 'ANALYTICS' | 'THIRD_PARTY';
-    granted: boolean;
-  }>;
+  dateOfBirth?: string;
+  targetCountry?: string;
+  targetCity?: string;
+  monthlyBudget?: string;
+  securityQuestion?: string;
+  securityAnswer?: string;
+  termsAccepted: boolean;
+  marketingConsent?: boolean;
+  selectedServices?: string;
+  oauth?: {
+    provider: string;
+    providerAccountId: string;
+  };
 }
 
 export interface AuthUser {
@@ -125,8 +137,11 @@ class AuthService {
    */
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
+      // S'assurer que la connexion à la base de données est établie
+      await dbConnect();
+
       // Validation des données
-      if (data.password.length < 8) {
+      if (data.password && data.password.length < 8) {
         throw new Error('Le mot de passe doit contenir au moins 8 caractères');
       }
 
@@ -141,8 +156,11 @@ class AuthService {
         throw new Error('Un compte avec cet email existe déjà');
       }
 
-      // Hacher le mot de passe
-      const hashedPassword = await bcrypt.hash(data.password, 12);
+      // Hacher le mot de passe (si fourni)
+      let hashedPassword = null;
+      if (data.password) {
+        hashedPassword = await bcrypt.hash(data.password, 12);
+      }
 
       // Créer l'utilisateur
       const user = new User({
@@ -153,26 +171,51 @@ class AuthService {
         lastName: data.lastName,
         phone: data.phone,
         countryOfResidence: data.country,
+        dateOfBirth: data.dateOfBirth,
+        targetCountry: data.targetCountry,
+        targetCity: data.targetCity,
+        monthlyBudget: data.monthlyBudget,
+        securityQuestion: data.securityQuestion,
+        securityAnswer: data.securityAnswer,
+        selectedServices: data.selectedServices,
         roles: ['CUSTOMER'], // Rôle par défaut
         status: 'ACTIVE',
         isEmailVerified: false,
-        marketingConsent:
-          data.consents.find(c => c.type === 'MARKETING')?.granted || false,
-        kycConsent:
-          data.consents.find(c => c.type === 'ANALYTICS')?.granted || false,
+        marketingConsent: data.marketingConsent || false,
+        kycConsent: data.termsAccepted,
+        oauth: data.oauth,
       });
 
       await user.save();
 
       // Générer le token de vérification email
-      // const emailVerificationToken = jwt.sign(
-      //   { userId: user._id?.toString() || user.id, type: "email_verification" },
-      //   process.env["JWT_SECRET"]!,
-      //   { expiresIn: "24h" },
-      // );
+      const emailVerificationToken = jwt.sign(
+        { userId: user._id?.toString() || user.id, type: 'email_verification' },
+        process.env['JWT_SECRET']!,
+        { expiresIn: '24h' }
+      );
 
-      // TODO: Envoyer l'email de vérification
-      // await this.sendVerificationEmail(user.email, emailVerificationToken);
+      // Envoyer l'email de bienvenue avec lien de vérification
+      const verificationUrl = `${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}`;
+      const emailSent = await sendWelcomeEmail(
+        user.email,
+        `${user.firstName} ${user.lastName}`,
+        verificationUrl
+      );
+
+      if (!emailSent) {
+        console.warn(
+          "⚠️ Échec de l'envoi de l'email de bienvenue pour:",
+          user.email
+        );
+      } else {
+        console.log('✅ Email de bienvenue envoyé à:', user.email);
+        await notificationService.sendWelcomeNotification(
+          user.email,
+          `${user.firstName} ${user.lastName}`,
+          'fr'
+        );
+      }
 
       // Génération des tokens
       const tokens = securityManager.generateTokens({

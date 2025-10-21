@@ -1,8 +1,8 @@
-"use client";
-import { Eye, EyeOff } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { SimplifiedRegisterForm } from "./SimplifiedRegisterForm";
+'use client';
+import { Eye, EyeOff } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { SimplifiedRegisterForm } from './SimplifiedRegisterForm';
 
 export function RegisterForm() {
   const router = useRouter();
@@ -14,52 +14,58 @@ export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    dateOfBirth: "",
-    countryOfResidence: "",
-    targetCountry: "",
-    targetCity: "",
-    monthlyBudget: "",
-    password: "",
-    confirmPassword: "",
-    securityQuestion: "",
-    securityAnswer: "",
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    dateOfBirth: '',
+    countryOfResidence: '',
+    targetCountry: '',
+    targetCity: '',
+    monthlyBudget: '',
+    password: '',
+    confirmPassword: '',
+    securityQuestion: '',
+    securityAnswer: '',
     termsAccepted: false,
     marketingConsent: false,
   });
 
   const oauthProvider = useMemo(
-    () => searchParams?.get("oauth") || "",
+    () => searchParams?.get('oauth') || '',
     [searchParams]
   );
   const oauthEmail = useMemo(
-    () => searchParams?.get("email") || "",
+    () => searchParams?.get('email') || '',
     [searchParams]
   );
   const oauthName = useMemo(
-    () => searchParams?.get("name") || "",
+    () => searchParams?.get('name') || '',
     [searchParams]
   );
   const oauthProviderAccountId = useMemo(
-    () => searchParams?.get("providerAccountId") || "",
+    () => searchParams?.get('providerAccountId') || '',
     [searchParams]
   );
 
   // Vérifier si c'est un flux d'inscription simplifiée post-paiement
-  const isSimplifiedRegistration = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    const bookingData = localStorage.getItem("bookingData");
-    return !!bookingData;
+  const [isSimplifiedRegistration, setIsSimplifiedRegistration] =
+    useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    if (typeof window !== 'undefined') {
+      const bookingData = localStorage.getItem('bookingData');
+      setIsSimplifiedRegistration(!!bookingData);
+    }
   }, []);
 
   useEffect(() => {
     if (!oauthEmail && !oauthName) return;
-    const name = (oauthName || "").trim();
-    const [first, ...rest] = name.split(" ");
-    const last = rest.join(" ").trim();
+    const name = (oauthName || '').trim();
+    const [first, ...rest] = name.split(' ');
+    const last = rest.join(' ').trim();
     setFormData(prev => ({
       ...prev,
       email: oauthEmail || prev.email,
@@ -71,38 +77,54 @@ export function RegisterForm() {
   const totalSteps = 4;
 
   // Si c'est une inscription simplifiée, utiliser le composant simplifié
-  if (isSimplifiedRegistration) {
+  if (isClient && isSimplifiedRegistration) {
     return <SimplifiedRegisterForm />;
+  }
+
+  // Afficher un loader pendant l'hydratation pour éviter les erreurs
+  if (!isClient) {
+    return (
+      <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8 px-4'>
+        <div className='w-full max-w-2xl mx-auto'>
+          <div className='backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl overflow-hidden'>
+            <div className='p-10 text-center'>
+              <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
+              <p className='mt-4 text-gray-600'>Chargement...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Données des villes par pays
   const cities = {
     senegal: [
-      "Dakar",
-      "Thiès",
-      "Kaolack",
-      "Saint-Louis",
-      "Ziguinchor",
-      "Diourbel",
-      "Tambacounda",
+      'Dakar',
+      'Thiès',
+      'Kaolack',
+      'Saint-Louis',
+      'Ziguinchor',
+      'Diourbel',
+      'Tambacounda',
     ],
-    "cote-ivoire": [
-      "Abidjan",
-      "Bouaké",
-      "Daloa",
-      "Yamoussoukro",
-      "San-Pédro",
-      "Korhogo",
-      "Man",
+    'cote-ivoire': [
+      'Abidjan',
+      'Bouaké',
+      'Daloa',
+      'Yamoussoukro',
+      'San-Pédro',
+      'Korhogo',
+      'Man',
     ],
     cameroon: [
-      "Douala",
-      "Yaoundé",
-      "Bamenda",
-      "Bafoussam",
-      "Garoua",
-      "Maroua",
-      "Ngaoundéré",
+      'Douala',
+      'Yaoundé',
+      'Bamenda',
+      'Bafoussam',
+      'Garoua',
+      'Maroua',
+      'Ngaoundéré',
     ],
   };
 
@@ -177,7 +199,7 @@ export function RegisterForm() {
     try {
       const submitData = {
         ...formData,
-        selectedServices: selectedServices.join(","),
+        selectedServices: selectedServices.join(','),
         oauth: oauthProvider
           ? {
               provider: oauthProvider,
@@ -190,9 +212,9 @@ export function RegisterForm() {
           : {}),
       };
 
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData),
       });
 
@@ -204,52 +226,52 @@ export function RegisterForm() {
         setError(result.error || "Erreur lors de l'inscription");
       }
     } catch {
-      setError("Erreur réseau ou serveur");
+      setError('Erreur réseau ou serveur');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8 px-4">
-      <div className="w-full max-w-2xl mx-auto">
-        <div className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl overflow-hidden">
+    <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8 px-4'>
+      <div className='w-full max-w-2xl mx-auto'>
+        <div className='backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl overflow-hidden'>
           {/* Header */}
-          <div className="relative bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white p-8 text-center">
+          <div className='relative bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white p-8 text-center'>
             <div className='absolute inset-0 bg-[url(&apos;data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>&apos;)] opacity-30'></div>
-            <div className="relative z-10">
-              <h1 className="text-2xl font-bold mb-2">Rejoignez DiaspoMoney</h1>
-              <p className="text-sm opacity-90">
+            <div className='relative z-10'>
+              <h1 className='text-2xl font-bold mb-2'>Rejoignez DiaspoMoney</h1>
+              <p className='text-sm opacity-90'>
                 J'envoie un service et non l'argent
               </p>
             </div>
           </div>
 
           {/* Form Container */}
-          <div className="p-10">
+          <div className='p-10'>
             {/* Step Indicator */}
-            <div className="flex justify-center mb-8">
+            <div className='flex justify-center mb-8'>
               {[1, 2, 3, 4].map(step => (
-                <div key={step} className="flex items-center">
+                <div key={step} className='flex items-center'>
                   <div
                     className={`
                     w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300
                     ${
                       step < currentStep
-                        ? "bg-[hsl(23,100%,53%)] text-white"
+                        ? 'bg-[hsl(23,100%,53%)] text-white'
                         : step === currentStep
-                        ? "bg-[hsl(41,86%,46%)] text-white scale-110"
-                        : "bg-gray-200 text-gray-600"
+                          ? 'bg-[hsl(41,86%,46%)] text-white scale-110'
+                          : 'bg-gray-200 text-gray-600'
                     }
                   `}
                   >
-                    {step === 4 ? "✓" : step}
+                    {step === 4 ? '✓' : step}
                   </div>
                   {step < 4 && (
                     <div
                       className={`
                       w-8 h-0.5 mx-2 transition-all duration-300
-                      ${step < currentStep ? "bg-green-500" : "bg-gray-200"}
+                      ${step < currentStep ? 'bg-green-500' : 'bg-gray-200'}
                     `}
                     />
                   )}
@@ -258,107 +280,110 @@ export function RegisterForm() {
             </div>
 
             {/* Form Steps */}
-            <div className="space-y-6">
+            <div className='space-y-6'>
               {/* Step 1: Informations personnelles */}
               {currentStep === 1 && (
-                <div className="animate-fadeIn">
-                  <h3 className="text-xl font-bold text-gray-800 mb-6">
+                <div className='animate-fadeIn'>
+                  <h3 className='text-xl font-bold text-gray-800 mb-6'>
                     Informations personnelles
                   </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div>
-                      <label className="block mb-2 font-semibold text-gray-700">
-                        Prénom <span className="text-red-500">*</span>
+                      <label className='block mb-2 font-semibold text-gray-700'>
+                        Prénom <span className='text-red-500'>*</span>
                       </label>
                       <input
-                        type="text"
+                        type='text'
                         value={formData.firstName}
                         onChange={e =>
-                          handleInputChange("firstName", e.target.value)
+                          handleInputChange('firstName', e.target.value)
                         }
-                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                        placeholder="Votre prénom"
+                        className='w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
+                        placeholder='Votre prénom'
                       />
                     </div>
                     <div>
-                      <label className="block mb-2 font-semibold text-gray-700">
-                        Nom <span className="text-red-500">*</span>
+                      <label className='block mb-2 font-semibold text-gray-700'>
+                        Nom <span className='text-red-500'>*</span>
                       </label>
                       <input
-                        type="text"
+                        type='text'
                         value={formData.lastName}
                         onChange={e =>
-                          handleInputChange("lastName", e.target.value)
+                          handleInputChange('lastName', e.target.value)
                         }
-                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                        placeholder="Votre nom"
+                        className='w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
+                        placeholder='Votre nom'
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block mb-2 font-semibold text-gray-700">
-                      Email <span className="text-red-500">*</span>
+                    <label className='block mb-2 font-semibold text-gray-700'>
+                      Email <span className='text-red-500'>*</span>
                     </label>
                     <input
-                      type="email"
+                      type='email'
                       value={formData.email}
-                      onChange={e => handleInputChange("email", e.target.value)}
-                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                      placeholder="exemple@email.com"
+                      onChange={e => handleInputChange('email', e.target.value)}
+                      className='w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
+                      placeholder='exemple@email.com'
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div>
-                      <label className="block mb-2 font-semibold text-gray-700">
-                        Téléphone <span className="text-red-500">*</span>
+                      <label className='block mb-2 font-semibold text-gray-700'>
+                        Téléphone <span className='text-red-500'>*</span>
                       </label>
                       <input
-                        type="tel"
+                        type='tel'
                         value={formData.phone}
                         onChange={e =>
-                          handleInputChange("phone", e.target.value)
+                          handleInputChange('phone', e.target.value)
                         }
-                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                        placeholder="Votre numéro"
+                        className='w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
+                        placeholder='Votre numéro'
                       />
                     </div>
                     <div>
-                      <label className="block mb-2 font-semibold text-gray-700">
-                        Date de naissance{" "}
-                        <span className="text-red-500">*</span>
+                      <label className='block mb-2 font-semibold text-gray-700'>
+                        Date de naissance{' '}
+                        <span className='text-red-500'>*</span>
                       </label>
                       <input
-                        type="date"
+                        type='date'
+                        title='Date de naissance'
+                        placeholder='DD/MM/YYYY'
                         value={formData.dateOfBirth}
                         onChange={e =>
-                          handleInputChange("dateOfBirth", e.target.value)
+                          handleInputChange('dateOfBirth', e.target.value)
                         }
-                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                        className='w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block mb-2 font-semibold text-gray-700">
-                      Pays de résidence <span className="text-red-500">*</span>
+                    <label className='block mb-2 font-semibold text-gray-700'>
+                      Pays de résidence <span className='text-red-500'>*</span>
                     </label>
                     <select
+                      title='Pays de résidence'
                       value={formData.countryOfResidence}
                       onChange={e =>
-                        handleInputChange("countryOfResidence", e.target.value)
+                        handleInputChange('countryOfResidence', e.target.value)
                       }
-                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                      className='w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
                     >
-                      <option value="">Sélectionnez votre pays</option>
-                      <option value="france">France</option>
-                      <option value="germany">Allemagne</option>
-                      <option value="italy">Italie</option>
-                      <option value="spain">Espagne</option>
-                      <option value="uk">Royaume-Uni</option>
-                      <option value="other">Autre</option>
+                      <option value=''>Sélectionnez votre pays</option>
+                      <option value='france'>France</option>
+                      <option value='germany'>Allemagne</option>
+                      <option value='italy'>Italie</option>
+                      <option value='spain'>Espagne</option>
+                      <option value='uk'>Royaume-Uni</option>
+                      <option value='other'>Autre</option>
                     </select>
                   </div>
                 </div>
@@ -366,52 +391,54 @@ export function RegisterForm() {
 
               {/* Step 2: Destination et services */}
               {currentStep === 2 && (
-                <div className="animate-fadeIn">
-                  <h3 className="text-xl font-bold text-gray-800 mb-6">
+                <div className='animate-fadeIn'>
+                  <h3 className='text-xl font-bold text-gray-800 mb-6'>
                     Destination et services
                   </h3>
 
                   <div>
-                    <label className="block mb-2 font-semibold text-gray-700">
-                      Pays de destination{" "}
-                      <span className="text-red-500">*</span>
+                    <label className='block mb-2 font-semibold text-gray-700'>
+                      Pays de destination{' '}
+                      <span className='text-red-500'>*</span>
                     </label>
                     <select
+                      title='Pays de destination'
                       value={formData.targetCountry}
                       onChange={e => {
-                        handleInputChange("targetCountry", e.target.value);
-                        handleInputChange("targetCity", "");
+                        handleInputChange('targetCountry', e.target.value);
+                        handleInputChange('targetCity', '');
                       }}
-                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                      className='w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
                     >
-                      <option value="">Sélectionnez le pays</option>
-                      <option value="senegal">Sénégal</option>
-                      <option value="cote-ivoire">Côte d'Ivoire</option>
-                      <option value="cameroon">Cameroun</option>
+                      <option value=''>Sélectionnez le pays</option>
+                      <option value='senegal'>Sénégal</option>
+                      <option value='cote-ivoire'>Côte d'Ivoire</option>
+                      <option value='cameroon'>Cameroun</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block mb-2 font-semibold text-gray-700">
-                      Ville de destination{" "}
-                      <span className="text-red-500">*</span>
+                    <label className='block mb-2 font-semibold text-gray-700'>
+                      Ville de destination{' '}
+                      <span className='text-red-500'>*</span>
                     </label>
                     <select
+                      title='Ville de destination'
                       value={formData.targetCity}
                       onChange={e =>
-                        handleInputChange("targetCity", e.target.value)
+                        handleInputChange('targetCity', e.target.value)
                       }
-                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                      className='w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
                       disabled={!formData.targetCountry}
                     >
-                      <option value="">Sélectionnez d'abord un pays</option>
+                      <option value=''>Sélectionnez d'abord un pays</option>
                       {formData.targetCountry &&
                         cities[
                           formData.targetCountry as keyof typeof cities
                         ]?.map(city => (
                           <option
                             key={city}
-                            value={city.toLowerCase().replace(/\s+/g, "-")}
+                            value={city.toLowerCase().replace(/\s+/g, '-')}
                           >
                             {city}
                           </option>
@@ -420,28 +447,28 @@ export function RegisterForm() {
                   </div>
 
                   <div>
-                    <label className="block mb-2 font-semibold text-gray-700">
-                      Services qui vous intéressent{" "}
-                      <span className="text-red-500">*</span>
+                    <label className='block mb-2 font-semibold text-gray-700'>
+                      Services qui vous intéressent{' '}
+                      <span className='text-red-500'>*</span>
                     </label>
-                    <p className="text-sm text-gray-500 mb-3">
+                    <p className='text-sm text-gray-500 mb-3'>
                       Sélectionnez au moins un service (choix multiples
                       possibles)
                       {selectedServices.length > 0 && (
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200'>
                           {selectedServices.length} sélectionné
-                          {selectedServices.length > 1 ? "s" : ""}
+                          {selectedServices.length > 1 ? 's' : ''}
                         </span>
                       )}
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
                       {[
-                        { id: "health", icon: "🏥", label: "Santé" },
-                        { id: "education", icon: "🎓", label: "Éducation" },
+                        { id: 'health', icon: '🏥', label: 'Santé' },
+                        { id: 'education', icon: '🎓', label: 'Éducation' },
                         {
-                          id: "construction",
-                          icon: "🏗️",
-                          label: "BTP/Immobilier",
+                          id: 'construction',
+                          icon: '🏗️',
+                          label: 'BTP/Immobilier',
                         },
                       ].map(service => {
                         const isSelected = selectedServices.includes(
@@ -449,12 +476,13 @@ export function RegisterForm() {
                         );
                         return (
                           <div
+                            aria-label={service.label}
                             key={service.id}
-                            role="checkbox"
+                            role='checkbox'
                             aria-checked={isSelected}
                             tabIndex={0}
                             onKeyDown={e => {
-                              if (e.key === " " || e.key === "Enter") {
+                              if (e.key === ' ' || e.key === 'Enter') {
                                 e.preventDefault();
                                 handleServiceToggle(service.id);
                               }
@@ -463,28 +491,28 @@ export function RegisterForm() {
                             className={`relative border-2 rounded-2xl p-5 text-center cursor-pointer transition-all duration-300
                               ${
                                 isSelected
-                                  ? "border-blue-600 bg-blue-50 shadow-md ring-2 ring-blue-200"
-                                  : "border-gray-200 bg-white hover:border-blue-400 hover:shadow"
+                                  ? 'border-blue-600 bg-blue-50 shadow-md ring-2 ring-blue-200'
+                                  : 'border-gray-200 bg-white hover:border-blue-400 hover:shadow'
                               }
                             `}
                           >
                             {isSelected && (
-                              <span className="absolute top-3 right-3 inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs shadow">
+                              <span className='absolute top-3 right-3 inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs shadow'>
                                 ✓
                               </span>
                             )}
-                            <div className="text-3xl mb-3">{service.icon}</div>
+                            <div className='text-3xl mb-3'>{service.icon}</div>
                             <div
                               className={`font-semibold ${
-                                isSelected ? "text-blue-700" : "text-gray-800"
+                                isSelected ? 'text-blue-700' : 'text-gray-800'
                               }`}
                             >
                               {service.label}
                             </div>
-                            <div className="mt-2 text-xs text-gray-500">
+                            <div className='mt-2 text-xs text-gray-500'>
                               {isSelected
-                                ? "Sélectionné"
-                                : "Cliquer pour sélectionner"}
+                                ? 'Sélectionné'
+                                : 'Cliquer pour sélectionner'}
                             </div>
                           </div>
                         );
@@ -493,22 +521,23 @@ export function RegisterForm() {
                   </div>
 
                   <div>
-                    <label className="block mb-2 font-semibold text-gray-700">
+                    <label className='block mb-2 font-semibold text-gray-700'>
                       Budget mensuel estimé
                     </label>
                     <select
+                      title='Budget mensuel estimé'
                       value={formData.monthlyBudget}
                       onChange={e =>
-                        handleInputChange("monthlyBudget", e.target.value)
+                        handleInputChange('monthlyBudget', e.target.value)
                       }
-                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                      className='w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
                     >
-                      <option value="">Optionnel</option>
-                      <option value="0-100">0 - 100€</option>
-                      <option value="100-300">100 - 300€</option>
-                      <option value="300-500">300 - 500€</option>
-                      <option value="500-1000">500 - 1000€</option>
-                      <option value="1000+">Plus de 1000€</option>
+                      <option value=''>Optionnel</option>
+                      <option value='0-100'>0 - 100€</option>
+                      <option value='100-300'>100 - 300€</option>
+                      <option value='300-500'>300 - 500€</option>
+                      <option value='500-1000'>500 - 1000€</option>
+                      <option value='1000+'>Plus de 1000€</option>
                     </select>
                   </div>
                 </div>
@@ -516,69 +545,69 @@ export function RegisterForm() {
 
               {/* Step 3: Sécurité et conditions */}
               {currentStep === 3 && (
-                <div className="animate-fadeIn">
-                  <h3 className="text-xl font-bold text-gray-800 mb-6">
+                <div className='animate-fadeIn'>
+                  <h3 className='text-xl font-bold text-gray-800 mb-6'>
                     Sécurité et conditions
                   </h3>
 
                   {!oauthProvider && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                       <div>
-                        <label className="block mb-2 font-semibold text-gray-700">
-                          Mot de passe <span className="text-red-500">*</span>
+                        <label className='block mb-2 font-semibold text-gray-700'>
+                          Mot de passe <span className='text-red-500'>*</span>
                         </label>
-                        <div className="relative">
+                        <div className='relative'>
                           <input
-                            type={showPassword ? "text" : "password"}
+                            type={showPassword ? 'text' : 'password'}
                             value={formData.password}
                             onChange={e =>
-                              handleInputChange("password", e.target.value)
+                              handleInputChange('password', e.target.value)
                             }
-                            className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                            placeholder="••••••••"
+                            className='w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
+                            placeholder='••••••••'
                           />
                           <button
-                            type="button"
+                            type='button'
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors'
                           >
                             {showPassword ? (
-                              <EyeOff className="h-5 w-5" />
+                              <EyeOff className='h-5 w-5' />
                             ) : (
-                              <Eye className="h-5 w-5" />
+                              <Eye className='h-5 w-5' />
                             )}
                           </button>
                         </div>
                       </div>
                       <div>
-                        <label className="block mb-2 font-semibold text-gray-700">
-                          Confirmer le mot de passe{" "}
-                          <span className="text-red-500">*</span>
+                        <label className='block mb-2 font-semibold text-gray-700'>
+                          Confirmer le mot de passe{' '}
+                          <span className='text-red-500'>*</span>
                         </label>
-                        <div className="relative">
+                        <div className='relative'>
                           <input
-                            type={showConfirmPassword ? "text" : "password"}
+                            type={showConfirmPassword ? 'text' : 'password'}
                             value={formData.confirmPassword}
                             onChange={e =>
                               handleInputChange(
-                                "confirmPassword",
+                                'confirmPassword',
                                 e.target.value
                               )
                             }
-                            className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                            placeholder="••••••••"
+                            className='w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
+                            placeholder='••••••••'
                           />
                           <button
-                            type="button"
+                            type='button'
                             onClick={() =>
                               setShowConfirmPassword(!showConfirmPassword)
                             }
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors'
                           >
                             {showConfirmPassword ? (
-                              <EyeOff className="h-5 w-5" />
+                              <EyeOff className='h-5 w-5' />
                             ) : (
-                              <Eye className="h-5 w-5" />
+                              <Eye className='h-5 w-5' />
                             )}
                           </button>
                         </div>
@@ -589,89 +618,91 @@ export function RegisterForm() {
                   {!oauthProvider && (
                     <>
                       <div>
-                        <label className="block mb-2 font-semibold text-gray-700">
-                          Question de sécurité{" "}
-                          <span className="text-red-500">*</span>
+                        <label className='block mb-2 font-semibold text-gray-700'>
+                          Question de sécurité{' '}
+                          <span className='text-red-500'>*</span>
                         </label>
                         <select
+                          title='Question de sécurité'
                           value={formData.securityQuestion}
                           onChange={e =>
                             handleInputChange(
-                              "securityQuestion",
+                              'securityQuestion',
                               e.target.value
                             )
                           }
-                          className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                          className='w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
                         >
-                          <option value="">Choisissez une question</option>
-                          <option value="pet">
+                          <option value=''>Choisissez une question</option>
+                          <option value='pet'>
                             Nom de votre premier animal de compagnie ?
                           </option>
-                          <option value="school">
+                          <option value='school'>
                             Nom de votre école primaire ?
                           </option>
-                          <option value="mother">
+                          <option value='mother'>
                             Nom de jeune fille de votre mère ?
                           </option>
-                          <option value="city">
+                          <option value='city'>
                             Ville de naissance de votre père ?
                           </option>
                         </select>
                       </div>
 
                       <div>
-                        <label className="block mb-2 font-semibold text-gray-700">
-                          Réponse <span className="text-red-500">*</span>
+                        <label className='block mb-2 font-semibold text-gray-700'>
+                          Réponse <span className='text-red-500'>*</span>
                         </label>
                         <input
-                          type="text"
+                          type='text'
+                          title='Réponse'
                           value={formData.securityAnswer}
                           onChange={e =>
-                            handleInputChange("securityAnswer", e.target.value)
+                            handleInputChange('securityAnswer', e.target.value)
                           }
-                          className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
-                          placeholder="Votre réponse"
+                          className='w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
+                          placeholder='Votre réponse'
                         />
                       </div>
                     </>
                   )}
 
-                  <div className="space-y-4">
-                    <label className="flex items-start space-x-3 cursor-pointer">
+                  <div className='space-y-4'>
+                    <label className='flex items-start space-x-3 cursor-pointer'>
                       <input
-                        type="checkbox"
+                        type='checkbox'
                         checked={formData.termsAccepted}
                         onChange={e =>
-                          handleInputChange("termsAccepted", e.target.checked)
+                          handleInputChange('termsAccepted', e.target.checked)
                         }
-                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        className='mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500'
                       />
-                      <span className="text-sm text-gray-700">
-                        J'accepte les{" "}
-                        <a href="#" className="text-blue-600 hover:underline">
+                      <span className='text-sm text-gray-700'>
+                        J'accepte les{' '}
+                        <a href='#' className='text-blue-600 hover:underline'>
                           conditions générales d'utilisation
-                        </a>{" "}
-                        et la{" "}
-                        <a href="#" className="text-blue-600 hover:underline">
+                        </a>{' '}
+                        et la{' '}
+                        <a href='#' className='text-blue-600 hover:underline'>
                           politique de confidentialité
-                        </a>{" "}
-                        de DiaspoMoney <span className="text-red-500">*</span>
+                        </a>{' '}
+                        de DiaspoMoney <span className='text-red-500'>*</span>
                       </span>
                     </label>
 
-                    <label className="flex items-start space-x-3 cursor-pointer">
+                    <label className='flex items-start space-x-3 cursor-pointer'>
                       <input
-                        type="checkbox"
+                        type='checkbox'
                         checked={formData.marketingConsent}
                         onChange={e =>
                           handleInputChange(
-                            "marketingConsent",
+                            'marketingConsent',
                             e.target.checked
                           )
                         }
-                        className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        className='mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500'
                       />
-                      <span className="text-sm text-gray-700">
+                      <span className='text-sm text-gray-700'>
                         Je souhaite recevoir des informations sur les nouveaux
                         services et promotions DiaspoMoney
                       </span>
@@ -682,16 +713,16 @@ export function RegisterForm() {
 
               {/* Step 4: Confirmation */}
               {currentStep === 4 && (
-                <div className="text-center py-8 animate-fadeIn">
-                  <div className="text-6xl mb-6">🎉</div>
-                  <h3 className="text-2xl font-bold text-green-600 mb-4">
+                <div className='text-center py-8 animate-fadeIn'>
+                  <div className='text-6xl mb-6'>🎉</div>
+                  <h3 className='text-2xl font-bold text-green-600 mb-4'>
                     Compte créé avec succès !
                   </h3>
-                  <p className="text-gray-600 mb-6">
+                  <p className='text-gray-600 mb-6'>
                     Bienvenue dans la famille DiaspoMoney ! Un email de
                     confirmation a été envoyé à votre adresse.
                   </p>
-                  <div className="text-sm text-gray-500 mb-8 space-y-2">
+                  <div className='text-sm text-gray-500 mb-8 space-y-2'>
                     <p>
                       <strong>Prochaines étapes :</strong>
                     </p>
@@ -700,8 +731,8 @@ export function RegisterForm() {
                     <p>3. Commencez à envoyer des services</p>
                   </div>
                   <button
-                    onClick={() => router.push("/dashboard")}
-                    className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-bold text-lg shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 transform hover:-translate-y-1"
+                    onClick={() => router.push('/dashboard')}
+                    className='w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-bold text-lg shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 transform hover:-translate-y-1'
                   >
                     Accéder à mon compte
                   </button>
@@ -710,18 +741,18 @@ export function RegisterForm() {
 
               {/* Error Message */}
               {error && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-600 font-medium">{error}</p>
+                <div className='mt-4 p-3 bg-red-50 border border-red-200 rounded-md'>
+                  <p className='text-sm text-red-600 font-medium'>{error}</p>
                 </div>
               )}
 
               {/* Navigation Buttons */}
               {currentStep < 4 && (
-                <div className="flex justify-between mt-8">
+                <div className='flex justify-between mt-8'>
                   <button
                     onClick={handlePrev}
                     disabled={currentStep === 1}
-                    className="px-6 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-all duration-200 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className='px-6 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-all duration-200 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     <span>←</span>
                     <span>Précédent</span>
@@ -730,10 +761,10 @@ export function RegisterForm() {
                   <button
                     onClick={handleNext}
                     disabled={isLoading || !validateCurrentStep()}
-                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white font-bold shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 flex items-center space-x-2 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className='px-6 py-3 rounded-xl bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white font-bold shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 flex items-center space-x-2 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     <span>
-                      {currentStep === 3 ? "Créer mon compte" : "Suivant"}
+                      {currentStep === 3 ? 'Créer mon compte' : 'Suivant'}
                     </span>
                     <span>→</span>
                   </button>
@@ -743,12 +774,12 @@ export function RegisterForm() {
 
             {/* Footer */}
             {currentStep === 1 && (
-              <div className="text-center mt-8">
-                <p className="text-sm text-blue-700">
-                  Déjà un compte ?{" "}
+              <div className='text-center mt-8'>
+                <p className='text-sm text-blue-700'>
+                  Déjà un compte ?{' '}
                   <a
-                    href="/login"
-                    className="font-semibold underline hover:text-indigo-700 transition-colors duration-200"
+                    href='/login'
+                    className='font-semibold underline hover:text-indigo-700 transition-colors duration-200'
                   >
                     Se connecter
                   </a>

@@ -1,7 +1,7 @@
 // Invoices Types and Interfaces
 export interface InvoiceFilters {
   searchTerm: string;
-  statusFilter: "PAID" | "PENDING" | "OVERDUE" | "CANCELLED" | "ALL";
+  statusFilter: 'PAID' | 'PENDING' | 'OVERDUE' | 'CANCELLED' | 'ALL';
   dateFilter: string;
 }
 
@@ -33,9 +33,9 @@ export interface InvoiceCardProps {
 export interface InvoicesFiltersProps {
   searchTerm: string;
   setSearchTerm: (value: string) => void;
-  statusFilter: "PAID" | "PENDING" | "OVERDUE" | "CANCELLED" | "ALL";
+  statusFilter: 'PAID' | 'PENDING' | 'OVERDUE' | 'CANCELLED' | 'ALL';
   setStatusFilter: (
-    value: "PAID" | "PENDING" | "OVERDUE" | "CANCELLED" | "ALL"
+    value: 'PAID' | 'PENDING' | 'OVERDUE' | 'CANCELLED' | 'ALL'
   ) => void;
   dateFilter: string;
   setDateFilter: (value: string) => void;
@@ -53,11 +53,12 @@ export interface InvoicesTableProps {
 export interface InvoicesHeaderProps {
   totalInvoices: number;
   onAddInvoice: () => void;
+  canCreate?: boolean;
 }
 
 export interface InvoicesTabsProps {
-  activeTab: "all" | "as-provider" | "as-customer";
-  setActiveTab: (tab: "all" | "as-provider" | "as-customer") => void;
+  activeTab: 'all' | 'as-provider' | 'as-customer';
+  setActiveTab: (tab: 'all' | 'as-provider' | 'as-customer') => void;
   isAdmin: boolean;
   isProvider: boolean;
   isCustomer: boolean;

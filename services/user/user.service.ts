@@ -28,6 +28,8 @@ export interface UpdateProfileData {
   lastName?: string;
   phone?: string;
   country?: string;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
 }
 
 export interface BeneficiaryData {
@@ -78,6 +80,54 @@ export class UserService {
       UserService.instance = new UserService();
     }
     return UserService.instance;
+  }
+
+  /**
+   * Récupérer tous les utilisateurs avec filtres
+   */
+  async getUsers(filters: any = {}): Promise<{ data: UserProfile[], total: number, limit: number, offset: number }> {
+    try {
+      const query: any = {};
+      
+      if (filters.role) {
+        query.role = filters.role;
+      }
+      
+      if (filters.status) {
+        query.isActive = filters.status === 'ACTIVE';
+      }
+
+      const users = await (User as any).find(query)
+        .limit(filters.limit || 50)
+        .skip(filters.offset || 0)
+        .exec();
+
+      const total = await (User as any).countDocuments(query);
+
+      return {
+        data: users.map((user: any) => ({
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phone: user.phone,
+          country: user.country,
+          role: user.role,
+          isActive: user.isActive,
+          isEmailVerified: user.isEmailVerified,
+          kycStatus: user.kycStatus || 'PENDING',
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        })),
+        total,
+        limit: filters.limit || 50,
+        offset: filters.offset || 0
+      };
+    } catch (error) {
+      console.error('Erreur getUsers:', error);
+      Sentry.captureException(error);
+      throw error;
+    }
   }
 
   /**

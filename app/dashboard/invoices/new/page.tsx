@@ -172,6 +172,7 @@ export default function NewInvoicePage() {
                 Client
               </label>
               <select
+                title='Client'
                 value={formData.customerId}
                 onChange={e => handleInputChange('customerId', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -189,6 +190,7 @@ export default function NewInvoicePage() {
                 Prestataire
               </label>
               <select
+                title='Prestataire'
                 value={formData.providerId}
                 onChange={e => handleInputChange('providerId', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -203,6 +205,7 @@ export default function NewInvoicePage() {
                 Devise
               </label>
               <select
+                title='Devise'
                 value={formData.currency}
                 onChange={e => handleInputChange('currency', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -218,6 +221,7 @@ export default function NewInvoicePage() {
                 Statut
               </label>
               <select
+                title='Statut'
                 value={formData.status}
                 onChange={e => handleInputChange('status', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -236,6 +240,7 @@ export default function NewInvoicePage() {
               </label>
               <input
                 type='date'
+                title="Date d'émission"
                 value={formData.issueDate}
                 onChange={e => handleInputChange('issueDate', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -249,6 +254,7 @@ export default function NewInvoicePage() {
               </label>
               <input
                 type='date'
+                title="Date d'échéance"
                 value={formData.dueDate}
                 onChange={e => handleInputChange('dueDate', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -262,6 +268,7 @@ export default function NewInvoicePage() {
               Notes
             </label>
             <textarea
+              title='Notes'
               value={formData.notes}
               onChange={e => handleInputChange('notes', e.target.value)}
               rows={3}
@@ -298,6 +305,7 @@ export default function NewInvoicePage() {
                     </label>
                     <input
                       type='text'
+                      title='Description'
                       value={item.description}
                       onChange={e =>
                         handleItemChange(index, 'description', e.target.value)
@@ -315,6 +323,7 @@ export default function NewInvoicePage() {
                     <input
                       type='number'
                       min='1'
+                      title='Quantité'
                       value={item.quantity}
                       onChange={e =>
                         handleItemChange(
@@ -336,6 +345,7 @@ export default function NewInvoicePage() {
                       type='number'
                       min='0'
                       step='0.01'
+                      title='Prix unitaire'
                       value={item.unitPrice}
                       onChange={e =>
                         handleItemChange(

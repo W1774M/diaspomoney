@@ -1,7 +1,7 @@
 // Quotes Types and Interfaces
 export interface QuoteFilters {
   searchTerm: string;
-  statusFilter: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "ALL";
+  statusFilter: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'ALL';
   dateFilter: string;
 }
 
@@ -28,9 +28,9 @@ export interface QuoteCardProps {
 export interface QuotesFiltersProps {
   searchTerm: string;
   setSearchTerm: (value: string) => void;
-  statusFilter: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "ALL";
+  statusFilter: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'ALL';
   setStatusFilter: (
-    value: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED" | "ALL"
+    value: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'ALL'
   ) => void;
   dateFilter: string;
   setDateFilter: (value: string) => void;
@@ -50,4 +50,5 @@ export interface QuotesTableProps {
 export interface QuotesHeaderProps {
   totalQuotes: number;
   onAddQuote: () => void;
+  canCreate?: boolean;
 }

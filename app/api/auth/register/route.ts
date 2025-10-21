@@ -10,20 +10,45 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, firstName, lastName, phone, country, consents } =
-      body;
+    const { 
+      email, 
+      password, 
+      firstName, 
+      lastName, 
+      phone, 
+      countryOfResidence,
+      targetCountry,
+      targetCity,
+      dateOfBirth,
+      monthlyBudget,
+      securityQuestion,
+      securityAnswer,
+      termsAccepted,
+      marketingConsent,
+      selectedServices,
+      oauth
+    } = body;
 
-    // Validation des entrées
-    if (!email || !password || !firstName || !lastName || !country) {
+    // Validation des entrées obligatoires
+    if (!email || !firstName || !lastName || !countryOfResidence) {
       return NextResponse.json(
         { error: 'Tous les champs obligatoires doivent être remplis' },
         { status: 400 }
       );
     }
 
-    if (!consents || !Array.isArray(consents)) {
+    // Validation du mot de passe (sauf pour OAuth)
+    if (!oauth && !password) {
       return NextResponse.json(
-        { error: 'Les consentements sont requis' },
+        { error: 'Le mot de passe est obligatoire' },
+        { status: 400 }
+      );
+    }
+
+    // Validation des conditions d'utilisation
+    if (!termsAccepted) {
+      return NextResponse.json(
+        { error: 'Vous devez accepter les conditions d\'utilisation' },
         { status: 400 }
       );
     }
@@ -35,8 +60,17 @@ export async function POST(request: NextRequest) {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       phone: phone ? phone.trim() : undefined,
-      country: country.trim(),
-      consents: consents,
+      country: countryOfResidence.trim(),
+      dateOfBirth: dateOfBirth,
+      targetCountry: targetCountry,
+      targetCity: targetCity,
+      monthlyBudget: monthlyBudget,
+      securityQuestion: securityQuestion,
+      securityAnswer: securityAnswer,
+      termsAccepted: termsAccepted,
+      marketingConsent: marketingConsent || false,
+      selectedServices: selectedServices,
+      oauth: oauth,
     };
 
     // Tentative d'inscription

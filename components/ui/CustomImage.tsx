@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import { useState } from "react";
+import Image from 'next/image';
+import { useState } from 'react';
 
 interface CustomImageProps {
   src: string;
@@ -13,7 +13,7 @@ interface CustomImageProps {
   fill?: boolean;
   sizes?: string;
   quality?: number;
-  placeholder?: "blur" | "empty";
+  placeholder?: 'blur' | 'empty';
   blurDataURL?: string;
   onLoad?: () => void;
   onError?: () => void;
@@ -29,54 +29,59 @@ export function CustomImage({
   fill = false,
   sizes,
   quality = 75,
-  placeholder = "empty",
+  placeholder = 'empty',
   blurDataURL,
   onLoad,
   onError,
 }: CustomImageProps) {
   const [imageError, setImageError] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
 
   const handleError = () => {
     setImageError(true);
-    setImageLoading(false);
     onError?.();
   };
 
   const handleLoad = () => {
-    setImageLoading(false);
     onLoad?.();
   };
 
-  // Si l'image a échoué à charger, afficher un placeholder
+  // Si l'image a échoué à charger, afficher un placeholder avec le texte de l'image
   if (imageError) {
     return (
       <div
         className={`bg-gray-200 flex items-center justify-center ${className}`}
         style={fill ? {} : { width, height }}
       >
-        <div className="text-gray-400 text-sm">Image non disponible</div>
+        <div className='text-gray-400 text-sm text-center p-2'>
+          {alt || 'Image non disponible'}
+        </div>
       </div>
     );
   }
 
-  // Si l'image est en cours de chargement, afficher un placeholder
-  if (imageLoading) {
+  // Pour les images locales, utiliser directement Next.js Image
+  if (src.startsWith('/')) {
     return (
-      <div
-        className={`bg-gray-200 animate-pulse flex items-center justify-center ${className}`}
-        style={fill ? {} : { width, height }}
-      >
-        <div className="text-gray-400 text-sm">Chargement...</div>
-      </div>
+      <Image
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        className={className}
+        priority={priority}
+        fill={fill}
+        sizes={sizes}
+        quality={quality}
+        placeholder={placeholder}
+        blurDataURL={blurDataURL}
+        onLoad={handleLoad}
+        onError={handleError}
+      />
     );
   }
 
-  // Utiliser une image normale si Next.js Image échoue
-  if (
-    src.startsWith("https://diaspomoney.fr") ||
-    src.startsWith("https://www.diaspomoney.fr")
-  ) {
+  // Utiliser une image normale pour les images externes
+  if (src.startsWith('https://') || src.startsWith('http://')) {
     return (
       <img
         src={src}
@@ -86,15 +91,16 @@ export function CustomImage({
         className={className}
         onLoad={handleLoad}
         onError={handleError}
-        loading={priority ? "eager" : "lazy"}
+        loading={priority ? 'eager' : 'lazy'}
         style={
-          fill ? { width: "100%", height: "100%", objectFit: "cover" } : {}
+          fill ? { width: '100%', height: '100%', objectFit: 'cover' } : {}
         }
+        crossOrigin='anonymous'
       />
     );
   }
 
-  // Utiliser Next.js Image pour les autres images
+  // Fallback pour les autres cas
   return (
     <Image
       src={src}

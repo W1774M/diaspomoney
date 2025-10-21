@@ -1,5 +1,5 @@
 import { requestPasswordReset } from '@/services/auth/auth.service';
-import { UserService } from '@/services/userService';
+import { userService } from '@/services/user/user.service';
 import * as crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Vérifier si l'utilisateur existe dans la base de données
-      const user = await UserService.getUserByEmail(email.toLowerCase());
+      const user = await userService.getUserProfile(email.toLowerCase());
 
       // Si on arrive ici, l'utilisateur existe
       // Générer un token de récupération
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       const resetExpires = new Date(Date.now() + 3600000); // 1 heure
 
       // Mettre à jour l'utilisateur avec le token
-      await UserService.updateUser(user._id.toString(), {
+      await userService.updateUserProfile(user.id, {
         passwordResetToken: resetToken,
         passwordResetExpires: resetExpires,
       });

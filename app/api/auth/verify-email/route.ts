@@ -1,94 +1,113 @@
-import { NextRequest, NextResponse } from "next/server";
-import { mongoClient } from "@/lib/mongodb";
+/**
+ * API Route - Verify Email
+ * Endpoint de vérification d'email
+ */
+
+import dbConnect from '@/lib/mongodb';
+import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import User from '@/models/User';
+import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { token } = await request.json();
+    const body = await request.json();
+    const { token } = body;
 
     if (!token) {
-      return NextResponse.json({ error: "Token requis" }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Token de vérification requis' },
+        { status: 400 }
+      );
     }
 
-    // Connexion à la base de données
-    const client = await mongoClient;
-    const db = client.db();
-    const usersCollection = db.collection("users");
+    // S'assurer que la connexion à la base de données est établie
+    await dbConnect();
 
-    // Recherche de l'utilisateur avec le token de vérification
-    const user = await usersCollection.findOne({
-      emailVerificationToken: token,
-    });
+    // Vérifier le token JWT
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env['JWT_SECRET']!) as any;
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Token invalide ou expiré', reason: 'expired' },
+        { status: 400 }
+      );
+    }
 
+    if (decoded.type !== 'email_verification') {
+      return NextResponse.json(
+        { error: 'Type de token invalide' },
+        { status: 400 }
+      );
+    }
+
+    // Trouver l'utilisateur
+    const user = await (User as any).findById(decoded.userId);
     if (!user) {
       return NextResponse.json(
-        { 
-          error: "Token de vérification invalide",
-          reason: "invalid",
-        },
-        { status: 400 }
+        { error: 'Utilisateur non trouvé' },
+        { status: 404 }
       );
     }
 
-    // Vérification de l'expiration du token
-    if (user['emailVerificationExpires'] && new Date() > user['emailVerificationExpires']) {
+    // Vérifier si l'email est déjà vérifié
+    if (user.isEmailVerified) {
       return NextResponse.json(
-        { 
-          error: "Le lien de vérification a expiré",
-          reason: "expired",
+        {
+          success: true,
+          message: 'Email déjà vérifié',
+          email: user.email,
         },
-        { status: 400 }
+        { status: 200 }
       );
     }
 
-    // Vérification si l'email est déjà vérifié
-    if (user['isEmailVerified']) {
-      return NextResponse.json(
-        { 
-          error: "Cet email a déjà été vérifié",
-          reason: "already_verified",
-        },
-        { status: 400 }
-      );
-    }
+    // Marquer l'email comme vérifié
+    await (User as any).findByIdAndUpdate(decoded.userId, {
+      isEmailVerified: true,
+      emailVerified: true,
+    });
 
-    // Mise à jour de l'utilisateur
-    const updateResult = await usersCollection.updateOne(
-      { _id: user._id },
-      {
-        $set: {
-          isEmailVerified: true,
-          status: "ACTIVE", // Changement du statut de PENDING à ACTIVE
-          emailVerifiedAt: new Date(),
-        },
-        $unset: {
-          emailVerificationToken: "",
-          emailVerificationExpires: "",
-        },
-      }
-    );
-
-    if (updateResult.modifiedCount === 0) {
-      return NextResponse.json(
-        { error: "Erreur lors de la mise à jour du compte" },
-        { status: 500 }
-      );
-    }
-
-    console.log(`[VERIFY-EMAIL] Email vérifié avec succès pour ${user['email']}`);
+    // Enregistrer les métriques
+    monitoringManager.recordMetric({
+      name: 'auth_email_verifications_successful',
+      value: 1,
+      timestamp: new Date(),
+      labels: {
+        user_id: decoded.userId,
+      },
+      type: 'counter',
+    });
 
     return NextResponse.json(
       {
         success: true,
-        message: "Email vérifié avec succès",
-        email: user['email'],
+        message: 'Email vérifié avec succès',
+        email: user.email,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error) {
-    console.error("Erreur lors de la vérification d'email:", error);
+    console.error('Erreur verify-email API:', error);
+
+    // Enregistrer les métriques d'échec
+    monitoringManager.recordMetric({
+      name: 'auth_email_verifications_failed',
+      value: 1,
+      timestamp: new Date(),
+      type: 'counter',
+    });
+
     return NextResponse.json(
-      { error: "Erreur interne du serveur" },
-      { status: 500 },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erreur de vérification d'email",
+        success: false,
+      },
+      { status: 400 }
     );
   }
 }

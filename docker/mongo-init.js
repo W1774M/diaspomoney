@@ -19,13 +19,15 @@ db.createUser({
 // Créer les collections de base avec des index
 print('Création des collections de base...');
 
-// Collection des utilisateurs
+// Collection des utilisateurs (modèle mis à jour)
 db.createCollection('users');
 db.users.createIndex({ email: 1 }, { unique: true });
 db.users.createIndex({ phone: 1 });
-db.users.createIndex({ role: 1 });
+db.users.createIndex({ roles: 1 }); // Changé de 'role' à 'roles' (array)
 db.users.createIndex({ status: 1 });
 db.users.createIndex({ createdAt: 1 });
+db.users.createIndex({ emailVerified: 1 });
+db.users.createIndex({ isEmailVerified: 1 });
 
 // Collection des services
 db.createCollection('services');
@@ -91,17 +93,19 @@ db.retrytokens.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 // Insérer des données de test
 print('Insertion des données de test...');
 
-// Utilisateur admin par défaut
+// Utilisateur admin par défaut (modèle mis à jour)
 db.users.insertOne({
   _id: ObjectId(),
+  name: 'Admin DiaspoMoney',
   firstName: 'Admin',
   lastName: 'DiaspoMoney',
   email: 'admin@diaspomoney.fr',
   phone: '+33123456789',
   password:
     '$2b$10$rQZ8K9mN2pL3sT4uV5wX6yA7bC8dE9fG0hI1jK2lM3nO4pQ5rS6tU7vW8xY9zA', // password123
-  role: 'ADMIN',
+  roles: ['ADMIN'], // Changé de 'role' à 'roles' (array)
   status: 'ACTIVE',
+  emailVerified: true,
   isEmailVerified: true,
   createdAt: new Date(),
   updatedAt: new Date(),

@@ -145,7 +145,7 @@ export default function ProviderDetailPage() {
         }
 
         // Récupérer le prestataire depuis l'API
-        /*try {
+        try {
           const response = await fetch(`/api/providers/${providerId}`);
           if (response.ok) {
             const data = await response.json();
@@ -154,8 +154,8 @@ export default function ProviderDetailPage() {
             if (
               foundProvider &&
               Array.isArray(foundProvider.roles) &&
-              foundProvider.roles.includes("PROVIDER") &&
-              foundProvider.status === "ACTIVE"
+              foundProvider.roles.includes('PROVIDER') &&
+              foundProvider.status === 'ACTIVE'
             ) {
               // Correction: Ajout d'un fallback pour availabilities et appointments si absents
               setProvider({
@@ -167,57 +167,28 @@ export default function ProviderDetailPage() {
             } else {
               setProvider(null);
             }
-           
           } else {
             setProvider(null);
           }
-
         } catch (error) {
-          console.error("Erreur lors du chargement du prestataire:", error);
+          console.error('Erreur lors du chargement du prestataire:', error);
           setProvider(null);
-        }*/
-        const response = findProviderById(
-          providerId as string
-        ) as unknown as ProviderType;
-        // Adapter les disponibilités du mock (format string ISO|ISO) en {start,end}
-        if (response && Array.isArray((response as any).availabilities)) {
-          const adapted = (response as any).availabilities.map((s: any) => {
-            if (typeof s !== 'string') return s;
-            const [startIso, endIso] = s.split('|');
-            return { start: startIso, end: endIso };
-          });
-          (response as any).availabilities = adapted;
         }
-        setProvider(response as ProviderType);
 
-        // Charger les statistiques de rating
-        if (response) {
-          const stats = getProviderRatingStats(
-            providerId as string
-          ) as unknown as {
-            averageRating: number;
-            totalReviews: number;
+        // Charger les statistiques de rating (simulation pour l'instant)
+        if (provider) {
+          const stats = {
+            averageRating: 4.5,
+            totalReviews: 12,
             ratingDistribution: {
-              5: number;
-              4: number;
-              3: number;
-              2: number;
-              1: number;
-            };
+              5: 8,
+              4: 3,
+              3: 1,
+              2: 0,
+              1: 0,
+            },
           };
-          setRatingStats(
-            stats as {
-              averageRating: number;
-              totalReviews: number;
-              ratingDistribution: {
-                5: number;
-                4: number;
-                3: number;
-                2: number;
-                1: number;
-              };
-            }
-          );
+          setRatingStats(stats);
         }
         // console.log("provider", response);
       } catch (error) {
@@ -664,11 +635,4 @@ nous nous engageons à fournir des services de qualité adaptés à vos besoins.
       <BookingModal />
     </div>
   );
-}
-function findProviderById(_arg0: string) {
-  throw new Error('Function not implemented.');
-}
-
-function getProviderRatingStats(_providerId: any) {
-  throw new Error('Function not implemented.');
 }
