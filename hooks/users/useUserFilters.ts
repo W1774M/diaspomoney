@@ -10,8 +10,11 @@ export function useUserFilters(users: any[]) {
     statusFilter: "ALL",
   });
 
+  // Sécurité : s'assurer que users est un tableau
+  const safeUsers = users || [];
+
   const filteredUsers = useMemo(() => {
-    return users.filter(user => {
+    return safeUsers.filter(user => {
       const matchesSearch =
         (user.name?.toLowerCase().includes(filters.searchTerm.toLowerCase()) ??
           false) ||
@@ -31,7 +34,7 @@ export function useUserFilters(users: any[]) {
 
       return matchesSearch && matchesRole && matchesStatus;
     });
-  }, [users, filters]);
+  }, [safeUsers, filters]);
 
   const updateFilter = useCallback((key: keyof UserFilters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));

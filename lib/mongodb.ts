@@ -2,7 +2,13 @@ import { MongoClient } from "mongodb";
 import mongoose from "mongoose";
 
 if (!process.env["MONGODB_URI"]) {
-  throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
+  // En mode build, utiliser une URI par défaut pour éviter l'erreur
+  if (process.env.NODE_ENV === 'production' && process.env['NEXT_PHASE'] === 'phase-production-build') {
+    console.warn('MONGODB_URI not set during build, using placeholder');
+    process.env["MONGODB_URI"] = "mongodb://localhost:27017/diaspomoney";
+  } else {
+    throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
+  }
 }
 
 const uri = process.env["MONGODB_URI"];

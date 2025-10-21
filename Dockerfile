@@ -17,13 +17,15 @@ COPY pnpm-lock.yaml ./
 # Installer pnpm
 RUN npm install -g pnpm
 
-# Installer les dépendances
+# Installer les dépendances (incluant dev dependencies pour Tailwind CSS)
 RUN pnpm install --frozen-lockfile
 
 # Copier le code source
 COPY . .
 
-# Build pour la production
+# Nettoyer le cache .next et build pour la production avec compilation Tailwind CSS
+ENV NODE_ENV=production
+RUN rm -rf .next
 RUN pnpm run build
 
 # === PRODUCTION STAGE ===
@@ -39,12 +41,23 @@ RUN adduser --system --uid 1001 nextjs
 # Définir le répertoire de travail
 WORKDIR /app
 
-# Copier les fichiers nécessaires depuis le builder
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+# Copier le build Next.js depuis le builder
+COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
+
+# Copier les fichiers de configuration s'ils existent
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
+
+# Installer pnpm et les dépendances (production + dev pour Tailwind)
+RUN npm install -g pnpm
+RUN pnpm install --frozen-lockfile
+
+# Créer le dossier public et copier s'il existe
+RUN mkdir -p ./public
+
+# Copier le dossier public s'il existe, sinon laisser vide
+COPY --from=builder /app/public ./public
 
 # Définir les permissions
 RUN chown -R nextjs:nodejs /app
@@ -67,5 +80,5 @@ USER nextjs
 # Point d'entrée avec dumb-init pour la gestion des signaux
 ENTRYPOINT ["dumb-init", "--"]
 
-# Commande par défaut (production)
-CMD ["node", "server.js"]
+# Commande par défaut (production) - utiliser pnpm pour utiliser la version correcte
+CMD ["pnpm", "start"]

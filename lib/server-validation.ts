@@ -54,7 +54,7 @@ export async function validateAndSanitize<T extends z.ZodTypeAny>(
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        errors: error.errors.map(err => err.message),
+        errors: error.issues.map(err => err.message),
       };
     }
 

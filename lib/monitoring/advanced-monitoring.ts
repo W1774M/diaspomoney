@@ -343,8 +343,8 @@ export function monitorTransaction(
   }
 
   // Calculer le taux de succès
-  const recentTransactions = monitoring
-    .getMetrics('transactions_total')
+  const recentTransactions = (monitoring
+    .getMetrics('transactions_total') || [])
     .filter(m => Date.now() - m.timestamp.getTime() < 5 * 60 * 1000); // 5 minutes
 
   const completedTransactions = recentTransactions.filter(

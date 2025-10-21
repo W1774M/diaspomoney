@@ -139,7 +139,7 @@ export default function Sidebar() {
     },
   ];
 
-  const visibleNavigation = navigation.filter(item => item.show);
+  const visibleNavigation = (navigation || []).filter(item => item.show);
 
   return (
     <aside className="w-64 bg-white shadow-sm border-r min-h-screen flex flex-col">
@@ -204,7 +204,7 @@ export default function Sidebar() {
             // Sinon, si values est défini, afficher les sous-liens avec chevron
             if (item.values && Array.isArray(item.values)) {
               // Filtrer les sous-items visibles
-              const visibleSubItems = item.values.filter(
+              const visibleSubItems = (item.values || []).filter(
                 subItem => subItem.show
               );
               if (visibleSubItems.length === 0) return null;

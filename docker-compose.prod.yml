@@ -72,20 +72,11 @@ services:
       dockerfile: Dockerfile
     container_name: diaspomoney-app
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - NODE_ENV=production
-      - MONGODB_URI=mongodb://admin:${MONGO_PASSWORD}@mongodb:27017/diaspomoney?authSource=admin
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-      - NEXTAUTH_URL=https://app.diaspomoney.fr
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - ENCRYPTION_MASTER_KEY=${ENCRYPTION_MASTER_KEY}
-      - SENTRY_DSN=${SENTRY_DSN}
+      - NEXTAUTH_URL=http://localhost
+      - NEXTAUTH_URL_INTERNAL=http://localhost
     depends_on:
       mongodb:
         condition: service_healthy
@@ -107,12 +98,12 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=diaspomoney
-      - traefik.http.routers.app.rule=Host(`app.diaspomoney.fr`)
+      - traefik.http.routers.app.rule=Host(`app.diaspomoney.fr`) || Host(`localhost`)
       - traefik.http.routers.app.entrypoints=websecure
       - traefik.http.routers.app.tls=true
       - traefik.http.routers.app.tls.certresolver=le
       - traefik.http.services.app.loadbalancer.server.port=3000
-      - traefik.http.routers.app-http.rule=Host(`app.diaspomoney.fr`)
+      - traefik.http.routers.app-http.rule=Host(`app.diaspomoney.fr`) || Host(`localhost`)
       - traefik.http.routers.app-http.entrypoints=web
       - traefik.http.routers.app-http.middlewares=redirect-to-https
       - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
@@ -123,10 +114,8 @@ services:
     image: mongo:7.0
     container_name: diaspomoney-mongodb
     restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
-      MONGO_INITDB_DATABASE: diaspomoney
+    env_file:
+      - .env
     volumes:
       - mongodb_data:/data/db
       - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
@@ -205,14 +194,8 @@ services:
     image: mongo-express:latest
     container_name: diaspomoney-mongo-express
     restart: unless-stopped
-    environment:
-      ME_CONFIG_MONGODB_SERVER: mongodb
-      ME_CONFIG_MONGODB_PORT: 27017
-      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD}
-      ME_CONFIG_MONGODB_AUTH_DATABASE: admin
-      ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
+    env_file:
+      - .env
     depends_on:
       mongodb:
         condition: service_healthy

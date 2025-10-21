@@ -10,25 +10,28 @@ export function useBeneficiaryFilters(beneficiaries: Beneficiary[]) {
     hasAccount: "",
   });
 
+  // Sécurité : s'assurer que beneficiaries est un tableau
+  const safeBeneficiaries = beneficiaries || [];
+
   // Extract unique relationships from beneficiaries
   const availableRelationships = useMemo(() => {
     return [
-      ...new Set(beneficiaries.map(b => b.relationship).filter(Boolean)),
+      ...new Set(safeBeneficiaries.map(b => b.relationship).filter(Boolean)),
     ].sort();
-  }, [beneficiaries]);
+  }, [safeBeneficiaries]);
 
   // Filter beneficiaries based on current filters
   const filteredBeneficiaries = useMemo(() => {
-    return beneficiaries.filter(beneficiary => {
+    return safeBeneficiaries.filter(beneficiary => {
       // Search term filter
       if (
         filters.searchTerm &&
         !beneficiary.name
-          .toLowerCase()
-          .includes(filters.searchTerm.toLowerCase()) &&
+          ?.toLowerCase()
+          ?.includes(filters.searchTerm.toLowerCase()) &&
         !beneficiary.email
           ?.toLowerCase()
-          .includes(filters.searchTerm.toLowerCase()) &&
+          ?.includes(filters.searchTerm.toLowerCase()) &&
         !beneficiary.phone?.includes(filters.searchTerm)
       ) {
         return false;
@@ -52,7 +55,7 @@ export function useBeneficiaryFilters(beneficiaries: Beneficiary[]) {
 
       return true;
     });
-  }, [beneficiaries, filters]);
+  }, [safeBeneficiaries, filters]);
 
   const updateFilter = useCallback(
     (key: keyof BeneficiaryFilters, value: string) => {

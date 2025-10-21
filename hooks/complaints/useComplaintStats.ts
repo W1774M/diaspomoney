@@ -5,19 +5,21 @@ import { useMemo } from "react";
 
 export function useComplaintStats(complaints: Complaint[]): ComplaintStats {
   return useMemo(() => {
-    const openComplaints = complaints.filter(c => c.status === "OPEN").length;
-    const inProgressComplaints = complaints.filter(
+    // Sécurité : s'assurer que complaints est un tableau
+    const safeComplaints = complaints || [];
+    const openComplaints = safeComplaints.filter(c => c.status === "OPEN").length;
+    const inProgressComplaints = safeComplaints.filter(
       c => c.status === "IN_PROGRESS"
     ).length;
-    const resolvedComplaints = complaints.filter(
+    const resolvedComplaints = safeComplaints.filter(
       c => c.status === "RESOLVED"
     ).length;
-    const closedComplaints = complaints.filter(
+    const closedComplaints = safeComplaints.filter(
       c => c.status === "CLOSED"
     ).length;
 
     return {
-      totalComplaints: complaints.length,
+      totalComplaints: safeComplaints.length,
       openComplaints,
       inProgressComplaints,
       resolvedComplaints,

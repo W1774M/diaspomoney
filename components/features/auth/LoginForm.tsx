@@ -16,10 +16,12 @@ import {
 import { useNotificationManager } from "@/components/ui/Notification";
 import { useLogin } from "@/hooks";
 import { useForm } from "@/hooks/forms/useForm";
-import { loginSchema, type LoginFormData } from "@/lib/validations";
+import { loginSchema } from "@/lib/validations";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { FieldValues, SubmitHandler } from "react-hook-form";
+import z from "zod";
 
 // Custom hook for URL status handling
 const useUrlStatus = () => {
@@ -69,7 +71,7 @@ export function LoginForm() {
 
   // NextAuth gère désormais la session via cookies; aucun contrôle localStorage nécessaire
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: z.infer<typeof loginSchema>) => {
     await login(data);
   };
 
@@ -83,9 +85,11 @@ export function LoginForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Form onSubmit={handleSubmit(onSubmit)}>
-            <FormField error={errors.email?.message ?? ""}>
-              <FormLabel htmlFor="email">Email</FormLabel>
+          <Form onSubmit={handleSubmit(onSubmit as SubmitHandler<FieldValues>)}>
+            <FormField {...(errors["email"]?.message && {
+              error: errors["email"]?.message as string,
+            })}>
+              <FormLabel htmlFor="email" className="text-blue-900 font-semibold">Email</FormLabel>
               <Input
                 id="email"
                 type="email"
@@ -93,8 +97,10 @@ export function LoginForm() {
                 placeholder="exemple@email.com"
               />
             </FormField>
-            <FormField error={errors.password?.message ?? ""}>
-              <FormLabel htmlFor="password">Mot de passe</FormLabel>
+            <FormField {...(errors["password"]?.message && {
+              error: errors["password"]?.message as string,
+            })}>
+              <FormLabel htmlFor="password" className="text-blue-900 font-semibold">Mot de passe</FormLabel>
               <div className="relative">
                 <Input
                   id="password"

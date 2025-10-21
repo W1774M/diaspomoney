@@ -58,10 +58,10 @@ const nextConfig = {
     unoptimized: process.env.NODE_ENV === 'development',
   },
 
-  // Configuration expérimentale
-  experimental: {
-    instrumentationHook: true,
-  },
+  // Configuration expérimentale (instrumentationHook n'est plus nécessaire)
+  // experimental: {
+  //   instrumentationHook: true,
+  // },
 
   // Configuration Webpack pour les modules Node.js
   webpack: (config, { isServer }) => {
@@ -98,10 +98,6 @@ const nextConfig = {
     return config;
   },
 
-  // Variables d'environnement
-  env: {
-    CUSTOM_KEY: process.env['CUSTOM_KEY'],
-  },
 };
 
 export default nextConfig;

@@ -14,28 +14,31 @@ export function useBookingFilters(bookings: Booking[]) {
     },
   });
 
+  // Sécurité : s'assurer que bookings est un tableau
+  const safeBookings = bookings || [];
+
   // Extract unique statuses from bookings
   const availableStatuses = useMemo(() => {
-    return [...new Set(bookings.map(b => b.status))].sort();
-  }, [bookings]);
+    return [...new Set(safeBookings.map(b => b.status))].sort();
+  }, [safeBookings]);
 
   const availablePaymentStatuses = useMemo(() => {
-    return [...new Set(bookings.map(b => b.paymentStatus))].sort();
-  }, [bookings]);
+    return [...new Set(safeBookings.map(b => b.paymentStatus))].sort();
+  }, [safeBookings]);
 
   // Filter bookings based on current filters
   const filteredBookings = useMemo(() => {
-    return bookings.filter(booking => {
+    return safeBookings.filter(booking => {
       // Search term filter
       if (
         filters.searchTerm &&
         !booking.reservationNumber
+          ?.toLowerCase()
+          ?.includes(filters.searchTerm.toLowerCase()) &&
+        !`${booking.provider?.firstName || ''} ${booking.provider?.lastName || ''}`
           .toLowerCase()
           .includes(filters.searchTerm.toLowerCase()) &&
-        !`${booking.provider.firstName} ${booking.provider.lastName}`
-          .toLowerCase()
-          .includes(filters.searchTerm.toLowerCase()) &&
-        !`${booking.requester.firstName} ${booking.requester.lastName}`
+        !`${booking.requester?.firstName || ''} ${booking.requester?.lastName || ''}`
           .toLowerCase()
           .includes(filters.searchTerm.toLowerCase())
       ) {
@@ -75,7 +78,7 @@ export function useBookingFilters(bookings: Booking[]) {
 
       return true;
     });
-  }, [bookings, filters]);
+  }, [safeBookings, filters]);
 
   const updateFilter = useCallback(
     (

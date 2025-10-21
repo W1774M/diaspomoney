@@ -31,16 +31,18 @@ export async function GET(request: NextRequest) {
     const result = await userService.getUsers(filters);
 
     // Appliquer les filtres supplémentaires côté serveur si nécessaire
-    let filteredProviders = result.data;
+    let filteredProviders = (result?.data || []);
 
     // Filtrage par catégorie (si les prestataires ont une propriété category)
     if (category) {
       filteredProviders = filteredProviders.filter((provider: any) => {
+        if (!provider) return false;
+        
         if (provider.category) {
           return provider.category === category;
         }
         // Fallback: filtrer par spécialités si pas de catégorie
-        if (provider.specialties) {
+        if (provider.specialties && Array.isArray(provider.specialties)) {
           const categoryMapping: { [key: string]: string[] } = {
             HEALTH: ["Médecine", "Dentisterie", "Pharmacie", "Soins"],
             EDU: ["Éducation", "Formation", "Cours", "Tutorat"],
@@ -61,6 +63,7 @@ export async function GET(request: NextRequest) {
     if (city) {
       filteredProviders = filteredProviders.filter(
         (provider: any) =>
+          provider &&
           provider.city &&
           provider.city.toLowerCase().includes(city.toLowerCase())
       );
@@ -70,7 +73,9 @@ export async function GET(request: NextRequest) {
     if (specialty) {
       filteredProviders = filteredProviders.filter(
         (provider: any) =>
+          provider &&
           provider.specialties &&
+          Array.isArray(provider.specialties) &&
           provider.specialties.some((spec: string) =>
             spec.toLowerCase().includes(specialty.toLowerCase())
           )
@@ -81,7 +86,9 @@ export async function GET(request: NextRequest) {
     if (service) {
       filteredProviders = filteredProviders.filter(
         (provider: any) =>
+          provider &&
           provider.services &&
+          Array.isArray(provider.services) &&
           provider.services.some((serv: string) =>
             serv.toLowerCase().includes(service.toLowerCase())
           )
@@ -92,7 +99,7 @@ export async function GET(request: NextRequest) {
     if (minRating) {
       const rating = parseFloat(minRating);
       filteredProviders = filteredProviders.filter(
-        (provider: any) => provider.rating && provider.rating >= rating
+        (provider: any) => provider && provider.rating && provider.rating >= rating
       );
     }
 

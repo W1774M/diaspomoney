@@ -151,16 +151,16 @@ function calculatePerformanceMetrics() {
   const stats = monitoringManager.getStats();
 
   // Calculer le taux d'erreur
-  const errorMetrics = metrics.filter(m => m.name.includes('http_errors'));
+  const errorMetrics = (metrics || []).filter(m => m.name.includes('http_errors'));
   const totalErrors = errorMetrics.reduce((sum, m) => sum + m.value, 0);
 
-  const requestMetrics = metrics.filter(m => m.name.includes('http_requests'));
+  const requestMetrics = (metrics || []).filter(m => m.name.includes('http_requests'));
   const totalRequests = requestMetrics.reduce((sum, m) => sum + m.value, 0);
 
   const errorRate = totalRequests > 0 ? totalErrors / totalRequests : 0;
 
   // Calculer le temps de réponse moyen
-  const responseTimeMetrics = metrics.filter(m =>
+  const responseTimeMetrics = (metrics || []).filter(m =>
     m.name.includes('http_request_duration')
   );
   const averageResponseTime =
@@ -193,7 +193,7 @@ export async function GET(_request: NextRequest) {
     const metrics = calculatePerformanceMetrics();
 
     // Obtenir les alertes actives
-    const alerts = monitoringManager.getAlerts(undefined, false);
+    const alerts = monitoringManager.getAlerts(undefined, false) || [];
 
     // Déterminer le statut global
     let globalStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
@@ -227,7 +227,7 @@ export async function GET(_request: NextRequest) {
             : { status: 'unavailable' },
       },
       metrics,
-      alerts: alerts.map(alert => ({
+      alerts: (alerts || []).map(alert => ({
         id: alert.id,
         severity: alert.severity,
         message: alert.message,
