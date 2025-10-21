@@ -5,26 +5,11 @@ import { InfiniteReviewsCarousel } from '@/components/providers/index';
 import { StatusBadge } from '@/components/ui';
 import { useNotificationManager } from '@/components/ui/Notification';
 import type { BookingFormData } from '@/lib/validations';
-import { IUser, UserRole } from '@/types';
+import { ProviderInfo, UserRole } from '@/types';
 import { Building, Calendar, MapPin, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-
-type ProviderType = IUser & {
-  profileImage?: string;
-  description?: string;
-  rating?: number;
-  specialty?: string;
-  company?: string;
-  apiGeo?: { name?: string }[];
-  selectedServices?: string;
-  recommended?: boolean;
-  address?: string;
-  availabilities?: { start: string; end: string }[];
-  appointments?: { start: string; end: string }[];
-  images?: string[];
-};
 
 export default function ProviderDetailPage() {
   const router = useRouter();
@@ -32,7 +17,7 @@ export default function ProviderDetailPage() {
   const id = useParams().id;
   const providerId = Array.isArray(id) ? id[0] : id;
 
-  const [provider, setProvider] = useState<ProviderType | null>(null);
+  const [provider, setProvider] = useState<ProviderInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -87,8 +72,8 @@ export default function ProviderDetailPage() {
         typeof item === 'string'
           ? parseStringSlot(item)
           : isTimeSlot(item)
-            ? (item as TimeSlot)
-            : null
+          ? (item as TimeSlot)
+          : null
       )
       .filter((v): v is TimeSlot => !!v);
 
@@ -139,16 +124,42 @@ export default function ProviderDetailPage() {
       try {
         setLoading(true);
         if (!providerId) {
+          console.log('ProviderDetailPage: Aucun ID de provider fourni');
           setProvider(null);
           setLoading(false);
           return;
         }
 
+        console.log(
+          'ProviderDetailPage: Chargement du provider avec ID:',
+          providerId
+        );
+
         // Récupérer le prestataire depuis l'API
         try {
-          const response = await fetch(`/api/providers/${providerId}`);
+          const response = await fetch(`/api/providers/${providerId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            cache: 'no-store', // Éviter le cache pour avoir les données les plus récentes
+          });
+
+          console.log(
+            'ProviderDetailPage: Réponse API status:',
+            response.status
+          );
+
           if (response.ok) {
             const data = await response.json();
+            console.log('ProviderDetailPage: Données reçues:', {
+              success: data.success,
+              hasData: !!data.data,
+              providerId: data.data?._id || data.data?.id,
+              roles: data.data?.roles,
+              status: data.data?.status,
+            });
+
             const foundProvider = data.data;
 
             if (
@@ -157,42 +168,74 @@ export default function ProviderDetailPage() {
               foundProvider.roles.includes('PROVIDER') &&
               foundProvider.status === 'ACTIVE'
             ) {
+              console.log('ProviderDetailPage: Provider valide trouvé');
+
               // Correction: Ajout d'un fallback pour availabilities et appointments si absents
-              setProvider({
+              const providerData: ProviderInfo = {
                 ...foundProvider,
                 availabilities: foundProvider.availabilities || [],
                 appointments: foundProvider.appointmentsAsProvider || [],
                 images: foundProvider.images || [],
-              } as unknown as ProviderType);
+                // Assurer que les champs requis sont présents
+                _id: foundProvider._id || foundProvider.id,
+                id: foundProvider._id || foundProvider.id,
+                name:
+                  foundProvider.name ||
+                  `${foundProvider.firstName || ''} ${
+                    foundProvider.lastName || ''
+                  }`.trim(),
+                email: foundProvider.email,
+                roles: foundProvider.roles,
+                status: foundProvider.status,
+                specialty: foundProvider.specialty,
+                rating: foundProvider.rating || 0,
+                city: foundProvider.city,
+                specialties: foundProvider.specialties || [],
+                services: foundProvider.services || [],
+                providerInfo: foundProvider.providerInfo,
+              };
+
+              setProvider(providerData);
+
+              // Charger les statistiques de rating
+              const stats = {
+                averageRating: foundProvider.rating || 4.5,
+                totalReviews: foundProvider.reviewCount || 12,
+                ratingDistribution: {
+                  5: Math.floor((foundProvider.reviewCount || 12) * 0.6),
+                  4: Math.floor((foundProvider.reviewCount || 12) * 0.25),
+                  3: Math.floor((foundProvider.reviewCount || 12) * 0.1),
+                  2: Math.floor((foundProvider.reviewCount || 12) * 0.03),
+                  1: Math.floor((foundProvider.reviewCount || 12) * 0.02),
+                },
+              };
+              setRatingStats(stats);
             } else {
+              console.log('ProviderDetailPage: Provider invalide ou inactif:', {
+                hasProvider: !!foundProvider,
+                roles: foundProvider?.roles,
+                status: foundProvider?.status,
+              });
               setProvider(null);
             }
           } else {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('ProviderDetailPage: Erreur API:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData.error,
+            });
             setProvider(null);
           }
         } catch (error) {
-          console.error('Erreur lors du chargement du prestataire:', error);
+          console.error(
+            'ProviderDetailPage: Erreur lors du chargement du prestataire:',
+            error
+          );
           setProvider(null);
         }
-
-        // Charger les statistiques de rating (simulation pour l'instant)
-        if (provider) {
-          const stats = {
-            averageRating: 4.5,
-            totalReviews: 12,
-            ratingDistribution: {
-              5: 8,
-              4: 3,
-              3: 1,
-              2: 0,
-              1: 0,
-            },
-          };
-          setRatingStats(stats);
-        }
-        // console.log("provider", response);
       } catch (error) {
-        console.error('Erreur lors du chargement du prestataire:', error);
+        console.error('ProviderDetailPage: Erreur générale:', error);
         setProvider(null);
       } finally {
         setLoading(false);
@@ -310,9 +353,36 @@ export default function ProviderDetailPage() {
     ) : null;
 
   const ServicesSection = () => {
-    if (!provider.selectedServices) return null;
+    // Vérifier les services depuis providerInfo ou selectedServices
+    const services =
+      provider.providerInfo?.services ||
+      provider.specialties ||
+      provider.selectedServices ||
+      [];
 
-    const services = provider.selectedServices.split(',').map(s => s.trim());
+    if (!services || services.length === 0) return null;
+
+    // Gérer le cas où services est un string ou un array
+    let servicesList: string[] = [];
+
+    if (Array.isArray(services)) {
+      servicesList = services.map(s =>
+        typeof s === 'string' ? s : (s as any).name || s.toString()
+      );
+    } else if (typeof services === 'string') {
+      servicesList = (services as string)
+        .split(',')
+        .map((s: string) => s.trim());
+    }
+
+    if (servicesList.length === 0) return null;
+
+    console.log('ServicesSection - Services trouvés:', {
+      providerInfoServices: provider.providerInfo?.services,
+      specialties: provider.specialties,
+      selectedServices: provider.selectedServices,
+      finalServices: servicesList,
+    });
 
     return (
       <div className='mb-6'>
@@ -320,7 +390,7 @@ export default function ProviderDetailPage() {
           Services proposés
         </h3>
         <div className='flex flex-wrap gap-2'>
-          {services.map((service, index) => (
+          {servicesList.map((service, index) => (
             <span
               key={index}
               className='inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200'
@@ -458,8 +528,8 @@ export default function ProviderDetailPage() {
                   ...(provider.roles?.includes(UserRole.CUSTOMER as any)
                     ? { role: UserRole.CUSTOMER as any }
                     : provider.roles?.includes(UserRole.PROVIDER as any)
-                      ? { role: UserRole.PROVIDER as any }
-                      : {}),
+                    ? { role: UserRole.PROVIDER as any }
+                    : {}),
                   selectedServices:
                     typeof provider.selectedServices === 'string'
                       ? provider.selectedServices

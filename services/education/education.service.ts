@@ -675,3 +675,4 @@ export class EducationService {
 
 // Export de l'instance singleton
 export const educationService = EducationService.getInstance();
+

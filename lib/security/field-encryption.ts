@@ -245,3 +245,4 @@ export const SENSITIVE_FIELDS = {
 
 // Instance singleton
 export const fieldEncryption = FieldEncryption.getInstance();
+

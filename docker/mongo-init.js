@@ -7,7 +7,7 @@ db = db.getSiblingDB('diaspomoney');
 // Créer un utilisateur pour l'application
 db.createUser({
   user: 'diaspomoney',
-  pwd: 'diaspomoney123',
+  pwd: 'password123',
   roles: [
     {
       role: 'readWrite',
@@ -153,5 +153,5 @@ print(
 print('👤 Utilisateur admin créé: admin@diaspomoney.fr / password123');
 print('🏥 Spécialités médicales insérées');
 print(
-  '🔗 Connexion: mongodb://diaspomoney:diaspomoney123@localhost:27017/diaspomoney'
+  '🔗 Connexion: mongodb://diaspomoney:password123@localhost:27017/diaspomoney'
 );

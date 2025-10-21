@@ -10,8 +10,11 @@ export function useQuoteFilters(quotes: any[]) {
     dateFilter: "",
   });
 
+  // Sécurité : s'assurer que quotes est un tableau
+  const safeQuotes = quotes || [];
+
   const filteredQuotes = useMemo(() => {
-    return quotes.filter(quote => {
+    return safeQuotes.filter(quote => {
       const matchesSearch =
         quote.number
           ?.toLowerCase()
@@ -31,7 +34,7 @@ export function useQuoteFilters(quotes: any[]) {
 
       return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [quotes, filters]);
+  }, [safeQuotes, filters]);
 
   const updateFilter = useCallback((key: keyof QuoteFilters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));

@@ -383,3 +383,4 @@ class HealthService {
 
 // Export de l'instance singleton
 export const healthService = HealthService.getInstance();
+

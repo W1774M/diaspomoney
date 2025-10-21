@@ -9,18 +9,30 @@ import User from '@/models/User';
 import * as Sentry from '@sentry/nextjs';
 
 export interface UserProfile {
+  _id?: string;
   id: string;
   email: string;
   firstName: string;
   lastName: string;
+  name?: string;
   phone?: string;
-  country: string;
-  role: string;
-  isActive: boolean;
-  isEmailVerified: boolean;
-  kycStatus: string;
-  createdAt: Date;
-  updatedAt: Date;
+  country?: string;
+  roles?: string[];
+  status?: string;
+  isActive?: boolean;
+  isEmailVerified?: boolean;
+  kycStatus?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  // Champs spécifiques aux providers
+  specialty?: string;
+  providerInfo?: any;
+  rating?: number;
+  reviewCount?: number;
+  city?: string;
+  specialties?: string[];
+  services?: string[];
+  selectedServices?: string[];
 }
 
 export interface UpdateProfileData {
@@ -85,43 +97,69 @@ export class UserService {
   /**
    * Récupérer tous les utilisateurs avec filtres
    */
-  async getUsers(filters: any = {}): Promise<{ data: UserProfile[], total: number, limit: number, offset: number }> {
+  async getUsers(filters: any = {}): Promise<{
+    data: UserProfile[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
     try {
       const query: any = {};
-      
+
+      // Corriger la requête pour utiliser 'roles' (array) au lieu de 'role' (string)
       if (filters.role) {
-        query.role = filters.role;
-      }
-      
-      if (filters.status) {
-        query.isActive = filters.status === 'ACTIVE';
+        query.roles = filters.role; // Utiliser 'roles' qui est un array dans le modèle
       }
 
-      const users = await (User as any).find(query)
+      if (filters.status) {
+        query.status = filters.status; // Utiliser 'status' au lieu de 'isActive'
+      }
+
+      console.log('Query filters:', query); // Debug
+
+      const users = await (User as any)
+        .find(query)
         .limit(filters.limit || 50)
         .skip(filters.offset || 0)
         .exec();
 
       const total = await (User as any).countDocuments(query);
 
+      console.log('Found users:', users.length); // Debug
+
       return {
         data: users.map((user: any) => ({
-          id: user.id,
+          _id: user._id?.toString(),
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          name: user.name,
           phone: user.phone,
-          country: user.country,
-          role: user.role,
-          isActive: user.isActive,
-          isEmailVerified: user.isEmailVerified,
+          country: user.countryOfResidence,
+          roles: user.roles,
+          status: user.status,
+          isActive: user.status === 'ACTIVE',
+          isEmailVerified: user.emailVerified,
           kycStatus: user.kycStatus || 'PENDING',
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
+          // Ajouter les champs spécifiques aux providers
+          specialty: user.specialty,
+          providerInfo: user.providerInfo,
+          rating: user.providerInfo?.rating || 0,
+          reviewCount: user.providerInfo?.reviewCount || 0,
+          city: user.targetCity,
+          specialties: user.providerInfo?.specialties || user.specialties || [],
+          services: user.providerInfo?.services || user.services || [],
+          selectedServices: Array.isArray(user.selectedServices)
+            ? user.selectedServices
+            : typeof user.selectedServices === 'string'
+            ? user.selectedServices.split(',').map((s: string) => s.trim())
+            : [],
         })),
         total,
         limit: filters.limit || 50,
-        offset: filters.offset || 0
+        offset: filters.offset || 0,
       };
     } catch (error) {
       console.error('Erreur getUsers:', error);
@@ -135,24 +173,50 @@ export class UserService {
    */
   async getUserProfile(userId: string): Promise<UserProfile> {
     try {
+      console.log('getUserProfile - ID:', userId); // Debug
+
       const user = await (User as any).findById(userId).exec();
       if (!user) {
+        console.log('Utilisateur non trouvé pour ID:', userId); // Debug
         throw new Error('Utilisateur non trouvé');
       }
 
+      console.log('User trouvé:', {
+        _id: user._id,
+        email: user.email,
+        roles: user.roles,
+        status: user.status,
+      }); // Debug
+
       return {
-        id: user.id,
+        _id: user._id?.toString(),
+        id: user._id?.toString(),
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        name: user.name,
         phone: user.phone,
-        country: user.country,
-        role: user.role,
-        isActive: user.isActive,
-        isEmailVerified: user.isEmailVerified,
+        country: user.countryOfResidence,
+        roles: user.roles,
+        status: user.status,
+        isActive: user.status === 'ACTIVE',
+        isEmailVerified: user.emailVerified,
         kycStatus: user.kycStatus || 'PENDING',
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        // Champs spécifiques aux providers
+        specialty: user.specialty,
+        providerInfo: user.providerInfo,
+        rating: user.providerInfo?.rating || 0,
+        reviewCount: user.providerInfo?.reviewCount || 0,
+        city: user.targetCity,
+        specialties: user.providerInfo?.specialties || user.specialties || [],
+        services: user.providerInfo?.services || user.services || [],
+        selectedServices: Array.isArray(user.selectedServices)
+          ? user.selectedServices
+          : typeof user.selectedServices === 'string'
+          ? user.selectedServices.split(',').map((s: string) => s.trim())
+          : [],
       };
     } catch (error) {
       console.error('Erreur getUserProfile:', error);
@@ -202,8 +266,8 @@ export class UserService {
         lastName: updatedUser.lastName,
         phone: updatedUser.phone,
         country: updatedUser.country,
-        role: updatedUser.role,
-        isActive: updatedUser.isActive,
+        roles: updatedUser.roles,
+        status: updatedUser.status,
         isEmailVerified: updatedUser.isEmailVerified,
         kycStatus: updatedUser.kycStatus || 'PENDING',
         createdAt: updatedUser.createdAt,
@@ -273,7 +337,9 @@ export class UserService {
 
       // Créer le bénéficiaire
       const beneficiary = {
-        id: `beneficiary_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `beneficiary_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`,
         payerId: userId,
         ...data,
         isActive: true,

@@ -5,25 +5,27 @@ import { useMemo } from "react";
 
 export function useBookingStats(bookings: Booking[]): BookingStats {
   return useMemo(() => {
-    const totalBookings = bookings.length;
-    const confirmedBookings = bookings.filter(
+    // Sécurité : s'assurer que bookings est un tableau
+    const safeBookings = bookings || [];
+    const totalBookings = safeBookings.length;
+    const confirmedBookings = safeBookings.filter(
       b => b.status === "confirmed"
     ).length;
-    const pendingBookings = bookings.filter(b => b.status === "pending").length;
-    const cancelledBookings = bookings.filter(
+    const pendingBookings = safeBookings.filter(b => b.status === "pending").length;
+    const cancelledBookings = safeBookings.filter(
       b => b.status === "cancelled"
     ).length;
-    const completedBookings = bookings.filter(
+    const completedBookings = safeBookings.filter(
       b => b.status === "completed"
     ).length;
 
-    const totalRevenue = bookings
+    const totalRevenue = safeBookings
       .filter(b => b.paymentStatus === "paid")
       .reduce((sum, b) => sum + b.totalAmount, 0);
 
     const averageAmount =
       totalBookings > 0
-        ? bookings.reduce((sum, b) => sum + b.totalAmount, 0) / totalBookings
+        ? safeBookings.reduce((sum, b) => sum + b.totalAmount, 0) / totalBookings
         : 0;
 
     return {

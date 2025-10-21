@@ -1,8 +1,8 @@
+import { auth } from '@/lib/auth';
 import { childLogger } from '@/lib/logger';
 import { createPaymentIntent } from '@/lib/stripe-server';
 import { UserRole } from '@/types/user';
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '../../auth/[...nextauth]/route';
 
 export async function POST(req: NextRequest) {
   try {

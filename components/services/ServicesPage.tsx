@@ -46,7 +46,7 @@ const ServicesPage = React.memo(function ServicesPage() {
 
   // Fonctions de gestion des filtres
   const updateFilter = useCallback((key: string, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev: any) => ({ ...prev, [key]: value }));
   }, []);
 
   const clearFilters = useCallback(() => {
@@ -66,7 +66,8 @@ const ServicesPage = React.memo(function ServicesPage() {
   // Extraire les services et spécialités disponibles
   const availableServices = React.useMemo(() => {
     const services = new Set<string>();
-    providers.forEach(provider => {
+    const safeProviders = providers || [];
+    safeProviders.forEach(provider => {
       if (provider['services']) {
         provider['services'].forEach((service: string) =>
           services.add(service)
@@ -78,7 +79,8 @@ const ServicesPage = React.memo(function ServicesPage() {
 
   const availableSpecialties = React.useMemo(() => {
     const specialties = new Set<string>();
-    providers.forEach(provider => {
+    const safeProviders = providers || [];
+    safeProviders.forEach(provider => {
       if (provider.specialties) {
         provider.specialties.forEach((specialty: string) =>
           specialties.add(specialty)
@@ -108,12 +110,13 @@ const ServicesPage = React.memo(function ServicesPage() {
 
   // Calculer les statistiques
   const stats = React.useMemo(() => {
-    const totalProviders = providers.length;
-    const activeProviders = providers.filter(p => p.status === 'ACTIVE').length;
+    const safeProviders = providers || [];
+    const totalProviders = safeProviders.length;
+    const activeProviders = safeProviders.filter(p => p.status === 'ACTIVE').length;
     const averageRating =
-      providers.length > 0
-        ? providers.reduce((sum, p) => sum + (p.rating || 0), 0) /
-          providers.length
+      safeProviders.length > 0
+        ? safeProviders.reduce((sum, p) => sum + (p.rating || 0), 0) /
+          safeProviders.length
         : 0;
 
     return {
@@ -165,10 +168,10 @@ const ServicesPage = React.memo(function ServicesPage() {
   );
 
   // Logique de pagination
-  const totalPages = Math.ceil(providers.length / itemsPerPage);
+  const totalPages = Math.ceil((providers || []).length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedProviders = providers.slice(startIndex, endIndex);
+  const paginatedProviders = (providers || []).slice(startIndex, endIndex);
 
   // Reset de la page quand les filtres changent
   useEffect(() => {

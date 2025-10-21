@@ -86,7 +86,7 @@ export interface User extends BaseEntity {
   acceptsVideoConsultation?: boolean;
 }
 
-export interface ProviderInfo {
+export interface ProviderInfo extends User {
   type: ProviderType;
   category: ProviderCategory;
   specialties: string[];
@@ -101,6 +101,14 @@ export interface ProviderInfo {
   availability?: Availability;
   pricing?: Pricing;
   documents: Document[];
+  profileImage?: string;
+  specialty?: string;
+  company?: string;
+  recommended?: boolean;
+  address?: string;
+  appointments?: { start: string; end: string }[];
+  images?: string[];
+  services?: Service[];
 }
 
 export interface InstitutionInfo {
@@ -414,7 +422,6 @@ export interface Metrics {
   value: number;
   labels: Record<string, string>;
 }
-
 export interface Alert {
   id: string;
   name: string;

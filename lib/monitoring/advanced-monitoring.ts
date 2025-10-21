@@ -129,7 +129,9 @@ export class MonitoringManager {
           this.createAlert({
             id: `low_success_rate_${Date.now()}`,
             severity: 'critical',
-            message: `Taux de succès des transactions faible: ${(metric.value * 100).toFixed(2)}%`,
+            message: `Taux de succès des transactions faible: ${(
+              metric.value * 100
+            ).toFixed(2)}%`,
             metric: metric.name,
             threshold: thresholds.lowTransactionSuccessRate,
             currentValue: metric.value,
@@ -343,9 +345,9 @@ export function monitorTransaction(
   }
 
   // Calculer le taux de succès
-  const recentTransactions = monitoring
-    .getMetrics('transactions_total')
-    .filter(m => Date.now() - m.timestamp.getTime() < 5 * 60 * 1000); // 5 minutes
+  const recentTransactions = (
+    monitoring.getMetrics('transactions_total') || []
+  ).filter(m => Date.now() - m.timestamp.getTime() < 5 * 60 * 1000); // 5 minutes
 
   const completedTransactions = recentTransactions.filter(
     m => m.labels?.['status'] === 'completed'

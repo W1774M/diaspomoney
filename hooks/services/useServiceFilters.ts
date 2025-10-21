@@ -14,9 +14,12 @@ export function useServiceFilters(providers: IUser[]) {
     category: '',
   });
 
+  // Sécurité : s'assurer que providers est un tableau
+  const safeProviders = providers || [];
+
   // Extract unique data from providers
   const availableServices = useMemo(() => {
-    return providers
+    return safeProviders
       .flatMap(p =>
         p.selectedServices
           ? p.selectedServices.map((s: string) => s.trim())
@@ -25,31 +28,31 @@ export function useServiceFilters(providers: IUser[]) {
       .filter((service): service is string => Boolean(service))
       .filter((service, idx, arr) => arr.indexOf(service) === idx)
       .sort();
-  }, [providers]);
+  }, [safeProviders]);
 
   const availableSpecialties = useMemo(() => {
     return [
       ...new Set(
-        providers
+        safeProviders
           .map(p => p.specialty)
           .filter((specialty): specialty is string => Boolean(specialty))
       ),
     ].sort();
-  }, [providers]);
+  }, [safeProviders]);
 
   const availableCities = useMemo(() => {
     return [
       ...new Set(
-        providers
+        safeProviders
           .map(p => p.address)
           .filter((address): address is string => Boolean(address))
       ),
     ].sort();
-  }, [providers]);
+  }, [safeProviders]);
 
   // Filter providers based on current filters
   const filteredProviders = useMemo(() => {
-    const result = providers.filter(provider => {
+    const result = safeProviders.filter(provider => {
       // Service filter
       if (
         filters.service &&
@@ -93,7 +96,7 @@ export function useServiceFilters(providers: IUser[]) {
     // Debug temporaire
     if (filters.category) {
       console.log(`Filtrage par catégorie: ${filters.category}`);
-      console.log(`Providers avant filtrage: ${providers.length}`);
+      console.log(`Providers avant filtrage: ${safeProviders.length}`);
       console.log(`Providers après filtrage: ${result.length}`);
       console.log(
         'Providers filtrés:',
@@ -102,7 +105,7 @@ export function useServiceFilters(providers: IUser[]) {
     }
 
     return result;
-  }, [providers, filters]);
+  }, [safeProviders, filters]);
 
   const updateFilter = useCallback(
     (key: keyof ServiceFilters, value: string | number) => {

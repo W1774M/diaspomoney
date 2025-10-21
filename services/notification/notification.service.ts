@@ -564,3 +564,4 @@ export class NotificationService {
 
 // Export de l'instance singleton
 export const notificationService = NotificationService.getInstance();
+

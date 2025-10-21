@@ -3,10 +3,10 @@
  * Endpoints pour modifier et supprimer un bénéficiaire spécifique
  */
 
-import { getDatabase } from '@/lib/mongodb';
+import { auth } from '@/lib/auth';
+import { getMongoClient } from '@/lib/database/mongodb';
 import { ObjectId } from 'mongodb';
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '../../auth/[...nextauth]/route';
 
 // PUT /api/beneficiaries/[id] - Modifier un bénéficiaire
 export async function PUT(
@@ -15,9 +15,9 @@ export async function PUT(
 ) {
   try {
     const session = await auth();
-    const userId = session?.user?.id;
+    const userEmail = session?.user?.email;
 
-    if (!userId) {
+    if (!userEmail) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
@@ -40,12 +40,25 @@ export async function PUT(
       );
     }
 
-    const db = await getDatabase();
+    const client = await getMongoClient();
+    const db = client.db();
+
+    // Trouver l'utilisateur par email pour obtenir son ID MongoDB
+    const user = await db.collection('users').findOne({
+      email: userEmail.toLowerCase(),
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Utilisateur non trouvé' },
+        { status: 404 }
+      );
+    }
 
     // Vérifier que le bénéficiaire appartient à l'utilisateur
     const existingBeneficiary = await db.collection('beneficiaries').findOne({
       _id: new ObjectId(beneficiaryId),
-      userId: new ObjectId(userId),
+      userId: user._id,
     });
 
     if (!existingBeneficiary) {
@@ -60,7 +73,7 @@ export async function PUT(
       const duplicateBeneficiary = await db
         .collection('beneficiaries')
         .findOne({
-          userId: new ObjectId(userId),
+          userId: new ObjectId(user._id),
           email: email.toLowerCase(),
           _id: { $ne: new ObjectId(beneficiaryId) },
         });
@@ -85,7 +98,7 @@ export async function PUT(
     const result = await db
       .collection('beneficiaries')
       .updateOne(
-        { _id: new ObjectId(beneficiaryId), userId: new ObjectId(userId) },
+        { _id: new ObjectId(beneficiaryId), userId: new ObjectId(user._id) },
         { $set: updateData }
       );
 
@@ -124,9 +137,9 @@ export async function DELETE(
 ) {
   try {
     const session = await auth();
-    const userId = session?.user?.id;
+    const userEmail = session?.user?.email;
 
-    if (!userId) {
+    if (!userEmail) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
@@ -138,12 +151,25 @@ export async function DELETE(
       );
     }
 
-    const db = await getDatabase();
+    const client = await getMongoClient();
+    const db = client.db();
+
+    // Trouver l'utilisateur par email pour obtenir son ID MongoDB
+    const user = await db.collection('users').findOne({
+      email: userEmail.toLowerCase(),
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Utilisateur non trouvé' },
+        { status: 404 }
+      );
+    }
 
     // Vérifier que le bénéficiaire appartient à l'utilisateur
     const existingBeneficiary = await db.collection('beneficiaries').findOne({
       _id: new ObjectId(beneficiaryId),
-      userId: new ObjectId(userId),
+      userId: user._id,
     });
 
     if (!existingBeneficiary) {
@@ -156,7 +182,7 @@ export async function DELETE(
     // Supprimer le bénéficiaire
     const result = await db.collection('beneficiaries').deleteOne({
       _id: new ObjectId(beneficiaryId),
-      userId: new ObjectId(userId),
+      userId: user._id,
     });
 
     if (result.deletedCount === 0) {

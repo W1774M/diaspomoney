@@ -522,3 +522,4 @@ export class PCIDSSCompliance {
 
 // Instance singleton
 export const pciDSSCompliance = PCIDSSCompliance.getInstance();
+

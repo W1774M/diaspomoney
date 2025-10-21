@@ -58,13 +58,41 @@ const nextConfig = {
     unoptimized: process.env.NODE_ENV === 'development',
   },
 
-  // Configuration expérimentale
-  experimental: {
-    instrumentationHook: true,
-  },
+  // Configuration expérimentale (instrumentationHook n'est plus nécessaire)
+  // experimental: {
+  //   instrumentationHook: true,
+  // },
 
   // Configuration Webpack pour les modules Node.js
   webpack: (config, { isServer }) => {
+    // Exclure les fichiers système Windows pour éviter les erreurs Watchpack
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/.next/**',
+        '**/coverage/**',
+        '**/logs/**',
+        '**/backups/**',
+        '**/archives/**',
+        // Exclure les fichiers système Windows
+        'C:/DumpStack.log.tmp',
+        'C:/hiberfil.sys',
+        'C:/pagefile.sys',
+        'C:/swapfile.sys',
+        '**/DumpStack.log.tmp',
+        '**/hiberfil.sys',
+        '**/pagefile.sys',
+        '**/swapfile.sys',
+        // Exclure les dossiers système Windows
+        '**/System Volume Information/**',
+        '**/Windows/**',
+        '**/Program Files/**',
+        '**/Program Files (x86)/**',
+      ],
+    };
+
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
@@ -96,11 +124,6 @@ const nextConfig = {
       };
     }
     return config;
-  },
-
-  // Variables d'environnement
-  env: {
-    CUSTOM_KEY: process.env['CUSTOM_KEY'],
   },
 };
 

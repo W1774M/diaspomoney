@@ -464,3 +464,4 @@ export class AuditLoggingSystem {
 
 // Instance singleton
 export const auditLogging = AuditLoggingSystem.getInstance();
+

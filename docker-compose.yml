@@ -29,7 +29,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "mongosh --host 127.0.0.1 --username admin --password password123 --authenticationDatabase admin --quiet --eval 'db.adminCommand({ ping: 1 }).ok ? 0 : 1'",
+          "mongosh --host 127.0.0.1 --username diaspomoney --password password123 --authenticationDatabase diaspomoney --quiet --eval 'db.adminCommand({ ping: 1 }).ok ? 0 : 1'",
         ]
       interval: 10s
       timeout: 5s
@@ -103,3 +103,28 @@ services:
       - diaspomoney
     profiles:
       - monitoring
+
+  # === APPLICATION ===
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: diaspomoney-app
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=development
+  #     - MONGODB_URI=mongodb://diaspomoney:password123@mongodb:27017/diaspomoney
+  #     - REDIS_URL=redis://:redis123@redis:6379
+  #   depends_on:
+  #     mongodb:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   networks:
+  #     - diaspomoney
+  #   volumes:
+  #     - .:/app
+  #     - /app/node_modules
+  #     - /app/.next

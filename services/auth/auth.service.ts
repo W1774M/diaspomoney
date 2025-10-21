@@ -196,7 +196,9 @@ class AuthService {
       );
 
       // Envoyer l'email de bienvenue avec lien de vérification
-      const verificationUrl = `${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}`;
+      const verificationUrl = `${
+        process.env['NEXTAUTH_URL'] || 'http://localhost:3000'
+      }/verify-email?token=${emailVerificationToken}`;
       const emailSent = await sendWelcomeEmail(
         user.email,
         `${user.firstName} ${user.lastName}`,

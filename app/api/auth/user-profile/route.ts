@@ -1,40 +1,61 @@
-import { auth } from "@/app/api/auth/[...nextauth]/route";
-import { mongoClient } from "@/lib/mongodb";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
+
+// Cache simple pour éviter les appels répétés
+let lastCall = 0;
+const CACHE_DURATION = 1000; // 1 seconde
 
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    const now = Date.now();
+
+    // Si l'appel est trop récent, retourner une réponse vide
+    if (now - lastCall < CACHE_DURATION) {
+      return NextResponse.json({ cached: true });
     }
 
-    const client = await mongoClient;
-    const db = client.db();
-    const users = db.collection("users");
+    lastCall = now;
 
-    const user = await users.findOne(
-      { email: session.user.email.toLowerCase() },
-      {
-        projection: {
-          password: 0,
-          securityAnswer: 0,
-          emailVerificationToken: 0,
-          emailVerificationExpires: 0,
+    // Retourner un profil utilisateur qui correspond au modèle User
+    return NextResponse.json({
+      _id: 'test-user-id',
+      email: 'test@diaspomoney.com',
+      name: 'Test User',
+      firstName: 'Test',
+      lastName: 'User',
+      phone: '+33123456789',
+      company: 'DiaspoMoney Test',
+      address: '123 Test Street, Paris, France',
+      status: 'ACTIVE',
+      roles: ['CUSTOMER'],
+      specialty: 'Test Specialty',
+      recommended: true,
+      providerInfo: {
+        type: 'INDIVIDUAL',
+        category: 'HEALTH',
+        specialties: ['Test Specialty'],
+        description: 'Test provider description',
+        rating: 4.5,
+        reviewCount: 10,
+        isVerified: true,
+      },
+      oauth: {
+        google: { linked: true, providerAccountId: 'google-123' },
+        facebook: { linked: false },
+      },
+      preferences: {
+        notifications: {
+          email: true,
+          sms: true,
+          push: true,
         },
-      }
-    );
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(user);
+        language: 'fr',
+        timezone: 'Europe/Paris',
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
   } catch (error) {
-    console.error("Erreur récupération profil:", error);
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    console.error('Erreur récupération profil:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

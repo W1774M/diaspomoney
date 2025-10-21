@@ -659,3 +659,4 @@ export class BTPService {
 
 // Export de l'instance singleton
 export const btpService = BTPService.getInstance();
+

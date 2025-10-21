@@ -39,14 +39,17 @@ export default function PaymentReceiptsPage() {
       setLoading(true);
       setError(null);
       try {
-        // Remplace cette URL par ton endpoint réel côté API
         const res = await fetch('/api/payment-receipts');
         if (!res.ok) {
-          throw new Error('Erreur lors du chargement des reçus');
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(
+            errorData.error || 'Erreur lors du chargement des reçus'
+          );
         }
         const data = await res.json();
         setReceipts(data.receipts || []);
       } catch (e: any) {
+        console.error('Erreur lors du chargement des reçus:', e);
         setError(e.message ?? 'Erreur inconnue');
         setReceipts([]);
       } finally {
@@ -151,11 +154,38 @@ export default function PaymentReceiptsPage() {
             </div>
 
             {loading ? (
-              <div className='text-center py-12 text-gray-400'>
-                Chargement...
+              <div className='text-center py-12'>
+                <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto mb-4'></div>
+                <p className='text-gray-500'>Chargement des reçus...</p>
               </div>
             ) : error ? (
-              <div className='text-center py-12 text-red-500'>{error}</div>
+              <div className='text-center py-12'>
+                <div className='text-red-500 mb-4'>
+                  <svg
+                    className='h-12 w-12 mx-auto mb-4'
+                    fill='none'
+                    stroke='currentColor'
+                    viewBox='0 0 24 24'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z'
+                    />
+                  </svg>
+                </div>
+                <h3 className='text-lg font-medium text-gray-900 mb-2'>
+                  Erreur lors du chargement
+                </h3>
+                <p className='text-red-500 mb-4'>{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className='text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] font-medium'
+                >
+                  Réessayer
+                </button>
+              </div>
             ) : filteredReceipts.length > 0 ? (
               <div className='space-y-4'>
                 {filteredReceipts.map(receipt => (
@@ -171,14 +201,16 @@ export default function PaymentReceiptsPage() {
               <div className='text-center py-12'>
                 <FileText className='h-12 w-12 text-gray-400 mx-auto mb-4' />
                 <h3 className='text-lg font-medium text-gray-900 mb-2'>
-                  Aucun reçu trouvé
+                  {searchTerm || statusFilter !== 'all'
+                    ? 'Aucun reçu trouvé'
+                    : 'Aucun reçu de paiement'}
                 </h3>
                 <p className='text-gray-500 mb-4'>
                   {searchTerm || statusFilter !== 'all'
                     ? 'Aucun reçu ne correspond à vos critères de recherche.'
-                    : "Vous n'avez pas encore de reçus de paiement."}
+                    : "Vous n'avez pas encore effectué de paiements. Vos reçus apparaîtront ici après vos premiers paiements."}
                 </p>
-                {(searchTerm || statusFilter !== 'all') && (
+                {searchTerm || statusFilter !== 'all' ? (
                   <button
                     onClick={() => {
                       setSearchTerm('');
@@ -188,6 +220,14 @@ export default function PaymentReceiptsPage() {
                   >
                     Effacer les filtres
                   </button>
+                ) : (
+                  <Link
+                    href='/dashboard'
+                    className='inline-flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] font-medium'
+                  >
+                    <ArrowLeft className='h-4 w-4 mr-2' />
+                    Retour au tableau de bord
+                  </Link>
                 )}
               </div>
             )}

@@ -1,21 +1,21 @@
-import Stripe from "stripe";
+import Stripe from 'stripe';
 
-const stripeSecretKey = process.env["STRIPE_SECRET_KEY"];
+const stripeSecretKey = process.env['STRIPE_SECRET_KEY'];
 if (!stripeSecretKey) {
   // In dev, we want a clear error if env is missing
-  console.warn("[Stripe] STRIPE_SECRET_KEY is not set. Stripe will not work.");
+  console.warn('[Stripe] STRIPE_SECRET_KEY is not set. Stripe will not work.');
 }
 
 export const stripe = stripeSecretKey
   ? new Stripe(stripeSecretKey, {
-      apiVersion: "2025-09-30.clover",
+      apiVersion: '2025-09-30.clover',
       typescript: true,
     })
   : (undefined as unknown as Stripe);
 
 export function getStripe(): Stripe {
   if (!stripe) {
-    throw new Error("Stripe is not configured. Missing STRIPE_SECRET_KEY env.");
+    throw new Error('Stripe is not configured. Missing STRIPE_SECRET_KEY env.');
   }
   return stripe;
 }
@@ -31,7 +31,7 @@ export async function createPaymentIntent(params: CreatePaymentIntentParams) {
   const client = getStripe();
   const {
     amountInMinorUnit,
-    currency = "eur",
+    currency = 'eur',
     customerEmail,
     metadata,
   } = params;
@@ -57,6 +57,6 @@ export function verifyStripeSignature({
   webhookSecret: string;
 }) {
   const client = getStripe();
-  if (!signature) throw new Error("Missing Stripe-Signature header");
+  if (!signature) throw new Error('Missing Stripe-Signature header');
   return client.webhooks.constructEvent(rawBody, signature, webhookSecret);
 }

@@ -189,7 +189,7 @@ export default function PaymentsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  {paymentMethods
+                  {(paymentMethods || [])
                     .filter(method => method.type === "card")
                     .map(method => (
                       <div
@@ -251,7 +251,7 @@ export default function PaymentsPage() {
                     ))}
                 </div>
 
-                {paymentMethods.filter(method => method.type === "card")
+                {(paymentMethods || []).filter(method => method.type === "card")
                   .length === 0 && (
                   <div className="text-center py-8">
                     <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -293,8 +293,8 @@ export default function PaymentsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  {paymentMethods
-                    .filter(method => method.type === "paypal")
+                  {(paymentMethods || [])
+                    .filter(method => method.type === "paypal") 
                     .map(method => (
                       <div
                         key={method.id}
@@ -355,7 +355,7 @@ export default function PaymentsPage() {
                     ))}
                 </div>
 
-                {paymentMethods.filter(method => method.type === "paypal")
+                {(paymentMethods || []).filter(method => method.type === "paypal")
                   .length === 0 && (
                   <div className="text-center py-8">
                     <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -397,7 +397,7 @@ export default function PaymentsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  {billingAddresses.map(address => (
+                  {(billingAddresses || []).map(address => (
                     <div
                       key={address.id}
                       className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
@@ -458,7 +458,7 @@ export default function PaymentsPage() {
                   ))}
                 </div>
 
-                {billingAddresses.length === 0 && (
+                {(billingAddresses || []).length === 0 && (
                   <div className="text-center py-8">
                     <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">

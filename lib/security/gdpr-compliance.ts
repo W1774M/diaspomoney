@@ -484,3 +484,4 @@ export class GDPRCompliance {
 
 // Instance singleton
 export const gdprCompliance = GDPRCompliance.getInstance();
+

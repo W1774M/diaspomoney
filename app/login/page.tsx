@@ -13,7 +13,7 @@ import { CreditCard, Shield, TrendingUp, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 export default function LoginPage() {
   const { data: appointmentData } = useAppointment();
@@ -22,37 +22,41 @@ export default function LoginPage() {
     useOAuthProfileCheck();
   const router = useRouter();
   const hasRedirected = useRef(false);
-  const [profileCompleted, setProfileCompleted] = useState(false);
 
   useEffect(() => {
-    // Redirige uniquement si l'utilisateur est authentifié, le loading est terminé et le profil est complété
-    if (
-      !isLoading &&
-      !isChecking &&
-      isAuthenticated &&
-      !needsProfileCompletion &&
-      !hasRedirected.current &&
-      profileCompleted
-    ) {
+    // Redirection simplifiée - si l'utilisateur est authentifié, rediriger immédiatement
+    if (isAuthenticated && !hasRedirected.current) {
       hasRedirected.current = true;
-      // Délai pour éviter les conflits de redirection
-      setTimeout(() => {
-        if (appointmentData) {
-          router.replace('/dashboard/appointments');
-        } else {
-          router.replace('/dashboard');
-        }
-      }, 200);
+      console.log(
+        '[LOGIN] Utilisateur authentifié, redirection vers /dashboard'
+      );
+
+      // Redirection immédiate vers le dashboard
+      if (appointmentData) {
+        router.replace('/dashboard/appointments');
+      } else {
+        router.replace('/dashboard');
+      }
     }
-  }, [
-    isAuthenticated,
-    isLoading,
-    isChecking,
-    needsProfileCompletion,
-    appointmentData,
-    router,
-    profileCompleted,
-  ]);
+  }, [isAuthenticated, appointmentData, router]);
+
+  // Gérer les paramètres d'URL pour les erreurs d'authentification
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    const callbackUrl = urlParams.get('callbackUrl');
+
+    if (error) {
+      console.log("[LOGIN] Erreur d'authentification:", error);
+      // L'erreur sera gérée par le composant LoginForm
+    }
+
+    if (callbackUrl) {
+      console.log('[LOGIN] Callback URL:', callbackUrl);
+      // Stocker l'URL de callback pour la redirection après connexion
+      sessionStorage.setItem('authCallbackUrl', callbackUrl);
+    }
+  }, []);
 
   // Afficher un loader pendant la vérification
   if (isLoading || isChecking) {
@@ -68,12 +72,7 @@ export default function LoginPage() {
 
   // Afficher la complétion du profil OAuth si nécessaire
   if (isAuthenticated && needsProfileCompletion && userProfile) {
-    return (
-      <OAuthProfileCompletion
-        user={userProfile}
-        onComplete={() => setProfileCompleted(true)}
-      />
-    );
+    return <OAuthProfileCompletion user={userProfile} onComplete={() => {}} />;
   }
 
   // Rediriger si déjà connecté et profil complété (sécurité supplémentaire)

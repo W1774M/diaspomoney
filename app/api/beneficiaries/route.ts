@@ -1,22 +1,35 @@
-import { getDatabase } from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
+import { auth } from '@/lib/auth';
+import { getMongoClient } from '@/lib/database/mongodb';
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '../auth/[...nextauth]/route';
 
 // GET /api/beneficiaries - Récupérer tous les bénéficiaires de l'utilisateur
 export async function GET(_request: NextRequest) {
   try {
     const session = await auth();
-    const userId = session?.user?.id;
+    const userEmail = session?.user?.email;
 
-    if (!userId) {
+    if (!userEmail) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
-    const db = await getDatabase();
+    const client = await getMongoClient();
+    const db = client.db();
+
+    // Trouver l'utilisateur par email pour obtenir son ID MongoDB
+    const user = await db.collection('users').findOne({
+      email: userEmail.toLowerCase(),
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Utilisateur non trouvé' },
+        { status: 404 }
+      );
+    }
+
     const beneficiaries = await db
       .collection('beneficiaries')
-      .find({ userId: new ObjectId(userId) })
+      .find({ userId: user._id })
       .sort({ createdAt: -1 })
       .toArray();
 
@@ -31,9 +44,9 @@ export async function GET(_request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    const userId = session?.user?.id;
+    const userEmail = session?.user?.email;
 
-    if (!userId) {
+    if (!userEmail) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
@@ -48,12 +61,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = await getDatabase();
+    const client = await getMongoClient();
+    const db = client.db();
+
+    // Trouver l'utilisateur par email pour obtenir son ID MongoDB
+    const user = await db.collection('users').findOne({
+      email: userEmail.toLowerCase(),
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Utilisateur non trouvé' },
+        { status: 404 }
+      );
+    }
 
     // Vérifier si un bénéficiaire avec le même email existe déjà pour cet utilisateur
     if (email) {
       const existingBeneficiary = await db.collection('beneficiaries').findOne({
-        userId: new ObjectId(userId),
+        userId: user._id,
         email: email.toLowerCase(),
       });
 
@@ -66,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     const beneficiary = {
-      userId: new ObjectId(userId),
+      userId: user._id,
       name: name.trim(),
       email: email?.toLowerCase().trim() || null,
       phone: phone?.trim() || null,

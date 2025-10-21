@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   Button,
@@ -12,14 +12,16 @@ import {
   FormField,
   FormLabel,
   Input,
-} from "@/components/ui";
-import { useNotificationManager } from "@/components/ui/Notification";
-import { useLogin } from "@/hooks";
-import { useForm } from "@/hooks/forms/useForm";
-import { loginSchema, type LoginFormData } from "@/lib/validations";
-import { Eye, EyeOff } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+} from '@/components/ui';
+import { useNotificationManager } from '@/components/ui/Notification';
+import { useLogin } from '@/hooks';
+import { useForm } from '@/hooks/forms/useForm';
+import { loginSchema } from '@/lib/validations';
+import { Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { FieldValues, SubmitHandler } from 'react-hook-form';
+import z from 'zod';
 
 // Custom hook for URL status handling
 const useUrlStatus = () => {
@@ -27,11 +29,24 @@ const useUrlStatus = () => {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const urlStatus = urlParams.get("status");
+    const urlStatus = urlParams.get('status');
     setStatus(urlStatus);
   }, []);
 
   return status;
+};
+
+// Custom hook for URL error handling
+const useUrlError = () => {
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlError = urlParams.get('error');
+    setError(urlError);
+  }, []);
+
+  return error;
 };
 
 export function LoginForm() {
@@ -39,21 +54,39 @@ export function LoginForm() {
   const { login, isLoading: isLoggingIn } = useLogin();
   const { addInfo, addError } = useNotificationManager();
   const urlStatus = useUrlStatus();
+  const urlError = useUrlError();
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (urlStatus) {
-      if (urlStatus === "pending") {
+      if (urlStatus === 'pending') {
         addInfo(
-          "Votre compte est en cours de vérification par notre équipe DiaspoMoney. Veuillez patienter, nous vous contacterons bientôt."
+          'Votre compte est en cours de vérification par notre équipe DiaspoMoney. Veuillez patienter, nous vous contacterons bientôt.'
         );
-      } else if (urlStatus === "suspended") {
+      } else if (urlStatus === 'suspended') {
         addError(
           "Votre accès a été refusé car votre compte est suspendu. Veuillez contacter notre support pour plus d'informations."
         );
       }
     }
   }, [urlStatus, addInfo, addError]);
+
+  // Gérer les erreurs d'authentification depuis l'URL
+  useEffect(() => {
+    if (urlError) {
+      if (urlError === 'CredentialsSignin') {
+        addError(
+          'Identifiants incorrects. Vérifiez votre email et mot de passe.'
+        );
+      } else if (urlError === 'Callback') {
+        addError('Erreur lors de la connexion. Veuillez réessayer.');
+      } else if (urlError === 'Configuration') {
+        addError('Erreur de configuration. Veuillez contacter le support.');
+      } else {
+        addError("Erreur d'authentification. Veuillez réessayer.");
+      }
+    }
+  }, [urlError, addError]);
 
   const {
     register,
@@ -62,19 +95,19 @@ export function LoginForm() {
   } = useForm({
     schema: loginSchema,
     defaultValues: {
-      email: "",
-      password: "",
+      email: '',
+      password: '',
     },
   });
 
   // NextAuth gère désormais la session via cookies; aucun contrôle localStorage nécessaire
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: z.infer<typeof loginSchema>) => {
     await login(data);
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div className='w-full max-w-md mx-auto'>
       <Card>
         <CardHeader>
           <CardTitle>Connexion</CardTitle>
@@ -83,56 +116,67 @@ export function LoginForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Form onSubmit={handleSubmit(onSubmit)}>
-            <FormField error={errors.email?.message ?? ""}>
-              <FormLabel htmlFor="email">Email</FormLabel>
+          <Form onSubmit={handleSubmit(onSubmit as SubmitHandler<FieldValues>)}>
+            <FormField
+              {...(errors['email']?.message && {
+                error: errors['email']?.message as string,
+              })}
+            >
+              <FormLabel
+                htmlFor='email'
+                className='text-blue-900 font-semibold'
+              >
+                Email
+              </FormLabel>
               <Input
-                id="email"
-                type="email"
-                {...register("email")}
-                placeholder="exemple@email.com"
+                id='email'
+                type='email'
+                {...register('email')}
+                placeholder='exemple@email.com'
               />
             </FormField>
-            <FormField error={errors.password?.message ?? ""}>
-              <FormLabel htmlFor="password">Mot de passe</FormLabel>
-              <div className="relative">
+            <FormField
+              {...(errors['password']?.message && {
+                error: errors['password']?.message as string,
+              })}
+            >
+              <FormLabel
+                htmlFor='password'
+                className='text-blue-900 font-semibold'
+              >
+                Mot de passe
+              </FormLabel>
+              <div className='relative'>
                 <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  {...register("password")}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
+                  id='password'
+                  type={showPassword ? 'text' : 'password'}
+                  {...register('password')}
+                  placeholder='••••••••'
+                  autoComplete='current-password'
                 />
                 <button
-                  type="button"
+                  type='button'
                   tabIndex={-1}
                   aria-label={
                     showPassword
-                      ? "Masquer le mot de passe"
-                      : "Afficher le mot de passe"
+                      ? 'Masquer le mot de passe'
+                      : 'Afficher le mot de passe'
                   }
                   onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    margin: 0,
-                    lineHeight: 0,
-                  }}
+                  className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none bg-none border-none p-0 m-0 leading-none'
                 >
                   {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
+                    <EyeOff className='w-5 h-5' />
                   ) : (
-                    <Eye className="w-5 h-5" />
+                    <Eye className='w-5 h-5' />
                   )}
                 </button>
               </div>
             </FormField>
-            <div className="text-right">
+            <div className='text-right'>
               <Link
-                href="/forgot-password"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
+                href='/forgot-password'
+                className='text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200'
               >
                 Mot de passe oublié ?
               </Link>
@@ -345,37 +389,37 @@ export function LoginForm() {
             )} */}
 
             <Button
-              type="submit"
-              className="w-full bg-blue-400 hover:bg-blue-600 cursor-pointer mt-4"
+              type='submit'
+              className='w-full bg-blue-400 hover:bg-blue-600 cursor-pointer mt-4'
               disabled={isLoggingIn}
             >
-              {isLoggingIn ? "Connexion en cours..." : "Se connecter"}
+              {isLoggingIn ? 'Connexion en cours...' : 'Se connecter'}
             </Button>
 
             {/* Test buttons for different account statuses */}
-            {process.env["NODE_ENV"] === "test" && (
-              <div className="mt-4 space-y-2">
+            {process.env['NODE_ENV'] === 'test' && (
+              <div className='mt-4 space-y-2'>
                 <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
+                  type='button'
+                  variant='outline'
+                  size='sm'
                   onClick={() => {
                     // Fill form fields with test data
                     const emailInput = document.getElementById(
-                      "email"
+                      'email'
                     ) as HTMLInputElement;
                     const passwordInput = document.getElementById(
-                      "password"
+                      'password'
                     ) as HTMLInputElement;
                     if (emailInput && passwordInput) {
-                      emailInput.value = "customer@diaspomoney.com";
-                      passwordInput.value = "password123";
+                      emailInput.value = 'customer@diaspomoney.com';
+                      passwordInput.value = 'password123';
                       // Trigger change events
                       emailInput.dispatchEvent(
-                        new Event("change", { bubbles: true })
+                        new Event('change', { bubbles: true })
                       );
                       passwordInput.dispatchEvent(
-                        new Event("change", { bubbles: true })
+                        new Event('change', { bubbles: true })
                       );
                     }
                     // Simulate successful login for testing
@@ -389,49 +433,49 @@ export function LoginForm() {
                     //   })
                     // );
                   }}
-                  className="w-full"
+                  className='w-full'
                 >
                   Compte Actif
                 </Button>
                 <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
+                  type='button'
+                  variant='outline'
+                  size='sm'
                   onClick={() => {
                     // dispatch(authActions.loginFailure("COMPTE_INACTIF"));
                     // addWarning(
                     //   "Votre compte n'est pas encore activé. Veuillez vérifier votre boîte mail et cliquer sur le lien de vérification envoyé par DiaspoMoney."
                     // );
                   }}
-                  className="w-full"
+                  className='w-full'
                 >
                   Compte Inactif
                 </Button>
                 <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
+                  type='button'
+                  variant='outline'
+                  size='sm'
                   onClick={() => {
                     // dispatch(authActions.loginFailure("COMPTE_EN_ATTENTE"));
                     // addInfo(
                     //   "Votre compte est en cours de vérification par notre équipe DiaspoMoney. Veuillez patienter, nous vous contacterons bientôt."
                     // );
                   }}
-                  className="w-full"
+                  className='w-full'
                 >
                   En Attente
                 </Button>
                 <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
+                  type='button'
+                  variant='outline'
+                  size='sm'
                   onClick={() => {
                     // dispatch(authActions.loginFailure("COMPTE_SUSPENDU"));
                     // addError(
                     //   "Votre accès a été refusé car votre compte est suspendu. Veuillez contacter notre support pour plus d'informations."
                     // );
                   }}
-                  className="w-full"
+                  className='w-full'
                 >
                   Suspendu
                 </Button>
@@ -439,12 +483,12 @@ export function LoginForm() {
             )}
           </Form>
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-muted-foreground">
-            Pas encore de compte ?{" "}
+        <CardFooter className='flex justify-center'>
+          <p className='text-sm text-muted-foreground'>
+            Pas encore de compte ?{' '}
             <a
-              href="/register"
-              className="font-semibold text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,45%)] transition-colors duration-200"
+              href='/register'
+              className='font-semibold text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,45%)] transition-colors duration-200'
             >
               S&apos;inscrire
             </a>

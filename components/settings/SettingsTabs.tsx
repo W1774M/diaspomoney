@@ -1,8 +1,15 @@
-"use client";
+'use client';
 
-import { SettingsTabsProps } from "@/types/settings";
-import { Bell, CreditCard, Lock, Shield, User } from "lucide-react";
-import React from "react";
+import { SettingsTabsProps } from '@/types/settings';
+import {
+  AlertTriangle,
+  Bell,
+  CreditCard,
+  Lock,
+  Shield,
+  User,
+} from 'lucide-react';
+import React from 'react';
 
 const SettingsTabs = React.memo<SettingsTabsProps>(function SettingsTabs({
   activeTab,
@@ -11,43 +18,49 @@ const SettingsTabs = React.memo<SettingsTabsProps>(function SettingsTabs({
 }) {
   const defaultTabs = [
     {
-      id: "profile",
-      name: "Profil",
+      id: 'profile',
+      name: 'Profil',
       icon: User,
-      description: "Informations personnelles",
+      description: 'Informations personnelles',
     },
     {
-      id: "security",
-      name: "Sécurité",
+      id: 'security',
+      name: 'Sécurité',
       icon: Lock,
-      description: "Mot de passe et authentification",
+      description: 'Mot de passe et authentification',
     },
     {
-      id: "notifications",
-      name: "Notifications",
+      id: 'notifications',
+      name: 'Notifications',
       icon: Bell,
-      description: "Préférences de notification",
+      description: 'Préférences de notification',
     },
     {
-      id: "billing",
-      name: "Facturation",
+      id: 'billing',
+      name: 'Facturation',
       icon: CreditCard,
-      description: "Méthodes de paiement",
+      description: 'Méthodes de paiement',
     },
     {
-      id: "privacy",
-      name: "Confidentialité",
+      id: 'privacy',
+      name: 'Confidentialité',
       icon: Shield,
-      description: "Paramètres de confidentialité",
+      description: 'Paramètres de confidentialité',
+    },
+    {
+      id: 'complaints',
+      name: 'Réclamations',
+      icon: AlertTriangle,
+      description: 'Gérer vos réclamations',
     },
   ];
 
   const tabsToShow = tabs.length > 0 ? tabs : defaultTabs;
 
   return (
-    <div className="mb-8">
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
+    <div className='mb-8'>
+      <div className='border-b border-gray-200'>
+        <nav className='-mb-px flex space-x-8'>
           {tabsToShow.map(tab => {
             const Icon = tab.icon;
             return (
@@ -56,12 +69,12 @@ const SettingsTabs = React.memo<SettingsTabsProps>(function SettingsTabs({
                 onClick={() => setActiveTab(tab.id)}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
-                    ? "border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <div className="flex items-center">
-                  <Icon className="h-4 w-4 mr-2" />
+                <div className='flex items-center'>
+                  <Icon className='h-4 w-4 mr-2' />
                   {tab.name}
                 </div>
               </button>
@@ -73,6 +86,6 @@ const SettingsTabs = React.memo<SettingsTabsProps>(function SettingsTabs({
   );
 });
 
-SettingsTabs.displayName = "SettingsTabs";
+SettingsTabs.displayName = 'SettingsTabs';
 
 export default SettingsTabs;

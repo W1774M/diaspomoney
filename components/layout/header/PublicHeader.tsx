@@ -4,7 +4,6 @@ import Logo from '@/components/ui/Logo';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { Menu, User } from 'lucide-react';
 import Link from 'next/link';
-
 import { useEffect, useState } from 'react';
 
 export default function PublicHeader() {
@@ -48,6 +47,27 @@ export default function PublicHeader() {
 
           {/* Actions côté droit */}
           <div className='flex items-center space-x-4'>
+            {/* Bouton Transférer un service */}
+            <Link
+              href='/services'
+              className='inline-flex items-center px-4 py-2 border border-[hsl(25,100%,53%)] text-sm font-medium rounded-md text-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,53%)] hover:text-white transition-colors'
+            >
+              <svg
+                className='w-4 h-4 mr-2'
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'
+                />
+              </svg>
+              Transférer un service
+            </Link>
+
             {/* Menu utilisateur (si connecté) */}
             {user ? (
               <div className='relative'>
@@ -148,6 +168,13 @@ export default function PublicHeader() {
                 }}
               >
                 Comment ça marche
+              </Link>
+              <Link
+                href='/services'
+                className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700'
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Transférer un service
               </Link>
               <Link
                 href='/support'

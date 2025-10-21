@@ -166,7 +166,7 @@ export default function AvailabilitiesPage() {
   ];
 
   // Filter availabilities by active tab
-  const filteredAvailabilities = availabilities.filter(
+  const filteredAvailabilities = (availabilities || []).filter(
     (rule: Availability) => rule.type === activeTab
   );
 
@@ -200,7 +200,7 @@ export default function AvailabilitiesPage() {
         'Êtes-vous sûr de vouloir supprimer cette règle de disponibilité ?'
       )
     ) {
-      setAvailabilities(prev => prev.filter(r => r.id !== id));
+      setAvailabilities(prev => (prev || []).filter(r => r.id !== id));
       if (editingRule && editingRule.id === id) {
         setShowForm(false);
         setEditingRule(null);
@@ -351,7 +351,7 @@ export default function AvailabilitiesPage() {
               <div className='space-y-2 mb-4'>
                 {daysOfWeek
                   .map((day, index) => {
-                    const slots = rule.timeSlots.filter(
+                    const slots = (rule.timeSlots || []).filter(
                       (slot: TimeSlot) => slot.dayOfWeek === index
                     );
                     if (slots.length === 0) return null;
@@ -509,7 +509,7 @@ function AvailabilityForm({
   const removeTimeSlot = (id: string) => {
     setFormData(prev => ({
       ...prev,
-      timeSlots: prev.timeSlots.filter((slot: TimeSlot) => slot.id !== id),
+      timeSlots: (prev.timeSlots || []).filter((slot: TimeSlot) => slot.id !== id),
     }));
   };
 
@@ -679,7 +679,7 @@ function AvailabilityForm({
               </h3>
               <div className='space-y-4'>
                 {daysOfWeek.map((day, dayIndex) => {
-                  const daySlots = formData.timeSlots.filter(
+                  const daySlots = (formData.timeSlots || []).filter( 
                     (slot: TimeSlot) => slot.dayOfWeek === dayIndex
                   );
                   return (

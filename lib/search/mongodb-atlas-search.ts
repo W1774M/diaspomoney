@@ -246,3 +246,4 @@ export const getSearchInstance = (): MongoDBAtlasSearch => {
   }
   return searchInstance;
 };
+

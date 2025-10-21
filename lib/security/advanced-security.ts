@@ -373,3 +373,4 @@ export function sanitizeInput(input: any): any {
 
 // Export de l'instance singleton
 export const securityManager = SecurityManager.getInstance();
+
