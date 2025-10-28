@@ -18,7 +18,7 @@ COPY pnpm-lock.yaml ./
 RUN npm install -g pnpm
 
 # Installer les dépendances (incluant dev dependencies pour Tailwind CSS)
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # Copier le code source
 COPY . .
@@ -51,7 +51,7 @@ COPY --from=builder /app/next.config.mjs ./next.config.mjs
 
 # Installer pnpm et les dépendances (production + dev pour Tailwind)
 RUN npm install -g pnpm
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # Créer le dossier public et copier s'il existe
 RUN mkdir -p ./public

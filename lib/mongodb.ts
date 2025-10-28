@@ -23,7 +23,6 @@ const options = {
   socketTimeoutMS: 45000, // Timeout pour les opérations socket
   connectTimeoutMS: 10000, // Timeout pour la connexion initiale
   maxIdleTimeMS: 30000, // Temps maximum d'inactivité avant fermeture
-  bufferCommands: false, // Désactiver le buffering des commandes
 };
 
 // ============================================================================

@@ -1,4 +1,5 @@
 import { userService } from '@/services/user/user.service';
+import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -7,6 +8,15 @@ export async function GET(
 ) {
   try {
     console.log('API Provider [id] - ID:', params.id); // Debug
+
+    // Vérifier que l'ID est un ObjectId valide
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      console.log('ID invalide:', params.id); // Debug
+      return NextResponse.json(
+        { error: 'ID de prestataire invalide' },
+        { status: 400 }
+      );
+    }
 
     // Récupérer l'utilisateur par ID
     const provider = await userService.getUserProfile(params.id);
@@ -46,6 +56,15 @@ export async function GET(
     });
   } catch (error) {
     console.error('Erreur lors de la récupération du prestataire:', error);
+
+    // Gérer le cas où l'utilisateur n'est pas trouvé
+    if (error instanceof Error && error.message === 'Utilisateur non trouvé') {
+      return NextResponse.json(
+        { error: 'Prestataire non trouvé' },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
       { status: 500 }

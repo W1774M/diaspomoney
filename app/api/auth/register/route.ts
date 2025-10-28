@@ -10,12 +10,12 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { 
-      email, 
-      password, 
-      firstName, 
-      lastName, 
-      phone, 
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      phone,
       countryOfResidence,
       targetCountry,
       targetCity,
@@ -26,13 +26,16 @@ export async function POST(request: NextRequest) {
       termsAccepted,
       marketingConsent,
       selectedServices,
-      oauth
+      oauth,
     } = body;
 
     // Validation des entrées obligatoires
     if (!email || !firstName || !lastName || !countryOfResidence) {
       return NextResponse.json(
-        { error: 'Tous les champs obligatoires doivent être remplis' },
+        {
+          error: 'Tous les champs obligatoires doivent être remplis',
+          success: false,
+        },
         { status: 400 }
       );
     }
@@ -40,7 +43,10 @@ export async function POST(request: NextRequest) {
     // Validation du mot de passe (sauf pour OAuth)
     if (!oauth && !password) {
       return NextResponse.json(
-        { error: 'Le mot de passe est obligatoire' },
+        {
+          error: 'Le mot de passe est obligatoire',
+          success: false,
+        },
         { status: 400 }
       );
     }
@@ -48,7 +54,10 @@ export async function POST(request: NextRequest) {
     // Validation des conditions d'utilisation
     if (!termsAccepted) {
       return NextResponse.json(
-        { error: 'Vous devez accepter les conditions d\'utilisation' },
+        {
+          error: "Vous devez accepter les conditions d'utilisation",
+          success: false,
+        },
         { status: 400 }
       );
     }

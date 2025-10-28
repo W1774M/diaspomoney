@@ -41,7 +41,7 @@ const FooterComponent = () => {
             <Image
               width={300}
               height={100}
-              src='/img/diaspo/Logo_DispoMoney_horiz_White-r4cjdg7wv320biozt7wn5l3jqbpge79tslitjic064.webp'
+              src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
               alt='DiaspoMoney logo'
               className=''
             />

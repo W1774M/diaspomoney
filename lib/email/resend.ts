@@ -163,7 +163,9 @@ export const emailTemplates = {
                 <h3>Détails du paiement</h3>
                 <p><strong>Service :</strong> ${service}</p>
                 <p><strong>Montant :</strong> <span class="amount">${amount} ${currency}</span></p>
-                <p><strong>Date :</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+                <p><strong>Date :</strong> ${new Date().toLocaleDateString(
+                  'fr-FR'
+                )}</p>
                 <p><strong>Statut :</strong> ✅ Confirmé</p>
               </div>
               <p>Vous pouvez maintenant accéder à votre service. Merci de votre confiance !</p>
@@ -213,7 +215,11 @@ export const emailTemplates = {
       <html>
         <head>
           <meta charset="utf-8">
-          <title>${type === 'confirmation' ? 'Rendez-vous confirmé' : 'Rappel de rendez-vous'}</title>
+          <title>${
+            type === 'confirmation'
+              ? 'Rendez-vous confirmé'
+              : 'Rappel de rendez-vous'
+          }</title>
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -226,17 +232,27 @@ export const emailTemplates = {
         <body>
           <div class="container">
             <div class="header">
-              <h1>${type === 'confirmation' ? '✅ Rendez-vous confirmé' : '⏰ Rappel de rendez-vous'}</h1>
+              <h1>${
+                type === 'confirmation'
+                  ? '✅ Rendez-vous confirmé'
+                  : '⏰ Rappel de rendez-vous'
+              }</h1>
             </div>
             <div class="content">
               <h2>Bonjour ${name},</h2>
-              <p>${type === 'confirmation' ? 'Votre rendez-vous a été confirmé avec succès !' : 'Rappel : vous avez un rendez-vous demain.'}</p>
+              <p>${
+                type === 'confirmation'
+                  ? 'Votre rendez-vous a été confirmé avec succès !'
+                  : 'Rappel : vous avez un rendez-vous demain.'
+              }</p>
               <div class="appointment">
                 <h3>Détails du rendez-vous</h3>
                 <p><strong>Prestataire :</strong> ${provider}</p>
                 <p><strong>Date :</strong> ${date}</p>
                 <p><strong>Heure :</strong> ${time}</p>
-                <p><strong>Statut :</strong> ${type === 'confirmation' ? '✅ Confirmé' : '⏰ À venir'}</p>
+                <p><strong>Statut :</strong> ${
+                  type === 'confirmation' ? '✅ Confirmé' : '⏰ À venir'
+                }</p>
               </div>
               <p>Merci de votre confiance !</p>
             </div>
@@ -248,11 +264,19 @@ export const emailTemplates = {
       </html>
     `,
     text: `
-      ${type === 'confirmation' ? 'Rendez-vous confirmé' : 'Rappel de rendez-vous'}
+      ${
+        type === 'confirmation'
+          ? 'Rendez-vous confirmé'
+          : 'Rappel de rendez-vous'
+      }
       
       Bonjour ${name},
       
-      ${type === 'confirmation' ? 'Votre rendez-vous a été confirmé avec succès !' : 'Rappel : vous avez un rendez-vous demain.'}
+      ${
+        type === 'confirmation'
+          ? 'Votre rendez-vous a été confirmé avec succès !'
+          : 'Rappel : vous avez un rendez-vous demain.'
+      }
       
       Détails du rendez-vous :
       - Prestataire : ${provider}
@@ -268,6 +292,15 @@ export const emailTemplates = {
   }),
 };
 
+// Fonction pour nettoyer les valeurs des tags (ASCII uniquement)
+function sanitizeTagValue(value: string): string {
+  return value
+    .replace(/[^a-zA-Z0-9_-]/g, '_') // Remplacer TOUS les caractères non-ASCII par des underscores
+    .replace(/_+/g, '_') // Remplacer les underscores multiples par un seul
+    .replace(/^_|_$/g, '') // Supprimer les underscores en début/fin
+    .substring(0, 50); // Limiter la longueur
+}
+
 // Fonction principale d'envoi d'email
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
   try {
@@ -276,6 +309,30 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       subject: options.subject,
       from: options.from || 'DiaspoMoney <onboarding@resend.dev>',
     });
+
+    // Nettoyer les tags pour s'assurer qu'ils sont compatibles avec Resend
+    const sanitizedTags = (
+      options.tags || [
+        { name: 'service', value: 'diaspomoney' },
+        { name: 'environment', value: process.env.NODE_ENV || 'development' },
+      ]
+    ).map(tag => ({
+      name: sanitizeTagValue(tag.name),
+      value: sanitizeTagValue(tag.value),
+    }));
+
+    console.log('🏷️ Tags nettoyés:', sanitizedTags);
+
+    // Validation finale des tags
+    const isValidTags = sanitizedTags.every(
+      tag =>
+        /^[a-zA-Z0-9_-]+$/.test(tag.name) && /^[a-zA-Z0-9_-]+$/.test(tag.value)
+    );
+
+    if (!isValidTags) {
+      console.error('❌ Tags invalides détectés:', sanitizedTags);
+      return false;
+    }
 
     const { data, error } = await resend.emails.send({
       from:
@@ -288,10 +345,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       html: options.html,
       text: options.text ?? '', // Ensure text is always a string (Resend type requires string)
       reply_to: options.replyTo || [],
-      tags: options.tags || [
-        { name: 'service', value: 'diaspomoney' },
-        { name: 'environment', value: process.env.NODE_ENV || 'development' },
-      ],
+      tags: sanitizedTags,
     });
 
     if (error) {
@@ -337,7 +391,7 @@ export async function sendWelcomeEmail(
     text: simpleTemplate.text,
     tags: [
       { name: 'type', value: 'welcome' },
-      { name: 'user_email', value: email.replace(/[^a-zA-Z0-9@._-]/g, '_') },
+      { name: 'user_email', value: sanitizeTagValue(email) },
     ],
   });
 }
@@ -356,7 +410,7 @@ export async function sendPasswordResetEmail(
     text: template.text,
     tags: [
       { name: 'type', value: 'password_reset' },
-      { name: 'user', value: email },
+      { name: 'user', value: sanitizeTagValue(email) },
     ],
   });
 }
@@ -382,8 +436,8 @@ export async function sendPaymentConfirmationEmail(
     text: template.text,
     tags: [
       { name: 'type', value: 'payment_confirmation' },
-      { name: 'user', value: email },
-      { name: 'amount', value: amount.toString() },
+      { name: 'user', value: sanitizeTagValue(email) },
+      { name: 'amount', value: sanitizeTagValue(amount.toString()) },
     ],
   });
 }
@@ -410,9 +464,9 @@ export async function sendAppointmentNotificationEmail(
     html: template.html,
     text: template.text,
     tags: [
-      { name: 'type', value: `appointment_${type}` },
-      { name: 'user', value: email },
-      { name: 'provider', value: provider },
+      { name: 'type', value: sanitizeTagValue(`appointment_${type}`) },
+      { name: 'user', value: sanitizeTagValue(email) },
+      { name: 'provider', value: sanitizeTagValue(provider) },
     ],
   });
 }

@@ -5,7 +5,7 @@ import {
 // import NotificationContainer from "@/components/ui/Notification";
 import '@/styles/globals.css';
 import { DefaultTemplate } from '@/template/DefaultTemplate';
-// import type { Metadata } from "next";
+import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
 
@@ -19,10 +19,10 @@ const geistMono = Inter({
   subsets: ['latin'],
 });
 
-// export const metadata: Metadata = {
-//   title: "Diaspomoney",
-//   description: "Le lieu parfait pour acheter vos services pour la diaspora",
-// };
+export const metadata: Metadata = {
+  title: 'DiaspoMoney',
+  description: 'Le lieu parfait pour acheter vos services pour la diaspora',
+};
 
 export default function RootLayout({
   children,

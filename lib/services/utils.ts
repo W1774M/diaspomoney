@@ -54,7 +54,7 @@ export function formatProviderName(provider: Provider): string {
  */
 
 export function getProviderRating(provider: Provider): number {
-  const stats = getProviderRatingStats();
+  const stats = getProviderRatingStats(provider._id.toString());
   return (stats as any)?.averageRating || provider.rating || 0;
 }
 
@@ -75,9 +75,7 @@ export function isProviderAvailable(provider: Provider): boolean {
 export function getPrimaryService(provider: Provider): string {
   if (!provider['selectedServices']) return 'Service non spécifié';
 
-  const services = provider['selectedServices']
-    .split(',')
-    .map((s: string) => s.trim());
+  const services = provider['selectedServices'].map((s: string) => s.trim());
   return services[0] || 'Service non spécifié';
 }
 

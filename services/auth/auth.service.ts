@@ -210,6 +210,8 @@ class AuthService {
           "⚠️ Échec de l'envoi de l'email de bienvenue pour:",
           user.email
         );
+        // Ne pas faire échouer l'inscription à cause de l'email
+        // L'utilisateur peut toujours se connecter et demander un renvoi
       } else {
         console.log('✅ Email de bienvenue envoyé à:', user.email);
         await notificationService.sendWelcomeNotification(

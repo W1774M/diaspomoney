@@ -220,7 +220,7 @@ export function RegisterForm() {
 
       const result = await res.json();
 
-      if (res.ok) {
+      if (res.ok && result.success) {
         setCurrentStep(4); // Afficher l'étape de succès
       } else {
         setError(result.error || "Erreur lors de l'inscription");
@@ -260,8 +260,8 @@ export function RegisterForm() {
                       step < currentStep
                         ? 'bg-[hsl(23,100%,53%)] text-white'
                         : step === currentStep
-                          ? 'bg-[hsl(41,86%,46%)] text-white scale-110'
-                          : 'bg-gray-200 text-gray-600'
+                        ? 'bg-[hsl(41,86%,46%)] text-white scale-110'
+                        : 'bg-gray-200 text-gray-600'
                     }
                   `}
                   >
@@ -719,14 +719,31 @@ export function RegisterForm() {
                     Compte créé avec succès !
                   </h3>
                   <p className='text-gray-600 mb-6'>
-                    Bienvenue dans la famille DiaspoMoney ! Un email de
-                    confirmation a été envoyé à votre adresse.
+                    Bienvenue dans la famille DiaspoMoney !
                   </p>
+
+                  {/* Message d'information sur l'email */}
+                  <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6'>
+                    <div className='flex items-start space-x-3'>
+                      <div className='text-blue-600 text-xl'>📧</div>
+                      <div className='text-left'>
+                        <p className='text-sm text-blue-800 font-medium mb-1'>
+                          Email de vérification
+                        </p>
+                        <p className='text-sm text-blue-700'>
+                          Un email de confirmation a été envoyé à votre adresse.
+                          Si vous ne le recevez pas, vous pouvez vous connecter
+                          et demander un renvoi depuis votre tableau de bord.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className='text-sm text-gray-500 mb-8 space-y-2'>
                     <p>
                       <strong>Prochaines étapes :</strong>
                     </p>
-                    <p>1. Vérifiez votre email</p>
+                    <p>1. Vérifiez votre email (optionnel)</p>
                     <p>2. Complétez votre profil KYC</p>
                     <p>3. Commencez à envoyer des services</p>
                   </div>
