@@ -79,7 +79,7 @@ export function useServiceFilters(providers: IUser[]) {
 
       // Rating filter - utiliser les statistiques de rating dynamiques
       if (filters.rating > 0) {
-        const ratingStats = getProviderRatingStats();
+        const ratingStats = getProviderRatingStats(provider._id);
         if ((ratingStats as any).averageRating < filters.rating) {
           return false;
         }

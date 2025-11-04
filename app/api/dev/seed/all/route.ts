@@ -122,14 +122,16 @@ export async function POST(request: NextRequest) {
     for (const b of MOCK_APPOINTMENTS) {
       const doc: any = {
         reservationNumber: b.reservationNumber,
-        requester: b.requester,
-        recipient: b.recipient,
-        provider: b.provider,
-        selectedService: b.selectedService,
+        requesterId: b.requesterId,
+        beneficiary: b.beneficiary,
+        providerId: b.providerId,
+        serviceId: b.serviceId,
+        date: b.date,
         timeslot: b.timeslot,
         status: b.status,
         paymentStatus: b.paymentStatus,
         totalAmount: b.totalAmount,
+        notes: b.notes,
         createdAt: b.createdAt,
         updatedAt: b.updatedAt,
       };
@@ -157,7 +159,7 @@ export async function POST(request: NextRequest) {
         paidDate: inv.paidDate,
         items: inv.items,
         notes: inv.notes,
-        userId: inv.userId,
+        userId: (inv as any).userId || (inv as any).customerId,
       };
       const res = await invoicesCol.updateOne(
         { invoiceNumber: inv.invoiceNumber },

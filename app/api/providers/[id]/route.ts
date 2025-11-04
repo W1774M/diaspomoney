@@ -22,7 +22,7 @@ export async function GET(
     const provider = await userService.getUserProfile(params.id);
 
     console.log('Provider trouvé:', {
-      id: provider.id,
+      id: provider._id,
       email: provider.email,
       roles: provider.roles,
       status: provider.status,

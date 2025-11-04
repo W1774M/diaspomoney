@@ -1,84 +1,60 @@
-# DiaspoMoney - Dockerfile unique pour dev/prod
-# Multi-stage build optimisé
-
-# === BUILD STAGE ===
-FROM node:18-alpine AS builder
-
-# Installer les dépendances système
-RUN apk add --no-cache libc6-compat
-
-# Définir le répertoire de travail
-WORKDIR /app
-
-# Copier les fichiers de configuration
-COPY package*.json ./
-COPY pnpm-lock.yaml ./
+# Étape 1 : Build de l'application
+FROM node:20-alpine AS builder
 
 # Installer pnpm
 RUN npm install -g pnpm
 
-# Installer les dépendances (incluant dev dependencies pour Tailwind CSS)
-RUN pnpm install --no-frozen-lockfile
+# Définir le répertoire de travail
+WORKDIR /app
 
-# Copier le code source
+# Copier uniquement les fichiers nécessaires pour installer les dépendances
+COPY package.json pnpm-lock.yaml ./
+
+# Installer toutes les dépendances (y compris devDependencies pour le build)
+RUN pnpm install --frozen-lockfile
+
+# Copier tout le projet
 COPY . .
 
-# Nettoyer le cache .next et build pour la production avec compilation Tailwind CSS
-ENV NODE_ENV=production
-RUN rm -rf .next
+# Construire l'application Next.js
 RUN pnpm run build
 
-# === PRODUCTION STAGE ===
-FROM node:18-alpine AS runner
+# Étape 2 : Image finale pour l'exécution
+FROM node:20-alpine AS runner
 
-# Installer les dépendances système
-RUN apk add --no-cache libc6-compat dumb-init
-
-# Créer un utilisateur non-root
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Installer pnpm et curl pour healthcheck
+RUN npm install -g pnpm && apk add --no-cache curl
 
 # Définir le répertoire de travail
 WORKDIR /app
 
-# Copier le build Next.js depuis le builder
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
+# Créer un utilisateur non-root pour la sécurité
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-# Copier les fichiers de configuration s'ils existent
-COPY --from=builder /app/next.config.mjs ./next.config.mjs
+# Copier les fichiers nécessaires depuis l'étape de build
+COPY --from=builder --chown=nextjs:nodejs /app/package.json /app/pnpm-lock.yaml ./
 
-# Installer pnpm et les dépendances (production + dev pour Tailwind)
-RUN npm install -g pnpm
-RUN pnpm install --no-frozen-lockfile
+# Installer uniquement les dépendances de production (en tant que root, puis chown)
+RUN pnpm install --production --frozen-lockfile --ignore-scripts && \
+    chown -R nextjs:nodejs /app
 
-# Créer le dossier public et copier s'il existe
-RUN mkdir -p ./public
+# Copier les fichiers build et config avec la bonne propriété
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./
 
-# Copier le dossier public s'il existe, sinon laisser vide
-COPY --from=builder /app/public ./public
+# Passer à l'utilisateur non-root
+USER nextjs
 
-# Définir les permissions
-RUN chown -R nextjs:nodejs /app
+# Exposer le port de l'application
+EXPOSE 3000
 
 # Variables d'environnement
 ENV NODE_ENV=production
+ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Exposer le port
-EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
-
-# Utilisateur non-root
-USER nextjs
-
-# Point d'entrée avec dumb-init pour la gestion des signaux
-ENTRYPOINT ["dumb-init", "--"]
-
-# Commande par défaut (production) - utiliser pnpm pour utiliser la version correcte
+# Démarrer l'application
 CMD ["pnpm", "start"]

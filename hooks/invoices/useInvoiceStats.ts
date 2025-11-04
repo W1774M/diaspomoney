@@ -44,9 +44,9 @@ export function useInvoiceStats({
           invoice => invoice.customerId === userId,
         );
       } else if (userId) {
-        // Si un userId est spécifié mais pas de rôle, filtrer par userId
+        // Si un userId est spécifié mais pas de rôle, filtrer par customerId ou providerId
         filteredInvoices = filteredInvoices.filter(
-          invoice => invoice.userId === userId,
+          invoice => invoice.customerId === userId || invoice.providerId === userId,
         );
       }
     }

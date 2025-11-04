@@ -43,6 +43,12 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'app.diaspomoney.fr',
+        port: '',
+        pathname: '/**',
+      },
       // Configuration plus permissive pour le développement
       {
         protocol: 'https',

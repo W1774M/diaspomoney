@@ -111,7 +111,7 @@ export async function loginUser(request: any, email: string, password: string) {
   }
 }
 
-export async function cleanupTestUser(request: any, email: string) {
+export async function cleanupTestUser(_request: any, email: string) {
   // Fonction pour nettoyer un utilisateur de test
   // À implémenter selon votre logique de nettoyage
   console.log(`🧹 Nettoyage de l'utilisateur: ${email}`);

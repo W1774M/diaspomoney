@@ -6,11 +6,11 @@ import { AlertCircle, CheckCircle, Clock, MapPin, User } from 'lucide-react';
 export default function TrackingServicesPage() {
   // Filter providers from mock data for tracking services
   const mockServices = MOCK_USERS.filter(
-    user => user.role === 'PROVIDER' && user.status === 'ACTIVE'
+    user => user.roles.includes('PROVIDER') && user.status === 'ACTIVE'
   )
     .slice(0, 2)
     .map((provider, index) => ({
-      id: provider.id,
+      id: provider._id,
       title: 'Service professionnel',
       provider: provider.name,
       startTime: '09:00',

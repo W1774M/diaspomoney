@@ -991,7 +991,7 @@ export const removeAvailabilityFromUser = (
 // Fonction pour obtenir les créneaux horaires d'un utilisateur pour un jour spécifique
 export const getUserTimeSlotsForDay = (userId: string, dayOfWeek: number) => {
   const availabilities = getUserActiveAvailabilities(userId);
-  const timeSlots: TimeSlot[] = [];
+  const timeSlots: any[] = [];
 
   availabilities.forEach(availability => {
     const daySlots = availability?.timeSlots?.filter(
@@ -1008,7 +1008,7 @@ export const getUserTimeSlotsForDay = (userId: string, dayOfWeek: number) => {
 // Fonction pour obtenir tous les créneaux horaires d'un utilisateur
 export const getAllUserTimeSlots = (userId: string) => {
   const availabilities = getUserActiveAvailabilities(userId);
-  const timeSlots: TimeSlot[] = [];
+  const timeSlots: any[] = [];
 
   availabilities.forEach(availability => {
     if (Array.isArray(availability?.timeSlots)) {

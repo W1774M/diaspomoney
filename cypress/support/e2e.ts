@@ -8,7 +8,7 @@ import './commands';
 // Configuration globale
 beforeEach(() => {
   // Intercepter les erreurs non gérées
-  cy.on('uncaught:exception', (err, runnable) => {
+  cy.on('uncaught:exception', (err, _runnable) => {
     // Ne pas faire échouer les tests sur les erreurs non gérées
     // qui ne sont pas liées à notre application
     if (err.message.includes('ResizeObserver loop limit exceeded')) {
@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 // Configuration des erreurs
-Cypress.on('fail', (error, runnable) => {
+Cypress.on('fail', (error, _runnable) => {
   // Log personnalisé pour les échecs
   cy.log('❌ Test échoué:', error.message);
   throw error;

@@ -6,11 +6,11 @@ import { Calendar, MapPin, User } from 'lucide-react';
 export default function UpcomingServicesPage() {
   // Filter providers from mock data for upcoming services
   const mockServices = MOCK_USERS.filter(
-    user => user.role === 'PROVIDER' && user.status === 'ACTIVE'
+    user => user.roles.includes('PROVIDER') && user.status === 'ACTIVE'
   )
     .slice(0, 3)
     .map((provider, index) => ({
-      id: provider.id,
+      id: provider._id,
       title: 'Service professionnel',
       provider: provider.name,
       date: new Date(Date.now() + (index + 1) * 24 * 60 * 60 * 1000)

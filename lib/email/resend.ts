@@ -1,8 +1,8 @@
 import type { EmailOptions, EmailTemplate } from '@/types/email';
 import { Resend } from 'resend';
 
-// Configuration Resend
-const resend = new Resend(process.env['RESEND_API_KEY']);
+// Configuration Resend (conditionnelle)
+const resend = process.env['RESEND_API_KEY'] ? new Resend(process.env['RESEND_API_KEY']) : null;
 
 // Types importés depuis types/email.ts
 
@@ -334,6 +334,11 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       return false;
     }
 
+    if (!resend) {
+      console.warn('⚠️ Resend not configured - email not sent');
+      return false;
+    }
+
     const { data, error } = await resend.emails.send({
       from:
         options.from ||
@@ -474,6 +479,11 @@ export async function sendAppointmentNotificationEmail(
 // Fonction de test d'envoi
 export async function testEmailConnection(): Promise<boolean> {
   try {
+    if (!resend) {
+      console.warn('⚠️ Resend not configured - email not sent');
+      return false;
+    }
+
     const { data, error } = await resend.emails.send({
       from: 'DiaspoMoney <noreply@diaspomoney.fr>',
       to: 'test@diaspomoney.fr',

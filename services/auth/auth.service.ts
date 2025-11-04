@@ -430,8 +430,13 @@ class AuthService {
       //   { expiresIn: "1h" },
       // );
 
-      // TODO: Envoyer l'email de reset
-      // await this.sendPasswordResetEmail(user.email, resetToken);
+      // TODO: Envoyer l'email de reset (seulement si Resend est configuré)
+      if (process.env['RESEND_API_KEY']) {
+        // await this.sendPasswordResetEmail(user.email, resetToken);
+        console.log(`Password reset token generated for ${userDoc.email as string}`);
+      } else {
+        console.log(`Password reset token generated for ${userDoc.email as string}`);
+      }
 
       return true;
     } catch (error) {

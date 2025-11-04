@@ -85,7 +85,6 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
     };
 
     const linkedAccounts = getLinkedAccounts();
-    const hasAnyLinkedAccount = linkedAccounts.length > 0;
 
     const handleLinkProvider = async (providerId: string) => {
       try {

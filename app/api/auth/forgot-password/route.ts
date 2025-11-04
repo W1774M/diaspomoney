@@ -5,6 +5,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    // Skip during build time
+    if (process.env['NODE_ENV'] === 'production' && process.env['NEXT_PHASE'] === 'phase-production-build') {
+      return NextResponse.json({ success: true, message: 'Service temporarily unavailable' }, { status: 503 });
+    }
+
     const { email } = await request.json();
 
     if (!email) {
@@ -26,10 +31,13 @@ export async function POST(request: NextRequest) {
         passwordResetExpires: resetExpires,
       });
 
-      // Envoyer l'email de réinitialisation
-      await requestPasswordReset(email);
-
-      console.log(`Email de récupération envoyé à ${email}`);
+      // Envoyer l'email de réinitialisation (seulement si Resend est configuré)
+      if (process.env['RESEND_API_KEY']) {
+        await requestPasswordReset(email);
+        console.log(`Email de récupération envoyé à ${email}`);
+      } else {
+        console.log(`Token de récupération généré pour ${email}: ${resetToken} (email non envoyé - RESEND_API_KEY non configuré)`);
+      }
     } catch (error) {
       // L'utilisateur n'existe pas, mais on ne révèle pas cette information
       console.log(

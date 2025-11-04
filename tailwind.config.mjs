@@ -6,6 +6,18 @@ export default {
     "./lib/**/*.{js,ts,jsx,tsx,mdx}",
     "./services/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist: [
+    { pattern: /(bg|text|border)-(red|blue|green|amber|purple|gray|zinc|slate|neutral|black|white)-(50|100|200|300|400|500|600|700|800|900)/ },
+    { pattern: /(from|to|via)-\[.*\]/ },
+    { pattern: /(bg|text|border)-\[.*\]/ },
+    { pattern: /(hover:)?(bg|text|border)-(white|black)/ },
+    { pattern: /(grid-cols|grid-rows)-(1|2|3|4|5|6|12)/ },
+    { pattern: /(col|row)-span-(1|2|3|4|5|6|7|8|9|10|11|12)/ },
+    { pattern: /(w|h)-(full|screen)/ },
+    { pattern: /((p|px|py|pt|pr|pb|pl|m|mx|my|mt|mr|mb|ml)-(0|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|8|10|12|16|20|24|32))/ },
+    { pattern: /(rounded|rounded-(sm|md|lg|xl|2xl|full))/ },
+    { pattern: /(flex|inline-flex|block|inline-block|hidden)/ },
+  ],
   theme: {
     extend: {
       colors: {
