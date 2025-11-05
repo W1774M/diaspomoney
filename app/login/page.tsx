@@ -7,10 +7,10 @@ import {
   OAuthProfileCompletion,
 } from '@/components/features/auth';
 import { useAppointment } from '@/components/features/providers';
+import Logo from '@/components/ui/Logo';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useOAuthProfileCheck } from '@/hooks/auth/useOAuthProfileCheck';
 import { CreditCard, Shield, TrendingUp, User } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
@@ -96,13 +96,12 @@ export default function LoginPage() {
 
           <div className='relative z-10 flex flex-col justify-center px-12 py-12'>
             <div className='mb-8'>
-              <Image
+              <Logo
                 src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
                 alt='DiaspoMoney'
                 width={200}
                 height={60}
                 className='mb-6'
-                priority
               />
               <h1 className='text-4xl font-bold text-white mb-4'>
                 Bienvenue sur DiaspoMoney
@@ -180,13 +179,12 @@ export default function LoginPage() {
           <div className='w-full max-w-md'>
             {/* Header mobile */}
             <div className='lg:hidden text-center mb-8'>
-              <Image
+              <Logo
                 src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
                 alt='DiaspoMoney'
                 width={180}
                 height={54}
                 className='mx-auto mb-4'
-                priority
               />
             </div>
 

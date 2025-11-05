@@ -12,6 +12,7 @@ import {
   FormLabel,
   Input,
 } from "@/components/ui";
+import Logo from "@/components/ui/Logo";
 import { useForm } from "@/hooks/forms/useForm";
 import {
   resetPasswordSchema,
@@ -90,13 +91,12 @@ function ResetPasswordContent() {
       <div className="w-full max-w-md mx-auto">
         <Card className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl">
           <CardHeader className="flex flex-col items-center gap-2 pt-8 pb-4">
-            <Image
+            <Logo
               src="/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp"
               alt="DiaspoMoney"
               width={160}
               height={48}
               className="mb-2 drop-shadow-md"
-              priority
             />
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
@@ -133,15 +133,12 @@ function ResetPasswordContent() {
       <div className="w-full max-w-md mx-auto">
         <Card className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl">
           <CardHeader className="flex flex-col items-center gap-2 pt-8 pb-4">
-            <Image
+            <Logo
               src="/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp"
               alt="DiaspoMoney"
               width={160}
               height={48}
               className="mb-2 drop-shadow-md"
-              priority
-              placeholder="blur"
-              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
             />
             <CardTitle className="text-2xl font-extrabold text-red-800 tracking-tight text-center">
               Lien invalide

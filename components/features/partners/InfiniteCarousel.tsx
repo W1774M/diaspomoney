@@ -273,9 +273,9 @@ export function InfiniteCarousel() {
     const partner = partners[0];
     return (
       <div className='w-full flex justify-center'>
-        <div className='w-full max-w-md lg:max-w-lg xl:max-w-xl'>
+        <div className='w-full max-w-xs lg:max-w-sm'>
           <div
-            className='relative bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl'
+            className='relative bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl'
             onMouseEnter={() =>
               setHoveredPartnerId(partner && partner.id ? partner.id : null)
             }
@@ -293,56 +293,56 @@ export function InfiniteCarousel() {
 
             {/* Image du partenaire */}
             <span
-              className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
+              className='aspect-square bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
               style={{
                 backgroundImage: `url(${
                   partner && partner.logo ? partner.logo : ''
                 })`,
-                backgroundSize: 'auto 100%',
+                backgroundSize: 'contain',
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'center',
               }}
             ></span>
 
             {/* Contenu */}
-            <div className='p-6'>
-              <div className='flex items-center justify-between mb-3'>
-                <h3 className='text-xl font-bold text-gray-900 truncate'>
+            <div className='p-4'>
+              <div className='flex items-center justify-between mb-2'>
+                <h3 className='text-lg font-bold text-gray-900 truncate'>
                   {partner && partner.name ? partner.name : ''}
                 </h3>
-                <ExternalLink className='h-5 w-5 text-gray-400' />
+                <ExternalLink className='h-4 w-4 text-gray-400' />
               </div>
 
-              <p className='text-gray-600 text-sm mb-4 line-clamp-3'>
+              <p className='text-gray-600 text-sm mb-3 line-clamp-2'>
                 {partner && partner.description ? partner.description : ''}
               </p>
 
-              <div className='flex flex-wrap gap-2 mb-4'>
+              <div className='flex flex-wrap gap-1 mb-3'>
                 {partner && partner.services
-                  ? partner.services.slice(0, 3).map((service, idx) => (
+                  ? partner.services.slice(0, 2).map((service, idx) => (
                       <span
                         key={idx}
-                        className='px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full'
+                        className='px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full'
                       >
                         {service}
                       </span>
                     ))
                   : []}
                 {partner && partner.services
-                  ? partner.services.length > 3 && (
-                      <span className='px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full'>
-                        +{partner.services.length - 3} autres
+                  ? partner.services.length > 2 && (
+                      <span className='px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full'>
+                        +{partner.services.length - 2}
                       </span>
                     )
                   : null}
               </div>
 
-              <div className='flex items-center justify-between text-sm text-gray-500'>
+              <div className='flex items-center justify-between text-xs text-gray-500'>
                 <span className='flex items-center'>
                   📍 {partner && partner.location ? partner.location : ''}
                 </span>
                 {partner && partner.established ? (
-                  <span>Depuis {partner.established}</span>
+                  <span>{partner.established}</span>
                 ) : null}
               </div>
             </div>
@@ -356,11 +356,11 @@ export function InfiniteCarousel() {
   if (baseLength === 2) {
     return (
       <div className='w-full flex justify-center'>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl'>
           {partners.map(partner => (
             <div
               key={partner.id}
-              className='relative bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl'
+              className='relative bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl'
               onMouseEnter={() => setHoveredPartnerId(partner.id)}
               onMouseLeave={() => setHoveredPartnerId(null)}
               onClick={() => handlePartnerClick(partner)}
@@ -374,51 +374,49 @@ export function InfiniteCarousel() {
 
               {/* Image du partenaire */}
               <span
-                className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
+                className='aspect-square bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
                 style={{
                   backgroundImage: `url(${partner.logo})`,
-                  backgroundSize: 'auto 100%',
+                  backgroundSize: 'contain',
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center',
                 }}
               ></span>
 
               {/* Contenu */}
-              <div className='p-6'>
-                <div className='flex items-center justify-between mb-3'>
-                  <h3 className='text-lg font-bold text-gray-900 truncate'>
+              <div className='p-4'>
+                <div className='flex items-center justify-between mb-2'>
+                  <h3 className='text-base font-bold text-gray-900 truncate'>
                     {partner.name}
                   </h3>
-                  <ExternalLink className='h-5 w-5 text-gray-400' />
+                  <ExternalLink className='h-4 w-4 text-gray-400' />
                 </div>
 
-                <p className='text-gray-600 text-sm mb-4 line-clamp-2'>
+                <p className='text-gray-600 text-sm mb-3 line-clamp-2'>
                   {partner.description}
                 </p>
 
-                <div className='flex flex-wrap gap-2 mb-4'>
+                <div className='flex flex-wrap gap-1 mb-3'>
                   {partner.services.slice(0, 2).map((service, idx) => (
                     <span
                       key={idx}
-                      className='px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full'
+                      className='px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full'
                     >
                       {service}
                     </span>
                   ))}
                   {partner.services.length > 2 && (
-                    <span className='px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full'>
-                      +{partner.services.length - 2} autres
+                    <span className='px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full'>
+                      +{partner.services.length - 2}
                     </span>
                   )}
                 </div>
 
-                <div className='flex items-center justify-between text-sm text-gray-500'>
+                <div className='flex items-center justify-between text-xs text-gray-500'>
                   <span className='flex items-center'>
                     📍 {partner.location}
                   </span>
-                  {partner.established && (
-                    <span>Depuis {partner.established}</span>
-                  )}
+                  {partner.established && <span>{partner.established}</span>}
                 </div>
               </div>
             </div>
@@ -444,13 +442,13 @@ export function InfiniteCarousel() {
           {track.map((partner, index) => (
             <div
               key={`${partner.id}-${index}`}
-              className='flex-shrink-0 px-1 sm:px-2 md:px-4'
+              className='flex-shrink-0 px-1 sm:px-2'
               style={{ width: `${itemWidthPct}%` }}
             >
               <div
-                className={`relative bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transition-all duration-300 ${
+                className={`relative bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transition-all duration-300 ${
                   hoveredPartnerId === partner.id
-                    ? 'scale-105 shadow-2xl'
+                    ? 'scale-105 shadow-xl'
                     : 'hover:scale-105'
                 }`}
                 onMouseEnter={() => setHoveredPartnerId(partner.id)}
@@ -466,10 +464,10 @@ export function InfiniteCarousel() {
 
                 {/* Image du partenaire */}
                 <div
-                  className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
+                  className='aspect-square bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
                   style={{
                     backgroundImage: `url(${partner.logo})`,
-                    backgroundSize: 'auto 100%',
+                    backgroundSize: 'contain',
                     backgroundRepeat: 'no-repeat',
                     backgroundPosition: 'center',
                   }}
@@ -477,32 +475,32 @@ export function InfiniteCarousel() {
                   <ExternalImage
                     src={partner.logo}
                     alt={partner.name}
-                    className='w-full h-full object-contain'
-                    width={100}
-                    height={100}
+                    className='w-full h-full object-contain p-2'
+                    width={80}
+                    height={80}
                   />
                 </div>
 
                 {/* Contenu */}
-                <div className='p-2 sm:p-3 md:p-4'>
-                  <h3 className='font-semibold text-gray-900 text-xs sm:text-sm mb-1 line-clamp-2'>
+                <div className='p-2'>
+                  <h3 className='font-semibold text-gray-900 text-xs mb-1 line-clamp-1'>
                     {partner.name}
                   </h3>
-                  <p className='text-xs text-gray-600 mb-2 line-clamp-1'>
+                  <p className='text-xs text-gray-500 line-clamp-1'>
                     {partner.category}
                   </p>
                 </div>
 
                 {/* Bouton d'action visible au hover */}
                 <div
-                  className={`absolute bottom-2 sm:bottom-3 md:bottom-4 left-1/2 transform -translate-x-1/2 z-20 transition-opacity duration-300 ${
+                  className={`absolute bottom-2 left-1/2 transform -translate-x-1/2 z-20 transition-opacity duration-300 ${
                     hoveredPartnerId === partner.id
                       ? 'opacity-100'
                       : 'opacity-0'
                   }`}
                 >
-                  <button className='bg-white text-[hsl(25,100%,53%)] px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-full text-xs font-semibold shadow-lg hover:bg-gray-50 transition-colors'>
-                    Voir détails
+                  <button className='bg-white text-[hsl(25,100%,53%)] px-2 py-1 rounded-full text-xs font-semibold shadow-lg hover:bg-gray-50 transition-colors'>
+                    Détails
                   </button>
                 </div>
               </div>

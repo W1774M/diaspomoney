@@ -1,3 +1,4 @@
+import Logo from '@/components/ui/Logo';
 import Image from 'next/image';
 import Link from 'next/link';
 // import CarouselFooter from "./carousel-footer";
@@ -38,7 +39,7 @@ const FooterComponent = () => {
       <div className='container mx-auto px-4'>
         <div className='grid grid-cols-1 md:grid-cols-5 items-start gap-8 mb-8'>
           <div>
-            <Image
+            <Logo
               width={300}
               height={100}
               src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'

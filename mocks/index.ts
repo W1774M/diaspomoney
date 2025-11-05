@@ -1321,7 +1321,7 @@ export const generateMockTimeSlots = (
 // Fonction pour obtenir les disponibilités d'un utilisateur
 export const getUserAvailabilities = (userId: string) => {
   const user = getMockUserById(userId);
-  if (!user?.availabilities) return [];
+  if (!user || !user?.availabilities) return [];
 
   return user.availabilities
     .map(availabilityId => getMockAvailabilityById(availabilityId))
@@ -1342,12 +1342,12 @@ export const addAvailabilityToUser = (
   const user = getMockUserById(userId);
   if (!user) return false;
 
-  if (!user.availabilities) {
-    user.availabilities = [];
+  if (!user?.availabilities) {
+    user?.availabilities = [];
   }
 
-  if (!user.availabilities?.includes(availabilityId as never)) {
-    user.availabilities.push(availabilityId as never);
+  if (!user?.availabilities?.includes(availabilityId as never)) {
+    user?.availabilities?.push(availabilityId as never);
     return true;
   }
 
@@ -1360,11 +1360,11 @@ export const removeAvailabilityFromUser = (
   availabilityId: string
 ) => {
   const user = getMockUserById(userId);
-  if (!user || !user.availabilities) return false;
+  if (!user || !user?.availabilities) return false;
 
-  const index = user.availabilities?.indexOf(availabilityId as never);
+  const index = user?.availabilities?.indexOf(availabilityId as never);
   if (index > -1) {
-    user.availabilities.splice(index, 1);
+    user?.availabilities?.splice(index, 1);
     return true;
   }
 
@@ -1376,9 +1376,9 @@ export const getUserTimeSlotsForDay = (userId: string, dayOfWeek: number) => {
   const availabilities = getUserActiveAvailabilities(userId);
   const timeSlots: any[] = [];
 
-  availabilities.forEach(availability => {
+  availabilities.forEach((availability: any) => {
     const daySlots = availability?.timeSlots?.filter(
-      slot => slot.dayOfWeek === dayOfWeek
+      (slot: any) => slot?.dayOfWeek === dayOfWeek
     );
     if (Array.isArray(daySlots)) {
       timeSlots.push(...daySlots);
@@ -1393,7 +1393,7 @@ export const getAllUserTimeSlots = (userId: string) => {
   const availabilities = getUserActiveAvailabilities(userId);
   const timeSlots: any[] = [];
 
-  availabilities.forEach(availability => {
+  availabilities.forEach((availability: any) => {
     if (Array.isArray(availability?.timeSlots)) {
       timeSlots.push(...availability.timeSlots);
     }
@@ -1423,7 +1423,7 @@ export const isUserAvailableAtTime = (
 // Fonction pour obtenir les utilisateurs avec des disponibilités spécifiques
 export const getUsersWithAvailability = (availabilityId: string) => {
   return MOCK_USERS.filter(
-    user =>
+    (user: any) =>
       user.availabilities &&
       user.availabilities.includes(availabilityId as never)
   );
@@ -1435,11 +1435,11 @@ export const getAvailableUsersForDay = (dayOfWeek: number) => {
     if (!user?.availabilities) return false;
 
     const userAvailabilities = getUserAvailabilities(user._id);
-    return userAvailabilities.some(availability => {
+    return userAvailabilities.some((availability: any) => {
       if (!availability?.isActive) return false;
 
       return availability?.timeSlots?.some(
-        slot =>
+        (slot: any) =>
           slot.dayOfWeek === dayOfWeek && slot.isActive && slot.isAvailable
       );
     });
@@ -1505,12 +1505,12 @@ export const getUserAvailabilitySummary = (userId: string) => {
 export const getAvailabilityStats = () => {
   const totalUsers = MOCK_USERS.length;
   const usersWithAvailabilities = MOCK_USERS.filter(
-    user => user.availabilities && user.availabilities.length > 0
+    (user: any) => user?.availabilities && user?.availabilities?.length > 0
   ).length;
 
   const totalAvailabilities = MOCK_AVAILABILITIES.length;
   const activeAvailabilities = MOCK_AVAILABILITIES.filter(
-    av => av.isActive
+    (av: any) => av.isActive
   ).length;
 
   const totalTimeSlots = MOCK_AVAILABILITIES.reduce(

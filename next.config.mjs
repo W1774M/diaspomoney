@@ -60,8 +60,8 @@ const nextConfig = {
     // Configuration pour permettre toutes les images externes en développement
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Désactiver la validation stricte en développement
-    unoptimized: process.env.NODE_ENV === 'development',
+    // Désactiver l'optimisation d'images pour éviter les erreurs avec les images locales corrompues
+    unoptimized: true,
   },
 
   // Configuration expérimentale (instrumentationHook n'est plus nécessaire)
