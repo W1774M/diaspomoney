@@ -1,88 +1,112 @@
-import { NextRequest, NextResponse } from "next/server";
-import { mongoClient } from "@/lib/mongodb";
-import { sendEmailVerification } from "@/lib/email";
-import crypto from "crypto";
+/**
+ * API Route - Resend Verification
+ * Endpoint pour renvoyer l'email de vérification
+ */
+
+import { sendWelcomeEmail } from '@/lib/email/resend';
+import dbConnect from '@/lib/mongodb';
+import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import User from '@/models/User';
+import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const body = await request.json();
+    const { email } = body;
 
     if (!email) {
-      return NextResponse.json({ error: "Email requis" }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Adresse email requise' },
+        { status: 400 }
+      );
     }
 
-    // Connexion à la base de données
-    const client = await mongoClient;
-    const db = client.db();
-    const usersCollection = db.collection("users");
+    // S'assurer que la connexion à la base de données est établie
+    await dbConnect();
 
-    // Recherche de l'utilisateur
-    const user = await usersCollection.findOne({
-      email: email.toLowerCase(),
-    });
-
+    // Trouver l'utilisateur
+    const user = await (User as any).findOne({ email: email.toLowerCase() });
     if (!user) {
-      // Pour des raisons de sécurité, on ne révèle pas si l'email existe ou non
       return NextResponse.json(
-        {
-          success: true,
-          message: "Si cet email existe, vous recevrez un nouveau lien de vérification",
-        },
-        { status: 200 },
+        { error: 'Aucun compte trouvé avec cette adresse email' },
+        { status: 404 }
       );
     }
 
-    // Vérification si l'email est déjà vérifié
-    if (user['isEmailVerified']) {
+    // Vérifier si l'email est déjà vérifié
+    if (user.isEmailVerified) {
       return NextResponse.json(
         {
           success: true,
-          message: "Cet email a déjà été vérifié",
+          message: 'Email déjà vérifié',
+          email: user.email,
         },
-        { status: 200 },
+        { status: 200 }
       );
     }
 
-    // Génération d'un nouveau token de vérification
-    const emailVerificationToken = crypto.randomBytes(32).toString("hex");
-    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 heures
-
-    // Mise à jour du token dans la base de données
-    await usersCollection.updateOne(
-      { _id: user._id },
-      {
-        $set: {
-          emailVerificationToken,
-          emailVerificationExpires,
-        },
-      }
+    // Générer un nouveau token de vérification
+    const emailVerificationToken = jwt.sign(
+      { userId: user._id?.toString() || user.id, type: 'email_verification' },
+      process.env['JWT_SECRET']!,
+      { expiresIn: '24h' }
     );
 
-    // Envoi de l'email de vérification
-    try {
-      const verificationUrl = `${process.env["NEXTAUTH_URL"] || "http://localhost:3000"}/verify-email?token=${emailVerificationToken}`;
-      await sendEmailVerification(`${user['firstName']} ${user['lastName']}`, user['email'], verificationUrl);
-      console.log(`[RESEND-VERIFICATION] Email de vérification renvoyé à ${user['email']}`);
-    } catch (emailError) {
-      console.error("[RESEND-VERIFICATION] Erreur lors de l'envoi de l'email:", emailError);
+    // Envoyer l'email de bienvenue avec lien de vérification
+    const verificationUrl = `${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}`;
+    const emailSent = await sendWelcomeEmail(
+      user.email,
+      `${user.firstName} ${user.lastName}`,
+      verificationUrl
+    );
+
+    if (!emailSent) {
       return NextResponse.json(
-        { error: "Erreur lors de l'envoi de l'email de vérification" },
-        { status: 500 },
+        { error: "Erreur lors de l'envoi de l'email" },
+        { status: 500 }
       );
     }
+
+    // Enregistrer les métriques
+    monitoringManager.recordMetric({
+      name: 'auth_verification_emails_sent',
+      value: 1,
+      timestamp: new Date(),
+      labels: {
+        user_id: user._id?.toString() || user.id,
+      },
+      type: 'counter',
+    });
 
     return NextResponse.json(
       {
         success: true,
-        message: "Email de vérification envoyé avec succès",
+        message: 'Email de vérification renvoyé avec succès',
+        email: user.email,
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error) {
-    console.error("Erreur lors du renvoi de l'email de vérification:", error);
+    console.error('Erreur resend-verification API:', error);
+
+    // Enregistrer les métriques d'échec
+    monitoringManager.recordMetric({
+      name: 'auth_verification_emails_failed',
+      value: 1,
+      timestamp: new Date(),
+      type: 'counter',
+    });
+
     return NextResponse.json(
-      { error: "Erreur interne du serveur" },
-      { status: 500 },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erreur lors de l'envoi de l'email",
+        success: false,
+      },
+      { status: 400 }
     );
   }
 }

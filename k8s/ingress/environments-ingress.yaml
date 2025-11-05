@@ -1,0 +1,143 @@
+# Ingress pour l'environnement de développement
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: diaspomoney-dev-ingress
+  namespace: diaspomoney-dev
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    traefik.ingress.kubernetes.io/router.middlewares: diaspomoney-dev-headers@kubernetescrd
+spec:
+  tls:
+  - hosts:
+    - dev.diaspomoney.fr
+    secretName: diaspomoney-dev-tls
+  rules:
+  - host: dev.diaspomoney.fr
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: diaspomoney-app
+            port:
+              number: 3000
+
+---
+# Ingress pour l'environnement de recette
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: diaspomoney-rct-ingress
+  namespace: diaspomoney-rct
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    traefik.ingress.kubernetes.io/router.middlewares: diaspomoney-rct-headers@kubernetescrd
+spec:
+  tls:
+  - hosts:
+    - rct.diaspomoney.fr
+    secretName: diaspomoney-rct-tls
+  rules:
+  - host: rct.diaspomoney.fr
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: diaspomoney-app
+            port:
+              number: 3000
+
+---
+# Ingress pour l'environnement de production
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: diaspomoney-prod-ingress
+  namespace: diaspomoney-prod
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    traefik.ingress.kubernetes.io/router.middlewares: diaspomoney-prod-headers@kubernetescrd
+spec:
+  tls:
+  - hosts:
+    - app.diaspomoney.fr
+    secretName: diaspomoney-prod-tls
+  rules:
+  - host: app.diaspomoney.fr
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: diaspomoney-app
+            port:
+              number: 3000
+
+---
+# Middleware pour les headers de sécurité - DEV
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: diaspomoney-dev-headers
+  namespace: diaspomoney-dev
+spec:
+  headers:
+    customRequestHeaders:
+      X-Environment: "development"
+    customResponseHeaders:
+      X-Environment: "development"
+      X-Frame-Options: "DENY"
+      X-Content-Type-Options: "nosniff"
+      X-XSS-Protection: "1; mode=block"
+      Referrer-Policy: "strict-origin-when-cross-origin"
+
+---
+# Middleware pour les headers de sécurité - RCT
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: diaspomoney-rct-headers
+  namespace: diaspomoney-rct
+spec:
+  headers:
+    customRequestHeaders:
+      X-Environment: "recette"
+    customResponseHeaders:
+      X-Environment: "recette"
+      X-Frame-Options: "DENY"
+      X-Content-Type-Options: "nosniff"
+      X-XSS-Protection: "1; mode=block"
+      Referrer-Policy: "strict-origin-when-cross-origin"
+
+---
+# Middleware pour les headers de sécurité - PROD
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: diaspomoney-prod-headers
+  namespace: diaspomoney-prod
+spec:
+  headers:
+    customRequestHeaders:
+      X-Environment: "production"
+    customResponseHeaders:
+      X-Environment: "production"
+      X-Frame-Options: "DENY"
+      X-Content-Type-Options: "nosniff"
+      X-XSS-Protection: "1; mode=block"
+      Referrer-Policy: "strict-origin-when-cross-origin"
+      Strict-Transport-Security: "max-age=31536000; includeSubDomains"

@@ -1,12 +1,29 @@
-import { MongoClient } from "mongodb";
-import mongoose from "mongoose";
+import { MongoClient } from 'mongodb';
+import mongoose from 'mongoose';
 
-if (!process.env["MONGODB_URI"]) {
-  throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
+if (!process.env['MONGODB_URI']) {
+  // En mode build, utiliser une URI par défaut pour éviter l'erreur
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env['NEXT_PHASE'] === 'phase-production-build'
+  ) {
+    console.warn('MONGODB_URI not set during build, using placeholder');
+    process.env['MONGODB_URI'] = 'mongodb://localhost:27017/diaspomoney';
+  } else {
+    throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
+  }
 }
 
-const uri = process.env["MONGODB_URI"];
-const options = {};
+const uri = process.env['MONGODB_URI'];
+
+// Configuration optimisée pour éviter les timeouts
+const options = {
+  maxPoolSize: 10, // Maximum de connexions dans le pool
+  serverSelectionTimeoutMS: 5000, // Timeout pour la sélection du serveur
+  socketTimeoutMS: 45000, // Timeout pour les opérations socket
+  connectTimeoutMS: 10000, // Timeout pour la connexion initiale
+  maxIdleTimeMS: 30000, // Temps maximum d'inactivité avant fermeture
+};
 
 // ============================================================================
 // MONGODB NATIVE CLIENT (pour les opérations directes)
@@ -15,7 +32,7 @@ const options = {};
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
 
-if (process.env.NODE_ENV === "development") {
+if (process.env.NODE_ENV === 'development') {
   // In development mode, use a global variable so that the value
   // is preserved across module reloads caused by HMR (Hot Module Replacement).
   const globalWithMongo = global as typeof globalThis & {
@@ -60,6 +77,11 @@ async function dbConnect() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
+      maxIdleTimeMS: 30000,
     };
 
     cached.promise = mongoose.connect(uri, opts).then(mongoose => {

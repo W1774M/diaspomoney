@@ -22,6 +22,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { FieldValues, SubmitHandler } from "react-hook-form";
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams();
@@ -90,7 +91,7 @@ function ResetPasswordContent() {
         <Card className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl">
           <CardHeader className="flex flex-col items-center gap-2 pt-8 pb-4">
             <Image
-              src="/img/Logo_Diaspo_Horizontal_enrichi.webp"
+              src="/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp"
               alt="DiaspoMoney"
               width={160}
               height={48}
@@ -133,7 +134,7 @@ function ResetPasswordContent() {
         <Card className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl">
           <CardHeader className="flex flex-col items-center gap-2 pt-8 pb-4">
             <Image
-              src="/img/Logo_Diaspo_Horizontal_enrichi.webp"
+              src="/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp"
               alt="DiaspoMoney"
               width={160}
               height={48}
@@ -172,7 +173,7 @@ function ResetPasswordContent() {
       <Card className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl">
         <CardHeader className="flex flex-col items-center gap-2 pt-8 pb-4">
           <Image
-            src="/img/Logo_Diaspo_Horizontal_enrichi.webp"
+            src="/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp"
             alt="DiaspoMoney"
             width={160}
             height={48}
@@ -189,10 +190,10 @@ function ResetPasswordContent() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-2 pb-6 px-6">
-          <Form onSubmit={handleSubmit(onSubmit)}>
+          <Form onSubmit={handleSubmit(onSubmit as SubmitHandler<FieldValues>)}>
             <FormField
-              {...(errors.password?.message && {
-                error: errors.password.message,
+              {...(errors["password"]?.message && {
+                error: errors["password"]?.message as string,
               })}
             >
               <FormLabel
@@ -224,8 +225,8 @@ function ResetPasswordContent() {
               </div>
             </FormField>
             <FormField
-              {...(errors.confirmPassword?.message && {
-                error: errors.confirmPassword.message,
+              {...(errors["confirmPassword"]?.message && {
+                error: errors["confirmPassword"]?.message as string,
               })}
             >
               <FormLabel

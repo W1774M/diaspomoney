@@ -1,147 +1,157 @@
 // Script d'initialisation MongoDB pour DiaspoMoney
-// Ce script s'exécute automatiquement au premier démarrage du conteneur
+// Ce script s'exécute automatiquement au premier démarrage du conteneur MongoDB
 
-print("=== Initialisation de la base de données DiaspoMoney ===");
-
-// Attendre que MongoDB soit prêt
-print("Attente que MongoDB soit prêt...");
-while (!db.adminCommand("ping").ok) {
-  print("MongoDB pas encore prêt, attente...");
-  sleep(1000);
-}
-print("MongoDB est prêt !");
-
-// Créer la base de données diaspomoney
-db = db.getSiblingDB("diaspomoney");
-print("Base de données diaspomoney créée/sélectionnée");
+// Se connecter à la base de données diaspomoney
+db = db.getSiblingDB('diaspomoney');
 
 // Créer un utilisateur pour l'application
 db.createUser({
-  user: "diaspomoney_user",
-  pwd: "diaspomoney_pass",
+  user: 'diaspomoney',
+  pwd: 'password123',
   roles: [
-    { role: "readWrite", db: "diaspomoney" },
-    { role: "dbAdmin", db: "diaspomoney" },
+    {
+      role: 'readWrite',
+      db: 'diaspomoney',
+    },
   ],
 });
-print("Utilisateur diaspomoney_user créé");
 
-// Création des collections principales selon les models du dossier models/
-db.createCollection("users");
-db.createCollection("appointments");
-db.createCollection("providers");
-db.createCollection("invoices");
-db.createCollection("specialities");
-db.createCollection("emailverificationtokens");
-db.createCollection("passwordresettokens");
-db.createCollection("retrytokens");
-db.createCollection("transactions");
-db.createCollection("wallets");
-db.createCollection("notifications");
-db.createCollection("kycfiles");
-print("Collections principales créées");
+// Créer les collections de base avec des index
+print('Création des collections de base...');
 
-// Index pour le model User (models/User.ts)
+// Collection des utilisateurs (modèle mis à jour)
+db.createCollection('users');
 db.users.createIndex({ email: 1 }, { unique: true });
 db.users.createIndex({ phone: 1 });
-db.users.createIndex({ name: 1 });
-db.users.createIndex({ roles: 1 });
+db.users.createIndex({ roles: 1 }); // Changé de 'role' à 'roles' (array)
 db.users.createIndex({ status: 1 });
+db.users.createIndex({ createdAt: 1 });
+db.users.createIndex({ emailVerified: 1 });
+db.users.createIndex({ isEmailVerified: 1 });
 
-// Index pour appointments (models/Appointment.ts)
-db.appointments.createIndex({ userId: 1 });
-db.appointments.createIndex({ providerId: 1 });
-db.appointments.createIndex({ date: 1 });
+// Collection des services
+db.createCollection('services');
+db.services.createIndex({ name: 1 });
+db.services.createIndex({ category: 1 });
+db.services.createIndex({ providerId: 1 });
+db.services.createIndex({ isActive: 1 });
 
-// Index pour providers (models/Provider.ts)
-db.providers.createIndex({ email: 1 }, { unique: true });
-db.providers.createIndex({ specialityId: 1 });
-db.providers.createIndex({ name: 1 });
+// Collection des rendez-vous
+db.createCollection('bookings');
+db.bookings.createIndex({ providerId: 1 });
+db.bookings.createIndex({ requesterId: 1 });
+db.bookings.createIndex({ date: 1 });
+db.bookings.createIndex({ status: 1 });
+db.bookings.createIndex({ createdAt: 1 });
 
-// Index pour invoices (models/Invoice.ts)
+// Collection des factures
+db.createCollection('invoices');
 db.invoices.createIndex({ userId: 1 });
-db.invoices.createIndex({ appointmentId: 1 });
-db.invoices.createIndex({ providerId: 1 });
+db.invoices.createIndex({ bookingId: 1 });
+db.invoices.createIndex({ status: 1 });
+db.invoices.createIndex({ createdAt: 1 });
 
-// Index pour specialities (models/Speciality.ts)
-db.specialities.createIndex({ name: 1 }, { unique: true });
-
-// Index pour emailverificationtokens (models/EmailVerificationToken.ts)
-db.emailverificationtokens.createIndex({ userId: 1 });
-db.emailverificationtokens.createIndex({ token: 1 }, { unique: true });
-
-// Index pour passwordresettokens (models/PasswordResetToken.ts)
-db.passwordresettokens.createIndex({ userId: 1 });
-db.passwordresettokens.createIndex({ token: 1 }, { unique: true });
-
-// Index pour retrytokens (models/RetryToken.ts)
-db.retrytokens.createIndex({ userId: 1 });
-db.retrytokens.createIndex({ token: 1 }, { unique: true });
-
-// Index pour transactions (models/Transaction.ts)
+// Collection des transactions
+db.createCollection('transactions');
 db.transactions.createIndex({ userId: 1 });
-db.transactions.createIndex({ walletId: 1 });
-db.transactions.createIndex({ status: 1 });
 db.transactions.createIndex({ type: 1 });
+db.transactions.createIndex({ status: 1 });
+db.transactions.createIndex({ createdAt: 1 });
 
-// Index pour wallets (models/Wallet.ts)
-db.wallets.createIndex({ userId: 1 });
-db.wallets.createIndex({ currency: 1 });
+// Collection des partenaires
+db.createCollection('partners');
+db.partners.createIndex({ name: 1 });
+db.partners.createIndex({ category: 1 });
+db.partners.createIndex({ isActive: 1 });
 
-// Index pour notifications (models/Notification.ts)
-db.notifications.createIndex({ userId: 1 });
-db.notifications.createIndex({ read: 1 });
+// Collection des spécialités
+db.createCollection('specialities');
+db.specialities.createIndex({ name: 1 });
+db.specialities.createIndex({ category: 1 });
 
-// Index pour kycfiles (models/KycFile.ts)
-db.kycfiles.createIndex({ userId: 1 });
-db.kycfiles.createIndex({ status: 1 });
+// Collection des tokens de vérification email
+db.createCollection('emailverificationtokens');
+db.emailverificationtokens.createIndex({ token: 1 }, { unique: true });
+db.emailverificationtokens.createIndex({ userId: 1 });
+db.emailverificationtokens.createIndex(
+  { expiresAt: 1 },
+  { expireAfterSeconds: 0 }
+);
 
-print("Index créés");
+// Collection des tokens de réinitialisation de mot de passe
+db.createCollection('passwordresettokens');
+db.passwordresettokens.createIndex({ token: 1 }, { unique: true });
+db.passwordresettokens.createIndex({ userId: 1 });
+db.passwordresettokens.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-// Insérer des données de test (optionnel)
-if (db.users.countDocuments() === 0) {
-  print("Insertion de données de test...");
+// Collection des tokens de retry
+db.createCollection('retrytokens');
+db.retrytokens.createIndex({ token: 1 }, { unique: true });
+db.retrytokens.createIndex({ userId: 1 });
+db.retrytokens.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-  // Utilisateur de test conforme au model User.ts
-  db.users.insertOne({
-    email: "test@example.com",
-    name: "Test User",
-    phone: "+1234567890",
-    company: "Test Company",
-    address: "123 Test Street",
-    roles: ["CUSTOMER"],
-    status: "ACTIVE",
-    specialty: null,
-    recommended: false,
-    apiGeo: [],
-    password: "$2a$10$testhash", // Mot de passe hashé fictif
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+// Insérer des données de test
+print('Insertion des données de test...');
 
-  // Spécialité de test (models/Speciality.ts)
-  db.specialities.insertOne({
-    name: "Médecine Générale",
-    description: "Consultation de médecine générale",
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+// Utilisateur admin par défaut (modèle mis à jour)
+db.users.insertOne({
+  _id: ObjectId(),
+  name: 'Admin DiaspoMoney',
+  firstName: 'Admin',
+  lastName: 'DiaspoMoney',
+  email: 'admin@diaspomoney.fr',
+  phone: '+33123456789',
+  password:
+    '$2b$10$rQZ8K9mN2pL3sT4uV5wX6yA7bC8dE9fG0hI1jK2lM3nO4pQ5rS6tU7vW8xY9zA', // password123
+  roles: ['ADMIN'], // Changé de 'role' à 'roles' (array)
+  status: 'ACTIVE',
+  emailVerified: true,
+  isEmailVerified: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+});
 
-  // Wallet de test (models/Wallet.ts)
-  db.wallets.insertOne({
-    userId: db.users.findOne({ email: "test@example.com" })._id,
-    balance: 0,
-    currency: "EUR",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+// Spécialités par défaut
+const specialities = [
+  { name: 'Médecine générale', category: 'HEALTH' },
+  { name: 'Cardiologie', category: 'HEALTH' },
+  { name: 'Dermatologie', category: 'HEALTH' },
+  { name: 'Gynécologie', category: 'HEALTH' },
+  { name: 'Pédiatrie', category: 'HEALTH' },
+  { name: 'Psychiatrie', category: 'HEALTH' },
+  { name: 'Radiologie', category: 'HEALTH' },
+  { name: 'Chirurgie', category: 'HEALTH' },
+  { name: 'Ophtalmologie', category: 'HEALTH' },
+  { name: 'ORL', category: 'HEALTH' },
+  { name: 'Neurologie', category: 'HEALTH' },
+  { name: 'Urologie', category: 'HEALTH' },
+  { name: 'Orthopédie', category: 'HEALTH' },
+  { name: 'Anesthésie', category: 'HEALTH' },
+  { name: 'Médecine du travail', category: 'HEALTH' },
+  { name: 'Médecine du sport', category: 'HEALTH' },
+  { name: "Médecine d'urgence", category: 'HEALTH' },
+  { name: 'Médecine interne', category: 'HEALTH' },
+  { name: 'Endocrinologie', category: 'HEALTH' },
+  { name: 'Gastro-entérologie', category: 'HEALTH' },
+  { name: 'Hématologie', category: 'HEALTH' },
+  { name: 'Infectiologie', category: 'HEALTH' },
+  { name: 'Néphrologie', category: 'HEALTH' },
+  { name: 'Oncologie', category: 'HEALTH' },
+  { name: 'Pneumologie', category: 'HEALTH' },
+  { name: 'Rhumatologie', category: 'HEALTH' },
+  { name: 'Médecine légale', category: 'HEALTH' },
+  { name: 'Médecine préventive', category: 'HEALTH' },
+  { name: 'Médecine de famille', category: 'HEALTH' },
+];
 
-  print("Données de test insérées");
-}
+db.specialities.insertMany(specialities);
 
-print("=== Initialisation terminée avec succès ===");
-print("Base de données: diaspomoney");
-print("Utilisateur admin: admin/admin123");
-print("Utilisateur app: diaspomoney_user/diaspomoney_pass");
-print("Interface web: http://localhost:8081");
+print('✅ Initialisation MongoDB terminée avec succès!');
+print(
+  '📊 Collections créées: users, services, bookings, invoices, transactions, partners, specialities'
+);
+print('👤 Utilisateur admin créé: admin@diaspomoney.fr / password123');
+print('🏥 Spécialités médicales insérées');
+print(
+  '🔗 Connexion: mongodb://diaspomoney:password123@localhost:27017/diaspomoney'
+);

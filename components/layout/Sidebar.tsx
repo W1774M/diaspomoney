@@ -1,8 +1,7 @@
-"use client";
+'use client';
 
-import { useAuth } from "@/hooks/auth/useAuth";
+import { useAuth } from '@/hooks/auth/useAuth';
 import {
-  AlertTriangle,
   Building,
   ChevronDown,
   ChevronRight,
@@ -14,11 +13,11 @@ import {
   Package,
   Settings,
   Users,
-} from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import Logo from "../ui/Logo";
+} from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import Logo from '../ui/Logo';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -37,9 +36,9 @@ export default function Sidebar() {
   // Ouvrir automatiquement la section facturation si on est sur une page de facturation
   useEffect(() => {
     const billingPaths = [
-      "/dashboard/invoices",
-      "/dashboard/quotes",
-      "/dashboard/payment-receipts",
+      '/dashboard/invoices',
+      '/dashboard/quotes',
+      '/dashboard/payment-receipts',
     ];
     if (billingPaths.includes(pathname)) {
       setIsBillingExpanded(true);
@@ -53,49 +52,49 @@ export default function Sidebar() {
 
   const navigation = [
     {
-      name: "Dashboard",
-      key: "dashboard",
-      href: "/dashboard",
+      name: 'Dashboard',
+      key: 'dashboard',
+      href: '/dashboard',
       icon: Home,
       show: true,
     },
     {
-      name: "Services",
-      key: "services",
-      href: "/dashboard/services",
+      name: 'Services',
+      key: 'services',
+      href: '/dashboard/services',
       icon: Package,
       show: true,
     },
     {
-      name: "Mes bénéficiaires",
-      key: "beneficiaries",
-      href: "/dashboard/beneficiaries",
+      name: 'Mes bénéficiaires',
+      key: 'beneficiaries',
+      href: '/dashboard/beneficiaries',
       icon: Users,
       show: isCustomer(),
     },
     {
-      name: "Facturation",
-      key: "billing",
+      name: 'Facturation',
+      key: 'billing',
       icon: FileText,
       values: [
         {
-          name: "Factures",
-          key: "invoices",
-          href: "/dashboard/invoices",
+          name: 'Factures',
+          key: 'invoices',
+          href: '/dashboard/invoices',
           icon: FileText,
           show: true,
         },
         {
-          name: "Mes Devis",
-          key: "quotes",
-          href: "/dashboard/quotes",
+          name: 'Mes Devis',
+          key: 'quotes',
+          href: '/dashboard/quotes',
           icon: FileText,
           show: isCustomer() || isProvider(),
         },
         {
-          name: "Bon de paiement",
-          key: "payment-receipts",
-          href: "/dashboard/payment-receipts",
+          name: 'Bon de paiement',
+          key: 'payment-receipts',
+          href: '/dashboard/payment-receipts',
           icon: FileText,
           show: isCustomer(),
         },
@@ -103,74 +102,67 @@ export default function Sidebar() {
       show: true,
     },
     {
-      name: "Utilisateurs",
-      key: "users",
-      href: "/dashboard/users",
+      name: 'Utilisateurs',
+      key: 'users',
+      href: '/dashboard/users',
       icon: Users,
       show: isAdmin(),
     },
     {
-      name: "Spécialités",
-      key: "specialities",
-      href: "/dashboard/specialities",
+      name: 'Spécialités',
+      key: 'specialities',
+      href: '/dashboard/specialities',
       icon: Building,
       show: isAdmin(),
     },
     {
-      name: "Mes disponibilités",
-      key: "availabilities",
-      href: "/dashboard/availabilities",
+      name: 'Mes disponibilités',
+      key: 'availabilities',
+      href: '/dashboard/availabilities',
       icon: Clock,
       show: isProvider(),
     },
     {
-      name: "Contacts prestataires",
-      key: "providers-contacts",
-      href: "/dashboard/providers/contacts",
+      name: 'Contacts prestataires',
+      key: 'providers-contacts',
+      href: '/dashboard/providers/contacts',
       icon: Eye,
       show: isCSM() || isAdmin(),
     },
-    {
-      name: "Réclamations",
-      key: "complaints",
-      href: "/dashboard/complaints",
-      icon: AlertTriangle,
-      show: true,
-    },
   ];
 
-  const visibleNavigation = navigation.filter(item => item.show);
+  const visibleNavigation = (navigation || []).filter(item => item.show);
 
   return (
-    <aside className="w-64 bg-white shadow-sm border-r min-h-screen flex flex-col">
+    <aside className='w-64 bg-white shadow-sm border-r min-h-screen flex flex-col'>
       {/* Section utilisateur en haut */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[hsl(25,100%,53%)] rounded-full flex items-center justify-center">
+      <div className='p-6 border-b border-gray-200'>
+        <div className='flex items-center space-x-3'>
+          <div className='w-10 h-10 bg-[hsl(25,100%,53%)] rounded-full flex items-center justify-center'>
             {/* <User className="h-5 w-5 text-white" /> */}
             <Logo
               src={
                 user?.avatar?.image ||
-                "/img/Logo_Diaspo_Horizontal_enrichi.webp"
+                '/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
               }
               width={60}
               height={60}
-              alt={user?.avatar?.name || user?.name || "Utilisateur"}
-              fallbackText={(user?.name || "U").slice(0, 1)}
+              alt={user?.avatar?.name || user?.name || 'Utilisateur'}
+              fallbackText={(user?.name || 'U').slice(0, 1)}
             />
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {user?.name || "Utilisateur"}
+          <div className='flex-1 min-w-0'>
+            <p className='text-sm font-medium text-gray-900 truncate'>
+              {user?.name || 'Utilisateur'}
             </p>
-            <p className="text-xs text-gray-500 truncate">
-              {user?.email || ""}
+            <p className='text-xs text-gray-500 truncate'>
+              {user?.email || ''}
             </p>
-            <div className="flex items-center mt-1">
+            <div className='flex items-center mt-1'>
               {user?.roles?.map(role => (
                 <span
                   key={role}
-                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 mr-1"
+                  className='inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 mr-1'
                 >
                   {role}
                 </span>
@@ -180,8 +172,8 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="p-6 flex flex-col flex-1">
-        <div className="space-y-2 flex-1">
+      <nav className='p-6 flex flex-col flex-1'>
+        <div className='space-y-2 flex-1'>
           {visibleNavigation.map(item => {
             // Si href est défini, afficher un lien
             if (item.href) {
@@ -192,11 +184,11 @@ export default function Sidebar() {
                   href={item.href}
                   className={`flex items-center px-3 py-2 rounded-lg transition-colors ${
                     isActive
-                      ? "text-gray-700 bg-[hsl(25,100%,53%)]/10"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? 'text-gray-700 bg-[hsl(25,100%,53%)]/10'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
-                  {item.icon && <item.icon className="h-5 w-5 mr-3" />}
+                  {item.icon && <item.icon className='h-5 w-5 mr-3' />}
                   {item.name}
                 </Link>
               );
@@ -204,7 +196,7 @@ export default function Sidebar() {
             // Sinon, si values est défini, afficher les sous-liens avec chevron
             if (item.values && Array.isArray(item.values)) {
               // Filtrer les sous-items visibles
-              const visibleSubItems = item.values.filter(
+              const visibleSubItems = (item.values || []).filter(
                 subItem => subItem.show
               );
               if (visibleSubItems.length === 0) return null;
@@ -215,28 +207,28 @@ export default function Sidebar() {
               );
 
               return (
-                <div key={item.name} className="flex flex-col">
+                <div key={item.name} className='flex flex-col'>
                   <button
                     onClick={() => setIsBillingExpanded(!isBillingExpanded)}
                     className={`flex items-center justify-between w-full text-left px-3 py-2 rounded-lg transition-colors ${
                       hasActiveSubItem
-                        ? "text-gray-700 bg-[hsl(25,100%,53%)]/10"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        ? 'text-gray-700 bg-[hsl(25,100%,53%)]/10'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                   >
-                    <div className="flex items-center">
-                      {item.icon && <item.icon className="h-5 w-5 mr-3" />}
-                      <span className="text-sm font-medium">{item.name}</span>
+                    <div className='flex items-center'>
+                      {item.icon && <item.icon className='h-5 w-5 mr-3' />}
+                      <span className='text-sm font-medium'>{item.name}</span>
                     </div>
                     {isBillingExpanded ? (
-                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                      <ChevronDown className='h-4 w-4 text-gray-500' />
                     ) : (
-                      <ChevronRight className="h-4 w-4 text-gray-500" />
+                      <ChevronRight className='h-4 w-4 text-gray-500' />
                     )}
                   </button>
 
                   {isBillingExpanded && (
-                    <div className="flex flex-col ml-4 mt-1">
+                    <div className='flex flex-col ml-4 mt-1'>
                       {visibleSubItems.map(subItem => {
                         const isActive = pathname === subItem.href;
                         return (
@@ -245,12 +237,12 @@ export default function Sidebar() {
                             href={subItem.href}
                             className={`flex items-center px-3 py-2 rounded-lg transition-colors text-sm ${
                               isActive
-                                ? "text-gray-700 bg-[hsl(25,100%,53%)]/10"
-                                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                                ? 'text-gray-700 bg-[hsl(25,100%,53%)]/10'
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                             }`}
                           >
                             {subItem.icon && (
-                              <subItem.icon className="h-4 w-4 mr-2" />
+                              <subItem.icon className='h-4 w-4 mr-2' />
                             )}
                             {subItem.name}
                           </Link>
@@ -267,22 +259,22 @@ export default function Sidebar() {
         </div>
 
         {/* Section séparée pour les actions utilisateur en bas */}
-        <div className="pt-6 border-t border-gray-200 space-y-2">
+        <div className='pt-6 border-t border-gray-200 space-y-2'>
           <Link
-            href="/dashboard/settings"
-            className="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg hover:text-gray-900"
+            href='/dashboard/settings'
+            className='flex items-center px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg hover:text-gray-900'
           >
-            <Settings className="h-5 w-5 mr-3" />
+            <Settings className='h-5 w-5 mr-3' />
             Paramètres
           </Link>
 
           <button
             onClick={signOut}
             disabled={isSigningOut}
-            className="flex items-center px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg hover:text-gray-900 w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            className='flex items-center px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg hover:text-gray-900 w-full disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            <LogOut className="h-5 w-5 mr-3" />
-            {isSigningOut ? "Déconnexion..." : "Déconnexion"}
+            <LogOut className='h-5 w-5 mr-3' />
+            {isSigningOut ? 'Déconnexion...' : 'Déconnexion'}
           </button>
         </div>
       </nav>

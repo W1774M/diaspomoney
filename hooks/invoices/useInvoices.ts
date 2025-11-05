@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { MOCK_INVOICES } from "@/mocks";
-import { IInvoice } from "@/types";
-import { useEffect, useMemo, useState } from "react";
+import { MOCK_INVOICES } from '@/mocks';
+import { IInvoice } from '@/types';
+import { useEffect, useMemo, useState } from 'react';
 
 interface UseInvoicesProps {
   limit?: number;
@@ -48,9 +48,9 @@ export function useInvoices({
           invoice => invoice.customerId === userId
         );
       } else if (userId) {
-        // Si un userId est spécifié mais pas de rôle, filtrer par userId
+        // Si un userId est spécifié mais pas de rôle, filtrer par customerId ou providerId
         filteredInvoices = filteredInvoices.filter(
-          invoice => invoice.userId === userId
+          invoice => invoice.customerId === userId || invoice.providerId === userId
         );
       }
     }
@@ -85,7 +85,7 @@ export function useInvoices({
   }, [userId, isAdmin, isProvider, isCustomer]);
 
   return {
-    invoices,
+    invoices: invoices as unknown as IInvoice[],
     total,
     loading,
     error,

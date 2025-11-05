@@ -1,32 +1,26 @@
-import pino from "pino";
+import pino from 'pino';
 
 const level =
-  process.env["LOG_LEVEL"] ||
-  (process.env.NODE_ENV === "production" ? "info" : "debug");
+  process.env['LOG_LEVEL'] ||
+  (process.env.NODE_ENV === 'production' ? 'info' : 'debug');
 
 const loggerOptions: pino.LoggerOptions = {
   level,
   base: null, // do not include pid/hostname by default to keep logs compact
   redact: {
     paths: [
-      "req.headers.authorization",
-      "req.headers.cookie",
-      "password",
-      "token",
+      'req.headers.authorization',
+      'req.headers.cookie',
+      'password',
+      'token',
     ],
     remove: true,
   },
 };
 
-if (process.env.NODE_ENV !== "production") {
-  (loggerOptions as any).transport = {
-    target: "pino-pretty",
-    options: {
-      colorize: true,
-      translateTime: "SYS:standard",
-      singleLine: true,
-    },
-  };
+if (process.env.NODE_ENV !== 'production') {
+  // Configuration simple pour le développement
+  loggerOptions.level = 'debug';
 }
 
 export const logger = pino(loggerOptions);

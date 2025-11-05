@@ -11,22 +11,25 @@ export function useComplaintFilters(complaints: Complaint[]) {
     priority: "all",
   });
 
+  // Sécurité : s'assurer que complaints est un tableau
+  const safeComplaints = complaints || [];
+
   // Extract unique values from complaints
   const availableStatuses = useMemo(() => {
-    return [...new Set(complaints.map(c => c.status))].sort();
-  }, [complaints]);
+    return [...new Set(safeComplaints.map(c => c.status))].sort();
+  }, [safeComplaints]);
 
   const availableTypes = useMemo(() => {
-    return [...new Set(complaints.map(c => c.type))].sort();
-  }, [complaints]);
+    return [...new Set(safeComplaints.map(c => c.type))].sort();
+  }, [safeComplaints]);
 
   const availablePriorities = useMemo(() => {
-    return [...new Set(complaints.map(c => c.priority))].sort();
-  }, [complaints]);
+    return [...new Set(safeComplaints.map(c => c.priority))].sort();
+  }, [safeComplaints]);
 
   // Filter complaints based on current filters
   const filteredComplaints = useMemo(() => {
-    return complaints.filter(complaint => {
+    return safeComplaints.filter(complaint => {
       // Search term filter
       if (
         filters.searchTerm &&
@@ -66,7 +69,7 @@ export function useComplaintFilters(complaints: Complaint[]) {
 
       return true;
     });
-  }, [complaints, filters]);
+  }, [safeComplaints, filters]);
 
   const updateFilter = useCallback(
     (key: keyof ComplaintFilters, value: string) => {

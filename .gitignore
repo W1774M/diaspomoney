@@ -187,3 +187,7 @@ backups
 docker/traefik/
 
 pnpm-lock.yaml
+
+.env.production# Environment files
+.env*
+env.*

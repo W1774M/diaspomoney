@@ -1,0 +1,365 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: diaspomoney-dashboard
+  namespace: diaspomoney
+  labels:
+    grafana_dashboard: "1"
+data:
+  diaspomoney-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "DiaspoMoney - Overview",
+        "tags": ["diaspomoney", "overview"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Request Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total[5m])",
+                "legendFormat": "Requests/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Error Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{status=~\"5..\"}[5m])",
+                "legendFormat": "Errors/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Response Time",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "95th percentile"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Active Users",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(active_users)",
+                "legendFormat": "Users"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+          },
+          {
+            "id": 5,
+            "title": "Request Rate Over Time",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total[1m])",
+                "legendFormat": "{{method}} {{status}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "Response Time Distribution",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "50th percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "95th percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "99th percentile"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
+
+  diaspomoney-database.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "DiaspoMoney - Database",
+        "tags": ["diaspomoney", "database"],
+        "style": "dark",
+        "panels": [
+          {
+            "id": 1,
+            "title": "MongoDB Connections",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "mongodb_connections_current",
+                "legendFormat": "Current Connections"
+              },
+              {
+                "expr": "mongodb_connections_available",
+                "legendFormat": "Available Connections"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "MongoDB Operations",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(mongodb_opcounters_total[5m])",
+                "legendFormat": "{{operation}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "MongoDB Query Latency",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(mongodb_op_latencies_seconds_bucket[5m]))",
+                "legendFormat": "95th percentile"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Redis Memory Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "redis_memory_used_bytes",
+                "legendFormat": "Used Memory"
+              },
+              {
+                "expr": "redis_memory_max_bytes",
+                "legendFormat": "Max Memory"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ]
+      }
+    }
+
+  diaspomoney-security.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "DiaspoMoney - Security",
+        "tags": ["diaspomoney", "security"],
+        "style": "dark",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Failed Login Attempts",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(auth_logins_failed[5m])",
+                "legendFormat": "Failed Logins/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Security Events",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(security_events_total[5m])",
+                "legendFormat": "{{event_type}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "PCI Compliance Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "pci_compliance_score",
+                "legendFormat": "Compliance Score"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "GDPR Compliance Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "gdpr_compliance_score",
+                "legendFormat": "Compliance Score"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Audit Logs",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(audit_logs_total[5m])",
+                "legendFormat": "{{severity}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ]
+      }
+    }
+
+  diaspomoney-transactions.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "DiaspoMoney - Transactions",
+        "tags": ["diaspomoney", "transactions"],
+        "style": "dark",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Transaction Volume",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(transactions_total[5m])",
+                "legendFormat": "Transactions/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Transaction Success Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(transactions_successful[5m]) / rate(transactions_total[5m]) * 100",
+                "legendFormat": "Success Rate %"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Payment Amounts",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(payment_amount_bucket[5m]))",
+                "legendFormat": "95th percentile"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Payment Methods",
+            "type": "piechart",
+            "targets": [
+              {
+                "expr": "sum by (payment_method) (rate(payments_total[5m]))",
+                "legendFormat": "{{payment_method}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ]
+      }
+    }
+
+  diaspomoney-notifications.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "DiaspoMoney - Notifications",
+        "tags": ["diaspomoney", "notifications"],
+        "style": "dark",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Notification Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(notifications_total[5m])",
+                "legendFormat": "{{channel}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Notification Success Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(notifications_delivered[5m]) / rate(notifications_total[5m]) * 100",
+                "legendFormat": "Success Rate %"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Notification Channels",
+            "type": "piechart",
+            "targets": [
+              {
+                "expr": "sum by (channel) (rate(notifications_total[5m]))",
+                "legendFormat": "{{channel}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Notification Delivery Time",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(notification_delivery_time_bucket[5m]))",
+                "legendFormat": "95th percentile"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ]
+      }
+    }

@@ -1,364 +1,324 @@
-// ============================================================================
-// BASE TYPES
-// ============================================================================
+/**
+ * Types principaux - DiaspoMoney
+ * Centralisation de tous les types du projet
+ */
 
-export type Theme = "light" | "dark" | "system";
-export type NotificationType = "success" | "error" | "info" | "warning";
-
-// Enum types
-export type UserRole =
-  | "ADMIN"
-  | "PROVIDER"
-  | "{PROVIDER:INSTITUTION}"
-  | "{PROVIDER:INDIVIDUAL}"
-  | "CUSTOMER"
-  | "CSM";
-export type UserStatus = "ACTIVE" | "INACTIVE" | "PENDING" | "SUSPENDED";
-export type InvoiceStatus = "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED";
-export type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
-export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
-export type ProviderGroup = "sante" | "edu" | "immo";
-export type ProviderCategory = "HEALTH" | "IMMO" | "EDU";
-
-// Address types
-export interface Address {
-  id?: string;
-  country: string;
-  address1: string;
-  address2?: string;
-  postalCode: string;
-  city: string;
-  isDefault?: boolean;
-  isBillingDefault?: boolean;
-}
-
-export interface UserAddresses {
-  addresses: Address[];
-  defaultBillingAddress?: string; // Default billing address ID
-}
-
-// Provider service interface
-export interface ProviderService {
-  id: string;
-  name: string;
-  price: number;
-  description?: string;
-  isVideoAvailable?: boolean;
-}
-
-// ============================================================================
-// ENUM CONSTANTS
-// ============================================================================
-
-export const BOOKING_STATUSES = [
-  { value: "pending", label: "En attente" },
-  { value: "confirmed", label: "Confirmé" },
-  { value: "cancelled", label: "Annulé" },
-  { value: "completed", label: "Terminé" },
-] as const;
-
-export const PAYMENT_STATUSES = [
-  { value: "pending", label: "En attente" },
-  { value: "paid", label: "Payé" },
-  { value: "failed", label: "Échoué" },
-  { value: "refunded", label: "Remboursé" },
-] as const;
-
-export const SERVICE_TYPES = [
-  { id: 1, name: "Consultation médicale" },
-  { id: 2, name: "Formation professionnelle" },
-  { id: 3, name: "Service immobilier" },
-  { id: 4, name: "Conseil juridique" },
-  { id: 5, name: "Service informatique" },
-] as const;
-
-export const SPECIALITY_TYPES = [
-  { id: 1, name: "Médecine", group: "sante" as const },
-  { id: 2, name: "Droit", group: "edu" as const },
-  { id: 3, name: "Immobilier", group: "immo" as const },
-  { id: 4, name: "Éducation", group: "edu" as const },
-  { id: 5, name: "Finance", group: "sante" as const },
-  { id: 6, name: "Informatique", group: "edu" as const },
-  { id: 7, name: "Construction", group: "immo" as const },
-  { id: 8, name: "Coaching", group: "edu" as const },
-  { id: 9, name: "Consulting", group: "sante" as const },
-  { id: 10, name: "Polyvalent", group: "sante" as const },
-] as const;
-
-export const INVOICE_STATUSES = [
-  { value: "DRAFT", label: "Brouillon" },
-  { value: "SENT", label: "Envoyée" },
-  { value: "PAID", label: "Payée" },
-  { value: "OVERDUE", label: "En retard" },
-  { value: "CANCELLED", label: "Annulée" },
-] as const;
-
-export const USER_ROLES = [
-  { value: "ADMIN", label: "Administrateur" },
-  { value: "PROVIDER", label: "Prestataire" },
-  { value: "CUSTOMER", label: "Client" },
-  { value: "CSM", label: "CSM" },
-] as const;
-
-export const USER_STATUSES = [
-  { value: "ACTIVE", label: "Actif" },
-  { value: "INACTIVE", label: "Inactif" },
-  { value: "PENDING", label: "En attente" },
-  { value: "SUSPENDED", label: "Suspendu" },
-] as const;
-
-// ============================================================================
-// BASE INTERFACES
-// ============================================================================
-
-export interface BaseDocument {
+// === TYPES DE BASE ===
+export interface BaseEntity {
   _id: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// ============================================================================
-// API INTERFACES
-// ============================================================================
-
-export interface ApiResponse<T> {
-  data: T;
-  status: number;
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
   message?: string;
+  error?: string;
+  timestamp: string;
+  status?: number;
 }
 
-export interface ApiError {
-  message: string;
-  code: string;
-  status: number;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
+export interface PaginationParams {
   page: number;
   limit: number;
-  totalPages: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
 }
 
-// ============================================================================
-// STORE INTERFACES (ZUSTAND)
-// ============================================================================
-
-export interface ThemeState {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
+export interface PaginatedResponse<T> extends ApiResponse<T[]> {
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }
 
-export interface Notification {
+// === TYPES UTILISATEUR ===
+export enum UserRole {
+  SUPERADMIN = 'SUPERADMIN',
+  ADMIN = 'ADMIN',
+  PROVIDER = 'PROVIDER',
+  CUSTOMER = 'CUSTOMER',
+  BENEFICIARY = 'BENEFICIARY',
+  CSM = 'CSM',
+}
+
+export enum UserStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  PENDING = 'PENDING',
+  SUSPENDED = 'SUSPENDED',
+}
+
+export enum ProviderType {
+  INDIVIDUAL = 'INDIVIDUAL',
+  INSTITUTION = 'INSTITUTION',
+}
+
+export enum ProviderCategory {
+  HEALTH = 'HEALTH',
+  BTP = 'BTP',
+  EDUCATION = 'EDUCATION',
+}
+
+export interface User extends BaseEntity {
+  clientNotes?: string;
+  avatar?: any;
+  preferences?: { language: string; timezone: string; notifications: boolean };
+  email: string;
+  name: string;
+  phone?: string;
+  company?: string;
+  address?: string;
+  roles: UserRole[];
+  status: UserStatus;
+  specialty?: string;
+  recommended?: boolean;
+  providerInfo?: ProviderInfo;
+  apiGeo?: ApiGeo[];
+  selectedServices?: string[];
+  availabilities?: Availability[];
+  category?: string;
+  type?: string;
+  acceptsFirstConsultation?: boolean;
+  acceptsVideoConsultation?: boolean;
+}
+
+export interface ProviderInfo extends User {
+  type: ProviderType;
+  category: ProviderCategory;
+  specialties: string[];
+  description?: string;
+  rating: number;
+  reviewCount: number;
+  isVerified: boolean;
+  institution?: InstitutionInfo;
+  individual?: IndividualInfo;
+  professionalContact?: ProfessionalContact;
+  professionalAddress?: ProfessionalAddress;
+  availability?: Availability;
+  pricing?: Pricing;
+  documents: Document[];
+  profileImage?: string;
+  specialty?: string;
+  company?: string;
+  recommended?: boolean;
+  address?: string;
+  appointments?: { start: string; end: string }[];
+  images?: string[];
+  services?: Service[];
+}
+
+export interface InstitutionInfo {
+  legalName: string;
+  registrationNumber: string;
+  taxId: string;
+  establishedYear: number;
+  employees: number;
+  certifications: string[];
+}
+
+export interface IndividualInfo {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: Date;
+  qualifications: string[];
+  experience: number;
+  languages: string[];
+}
+
+export interface ProfessionalContact {
+  phone: string;
+  email: string;
+  website?: string;
+}
+
+export interface ProfessionalAddress {
+  street: string;
+  city: string;
+  country: string;
+  postalCode: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+export interface Availability {
+  type: string;
+  id: any;
+  isActive: any;
+  name: string;
+  timeSlots: any;
+  startDate: any;
+  endDate: any;
+  monday: TimeSlot[];
+  tuesday: TimeSlot[];
+  wednesday: TimeSlot[];
+  thursday: TimeSlot[];
+  friday: TimeSlot[];
+  saturday: TimeSlot[];
+  sunday: TimeSlot[];
+  timezone?: string;
+}
+
+export interface TimeSlot {
+  dayOfWeek: number;
+  id: string | null | undefined;
+  startTime: string;
+  endTime: string;
+  start: string;
+  end: string;
+  isAvailable: boolean;
+  maxBookings: number;
+  currentBookings: number;
+}
+
+export interface Pricing {
+  basePrice: number;
+  currency: string;
+  pricingModel: PricingModel;
+  discounts: Discount[];
+}
+
+export enum PricingModel {
+  FIXED = 'FIXED',
+  HOURLY = 'HOURLY',
+  PER_SQM = 'PER_SQM',
+  CUSTOM = 'CUSTOM',
+}
+
+export interface Discount {
+  type: 'PERCENTAGE' | 'FIXED';
+  value: number;
+  conditions?: string;
+}
+
+export interface Document {
   id: string;
-  type: NotificationType;
-  message: string;
-  duration?: number;
-}
-
-export interface NotificationState {
-  notifications: Notification[];
-  addNotification: (notification: Omit<Notification, "id">) => void;
-  removeNotification: (id: string) => void;
-}
-
-export interface AuthState {
-  isLoading: boolean;
-  error: string | null;
-  setError: (error: string | null) => void;
-  login: (email: string, password: string) => Promise<boolean>;
-}
-
-// ============================================================================
-// DOMAIN INTERFACES
-// ============================================================================
-
-export interface Service {
-  id?: number;
   name: string;
-  price: number;
+  type: DocumentType;
+  url: string;
+  uploadedAt: Date;
+  expiresAt?: Date;
 }
 
-export interface ServiceType {
-  id?: number;
-  name: string;
+export enum DocumentType {
+  LICENSE = 'LICENSE',
+  CERTIFICATE = 'CERTIFICATE',
+  INSURANCE = 'INSURANCE',
+  PORTFOLIO = 'PORTFOLIO',
+  OTHER = 'OTHER',
 }
 
-export interface ProviderType {
-  id: string | number;
-  value: string;
-  group: ProviderGroup;
-}
-
-export interface ApiGeoLocation {
-  country_code: any;
-  country: any;
+export interface ApiGeo {
   place_id: number;
   licence: string;
   osm_type: string;
   osm_id: number;
+  boundingbox: string[];
   lat: string;
   lon: string;
+  display_name: string;
   class: string;
   type: string;
-  place_rank: number;
   importance: number;
-  addresstype: string;
-  name: string;
-  display_name: string;
-  boundingbox: string[];
 }
 
-// Alias for compatibility
-export type ApiGeo = ApiGeoLocation;
-
-// ============================================================================
-// UNIFIED USER INTERFACE
-// ============================================================================
-
-export interface IUser extends BaseDocument {
-  id: string;
-  email: string;
-  name: string;
-  description?: string;
-  phone?: string;
-  company?: string;
-  address?: string;
-  addresses?: UserAddresses;
-  roles: UserRole[];
-  status: UserStatus;
-  // Provider-specific fields
-  specialty?: string;
-  acceptsFirstConsultation?: boolean;
-  acceptsVideoConsultation?: boolean;
-  recommended?: boolean;
-  services?: ProviderService[]; // Services with prices
-  category?: ProviderCategory; // Category of the provider (HEALTH, BTP, IMMO)
-  apiGeo?: ApiGeoLocation[];
-  // Client-specific fields
-  clientNotes?: string;
-  // Common fields
-  avatar?: {
-    image: string;
-    name: string;
-  };
-  preferences?: {
-    language: string;
-    timezone: string;
-    notifications: boolean;
-  };
-  // Auth fields
-  password?: string;
-  emailVerified?: boolean;
-  image?: string;
-  // Legacy User fields
-  firstName?: string;
-  lastName?: string;
-  dateOfBirth?: Date;
-  countryOfResidence?: string;
-  targetCountry?: string;
-  targetCity?: string;
-  selectedServices?: string;
-  monthlyBudget?: string;
-  securityQuestion?: string;
-  securityAnswer?: string;
-  marketingConsent?: boolean;
-  kycConsent?: boolean;
-  isEmailVerified?: boolean;
-  lastLogin?: Date;
-  oauth?: {
-    google?: {
-      linked: boolean;
-      providerAccountId?: string;
-    };
-    facebook?: {
-      linked: boolean;
-      providerAccountId?: string;
-    };
-  };
-  // Provider alias fields for compatibility
-  availability?: Availability[];
-  isVerified?: boolean;
-  isRecommended?: boolean;
-  location?: ApiGeoLocation;
-  contactInfo?: {
-    phone: string;
-    email: string;
-    website?: string;
-  };
-  type?: ProviderType;
-  images?: string[];
-  reviews?: number;
-  distance?: string;
-  availabilities?: string[];
-  comparePassword?(candidatePassword: string): Promise<boolean>;
-  bookingsAsProvider?: IBooking[];
+// === TYPES TRANSACTION ===
+export enum TransactionStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+  REFUNDED = 'REFUNDED',
 }
 
-// User input types
-export interface CreateUserInput {
-  email: string;
-  name: string;
-  phone?: string;
-  company?: string;
-  address?: string;
-  roles: UserRole[];
-  status?: UserStatus;
-  specialty?: string;
-  recommended?: boolean;
-  apiGeo?: ApiGeoLocation[];
-  clientNotes?: string;
-  avatar?: string;
-  preferences?: {
-    language: string;
-    timezone: string;
-    notifications: boolean;
-  };
-  password?: string;
-  // Legacy fields
-  firstName?: string;
-  lastName?: string;
-  dateOfBirth?: Date;
-  countryOfResidence?: string;
-  targetCountry?: string;
-  targetCity?: string;
-  selectedServices?: string;
-  monthlyBudget?: string;
-  securityQuestion?: string;
-  securityAnswer?: string;
-  marketingConsent?: boolean;
-  kycConsent?: boolean;
+export enum TransactionType {
+  PAYMENT = 'PAYMENT',
+  REFUND = 'REFUND',
+  TRANSFER = 'TRANSFER',
+  FEE = 'FEE',
 }
 
-export type UpdateUserInput = Partial<CreateUserInput>;
+export interface Transaction extends BaseEntity {
+  userId: string;
+  amount: number;
+  currency: string;
+  type: TransactionType;
+  status: TransactionStatus;
+  description: string;
+  metadata?: Record<string, any>;
+  paymentIntentId?: string;
+  refundId?: string;
+}
 
-// ============================================================================
-// BOOKING INTERFACES
-// ============================================================================
+// === TYPES PAIEMENT ===
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  SUCCEEDED = 'SUCCEEDED',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+  REFUNDED = 'REFUNDED',
+}
 
-export interface IBooking extends BaseDocument {
+export const PaymentMethod = {
+  CARD: 'CARD',
+  BANK_TRANSFER: 'BANK_TRANSFER',
+  MOBILE_MONEY: 'MOBILE_MONEY',
+  PAYPAL: 'PAYPAL',
+} as const;
+
+export type PaymentMethodType =
+  (typeof PaymentMethod)[keyof typeof PaymentMethod];
+
+export interface Payment extends BaseEntity {
+  userId: string;
+  transactionId: string;
+  amount: number;
+  currency: string;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  paymentIntentId: string;
+  clientSecret?: string;
+  metadata?: Record<string, any>;
+}
+
+// === TYPES RENDEZ-VOUS ===
+export enum AppointmentStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  NO_SHOW = 'NO_SHOW',
+}
+
+export interface Appointment extends BaseEntity {
   userId: string;
   providerId: string;
   serviceId: string;
   date: Date;
   time: string;
-  status: BookingStatus;
+  duration: number;
+  status: AppointmentStatus;
   notes?: string;
-  price: number;
-  paymentStatus: PaymentStatus;
-  paymentMethod?: string;
-  paymentId?: string;
-  cancellationReason?: string;
-  cancelledAt?: Date;
-  cancelledBy?: string;
-  // Legacy Booking fields
-  reservationNumber?: string;
+  metadata?: Record<string, any>;
+  timeslot?: string;
+  selectedService?: {
+    id: string;
+    name: string;
+    price: number;
+    duration: number;
+  };
   requester?: {
     firstName: string;
     lastName: string;
-    phone: string;
     email: string;
+    phone: string;
   };
   recipient?: {
     firstName: string;
@@ -366,369 +326,164 @@ export interface IBooking extends BaseDocument {
     phone: string;
   };
   provider?: {
-    id: string | number;
+    id: string;
     name: string;
-    services: Service[];
-    type: ProviderType;
     specialty: string;
-    recommended: boolean;
-    apiGeo: ApiGeoLocation[];
-    images: string[];
-    rating: number;
-    reviews?: number;
-    distance?: string;
   };
-  selectedService?: Service | null;
-  timeslot?: string;
-  totalAmount?: number;
 }
 
-export interface CreateAppointmentInput {
+// === TYPES NOTIFICATION ===
+export const NotificationType = {
+  EMAIL: 'EMAIL',
+  SMS: 'SMS',
+  PUSH: 'PUSH',
+  WHATSAPP: 'WHATSAPP',
+} as const;
+
+export type NotificationType =
+  (typeof NotificationType)[keyof typeof NotificationType];
+
+export const NotificationStatus = {
+  PENDING: 'PENDING',
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  FAILED: 'FAILED',
+} as const;
+
+export type NotificationStatus =
+  (typeof NotificationStatus)[keyof typeof NotificationStatus];
+
+export interface Notification extends BaseEntity {
   userId: string;
-  providerId: string;
-  serviceId: string;
-  date: Date;
-  time: string;
-  notes?: string;
-  price: number;
-  // Legacy fields
-  reservationNumber?: string;
-  requester?: {
-    firstName: string;
-    lastName: string;
-    phone: string;
-    email: string;
-  };
-  recipient?: {
-    firstName: string;
-    lastName: string;
-    phone: string;
-  };
-  selectedService?: Service | null;
-  timeslot?: string;
-  totalAmount?: number;
+  type: NotificationType;
+  status: NotificationStatus;
+  subject: string;
+  content: string;
+  metadata?: Record<string, any>;
+  scheduledAt?: Date;
+  sentAt?: Date;
 }
 
-export type UpdateAppointmentInput = Partial<CreateAppointmentInput>;
-
-// ============================================================================
-// AVAILABILITY INTERFACES
-// ============================================================================
-
-export interface Availability {
-  day: string;
-  startTime: string;
-  endTime: string;
-  isAvailable: boolean;
+// === TYPES EMAIL ===
+export interface EmailOptions {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+  from?: string;
+  replyTo?: string;
+  tags?: Array<{ name: string; value: string }>;
 }
 
-// Compatibility alias - Provider is now a User with PROVIDER role
-export type IProvider = IUser;
-export type CreateProviderInput = CreateUserInput;
-export type UpdateProviderInput = UpdateUserInput;
-
-// ============================================================================
-// INVOICE INTERFACES
-// ============================================================================
-
-export interface IInvoice extends BaseDocument {
-  invoiceNumber: string;
-  customerId: string;
-  providerId?: string;
-  amount: number;
-  currency: string;
-  status: InvoiceStatus;
-  issueDate: Date;
-  dueDate: Date;
-  paidDate?: Date;
-  items: InvoiceItem[];
-  notes?: string;
-  userId: string;
-}
-
-export interface InvoiceItem {
-  description: string;
-  quantity: number;
-  unitPrice: number;
-  total: number;
-}
-
-export interface CreateInvoiceInput {
-  customerId: string;
-  providerId?: string;
-  amount: number;
-  currency: string;
-  issueDate: Date;
-  dueDate: Date;
-  items: InvoiceItem[];
-  notes?: string;
-  userId: string;
-}
-
-export type UpdateInvoiceInput = Partial<CreateInvoiceInput>;
-
-// ============================================================================
-// PROJECT INTERFACES
-// ============================================================================
-
-export interface IProject extends BaseDocument {
-  name: string;
-  description: string;
-  customerId: string;
-  providerId?: string;
-  status: ProjectStatus;
-  startDate: Date;
-  endDate?: Date;
-  budget: number;
-  currency: string;
-  tasks: string[]; // Task IDs
-  userId: string;
-}
-
-export type ProjectStatus =
-  | "PLANNING"
-  | "IN_PROGRESS"
-  | "ON_HOLD"
-  | "COMPLETED";
-
-export interface CreateProjectInput {
-  name: string;
-  description: string;
-  customerId: string;
-  providerId?: string;
-  status?: ProjectStatus;
-  startDate: Date;
-  endDate?: Date;
-  budget: number;
-  currency: string;
-  userId: string;
-}
-
-export type UpdateProjectInput = Partial<CreateProjectInput>;
-
-// ============================================================================
-// TASK INTERFACES
-// ============================================================================
-
-export interface ITask extends BaseDocument {
-  title: string;
-  description: string;
-  projectId: string;
-  assignedTo?: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  dueDate?: Date;
-  completedAt?: Date;
-  userId: string;
-}
-
-export type TaskStatus = "TODO" | "IN_PROGRESS" | "REVIEW" | "DONE";
-export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-
-export interface CreateTaskInput {
-  title: string;
-  description: string;
-  projectId: string;
-  assignedTo?: string;
-  status?: TaskStatus;
-  priority?: TaskPriority;
-  dueDate?: Date;
-  userId: string;
-}
-
-export type UpdateTaskInput = Partial<CreateTaskInput>;
-
-// ============================================================================
-// CLIENT INTERFACES
-// ============================================================================
-
-export interface IClient extends BaseDocument {
-  name: string;
-  email: string;
-  phone?: string;
-  company?: string;
-  address?: string;
-  status: ClientStatus;
-  notes?: string;
-  userId: string;
-}
-
-export type ClientStatus = "ACTIVE" | "INACTIVE" | "PROSPECT";
-
-export interface CreateClientInput {
-  name: string;
-  email: string;
-  phone?: string;
-  company?: string;
-  address?: string;
-  status?: ClientStatus;
-  notes?: string;
-  userId: string;
-}
-
-export type UpdateClientInput = Partial<CreateClientInput>;
-
-// ============================================================================
-// TOKEN INTERFACES
-// ============================================================================
-
-export interface IEmailVerificationToken extends BaseDocument {
-  email: string;
-  token: string;
-  expires: Date;
-  used?: boolean;
-}
-
-export interface IPasswordResetToken extends BaseDocument {
-  email: string;
-  token: string;
-  expires: Date;
-  used?: boolean;
-}
-
-export interface IRetryToken extends BaseDocument {
-  email: string;
-  token: string;
-  type: "email_verification" | "password_reset";
-  expires: Date;
-  used?: boolean;
-  appointmentId?: string;
-}
-
-// ============================================================================
-// SPECIALITY INTERFACES
-// ============================================================================
-
-export interface ISpeciality extends BaseDocument {
-  name: string;
-  description: string;
-  group: ProviderGroup;
-  isActive: boolean;
-}
-
-export interface SpecialityType {
-  id?: number;
-  name: string;
-  type: ServiceType;
-}
-
-// ============================================================================
-// REVIEW INTERFACES
-// ============================================================================
-
-export interface IReview extends BaseDocument {
-  author: string;
+export interface EmailTemplate {
+  subject: string;
+  html: string;
   text: string;
-  rating: number; // Note de 1 à 5
-  providerId: string; // ID du provider évalué
-  customerId: string; // ID du client qui a donné l'avis
-  appointmentId?: string; // ID du rendez-vous lié (optionnel)
 }
 
-// Interface pour les statistiques de rating d'un provider
-export interface ProviderRatingStats {
-  averageRating: number; // Note moyenne calculée
-  totalReviews: number; // Nombre total d'avis
-  ratingDistribution: {
-    5: number; // Nombre d'avis 5 étoiles
-    4: number; // Nombre d'avis 4 étoiles
-    3: number; // Nombre d'avis 3 étoiles
-    2: number; // Nombre d'avis 2 étoiles
-    1: number; // Nombre d'avis 1 étoile
-  };
+export interface EmailQueueItem {
+  id: string;
+  type: string;
+  to: string;
+  data: any;
+  priority: 'high' | 'normal' | 'low';
+  scheduledAt: Date;
+  attempts: number;
+  maxAttempts: number;
+  status: 'pending' | 'processing' | 'sent' | 'failed';
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// ============================================================================
-// FRONTEND INTERFACES
-// ============================================================================
-
-export interface ServicesButtonProps {
-  setActiveView?: (view: string, serviceType?: string) => void;
-  label?: string;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  serviceType?: string;
-  onClick?: () => void;
+// === TYPES SÉCURITÉ ===
+export interface SecurityEvent {
+  type: string;
+  userId?: string;
+  ipAddress: string;
+  userAgent: string;
+  timestamp: Date;
+  metadata?: Record<string, any>;
 }
 
-export interface ProviderCardProps {
-  provider: IUser;
-  onDetails: () => void;
+export interface AuditLog {
+  id: string;
+  event: string;
+  userId?: string;
+  system: string;
+  ipAddress: string;
+  userAgent: string;
+  metadata?: Record<string, any>;
+  timestamp: Date;
 }
 
-export interface FiltersProps {
-  specialties: string[];
-  filterSpecialty: string;
-  setFilterSpecialty: (value: string) => void;
-  providerTypes: { id: string | number; value: string }[];
-  selectedTypes: string[];
-  setSelectedTypes: (value: string[]) => void;
-  filters: { priceMin: number; priceMax: number };
-  setFilters: (filters: { priceMin: number; priceMax: number }) => void;
-  resetFilters: () => void;
+// === TYPES MONITORING ===
+export interface Metrics {
+  timestamp: Date;
+  value: number;
+  labels: Record<string, string>;
+}
+export interface Alert {
+  id: string;
+  name: string;
+  severity: 'critical' | 'warning' | 'info';
+  message: string;
+  timestamp: Date;
+  resolved: boolean;
 }
 
-export interface SelectFieldProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: string[];
+// === TYPES CONFIGURATION ===
+export interface DatabaseConfig {
+  uri: string;
+  options?: Record<string, any>;
 }
 
-export interface SearchBarProps {
-  availableServices: string[];
-  selectedService: string;
-  setSelectedService: (value: string) => void;
-  countries: string[];
-  selectedCountry: string;
-  setSelectedCountry: (value: string) => void;
-  selectedCity: string;
-  setSelectedCity: (value: string) => void;
+export interface RedisConfig {
+  url: string;
+  options?: Record<string, any>;
 }
 
-export interface AppointmentData {
-  requester: {
-    firstName: string;
-    lastName: string;
-    phone: string;
-    email: string;
-  };
-  recipient: {
-    firstName: string;
-    lastName: string;
-    phone: string;
-  };
-  provider: IUser;
-  selectedService: Service | null;
-  timeslot: string;
+export interface EmailConfig {
+  apiKey: string;
+  from: string;
+  replyTo: string;
 }
 
-export interface PaymentData {
-  cardNumber: string;
-  expiryDate: string;
-  cvv: string;
-  cardholderName: string;
+export interface SecurityConfig {
+  jwtSecret: string;
+  encryptionKey: string;
+  sessionSecret: string;
 }
 
-// ============================================================================
-// HOOKS INTERFACES
-// ============================================================================
-
-export interface UseProvidersOptions {
-  type?: string;
-  group?: string;
-  specialty?: string;
-  service?: string;
-  country?: string;
-  city?: string;
-  priceMax?: number;
-  recommended?: boolean;
-  sortBy?: string;
+// === TYPES ENVIRONNEMENT ===
+export enum Environment {
+  DEVELOPMENT = 'development',
+  RECETTE = 'recette',
+  PRODUCTION = 'production',
 }
 
-export interface UseProvidersReturn {
-  providers: IUser[];
+export interface EnvironmentConfig {
+  nodeEnv: Environment;
+  appUrl: string;
+  apiUrl: string;
+  database: DatabaseConfig;
+  redis: RedisConfig;
+  email: EmailConfig;
+  security: SecurityConfig;
+}
+
+// === TYPES BOOKING ===
+export interface BookingListItem {
+  id: string;
+  serviceName: string;
+  providerName: string;
+  date: Date;
+  status: string;
+  price: number;
+  currency: string;
+}
+
+export interface UseBookingsReturn {
+  bookings: BookingListItem[];
   loading: boolean;
   error: string | null;
   refetch: () => void;
@@ -741,259 +496,483 @@ export interface UseProviderReturn {
   refetch: () => void;
 }
 
-export interface AppointmentListItem {
-  id: string;
-  reservationNumber: string;
-  provider: {
-    name: string;
-    specialty: string;
-    location: string;
-  };
-  service: {
-    name: string;
-    price: number;
-  } | null;
-  timeslot: string;
-  status: BookingStatus;
-  paymentStatus: PaymentStatus;
-  totalAmount: number;
-  createdAt: string;
-  updatedAt: string;
+// === TYPES INVOICE ===
+export enum InvoiceStatus {
+  DRAFT = 'DRAFT',
+  PENDING = 'PENDING',
+  PAID = 'PAID',
+  OVERDUE = 'OVERDUE',
+  CANCELLED = 'CANCELLED',
 }
 
-export interface UseAppointmentsReturn {
-  appointments: AppointmentListItem[];
-  loading: boolean;
-  error: string | null;
-  refetch: () => void;
+export const INVOICE_STATUSES = Object.values(InvoiceStatus);
+
+// === TYPES USER ===
+export const USER_ROLES = Object.values(UserRole);
+export const USER_STATUSES = Object.values(UserStatus);
+
+// === TYPES USER ROLE EXTENDED ===
+export interface UserRoleExtended {
+  value: string;
+  label: string;
 }
 
-// ============================================================================
-// NEXT-AUTH INTERFACES
-// ============================================================================
-
-export interface NextAuthSession {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
-    isEmailVerified: boolean;
-    firstName: string;
-    lastName: string;
-    phone?: string;
-  };
+// === TYPES USER STATUS EXTENDED ===
+export interface UserStatusExtended {
+  value: string;
+  label: string;
 }
 
-export interface NextAuthUser {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  isEmailVerified: boolean;
-  firstName: string;
-  lastName: string;
-  phone?: string;
+// === TYPES INVOICE STATUS EXTENDED ===
+export interface InvoiceStatusExtended {
+  value: string;
+  label: string;
 }
 
-export interface NextAuthJWT {
-  id: string;
-  role: string;
-  isEmailVerified: boolean;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-}
-
-// ============================================================================
-// CONFIGURATION INTERFACES
-// ============================================================================
-
-export interface Config {
-  database: {
-    uri: string;
-  };
-  auth: {
-    secret: string;
-    jwtSecret: string;
-  };
-  email: {
-    host: string;
-    port: number;
-    secure: boolean;
-    user: string;
-    pass: string;
-  };
-  app: {
-    url: string;
-  };
-}
-
-// ============================================================================
-// COMPONENT INTERFACES
-// ============================================================================
-
-export interface ModalPaymentProps {
-  appointment: AppointmentData;
-  setModalOpen?: (open: boolean) => void;
-  setSteps?: (step: number) => void;
-}
-
-export interface ThemeProviderProps {
+// === TYPES BUTTON ===
+export interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
-}
-
-export interface ModalSelectServiceProps {
-  provider: IUser;
-  onServiceSelect: (service: Service) => void;
-  onClose: () => void;
-}
-
-export interface ModalPreviewProps {
-  appointment: AppointmentData;
-  paymentData: PaymentData;
-  onFinalValidation?: () => void;
-  setSteps?: (step: number) => void;
-}
-
-export interface ModalIndicatorProps {
-  isVisible: boolean;
-  onClose: () => void;
-}
-
-export interface PageTransitionProps {
-  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
   className?: string;
 }
 
-export interface ModalImageProps {
-  src: string;
-  alt: string;
-  onClose: () => void;
+// === TYPES MODAL ===
+export interface ModalPaymentProps {
+  appointment: Appointment;
+  setModalOpen: (open: boolean) => void;
+  setSteps: (step: number) => void;
 }
 
-export interface AuthProviderProps {
-  children: React.ReactNode;
+export interface ModalPreviewProps {
+  appointment: Appointment;
+  setModalOpen: (open: boolean) => void;
 }
 
-export interface AppointmentProviderProps {
-  children: React.ReactNode;
+export interface PaymentData {
+  amount: number;
+  currency: string;
+  paymentMethod: string;
 }
 
-export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string;
-}
-
-export interface FormProps extends React.ComponentPropsWithoutRef<"form"> {
-  onSubmit: (e: React.FormEvent) => void;
-}
-
-export interface FormFieldProps extends React.ComponentPropsWithoutRef<"div"> {
-  error?: string;
-}
-
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost";
-  size?: "sm" | "md" | "lg";
-  loading?: boolean;
-  isLoading?: boolean;
-}
-
-export interface GoogleLoginButtonProps {
-  onSuccess?: (response: unknown) => void;
-  onError?: (error: unknown) => void;
-}
-
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-export function isAdmin(user: IUser | null): boolean {
-  return !!user?.roles?.includes("ADMIN");
-}
-
-export function isProvider(user: IUser | null): boolean {
-  return (
-    !!user?.roles?.includes("{PROVIDER:INSTITUTION}") ||
-    !!user?.roles?.includes("{PROVIDER:INDIVIDUAL}")
-  );
-}
-
-export function isCustomer(user: IUser | null): boolean {
-  return !!user?.roles?.includes("CUSTOMER");
-}
-
-export function isCSM(user: IUser | null): boolean {
-  return !!user?.roles?.includes("CSM");
-}
-
-export function hasRole(user: IUser | null, role: UserRole): boolean {
-  return !!user?.roles?.includes(role);
-}
-
-export function hasAnyRole(user: IUser | null, roles: UserRole[]): boolean {
-  return !!user?.roles?.some(role => roles.includes(role));
-}
-
-// ============================================================================
-// AVAILABILITY TYPES
-// ============================================================================
-
-export interface TimeSlot {
-  id: string;
-  dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
-  startTime: string; // Format HH:MM
-  endTime: string; // Format HH:MM
-  isActive: boolean;
-}
-
-export interface AvailabilityRule {
+// === TYPES PROVIDER ===
+export interface ProviderService {
   id: string;
   name: string;
-  type: "weekly" | "monthly" | "custom";
-  isActive: boolean;
-  providerId: string;
-  createdAt: Date;
-  updatedAt: Date;
-  startDate?: string; // For monthly/custom rules
-  endDate?: string; // For monthly/custom rules
-  timeSlots: TimeSlot[];
+  description: string;
+  price: number;
+  duration: number;
 }
 
-// ============================================================================
-// BOOKING LIST ITEM INTERFACES
-// ============================================================================
+export interface Service {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  duration: number;
+  category: string;
+}
 
-export interface BookingListItem {
-  _id: string;
+export interface ServicesButtonProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  onClick: () => void;
+}
+
+// === TYPES APPOINTMENT ===
+export interface AppointmentData {
+  id: string;
+  providerId: string;
+  serviceId: string;
+  date: Date;
+  time: string;
+  duration: number;
+  status: string;
+  notes?: string;
+  timeslot?: string;
+  selectedService?: {
+    id: string;
+    name: string;
+    price: number;
+    duration: number;
+  };
+  requester?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+  };
+  recipient?: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+  };
+  provider?: {
+    id: string;
+    name: string;
+    specialty: string;
+  };
+}
+
+// === TYPES USER EXTENDED ===
+export interface UserExtended extends IUser {
+  clientNotes?: string;
+  avatar?: any;
+  preferences?: { language: string; timezone: string; notifications: boolean };
+  availabilities?: Availability[];
+  selectedServices?: string[];
+  category?: string;
+  type?: string;
+  acceptsFirstConsultation?: boolean;
+  acceptsVideoConsultation?: boolean;
+}
+
+// === TYPES INVOICE EXTENDED ===
+export interface InvoiceExtended extends IInvoice {
+  notes?: string;
+  paymentDate?: Date;
+  paidDate?: Date;
+}
+
+// === TYPES BOOKING EXTENDED ===
+export interface BookingExtended extends IBooking {
+  totalAmount?: number;
+  requesterInfo?: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+  };
+  recipientInfo?: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+  };
+  selectedService?: {
+    id: string;
+    name: string;
+    price: number;
+    duration: number;
+  };
+  timeslot?: {
+    start: string;
+    end: string;
+    date: string;
+  };
+  beneficiary?: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+  };
+}
+
+// === TYPES SPECIALITY EXTENDED ===
+export interface SpecialityExtended extends ISpeciality {
+  specialityId?: number;
+}
+
+// === TYPES API ===
+export interface ApiError {
+  code: string;
+  message: string;
+  details?: Record<string, any>;
+}
+
+export interface ApiRequest {
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body?: any;
+  query?: Record<string, any>;
+}
+
+export interface ApiContext {
+  user?: User;
+  request: ApiRequest;
+  environment: Environment;
+}
+
+// === TYPES SERVICES ===
+export interface ServiceResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface ServiceConfig {
+  name: string;
+  version: string;
+  environment: Environment;
+  config?: Record<string, any>;
+}
+
+// === TYPES WORKFLOW ===
+export interface WorkflowStep {
+  id: string;
+  name: string;
+  type: string;
+  config?: Record<string, any>;
+  dependencies?: string[];
+}
+
+export interface Workflow {
+  id: string;
+  name: string;
+  steps: WorkflowStep[];
+  status: 'active' | 'inactive' | 'error';
+}
+
+// === TYPES MANQUANTS ===
+export interface IBooking extends BaseEntity {
   userId: string;
   providerId: string;
+  serviceId: string;
   date: Date;
+  time: string;
   status: string;
-  paymentStatus: string;
+  price: number;
   reservationNumber: string;
-  totalAmount: number;
-  requester: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  provider: {
+}
+
+export interface IInvoice extends BaseEntity {
+  invoiceNumber: string;
+  customerId: string;
+  providerId: string;
+  amount: number;
+  currency: string;
+  status: string;
+  issueDate: Date;
+  dueDate: Date;
+  paymentDate?: Date;
+  paidDate?: Date;
+  items: Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
+  notes?: string;
+  userId: string;
+}
+
+export type IUser = User;
+
+export type IAppointment = Appointment;
+
+export interface ISpeciality extends BaseEntity {
+  name: string;
+  description: string;
+  group: string;
+  isActive: boolean;
+}
+
+export type SpecialityType = ISpeciality;
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  setError: (error: string | null) => void;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => void;
+  register: (userData: any) => Promise<void>;
+}
+
+// === TYPES PAYMENT DATA ===
+export interface PaymentData {
+  amount: number;
+  currency: string;
+  cardNumber?: string;
+  expiryDate?: string;
+  cvv?: string;
+  cardholderName?: string;
+}
+
+// === TYPES APPOINTMENT EXTENDED ===
+export interface AppointmentExtended extends AppointmentData {
+  selectedService?: {
     id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
+    name: string;
+    price: number;
+    duration: number;
   };
+  provider?: {
+    id: string;
+    name: string;
+    specialty: string;
+  };
+}
+
+// === TYPES MODAL PREVIEW PROPS ===
+export interface ModalPreviewPropsExtended {
+  isOpen: boolean;
+  onClose: () => void;
+  appointment: AppointmentExtended;
+  paymentData?: PaymentData;
+  setSteps?: (steps: number) => void;
+}
+
+// === TYPES CREATE USER INPUT ===
+export interface CreateUserInput {
+  [x: string]: any;
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  status: UserStatus;
+  phone?: string;
+  avatar?: string;
+  preferences?: Record<string, any>;
+  clientNotes?: string;
+  selectedServices?: string[];
+  category?: string;
+  availabilities?: Availability[];
+  // Optional extras used by forms
+  company?: string;
+  address?: string;
+  specialty?: string;
+  roles?: UserRole[];
+}
+
+// === TYPES TRANSACTION FILTERS ===
+export interface TransactionFilters {
+  status?: string;
+  serviceType?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  minAmount?: number;
+  maxAmount?: number;
+  currency?: string;
+}
+
+// === TYPES NOTIFICATION TYPE ===
+export type NotificationUIType = 'info' | 'success' | 'warning' | 'error';
+
+// === TYPES THEME ===
+export type Theme = 'light' | 'dark' | 'system';
+
+// === TYPES API GEO ===
+export interface ApiGeo {
+  name: string;
+  country: string;
+  region: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+}
+
+// === TYPES HEALTH SERVICE ===
+export interface HealthService {
+  id: string;
+  name: string;
+  description: string;
+  duration: number;
+  price: number;
+  currency: string;
+  category: 'CONSULTATION' | 'TREATMENT' | 'EMERGENCY';
+  isActive: boolean;
+  searchProviders: () => Promise<any[]>;
+  getProvider: (id: string) => Promise<any>;
+  checkAvailability: (providerId: string, date: Date) => Promise<boolean>;
+  bookAppointment: (data: any) => Promise<any>;
+  cancelAppointment: (id: string) => Promise<void>;
+  rescheduleAppointment: (id: string, newDate: Date) => Promise<void>;
+  getAppointmentHistory: (patientId: string) => Promise<any[]>;
+  getProviderSchedule: (providerId: string) => Promise<any[]>;
+  sendReminder: (appointmentId: string) => Promise<void>;
+}
+
+// === TYPES ATTENDANCE ===
+export interface Attendance {
+  id: string;
+  studentId: string;
+  courseId: string;
+  date: Date;
+  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
+  recordedBy: string;
+  notes: string;
+}
+
+// === TYPES EMAIL QUEUE ITEM ===
+export interface EmailQueueItem {
+  id: string;
+  type: string;
+  to: string;
+  data: any;
+  priority: 'high' | 'normal' | 'low';
+  scheduledAt: Date;
+  attempts: number;
+  maxAttempts: number;
+  status: 'pending' | 'processing' | 'sent' | 'failed';
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface UseBookingsReturn {
-  bookings: BookingListItem[];
-  loading: boolean;
-  error: string | null;
-  refetch: () => void;
+// === TYPES PAYMENT METHOD ===
+export interface PaymentMethod {
+  id: string;
+  type: string;
+  card?: {
+    brand: string;
+    last4: string;
+    expMonth: number;
+    expYear: number;
+  };
+  sepa_debit?: {
+    last4: string;
+    bank_code: string;
+  };
+  isDefault: boolean;
+  createdAt: Date;
 }
+
+// === TYPES DATA SUBJECT REQUEST ===
+export interface DataSubjectRequest {
+  id: string;
+  userId: string;
+  type: 'ACCESS' | 'PORTABILITY' | 'ERASURE';
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'REJECTED';
+  requestedAt: Date;
+  reason: string;
+}
+
+// === TYPES PCI AUDIT LOG ===
+export interface PCIAuditLog {
+  id: string;
+  timestamp: Date;
+  event: string;
+  userId: string;
+  transactionId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  details: Record<string, any>;
+  complianceStatus: 'COMPLIANT' | 'NON_COMPLIANT' | 'REVIEW_REQUIRED';
+}
+
+export interface NotificationState {
+  notifications: Array<{
+    id: string;
+    type: string;
+    message: string;
+    timestamp: Date;
+  }>;
+  addNotification: (notification: any) => void;
+  removeNotification: (id: string) => void;
+  clearNotifications: () => void;
+}
+
+export interface ThemeState {
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
+}
+
+// Réexport groupé supprimé: tous les symboles sont déjà exportés ci-dessus

@@ -1,1206 +1,1531 @@
-// ============================================================================
-// MOCKS CENTRALISÉS
-// ============================================================================
+// Mock data pour dev/test conformes aux models actuels
 
-import {
-  ApiGeoLocation,
-  IBooking,
-  IInvoice,
-  IReview,
-  ISpeciality,
-  IUser,
-} from "@/types";
-
-// ============================================================================
-// MOCK USERS
-// ============================================================================
-
-export const MOCK_USERS: IUser[] = [
-  // ADMIN users
+export const MOCK_USERS = [
   {
-    _id: "1",
-    id: "1",
-    email: "admin@diaspomoney.com",
-    password: "password123",
-    name: "Admin User (Active)",
-    roles: ["ADMIN"],
-    status: "ACTIVE",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "2",
-    id: "2",
-    email: "admin.inactive@diaspomoney.com",
-    password: "password123",
-    name: "Admin User (Inactive)",
-    roles: ["ADMIN"],
-    status: "INACTIVE",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "3",
-    id: "3",
-    email: "admin.pending@diaspomoney.com",
-    password: "password123",
-    name: "Admin User (Pending)",
-    roles: ["ADMIN"],
-    status: "PENDING",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "4",
-    id: "4",
-    email: "admin.suspended@diaspomoney.com",
-    password: "password123",
-    name: "Admin User (Suspended)",
-    roles: ["ADMIN"],
-    status: "SUSPENDED",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-
-  // PROVIDER users
-  {
-    _id: "5",
-    id: "5",
-    email: "provider@diaspomoney.com",
-    password: "password123",
-    name: "Provider User (Active)",
-    roles: ["{PROVIDER:INDIVIDUAL}"],
-    status: "ACTIVE",
-    specialty: "Médecine générale",
-    category: "HEALTH",
-    acceptsFirstConsultation: false,
-    acceptsVideoConsultation: true,
-    company: "Clinique Horizon",
-    phone: "+33 1 23 45 67 89",
-    address: "12 Rue de la Paix, 75002 Paris",
-    // @ts-expect-error profileImage is used for mock/testing purposes
-    profileImage: "/img/avatars/doctor.jpg",
-    description:
-      "Médecin généraliste avec 10 ans d'expérience, orienté patient.",
-    selectedServices: "Consultation, Suivi, Téléconsultation",
-    services: [
-      {
-        id: "consultation",
-        name: "Consultation",
-        price: 77,
-        description: "Consultation médicale générale",
-        isVideoAvailable: true,
-      },
-      {
-        id: "suivi",
-        name: "Suivi",
-        price: 40,
-        description: "Suivi médical",
-        isVideoAvailable: true,
-      },
-      {
-        id: "teleconsultation",
-        name: "Téléconsultation",
-        price: 45,
-        description: "Consultation à distance",
-        isVideoAvailable: true,
-      },
-    ],
-    apiGeo: [
-      { name: "France" } as ApiGeoLocation,
-      { name: "Belgique" } as ApiGeoLocation,
-    ],
-    images: [
-      "/img/providers/clinic-1.jpg",
-      "/img/providers/clinic-2.jpg",
-      "/img/providers/clinic-3.jpg",
-    ],
+    _id: '1',
+    name: 'Dr. Jean Dupont',
+    email: 'jean.dupont@example.com',
+    phone: '+33123456789',
+    company: 'Cabinet Médical Dupont',
+    address: '10 Rue de la Santé, 75013 Paris, France',
+    roles: ['PROVIDER'],
+    status: 'ACTIVE',
+    emailVerified: true,
+    isEmailVerified: true,
+    password: '$2a$12$hashedpassword123', // Mot de passe hashé pour les tests
+    specialty: 'Médecine générale',
     recommended: true,
-    // Créneaux rapides sur 3 jours à venir, découpés en tranches de 30min
-    availabilities: [
-      // Jour 1 (aujourd'hui)
-      "2025-10-05T09:00:00|2025-10-05T09:30:00",
-      "2025-10-05T09:30:00|2025-10-05T10:00:00",
-      "2025-10-05T10:00:00|2025-10-05T10:30:00",
-      "2025-10-05T14:00:00|2025-10-05T14:30:00",
-      "2025-10-05T14:30:00|2025-10-05T15:00:00",
-      // Jour 2 (demain)
-      "2025-10-06T09:00:00|2025-10-06T09:30:00",
-      "2025-10-06T09:30:00|2025-10-06T10:00:00",
-      "2025-10-06T10:00:00|2025-10-06T10:30:00",
-      "2025-10-06T14:00:00|2025-10-06T14:30:00",
-      "2025-10-06T14:30:00|2025-10-06T15:00:00",
-      // Jour 3 (après-demain)
-      "2025-10-07T09:00:00|2025-10-07T09:30:00",
-      "2025-10-05T09:30:00|2025-10-05T10:00:00",
-      "2025-10-07T10:00:00|2025-10-07T10:30:00",
-      "2025-10-07T14:00:00|2025-10-07T14:30:00",
-      "2025-10-07T14:30:00|2025-10-07T15:00:00",
-    ],
-    bookings: [{ start: "10:00", end: "10:30" }],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  // Individual provider example
-  {
-    _id: "22",
-    id: "22",
-    email: "dr.indiv@diaspomoney.com",
-    password: "password123",
-    name: "Dr. Camille Leroy",
-    roles: ["{PROVIDER:INDIVIDUAL}"],
-    status: "ACTIVE",
-    specialty: "Cardiologie",
-    category: "HEALTH",
-    acceptsFirstConsultation: false,
-    acceptsVideoConsultation: true,
-    phone: "+33 6 12 34 56 78",
-    address: "25 Avenue des Champs-Élysées, 75008 Paris",
-    description: "Cardiologue avec 12 ans d'expérience.",
-    selectedServices: "Consultation, Téléconsultation",
-    services: [
-      {
-        id: "consultation-cardiologie",
-        name: "Consultation Cardiologie",
-        price: 80,
-        description: "Consultation spécialisée en cardiologie",
-        isVideoAvailable: true,
+    providerInfo: {
+      type: 'INDIVIDUAL',
+      category: 'HEALTH',
+      specialties: ['Médecine générale', 'Urgences'],
+      description: "Médecin généraliste avec 15 ans d'expérience",
+      rating: 4.8,
+      reviewCount: 127,
+      isVerified: true,
+      individual: {
+        firstName: 'Jean',
+        lastName: 'Dupont',
+        dateOfBirth: new Date('1980-07-10'),
+        qualifications: [
+          'Doctorat en médecine',
+          'Spécialisation médecine générale',
+        ],
+        experience: 15,
+        languages: ['Français', 'Anglais'],
       },
-      {
-        id: "teleconsultation-cardiologie",
-        name: "Téléconsultation Cardiologie",
-        price: 70,
-        description: "Consultation cardiologique à distance",
-        isVideoAvailable: true,
+      professionalContact: {
+        phone: '+33123456789',
+        email: 'jean.dupont@example.com',
+        website: 'https://drdupont.com',
       },
-    ],
-    apiGeo: [{ name: "France" } as ApiGeoLocation],
-    images: ["/img/providers/doctor-1.jpg"],
-    recommended: true,
-    // Fix: availabilities as string[]
-    availabilities: [
-      "2025-01-15T09:00:00|2025-01-15T09:30:00",
-      "2025-01-15T11:00:00|2025-01-15T11:30:00",
-      "2025-01-15T15:00:00|2025-01-15T15:30:00",
-    ],
-    bookingsAsProvider: [] as IBooking[],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "6",
-    id: "6",
-    email: "provider.inactive@diaspomoney.com",
-    password: "password123",
-    name: "Provider User (Inactive)",
-    roles: ["{PROVIDER:INSTITUTION}"],
-    status: "INACTIVE",
-    specialty: "Droit civil",
-    category: "EDU",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "7",
-    id: "7",
-    email: "provider.pending@diaspomoney.com",
-    password: "password123",
-    name: "Provider User (Pending)",
-    roles: ["{PROVIDER:INSTITUTION}"],
-    status: "PENDING",
-    specialty: "Immobilier",
-    category: "IMMO",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "8",
-    id: "8",
-    email: "provider.suspended@diaspomoney.com",
-    password: "password123",
-    name: "Provider User (Suspended)",
-    roles: ["{PROVIDER:INSTITUTION}"],
-    status: "SUSPENDED",
-    specialty: "Formation",
-    category: "EDU",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-
-  // CUSTOMER users
-  {
-    _id: "9",
-    id: "9",
-    email: "customer@diaspomoney.com",
-    password: "password123",
-    name: "Customer User (Active)",
-    roles: ["CUSTOMER"],
-    status: "ACTIVE",
-    addresses: {
-      addresses: [
+      professionalAddress: {
+        street: '10 Rue de la Santé',
+        city: 'Paris',
+        postalCode: '75013',
+        country: 'France',
+        coordinates: {
+          latitude: 48.8316,
+          longitude: 2.3572,
+        },
+      },
+      availability: {
+        monday: [
+          {
+            start: '09:00',
+            end: '12:00',
+            isAvailable: true,
+            maxBookings: 6,
+            currentBookings: 2,
+          },
+          {
+            start: '14:00',
+            end: '18:00',
+            isAvailable: true,
+            maxBookings: 8,
+            currentBookings: 3,
+          },
+        ],
+        tuesday: [
+          {
+            start: '09:00',
+            end: '12:00',
+            isAvailable: true,
+            maxBookings: 6,
+            currentBookings: 4,
+          },
+          {
+            start: '14:00',
+            end: '18:00',
+            isAvailable: true,
+            maxBookings: 8,
+            currentBookings: 5,
+          },
+        ],
+        wednesday: [
+          {
+            start: '09:00',
+            end: '12:00',
+            isAvailable: true,
+            maxBookings: 6,
+            currentBookings: 1,
+          },
+        ],
+        thursday: [
+          {
+            start: '09:00',
+            end: '12:00',
+            isAvailable: true,
+            maxBookings: 6,
+            currentBookings: 3,
+          },
+          {
+            start: '14:00',
+            end: '18:00',
+            isAvailable: true,
+            maxBookings: 8,
+            currentBookings: 6,
+          },
+        ],
+        friday: [
+          {
+            start: '09:00',
+            end: '12:00',
+            isAvailable: true,
+            maxBookings: 6,
+            currentBookings: 2,
+          },
+          {
+            start: '14:00',
+            end: '17:00',
+            isAvailable: true,
+            maxBookings: 6,
+            currentBookings: 1,
+          },
+        ],
+        saturday: [],
+        sunday: [],
+        timezone: 'Europe/Paris',
+      },
+      pricing: {
+        basePrice: 60,
+        currency: 'EUR',
+        pricingModel: 'FIXED',
+        discounts: [
+          {
+            type: 'PERCENTAGE',
+            value: 10,
+            conditions: 'Étudiants avec carte valide',
+          },
+        ],
+      },
+      documents: [
         {
-          id: "addr1",
-          country: "France",
-          address1: "123 Rue de la Paix",
-          address2: "Appartement 4B",
-          postalCode: "75001",
-          city: "Paris",
-          isDefault: true,
-          isBillingDefault: true,
+          id: 'doc-1',
+          name: 'Diplôme de Médecine',
+          type: 'CERTIFICATE',
+          url: 'https://example.com/docs/diplome-dupont.pdf',
+          uploadedAt: new Date('2023-01-15'),
         },
         {
-          id: "addr2",
-          country: "France",
-          address1: "456 Avenue des Champs-Élysées",
-          postalCode: "75008",
-          city: "Paris",
-          isDefault: false,
-          isBillingDefault: false,
+          id: 'doc-2',
+          name: 'Ordre des Médecins',
+          type: 'LICENSE',
+          url: 'https://example.com/docs/license-dupont.pdf',
+          uploadedAt: new Date('2023-01-15'),
+          expiresAt: new Date('2025-12-31'),
         },
       ],
-      defaultBillingAddress: "addr1",
     },
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "10",
-    id: "10",
-    email: "customer.inactive@diaspomoney.com",
-    password: "password123",
-    name: "Customer User (Inactive)",
-    roles: ["CUSTOMER"],
-    status: "INACTIVE",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "11",
-    id: "11",
-    email: "customer.pending@diaspomoney.com",
-    password: "password123",
-    name: "Customer User (Pending)",
-    roles: ["CUSTOMER"],
-    status: "PENDING",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "12",
-    id: "12",
-    email: "customer.suspended@diaspomoney.com",
-    password: "password123",
-    name: "Customer User (Suspended)",
-    roles: ["CUSTOMER"],
-    status: "SUSPENDED",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-
-  // CSM users
-  {
-    _id: "13",
-    id: "13",
-    email: "csm@diaspomoney.com",
-    password: "password123",
-    name: "CSM User (Active)",
-    roles: ["CSM"],
-    status: "ACTIVE",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "14",
-    id: "14",
-    email: "csm.inactive@diaspomoney.com",
-    password: "password123",
-    name: "CSM User (Inactive)",
-    roles: ["CSM"],
-    status: "INACTIVE",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "15",
-    id: "15",
-    email: "csm.pending@diaspomoney.com",
-    password: "password123",
-    name: "CSM User (Pending)",
-    roles: ["CSM"],
-    status: "PENDING",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "16",
-    id: "16",
-    email: "csm.suspended@diaspomoney.com",
-    password: "password123",
-    name: "CSM User (Suspended)",
-    roles: ["CSM"],
-    status: "SUSPENDED",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-
-  // Utilisateurs avec plusieurs rôles
-  {
-    _id: "17",
-    id: "17",
-    email: "admin.provider@diaspomoney.com",
-    password: "password123",
-    name: "Admin & Provider User",
-    roles: ["ADMIN", "{PROVIDER:INSTITUTION}"],
-    status: "ACTIVE",
-    specialty: "Médecine générale",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "18",
-    id: "18",
-    email: "provider.customer@diaspomoney.com",
-    password: "password123",
-    name: "Provider & Customer User",
-    roles: ["{PROVIDER:INSTITUTION}", "CUSTOMER"],
-    status: "ACTIVE",
-    specialty: "Formation",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "19",
-    id: "19",
-    email: "admin.csm@diaspomoney.com",
-    password: "password123",
-    name: "Admin & CSM User",
-    roles: ["ADMIN", "CSM"],
-    status: "ACTIVE",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "20",
-    id: "20",
-    email: "all.roles@diaspomoney.com",
-    password: "password123",
-    name: "Super User (All Roles)",
-    roles: ["ADMIN", "{PROVIDER:INSTITUTION}", "CUSTOMER", "CSM"],
-    status: "ACTIVE",
-    specialty: "Immobilier",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-
-  // example with all fields (provider)
-  {
-    _id: "21",
-    id: "21",
-    email: "leldoradoecole@gmail.com",
-    password: "password123",
-    name: "L'ELDORADO Crèche, Maternelle, Primaire et Collège",
-    roles: ["{PROVIDER:INSTITUTION}"],
-    status: "ACTIVE",
-    specialty: "Ecole",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    recommended: true,
     apiGeo: [
       {
-        place_id: 34433693,
-        licence:
-          "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
-        osm_type: "way",
-        osm_id: 282206904,
-        lat: "-4.8028152",
-        lon: "11.8493289",
-        class: "highway",
-        type: "tertiary",
-        place_rank: 26,
-        importance: 0.0533886800946059,
-        addresstype: "road",
-        name: "Avenue Dr Denis Loemba",
-        display_name:
-          "Avenue Dr Denis Loemba, Losange, Pointe-Noire, Lumumba (arrondissement 1), Pointe-Noire (commune), Pointe-Noire (département), Congo-Brazzaville",
-        boundingbox: ["-4.8039035", "-4.8011078", "11.8483804", "11.8499445"],
-        country_code: "CG",
-        country: "Congo-Brazzaville",
-      },
-      {
-        place_id: 34536773,
-        licence:
-          "Data © OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
-        osm_type: "way",
-        osm_id: 282206905,
-        lat: "-4.7999258",
-        lon: "11.8468548",
-        class: "highway",
-        type: "residential",
-        place_rank: 26,
-        importance: 0.0533886800946059,
-        addresstype: "road",
-        name: "Avenue Dr Denis Loemba",
-        display_name:
-          "Avenue Dr Denis Loemba, Losange, Pointe-Noire, Lumumba (arrondissement 1), Pointe-Noire (commune), Pointe-Noire (département), Congo-Brazzaville",
-        boundingbox: ["-4.8006448", "-4.7991889", "11.8457698", "11.8479518"],
-        country_code: "CG",
-        country: "Congo-Brazzaville",
+        place_id: 123456,
+        licence: 'Data © OpenStreetMap contributors, ODbL 1.0',
+        osm_type: 'way',
+        osm_id: 789012,
+        lat: '48.8316',
+        lon: '2.3572',
+        class: 'building',
+        type: 'commercial',
+        place_rank: 30,
+        importance: 0.201,
+        addresstype: 'building',
+        name: 'Cabinet Médical',
+        display_name: '10 Rue de la Santé, 75013 Paris, France',
+        boundingbox: ['48.8310', '48.8320', '2.3560', '2.3580'],
       },
     ],
-    images: [
-      "/img/users/providers/WhatsApp Image 2025-09-06 à 13.48.28_5aea9ba3.jpg",
-      "/img/users/providers/WhatsApp Image 2025-09-06 à 13.48.58_75ac2158.jpg",
-      "/img/users/providers/WhatsApp Image 2025-09-06 à 13.50.52_a84da04f.jpg",
-      "/img/users/providers/WhatsApp Image 2025-09-06 à 13.51.14_1a4de652.jpg",
-      "/img/users/providers/WhatsApp Image 2025-09-06 à 13.51.55_bcb3c284.jpg",
-      "/img/users/providers/WhatsApp Image 2025-09-06 à 13.53.54_0027f54c.jpg",
-    ],
-    reviews: 10,
-    distance: "10km",
-    // Fix: availabilities as string[]
-    availabilities: [
-      "2025-01-15T09:00:00|2025-01-15T09:30:00",
-      "2025-01-15T10:00:00|2025-01-15T10:30:00",
-      "2025-01-15T14:00:00|2025-01-15T14:30:00",
-    ],
-    // Removed invalid property 'appointmentsAsProvider'
-    clientNotes: "Notes client",
-    avatar: {
-      image: "/img/users/WhatsApp Image 2025-09-06 à 13.47.15_68fe173d.jpg",
-      name: "L'ELDORADO Crèche, Maternelle, Primaire et Collège",
+    oauth: {
+      google: { linked: true, providerAccountId: 'google-dupont' },
+      facebook: { linked: false, providerAccountId: null },
     },
-    preferences: {
-      language: "fr",
-      timezone: "Europe/Paris",
-      notifications: true,
-    },
-    emailVerified: true,
-    image: "/img/providers/clinic-1.jpg",
-    dateOfBirth: new Date("1990-01-01"),
-    countryOfResidence: "France",
-    targetCountry: "France",
-    targetCity: "Paris",
-    selectedServices:
-      "Halte garderie, Maternelle, Primaire, Collège, Crèche, Cantine Scolaire, Projet Voltaire (Partenaire), CNED (Partenaire)",
-    monthlyBudget: "1000",
-    securityQuestion: "What is your mother's maiden name?",
-    securityAnswer: "Smith",
+    avatar: 'https://randomuser.me/api/portraits/men/11.jpg',
+    images: ['https://randomuser.me/api/portraits/men/11.jpg'],
+    firstName: 'Jean',
+    lastName: 'Dupont',
+    dateOfBirth: new Date('1980-07-10'),
+    countryOfResidence: 'France',
+    targetCountry: 'Canada',
+    targetCity: 'Montréal',
+    selectedServices: 'Consultation médicale',
+    monthlyBudget: '500-1000',
     marketingConsent: true,
     kycConsent: true,
-  },
-
-  // EDU Provider
-  {
-    _id: "edu1",
-    id: "edu1",
-    email: "edu.formation@diaspomoney.com",
-    password: "password123",
-    name: "Centre de Formation Excellence",
-    roles: ["{PROVIDER:INSTITUTION}"],
-    status: "ACTIVE",
-    specialty: "Formation professionnelle",
-    category: "EDU",
-    company: "Centre Excellence SARL",
-    phone: "+33 1 23 45 67 90",
-    address: "15 Rue de l'Éducation, 75012 Paris",
-    description:
-      "Centre de formation professionnelle avec 15 ans d'expérience dans l'éducation.",
-    selectedServices: "Formation, Coaching, Certification",
-    services: [
-      {
-        id: "formation",
-        name: "Formation professionnelle",
-        price: 800,
-        description: "Formation complète dans votre domaine",
-        isVideoAvailable: true,
-      },
-      {
-        id: "coaching",
-        name: "Coaching individuel",
-        price: 120,
-        description: "Accompagnement personnalisé",
-        isVideoAvailable: true,
-      },
-      {
-        id: "certification",
-        name: "Préparation certification",
-        price: 300,
-        description: "Préparation aux examens et certifications",
-        isVideoAvailable: true,
-      },
-    ],
-    apiGeo: [
-      {
-        name: "Paris",
-        country_code: "FR",
-        country: "France",
-        place_id: 12345,
-        licence: "ODbL",
-        osm_type: "N",
-        osm_id: 123456,
-        lat: "48.8566",
-        lon: "2.3522",
-        class: "place",
-        type: "city",
-        place_rank: 16,
-        importance: 0.9,
-        addresstype: "city",
-        display_name: "Paris, France",
-        boundingbox: ["48.8156", "48.9021", "2.2241", "2.4699"],
-      },
-    ],
-    avatar: {
-      image: "/img/avatars/education.jpg",
-      name: "Centre Excellence",
+    preferences: {
+      language: 'fr',
+      timezone: 'Europe/Paris',
+      notifications: true,
     },
+    lastLogin: new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),
   },
-
-  // IMMO Provider
   {
-    _id: "immo1",
-    id: "immo1",
-    email: "immo.agence@diaspomoney.com",
-    password: "password123",
-    name: "Agence Immobilière Horizon",
-    roles: ["{PROVIDER:INSTITUTION}"],
-    status: "ACTIVE",
-    specialty: "Transaction immobilière",
-    category: "IMMO",
-    company: "Agence Horizon",
-    phone: "+33 1 23 45 67 91",
-    address: "20 Avenue de l'Immobilier, 75016 Paris",
-    description:
-      "Agence immobilière spécialisée dans la transaction et la gestion locative.",
-    selectedServices: "Vente, Location, Gestion, Estimation",
-    services: [
-      {
-        id: "vente",
-        name: "Vente immobilière",
-        price: 3000,
-        description: "Accompagnement vente immobilière",
-        isVideoAvailable: true,
+    _id: '2',
+    name: 'Marie Martin',
+    email: 'marie.martin@example.com',
+    phone: '+33987654321',
+    address: '25 Avenue des Champs-Élysées, 75008 Paris, France',
+    roles: ['CUSTOMER'],
+    status: 'ACTIVE',
+    emailVerified: true,
+    isEmailVerified: true,
+    password: '$2a$12$hashedpassword456', // Mot de passe hashé pour les tests
+    clientNotes: 'Cliente fidèle, préfère les rendez-vous en matinée',
+    oauth: {
+      google: { linked: false, providerAccountId: null },
+      facebook: { linked: true, providerAccountId: 'fb-marie' },
+    },
+    avatar: 'https://randomuser.me/api/portraits/women/12.jpg',
+    images: ['https://randomuser.me/api/portraits/women/12.jpg'],
+    firstName: 'Marie',
+    lastName: 'Martin',
+    dateOfBirth: new Date('1992-02-04'),
+    countryOfResidence: 'France',
+    targetCountry: 'Canada',
+    targetCity: 'Toronto',
+    selectedServices: 'Consultation médicale, Traitement',
+    monthlyBudget: '300-500',
+    marketingConsent: false,
+    kycConsent: true,
+    preferences: {
+      language: 'fr',
+      timezone: 'Europe/Paris',
+      notifications: true,
+    },
+    apiGeo: [],
+    lastLogin: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    _id: '3',
+    name: 'Admin Système',
+    email: 'admin@diaspomoney.com',
+    phone: '+33111111111',
+    roles: ['ADMIN'],
+    status: 'ACTIVE',
+    emailVerified: true,
+    isEmailVerified: true,
+    password: '$2a$12$hashedpassword789', // Mot de passe hashé pour les tests
+    oauth: {
+      google: { linked: false, providerAccountId: null },
+      facebook: { linked: false, providerAccountId: null },
+    },
+    avatar: 'https://randomuser.me/api/portraits/men/1.jpg',
+    images: ['https://randomuser.me/api/portraits/men/1.jpg'],
+    firstName: 'Admin',
+    lastName: 'Système',
+    marketingConsent: false,
+    kycConsent: true,
+    preferences: {
+      language: 'fr',
+      timezone: 'Europe/Paris',
+      notifications: true,
+    },
+    apiGeo: [],
+    lastLogin: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    _id: '4',
+    name: 'Dr. Sophie Laurent',
+    email: 'sophie.laurent@example.com',
+    phone: '+33987654322',
+    company: 'Clinique Cardiologique Laurent',
+    address: '25 Avenue des Champs-Élysées, 75008 Paris, France',
+    roles: ['PROVIDER'],
+    status: 'ACTIVE',
+    emailVerified: true,
+    isEmailVerified: true,
+    password: '$2a$12$hashedpassword456',
+    specialty: 'Cardiologie',
+    recommended: true,
+    providerInfo: {
+      type: 'INDIVIDUAL',
+      category: 'HEALTH',
+      specialties: ['Cardiologie', 'Médecine interne'],
+      description: "Cardiologue avec 12 ans d'expérience",
+      rating: 4.9,
+      reviewCount: 89,
+      isVerified: true,
+      individual: {
+        firstName: 'Sophie',
+        lastName: 'Laurent',
+        dateOfBirth: new Date('1985-03-15'),
+        qualifications: [
+          'Doctorat en médecine',
+          'Spécialisation cardiologie',
+          "Diplôme d'échocardiographie",
+        ],
+        experience: 12,
+        languages: ['Français', 'Anglais', 'Espagnol'],
       },
-      {
-        id: "location",
-        name: "Location",
-        price: 1500,
-        description: "Gestion location immobilière",
-        isVideoAvailable: true,
+      professionalContact: {
+        phone: '+33987654322',
+        email: 'sophie.laurent@example.com',
+        website: 'https://drlaurent-cardiologie.com',
       },
-      {
-        id: "estimation",
-        name: "Estimation",
-        price: 200,
-        description: "Estimation de bien immobilier",
-        isVideoAvailable: true,
+      professionalAddress: {
+        street: '25 Avenue des Champs-Élysées',
+        city: 'Paris',
+        postalCode: '75008',
+        country: 'France',
+        coordinates: {
+          latitude: 48.8698,
+          longitude: 2.3077,
+        },
       },
-    ],
+      availability: {
+        monday: [
+          {
+            start: '10:00',
+            end: '13:00',
+            isAvailable: true,
+            maxBookings: 4,
+            currentBookings: 2,
+          },
+          {
+            start: '15:00',
+            end: '19:00',
+            isAvailable: true,
+            maxBookings: 6,
+            currentBookings: 4,
+          },
+        ],
+        tuesday: [
+          {
+            start: '10:00',
+            end: '13:00',
+            isAvailable: true,
+            maxBookings: 4,
+            currentBookings: 1,
+          },
+          {
+            start: '15:00',
+            end: '19:00',
+            isAvailable: true,
+            maxBookings: 6,
+            currentBookings: 3,
+          },
+        ],
+        wednesday: [],
+        thursday: [
+          {
+            start: '10:00',
+            end: '13:00',
+            isAvailable: true,
+            maxBookings: 4,
+            currentBookings: 3,
+          },
+          {
+            start: '15:00',
+            end: '19:00',
+            isAvailable: true,
+            maxBookings: 6,
+            currentBookings: 5,
+          },
+        ],
+        friday: [
+          {
+            start: '10:00',
+            end: '13:00',
+            isAvailable: true,
+            maxBookings: 4,
+            currentBookings: 2,
+          },
+        ],
+        saturday: [],
+        sunday: [],
+        timezone: 'Europe/Paris',
+      },
+      pricing: {
+        basePrice: 100,
+        currency: 'EUR',
+        pricingModel: 'FIXED',
+        discounts: [],
+      },
+      documents: [
+        {
+          id: 'doc-3',
+          name: 'Diplôme Cardiologie',
+          type: 'CERTIFICATE',
+          url: 'https://example.com/docs/cardio-laurent.pdf',
+          uploadedAt: new Date('2023-02-10'),
+        },
+        {
+          id: 'doc-4',
+          name: 'Ordre des Médecins',
+          type: 'LICENSE',
+          url: 'https://example.com/docs/license-laurent.pdf',
+          uploadedAt: new Date('2023-02-10'),
+          expiresAt: new Date('2025-12-31'),
+        },
+      ],
+    },
     apiGeo: [
       {
-        name: "Paris",
-        country_code: "FR",
-        country: "France",
-        place_id: 12345,
-        licence: "ODbL",
-        osm_type: "N",
-        osm_id: 123456,
-        lat: "48.8566",
-        lon: "2.3522",
-        class: "place",
-        type: "city",
-        place_rank: 16,
-        importance: 0.9,
-        addresstype: "city",
-        display_name: "Paris, France",
-        boundingbox: ["48.8156", "48.9021", "2.2241", "2.4699"],
+        place_id: 234567,
+        licence: 'Data © OpenStreetMap contributors, ODbL 1.0',
+        osm_type: 'way',
+        osm_id: 890123,
+        lat: '48.8698',
+        lon: '2.3077',
+        class: 'building',
+        type: 'commercial',
+        place_rank: 30,
+        importance: 0.301,
+        addresstype: 'building',
+        name: 'Clinique Cardiologique',
+        display_name: '25 Avenue des Champs-Élysées, 75008 Paris, France',
+        boundingbox: ['48.8690', '48.8700', '2.3070', '2.3080'],
       },
     ],
-    avatar: {
-      image: "/img/avatars/immobilier.jpg",
-      name: "Agence Horizon",
+    oauth: {
+      google: { linked: false, providerAccountId: null },
+      facebook: { linked: true, providerAccountId: 'fb-sophie' },
     },
+    avatar: 'https://randomuser.me/api/portraits/women/15.jpg',
+    images: ['https://randomuser.me/api/portraits/women/15.jpg'],
+    firstName: 'Sophie',
+    lastName: 'Laurent',
+    dateOfBirth: new Date('1985-03-15'),
+    countryOfResidence: 'France',
+    targetCountry: 'Canada',
+    targetCity: 'Vancouver',
+    selectedServices: 'Consultation cardiologique, Échocardiographie',
+    monthlyBudget: '800-1200',
+    marketingConsent: true,
+    kycConsent: true,
+    preferences: {
+      language: 'fr',
+      timezone: 'Europe/Paris',
+      notifications: true,
+    },
+    lastLogin: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    _id: '5',
+    name: 'Dr. Pierre Moreau',
+    email: 'pierre.moreau@example.com',
+    phone: '+33987654323',
+    company: 'Centre Médical Urgence',
+    address: '15 Boulevard Saint-Germain, 75005 Paris, France',
+    roles: ['PROVIDER'],
+    status: 'ACTIVE',
+    emailVerified: true,
+    isEmailVerified: true,
+    password: '$2a$12$hashedpassword789',
+    specialty: "Médecine d'urgence",
+    recommended: false,
+    providerInfo: {
+      type: 'INDIVIDUAL',
+      category: 'HEALTH',
+      specialties: ["Médecine d'urgence", 'Traumatologie'],
+      description: "Médecin urgentiste avec 8 ans d'expérience",
+      rating: 4.6,
+      reviewCount: 45,
+      isVerified: true,
+      individual: {
+        firstName: 'Pierre',
+        lastName: 'Moreau',
+        dateOfBirth: new Date('1988-11-22'),
+        qualifications: [
+          'Doctorat en médecine',
+          "Spécialisation médecine d'urgence",
+          'Diplôme de réanimation',
+        ],
+        experience: 8,
+        languages: ['Français', 'Anglais'],
+      },
+      professionalContact: {
+        phone: '+33987654323',
+        email: 'pierre.moreau@example.com',
+        website: 'https://drmoreau-urgence.com',
+      },
+      professionalAddress: {
+        street: '15 Boulevard Saint-Germain',
+        city: 'Paris',
+        postalCode: '75005',
+        country: 'France',
+        coordinates: {
+          latitude: 48.8534,
+          longitude: 2.3488,
+        },
+      },
+      availability: {
+        monday: [
+          {
+            start: '08:00',
+            end: '20:00',
+            isAvailable: true,
+            maxBookings: 12,
+            currentBookings: 5,
+          },
+        ],
+        tuesday: [
+          {
+            start: '08:00',
+            end: '20:00',
+            isAvailable: true,
+            maxBookings: 12,
+            currentBookings: 7,
+          },
+        ],
+        wednesday: [
+          {
+            start: '08:00',
+            end: '20:00',
+            isAvailable: true,
+            maxBookings: 12,
+            currentBookings: 4,
+          },
+        ],
+        thursday: [
+          {
+            start: '08:00',
+            end: '20:00',
+            isAvailable: true,
+            maxBookings: 12,
+            currentBookings: 9,
+          },
+        ],
+        friday: [
+          {
+            start: '08:00',
+            end: '20:00',
+            isAvailable: true,
+            maxBookings: 12,
+            currentBookings: 6,
+          },
+        ],
+        saturday: [
+          {
+            start: '09:00',
+            end: '14:00',
+            isAvailable: true,
+            maxBookings: 6,
+            currentBookings: 2,
+          },
+        ],
+        sunday: [
+          {
+            start: '09:00',
+            end: '14:00',
+            isAvailable: true,
+            maxBookings: 6,
+            currentBookings: 3,
+          },
+        ],
+        timezone: 'Europe/Paris',
+      },
+      pricing: {
+        basePrice: 80,
+        currency: 'EUR',
+        pricingModel: 'FIXED',
+        discounts: [],
+      },
+      documents: [
+        {
+          id: 'doc-5',
+          name: 'Diplôme Urgence',
+          type: 'CERTIFICATE',
+          url: 'https://example.com/docs/urgence-moreau.pdf',
+          uploadedAt: new Date('2023-03-05'),
+        },
+        {
+          id: 'doc-6',
+          name: 'Ordre des Médecins',
+          type: 'LICENSE',
+          url: 'https://example.com/docs/license-moreau.pdf',
+          uploadedAt: new Date('2023-03-05'),
+          expiresAt: new Date('2025-12-31'),
+        },
+      ],
+    },
+    apiGeo: [
+      {
+        place_id: 345678,
+        licence: 'Data © OpenStreetMap contributors, ODbL 1.0',
+        osm_type: 'way',
+        osm_id: 901234,
+        lat: '48.8534',
+        lon: '2.3488',
+        class: 'building',
+        type: 'commercial',
+        place_rank: 30,
+        importance: 0.251,
+        addresstype: 'building',
+        name: 'Centre Médical Urgence',
+        display_name: '15 Boulevard Saint-Germain, 75005 Paris, France',
+        boundingbox: ['48.8530', '48.8540', '2.3480', '2.3490'],
+      },
+    ],
+    oauth: {
+      google: { linked: true, providerAccountId: 'google-pierre' },
+      facebook: { linked: false, providerAccountId: null },
+    },
+    avatar: 'https://randomuser.me/api/portraits/men/25.jpg',
+    images: ['https://randomuser.me/api/portraits/men/25.jpg'],
+    firstName: 'Pierre',
+    lastName: 'Moreau',
+    dateOfBirth: new Date('1988-11-22'),
+    countryOfResidence: 'France',
+    targetCountry: 'Canada',
+    targetCity: 'Montréal',
+    selectedServices: "Consultation d'urgence, Traitement d'urgence",
+    monthlyBudget: '600-900',
+    marketingConsent: false,
+    kycConsent: true,
+    preferences: {
+      language: 'fr',
+      timezone: 'Europe/Paris',
+      notifications: true,
+    },
+    lastLogin: new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),
   },
 ];
 
-// ============================================================================
-// PARTNERS (Homepage carousel / future DB model)
-// ============================================================================
+export const mockUsers = MOCK_USERS;
 
-export interface IPartner {
-  id: string;
-  name: string;
-  logo: string;
-  description: string;
-  website: string;
-  category: string;
-  services: string[];
-  location: string;
-  established: string; // year as string for now
-}
-
-export const MOCK_PARTNERS: IPartner[] = [
+export const MOCK_SERVICES = [
   {
-    id: "1",
-    name: "Lusinage",
-    logo: "https://lusinage.fr/asset/images/logo/lusinage.png",
-    description:
-      "Conception et fabrication de pièces mécaniques de haute précision, pour vos prototypes comme vos pièces de production, en usinage CNC et impression 3D.  adaptés et des solutions de transfert d'argent.",
-    website: "https://lusinage.fr",
-    category: "Usinage",
-    services: ["Usinage CNC", "Impression 3D"],
-    location: "Rouen, France",
-    established: "2021",
+    _id: '1',
+    name: 'Consultation générale',
+    description: 'Consultation avec un médecin généraliste.',
+    price: 25,
+    duration: 30,
+    category: 'health',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    providerId: '1',
+    active: true,
   },
   {
-    id: "2",
-    name: "BPI France",
-    logo: "https://www.bpifrance.fr/themes/custom/bpi_main/logo.svg",
-    description:
-      "Bpifrance est le résultat de nombreux regroupements, dont le premier fut, en 1995, la fusion entre CEPME (crédit PME) et Sofaris (garantie) , pour créer la BDPME, la banque des PME. Ce regroupement fut opéré sous le gouvernement Alain Juppé par Alain Madelin dans la suite des réformes entamées par Édouard Balladur (qui ont notamment créé le CODEVI). ",
-    website: "https://www.bpifrance.fr",
-    category: "Finance",
-    services: [
-      "Creation",
-      "Innovation",
-      "Financement",
-      "Investissement",
-      "International",
-      "Conseil",
-    ],
-    location: "Paris, France",
-    established: "1995",
-  },
-  {
-    id: "3",
-    name: "Rouen Normandie Création",
-    logo: "https://diaspomoney.fr/wp-content/uploads/2025/09/Sans-titre-2-02-300x259.png",
-    description:
-      "Rouen Normandie Création est composé de 6 sites, dont des sites spécialisés -écotechnologies, numérique, santé, mais aussi de son réseau de partenaires. Nous sommes à vos côtés pour vous apporter l’expertise, la formation et les partenaires pour accompagner et booster votre projet.",
-    website: "https://www.rouen-normandie-creation.fr/",
-    category: "Education",
-    services: [
-      "Formation",
-      "Innovation",
-      "Financement",
-      "Investissement",
-      "Conseil",
-    ],
-    location: "Rouen, France",
-    established: "2016",
-  },
-  {
-    id: "4",
-    name: "Seine Innopolis",
-    logo: "https://diaspomoney.fr/wp-content/uploads/2025/09/Logos-partenaires_DM-300x300.png",
-    description:
-      "Seine Innopolis est la pépinière-hôtel dédiée aux Technologies de l’Information et de la Communication. Le lieu ouvre en 2013 dans l’ancienne caserne Taillandier au Petit Quevilly et propose 10 000 m² de bureaux et plateformes pour les entreprises. Seine Innopolis s’impose donc comme un acteur majeur sur le territoire pour le développement des entreprises du numérique.",
-    website:
-      "https://www.rouen-normandie-creation.fr/hebergements/seine-innopolis",
-    category: "Technologie",
-    services: [
-      "Technologie",
-      "Innovation",
-      "Financement",
-      "Investissement",
-      "International",
-      "Conseil",
-    ],
-    location: "Le Petit-Quevilly, France",
-    established: "2013",
-  },
-  {
-    id: "5",
-    name: "Metropole Rouen Normandie",
-    logo: "https://diaspomoney.fr/wp-content/uploads/2025/09/Sans-titre-2-03-300x300.png",
-    description:
-      "La Métropole Rouen Normandie est une métropole française située dans le département de la Seine-Maritime, en région Normandie. Le 1er janvier 2015, elle a remplacé la communauté d'agglomération Rouen-Elbeuf-Austreberthe (CREA) qui avait été créée le 1er janvier 2010 par le regroupement de quatre structures intercommunales. La forme juridique de la métropole constitue la forme la plus intégrée des intercommunalités françaises. À ce titre, elle exerce de très nombreuses compétences antérieurement exercées par les communes membres, au bénéfice de ses habitants et de son tissu économique. ",
-    website: "https://www.metropole-rouen-normandie.fr/",
-    category: "Administration",
-    services: [
-      "Administration",
-      "Conseil",
-      "Financement",
-      "Investissement",
-      "International",
-    ],
-    location: "Rouen, France",
-    established: "2015",
-  },
-  {
-    id: "6",
-    name: "CCI France",
-    logo: "https://diaspomoney.fr/wp-content/uploads/2025/09/Sans-titre-2-05-300x205.png",
-    description:
-      "CCI France est une organisation professionnelle qui représente les entreprises françaises et les entreprises étrangères dans le monde.",
-    website: "https://www.cci.fr/",
-    category: "Administration",
-    services: ["Conseil", "Financement", "Investissement", "International"],
-    location: "Paris, France",
-    established: "1898",
-  },
-  {
-    id: "7",
-    name: "ECOLE L'ELDORADO",
-    logo: "https://diaspomoney.fr/wp-content/uploads/2025/09/Sans-titre-2-06-300x205.png",
-    description: "L'ELDORADO, Crèche, Maternelle, Primaire, Collège",
-    website: "http://eldorado.org/",
-    category: "Education",
-    services: ["Education"],
-    location: "Pointe, Noire, Congo-Brazzaville",
-    established: "1995",
-  },
-];
-
-// ============================================================================
-// MOCK APPOINTMENTS
-// ============================================================================
-
-export const MOCK_APPOINTMENTS: IBooking[] = [
-  {
-    _id: "1",
-    userId: "9",
-    providerId: "5",
-    serviceId: "1",
-    date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 jours ago
-    time: "10:00",
-    status: "confirmed",
-    notes: "Consultation de routine",
+    _id: '2',
+    name: 'Consultation spécialisée',
+    description: "Consultation auprès d'un spécialiste.",
     price: 50,
-    paymentStatus: "paid",
-    paymentMethod: "card",
-    paymentId: "pay_123",
-    reservationNumber: "RDV-001",
-    requester: {
-      firstName: "Jean",
-      lastName: "Dupont",
-      phone: "+33123456789",
-      email: "jean.dupont@email.com",
-    },
-    recipient: {
-      firstName: "Marie",
-      lastName: "Martin",
-      phone: "+33123456790",
-    },
-    provider: {
-      id: "5",
-      name: "Dr. Martin",
-      services: [{ id: 1, name: "Consultation", price: 50 }],
-      type: { id: "1", value: "Médecine", group: "sante" as const },
-      specialty: "Médecine générale",
-      recommended: true,
-      apiGeo: [],
-      images: [],
-      rating: 4.5,
-    },
-    selectedService: { id: 1, name: "Consultation", price: 50 },
-    timeslot: "2024-01-15 10:00",
-    totalAmount: 50,
-    createdAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000), // 35 jours ago
-    updatedAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000), // 35 jours ago
-  },
-  {
-    _id: "2",
-    userId: "10",
-    providerId: "6",
-    serviceId: "2",
-    date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 jours ago
-    time: "14:00",
-    status: "pending",
-    notes: "Conseil juridique",
-    price: 100,
-    paymentStatus: "pending",
-    reservationNumber: "RDV-002",
-    requester: {
-      firstName: "Sophie",
-      lastName: "Bernard",
-      phone: "+33123456791",
-      email: "sophie.bernard@email.com",
-    },
-    recipient: {
-      firstName: "Pierre",
-      lastName: "Durand",
-      phone: "+33123456792",
-    },
-    provider: {
-      id: "6",
-      name: "Me. Dubois",
-      services: [{ id: 2, name: "Conseil juridique", price: 100 }],
-      type: { id: "2", value: "Droit", group: "edu" as const },
-      specialty: "Droit civil",
-      recommended: false,
-      apiGeo: [],
-      images: [],
-      rating: 4.2,
-    },
-    selectedService: { id: 2, name: "Conseil juridique", price: 100 },
-    timeslot: "2024-01-20 14:00",
-    totalAmount: 100,
-    createdAt: new Date(Date.now() - 33 * 24 * 60 * 60 * 1000), // 33 jours ago
-    updatedAt: new Date(Date.now() - 33 * 24 * 60 * 60 * 1000), // 33 jours ago
-  },
-  {
-    _id: "3",
-    userId: "11",
-    providerId: "7",
-    serviceId: "3",
-    date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 jours ago
-    time: "16:00",
-    status: "cancelled",
-    notes: "Annulé par le client",
-    price: 75,
-    paymentStatus: "refunded",
-    cancellationReason: "Changement de plans",
-    cancelledAt: new Date("2024-01-20T10:00:00Z"),
-    cancelledBy: "client",
-    reservationNumber: "RDV-003",
-    requester: {
-      firstName: "Luc",
-      lastName: "Moreau",
-      phone: "+33123456793",
-      email: "luc.moreau@email.com",
-    },
-    recipient: {
-      firstName: "Anne",
-      lastName: "Leroy",
-      phone: "+33123456794",
-    },
-    provider: {
-      id: "7",
-      name: "Agence Immobilière",
-      services: [{ id: 3, name: "Visite immobilière", price: 75 }],
-      type: { id: "3", value: "Immobilier", group: "immo" as const },
-      specialty: "Immobilier",
-      recommended: true,
-      apiGeo: [],
-      images: [],
-      rating: 4.8,
-    },
-    selectedService: { id: 3, name: "Visite immobilière", price: 75 },
-    timeslot: "2024-01-25 16:00",
-    totalAmount: 75,
-    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 jours ago
-    updatedAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), // 25 jours ago
+    duration: 45,
+    category: 'health',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    providerId: '1',
+    active: true,
   },
 ];
 
-// ============================================================================
-// MOCK INVOICES
-// ============================================================================
+export const mockServices = MOCK_SERVICES;
 
-export const MOCK_INVOICES: IInvoice[] = [
+export const MOCK_APPOINTMENTS = [
   {
-    _id: "1",
-    invoiceNumber: "FACT-2024-001",
-    customerId: "9",
-    providerId: "5",
-    amount: 50,
-    currency: "EUR",
-    status: "PAID",
-    issueDate: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000), // 35 jours ago
-    dueDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 jours ago
-    paidDate: new Date(Date.now() - 33 * 24 * 60 * 60 * 1000), // 33 jours ago
+    _id: '1',
+    reservationNumber: 'RES-001',
+    beneficiary: {
+      firstName: 'Marie',
+      lastName: 'Martin',
+      phone: '+33987654321',
+    },
+    providerId: '1',
+    serviceId: '1',
+    status: 'CONFIRMED',
+    paymentStatus: 'PAID',
+    totalAmount: 25,
+    requesterId: '2',
+    date: '2024-01-15',
+    timeslot: '2024-01-15T10:00:00Z',
+    notes: 'Consultation de routine',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    _id: '2',
+    reservationNumber: 'RES-002',
+    beneficiary: {
+      firstName: 'Pierre',
+      lastName: 'Durand',
+      phone: '+33111111111',
+    },
+    providerId: '1',
+    serviceId: '2',
+    status: 'PENDING',
+    paymentStatus: 'PENDING',
+    totalAmount: 50,
+    requesterId: '2',
+    date: '2024-01-20',
+    timeslot: '2024-01-20T14:00:00Z',
+    notes: 'Consultation spécialisée',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
+
+export const mockBookings = MOCK_APPOINTMENTS;
+
+export const MOCK_INVOICES = [
+  {
+    _id: '1',
+    invoiceNumber: 'INV-001',
+    customerId: '2',
+    providerId: '1',
+    amount: 25,
+    currency: 'EUR',
+    status: 'PAID',
+    dueDate: new Date('2024-02-15'),
+    issueDate: new Date('2024-01-15'),
+    paidDate: new Date('2024-01-15'),
+    createdAt: new Date(),
+    updatedAt: new Date(),
     items: [
       {
-        description: "Consultation médicale",
+        description: 'Consultation générale',
+        quantity: 1,
+        unitPrice: 25,
+        total: 25,
+      },
+    ],
+    notes: 'Consultation médicale',
+  },
+  {
+    _id: '2',
+    invoiceNumber: 'INV-002',
+    customerId: '2',
+    providerId: '1',
+    amount: 50,
+    currency: 'EUR',
+    status: 'PENDING',
+    dueDate: new Date('2024-02-20'),
+    issueDate: new Date('2024-01-20'),
+    paidDate: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    items: [
+      {
+        description: 'Consultation spécialisée',
         quantity: 1,
         unitPrice: 50,
         total: 50,
       },
     ],
-    notes: "Paiement reçu",
-    userId: "9",
-    createdAt: new Date("2024-01-10"),
-    updatedAt: new Date("2024-01-12"),
+    notes: 'Consultation spécialisée',
+  },
+];
+
+export const mockInvoices = MOCK_INVOICES;
+
+export const MOCK_PARTNERS = [
+  {
+    _id: '1',
+    name: 'Clinique Santé Plus',
+    logo: 'https://example.com/logo-clinique.png',
+    description: 'Clinique spécialisée en médecine générale et urgences',
+    website: 'https://clinique-sante-plus.com',
+    category: 'health',
+    services: ['consultation', 'treatment', 'emergency'],
+    location: '10 Rue de la Santé, 75013 Paris, France',
+    established: '2020',
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
-    _id: "2",
-    invoiceNumber: "FACT-2024-002",
-    customerId: "10",
-    providerId: "6",
-    amount: 100,
-    currency: "EUR",
-    status: "SENT",
-    issueDate: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000), // 35 jours ago
-    dueDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 jours ago
-    paidDate: new Date(Date.now() - 33 * 24 * 60 * 60 * 1000), // 33 jours ago
-    items: [
+    _id: '2',
+    name: 'École Internationale',
+    logo: 'https://example.com/logo-ecole.png',
+    description: "École internationale pour l'éducation des enfants expatriés",
+    website: 'https://ecole-internationale.com',
+    category: 'education',
+    services: ['primary-education', 'secondary-education', 'language-courses'],
+    location: '15 Avenue des Écoles, 75005 Paris, France',
+    established: '2018',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
+
+export const MOCK_SPECIALITIES = [
+  {
+    _id: '1',
+    name: 'Médecine générale',
+    description: 'Médecine de premier recours pour tous types de pathologies',
+    group: 'health',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    _id: '2',
+    name: 'Cardiologie',
+    description: 'Spécialité médicale du cœur et des vaisseaux',
+    group: 'health',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    _id: '3',
+    name: 'Éducation primaire',
+    description: 'Enseignement pour les enfants de 6 à 11 ans',
+    group: 'education',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
+
+// Mocks pour les tokens et autres modèles
+export const MOCK_EMAIL_VERIFICATION_TOKENS = [
+  {
+    _id: '1',
+    token: 'verification-token-123',
+    userId: '2',
+    email: 'marie.martin@example.com',
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
+    createdAt: new Date(),
+  },
+];
+
+export const MOCK_PASSWORD_RESET_TOKENS = [
+  {
+    _id: '1',
+    token: 'reset-token-456',
+    userId: '2',
+    email: 'marie.martin@example.com',
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1h
+    createdAt: new Date(),
+  },
+];
+
+export const MOCK_RETRY_TOKENS = [
+  {
+    _id: '1',
+    token: 'retry-token-789',
+    userId: '2',
+    action: 'email_verification',
+    attempts: 1,
+    maxAttempts: 3,
+    expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15min
+    createdAt: new Date(),
+  },
+];
+
+// Fonctions utilitaires pour les mocks
+export const getProviderReviews = (_providerId: string) => [
+  {
+    _id: '1',
+    providerId: _providerId,
+    userId: '2',
+    rating: 5,
+    comment: 'Excellent médecin, très professionnel',
+    createdAt: new Date(),
+  },
+  {
+    _id: '2',
+    providerId: _providerId,
+    userId: '3',
+    rating: 4,
+    comment: 'Très bon service, je recommande',
+    createdAt: new Date(),
+  },
+];
+
+export const getProviderRatingStats = (providerId: string) => ({
+  providerId,
+  averageRating: 4.5,
+  totalReviews: 2,
+  ratingDistribution: {
+    5: 1,
+    4: 1,
+    3: 0,
+    2: 0,
+    1: 0,
+  },
+});
+
+// Fonction pour obtenir un utilisateur par ID
+export const getMockUserById = (id: string) =>
+  MOCK_USERS.find(user => user._id === id);
+
+// Fonction pour obtenir un service par ID
+export const getMockServiceById = (id: string) =>
+  MOCK_SERVICES.find(service => service._id === id);
+
+// Fonction pour obtenir un rendez-vous par ID
+export const getMockAppointmentById = (id: string) =>
+  MOCK_APPOINTMENTS.find(appointment => appointment._id === id);
+
+// Fonction pour obtenir une facture par ID
+export const getMockInvoiceById = (id: string) =>
+  MOCK_INVOICES.find(invoice => invoice._id === id);
+
+// ============================================================================
+// MOCK DISPONIBILITÉS (AVAILABILITIES)
+// ============================================================================
+
+export const MOCK_AVAILABILITIES = [
+  {
+    id: '1',
+    name: 'Planning hebdomadaire standard',
+    type: 'weekly',
+    isActive: true,
+    startDate: undefined,
+    endDate: undefined,
+    timeSlots: [
       {
-        description: "Conseil juridique",
-        quantity: 1,
-        unitPrice: 100,
-        total: 100,
+        id: 'slot-1',
+        dayOfWeek: 1, // Lundi
+        startTime: '09:00',
+        endTime: '17:00',
+        start: '09:00',
+        end: '17:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 8,
+      },
+      {
+        id: 'slot-2',
+        dayOfWeek: 2, // Mardi
+        startTime: '09:00',
+        endTime: '17:00',
+        start: '09:00',
+        end: '17:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 8,
+      },
+      {
+        id: 'slot-3',
+        dayOfWeek: 3, // Mercredi
+        startTime: '09:00',
+        endTime: '17:00',
+        start: '09:00',
+        end: '17:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 8,
+      },
+      {
+        id: 'slot-4',
+        dayOfWeek: 4, // Jeudi
+        startTime: '09:00',
+        endTime: '17:00',
+        start: '09:00',
+        end: '17:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 8,
+      },
+      {
+        id: 'slot-5',
+        dayOfWeek: 5, // Vendredi
+        startTime: '09:00',
+        endTime: '17:00',
+        start: '09:00',
+        end: '17:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 8,
       },
     ],
-    notes: "En attente de paiement",
-    userId: "10",
-    createdAt: new Date("2024-01-12"),
-    updatedAt: new Date("2024-01-12"),
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+    saturday: [],
+    sunday: [],
+    timezone: 'Europe/Paris',
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  },
+  {
+    id: '2',
+    name: 'Planning du weekend',
+    type: 'weekly',
+    isActive: true,
+    startDate: undefined,
+    endDate: undefined,
+    timeSlots: [
+      {
+        id: 'slot-6',
+        dayOfWeek: 6, // Samedi
+        startTime: '10:00',
+        endTime: '16:00',
+        start: '10:00',
+        end: '16:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 6,
+      },
+      {
+        id: 'slot-7',
+        dayOfWeek: 0, // Dimanche
+        startTime: '10:00',
+        endTime: '16:00',
+        start: '10:00',
+        end: '16:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 6,
+      },
+    ],
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+    saturday: [],
+    sunday: [],
+    timezone: 'Europe/Paris',
+    createdAt: new Date('2024-01-02'),
+    updatedAt: new Date('2024-01-02'),
+  },
+  {
+    id: '3',
+    name: 'Planning mensuel - Janvier 2024',
+    type: 'monthly',
+    isActive: true,
+    startDate: '2024-01-01',
+    endDate: '2024-01-31',
+    timeSlots: [
+      {
+        id: 'slot-8',
+        dayOfWeek: 1, // Lundi
+        startTime: '08:00',
+        endTime: '18:00',
+        start: '08:00',
+        end: '18:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 10,
+      },
+      {
+        id: 'slot-9',
+        dayOfWeek: 2, // Mardi
+        startTime: '08:00',
+        endTime: '18:00',
+        start: '08:00',
+        end: '18:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 10,
+      },
+      {
+        id: 'slot-10',
+        dayOfWeek: 3, // Mercredi
+        startTime: '08:00',
+        endTime: '18:00',
+        start: '08:00',
+        end: '18:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 10,
+      },
+      {
+        id: 'slot-11',
+        dayOfWeek: 4, // Jeudi
+        startTime: '08:00',
+        endTime: '18:00',
+        start: '08:00',
+        end: '18:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 10,
+      },
+      {
+        id: 'slot-12',
+        dayOfWeek: 5, // Vendredi
+        startTime: '08:00',
+        endTime: '18:00',
+        start: '08:00',
+        end: '18:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 10,
+      },
+    ],
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+    saturday: [],
+    sunday: [],
+    timezone: 'Europe/Paris',
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  },
+  {
+    id: '4',
+    name: 'Planning personnalisé - Congés',
+    type: 'custom',
+    isActive: false,
+    startDate: '2024-02-15',
+    endDate: '2024-02-20',
+    timeSlots: [],
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+    saturday: [],
+    sunday: [],
+    timezone: 'Europe/Paris',
+    createdAt: new Date('2024-01-15'),
+    updatedAt: new Date('2024-01-15'),
+  },
+  {
+    id: '5',
+    name: 'Planning urgence',
+    type: 'weekly',
+    isActive: true,
+    startDate: undefined,
+    endDate: undefined,
+    timeSlots: [
+      {
+        id: 'slot-13',
+        dayOfWeek: 0, // Dimanche
+        startTime: '08:00',
+        endTime: '20:00',
+        start: '08:00',
+        end: '20:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 12,
+      },
+      {
+        id: 'slot-14',
+        dayOfWeek: 1, // Lundi
+        startTime: '08:00',
+        endTime: '20:00',
+        start: '08:00',
+        end: '20:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 12,
+      },
+      {
+        id: 'slot-15',
+        dayOfWeek: 2, // Mardi
+        startTime: '08:00',
+        endTime: '20:00',
+        start: '08:00',
+        end: '20:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 12,
+      },
+      {
+        id: 'slot-16',
+        dayOfWeek: 3, // Mercredi
+        startTime: '08:00',
+        endTime: '20:00',
+        start: '08:00',
+        end: '20:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 12,
+      },
+      {
+        id: 'slot-17',
+        dayOfWeek: 4, // Jeudi
+        startTime: '08:00',
+        endTime: '20:00',
+        start: '08:00',
+        end: '20:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 12,
+      },
+      {
+        id: 'slot-18',
+        dayOfWeek: 5, // Vendredi
+        startTime: '08:00',
+        endTime: '20:00',
+        start: '08:00',
+        end: '20:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 12,
+      },
+      {
+        id: 'slot-19',
+        dayOfWeek: 6, // Samedi
+        startTime: '08:00',
+        endTime: '20:00',
+        start: '08:00',
+        end: '20:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 12,
+      },
+    ],
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+    saturday: [],
+    sunday: [],
+    timezone: 'Europe/Paris',
+    createdAt: new Date('2024-01-10'),
+    updatedAt: new Date('2024-01-10'),
+  },
+  {
+    id: '6',
+    name: 'Planning spécialisé - Consultations',
+    type: 'weekly',
+    isActive: true,
+    startDate: undefined,
+    endDate: undefined,
+    timeSlots: [
+      {
+        id: 'slot-20',
+        dayOfWeek: 1, // Lundi
+        startTime: '14:00',
+        endTime: '18:00',
+        start: '14:00',
+        end: '18:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 4,
+      },
+      {
+        id: 'slot-21',
+        dayOfWeek: 3, // Mercredi
+        startTime: '14:00',
+        endTime: '18:00',
+        start: '14:00',
+        end: '18:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 4,
+      },
+      {
+        id: 'slot-22',
+        dayOfWeek: 5, // Vendredi
+        startTime: '14:00',
+        endTime: '18:00',
+        start: '14:00',
+        end: '18:00',
+        isAvailable: true,
+        isActive: true,
+        maxBookings: 4,
+      },
+    ],
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+    saturday: [],
+    sunday: [],
+    timezone: 'Europe/Paris',
+    createdAt: new Date('2024-01-05'),
+    updatedAt: new Date('2024-01-05'),
   },
 ];
 
-// ============================================================================
-// MOCK SPECIALITIES
-// ============================================================================
+export const mockAvailabilities = MOCK_AVAILABILITIES;
 
-export const MOCK_SPECIALITIES: ISpeciality[] = [
-  {
-    _id: "1",
-    name: "Médecine générale",
-    description: "Soins de santé primaires et consultations générales",
-    group: "sante",
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "2",
-    name: "Droit civil",
-    description: "Conseils juridiques en droit civil et commercial",
-    group: "edu",
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "3",
-    name: "Immobilier",
-    description: "Services immobiliers et transactions",
-    group: "immo",
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    _id: "4",
-    name: "Formation",
-    description: "Formation professionnelle et éducation",
-    group: "edu",
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+// Fonction pour obtenir une disponibilité par ID
+export const getMockAvailabilityById = (id: string) =>
+  MOCK_AVAILABILITIES.find(availability => availability.id === id);
 
-// ============================================================================
-// MOCK REVIEWS
-// ============================================================================
+// Fonction pour obtenir les disponibilités par type
+export const getMockAvailabilitiesByType = (
+  type: 'weekly' | 'monthly' | 'custom'
+) => MOCK_AVAILABILITIES.filter(availability => availability.type === type);
 
-export const MOCK_REVIEWS: IReview[] = [
-  // Avis pour Dr. Jean Dupont (ID: 6)
-  {
-    _id: "1",
-    author: "Marie Dubois",
-    text: "Excellent médecin, très à l'écoute et professionnel. Je recommande vivement !",
-    rating: 5,
-    providerId: "6",
-    customerId: "customer1",
-    appointmentId: "appointment1",
-    createdAt: new Date("2024-01-15"),
-    updatedAt: new Date("2024-01-15"),
-  },
-  {
-    _id: "2",
-    author: "Pierre Martin",
-    text: "Très bon accueil et consultation de qualité. Le docteur a pris le temps de m'expliquer tout.",
-    rating: 5,
-    providerId: "6",
-    customerId: "customer2",
-    appointmentId: "appointment2",
-    createdAt: new Date("2024-01-20"),
-    updatedAt: new Date("2024-01-20"),
-  },
-  {
-    _id: "3",
-    author: "Sophie Laurent",
-    text: "Consultation rapide et efficace. Le médecin est très compétent.",
-    rating: 4,
-    providerId: "6",
-    customerId: "customer3",
-    appointmentId: "appointment3",
-    createdAt: new Date("2024-02-01"),
-    updatedAt: new Date("2024-02-01"),
-  },
-  {
-    _id: "4",
-    author: "Jean Petit",
-    text: "Bon médecin mais un peu pressé. Consultation correcte dans l'ensemble.",
-    rating: 4,
-    providerId: "6",
-    customerId: "customer4",
-    appointmentId: "appointment4",
-    createdAt: new Date("2024-02-10"),
-    updatedAt: new Date("2024-02-10"),
-  },
-  {
-    _id: "5",
-    author: "Claire Moreau",
-    text: "Excellent service, très professionnel et à l'écoute. Je recommande !",
-    rating: 5,
-    providerId: "6",
-    customerId: "customer5",
-    appointmentId: "appointment5",
-    createdAt: new Date("2024-02-15"),
-    updatedAt: new Date("2024-02-15"),
-  },
+// Fonction pour obtenir les disponibilités actives
+export const getMockActiveAvailabilities = () =>
+  MOCK_AVAILABILITIES.filter(availability => availability.isActive);
 
-  // Avis pour Dr. Sarah Johnson (ID: 7)
-  {
-    _id: "6",
-    author: "Thomas Bernard",
-    text: "Très bonne consultation, le docteur est très compétent et à l'écoute.",
-    rating: 5,
-    providerId: "7",
-    customerId: "customer6",
-    appointmentId: "appointment6",
-    createdAt: new Date("2024-01-18"),
-    updatedAt: new Date("2024-01-18"),
-  },
-  {
-    _id: "7",
-    author: "Isabelle Roux",
-    text: "Consultation de qualité, je recommande ce médecin.",
-    rating: 4,
-    providerId: "7",
-    customerId: "customer7",
-    appointmentId: "appointment7",
-    createdAt: new Date("2024-01-25"),
-    updatedAt: new Date("2024-01-25"),
-  },
-  {
-    _id: "8",
-    author: "Michel Durand",
-    text: "Bon médecin mais un peu cher. Consultation correcte.",
-    rating: 3,
-    providerId: "7",
-    customerId: "customer8",
-    appointmentId: "appointment8",
-    createdAt: new Date("2024-02-05"),
-    updatedAt: new Date("2024-02-05"),
-  },
+// Fonction pour obtenir les créneaux horaires d'un jour spécifique
+export const getMockTimeSlotsByDay = (
+  availabilityId: string,
+  dayOfWeek: number
+) => {
+  const availability = getMockAvailabilityById(availabilityId);
+  if (!availability) return [];
 
-  // Avis pour Dr. Ahmed Hassan (ID: 8)
-  {
-    _id: "9",
-    author: "Fatima Alami",
-    text: "Excellent médecin, très professionnel et compréhensif. Je recommande vivement !",
-    rating: 5,
-    providerId: "8",
-    customerId: "customer9",
-    appointmentId: "appointment9",
-    createdAt: new Date("2024-01-22"),
-    updatedAt: new Date("2024-01-22"),
-  },
-  {
-    _id: "10",
-    author: "Omar Benali",
-    text: "Très bon accueil et consultation de qualité. Le docteur prend le temps d'écouter.",
-    rating: 5,
-    providerId: "8",
-    customerId: "customer10",
-    appointmentId: "appointment10",
-    createdAt: new Date("2024-02-08"),
-    updatedAt: new Date("2024-02-08"),
-  },
-  {
-    _id: "11",
-    author: "Aicha Benjelloun",
-    text: "Consultation rapide et efficace. Le médecin est très compétent.",
-    rating: 4,
-    providerId: "8",
-    customerId: "customer11",
-    appointmentId: "appointment11",
-    createdAt: new Date("2024-02-12"),
-    updatedAt: new Date("2024-02-12"),
-  },
-];
+  return availability.timeSlots.filter(slot => slot.dayOfWeek === dayOfWeek);
+};
+
+// Fonction pour générer des créneaux horaires pour une disponibilité
+export const generateMockTimeSlots = (
+  dayOfWeek: number,
+  startTime: string,
+  endTime: string,
+  maxBookings: number = 8
+) => ({
+  id: `slot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+  dayOfWeek,
+  startTime,
+  endTime,
+  start: startTime,
+  end: endTime,
+  isAvailable: true,
+  isActive: true,
+  maxBookings,
+});
 
 // ============================================================================
-// UTILITAIRES MOCK
+// FONCTIONS UTILITAIRES POUR LES DISPONIBILITÉS DES UTILISATEURS
 // ============================================================================
 
-// Fonction pour calculer les statistiques de rating d'un provider
-export function getProviderRatingStats(providerId: string): {
-  averageRating: number;
-  totalReviews: number;
-  ratingDistribution: { 5: number; 4: number; 3: number; 2: number; 1: number };
-} {
-  const reviews = MOCK_REVIEWS.filter(
-    review => review.providerId === providerId
-  );
+// Fonction pour obtenir les disponibilités d'un utilisateur
+export const getUserAvailabilities = (userId: string) => {
+  const user = getMockUserById(userId);
+  if (!user?.availabilities) return [];
 
-  if (reviews.length === 0) {
-    return {
-      averageRating: 0,
-      totalReviews: 0,
-      ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-    };
+  return user.availabilities
+    .map(availabilityId => getMockAvailabilityById(availabilityId))
+    .filter(Boolean);
+};
+
+// Fonction pour obtenir les disponibilités actives d'un utilisateur
+export const getUserActiveAvailabilities = (userId: string) => {
+  const availabilities = getUserAvailabilities(userId);
+  return availabilities.filter(availability => availability?.isActive);
+};
+
+// Fonction pour ajouter une disponibilité à un utilisateur
+export const addAvailabilityToUser = (
+  userId: string,
+  availabilityId: string
+) => {
+  const user = getMockUserById(userId);
+  if (!user) return false;
+
+  if (!user.availabilities) {
+    user.availabilities = [];
   }
 
-  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-  const averageRating = Math.round((totalRating / reviews.length) * 10) / 10; // Arrondi à 1 décimale
+  if (!user.availabilities?.includes(availabilityId as never)) {
+    user.availabilities.push(availabilityId as never);
+    return true;
+  }
 
-  const ratingDistribution = {
-    5: reviews.filter(r => r.rating === 5).length,
-    4: reviews.filter(r => r.rating === 4).length,
-    3: reviews.filter(r => r.rating === 3).length,
-    2: reviews.filter(r => r.rating === 2).length,
-    1: reviews.filter(r => r.rating === 1).length,
-  };
+  return false;
+};
 
-  return {
-    averageRating,
-    totalReviews: reviews.length,
-    ratingDistribution,
-  };
-}
+// Fonction pour retirer une disponibilité d'un utilisateur
+export const removeAvailabilityFromUser = (
+  userId: string,
+  availabilityId: string
+) => {
+  const user = getMockUserById(userId);
+  if (!user || !user.availabilities) return false;
 
-// Fonction pour obtenir les avis d'un provider
-export function getProviderReviews(providerId: string): IReview[] {
-  return MOCK_REVIEWS.filter(review => review.providerId === providerId);
-}
+  const index = user.availabilities?.indexOf(availabilityId as never);
+  if (index > -1) {
+    user.availabilities.splice(index, 1);
+    return true;
+  }
 
-export function findUserByEmail(email: string): IUser | undefined {
-  return MOCK_USERS.find(user => user.email === email);
-}
+  return false;
+};
 
-export function findUserById(id: string): IUser | undefined {
-  return MOCK_USERS.find(user => user._id === id);
-}
+// Fonction pour obtenir les créneaux horaires d'un utilisateur pour un jour spécifique
+export const getUserTimeSlotsForDay = (userId: string, dayOfWeek: number) => {
+  const availabilities = getUserActiveAvailabilities(userId);
+  const timeSlots: any[] = [];
 
-export function findAppointmentById(id: string): IBooking | undefined {
-  return MOCK_APPOINTMENTS.find(appointment => appointment._id === id);
-}
+  availabilities.forEach(availability => {
+    const daySlots = availability?.timeSlots?.filter(
+      slot => slot.dayOfWeek === dayOfWeek
+    );
+    if (Array.isArray(daySlots)) {
+      timeSlots.push(...daySlots);
+    }
+  });
 
-export function findProviderById(id: string): IUser | undefined {
-  return MOCK_USERS.find(
-    user =>
-      user._id === id &&
-      (user.roles.includes("{PROVIDER:INSTITUTION}") ||
-        user.roles.includes("{PROVIDER:INDIVIDUAL}"))
-  );
-}
+  return timeSlots;
+};
 
-export function findInvoiceById(id: string): IInvoice | undefined {
-  return MOCK_INVOICES.find(invoice => invoice._id === id);
-}
+// Fonction pour obtenir tous les créneaux horaires d'un utilisateur
+export const getAllUserTimeSlots = (userId: string) => {
+  const availabilities = getUserActiveAvailabilities(userId);
+  const timeSlots: any[] = [];
 
-export function getAppointmentsByUserId(userId: string): IBooking[] {
-  return MOCK_APPOINTMENTS.filter(appointment => appointment.userId === userId);
-}
+  availabilities.forEach(availability => {
+    if (Array.isArray(availability?.timeSlots)) {
+      timeSlots.push(...availability.timeSlots);
+    }
+  });
 
-export function getProvidersBySpecialty(specialty: string): IUser[] {
+  return timeSlots;
+};
+
+// Fonction pour vérifier si un utilisateur est disponible à un moment donné
+export const isUserAvailableAtTime = (
+  userId: string,
+  dayOfWeek: number,
+  time: string
+) => {
+  const timeSlots = getUserTimeSlotsForDay(userId, dayOfWeek);
+
+  return timeSlots.some(slot => {
+    return (
+      slot.isActive &&
+      slot.isAvailable &&
+      time >= slot.startTime &&
+      time < slot.endTime
+    );
+  });
+};
+
+// Fonction pour obtenir les utilisateurs avec des disponibilités spécifiques
+export const getUsersWithAvailability = (availabilityId: string) => {
   return MOCK_USERS.filter(
     user =>
-      (user.roles.includes("{PROVIDER:INSTITUTION}") ||
-        user.roles.includes("{PROVIDER:INDIVIDUAL}")) &&
-      user.specialty === specialty
+      user.availabilities &&
+      user.availabilities.includes(availabilityId as never)
   );
-}
+};
 
-export function getUsersByRole(role: string): IUser[] {
-  return MOCK_USERS.filter(user => user.roles.includes(role as any));
-}
+// Fonction pour obtenir les utilisateurs disponibles un jour donné
+export const getAvailableUsersForDay = (dayOfWeek: number) => {
+  return MOCK_USERS.filter((user: any) => {
+    if (!user?.availabilities) return false;
+
+    const userAvailabilities = getUserAvailabilities(user._id);
+    return userAvailabilities.some(availability => {
+      if (!availability?.isActive) return false;
+
+      return availability?.timeSlots?.some(
+        slot =>
+          slot.dayOfWeek === dayOfWeek && slot.isActive && slot.isAvailable
+      );
+    });
+  });
+};
+
+// ============================================================================
+// FONCTIONS DE VALIDATION ET UTILITAIRES AVANCÉES
+// ============================================================================
+
+// Fonction pour valider une disponibilité
+export const validateAvailability = (availability: any): boolean => {
+  return !!(
+    availability &&
+    availability.id &&
+    availability.name &&
+    availability.type &&
+    typeof availability.isActive === 'boolean'
+  );
+};
+
+// Fonction pour valider un créneau horaire
+export const validateTimeSlot = (timeSlot: any): boolean => {
+  return !!(
+    timeSlot &&
+    timeSlot.id &&
+    typeof timeSlot.dayOfWeek === 'number' &&
+    timeSlot.startTime &&
+    timeSlot.endTime &&
+    typeof timeSlot.isActive === 'boolean' &&
+    typeof timeSlot.isAvailable === 'boolean'
+  );
+};
+
+// Fonction pour obtenir un résumé des disponibilités d'un utilisateur
+export const getUserAvailabilitySummary = (userId: string) => {
+  const user = getMockUserById(userId);
+  if (!user) return null;
+
+  const availabilities = getUserAvailabilities(userId);
+  const activeAvailabilities = getUserActiveAvailabilities(userId);
+  const totalTimeSlots = getAllUserTimeSlots(userId);
+
+  return {
+    userId,
+    userName: user.name,
+    totalAvailabilities: availabilities.length,
+    activeAvailabilities: activeAvailabilities.length,
+    totalTimeSlots: totalTimeSlots.length,
+    weeklySchedule: {
+      monday: getUserTimeSlotsForDay(userId, 1).length,
+      tuesday: getUserTimeSlotsForDay(userId, 2).length,
+      wednesday: getUserTimeSlotsForDay(userId, 3).length,
+      thursday: getUserTimeSlotsForDay(userId, 4).length,
+      friday: getUserTimeSlotsForDay(userId, 5).length,
+      saturday: getUserTimeSlotsForDay(userId, 6).length,
+      sunday: getUserTimeSlotsForDay(userId, 0).length,
+    },
+  };
+};
+
+// Fonction pour obtenir les statistiques globales des disponibilités
+export const getAvailabilityStats = () => {
+  const totalUsers = MOCK_USERS.length;
+  const usersWithAvailabilities = MOCK_USERS.filter(
+    user => user.availabilities && user.availabilities.length > 0
+  ).length;
+
+  const totalAvailabilities = MOCK_AVAILABILITIES.length;
+  const activeAvailabilities = MOCK_AVAILABILITIES.filter(
+    av => av.isActive
+  ).length;
+
+  const totalTimeSlots = MOCK_AVAILABILITIES.reduce(
+    (total, av) => total + (av.timeSlots?.length || 0),
+    0
+  );
+
+  return {
+    totalUsers,
+    usersWithAvailabilities,
+    percentageWithAvailabilities: Math.round(
+      (usersWithAvailabilities / totalUsers) * 100
+    ),
+    totalAvailabilities,
+    activeAvailabilities,
+    totalTimeSlots,
+  };
+};

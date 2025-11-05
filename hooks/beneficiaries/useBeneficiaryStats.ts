@@ -7,15 +7,17 @@ export function useBeneficiaryStats(
   beneficiaries: Beneficiary[]
 ): BeneficiaryStats {
   return useMemo(() => {
-    const withAccount = beneficiaries.filter(b => b.hasAccount).length;
-    const withoutAccount = beneficiaries.length - withAccount;
+    // Sécurité : s'assurer que beneficiaries est un tableau
+    const safeBeneficiaries = beneficiaries || [];
+    const withAccount = safeBeneficiaries.filter(b => b.hasAccount).length;
+    const withoutAccount = safeBeneficiaries.length - withAccount;
 
     const relationships = [
-      ...new Set(beneficiaries.map(b => b.relationship).filter(Boolean)),
+      ...new Set(safeBeneficiaries.map(b => b.relationship).filter(Boolean)),
     ].sort();
 
     return {
-      totalBeneficiaries: beneficiaries.length,
+      totalBeneficiaries: safeBeneficiaries.length,
       withAccount,
       withoutAccount,
       relationships,

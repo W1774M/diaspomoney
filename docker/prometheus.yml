@@ -1,26 +1,26 @@
-# Global defaults, applies to all scrape jobs unless explicitly overridden
 global:
   scrape_interval: 15s
-  scrape_timeout: 10s
   evaluation_interval: 15s
 
-# Define the specify endpoints prometheus should scrape data from
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
 scrape_configs:
-  # Config to scrape data from the prometheus service itself
-  - job_name: "prometheus"
-    honor_timestamps: true
-    metrics_path: prometheus/metrics
-    scheme: http
+  - job_name: 'prometheus'
     static_configs:
-      - targets: ["prometheus:9090"]
+      - targets: ['localhost:9090']
 
-  # Config to scrape data from the traefik service
-  - job_name: "traefik"
-    metrics_path: /metrics
+  - job_name: 'diaspomoney-app'
     static_configs:
-      - targets: ["traefik:9100"]
+      - targets: ['app:3000']
+    metrics_path: '/api/metrics'
+    scrape_interval: 30s
 
-  # Config to scrape data from the cAdvisor service
-  - job_name: "cadvisor"
+  - job_name: 'mongodb'
     static_configs:
-      - targets: ["cadvisor:8080"]
+      - targets: ['mongodb:27017']
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']

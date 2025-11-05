@@ -1,5 +1,5 @@
-import { IInvoice } from "@/types";
-import mongoose, { Schema } from "mongoose";
+import { InvoiceExtended } from '@/types';
+import mongoose, { Schema } from 'mongoose';
 
 const InvoiceItemSchema = new Schema({
   description: {
@@ -24,7 +24,7 @@ const InvoiceItemSchema = new Schema({
   },
 });
 
-const InvoiceSchema = new Schema<IInvoice>(
+const InvoiceSchema = new Schema<InvoiceExtended>(
   {
     invoiceNumber: {
       type: String,
@@ -47,12 +47,12 @@ const InvoiceSchema = new Schema<IInvoice>(
     currency: {
       type: String,
       required: true,
-      default: "EUR",
+      default: 'EUR',
     },
     status: {
       type: String,
-      enum: ["DRAFT", "SENT", "PAID", "OVERDUE", "CANCELLED"],
-      default: "DRAFT",
+      enum: ['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED'],
+      default: 'DRAFT',
     },
     issueDate: {
       type: Date,
@@ -63,7 +63,7 @@ const InvoiceSchema = new Schema<IInvoice>(
       type: Date,
       required: true,
     },
-    paidDate: {
+    paymentDate: {
       type: Date,
     },
     items: [InvoiceItemSchema],
@@ -90,5 +90,5 @@ InvoiceSchema.index({ issueDate: -1 });
 InvoiceSchema.index({ dueDate: 1 });
 InvoiceSchema.index({ userId: 1 });
 
-export default mongoose.models["Invoice"] ||
-  mongoose.model<IInvoice>("Invoice", InvoiceSchema);
+export default mongoose.models['Invoice'] ||
+  mongoose.model<InvoiceExtended>('Invoice', InvoiceSchema);

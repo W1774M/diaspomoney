@@ -10,8 +10,11 @@ export function useInvoiceFilters(invoices: any[]) {
     dateFilter: "",
   });
 
+  // Sécurité : s'assurer que invoices est un tableau
+  const safeInvoices = invoices || [];
+
   const filteredInvoices = useMemo(() => {
-    return invoices.filter(invoice => {
+    return safeInvoices.filter(invoice => {
       const matchesSearch =
         invoice.invoiceNumber
           ?.toLowerCase()
@@ -34,7 +37,7 @@ export function useInvoiceFilters(invoices: any[]) {
 
       return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [invoices, filters]);
+  }, [safeInvoices, filters]);
 
   const updateFilter = useCallback(
     (key: keyof InvoiceFilters, value: string) => {

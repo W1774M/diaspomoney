@@ -1,5 +1,11 @@
 # Étape 1 : Build de l'application
-FROM node:latest AS builder
+FROM node:20-alpine AS builder
+
+# Installer pnpm
+RUN npm install -g pnpm
+
+# Dépendances système nécessaires (sharp, etc.)
+RUN apk add --no-cache libc6-compat
 
 # Définir le répertoire de travail
 WORKDIR /app
@@ -7,37 +13,51 @@ WORKDIR /app
 # Copier uniquement les fichiers nécessaires pour installer les dépendances
 COPY package.json pnpm-lock.yaml ./
 
-# Installer les dépendances
-RUN npm install -g pnpm && pnpm install --no-frozen-lockfile
+# Installer toutes les dépendances (y compris devDependencies pour le build)
+RUN pnpm install --frozen-lockfile
 
 # Copier tout le projet
 COPY . .
-
-# S'assurer que le dossier public existe (au cas où .dockerignore ou le repo ne l'inclut pas)
-RUN test -d public || mkdir -p public
 
 # Construire l'application Next.js
 RUN pnpm run build
 
 # Étape 2 : Image finale pour l'exécution
-FROM builder AS runner
+FROM node:20-alpine AS runner
+
+# Installer pnpm et dépendances système (sharp, healthcheck)
+RUN npm install -g pnpm && apk add --no-cache curl libc6-compat
 
 # Définir le répertoire de travail
 WORKDIR /app
 
-# Copier les fichiers nécessaires depuis l'étape de build
-COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/
-COPY --from=builder /app/.next /app/.next
-COPY --from=builder /app/public /app/public
-COPY --from=builder /app/next.config.mjs /app/
+# Créer un utilisateur non-root pour la sécurité
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-# Installer uniquement les dépendances nécessaires pour exécuter l'application
-RUN npm install -g pnpm && pnpm install --production --no-frozen-lockfile --ignore-scripts
+# Copier les fichiers nécessaires depuis l'étape de build
+COPY --from=builder --chown=nextjs:nodejs /app/package.json /app/pnpm-lock.yaml ./
+
+# Installer uniquement les dépendances de production (en tant que root, puis chown)
+RUN pnpm install --production --frozen-lockfile && \
+    chown -R nextjs:nodejs /app
+
+# Copier les fichiers build et config avec la bonne propriété
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./
+
+# Passer à l'utilisateur non-root
+USER nextjs
 
 # Exposer le port de l'application
 EXPOSE 3000
 
-# Démarrer l'application
+# Variables d'environnement
+ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Démarrer l'application
 CMD ["pnpm", "start"]

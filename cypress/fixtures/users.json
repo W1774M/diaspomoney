@@ -1,0 +1,62 @@
+{
+  "testUser": {
+    "email": "test.user@example.com",
+    "password": "motdepasse123",
+    "firstName": "Test",
+    "lastName": "User",
+    "phone": "+33123456789",
+    "countryOfResidence": "france",
+    "dateOfBirth": "1990-01-01",
+    "targetCountry": "senegal",
+    "targetCity": "dakar",
+    "monthlyBudget": "100-300",
+    "securityQuestion": "pet",
+    "securityAnswer": "Rex",
+    "termsAccepted": true,
+    "marketingConsent": false,
+    "selectedServices": "health"
+  },
+  "existingUser": {
+    "email": "existing@test.com",
+    "password": "motdepasse123",
+    "firstName": "Existing",
+    "lastName": "User",
+    "phone": "+33123456789",
+    "countryOfResidence": "france",
+    "dateOfBirth": "1990-01-01",
+    "targetCountry": "senegal",
+    "targetCity": "dakar",
+    "monthlyBudget": "100-300",
+    "securityQuestion": "pet",
+    "securityAnswer": "Rex",
+    "termsAccepted": true,
+    "marketingConsent": false,
+    "selectedServices": "health"
+  },
+  "oauthUser": {
+    "email": "oauth.user@example.com",
+    "firstName": "OAuth",
+    "lastName": "User",
+    "phone": "+33123456789",
+    "countryOfResidence": "france",
+    "dateOfBirth": "1990-01-01",
+    "targetCountry": "senegal",
+    "targetCity": "dakar",
+    "monthlyBudget": "100-300",
+    "termsAccepted": true,
+    "marketingConsent": false,
+    "selectedServices": "health",
+    "oauth": {
+      "provider": "google",
+      "providerAccountId": "google_123456"
+    }
+  },
+  "invalidUser": {
+    "email": "invalid@test.com",
+    "password": "wrongpassword"
+  },
+  "inactiveUser": {
+    "email": "inactive@test.com",
+    "password": "password123"
+  }
+}

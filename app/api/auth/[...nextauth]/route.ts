@@ -1,5 +1,5 @@
 import { mongoClient } from "@/lib/mongodb";
-import { MongoDBAdapter } from "@auth/mongodb-adapter";
+import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
 import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
@@ -18,13 +18,8 @@ const facebookProvider = Facebook({
   allowDangerousEmailAccountLinking: true,
 }) as unknown as any;
 
-export const {
-  handlers: { GET, POST },
-  auth,
-  signIn,
-  signOut,
-} = NextAuth({
-  adapter: MongoDBAdapter(mongoClient as unknown as Promise<any>),
+// Configuration NextAuth
+const authConfig: any = {
   providers: [
     googleProvider,
     facebookProvider,
@@ -74,137 +69,140 @@ export const {
   secret: (process.env["AUTH_SECRET"] ??
     process.env["NEXTAUTH_SECRET"]) as string,
   callbacks: {
-    async signIn({ user, account, profile }) {
-      const debug = (process.env["AUTH_DEBUG"] ?? "").toLowerCase() === "true";
-      if (debug) {
-        console.log("[AUTH][signIn] provider=", account?.provider);
-        console.log(
-          "[AUTH][signIn] providerAccountId=",
-          account?.providerAccountId
-        );
-        console.log("[AUTH][signIn] email=", profile && (profile as any).email);
-        console.log("[AUTH][signIn] name=", profile && (profile as any).name);
+    async signIn({ user, account, profile }: { user: any, account: any, profile: any }) {
+      const debug = (process.env["AUTH_DEBUG"] ?? "").toLowerCase();
+      if (debug === "true") {
+        console.log("[AUTH][signIn] user=", user);
+        console.log("[AUTH][signIn] account=", account);
+        console.log("[AUTH][signIn] profile=", profile);
       }
-      // Exiger qu'un utilisateur existe déjà avec cet email
+
+      // Vérifier si l'utilisateur existe déjà
       try {
-        const email = (profile as any)?.email || (user as any)?.email;
-        if (!email) return false;
         const client = await mongoClient;
         const db = client.db();
         const users = db.collection("users");
-        const existing = await users.findOne({
-          email: String(email).toLowerCase(),
-        });
-        if (!existing) {
-          // Créer automatiquement le compte OAuth sans passer par le formulaire
-          const provider = account?.provider || "oauth";
-          const name = (profile as any)?.name || "";
-          const [firstName, ...rest] = name.split(" ");
-          const lastName = rest.join(" ").trim();
 
+        const existingUser = await users.findOne({
+          email: user.email?.toLowerCase(),
+        });
+
+        if (existingUser) {
+          // L'utilisateur existe, vérifier s'il a déjà ce provider
+          const accounts = db.collection("accounts");
+          const existingAccount = await accounts.findOne({
+            userId: String(existingUser._id),
+            provider: account?.provider,
+          });
+
+          if (!existingAccount && account) {
+            // Ajouter le nouveau compte
+            await accounts.insertOne({
+              userId: String(existingUser._id),
+              type: account.type,
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              refresh_token: account.refresh_token,
+              access_token: account.access_token,
+              expires_at: account.expires_at,
+              token_type: account.token_type,
+              scope: account.scope,
+              id_token: account.id_token,
+              session_state: account.session_state,
+            });
+          }
+        } else {
+          // Créer un nouvel utilisateur
           const newUser = {
-            firstName: firstName || "Utilisateur",
-            lastName: lastName || "OAuth",
-            email: email.toLowerCase(),
-            phone: "", // Sera complété plus tard
-            countryOfResidence: "", // Sera complété plus tard
-            roles: ["CUSTOMER"],
-            status: "ACTIVE",
-            isEmailVerified: true,
-            emailVerified: true,
-            oauth: {
-              [provider]: {
-                linked: true,
-                providerAccountId: account?.providerAccountId,
-              },
-            },
+            email: user.email?.toLowerCase(),
+            name: user.name,
+            image: user.image,
+            emailVerified: new Date(),
             createdAt: new Date(),
-            lastLogin: new Date(),
+            updatedAt: new Date(),
+            status: "ACTIVE",
           };
 
-          try {
-            await users.insertOne(newUser);
-            if (debug) {
-              console.log(
-                "[AUTH][signIn] Compte OAuth créé automatiquement pour:",
-                email
-              );
-            }
-            return true; // Autoriser la connexion
-          } catch (error) {
-            console.error(
-              "[AUTH][signIn] Erreur création compte OAuth:",
-              error
-            );
-            return false;
+          const result = await users.insertOne(newUser);
+          const userId = String(result.insertedId);
+
+          // Ajouter le compte
+          if (account) {
+            const accounts = db.collection("accounts");
+            await accounts.insertOne({
+              userId,
+              type: account.type,
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+              refresh_token: account.refresh_token,
+              access_token: account.access_token,
+              expires_at: account.expires_at,
+              token_type: account.token_type,
+              scope: account.scope,
+              id_token: account.id_token,
+              session_state: account.session_state,
+            });
           }
         }
-        // Marquer le user comme lié au provider si pas encore fait
-        const provider = account?.provider;
-        const update: any = {
-          $set: {
-            lastLogin: new Date(),
-            // S'assurer que les utilisateurs OAuth restent actifs
-            status: "ACTIVE",
-            isEmailVerified: true,
-            emailVerified: true,
-          },
-        };
-        if (provider === "google") {
-          update.$set["oauth.google.linked"] = true;
-          update.$set["oauth.google.providerAccountId"] =
-            account?.providerAccountId;
-          if ((profile as any)?.email_verified === true) {
-            update.$set["emailVerified"] = true;
-          }
-        }
-        if (provider === "facebook") {
-          update.$set["oauth.facebook.linked"] = true;
-          update.$set["oauth.facebook.providerAccountId"] =
-            account?.providerAccountId;
-        }
-        await users.updateOne({ _id: existing._id }, update);
-        // Notification simple côté serveur
-        console.log(`[AUTH] Connexion réussie via ${provider} pour ${email}`);
-        // Autoriser et laisser NextAuth rediriger selon callbackUrl
-        return true;
-      } catch (e) {
-        console.error(
-          "[AUTH][signIn] erreur lors de la vérification/liaison:",
-          e
-        );
+      } catch (error) {
+        console.error("[AUTH][signIn] error:", error);
         return false;
       }
+
+      return true;
     },
-    async jwt({ token, user, account, profile }) {
-      // Enrichir le token avec les informations utiles
-      if (account) {
-        token["provider"] = account.provider;
-        token["providerAccountId"] = account.providerAccountId;
+    async jwt({ token, user, account, profile }: { token: any, user: any, account: any, profile: any }) {
+      const debug = (process.env["AUTH_DEBUG"] ?? "").toLowerCase();
+      if (debug === "true") {
+        console.log("[AUTH][jwt] token=", token);
+        console.log("[AUTH][jwt] user=", user);
+        console.log("[AUTH][jwt] account=", account);
+        console.log("[AUTH][jwt] profile=", profile);
       }
-      if (user) {
-        token["userId"] =
-          (user as any).id ?? (user as any)._id ?? token["userId"];
+
+      // Premier appel (connexion)
+      if (user && account) {
+        (token as any).provider = account.provider;
+        (token as any).providerAccountId = account.providerAccountId;
+        (token as any).userId = user.id;
+        (token as any).email = user.email;
+        (token as any).name = user.name;
+        (token as any).picture = user.image;
       }
-      if (profile) {
-        const p: any = profile;
-        token.email = p.email ?? token.email;
-        token.name = p.name ?? token.name;
-        token.picture = p.picture ?? p.avatar_url ?? token.picture;
+
+      // Appels suivants (refresh)
+      if (token && !(token as any).userId) {
+        try {
+          const client = await mongoClient;
+          const db = client.db();
+          const users = db.collection("users");
+          const user = await users.findOne({
+            email: (token as any).email?.toLowerCase(),
+          });
+          if (user) {
+            (token as any).userId = String(user._id);
+            (token as any).email = user["email"];
+            (token as any).name = user["name"];
+            (token as any).picture = user["image"];
+          }
+        } catch (error) {
+          console.error("[AUTH][jwt] error fetching user:", error);
+        }
       }
-      const debug = (process.env["AUTH_DEBUG"] ?? "").toLowerCase() === "true";
-      if (debug) {
-        console.log("[AUTH][jwt] token=", {
-          provider: (token as any).provider,
-          providerAccountId: (token as any).providerAccountId,
+
+      // Debug
+      if (debug === "true") {
+        console.log("[AUTH][jwt] final token=", {
           email: (token as any).email,
           name: (token as any).name,
+          provider: (token as any).provider,
+          providerAccountId: (token as any).providerAccountId,
           userId: (token as any).userId,
         });
       }
       return token;
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: any, token: any }) {
       // Renvoyer les données enrichies au client
       (session as any).provider = (token as any).provider;
       (session as any).providerAccountId = (token as any).providerAccountId;
@@ -229,4 +227,57 @@ export const {
       return session;
     },
   },
-});
+};
+
+// Ajouter l'adapter seulement si MongoDB est disponible et pas en mode build
+if (
+  process.env.NODE_ENV === "production" &&
+  process.env["MONGODB_URI"] &&
+  !process.env["NEXT_PHASE"]
+) {
+  (authConfig as any).adapter = MongoDBAdapter(
+    mongoClient as unknown as Promise<any>
+  );
+}
+
+// Pour résoudre le problème des "export const ..." à l'intérieur d'un bloc conditionnel,
+// on détermine dynamiquement les handlers ici, puis on exporte en dehors de tout bloc.
+let getHandler: (() => Response) | ((req: Request) => Promise<Response>);
+let postHandler: (() => Response) | ((req: Request) => Promise<Response>);
+
+if (process.env["NEXT_PHASE"] === "phase-production-build") {
+  console.warn("NextAuth désactivé pendant le build");
+  getHandler = () =>
+    new Response("NextAuth disabled during build", { status: 503 });
+  postHandler = () =>
+    new Response("NextAuth disabled during build", { status: 503 });
+} else {
+  // Configuration normale de NextAuth
+  const handlers = NextAuth(authConfig as any);
+  getHandler = handlers.GET as unknown as typeof getHandler;
+  postHandler = handlers.POST as unknown as typeof postHandler;
+}
+
+
+
+// Exports conditionnels pour auth, signIn, signOut
+let authHandler: any;
+let signInHandler: any;
+let signOutHandler: any;
+
+if (process.env["NEXT_PHASE"] === "phase-production-build") {
+  authHandler = () => null;
+  signInHandler = () => null;
+  signOutHandler = () => null;
+} else {
+  const { auth, signIn, signOut } = NextAuth(authConfig as any);
+  authHandler = auth;
+  signInHandler = signIn;
+  signOutHandler = signOut;
+}
+
+export const GET = getHandler;
+export const POST = postHandler;
+export const auth = authHandler;
+export const signIn = signInHandler;
+export const signOut = signOutHandler;

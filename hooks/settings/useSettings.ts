@@ -1,66 +1,70 @@
-"use client";
+'use client';
 
-import { useAuth } from "@/hooks";
+import { useAuth } from '@/hooks';
 import {
   BillingData,
   PreferencesData,
   PrivacyData,
   ProfileData,
   SecurityData,
-} from "@/types/settings";
-import { useCallback, useEffect, useState } from "react";
+} from '@/types/settings';
+import { useCallback, useEffect, useState } from 'react';
 
 export function useSettings() {
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState('profile');
   const [saving, setSaving] = useState(false);
 
   // États pour les formulaires
   const [profileData, setProfileData] = useState<ProfileData>({
-    name: "",
-    email: "",
-    phone: "",
-    company: "",
-    address: "",
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    address: '',
   });
 
   const [preferencesData, setPreferencesData] = useState<PreferencesData>({
-    language: "fr",
-    timezone: "Europe/Paris",
+    language: 'fr',
+    timezone: 'Europe/Paris',
     notifications: true,
     emailNotifications: true,
     smsNotifications: false,
   });
 
   const [securityData, setSecurityData] = useState<SecurityData>({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
     twoFactorEnabled: false,
   });
 
   const [billingData, setBillingData] = useState<BillingData>({
-    paymentMethod: "",
-    billingAddress: "",
-    taxId: "",
+    paymentMethod: '',
+    billingAddress: '',
+    taxId: '',
   });
 
   const [privacyData, setPrivacyData] = useState<PrivacyData>({
-    profileVisibility: "private",
+    profileVisibility: 'private',
     dataSharing: false,
     analytics: true,
+  });
+
+  const [complaintsData, setComplaintsData] = useState({
+    complaints: [],
   });
 
   // Initialiser les données avec les informations utilisateur
   useEffect(() => {
     if (user) {
       setProfileData({
-        name: user.name || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        company: user.company || "",
-        address: user.address || "",
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        company: user.company || '',
+        address: user.address || '',
       });
     }
   }, [user]);
@@ -79,18 +83,26 @@ export function useSettings() {
           security: securityData,
           billing: billingData,
           privacy: privacyData,
+          complaints: complaintsData,
         });
 
         // Afficher un message de succès
-        alert("Paramètres sauvegardés avec succès !");
+        alert('Paramètres sauvegardés avec succès !');
       } catch (error) {
-        console.error("Erreur lors de la sauvegarde:", error);
-        alert("Erreur lors de la sauvegarde des paramètres.");
+        console.error('Erreur lors de la sauvegarde:', error);
+        alert('Erreur lors de la sauvegarde des paramètres.');
       } finally {
         setSaving(false);
       }
     },
-    [profileData, preferencesData, securityData, billingData, privacyData]
+    [
+      profileData,
+      preferencesData,
+      securityData,
+      billingData,
+      privacyData,
+      complaintsData,
+    ]
   );
 
   return {
@@ -107,6 +119,8 @@ export function useSettings() {
     setBillingData,
     privacyData,
     setPrivacyData,
+    complaintsData,
+    setComplaintsData,
     handleSave,
   };
 }
