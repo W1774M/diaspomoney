@@ -143,7 +143,7 @@ export default function Sidebar() {
             <Logo
               src={
                 user?.avatar?.image ||
-                '/img/Logo_Diaspo_Horizontal_enrichi.webp'
+                '/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
               }
               width={60}
               height={60}

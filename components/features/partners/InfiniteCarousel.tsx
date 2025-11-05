@@ -465,7 +465,7 @@ export function InfiniteCarousel() {
                 />
 
                 {/* Image du partenaire */}
-                <span
+                <div
                   className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
                   style={{
                     backgroundImage: `url(${partner.logo})`,
@@ -473,7 +473,15 @@ export function InfiniteCarousel() {
                     backgroundRepeat: 'no-repeat',
                     backgroundPosition: 'center',
                   }}
-                ></span>
+                >
+                  <ExternalImage
+                    src={partner.logo}
+                    alt={partner.name}
+                    className='w-full h-full object-contain'
+                    width={100}
+                    height={100}
+                  />
+                </div>
 
                 {/* Contenu */}
                 <div className='p-2 sm:p-3 md:p-4'>

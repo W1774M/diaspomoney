@@ -4,6 +4,9 @@ FROM node:20-alpine AS builder
 # Installer pnpm
 RUN npm install -g pnpm
 
+# Dépendances système nécessaires (sharp, etc.)
+RUN apk add --no-cache libc6-compat
+
 # Définir le répertoire de travail
 WORKDIR /app
 
@@ -22,8 +25,8 @@ RUN pnpm run build
 # Étape 2 : Image finale pour l'exécution
 FROM node:20-alpine AS runner
 
-# Installer pnpm et curl pour healthcheck
-RUN npm install -g pnpm && apk add --no-cache curl
+# Installer pnpm et dépendances système (sharp, healthcheck)
+RUN npm install -g pnpm && apk add --no-cache curl libc6-compat
 
 # Définir le répertoire de travail
 WORKDIR /app
@@ -36,7 +39,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder --chown=nextjs:nodejs /app/package.json /app/pnpm-lock.yaml ./
 
 # Installer uniquement les dépendances de production (en tant que root, puis chown)
-RUN pnpm install --production --frozen-lockfile --ignore-scripts && \
+RUN pnpm install --production --frozen-lockfile && \
     chown -R nextjs:nodejs /app
 
 # Copier les fichiers build et config avec la bonne propriété

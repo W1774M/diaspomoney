@@ -91,7 +91,7 @@ function ResetPasswordContent() {
         <Card className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl">
           <CardHeader className="flex flex-col items-center gap-2 pt-8 pb-4">
             <Image
-              src="/img/Logo_Diaspo_Horizontal_enrichi.webp"
+              src="/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp"
               alt="DiaspoMoney"
               width={160}
               height={48}
@@ -134,7 +134,7 @@ function ResetPasswordContent() {
         <Card className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl">
           <CardHeader className="flex flex-col items-center gap-2 pt-8 pb-4">
             <Image
-              src="/img/Logo_Diaspo_Horizontal_enrichi.webp"
+              src="/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp"
               alt="DiaspoMoney"
               width={160}
               height={48}
@@ -173,7 +173,7 @@ function ResetPasswordContent() {
       <Card className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl">
         <CardHeader className="flex flex-col items-center gap-2 pt-8 pb-4">
           <Image
-            src="/img/Logo_Diaspo_Horizontal_enrichi.webp"
+            src="/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp"
             alt="DiaspoMoney"
             width={160}
             height={48}
