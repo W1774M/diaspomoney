@@ -1,0 +1,1 @@
+# DiaspoMoney Public Assets

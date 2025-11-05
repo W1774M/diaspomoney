@@ -1321,17 +1321,17 @@ export const generateMockTimeSlots = (
 // Fonction pour obtenir les disponibilités d'un utilisateur
 export const getUserAvailabilities = (userId: string) => {
   const user = getMockUserById(userId);
-  if (!user || !user?.availabilities) return [];
-
-  return user.availabilities
-    .map(availabilityId => getMockAvailabilityById(availabilityId))
+  if (!user || !(user as any)?.availabilities) return [] as any;
+  console.log('user', user);
+  return (user as any)?.availabilities
+    .map((availabilityId: string) => getMockAvailabilityById(availabilityId))
     .filter(Boolean);
 };
 
 // Fonction pour obtenir les disponibilités actives d'un utilisateur
 export const getUserActiveAvailabilities = (userId: string) => {
   const availabilities = getUserAvailabilities(userId);
-  return availabilities.filter(availability => availability?.isActive);
+  return availabilities.filter((availability: any) => availability?.isActive);
 };
 
 // Fonction pour ajouter une disponibilité à un utilisateur
@@ -1340,18 +1340,10 @@ export const addAvailabilityToUser = (
   availabilityId: string
 ) => {
   const user = getMockUserById(userId);
-  if (!user) return false;
+  if (!user || !(user as any)?.availabilities) return false;
 
-  if (!user?.availabilities) {
-    user?.availabilities = [];
-  }
-
-  if (!user?.availabilities?.includes(availabilityId as never)) {
-    user?.availabilities?.push(availabilityId as never);
-    return true;
-  }
-
-  return false;
+  (user as any)?.availabilities?.push(availabilityId as never);
+  return true;
 };
 
 // Fonction pour retirer une disponibilité d'un utilisateur
@@ -1360,11 +1352,11 @@ export const removeAvailabilityFromUser = (
   availabilityId: string
 ) => {
   const user = getMockUserById(userId);
-  if (!user || !user?.availabilities) return false;
+  if (!user || !(user as any)?.availabilities) return false;
 
-  const index = user?.availabilities?.indexOf(availabilityId as never);
+  const index = (user as any)?.availabilities?.indexOf(availabilityId as never);
   if (index > -1) {
-    user?.availabilities?.splice(index, 1);
+    (user as any)?.availabilities?.splice(index, 1);
     return true;
   }
 
