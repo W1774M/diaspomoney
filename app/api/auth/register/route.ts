@@ -4,7 +4,7 @@
  */
 
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
-import { authService } from '@/services/auth/auth.service';
+import { authService, RegisterData } from '@/services/auth/auth.service';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -62,13 +62,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validation et sanitisation du téléphone
+    let sanitizedPhone: string | undefined = undefined;
+    if (phone) {
+      // Nettoyer le téléphone mais garder le format international
+      sanitizedPhone = phone.trim();
+      // S'assurer qu'on a bien un téléphone et pas un mot de passe par erreur
+      if (sanitizedPhone && sanitizedPhone.length > 20) {
+        console.error('[REGISTER] Phone field seems to contain a password!');
+        return NextResponse.json(
+          {
+            error: 'Format de téléphone invalide',
+            success: false,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Sanitisation des entrées
     const sanitizedData = {
       email: email.trim().toLowerCase(),
-      password: password,
+      password: password, // Ne pas modifier le mot de passe ici
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      phone: phone ? phone.trim() : undefined,
+      phone: sanitizedPhone,
       country: countryOfResidence.trim(),
       dateOfBirth: dateOfBirth,
       targetCountry: targetCountry,
@@ -83,7 +101,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Tentative d'inscription
-    const result = await authService.register(sanitizedData);
+    const result = await authService.register(sanitizedData as RegisterData);
 
     // Enregistrer les métriques
     monitoringManager.recordMetric({

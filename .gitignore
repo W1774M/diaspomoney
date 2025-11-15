@@ -91,7 +91,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public/ - COMMENTÉ car nécessaire pour Next.js (contrairement à Gatsby)
 
 # Vuepress build output
 .vuepress/dist
@@ -191,3 +191,8 @@ pnpm-lock.yaml
 .env.production# Environment files
 .env*
 env.*
+
+# Kubernetes generated files
+k8s/generated/
+k8s/secrets/secrets.yaml
+k8s/.env

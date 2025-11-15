@@ -1,12 +1,22 @@
 'use client';
 
-import { useAuth } from '@/hooks/auth/useAuth';
+import DashboardHeader from '@/components/dashboard/DashboardHeader';
+import DashboardQuickActions from '@/components/dashboard/DashboardQuickActions';
+import DashboardStats from '@/components/dashboard/DashboardStats';
+import { useAuth } from '@/hooks';
+import { useDashboardStats } from '@/hooks/dashboard';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function DashboardPage() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, isAdmin, isCSM } = useAuth();
   const router = useRouter();
+
+  const stats = useDashboardStats({
+    userId: user?.id || '',
+    isAdmin: isAdmin(),
+    isCSM: isCSM(),
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -27,20 +37,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-        <div className='bg-white rounded-lg shadow p-6'>
-          <h1 className='text-3xl font-bold text-gray-900 mb-4'>Dashboard</h1>
-          <p className='text-gray-600 mb-4'>
-            Bienvenue, {user?.name || 'Utilisateur'} !
-          </p>
-          <div className='bg-green-50 border border-green-200 rounded-md p-4'>
-            <p className='text-green-800'>
-              ✅ Connexion réussie ! Vous êtes maintenant sur le dashboard.
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className='space-y-6'>
+      <DashboardHeader userName={user?.name || 'Utilisateur'} />
+      <DashboardStats stats={stats} isAdmin={isAdmin()} isCSM={isCSM()} />
+      <DashboardQuickActions isAdmin={isAdmin()} isCSM={isCSM()} />
     </div>
   );
 }

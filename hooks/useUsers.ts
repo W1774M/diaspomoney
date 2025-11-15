@@ -1,4 +1,3 @@
-import { QueryOptimizer } from "@/lib/database/query-optimizer";
 import { useEffect, useState } from "react";
 
 export interface User {
@@ -30,15 +29,26 @@ export const useUsers = (options: UseUsersOptions = {}) => {
     setError(null);
 
     try {
-      // Utiliser QueryOptimizer avec cache
-      const filters = {
-        ...(options.role && { roles: { $in: [options.role] } }),
-        ...(options.status && { status: options.status }),
-      };
+      // Construire les paramètres de requête
+      const params = new URLSearchParams();
+      if (options.role) params.append('role', options.role);
+      if (options.status) params.append('status', options.status);
+      if (options.limit) params.append('limit', options.limit.toString());
+      if (options.offset) params.append('offset', options.offset.toString());
 
-      const result = await QueryOptimizer.getUsersList(filters);
-      setUsers(result || []);
-      setTotal(result?.length || 0);
+      // Appeler l'API route au lieu d'importer directement QueryOptimizer
+      const response = await fetch(`/api/users?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        setUsers(data.data || []);
+        setTotal(data.total || 0);
+      } else {
+        throw new Error(data.error || 'Failed to fetch users');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {

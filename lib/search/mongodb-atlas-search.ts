@@ -127,32 +127,63 @@ export class MongoDBAtlasSearch {
       // ];
 
       // Simulation pour le développement
-      const collection = this.db.collection(collectionName);
-      let mongoQuery: any = {};
+      // Utiliser QueryBuilder pour construire la requête (Builder Pattern)
+      const { QueryBuilder } = await import('@/builders');
+      const queryBuilder = new QueryBuilder();
 
       // Recherche textuelle simple
+      // Note: $text nécessite un index spécial, on le gère séparément
+      let textSearch: any = null;
       if (query.text) {
-        mongoQuery.$text = { $search: query.text };
+        textSearch = { $text: { $search: query.text } };
       }
 
-      // Filtres
+      // Appliquer les filtres avec QueryBuilder
       if (query.filters) {
-        mongoQuery = { ...mongoQuery, ...query.filters };
+        Object.entries(query.filters).forEach(([key, value]) => {
+          queryBuilder.where(key, value);
+        });
+      }
+
+      // Appliquer le tri
+      if (query.sort) {
+        Object.entries(query.sort).forEach(([field, direction]) => {
+          queryBuilder.orderBy(field, direction === 1 ? 'asc' : 'desc');
+        });
+      }
+
+      // Appliquer la pagination
+      if (query.limit) {
+        queryBuilder.limit(query.limit);
+      }
+      if (query.offset) {
+        queryBuilder.offset(query.offset);
+      }
+
+      // Construire la requête finale
+      const builtQuery = queryBuilder.build();
+      let mongoQuery = builtQuery.filters;
+
+      // Ajouter la recherche textuelle si présente
+      if (textSearch) {
+        mongoQuery = { ...mongoQuery, ...textSearch };
       }
 
       // Exécuter la requête
+      const collection = this.db.collection(collectionName);
       const cursor = collection.find(mongoQuery);
 
-      if (query.sort) {
-        cursor.sort(query.sort);
+      // Appliquer le tri (si pas déjà fait par QueryBuilder)
+      if (builtQuery.sort) {
+        cursor.sort(builtQuery.sort);
       }
 
-      if (query.limit) {
-        cursor.limit(query.limit);
+      // Appliquer la pagination
+      if (builtQuery.pagination.limit) {
+        cursor.limit(builtQuery.pagination.limit);
       }
-
-      if (query.offset) {
-        cursor.skip(query.offset);
+      if (builtQuery.pagination.offset) {
+        cursor.skip(builtQuery.pagination.offset);
       }
 
       const hits = await cursor.toArray();

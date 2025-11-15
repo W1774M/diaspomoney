@@ -8,8 +8,8 @@ export default {
   ],
   safelist: [
     { pattern: /(bg|text|border)-(red|blue|green|amber|purple|gray|zinc|slate|neutral|black|white)-(50|100|200|300|400|500|600|700|800|900)/ },
-    { pattern: /(from|to|via)-\[.*\]/ },
-    { pattern: /(bg|text|border)-\[.*\]/ },
+    // Patterns pour les classes avec valeurs arbitraires - supprimés car ils génèrent des warnings
+    // Les classes arbitraires comme bg-[hsl(...)] seront détectées automatiquement par Tailwind
     { pattern: /(hover:)?(bg|text|border)-(white|black)/ },
     { pattern: /(grid-cols|grid-rows)-(1|2|3|4|5|6|12)/ },
     { pattern: /(col|row)-span-(1|2|3|4|5|6|7|8|9|10|11|12)/ },
@@ -153,6 +153,5 @@ export default {
   plugins: [
     require('@tailwindcss/forms'),
     require('@tailwindcss/typography'),
-    require('@tailwindcss/aspect-ratio'),
   ],
 };

@@ -91,20 +91,22 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     );
   }
 
-  // Configuration de l'image Next.js
-  const imageProps = {
+  // Configuration de l'image Next.js - construire conditionnellement pour respecter exactOptionalPropertyTypes
+  const imageProps: any = {
     src: optimizedSrc,
     alt,
     priority,
     placeholder,
-    blurDataURL,
-    className,
-    sizes,
-    style,
     onLoad: handleLoad,
     onError: handleError,
-    onClick,
   };
+  
+  // Ajouter les props optionnelles seulement si elles sont définies
+  if (blurDataURL !== undefined) imageProps.blurDataURL = blurDataURL;
+  if (className !== undefined) imageProps.className = className;
+  if (sizes !== undefined) imageProps.sizes = sizes;
+  if (style !== undefined) imageProps.style = style;
+  if (onClick !== undefined) imageProps.onClick = onClick;
 
   // Rendu avec ou sans dimensions fixes
   if (fill) {
@@ -118,6 +120,11 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     );
   }
 
+  // Pour le mode non-fill, ajouter width et height seulement s'ils sont définis
+  const nonFillProps: any = { ...imageProps };
+  if (width !== undefined) nonFillProps.width = width;
+  if (height !== undefined) nonFillProps.height = height;
+
   return (
     <div className='relative'>
       {isLoading && (
@@ -126,7 +133,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
           style={{ width, height }}
         />
       )}
-      <Image {...imageProps} width={width} height={height} />
+      <Image {...nonFillProps} />
     </div>
   );
 };

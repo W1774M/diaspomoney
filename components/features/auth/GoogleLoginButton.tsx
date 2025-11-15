@@ -17,11 +17,21 @@ export function GoogleLoginButton({
   const handleGoogleLogin = async () => {
     try {
       addInfo("Redirection vers Google...");
-      await signIn("google", { callbackUrl: "/dashboard" });
+      console.log("[GoogleLoginButton] Démarrage de la connexion OAuth Google");
+      
+      // Appeler signIn avec callbackUrl pour rediriger vers /dashboard après authentification
+      // NextAuth redirigera automatiquement vers Google OAuth, puis après validation,
+      // redirigera vers /dashboard grâce au callbackUrl
+      await signIn("google", { 
+        callbackUrl: "/dashboard"
+      });
+      
+      // Note: Avec redirect: true (par défaut), NextAuth gère automatiquement la redirection
+      // Le code suivant ne sera pas exécuté car la page sera redirigée
     } catch (error) {
-      console.error("Erreur lors de la connexion Google:", error);
-      addError("Erreur lors de la connexion Google");
-
+      console.error("[GoogleLoginButton] Erreur lors de la connexion Google:", error);
+      addError("Erreur lors de la connexion Google. Veuillez réessayer.");
+      
       if (_onError) {
         _onError(error);
       }

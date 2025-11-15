@@ -61,23 +61,26 @@ export function CustomImage({
 
   // Pour les images locales, utiliser directement Next.js Image
   if (src.startsWith('/')) {
-    return (
-      <Image
-        src={src}
-        alt={alt}
-        width={width}
-        height={height}
-        className={className}
-        priority={priority}
-        fill={fill}
-        sizes={sizes}
-        quality={quality}
-        placeholder={placeholder}
-        blurDataURL={blurDataURL}
-        onLoad={handleLoad}
-        onError={handleError}
-      />
-    );
+    // Construire les props conditionnellement pour respecter exactOptionalPropertyTypes
+    const imageProps: any = {
+      src,
+      alt,
+      priority,
+      fill,
+      quality,
+      placeholder,
+      onLoad: handleLoad,
+      onError: handleError,
+    };
+    
+    // Ajouter les props optionnelles seulement si elles sont définies
+    if (width !== undefined) imageProps.width = width;
+    if (height !== undefined) imageProps.height = height;
+    if (className !== undefined) imageProps.className = className;
+    if (sizes !== undefined) imageProps.sizes = sizes;
+    if (blurDataURL !== undefined) imageProps.blurDataURL = blurDataURL;
+    
+    return <Image {...imageProps} />;
   }
 
   // Utiliser une image normale pour les images externes
@@ -101,21 +104,24 @@ export function CustomImage({
   }
 
   // Fallback pour les autres cas
-  return (
-    <Image
-      src={src}
-      alt={alt}
-      width={width}
-      height={height}
-      className={className}
-      priority={priority}
-      fill={fill}
-      sizes={sizes}
-      quality={quality}
-      placeholder={placeholder}
-      blurDataURL={blurDataURL}
-      onLoad={handleLoad}
-      onError={handleError}
-    />
-  );
+  // Construire les props conditionnellement pour respecter exactOptionalPropertyTypes
+  const imageProps: any = {
+    src,
+    alt,
+    priority,
+    fill,
+    quality,
+    placeholder,
+    onLoad: handleLoad,
+    onError: handleError,
+  };
+  
+  // Ajouter les props optionnelles seulement si elles sont définies
+  if (width !== undefined) imageProps.width = width;
+  if (height !== undefined) imageProps.height = height;
+  if (className !== undefined) imageProps.className = className;
+  if (sizes !== undefined) imageProps.sizes = sizes;
+  if (blurDataURL !== undefined) imageProps.blurDataURL = blurDataURL;
+  
+  return <Image {...imageProps} />;
 }

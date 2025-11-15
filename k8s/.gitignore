@@ -1,0 +1,9 @@
+# Secrets avec vraies valeurs
+secrets/*.yaml
+!secrets/template.yaml
+!secrets/mongo-express-secrets.yaml
+
+# Fichiers de configuration locaux
+*.local.yaml
+*.local.yml
+

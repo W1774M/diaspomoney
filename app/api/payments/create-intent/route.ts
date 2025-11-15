@@ -1,6 +1,6 @@
-import { auth } from '@/lib/auth';
+import { auth } from '@/auth';
 import { childLogger } from '@/lib/logger';
-import { createPaymentIntent } from '@/lib/stripe-server';
+import { paymentService } from '@/services/payment/payment.service.strategy';
 import { UserRole } from '@/types/user';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     // Vérifier l'authentification
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user || !session.user.id) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
@@ -58,15 +58,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Tentative de création de PaymentIntent
-    let intent;
+    // Tentative de création de PaymentIntent avec PaymentService (Strategy Pattern)
+    let paymentIntent;
     try {
-      intent = await createPaymentIntent({
-        amountInMinorUnit: amount,
-        currency,
-        customerEmail: email,
-        metadata,
-      });
+      // Convertir le montant de centimes en euros pour PaymentService
+      const amountInEuros = amount / 100;
+      
+      // Utiliser PaymentService avec Strategy Pattern
+      // Le service sélectionne automatiquement la meilleure stratégie (Stripe par défaut)
+      paymentIntent = await paymentService.createPaymentIntent(
+        amountInEuros,
+        currency.toUpperCase(),
+        session.user.id, // Utiliser l'ID utilisateur comme customerId
+        {
+          ...metadata,
+          customerEmail: email,
+        }
+      );
     } catch (intentError: any) {
       const reqId = req.headers.get('x-request-id');
       const log = childLogger({
@@ -75,24 +83,24 @@ export async function POST(req: NextRequest) {
       });
       log.error({
         err: intentError,
-        msg: 'Erreur Stripe lors de la création du PaymentIntent',
+        msg: 'Erreur lors de la création du PaymentIntent',
       });
       return NextResponse.json(
         {
           error:
             intentError?.message ||
-            'Erreur lors de la création du PaymentIntent Stripe',
+            'Erreur lors de la création du PaymentIntent',
         },
         { status: 502 }
       );
     }
 
     const res = NextResponse.json({
-      clientSecret: intent.client_secret,
-      paymentIntentId: intent.id,
-      currency: intent.currency,
-      amount: intent.amount,
-      status: intent.status,
+      clientSecret: paymentIntent.clientSecret,
+      paymentIntentId: paymentIntent.id,
+      currency: paymentIntent.currency,
+      amount: paymentIntent.amount * 100, // Convertir en centimes pour le client
+      status: paymentIntent.status,
     });
 
     const reqId = req.headers.get('x-request-id');
@@ -105,7 +113,7 @@ export async function POST(req: NextRequest) {
       amount,
       currency,
       email,
-      paymentIntentId: intent.id,
+      paymentIntentId: paymentIntent.id,
     });
 
     return res;

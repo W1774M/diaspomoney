@@ -1,0 +1,50 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: diaspomoney-ingress
+  namespace: diaspomoney-prod
+  labels:
+    app: diaspomoney
+  annotations:
+    # Cert-Manager pour Let's Encrypt
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Traefik Ingress Controller (si utilisé)
+    traefik.ingress.kubernetes.io/router.entrypoints: "web,websecure"
+    traefik.ingress.kubernetes.io/router.middlewares: "default-redirect-to-https@kubernetescrd"
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: "letsencrypt"
+    # Nginx Ingress Controller (alternative)
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  ingressClassName: nginx  # ou traefik selon votre choix
+  tls:
+  - hosts:
+    - app.diaspomoney.fr
+    - mongo.diaspomoney.fr
+    secretName: diaspomoney-tls
+  rules:
+  - host: app.diaspomoney.fr
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: diaspomoney-app
+            port:
+              number: 3000
+  - host: mongo.diaspomoney.fr
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mongo-express
+            port:
+              number: 8081
+

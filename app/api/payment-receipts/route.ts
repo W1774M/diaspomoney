@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth';
+import { auth } from '@/auth';
 import { getMongoClient } from '@/lib/database/mongodb';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     // Vérifier l'authentification
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user || !session.user.email || !session.user.id) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const db = client.db();
     const receiptsCollection = db.collection('payment_receipts');
 
-    // Construire le filtre
+    // Construire le filtre (TypeScript now knows session.user.id exists)
     const filter: any = { userId: session.user.id };
     if (status !== 'all') {
       filter.status = status;

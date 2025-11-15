@@ -1,4 +1,5 @@
 "use client";
+
 import { InfiniteCarousel } from "@/components/features/partners/InfiniteCarousel";
 import { useRouter } from "next/navigation";
 
@@ -23,7 +24,7 @@ function Step({
 }
 
 // Composant de page d'accueil
-export default function Homepage() {
+export default function HomePage() {
   const router = useRouter();
 
   function handleRedirect(serviceType?: string) {
@@ -230,3 +231,4 @@ export default function Homepage() {
     </div>
   );
 }
+

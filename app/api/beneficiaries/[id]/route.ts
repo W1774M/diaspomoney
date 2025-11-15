@@ -3,8 +3,9 @@
  * Endpoints pour modifier et supprimer un bénéficiaire spécifique
  */
 
-import { auth } from '@/lib/auth';
+import { auth } from '@/auth';
 import { getMongoClient } from '@/lib/database/mongodb';
+import { getUserRepository } from '@/repositories';
 import { ObjectId } from 'mongodb';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -40,13 +41,9 @@ export async function PUT(
       );
     }
 
-    const client = await getMongoClient();
-    const db = client.db();
-
-    // Trouver l'utilisateur par email pour obtenir son ID MongoDB
-    const user = await db.collection('users').findOne({
-      email: userEmail.toLowerCase(),
-    });
+    // Utiliser UserRepository (Repository Pattern)
+    const userRepository = getUserRepository();
+    const user = await userRepository.findByEmail(userEmail);
 
     if (!user) {
       return NextResponse.json(
@@ -55,10 +52,16 @@ export async function PUT(
       );
     }
 
+    const client = await getMongoClient();
+    const db = client.db();
+
+    // Convertir l'ID utilisateur en ObjectId pour MongoDB
+    const userId = new ObjectId(user.id || user._id);
+
     // Vérifier que le bénéficiaire appartient à l'utilisateur
     const existingBeneficiary = await db.collection('beneficiaries').findOne({
       _id: new ObjectId(beneficiaryId),
-      userId: user._id,
+      userId,
     });
 
     if (!existingBeneficiary) {
@@ -73,7 +76,7 @@ export async function PUT(
       const duplicateBeneficiary = await db
         .collection('beneficiaries')
         .findOne({
-          userId: new ObjectId(user._id),
+          userId,
           email: email.toLowerCase(),
           _id: { $ne: new ObjectId(beneficiaryId) },
         });
@@ -98,7 +101,7 @@ export async function PUT(
     const result = await db
       .collection('beneficiaries')
       .updateOne(
-        { _id: new ObjectId(beneficiaryId), userId: new ObjectId(user._id) },
+        { _id: new ObjectId(beneficiaryId), userId },
         { $set: updateData }
       );
 
@@ -151,13 +154,9 @@ export async function DELETE(
       );
     }
 
-    const client = await getMongoClient();
-    const db = client.db();
-
-    // Trouver l'utilisateur par email pour obtenir son ID MongoDB
-    const user = await db.collection('users').findOne({
-      email: userEmail.toLowerCase(),
-    });
+    // Utiliser UserRepository (Repository Pattern)
+    const userRepository = getUserRepository();
+    const user = await userRepository.findByEmail(userEmail);
 
     if (!user) {
       return NextResponse.json(
@@ -166,10 +165,16 @@ export async function DELETE(
       );
     }
 
+    const client = await getMongoClient();
+    const db = client.db();
+
+    // Convertir l'ID utilisateur en ObjectId pour MongoDB
+    const userId = new ObjectId(user.id || user._id);
+
     // Vérifier que le bénéficiaire appartient à l'utilisateur
     const existingBeneficiary = await db.collection('beneficiaries').findOne({
       _id: new ObjectId(beneficiaryId),
-      userId: user._id,
+      userId,
     });
 
     if (!existingBeneficiary) {
@@ -182,7 +187,7 @@ export async function DELETE(
     // Supprimer le bénéficiaire
     const result = await db.collection('beneficiaries').deleteOne({
       _id: new ObjectId(beneficiaryId),
-      userId: user._id,
+      userId,
     });
 
     if (result.deletedCount === 0) {

@@ -1,0 +1,74 @@
+{
+  "partners": [
+    {
+      "name": "Dateka",
+      "logo": "https://dateka.fr/wp-content/uploads/2023/01/logo-dateka.png",
+      "description": "Partenaire technologique accompagnant DiaspoMoney dans sa transformation digitale et le développement de solutions innovantes.",
+      "website": "https://dateka.fr",
+      "category": "Technologie",
+      "services": ["Développement", "Conseil digital", "Innovation", "Support technique"],
+      "location": "France",
+      "established": "2015"
+    },
+    {
+      "name": "Seine Innopolis",
+      "logo": "https://www.seine-innopolis.fr/wp-content/uploads/2021/03/logo-seine-innopolis.png",
+      "description": "Pôle d'innovation et d'entrepreneuriat accompagnant les startups dans leur développement.",
+      "website": "https://www.seine-innopolis.fr",
+      "category": "Incubation",
+      "services": ["Accompagnement", "Conseil stratégique", "Réseau", "Financement"],
+      "location": "Val de Reuil, France",
+      "established": "2010"
+    },
+    {
+      "name": "Rouen Normandie Création",
+      "logo": "https://www.rouennormandiecreation.fr/images/logo-rnc.png",
+      "description": "Agence de développement économique soutenant les créateurs d'entreprise et les entrepreneurs en Normandie.",
+      "website": "https://www.rouennormandiecreation.fr",
+      "category": "Accompagnement entrepreneurial",
+      "services": ["Création d'entreprise", "Formation", "Mentorat", "Développement"],
+      "location": "Rouen, France",
+      "established": "2008"
+    },
+    {
+      "name": "Rouen Métropole",
+      "logo": "https://www.metropole-rouen-normandie.fr/sites/default/files/logo-metropole.png",
+      "description": "Collectivité territoriale soutenant le développement économique et l'innovation sur le territoire.",
+      "website": "https://www.metropole-rouen-normandie.fr",
+      "category": "Collectivité",
+      "services": ["Soutien économique", "Innovation", "Développement territorial", "Partenariats"],
+      "location": "Rouen, France",
+      "established": "2015"
+    },
+    {
+      "name": "Bpifrance",
+      "logo": "https://www.bpifrance.fr/content/themes/bpifrance/dist/img/logo-bpifrance.svg",
+      "description": "Banque publique d'investissement accompagnant les entreprises dans leur financement et leur développement.",
+      "website": "https://www.bpifrance.fr",
+      "category": "Financement",
+      "services": ["Prêts", "Garanties", "Innovation", "Conseil"],
+      "location": "France",
+      "established": "2013"
+    },
+    {
+      "name": "L'Usinage.fr",
+      "logo": "https://www.lusinage.fr/images/logo-lusinage.png",
+      "description": "Partenaire industriel et fabrication, spécialiste de l'usinage de précision.",
+      "website": "https://www.lusinage.fr",
+      "category": "Industrie",
+      "services": ["Usinage", "Fabrication", "Prototypage", "Conseil technique"],
+      "location": "France",
+      "established": "2005"
+    },
+    {
+      "name": "Nsayi",
+      "logo": "https://nsayi.com/images/logo-nsayi.png",
+      "description": "Partenaire stratégique accompagnant DiaspoMoney dans son développement en Afrique.",
+      "website": "https://nsayi.com",
+      "category": "Partenariat stratégique",
+      "services": ["Développement commercial", "Réseau africain", "Conseil", "Partenariats"],
+      "location": "Afrique",
+      "established": "2018"
+    }
+  ]
+}

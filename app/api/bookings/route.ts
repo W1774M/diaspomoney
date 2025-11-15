@@ -1,4 +1,4 @@
-import { BookingService } from "@/services/bookingService";
+import { BookingData, bookingService, BookingServiceFilters } from "@/services/booking/booking.service";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       offset: offset ? parseInt(offset) : undefined,
     };
 
-    const result = await BookingService.getBookings(filters);
+    const result = await bookingService.getBookings(filters as BookingServiceFilters);
 
     return NextResponse.json({
       success: true,
@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Création d'un nouveau rendez-vous via le service
-    const newAppointment = await BookingService.createAppointment(
-      appointmentData
+    const newAppointment = await bookingService.createBooking(
+      appointmentData as BookingData
     );
 
     return NextResponse.json(

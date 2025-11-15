@@ -156,20 +156,15 @@ class AuthService {
         throw new Error('Un compte avec cet email existe déjà');
       }
 
-      // Hacher le mot de passe (si fourni)
-      let hashedPassword = null;
-      if (data.password) {
-        hashedPassword = await bcrypt.hash(data.password, 12);
-      }
-
-      // Créer l'utilisateur
+      // Ne PAS hacher le mot de passe ici - le hook pre('save') du modèle User le fera
+      // Créer l'utilisateur avec le mot de passe en clair (sera hashé par le hook)
       const user = new User({
         email: data.email.toLowerCase(),
-        password: hashedPassword,
+        password: data.password || undefined, // Le hook pre('save') hash le mot de passe
         name: `${data.firstName} ${data.lastName}`,
         firstName: data.firstName,
         lastName: data.lastName,
-        phone: data.phone,
+        phone: data.phone ? String(data.phone).trim() : undefined, // S'assurer que phone est bien une string
         countryOfResidence: data.country,
         dateOfBirth: data.dateOfBirth,
         targetCountry: data.targetCountry,

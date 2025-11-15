@@ -3,7 +3,6 @@
  * Page de demande de renseignements éducation
  */
 
-import React from 'react';
 import EducationInquiryForm from '@/components/education/EducationInquiryForm';
 
 export default function EducationInquiryPage() {

@@ -1,0 +1,132 @@
+/**
+ * Listeners pour les événements de paiement
+ * Gère les actions automatiques lors des événements de paiement
+ */
+
+import { paymentEvents, PaymentSucceededEvent } from '@/lib/events';
+import { notificationService } from '@/services/notification/notification.service';
+import * as Sentry from '@sentry/nextjs';
+
+/**
+ * Initialiser tous les listeners de paiement
+ */
+export function setupPaymentEventListeners() {
+  // Listener pour paiement réussi
+  paymentEvents.onPaymentSucceeded(async (data: PaymentSucceededEvent) => {
+    console.log('[PaymentEventListeners] Payment succeeded:', data.transactionId);
+
+    try {
+      // 1. Envoyer une notification de confirmation
+      await notificationService.sendNotification({
+        recipient: data.userId,
+        type: 'PAYMENT_SUCCESS',
+        template: 'payment_success',
+        data: {
+          transactionId: data.transactionId,
+          amount: data.amount,
+          currency: data.currency,
+          provider: data.provider,
+        },
+        channels: [
+          { type: 'EMAIL', enabled: true, priority: 'HIGH' },
+          { type: 'IN_APP', enabled: true, priority: 'HIGH' },
+        ],
+        locale: 'fr',
+        priority: 'HIGH',
+      });
+
+      // 2. Logger pour analytics
+      // analytics.track('payment_completed', {
+      //   transactionId: data.transactionId,
+      //   amount: data.amount,
+      //   currency: data.currency,
+      //   provider: data.provider,
+      //   userId: data.userId,
+      // });
+
+      // 3. Mettre à jour les statistiques utilisateur
+      // await userService.updatePaymentStats(data.userId, {
+      //   totalPaid: data.amount,
+      //   lastPaymentDate: data.timestamp,
+      // });
+    } catch (error) {
+      console.error('[PaymentEventListeners] Error handling payment succeeded:', error);
+      Sentry.captureException(error);
+    }
+  });
+
+  // Listener pour paiement échoué
+  paymentEvents.onPaymentFailed(async (data) => {
+    console.log('[PaymentEventListeners] Payment failed:', data.transactionId);
+
+    try {
+      // TODO: Récupérer userId depuis la transaction en base de données
+      // Pour l'instant, on utilise 'unknown' car l'événement ne contient pas userId
+      const userId = 'unknown'; // À récupérer depuis la transaction
+
+      // Envoyer une notification d'échec
+      await notificationService.sendNotification({
+        recipient: userId,
+        type: 'PAYMENT_FAILED',
+        template: 'payment_failed',
+        data: {
+          transactionId: data.transactionId,
+          error: data.error,
+        },
+        channels: [
+          { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
+          { type: 'IN_APP', enabled: true, priority: 'HIGH' },
+        ],
+        locale: 'fr',
+        priority: 'MEDIUM',
+      });
+
+      // Logger pour analytics
+      // analytics.track('payment_failed', {
+      //   transactionId: data.transactionId,
+      //   error: data.error,
+      // });
+    } catch (error) {
+      console.error('[PaymentEventListeners] Error handling payment failed:', error);
+      Sentry.captureException(error);
+    }
+  });
+
+  // Listener pour remboursement
+  paymentEvents.onPaymentRefunded(async (data) => {
+    console.log('[PaymentEventListeners] Payment refunded:', data.transactionId);
+
+    try {
+      // TODO: Récupérer userId depuis la transaction en base de données
+      // Pour l'instant, on utilise 'unknown' car l'événement ne contient pas userId
+      const userId = 'unknown'; // À récupérer depuis la transaction
+
+      // Envoyer une notification de remboursement
+      await notificationService.sendNotification({
+        recipient: userId,
+        type: 'PAYMENT_REFUNDED',
+        template: 'payment_refunded',
+        data: {
+          transactionId: data.transactionId,
+          amount: data.amount,
+        },
+        channels: [
+          { type: 'EMAIL', enabled: true, priority: 'HIGH' },
+          { type: 'IN_APP', enabled: true, priority: 'HIGH' },
+        ],
+        locale: 'fr',
+        priority: 'HIGH',
+      });
+
+      // Logger pour analytics
+      // analytics.track('payment_refunded', {
+      //   transactionId: data.transactionId,
+      //   amount: data.amount,
+      // });
+    } catch (error) {
+      console.error('[PaymentEventListeners] Error handling payment refunded:', error);
+      Sentry.captureException(error);
+    }
+  });
+}
+

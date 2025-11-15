@@ -1,3 +1,6 @@
+include:
+  - compose.monitoring.yml
+
 networks:
   diaspomoney:
     driver: bridge
@@ -147,46 +150,6 @@ services:
       timeout: 10s
       retries: 5
 
-  # === MONITORING ===
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: diaspomoney-prometheus
-    restart: unless-stopped
-    volumes:
-      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    networks:
-      - diaspomoney
-      - traefik
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.prometheus.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/prometheus`)
-      - traefik.http.routers.prometheus.entrypoints=websecure
-      - traefik.http.routers.prometheus.tls=true
-      - traefik.http.routers.prometheus.tls.certresolver=le
-      - traefik.http.services.prometheus.loadbalancer.server.port=9090
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: diaspomoney-grafana
-    restart: unless-stopped
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
-      GF_SERVER_DOMAIN: dashboard.diaspomoney.fr
-      GF_SERVER_ROOT_URL: https://dashboard.diaspomoney.fr/grafana
-      GF_SERVER_SERVE_FROM_SUB_PATH: true
-    volumes:
-      - grafana_data:/var/lib/grafana
-    networks:
-      - diaspomoney
-      - traefik
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.grafana.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/grafana`)
-      - traefik.http.routers.grafana.entrypoints=websecure
-      - traefik.http.routers.grafana.tls=true
-      - traefik.http.routers.grafana.tls.certresolver=le
-      - traefik.http.services.grafana.loadbalancer.server.port=3000
 
   # === ADMIN TOOLS ===
   mongo-express:

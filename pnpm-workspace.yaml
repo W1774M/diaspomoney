@@ -1,4 +1,5 @@
 onlyBuiltDependencies:
   - '@sentry/cli'
   - cypress
+  - sharp
   - unrs-resolver

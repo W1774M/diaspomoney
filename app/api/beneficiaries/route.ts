@@ -1,5 +1,6 @@
-import { auth } from '@/lib/auth';
+import { auth } from '@/auth';
 import { getMongoClient } from '@/lib/database/mongodb';
+import { getUserRepository } from '@/repositories';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/beneficiaries - Récupérer tous les bénéficiaires de l'utilisateur
@@ -12,13 +13,9 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
-    const client = await getMongoClient();
-    const db = client.db();
-
-    // Trouver l'utilisateur par email pour obtenir son ID MongoDB
-    const user = await db.collection('users').findOne({
-      email: userEmail.toLowerCase(),
-    });
+    // Utiliser UserRepository (Repository Pattern)
+    const userRepository = getUserRepository();
+    const user = await userRepository.findByEmail(userEmail);
 
     if (!user) {
       return NextResponse.json(
@@ -27,9 +24,16 @@ export async function GET(_request: NextRequest) {
       );
     }
 
+    const client = await getMongoClient();
+    const db = client.db();
+
+    // Convertir l'ID utilisateur en ObjectId pour MongoDB
+    const { ObjectId } = await import('mongodb');
+    const userId = new ObjectId(user.id || user._id);
+
     const beneficiaries = await db
       .collection('beneficiaries')
-      .find({ userId: user._id })
+      .find({ userId })
       .sort({ createdAt: -1 })
       .toArray();
 
@@ -61,13 +65,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = await getMongoClient();
-    const db = client.db();
-
-    // Trouver l'utilisateur par email pour obtenir son ID MongoDB
-    const user = await db.collection('users').findOne({
-      email: userEmail.toLowerCase(),
-    });
+    // Utiliser UserRepository (Repository Pattern)
+    const userRepository = getUserRepository();
+    const user = await userRepository.findByEmail(userEmail);
 
     if (!user) {
       return NextResponse.json(
@@ -76,10 +76,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const client = await getMongoClient();
+    const db = client.db();
+
+    // Convertir l'ID utilisateur en ObjectId pour MongoDB
+    const { ObjectId } = await import('mongodb');
+    const userId = new ObjectId(user.id || user._id);
+
     // Vérifier si un bénéficiaire avec le même email existe déjà pour cet utilisateur
     if (email) {
       const existingBeneficiary = await db.collection('beneficiaries').findOne({
-        userId: user._id,
+        userId,
         email: email.toLowerCase(),
       });
 
@@ -92,7 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     const beneficiary = {
-      userId: user._id,
+      userId,
       name: name.trim(),
       email: email?.toLowerCase().trim() || null,
       phone: phone?.trim() || null,

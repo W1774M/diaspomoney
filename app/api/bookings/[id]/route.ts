@@ -1,4 +1,4 @@
-import { BookingService } from '@/services/bookingService';
+import { bookingService } from '@/services/booking/booking.service';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -18,7 +18,7 @@ export async function GET(
       );
     }
 
-    const booking = await BookingService.getBookingById(params.id);
+    const booking = await bookingService.getBookingById(params.id);
 
     return NextResponse.json({
       success: true,

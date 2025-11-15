@@ -8,6 +8,7 @@ import { securityManager } from '@/lib/security/advanced-security';
 import { authService } from '@/services/auth/auth.service';
 import {
   TransactionData,
+  TransactionFilters,
   transactionService,
 } from '@/services/transaction/transaction.service';
 import { NextRequest, NextResponse } from 'next/server';
@@ -30,37 +31,57 @@ export async function GET(request: NextRequest) {
     // Récupérer les paramètres de filtrage
     const { searchParams } = new URL(request.url);
 
-    // Types fixes pour compatibilité TransactionFilters avec exactOptionalPropertyTypes
-    const filters: {
-      status?: string;
-      serviceType?: string;
-      dateFrom?: Date;
-      dateTo?: Date;
-      minAmount?: number;
-      maxAmount?: number;
-      currency?: string;
-    } = {};
+    // Utiliser TransactionQueryBuilder pour construire la requête
+    const { TransactionQueryBuilder } = await import('@/builders');
+    const queryBuilder = new TransactionQueryBuilder()
+      .byUser(user.id);
 
-    if (searchParams.get('status') !== null)
-      filters.status = searchParams.get('status')!;
-    if (searchParams.get('serviceType') !== null)
-      filters.serviceType = searchParams.get('serviceType')!;
-    if (searchParams.get('dateFrom') !== null)
-      filters.dateFrom = new Date(searchParams.get('dateFrom')!);
-    if (searchParams.get('dateTo') !== null)
-      filters.dateTo = new Date(searchParams.get('dateTo')!);
-    if (searchParams.get('minAmount') !== null)
-      filters.minAmount = parseFloat(searchParams.get('minAmount')!);
-    if (searchParams.get('maxAmount') !== null)
-      filters.maxAmount = parseFloat(searchParams.get('maxAmount')!);
-    if (searchParams.get('currency') !== null)
-      filters.currency = searchParams.get('currency')!;
+    // Appliquer les filtres
+    if (searchParams.get('status')) {
+      queryBuilder.byStatus(searchParams.get('status') as any);
+    }
+    if (searchParams.get('serviceType')) {
+      queryBuilder.byServiceType(searchParams.get('serviceType') as any);
+    }
+    if (searchParams.get('dateFrom') && searchParams.get('dateTo')) {
+      queryBuilder.createdBetween(
+        new Date(searchParams.get('dateFrom')!),
+        new Date(searchParams.get('dateTo')!)
+      );
+    } else if (searchParams.get('dateFrom')) {
+      queryBuilder.createdAfter(new Date(searchParams.get('dateFrom')!));
+    } else if (searchParams.get('dateTo')) {
+      queryBuilder.createdBefore(new Date(searchParams.get('dateTo')!));
+    }
+    if (searchParams.get('minAmount') && searchParams.get('maxAmount')) {
+      queryBuilder.amountBetween(
+        parseFloat(searchParams.get('minAmount')!),
+        parseFloat(searchParams.get('maxAmount')!)
+      );
+    } else if (searchParams.get('minAmount')) {
+      queryBuilder.minAmount(parseFloat(searchParams.get('minAmount')!));
+    } else if (searchParams.get('maxAmount')) {
+      queryBuilder.maxAmount(parseFloat(searchParams.get('maxAmount')!));
+    }
+    if (searchParams.get('currency')) {
+      queryBuilder.byCurrency(searchParams.get('currency')!);
+    }
+
+    // Pagination
+    const limit = searchParams.get('limit') 
+      ? parseInt(searchParams.get('limit')!) 
+      : 50;
+    const page = searchParams.get('page') 
+      ? parseInt(searchParams.get('page')!) 
+      : 1;
+    queryBuilder.page(page, limit);
+
+    // Construire les filtres pour le service à partir du builder
+    const builtFilters = queryBuilder.build();
+    const filters = builtFilters.filters;
 
     // Récupérer les transactions
-    const transactions = await transactionService.getTransactions(
-      user.id,
-      filters
-    );
+    const transactions = await transactionService.getTransactions(user.id, filters as TransactionFilters);
 
     // Enregistrer les métriques
     monitoringManager.recordMetric({

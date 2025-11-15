@@ -3,6 +3,7 @@ import {
   AuthProvider,
 } from '@/components/features/providers';
 // import NotificationContainer from "@/components/ui/Notification";
+import { EventSystemProvider } from '@/app/providers/EventSystemProvider';
 import '@/styles/globals.css';
 import { DefaultTemplate } from '@/template/DefaultTemplate';
 import type { Metadata } from 'next';
@@ -59,11 +60,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           />
         </noscript>
         {/* End Google Tag Manager (noscript) */}
-        <AuthProvider>
-          <AppointmentProvider>
-            <DefaultTemplate>{children}</DefaultTemplate>
-          </AppointmentProvider>
-        </AuthProvider>
+        <EventSystemProvider>
+          <AuthProvider>
+            <AppointmentProvider>
+              <DefaultTemplate>{children}</DefaultTemplate>
+            </AppointmentProvider>
+          </AuthProvider>
+        </EventSystemProvider>
       </body>
     </html>
   );

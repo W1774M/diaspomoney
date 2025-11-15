@@ -44,8 +44,9 @@ RUN pnpm install --production --frozen-lockfile && \
 
 # Copier les fichiers build et config avec la bonne propriété
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 
 # Passer à l'utilisateur non-root
 USER nextjs

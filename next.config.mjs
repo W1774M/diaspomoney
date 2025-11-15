@@ -1,3 +1,8 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+// Use webpack from Next.js's bundled version (webpack is not a direct dependency)
+const webpack = require('next/dist/compiled/webpack/webpack-lib');
+
 const nextConfig = {
   // Optimisation des images
   images: {
@@ -60,8 +65,9 @@ const nextConfig = {
     // Configuration pour permettre toutes les images externes en développement
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Désactiver la validation stricte en développement
-    unoptimized: process.env.NODE_ENV === 'development',
+    // Loader personnalisé pour les images locales
+    loader: 'custom',
+    loaderFile: './lib/image-loader.ts',
   },
 
   // Configuration expérimentale (instrumentationHook n'est plus nécessaire)
@@ -98,6 +104,57 @@ const nextConfig = {
         '**/Program Files (x86)/**',
       ],
     };
+
+    // Exclure les fichiers de test et autres fichiers non nécessaires dans node_modules
+    // Utiliser IgnorePlugin pour exclure les modules de test et fichiers de test
+    config.plugins = config.plugins || [];
+    
+    // Ignorer les fichiers de test et fichiers non nécessaires
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        checkResource(resource, context) {
+          // Ignorer tous les fichiers de test dans node_modules
+          if (context.includes('node_modules')) {
+            // Ignorer les dossiers de test
+            if (resource.includes('/test/') || 
+                resource.includes('/tests/') ||
+                resource.includes('/__tests__/')) {
+              return true;
+            }
+            // Ignorer les fichiers de test
+            if (resource.match(/\.(test|spec)\.(js|mjs|ts|tsx|json)$/)) {
+              return true;
+            }
+            // Ignorer les fichiers non-code (README, LICENSE, etc.)
+            if (resource.match(/\.(md|txt|yml|yaml|zip|sh)$/)) {
+              return true;
+            }
+            // Ignorer les fichiers bench
+            if (resource.includes('bench.js') || resource.includes('benchmark')) {
+              return true;
+            }
+          }
+          
+          // Ignorer les modules de test spécifiques
+          const testModules = [
+            'tap', 
+            'pino-elasticsearch', 
+            'why-is-node-running',
+            'desm',
+            'fastbench'
+          ];
+          if (testModules.includes(resource)) {
+            return true;
+          }
+          
+          return false;
+        }
+      })
+    );
+    
+    // Ignorer les fichiers de test lors de la résolution
+    config.resolve = config.resolve || {};
+    config.resolve.alias = config.resolve.alias || {};
 
     if (!isServer) {
       config.resolve.fallback = {

@@ -82,32 +82,34 @@ export default function LoginPage() {
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50'>
-      <div className='flex min-h-screen'>
-        {/* Sidebar avec branding */}
+      <div className='flex flex-col lg:flex-row min-h-screen'>
+        {/* Sidebar avec branding - Hidden on mobile, visible on lg+ */}
         <div className='hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[hsl(25,100%,53%)] via-[hsl(25,100%,45%)] to-[hsl(25,100%,35%)] relative overflow-hidden'>
           {/* Pattern de fond */}
           <div className='absolute inset-0 bg-black/10'></div>
           <div className='absolute top-0 left-0 w-full h-full'>
-            <div className='absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full'></div>
-            <div className='absolute top-32 right-16 w-16 h-16 bg-white/10 rounded-full'></div>
-            <div className='absolute bottom-20 left-20 w-12 h-12 bg-white/10 rounded-full'></div>
-            <div className='absolute bottom-32 right-10 w-24 h-24 bg-white/10 rounded-full'></div>
+            <div className='absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full animate-pulse'></div>
+            <div className='absolute top-32 right-16 w-16 h-16 bg-white/10 rounded-full animate-pulse delay-100'></div>
+            <div className='absolute bottom-20 left-20 w-12 h-12 bg-white/10 rounded-full animate-pulse delay-200'></div>
+            <div className='absolute bottom-32 right-10 w-24 h-24 bg-white/10 rounded-full animate-pulse delay-300'></div>
           </div>
 
-          <div className='relative z-10 flex flex-col justify-center px-12 py-12'>
-            <div className='mb-8'>
-              <Image
-                src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
-                alt='DiaspoMoney'
-                width={200}
-                height={60}
-                className='mb-6'
-                priority
-              />
-              <h1 className='text-4xl font-bold text-white mb-4'>
+          <div className='relative z-10 flex flex-col justify-center px-8 xl:px-12 py-12 w-full'>
+            <div className='mb-8 max-w-xl'>
+              <div className='bg-white/20 backdrop-blur-sm rounded-xl p-4 inline-block mb-6'>
+                <Image
+                  src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
+                  alt='DiaspoMoney'
+                  width={180}
+                  height={54}
+                  className='brightness-0 invert'
+                  priority
+                />
+              </div>
+              <h1 className='text-3xl xl:text-4xl font-bold text-white mb-4 leading-tight'>
                 Bienvenue sur DiaspoMoney
               </h1>
-              <p className='text-orange-100 text-lg leading-relaxed'>
+              <p className='text-orange-100 text-base xl:text-lg leading-relaxed'>
                 La plateforme de confiance pour vos services en Afrique.
                 Connectez-vous pour accéder à des milliers de prestataires
                 qualifiés.
@@ -115,42 +117,42 @@ export default function LoginPage() {
             </div>
 
             {/* Features */}
-            <div className='space-y-6'>
-              <div className='flex items-center space-x-4'>
-                <div className='flex-shrink-0 w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center'>
-                  <Shield className='w-6 h-6 text-white' />
+            <div className='space-y-4 max-w-xl'>
+              <div className='flex items-start space-x-4 bg-white/10 backdrop-blur-sm rounded-lg p-4 hover:bg-white/20 transition-all duration-200'>
+                <div className='flex-shrink-0 w-10 h-10 bg-white/30 rounded-lg flex items-center justify-center'>
+                  <Shield className='w-5 h-5 text-white' />
                 </div>
                 <div>
-                  <h3 className='text-white font-semibold'>
+                  <h3 className='text-white font-semibold text-sm xl:text-base'>
                     Paiements Sécurisés
                   </h3>
-                  <p className='text-orange-100 text-sm'>
+                  <p className='text-orange-100 text-xs xl:text-sm'>
                     Transactions protégées par cryptage SSL
                   </p>
                 </div>
               </div>
 
-              <div className='flex items-center space-x-4'>
-                <div className='flex-shrink-0 w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center'>
-                  <CreditCard className='w-6 h-6 text-white' />
+              <div className='flex items-start space-x-4 bg-white/10 backdrop-blur-sm rounded-lg p-4 hover:bg-white/20 transition-all duration-200'>
+                <div className='flex-shrink-0 w-10 h-10 bg-white/30 rounded-lg flex items-center justify-center'>
+                  <CreditCard className='w-5 h-5 text-white' />
                 </div>
                 <div>
-                  <h3 className='text-white font-semibold'>Services Premium</h3>
-                  <p className='text-orange-100 text-sm'>
+                  <h3 className='text-white font-semibold text-sm xl:text-base'>Services Premium</h3>
+                  <p className='text-orange-100 text-xs xl:text-sm'>
                     Accès à des prestataires vérifiés et recommandés
                   </p>
                 </div>
               </div>
 
-              <div className='flex items-center space-x-4'>
-                <div className='flex-shrink-0 w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center'>
-                  <TrendingUp className='w-6 h-6 text-white' />
+              <div className='flex items-start space-x-4 bg-white/10 backdrop-blur-sm rounded-lg p-4 hover:bg-white/20 transition-all duration-200'>
+                <div className='flex-shrink-0 w-10 h-10 bg-white/30 rounded-lg flex items-center justify-center'>
+                  <TrendingUp className='w-5 h-5 text-white' />
                 </div>
                 <div>
-                  <h3 className='text-white font-semibold'>
+                  <h3 className='text-white font-semibold text-sm xl:text-base'>
                     Croissance Continue
                   </h3>
-                  <p className='text-orange-100 text-sm'>
+                  <p className='text-orange-100 text-xs xl:text-sm'>
                     Plus de 1000+ prestataires partenaires
                   </p>
                 </div>
@@ -158,47 +160,55 @@ export default function LoginPage() {
             </div>
 
             {/* Stats */}
-            <div className='mt-12 grid grid-cols-3 gap-6'>
-              <div className='text-center'>
-                <div className='text-2xl font-bold text-white'>10K+</div>
-                <div className='text-orange-100 text-sm'>Utilisateurs</div>
+            <div className='mt-8 grid grid-cols-3 gap-4 max-w-xl'>
+              <div className='text-center bg-white/10 backdrop-blur-sm rounded-lg p-3'>
+                <div className='text-xl xl:text-2xl font-bold text-white'>10K+</div>
+                <div className='text-orange-100 text-xs'>Utilisateurs</div>
               </div>
-              <div className='text-center'>
-                <div className='text-2xl font-bold text-white'>1K+</div>
-                <div className='text-orange-100 text-sm'>Prestataires</div>
+              <div className='text-center bg-white/10 backdrop-blur-sm rounded-lg p-3'>
+                <div className='text-xl xl:text-2xl font-bold text-white'>1K+</div>
+                <div className='text-orange-100 text-xs'>Prestataires</div>
               </div>
-              <div className='text-center'>
-                <div className='text-2xl font-bold text-white'>50K+</div>
-                <div className='text-orange-100 text-sm'>Transactions</div>
+              <div className='text-center bg-white/10 backdrop-blur-sm rounded-lg p-3'>
+                <div className='text-xl xl:text-2xl font-bold text-white'>50K+</div>
+                <div className='text-orange-100 text-xs'>Transactions</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Formulaire de connexion */}
-        <div className='flex-1 flex items-center justify-center px-4 py-6 sm:px-6 lg:px-8'>
+        <div className='flex-1 flex items-center justify-center px-4 py-8 sm:px-6 lg:px-8'>
           <div className='w-full max-w-md'>
             {/* Header mobile */}
-            <div className='lg:hidden text-center mb-8'>
-              <Image
-                src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
-                alt='DiaspoMoney'
-                width={180}
-                height={54}
-                className='mx-auto mb-4'
-                priority
-              />
+            <div className='lg:hidden text-center mb-6'>
+              <div className='inline-block bg-gradient-to-br from-[hsl(25,100%,53%)] to-[hsl(25,100%,45%)] rounded-2xl p-4 mb-4 shadow-lg'>
+                <Image
+                  src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
+                  alt='DiaspoMoney'
+                  width={160}
+                  height={48}
+                  className='brightness-0 invert'
+                  priority
+                />
+              </div>
+              <h1 className='text-xl font-bold text-gray-900 mb-2'>
+                Bienvenue sur DiaspoMoney
+              </h1>
+              <p className='text-gray-600 text-sm'>
+                Services de confiance en Afrique
+              </p>
             </div>
 
-            <div className='bg-white rounded-2xl shadow-xl border border-gray-100 p-8'>
-              <div className='text-center mb-8'>
-                <div className='inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,45%)] rounded-full mb-4'>
-                  <User className='w-8 h-8 text-white' />
+            <div className='bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sm:p-8'>
+              <div className='text-center mb-6'>
+                <div className='inline-flex items-center justify-center w-14 h-14 bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,45%)] rounded-full mb-3 shadow-lg'>
+                  <User className='w-7 h-7 text-white' />
                 </div>
-                <h2 className='text-2xl font-bold text-gray-900 mb-2'>
+                <h2 className='text-xl sm:text-2xl font-bold text-gray-900 mb-1'>
                   Connexion
                 </h2>
-                <p className='text-gray-600'>
+                <p className='text-gray-600 text-sm'>
                   Accédez à votre espace personnel
                 </p>
               </div>
@@ -207,47 +217,63 @@ export default function LoginPage() {
               <LoginForm />
 
               {/* Séparateur */}
-              <div className='mt-8 mb-6'>
+              <div className='mt-6 mb-5'>
                 <div className='relative'>
                   <div className='absolute inset-0 flex items-center'>
                     <div className='w-full border-t border-gray-200' />
                   </div>
-                  <div className='relative flex justify-center text-sm'>
-                    <span className='px-4 bg-white text-gray-500 font-medium'>
+                  <div className='relative flex justify-center text-xs sm:text-sm'>
+                    <span className='px-3 bg-white text-gray-500 font-medium'>
                       Ou continuer avec
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Bouton Google */}
-              <GoogleLoginButton />
-
-              {/* Bouton Facebook */}
-              <FacebookLoginButton />
+              {/* Boutons OAuth */}
+              <div className='space-y-3'>
+                <GoogleLoginButton />
+                <FacebookLoginButton />
+              </div>
 
               {/* Liens utiles */}
-              <div className='mt-6 pt-6 border-t border-gray-100'>
-                <div className='flex justify-center space-x-6 text-sm'>
+              <div className='mt-6 pt-5 border-t border-gray-100'>
+                <div className='flex flex-wrap justify-center gap-4 text-xs sm:text-sm'>
                   <Link
                     href='/hotline'
-                    className='text-gray-500 hover:text-gray-700 transition-colors duration-200'
+                    className='text-gray-500 hover:text-[hsl(25,100%,53%)] transition-colors duration-200 font-medium'
                   >
                     Aide
                   </Link>
                   <Link
                     href='/support'
-                    className='text-gray-500 hover:text-gray-700 transition-colors duration-200'
+                    className='text-gray-500 hover:text-[hsl(25,100%,53%)] transition-colors duration-200 font-medium'
                   >
                     Support
                   </Link>
                   <Link
                     href='/privacy'
-                    className='text-gray-500 hover:text-gray-700 transition-colors duration-200'
+                    className='text-gray-500 hover:text-[hsl(25,100%,53%)] transition-colors duration-200 font-medium'
                   >
                     Confidentialité
                   </Link>
                 </div>
+              </div>
+            </div>
+
+            {/* Mobile stats */}
+            <div className='lg:hidden mt-8 grid grid-cols-3 gap-3'>
+              <div className='text-center bg-white rounded-xl shadow-md p-3 border border-gray-100'>
+                <div className='text-lg font-bold text-[hsl(25,100%,53%)]'>10K+</div>
+                <div className='text-gray-600 text-xs'>Utilisateurs</div>
+              </div>
+              <div className='text-center bg-white rounded-xl shadow-md p-3 border border-gray-100'>
+                <div className='text-lg font-bold text-[hsl(25,100%,53%)]'>1K+</div>
+                <div className='text-gray-600 text-xs'>Prestataires</div>
+              </div>
+              <div className='text-center bg-white rounded-xl shadow-md p-3 border border-gray-100'>
+                <div className='text-lg font-bold text-[hsl(25,100%,53%)]'>50K+</div>
+                <div className='text-gray-600 text-xs'>Transactions</div>
               </div>
             </div>
           </div>

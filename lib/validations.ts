@@ -58,15 +58,22 @@ export const registerSchema = z
     phone: z
       .string()
       .min(1, "Le téléphone est requis")
-      .transform(phone => phone.replace(/\D/g, ""))
+      .transform(phone => {
+        // Garder le format international avec le +
+        const cleaned = phone.trim();
+        // Si commence par +, garder tel quel, sinon nettoyer
+        if (cleaned.startsWith('+')) {
+          return cleaned.replace(/[^\d+]/g, '');
+        }
+        return cleaned.replace(/\D/g, '');
+      })
       .refine(phone => {
-        const cleaned = phone.replace(/\D/g, "");
-        return (
-          (cleaned.startsWith("0") && cleaned.length === 10) ||
-          (cleaned.startsWith("33") && cleaned.length === 11) ||
-          (cleaned.startsWith("+33") && cleaned.length === 12)
-        );
-      }, "Numéro de téléphone invalide"),
+        // Validation format international E.164
+        // Format: +[code pays][numéro] (max 15 chiffres après le +)
+        const cleaned = phone.replace(/\D/g, '');
+        // Doit avoir entre 7 et 15 chiffres (format international)
+        return cleaned.length >= 7 && cleaned.length <= 15;
+      }, "Numéro de téléphone invalide. Format attendu: +[code pays][numéro] (ex: +33612345678)"),
     dateOfBirth: z
       .string()
       .min(1, "La date de naissance est requise")

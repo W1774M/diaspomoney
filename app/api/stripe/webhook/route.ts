@@ -1,3 +1,4 @@
+import { paymentEvents } from "@/lib/events";
 import { childLogger } from "@/lib/logger";
 import { verifyStripeSignature } from "@/lib/stripe-server";
 import { NextRequest, NextResponse } from "next/server";
@@ -39,6 +40,18 @@ export async function POST(req: NextRequest) {
           paymentIntentId: pi.id,
           metadata: pi.metadata,
         });
+
+        // Émettre un événement via EventBus
+        await paymentEvents.emitPaymentSucceeded({
+          transactionId: pi.id,
+          amount: pi.amount / 100, // Convertir de centimes
+          currency: pi.currency.toUpperCase(),
+          userId: pi.metadata?.userId || pi.customer || 'unknown',
+          provider: 'STRIPE',
+          timestamp: new Date(),
+        }).catch(error => {
+          log.error({ err: error, msg: "Error emitting payment succeeded event" });
+        });
         break;
       }
       case "payment_intent.payment_failed": {
@@ -47,6 +60,14 @@ export async function POST(req: NextRequest) {
           msg: "Payment failed",
           error: pi?.last_payment_error,
           paymentIntentId: pi?.id,
+        });
+
+        // Émettre un événement via EventBus
+        await paymentEvents.emitPaymentFailed(
+          pi.id || 'unknown',
+          pi?.last_payment_error?.message || 'Payment failed'
+        ).catch(error => {
+          log.error({ err: error, msg: "Error emitting payment failed event" });
         });
         break;
       }

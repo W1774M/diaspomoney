@@ -74,6 +74,10 @@ export function LoginForm() {
   // Gérer les erreurs d'authentification depuis l'URL
   useEffect(() => {
     if (urlError) {
+      // Récupérer le détail de l'erreur depuis l'URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const errorDetail = urlParams.get('detail');
+      
       if (urlError === 'CredentialsSignin') {
         addError(
           'Identifiants incorrects. Vérifiez votre email et mot de passe.'
@@ -82,6 +86,12 @@ export function LoginForm() {
         addError('Erreur lors de la connexion. Veuillez réessayer.');
       } else if (urlError === 'Configuration') {
         addError('Erreur de configuration. Veuillez contacter le support.');
+      } else if (urlError === 'DatabaseError') {
+        const message = errorDetail 
+          ? `Erreur de base de données: ${decodeURIComponent(errorDetail)}`
+          : 'Erreur de connexion à la base de données. Veuillez réessayer.';
+        addError(message);
+        console.error('[LoginForm] Database error detail:', errorDetail);
       } else {
         addError("Erreur d'authentification. Veuillez réessayer.");
       }
