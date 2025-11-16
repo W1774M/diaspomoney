@@ -1,5 +1,6 @@
 'use client';
 
+import { getAssetURL } from '@/config/cdn';
 import Image from 'next/image';
 import { useState } from 'react';
 
@@ -44,6 +45,9 @@ const Logo = ({
       alt={alt}
       className={className}
       onError={() => setImageError(true)}
+      loader={({ src, width, quality }) =>
+        getAssetURL(src, { width, quality: quality ?? 85 })
+      }
       priority
     />
   );

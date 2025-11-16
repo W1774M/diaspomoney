@@ -1,0 +1,106 @@
+{
+  "_id": "6919b9461bfb568ab9ce5f47",
+  "email": "admin@diaspomoney.fr",
+  "name": "Admin DiaspoMoney",
+  "phone": "+33123456789",
+  "company": null,
+  "address": null,
+  "roles": ["SUPERADMIN", "ADMIN", "CUSTOMER", "PROVIDER"],
+  "status": "ACTIVE",
+  "specialty": null,
+  "recommended": false,
+  "providerInfo": {
+    "type": null,
+    "category": null,
+    "specialties": [],
+    "description": null,
+    "rating": 0,
+    "reviewCount": 0,
+    "isVerified": false,
+    "institution": {
+      "legalName": null,
+      "registrationNumber": null,
+      "taxId": null,
+      "establishedYear": null,
+      "employees": null,
+      "certifications": []
+    },
+    "individual": {
+      "firstName": null,
+      "lastName": null,
+      "dateOfBirth": null,
+      "qualifications": [],
+      "experience": null,
+      "languages": []
+    },
+    "professionalContact": {
+      "phone": null,
+      "email": null,
+      "website": null
+    },
+    "professionalAddress": {
+      "street": null,
+      "city": null,
+      "country": null,
+      "postalCode": null,
+      "coordinates": {
+        "latitude": null,
+        "longitude": null
+      }
+    },
+    "availability": {
+      "monday": [],
+      "tuesday": [],
+      "wednesday": [],
+      "thursday": [],
+      "friday": [],
+      "saturday": [],
+      "sunday": [],
+      "timezone": "UTC"
+    },
+    "pricing": {
+      "basePrice": null,
+      "currency": null,
+      "pricingModel": "FIXED",
+      "discounts": []
+    },
+    "documents": []
+  },
+  "apiGeo": [],
+  "clientNotes": null,
+  "avatar": null,
+  "preferences": {
+    "language": "fr",
+    "timezone": "Europe/Paris",
+    "notifications": true
+  },
+  "password": "$2a$10$XZ6FQellqQWydUCEcBhPjutMmgYLY6fNynVdRRvllb1PiZ.5AOkcu",
+  "emailVerified": true,
+  "isEmailVerified": true,
+  "images": [],
+  "firstName": "Admin",
+  "lastName": "DiaspoMoney",
+  "dateOfBirth": null,
+  "countryOfResidence": null,
+  "targetCountry": null,
+  "targetCity": null,
+  "selectedServices": null,
+  "monthlyBudget": null,
+  "securityQuestion": null,
+  "securityAnswer": null,
+  "marketingConsent": false,
+  "kycConsent": false,
+  "lastLogin": null,
+  "oauth": {
+    "google": {
+      "linked": false,
+      "providerAccountId": null
+    },
+    "facebook": {
+      "linked": false,
+      "providerAccountId": null
+    }
+  },
+  "createdAt": "2025-11-16T11:45:10.484Z",
+  "updatedAt": "2025-11-16T11:45:10.484Z"
+}

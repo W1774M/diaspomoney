@@ -1,25 +1,58 @@
 'use client';
 
+/**
+ * Page d'édition d'une facture
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (useInvoice, useInvoiceEdit, useInvoiceUsers)
+ * - Service Layer Pattern (via les API routes qui utilisent InvoiceService)
+ * - Decorator Pattern (via InvoiceService.updateInvoice avec @InvalidateCache, @Log)
+ */
+
 import { useAuth } from '@/hooks/auth/useAuth';
+import { useInvoice, useInvoiceEdit, useInvoiceUsers } from '@/hooks/invoices';
 import { IInvoice, INVOICE_STATUSES, InvoiceStatus } from '@/types';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function EditInvoicePage() {
-  // const params = useParams();
-  const invoiceId = 'temp-id'; // TODO: Get from URL params
+  const params = useParams();
+  const invoiceId = (params?.id as string) || null;
   const router = useRouter();
-  const { isAdmin, isAuthenticated, isLoading, status } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
+  const { isAdmin, isAuthenticated, isLoading, status, user } = useAuth();
+
+  // Custom Hooks Pattern
+  const {
+    invoice,
+    loading: invoiceLoading,
+    error: invoiceError,
+  } = useInvoice(invoiceId);
+  const { updateInvoice, saving, error: updateError } = useInvoiceEdit();
+  const { customers, providers, loading: usersLoading } = useInvoiceUsers();
+
+  const [formData, setFormData] = useState<{
+    invoiceNumber: string;
+    customerId: string;
+    providerId: string;
+    currency: string;
+    status: InvoiceStatus;
+    issueDate: string;
+    dueDate: string;
+    paidDate: string;
+    notes: string;
+    items: Array<{
+      description: string;
+      quantity: number;
+      unitPrice: number;
+      total: number;
+    }>;
+  }>({
     invoiceNumber: '',
     customerId: '',
     providerId: '',
     currency: 'EUR',
-    status: 'DRAFT' as InvoiceStatus,
+    status: InvoiceStatus.DRAFT,
     issueDate: '',
     dueDate: '',
     paidDate: '',
@@ -34,54 +67,39 @@ export default function EditInvoicePage() {
     ],
   });
 
-  // Simuler des données pour l'exemple
+  // Remplir le formulaire avec les données de la facture
   useEffect(() => {
-    const mockInvoice: IInvoice = {
-      _id: invoiceId,
-      invoiceNumber: 'FACT-2024-001',
-      customerId: '1',
-      providerId: '4',
-      amount: 2500.0,
-      currency: 'EUR',
-      status: InvoiceStatus.PAID,
-      issueDate: new Date('2024-01-15'),
-      dueDate: new Date('2024-02-15'),
-      paymentDate: new Date('2024-02-10'),
-      items: [
-        {
-          description: 'Design UI/UX',
-          quantity: 1,
-          unitPrice: 1500,
-          total: 1500,
-        },
-        {
-          description: 'Développement frontend',
-          quantity: 1,
-          unitPrice: 1000,
-          total: 1000,
-        },
-      ],
-      notes: 'Facture payée avec succès',
-      userId: 'user1',
-      createdAt: new Date('2024-01-15'),
-      updatedAt: new Date('2024-01-15'),
-    };
+    if (invoice) {
+      const formatDate = (date: Date | undefined): string => {
+        if (!date) return '';
+        const dateStr = date.toISOString().split('T')[0];
+        return dateStr || '';
+      };
 
-    // Remplir le formulaire avec les données existantes
-    setFormData({
-      invoiceNumber: mockInvoice.invoiceNumber,
-      customerId: mockInvoice.customerId,
-      providerId: mockInvoice.providerId || '',
-      currency: mockInvoice.currency,
-      status: mockInvoice.status as InvoiceStatus,
-      issueDate: mockInvoice.issueDate?.toISOString().split('T')[0] || '',
-      dueDate: mockInvoice.dueDate?.toISOString().split('T')[0] || '',
-      paidDate: mockInvoice.paymentDate?.toISOString().split('T')[0] || '',
-      notes: mockInvoice.notes || '',
-      items: mockInvoice.items,
-    });
-    setLoading(false);
-  }, [invoiceId]);
+      setFormData({
+        invoiceNumber: invoice.invoiceNumber ?? '',
+        customerId: invoice.customerId ?? '',
+        providerId: invoice.providerId ?? '',
+        currency: invoice.currency ?? 'EUR',
+        status: (invoice.status as InvoiceStatus) ?? InvoiceStatus.DRAFT,
+        issueDate: formatDate(invoice.issueDate),
+        dueDate: formatDate(invoice.dueDate),
+        paidDate: formatDate(invoice.paidDate || invoice.paymentDate),
+        notes: invoice.notes ?? '',
+        items:
+          invoice.items && invoice.items.length > 0
+            ? invoice.items
+            : [
+                {
+                  description: '',
+                  quantity: 1,
+                  unitPrice: 0,
+                  total: 0,
+                },
+              ],
+      });
+    }
+  }, [invoice]);
 
   const handleInputChange = <K extends keyof typeof formData>(
     field: K,
@@ -156,35 +174,35 @@ export default function EditInvoicePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+
+    if (!invoiceId || !user?.id) {
+      return;
+    }
 
     try {
-      // Simuler un appel API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       const updatedInvoice: Partial<IInvoice> = {
         invoiceNumber: formData.invoiceNumber,
         customerId: formData.customerId,
-        providerId: formData.providerId,
+        ...(formData.providerId && { providerId: formData.providerId }),
         currency: formData.currency,
         status: formData.status,
         notes: formData.notes,
         items: formData.items,
         amount: calculateTotal(),
-        userId: 'user1', // À remplacer par l'ID de l'utilisateur connecté
+        userId: user.id,
         ...(formData.issueDate && { issueDate: new Date(formData.issueDate) }),
         ...(formData.dueDate && { dueDate: new Date(formData.dueDate) }),
         ...(formData.paidDate && { paidDate: new Date(formData.paidDate) }),
       };
 
-      console.log('Facture mise à jour:', updatedInvoice);
-      alert('Facture mise à jour avec succès !');
-      invoiceId && router.push(`/dashboard/invoices/${invoiceId}`);
+      // Utiliser le Custom Hook Pattern (qui utilise l'API route avec InvoiceService et decorators)
+      await updateInvoice(invoiceId, updatedInvoice);
+
+      // Rediriger vers la page de détail
+      router.push(`/dashboard/invoices/${invoiceId}`);
     } catch (error) {
-      console.error('Erreur lors de la mise à jour:', error);
-      alert('Erreur lors de la mise à jour de la facture');
-    } finally {
-      setSaving(false);
+      // L'erreur est déjà gérée par le hook useInvoiceEdit
+      // On peut afficher un message d'erreur si nécessaire
     }
   };
 
@@ -193,12 +211,12 @@ export default function EditInvoicePage() {
     if (status === 'unauthenticated') {
       router.push('/login');
     } else if (status === 'authenticated' && !isLoading && !isAdmin()) {
-      router.push('/invoices');
+      router.push('/dashboard/invoices');
     }
   }, [status, isLoading, isAdmin, router]);
 
   // Afficher un message de chargement
-  if (isLoading) {
+  if (isLoading || invoiceLoading || usersLoading) {
     return (
       <div className='text-center py-12'>
         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
@@ -224,7 +242,7 @@ export default function EditInvoicePage() {
             Cette page est réservée aux administrateurs uniquement.
           </p>
           <button
-            onClick={() => router.push('/invoices')}
+            onClick={() => router.push('/dashboard/invoices')}
             className='px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors'
           >
             Retour aux factures
@@ -234,11 +252,24 @@ export default function EditInvoicePage() {
     );
   }
 
-  if (loading) {
+  // Erreur de chargement
+  if (invoiceError || !invoice) {
     return (
       <div className='text-center py-12'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
-        <p className='mt-4 text-gray-600'>Chargement de la facture...</p>
+        <div className='bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto'>
+          <h2 className='text-lg font-semibold text-red-800 mb-2'>
+            Erreur de chargement
+          </h2>
+          <p className='text-red-600 mb-4'>
+            {invoiceError || 'Facture non trouvée'}
+          </p>
+          <Link
+            href='/dashboard/invoices'
+            className='inline-block px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors'
+          >
+            Retour aux factures
+          </Link>
+        </div>
       </div>
     );
   }
@@ -263,6 +294,13 @@ export default function EditInvoicePage() {
           Modifiez les informations de la facture {formData.invoiceNumber}
         </p>
       </div>
+
+      {/* Message d'erreur de mise à jour */}
+      {updateError && (
+        <div className='mb-6 bg-red-50 border border-red-200 rounded-lg p-4'>
+          <p className='text-red-800'>{updateError}</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className='space-y-6'>
         {/* Informations générales */}
@@ -297,11 +335,14 @@ export default function EditInvoicePage() {
                 onChange={e => handleInputChange('customerId', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
                 required
+                disabled={usersLoading}
               >
                 <option value=''>Sélectionner un client</option>
-                <option value='1'>Jean Dupont - Entreprise ABC</option>
-                <option value='2'>Marie Martin - Société XYZ</option>
-                <option value='3'>Pierre Durand - Startup Innov</option>
+                {customers.map(customer => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -314,9 +355,14 @@ export default function EditInvoicePage() {
                 value={formData.providerId}
                 onChange={e => handleInputChange('providerId', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                disabled={usersLoading}
               >
                 <option value=''>Sélectionner un prestataire</option>
-                <option value='4'>Dr. Sarah Smith - Cardiologie</option>
+                {providers.map(provider => (
+                  <option key={provider.id} value={provider.id}>
+                    {provider.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -464,7 +510,7 @@ export default function EditInvoicePage() {
                         handleItemChange(
                           index,
                           'quantity',
-                          parseInt(e.target.value)
+                          parseInt(e.target.value) || 1
                         )
                       }
                       className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -486,7 +532,7 @@ export default function EditInvoicePage() {
                         handleItemChange(
                           index,
                           'unitPrice',
-                          parseFloat(e.target.value)
+                          parseFloat(e.target.value) || 0
                         )
                       }
                       className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'

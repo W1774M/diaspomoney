@@ -2,6 +2,15 @@
   "mcpServers": {
     "Sentry": {
       "url": "https://mcp.sentry.dev/mcp/bill-malar/diaspomoney"
+    },
+    "Docker": {
+      "url": "https://mcp.docker.dev/mcp/bill-malar/diaspomoney"
+    },
+    "Kubernetes": {
+      "url": "https://mcp.k8s.dev/mcp/bill-malar/diaspomoney"
+    },
+    "GitHub": {
+      "url": "https://mcp.github.dev/mcp/bill-malar/diaspomoney"
     }
   }
 }

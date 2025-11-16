@@ -1,74 +1,51 @@
-// Beneficiaries Types and Interfaces
+/**
+ * Types et interfaces pour les bénéficiaires
+ */
 
-export interface Beneficiary {
-  _id: string;
-  id?: string; // Pour compatibilité
-  name: string;
+import { BaseEntity } from './index';
+
+/**
+ * Relation avec le payeur
+ */
+export type BeneficiaryRelationship =
+  | 'PARENT'
+  | 'CHILD'
+  | 'SPOUSE'
+  | 'SIBLING'
+  | 'FRIEND'
+  | 'OTHER';
+
+/**
+ * Données pour créer un bénéficiaire
+ */
+export interface BeneficiaryData {
+  firstName: string;
+  lastName: string;
   email?: string;
   phone?: string;
-  relationship: string;
-  hasAccount: boolean;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
+  relationship: BeneficiaryRelationship;
+  country: string;
+  address?: string;
 }
 
+/**
+ * Bénéficiaire complet
+ */
+export interface Beneficiary extends BaseEntity, BeneficiaryData {
+  id: string;
+  payerId: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Filtres pour la recherche de bénéficiaires
+ */
 export interface BeneficiaryFilters {
-  searchTerm: string;
-  relationship: string;
-  hasAccount: string;
-}
-
-export interface BeneficiaryStats {
-  totalBeneficiaries: number;
-  withAccount: number;
-  withoutAccount: number;
-  relationships: string[];
-}
-
-export interface BeneficiaryCardProps {
-  beneficiary: Beneficiary;
-  onEdit: (beneficiary: Beneficiary) => void;
-  onDelete: (id: string) => void;
-}
-
-export interface BeneficiaryFormProps {
-  beneficiary?: Beneficiary;
-  onSubmit: (data: BeneficiaryFormData) => void;
-  onCancel: () => void;
-  isSubmitting: boolean;
-}
-
-export interface BeneficiaryFormData {
-  name: string;
-  email?: string;
-  phone?: string;
-  relationship: string;
-}
-
-export interface BeneficiariesHeaderProps {
-  onAddBeneficiary: () => void;
-}
-
-export interface BeneficiariesSearchProps {
-  searchTerm: string;
-  setSearchTerm: (value: string) => void;
-}
-
-export interface BeneficiariesFiltersProps {
-  filters: BeneficiaryFilters;
-  onFilterChange: (key: keyof BeneficiaryFilters, value: string) => void;
-  availableRelationships: string[];
-}
-
-export interface BeneficiariesTableProps {
-  beneficiaries: Beneficiary[];
-  loading: boolean;
-  error: string | null;
-  onEdit: (beneficiary: Beneficiary) => void;
-  onDelete: (id: string) => void;
-}
-
-export interface BeneficiariesPageProps {
-  // Props for the main page component
+  payerId?: string;
+  isActive?: boolean;
+  relationship?: BeneficiaryRelationship;
+  country?: string;
+  searchTerm?: string;
 }

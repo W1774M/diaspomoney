@@ -1,17 +1,42 @@
-// Complaints Types and Interfaces
+/**
+ * Types et interfaces pour les réclamations/complaints
+ */
 
-export interface Complaint {
-  id: string;
-  number: string;
+import { Complaint as RepositoryComplaint } from '@/repositories';
+
+// Réexport du type Complaint du repository
+export type Complaint = RepositoryComplaint;
+
+// Types pour les services
+export interface CreateComplaintData {
   title: string;
-  type: "QUALITY" | "DELAY" | "BILLING" | "COMMUNICATION";
-  priority: "HIGH" | "MEDIUM" | "LOW";
-  status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
-  createdAt: string;
-  updatedAt: string;
+  type: Complaint['type'];
+  priority: Complaint['priority'];
   description: string;
   provider: string;
   appointmentId: string;
+  userId?: string;
+}
+
+export interface UpdateComplaintData {
+  title?: string;
+  type?: Complaint['type'];
+  priority?: Complaint['priority'];
+  status?: Complaint['status'];
+  description?: string;
+}
+
+export interface ComplaintServiceFilters {
+  userId?: string;
+  provider?: string;
+  appointmentId?: string;
+  type?: Complaint['type'];
+  priority?: Complaint['priority'];
+  status?: Complaint['status'];
+  dateFrom?: Date;
+  dateTo?: Date;
+  limit?: number;
+  offset?: number;
 }
 
 export interface ComplaintFilters {

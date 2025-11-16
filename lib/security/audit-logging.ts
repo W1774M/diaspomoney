@@ -1,10 +1,23 @@
 /**
  * Audit Logging System - DiaspoMoney
  * Système d'audit complet pour la conformité et la sécurité
+ *
+ * Implémente les design patterns :
+ * - Singleton Pattern
+ * - Repository Pattern (via IAuditLogRepository)
+ * - Dependency Injection (via constructor injection)
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache)
+ * - Error Handling Pattern (Sentry)
+ * - Service Layer Pattern
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import { redis } from '@/lib/redis/redis-client';
+import { getAuditLogRepository } from '@/repositories';
 import * as Sentry from '@sentry/nextjs';
 
 export interface AuditLog {
@@ -67,6 +80,14 @@ export interface AuditStats {
 
 export class AuditLoggingSystem {
   private static instance: AuditLoggingSystem;
+  private auditLogRepository = getAuditLogRepository();
+  private readonly log = childLogger({
+    component: 'AuditLoggingSystem',
+  });
+
+  private constructor() {
+    // Dependency Injection : repository déjà injecté
+  }
 
   static getInstance(): AuditLoggingSystem {
     if (!AuditLoggingSystem.instance) {
@@ -78,7 +99,9 @@ export class AuditLoggingSystem {
   /**
    * Enregistrer un log d'audit
    */
-  async log(
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('AuditLoggingSystem:*') // Invalider le cache après création
+  async createAuditLog(
     action: string,
     resource: string,
     details: Record<string, any> = {},
@@ -152,10 +175,31 @@ export class AuditLoggingSystem {
         type: 'counter',
       });
 
+      this.log.info(
+        {
+          auditLogId: auditLog.id,
+          action,
+          resource,
+          userId: auditLog.userId,
+          severity: auditLog.severity,
+          category: auditLog.category,
+        },
+        'Audit log created successfully'
+      );
+
       return auditLog as unknown as AuditLog;
     } catch (error) {
-      console.error('❌ Audit logging error:', error);
-      Sentry.captureException(error);
+      this.log.error(
+        { error, action, resource, userId: options.userId },
+        'Error creating audit log'
+      );
+      Sentry.captureException(error, {
+        tags: {
+          component: 'AuditLoggingSystem',
+          action: 'log',
+        },
+        extra: { action, resource, userId: options.userId },
+      });
       throw error;
     }
   }
@@ -163,27 +207,52 @@ export class AuditLoggingSystem {
   /**
    * Rechercher des logs d'audit
    */
-  async searchAuditLogs(_query: AuditQuery): Promise<{
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'AuditLoggingSystem:searchAuditLogs' }) // Cache 5 minutes
+  async searchAuditLogs(query: AuditQuery): Promise<{
     logs: AuditLog[];
     total: number;
     hasMore: boolean;
   }> {
     try {
-      // TODO: Implémenter la recherche en base de données
-      // const logs = await AuditLog.find(query).sort({ timestamp: -1 });
-      // const total = await AuditLog.countDocuments(query);
+      const paginationOptions = {
+        limit: query.limit || 50,
+        offset: query.offset || 0,
+        page: query.offset
+          ? Math.floor(query.offset / (query.limit || 50)) + 1
+          : 1,
+        sort: { timestamp: -1 } as Record<string, 1 | -1>,
+      };
 
-      // Simulation pour l'instant
-      const logs: AuditLog[] = [];
-      const total = 0;
+      const result = await this.auditLogRepository.searchAuditLogs(
+        query,
+        paginationOptions
+      );
+
+      this.log.debug(
+        {
+          count: result.data.length,
+          total: result.total,
+          hasMore: result.hasMore,
+          query,
+        },
+        'Audit logs searched successfully'
+      );
 
       return {
-        logs,
-        total,
-        hasMore: false,
+        logs: result.data,
+        total: result.total,
+        hasMore: result.hasMore,
       };
     } catch (error) {
-      console.error('❌ Audit search error:', error);
+      this.log.error({ error, query }, 'Error searching audit logs');
+      Sentry.captureException(error, {
+        tags: {
+          component: 'AuditLoggingSystem',
+          action: 'searchAuditLogs',
+        },
+        extra: { query },
+      });
       throw error;
     }
   }
@@ -191,23 +260,33 @@ export class AuditLoggingSystem {
   /**
    * Obtenir les statistiques d'audit
    */
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(600, { prefix: 'AuditLoggingSystem:getAuditStats' }) // Cache 10 minutes
   async getAuditStats(
-    _period: 'day' | 'week' | 'month' = 'day'
+    period: 'day' | 'week' | 'month' = 'day'
   ): Promise<AuditStats> {
     try {
-      // TODO: Calculer les statistiques depuis la base de données
+      const stats = await this.auditLogRepository.getAuditStats(period);
+
       return {
-        totalLogs: 0,
-        logsByCategory: {},
-        logsBySeverity: {},
-        logsByOutcome: {},
-        averageRiskScore: 0,
-        complianceIssues: 0,
-        topActions: [],
-        topUsers: [],
+        totalLogs: stats.totalLogs,
+        logsByCategory: stats.logsByCategory,
+        logsBySeverity: stats.logsBySeverity,
+        logsByOutcome: stats.logsByOutcome,
+        averageRiskScore: stats.averageRiskScore,
+        complianceIssues: stats.complianceIssues,
+        topActions: stats.topActions,
+        topUsers: stats.topUsers,
       };
     } catch (error) {
-      console.error('❌ Audit stats error:', error);
+      this.log.error({ error, period }, 'Error getting audit stats');
+      Sentry.captureException(error, {
+        tags: {
+          component: 'AuditLoggingSystem',
+          action: 'getAuditStats',
+        },
+        extra: { period },
+      });
       throw error;
     }
   }
@@ -215,6 +294,8 @@ export class AuditLoggingSystem {
   /**
    * Détecter les anomalies d'audit
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'AuditLoggingSystem:detectAnomalies' }) // Cache 5 minutes
   async detectAnomalies(userId?: string): Promise<{
     anomalies: Array<{
       type: string;
@@ -263,8 +344,9 @@ export class AuditLoggingSystem {
       }
 
       // Détecter les modifications de données suspectes
-      const suspiciousModifications =
-        await this.detectSuspiciousModifications(userId);
+      const suspiciousModifications = await this.detectSuspiciousModifications(
+        userId
+      );
       if (suspiciousModifications.length > 0) {
         anomalies.push({
           type: 'SUSPICIOUS_MODIFICATIONS',
@@ -281,12 +363,28 @@ export class AuditLoggingSystem {
       // Calculer le niveau de risque
       const riskLevel = this.calculateRiskLevel(anomalies);
 
+      this.log.info(
+        {
+          userId,
+          anomalyCount: anomalies.length,
+          riskLevel,
+        },
+        'Anomalies detected'
+      );
+
       return {
         anomalies,
         riskLevel,
       };
     } catch (error) {
-      console.error('❌ Anomaly detection error:', error);
+      this.log.error({ error, userId }, 'Error detecting anomalies');
+      Sentry.captureException(error, {
+        tags: {
+          component: 'AuditLoggingSystem',
+          action: 'detectAnomalies',
+        },
+        extra: { userId },
+      });
       throw error;
     }
   }
@@ -294,6 +392,7 @@ export class AuditLoggingSystem {
   /**
    * Générer un rapport d'audit
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   async generateAuditReport(
     startDate: Date,
     endDate: Date,
@@ -312,20 +411,131 @@ export class AuditLoggingSystem {
     try {
       const reportId = `audit_report_${Date.now()}`;
 
-      // TODO: Générer le rapport complet
-      const summary = {
-        totalLogs: 0,
-        criticalIssues: 0,
-        complianceScore: 95,
-        recommendations: [
-          'Implement additional monitoring for high-risk activities',
-          'Review and update access control policies',
-          'Conduct regular security training for staff',
-        ],
+      this.log.debug(
+        { startDate, endDate, format },
+        'Starting audit report generation'
+      );
+
+      // Récupérer tous les logs d'audit dans la période
+      const query: AuditQuery = {
+        dateFrom: startDate,
+        dateTo: endDate,
+        limit: 10000, // Limite élevée pour récupérer tous les logs
       };
 
+      const logsResult = await this.searchAuditLogs(query);
+      const allLogs = logsResult.logs;
+
+      // Calculer les statistiques réelles
+      const totalLogs = logsResult.total;
+      const criticalLogs = allLogs.filter(
+        log => log.severity === 'CRITICAL' || log.riskScore > 80
+      );
+      const criticalIssues = criticalLogs.length;
+
+      // Calculer le score de conformité basé sur les données réelles
+      const failureLogs = allLogs.filter(log => log.outcome === 'FAILURE');
+      const failureRate = totalLogs > 0 ? failureLogs.length / totalLogs : 0;
+      const highRiskLogs = allLogs.filter(
+        log => log.severity === 'HIGH' || log.severity === 'CRITICAL'
+      );
+      const highRiskRate = totalLogs > 0 ? highRiskLogs.length / totalLogs : 0;
+
+      // Score de conformité : 100 - (taux d'échec * 30) - (taux de risque élevé * 50)
+      // Minimum 0, maximum 100
+      const complianceScore = Math.max(
+        0,
+        Math.min(
+          100,
+          Math.round(
+            100 - failureRate * 30 - highRiskRate * 50 - criticalIssues * 2
+          )
+        )
+      );
+
+      // Détecter les anomalies pour générer des recommandations
+      const anomalies = await this.detectAnomalies();
+
+      // Générer des recommandations basées sur les anomalies et les statistiques
+      const recommendations: string[] = [];
+
+      if (criticalIssues > 0) {
+        recommendations.push(
+          `Address ${criticalIssues} critical security issue(s) immediately`
+        );
+      }
+
+      if (anomalies.anomalies.length > 0) {
+        anomalies.anomalies.forEach(anomaly => {
+          recommendations.push(...anomaly.recommendations);
+        });
+      }
+
+      if (failureRate > 0.1) {
+        recommendations.push(
+          'High failure rate detected - review authentication and authorization processes'
+        );
+      }
+
+      if (highRiskRate > 0.05) {
+        recommendations.push(
+          'Elevated risk activities detected - implement additional monitoring'
+        );
+      }
+
+      // Recommandations par défaut si aucune anomalie spécifique
+      if (recommendations.length === 0) {
+        recommendations.push(
+          'Implement additional monitoring for high-risk activities',
+          'Review and update access control policies',
+          'Conduct regular security training for staff'
+        );
+      }
+
+      // Supprimer les doublons
+      const uniqueRecommendations = Array.from(new Set(recommendations));
+
+      const summary = {
+        totalLogs,
+        criticalIssues,
+        complianceScore,
+        recommendations: uniqueRecommendations,
+      };
+
+      // Déterminer l'extension de fichier selon le format
+      let fileExtension: string;
+      switch (format) {
+        case 'JSON':
+          fileExtension = 'json';
+          break;
+        case 'CSV':
+          fileExtension = 'csv';
+          break;
+        case 'PDF':
+          // Pour PDF, on retourne les données structurées en JSON
+          // L'implémentation PDF complète nécessiterait une bibliothèque comme pdfkit
+          fileExtension = 'json';
+          break;
+        default:
+          throw new Error(`Unsupported format: ${format}`);
+      }
+
+      // URL du rapport (peut être utilisé pour téléchargement via API)
+      const reportUrl = `/api/audit/reports/${reportId}.${fileExtension}`;
+
+      this.log.info(
+        {
+          reportId,
+          format,
+          totalLogs,
+          criticalIssues,
+          complianceScore,
+        },
+        'Audit report generated successfully'
+      );
+
       // Enregistrer l'audit de génération de rapport
-      await this.log(
+      await this.createAuditLog(
         'AUDIT_REPORT_GENERATED',
         'AUDIT_SYSTEM',
         {
@@ -333,6 +543,9 @@ export class AuditLoggingSystem {
           startDate,
           endDate,
           format,
+          totalLogs,
+          criticalIssues,
+          complianceScore,
         },
         {
           category: 'SYSTEM',
@@ -344,10 +557,21 @@ export class AuditLoggingSystem {
       return {
         reportId,
         format,
+        url: reportUrl,
         summary,
       };
     } catch (error) {
-      console.error('❌ Audit report generation error:', error);
+      this.log.error(
+        { error, startDate, endDate, format },
+        'Error generating audit report'
+      );
+      Sentry.captureException(error, {
+        tags: {
+          component: 'AuditLoggingSystem',
+          action: 'generateAuditReport',
+        },
+        extra: { startDate, endDate, format },
+      });
       throw error;
     }
   }
@@ -355,27 +579,176 @@ export class AuditLoggingSystem {
   /**
    * Sauvegarder un log d'audit
    */
+  @Log({ level: 'debug', logArgs: false, logExecutionTime: true })
   private async saveAuditLog(auditLog: AuditLog): Promise<void> {
     try {
-      // TODO: Sauvegarder en base de données
-      // await AuditLog.create(auditLog);
-
-      console.log(`✅ Audit log saved: ${auditLog.id}`);
+      await this.auditLogRepository.create(auditLog);
+      this.log.debug(
+        { auditLogId: auditLog.id, action: auditLog.action },
+        'Audit log saved to database'
+      );
     } catch (error) {
-      console.error('❌ Save audit log error:', error);
+      this.log.error(
+        { error, auditLogId: auditLog.id },
+        'Error saving audit log to database'
+      );
+      Sentry.captureException(error, {
+        tags: {
+          component: 'AuditLoggingSystem',
+          action: 'saveAuditLog',
+        },
+        extra: { auditLogId: auditLog.id },
+      });
       throw error;
     }
   }
 
   /**
+   * Grouper les logs par catégorie
+   */
+  private groupByCategory(logs: AuditLog[]): Record<string, number> {
+    const grouped: Record<string, number> = {};
+    logs.forEach(log => {
+      grouped[log.category] = (grouped[log.category] || 0) + 1;
+    });
+    return grouped;
+  }
+
+  /**
+   * Grouper les logs par sévérité
+   */
+  private groupBySeverity(logs: AuditLog[]): Record<string, number> {
+    const grouped: Record<string, number> = {};
+    logs.forEach(log => {
+      grouped[log.severity] = (grouped[log.severity] || 0) + 1;
+    });
+    return grouped;
+  }
+
+  /**
+   * Grouper les logs par résultat
+   */
+  private groupByOutcome(logs: AuditLog[]): Record<string, number> {
+    const grouped: Record<string, number> = {};
+    logs.forEach(log => {
+      grouped[log.outcome] = (grouped[log.outcome] || 0) + 1;
+    });
+    return grouped;
+  }
+
+  /**
+   * Obtenir les actions les plus fréquentes
+   */
+  private getTopActions(
+    logs: AuditLog[],
+    limit: number = 10
+  ): Array<{
+    action: string;
+    count: number;
+  }> {
+    const actionCounts: Record<string, number> = {};
+    logs.forEach(log => {
+      actionCounts[log.action] = (actionCounts[log.action] || 0) + 1;
+    });
+
+    return Object.entries(actionCounts)
+      .map(([action, count]) => ({ action, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+  }
+
+  /**
+   * Obtenir les utilisateurs les plus actifs
+   */
+  private getTopUsers(
+    logs: AuditLog[],
+    limit: number = 10
+  ): Array<{
+    userId: string;
+    count: number;
+  }> {
+    const userCounts: Record<string, number> = {};
+    logs.forEach(log => {
+      if (log.userId) {
+        userCounts[log.userId] = (userCounts[log.userId] || 0) + 1;
+      }
+    });
+
+    return Object.entries(userCounts)
+      .map(([userId, count]) => ({ userId, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+  }
+
+  /**
+   * Générer un rapport CSV
+   */
+  private generateCSV(logs: AuditLog[], summary: any): string {
+    const headers = [
+      'ID',
+      'Timestamp',
+      'User ID',
+      'Action',
+      'Resource',
+      'Category',
+      'Severity',
+      'Outcome',
+      'Risk Score',
+      'IP Address',
+      'User Agent',
+    ];
+
+    const rows = logs.map(log => [
+      log.id,
+      log.timestamp.toISOString(),
+      log.userId || '',
+      log.action,
+      log.resource,
+      log.category,
+      log.severity,
+      log.outcome,
+      log.riskScore.toString(),
+      log.ipAddress,
+      log.userAgent,
+    ]);
+
+    // Ajouter un résumé en fin de fichier
+    const summaryData = [
+      ['Total Logs', summary.totalLogs.toString()],
+      ['Critical Issues', summary.criticalIssues.toString()],
+      ['Compliance Score', summary.complianceScore.toString()],
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row =>
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ),
+      '',
+      'SUMMARY',
+      ...summaryData.map(([key, value]) => `"${key}","${value}"`),
+    ].join('\n');
+
+    return csvContent;
+  }
+
+  /**
    * Mettre en cache un log d'audit
    */
+  @Log({ level: 'debug', logArgs: false, logExecutionTime: false })
   private async cacheAuditLog(auditLog: AuditLog): Promise<void> {
     try {
       const cacheKey = `audit:${auditLog.id}`;
       await redis.set(cacheKey, JSON.stringify(auditLog), 3600); // 1 heure
+      this.log.debug(
+        { auditLogId: auditLog.id, cacheKey },
+        'Audit log cached successfully'
+      );
     } catch (error) {
-      console.error('❌ Cache audit log error:', error);
+      this.log.warn(
+        { error, auditLogId: auditLog.id },
+        'Error caching audit log (non-critical)'
+      );
       // Ne pas faire échouer l'opération principale
     }
   }
@@ -438,30 +811,113 @@ export class AuditLoggingSystem {
   /**
    * Détecter les connexions suspectes
    */
-  private async detectSuspiciousLogins(_userId?: string): Promise<any[]> {
-    // TODO: Implémenter la détection
-    return [];
+  private async detectSuspiciousLogins(userId?: string): Promise<any[]> {
+    try {
+      const query: AuditQuery = {
+        action: 'LOGIN_FAILED',
+        category: 'AUTHENTICATION',
+        outcome: 'FAILURE',
+        dateFrom: new Date(Date.now() - 24 * 60 * 60 * 1000), // Dernières 24h
+        limit: 100,
+      };
+
+      if (userId) {
+        query.userId = userId;
+      }
+
+      const result = await this.auditLogRepository.searchAuditLogs(query);
+      this.log.debug(
+        { userId, count: result.data.length },
+        'Suspicious logins detected'
+      );
+      return result.data;
+    } catch (error) {
+      this.log.error({ error, userId }, 'Error detecting suspicious logins');
+      Sentry.captureException(error, {
+        tags: {
+          component: 'AuditLoggingSystem',
+          action: 'detectSuspiciousLogins',
+        },
+        extra: { userId },
+      });
+      return [];
+    }
   }
 
   /**
    * Détecter les accès non autorisés
    */
-  private async detectUnauthorizedAccess(_userId?: string): Promise<any[]> {
-    // TODO: Implémenter la détection
-    return [];
+  private async detectUnauthorizedAccess(userId?: string): Promise<any[]> {
+    try {
+      const query: AuditQuery = {
+        category: 'AUTHORIZATION',
+        outcome: 'FAILURE',
+        severity: 'HIGH',
+        dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Dernière semaine
+        limit: 100,
+      };
+
+      if (userId) {
+        query.userId = userId;
+      }
+
+      const result = await this.auditLogRepository.searchAuditLogs(query);
+      this.log.debug(
+        { userId, count: result.data.length },
+        'Unauthorized access detected'
+      );
+      return result.data;
+    } catch (error) {
+      this.log.error({ error, userId }, 'Error detecting unauthorized access');
+      Sentry.captureException(error, {
+        tags: {
+          component: 'AuditLoggingSystem',
+          action: 'detectUnauthorizedAccess',
+        },
+        extra: { userId },
+      });
+      return [];
+    }
   }
 
   /**
    * Détecter les modifications suspectes
    */
-  private async detectSuspiciousModifications(
-    _userId?: string
-  ): Promise<any[]> {
-    // TODO: Implémenter la détection
-    return [];
+  private async detectSuspiciousModifications(userId?: string): Promise<any[]> {
+    try {
+      const query: AuditQuery = {
+        category: 'DATA_MODIFICATION',
+        severity: 'HIGH',
+        dateFrom: new Date(Date.now() - 24 * 60 * 60 * 1000), // Dernières 24h
+        limit: 100,
+      };
+
+      if (userId) {
+        query.userId = userId;
+      }
+
+      const result = await this.auditLogRepository.searchAuditLogs(query);
+      this.log.debug(
+        { userId, count: result.data.length },
+        'Suspicious modifications detected'
+      );
+      return result.data;
+    } catch (error) {
+      this.log.error(
+        { error, userId },
+        'Error detecting suspicious modifications'
+      );
+      Sentry.captureException(error, {
+        tags: {
+          component: 'AuditLoggingSystem',
+          action: 'detectSuspiciousModifications',
+        },
+        extra: { userId },
+      });
+      return [];
+    }
   }
 }
 
 // Instance singleton
 export const auditLogging = AuditLoggingSystem.getInstance();
-

@@ -6,6 +6,7 @@
 import { paymentEvents, PaymentSucceededEvent } from '@/lib/events';
 import { logger } from '@/lib/logger';
 import { notificationService } from '@/services/notification/notification.service';
+import { transactionService } from '@/services/transaction/transaction.service';
 import * as Sentry from '@sentry/nextjs';
 
 /**
@@ -14,7 +15,10 @@ import * as Sentry from '@sentry/nextjs';
 export function setupPaymentEventListeners() {
   // Listener pour paiement réussi
   paymentEvents.onPaymentSucceeded(async (data: PaymentSucceededEvent) => {
-    logger.info({ transactionId: data.transactionId, userId: data.userId }, '[PaymentEventListeners] Payment succeeded');
+    logger.info(
+      { transactionId: data.transactionId, userId: data.userId },
+      '[PaymentEventListeners] Payment succeeded'
+    );
 
     try {
       // 1. Envoyer une notification de confirmation
@@ -51,19 +55,27 @@ export function setupPaymentEventListeners() {
       //   lastPaymentDate: data.timestamp,
       // });
     } catch (error) {
-      logger.error({ error, transactionId: data.transactionId }, '[PaymentEventListeners] Error handling payment succeeded');
+      logger.error(
+        { error, transactionId: data.transactionId },
+        '[PaymentEventListeners] Error handling payment succeeded'
+      );
       Sentry.captureException(error);
     }
   });
 
   // Listener pour paiement échoué
-  paymentEvents.onPaymentFailed(async (data) => {
-    logger.warn({ transactionId: data.transactionId }, '[PaymentEventListeners] Payment failed');
+  paymentEvents.onPaymentFailed(async data => {
+    logger.warn(
+      { transactionId: data.transactionId },
+      '[PaymentEventListeners] Payment failed'
+    );
 
     try {
-      // TODO: Récupérer userId depuis la transaction en base de données
-      // Pour l'instant, on utilise 'unknown' car l'événement ne contient pas userId
-      const userId = 'unknown'; // À récupérer depuis la transaction
+      // Récupérer userId depuis la transaction en base de données (Repository Pattern)
+      const userId =
+        (await transactionService.getUserIdFromTransaction(
+          data.transactionId
+        )) || 'unknown';
 
       // Envoyer une notification d'échec
       await notificationService.sendNotification({
@@ -88,19 +100,27 @@ export function setupPaymentEventListeners() {
       //   error: data.error,
       // });
     } catch (error) {
-      logger.error({ error, transactionId: data.transactionId }, '[PaymentEventListeners] Error handling payment failed');
+      logger.error(
+        { error, transactionId: data.transactionId },
+        '[PaymentEventListeners] Error handling payment failed'
+      );
       Sentry.captureException(error);
     }
   });
 
   // Listener pour remboursement
-  paymentEvents.onPaymentRefunded(async (data) => {
-    logger.info({ transactionId: data.transactionId }, '[PaymentEventListeners] Payment refunded');
+  paymentEvents.onPaymentRefunded(async data => {
+    logger.info(
+      { transactionId: data.transactionId },
+      '[PaymentEventListeners] Payment refunded'
+    );
 
     try {
-      // TODO: Récupérer userId depuis la transaction en base de données
-      // Pour l'instant, on utilise 'unknown' car l'événement ne contient pas userId
-      const userId = 'unknown'; // À récupérer depuis la transaction
+      // Récupérer userId depuis la transaction en base de données (Repository Pattern)
+      const userId =
+        (await transactionService.getUserIdFromTransaction(
+          data.transactionId
+        )) || 'unknown';
 
       // Envoyer une notification de remboursement
       await notificationService.sendNotification({
@@ -125,9 +145,11 @@ export function setupPaymentEventListeners() {
       //   amount: data.amount,
       // });
     } catch (error) {
-      logger.error({ error, transactionId: data.transactionId }, '[PaymentEventListeners] Error handling payment refunded');
+      logger.error(
+        { error, transactionId: data.transactionId },
+        '[PaymentEventListeners] Error handling payment refunded'
+      );
       Sentry.captureException(error);
     }
   });
 }
-

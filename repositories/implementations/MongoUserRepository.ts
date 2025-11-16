@@ -58,13 +58,17 @@ export class MongoUserRepository implements IUserRepository {
     try {
       const collection = await this.getCollection();
       const now = new Date();
-      const userData: OptionalId<Document & { _id?: string | ObjectId | undefined }> = {
+      const userData: OptionalId<
+        Document & { _id?: string | ObjectId | undefined }
+      > = {
         ...data,
         createdAt: now,
         updatedAt: now,
         ...(data._id ? { _id: new ObjectId(data._id) } : {}),
       };
-      const result = await collection.insertOne(userData as OptionalId<Document>);
+      const result = await collection.insertOne(
+        userData as OptionalId<Document>
+      );
       const user = await collection.findOne({ _id: result.insertedId });
       if (!user) {
         throw new Error('Failed to create user');
@@ -72,6 +76,54 @@ export class MongoUserRepository implements IUserRepository {
       return this.mapToUser(user);
     } catch (error) {
       console.error('[MongoUserRepository] Error in create:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Créer un utilisateur avec hashage automatique du mot de passe
+   * Utilise le modèle User Mongoose pour bénéficier du hook pre('save')
+   */
+  async createWithPassword(
+    data: Partial<User> & { password?: string }
+  ): Promise<User> {
+    try {
+      // Importer le modèle User pour bénéficier du hook pre('save') qui hash le mot de passe
+      const UserModel = (await import('@/models/User')).default;
+      const user = new UserModel({
+        email: data.email?.toLowerCase(),
+        password: data.password || undefined, // Le hook pre('save') hash le mot de passe
+        name: data.name || `${data.firstName} ${data.lastName}`,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone ? String(data.phone).trim() : undefined,
+        countryOfResidence: data.country || data['countryOfResidence'],
+        dateOfBirth: data['dateOfBirth'],
+        targetCountry: data['targetCountry'],
+        targetCity: data['targetCity'],
+        monthlyBudget: data['monthlyBudget'],
+        securityQuestion: data['securityQuestion'],
+        securityAnswer: data['securityAnswer'],
+        selectedServices: data['selectedServices'],
+        roles: data.roles || ['CUSTOMER'],
+        status: data.status || 'ACTIVE',
+        isEmailVerified: data.isEmailVerified || false,
+        marketingConsent: data['marketingConsent'] || false,
+        kycConsent: data['kycConsent'],
+        kycStatus: data.kycStatus || 'PENDING',
+        oauth: data['oauth'],
+        ...data,
+      });
+
+      await user.save();
+
+      // Retourner l'utilisateur au format User
+      return this.mapToUser(user.toObject());
+    } catch (error) {
+      console.error(
+        '[MongoUserRepository] Error in createWithPassword:',
+        error
+      );
       throw error;
     }
   }
@@ -136,7 +188,7 @@ export class MongoUserRepository implements IUserRepository {
       const collection = await this.getCollection();
       const limit = options?.limit ?? 50;
       const offset = options?.offset ?? 0;
-      const page = options?.page ?? (Math.floor(offset / limit) + 1);
+      const page = options?.page ?? Math.floor(offset / limit) + 1;
       const sort = options?.sort || { createdAt: -1 };
 
       const query = filters || {};
@@ -157,7 +209,10 @@ export class MongoUserRepository implements IUserRepository {
         hasMore: offset + limit < total,
       };
     } catch (error) {
-      console.error('[MongoUserRepository] Error in findWithPagination:', error);
+      console.error(
+        '[MongoUserRepository] Error in findWithPagination:',
+        error
+      );
       throw error;
     }
   }
@@ -174,15 +229,48 @@ export class MongoUserRepository implements IUserRepository {
     return this.findAll({ status });
   }
 
-  async updatePassword(userId: string, hashedPassword: string): Promise<boolean> {
+  async updatePassword(
+    userId: string,
+    hashedPassword: string,
+    updatePasswordChangedAt: boolean = true
+  ): Promise<boolean> {
     try {
-      const result = await this.update(userId, {
+      const updateData: any = {
         password: hashedPassword,
-      });
+      };
+
+      // Mettre à jour passwordChangedAt si demandé
+      if (updatePasswordChangedAt) {
+        updateData.passwordChangedAt = new Date();
+      }
+
+      const result = await this.update(userId, updateData);
       return result !== null;
     } catch (error) {
       console.error('[MongoUserRepository] Error in updatePassword:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Vérifier le mot de passe d'un utilisateur
+   * Utilise le modèle User Mongoose pour accéder à la méthode comparePassword
+   */
+  async verifyPassword(userId: string, password: string): Promise<boolean> {
+    try {
+      // Importer le modèle User pour accéder à la méthode comparePassword
+      const UserModel = (await import('@/models/User')).default;
+      const userDoc = await (UserModel as any).findOne({ _id: userId }).exec();
+
+      if (!userDoc || !userDoc.password) {
+        return false;
+      }
+
+      // Utiliser la méthode comparePassword du modèle
+      return await userDoc.comparePassword(password);
+    } catch (error) {
+      console.error('[MongoUserRepository] Error in verifyPassword:', error);
+      return false;
     }
   }
 
@@ -210,6 +298,106 @@ export class MongoUserRepository implements IUserRepository {
     }
   }
 
+  /**
+   * Configurer la 2FA pour un utilisateur
+   */
+  async setup2FA(
+    userId: string,
+    secret: string,
+    backupCodes: string[]
+  ): Promise<boolean> {
+    try {
+      const result = await this.update(userId, {
+        twoFactorSecret: secret,
+        twoFactorBackupCodes: backupCodes,
+        twoFactorEnabled: false, // Pas encore activé
+      });
+      return result !== null;
+    } catch (error) {
+      console.error('[MongoUserRepository] Error in setup2FA:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Activer la 2FA pour un utilisateur
+   */
+  async enable2FA(userId: string): Promise<boolean> {
+    try {
+      const result = await this.update(userId, {
+        twoFactorEnabled: true,
+      });
+      return result !== null;
+    } catch (error) {
+      console.error('[MongoUserRepository] Error in enable2FA:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Désactiver la 2FA pour un utilisateur
+   */
+  async disable2FA(userId: string): Promise<boolean> {
+    try {
+      const result = await this.update(userId, {
+        twoFactorEnabled: false,
+        twoFactorSecret: undefined,
+        twoFactorBackupCodes: undefined,
+      });
+      return result !== null;
+    } catch (error) {
+      console.error('[MongoUserRepository] Error in disable2FA:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mettre à jour les codes de backup 2FA
+   */
+  async update2FABackupCodes(
+    userId: string,
+    backupCodes: string[]
+  ): Promise<boolean> {
+    try {
+      const result = await this.update(userId, {
+        twoFactorBackupCodes: backupCodes,
+      });
+      return result !== null;
+    } catch (error) {
+      console.error(
+        '[MongoUserRepository] Error in update2FABackupCodes:',
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Récupérer les informations 2FA d'un utilisateur
+   */
+  async get2FAInfo(userId: string): Promise<{
+    twoFactorSecret?: string;
+    twoFactorBackupCodes?: string[];
+    twoFactorEnabled?: boolean;
+  } | null> {
+    try {
+      const user = await this.findById(userId);
+      if (!user) {
+        return null;
+      }
+
+      // Accéder aux champs 2FA via l'index signature
+      return {
+        twoFactorSecret: user['twoFactorSecret'],
+        twoFactorBackupCodes: user['twoFactorBackupCodes'],
+        twoFactorEnabled: user['twoFactorEnabled'],
+      };
+    } catch (error) {
+      console.error('[MongoUserRepository] Error in get2FAInfo:', error);
+      throw error;
+    }
+  }
+
   async findUsersWithFilters(
     filters: UserFilters,
     options?: PaginationOptions
@@ -221,7 +409,10 @@ export class MongoUserRepository implements IUserRepository {
 
       return this.findWithPagination(query.filters, query.pagination);
     } catch (error) {
-      console.error('[MongoUserRepository] Error in findUsersWithFilters:', error);
+      console.error(
+        '[MongoUserRepository] Error in findUsersWithFilters:',
+        error
+      );
       throw error;
     }
   }

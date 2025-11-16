@@ -1,6 +1,6 @@
 /**
  * Booking Service - DiaspoMoney (Version Refactorée avec Repository Pattern)
- * 
+ *
  * Service refactoré utilisant le Repository Pattern
  */
 
@@ -9,34 +9,9 @@ import { Log } from '@/lib/decorators/log.decorator';
 import { Validate, ValidationRule } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
 import { Booking, getBookingRepository, PaginatedResult } from '@/repositories';
+import type { BookingData, BookingServiceFilters } from '@/types/bookings';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
-
-export interface BookingData {
-  requesterId: string;
-  providerId: string;
-  serviceId: string;
-  serviceType: 'HEALTH' | 'BTP' | 'EDUCATION';
-  appointmentDate?: Date;
-  timeslot?: string;
-  consultationMode?: 'video' | 'cabinet';
-  recipient?: {
-    firstName: string;
-    lastName: string;
-    phone: string;
-  };
-  metadata?: Record<string, any>;
-}
-
-export interface BookingServiceFilters {
-  userId?: string;
-  providerId?: string;
-  status?: string;
-  dateFrom?: Date;
-  dateTo?: Date;
-  limit?: number;
-  offset?: number;
-}
 
 /**
  * BookingService refactoré utilisant le Repository Pattern
@@ -54,8 +29,7 @@ export class BookingService {
 
   /**
    * Récupérer tous les rendez-vous avec filtres
-   * AVANT: Accès direct à MongoDB via getDatabase()
-   * APRÈS: Utilisation du repository
+   * Utilisation du repository
    */
   @Cacheable(900, { prefix: 'BookingService:getBookings' }) // Cache 15 minutes
   async getBookings(filters: BookingServiceFilters = {}): Promise<{
@@ -98,8 +72,7 @@ export class BookingService {
 
   /**
    * Récupérer un rendez-vous par son ID
-   * AVANT: Accès direct à MongoDB
-   * APRÈS: Utilisation du repository
+   * Utilisation du repository
    */
   @Log({ level: 'info', logArgs: true })
   @Validate({
@@ -111,7 +84,7 @@ export class BookingService {
   async getBookingById(id: string): Promise<Booking> {
     try {
       const booking = await this.bookingRepository.findById(id);
-      
+
       if (!booking) {
         throw new Error('Réservation non trouvée');
       }
@@ -126,18 +99,23 @@ export class BookingService {
 
   /**
    * Créer un nouveau rendez-vous
-   * AVANT: Accès direct à MongoDB
-   * APRÈS: Utilisation du repository
+   * Utilisation du repository
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(0, z.object({
-        requesterId: z.string().min(1, 'Requester ID is required'),
-        providerId: z.string().min(1, 'Provider ID is required'),
-        serviceId: z.string().min(1, 'Service ID is required'),
-        serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']),
-      }).passthrough(), 'data'),
+      ValidationRule(
+        0,
+        z
+          .object({
+            requesterId: z.string().min(1, 'Requester ID is required'),
+            providerId: z.string().min(1, 'Provider ID is required'),
+            serviceId: z.string().min(1, 'Service ID is required'),
+            serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']),
+          })
+          .passthrough(),
+        'data'
+      ),
     ],
   })
   @InvalidateCache('BookingService:*')
@@ -199,6 +177,8 @@ export class BookingService {
   /**
    * Mettre à jour le statut d'une réservation
    */
+  @Log({ level: 'info', logArgs: true })
+  @InvalidateCache('BookingService:*')
   async updateBookingStatus(
     id: string,
     status: Booking['status']
@@ -207,6 +187,56 @@ export class BookingService {
       return await this.bookingRepository.updateStatus(id, status);
     } catch (error) {
       logger.error({ error, id, status }, 'Erreur updateBookingStatus');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Annuler une réservation
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      ValidationRule(0, z.string().min(1, 'Booking ID is required'), 'id'),
+    ],
+  })
+  @InvalidateCache('BookingService:*')
+  async cancelBooking(id: string): Promise<Booking> {
+    try {
+      // Vérifier que la réservation existe
+      const booking = await this.bookingRepository.findById(id);
+      if (!booking) {
+        throw new Error('Réservation non trouvée');
+      }
+
+      // Vérifier que la réservation peut être annulée
+      if (booking.status === 'CANCELLED') {
+        throw new Error('Cette réservation est déjà annulée');
+      }
+
+      if (booking.status === 'COMPLETED') {
+        throw new Error("Impossible d'annuler une réservation terminée");
+      }
+
+      // Mettre à jour le statut
+      const updated = await this.bookingRepository.updateStatus(
+        id,
+        'CANCELLED'
+      );
+      if (!updated) {
+        throw new Error("Erreur lors de l'annulation de la réservation");
+      }
+
+      // Récupérer la réservation mise à jour
+      const cancelledBooking = await this.bookingRepository.findById(id);
+      if (!cancelledBooking) {
+        throw new Error('Réservation non trouvée après annulation');
+      }
+
+      return cancelledBooking;
+    } catch (error) {
+      logger.error({ error, id }, 'Erreur cancelBooking');
       Sentry.captureException(error);
       throw error;
     }
@@ -262,9 +292,10 @@ export class BookingService {
   /**
    * Récupérer les réservations à venir
    */
-  async getUpcomingBookings(
-    options?: { limit?: number; offset?: number }
-  ): Promise<PaginatedResult<Booking>> {
+  async getUpcomingBookings(options?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<PaginatedResult<Booking>> {
     try {
       return await this.bookingRepository.findUpcoming(options);
     } catch (error) {
@@ -277,4 +308,3 @@ export class BookingService {
 
 // Export singleton
 export const bookingService = BookingService.getInstance();
-

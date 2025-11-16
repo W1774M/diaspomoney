@@ -20,29 +20,30 @@ export interface User extends BaseEntity {
 }
 
 export enum UserRole {
+  SUPERADMIN = 'SUPERADMIN',
   ADMIN = 'ADMIN',
   PROVIDER = 'PROVIDER',
   CUSTOMER = 'CUSTOMER',
   BENEFICIARY = 'BENEFICIARY',
-  CSM = 'CSM'
+  CSM = 'CSM',
 }
 
 export enum UserStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
   PENDING = 'PENDING',
-  SUSPENDED = 'SUSPENDED'
+  SUSPENDED = 'SUSPENDED',
 }
 
 export enum ProviderType {
   INDIVIDUAL = 'INDIVIDUAL',
-  INSTITUTION = 'INSTITUTION'
+  INSTITUTION = 'INSTITUTION',
 }
 
 export enum ProviderCategory {
   HEALTH = 'HEALTH',
   BTP = 'BTP',
-  EDUCATION = 'EDUCATION'
+  EDUCATION = 'EDUCATION',
 }
 
 export interface ProviderInfo {
@@ -127,7 +128,7 @@ export enum PricingModel {
   FIXED = 'FIXED',
   HOURLY = 'HOURLY',
   PER_SQM = 'PER_SQM',
-  CUSTOM = 'CUSTOM'
+  CUSTOM = 'CUSTOM',
 }
 
 export interface Discount {
@@ -150,7 +151,7 @@ export enum DocumentType {
   CERTIFICATE = 'CERTIFICATE',
   INSURANCE = 'INSURANCE',
   PORTFOLIO = 'PORTFOLIO',
-  OTHER = 'OTHER'
+  OTHER = 'OTHER',
 }
 
 export interface ApiGeo {
@@ -207,4 +208,55 @@ export interface UsersResponse {
   total: number;
   page: number;
   limit: number;
+}
+
+// === TYPES UI ===
+/**
+ * Type pour les couleurs de rôle (utilisé dans les composants UI)
+ */
+export type RoleColor =
+  | 'bg-red-100 text-red-800'
+  | 'bg-purple-100 text-purple-800'
+  | 'bg-[hsl(25,100%,53%)]/10 text-[hsl(25,100%,53%)]'
+  | 'bg-blue-100 text-blue-800'
+  | 'bg-gray-100 text-gray-800';
+
+/**
+ * Type pour les couleurs de statut (utilisé dans les composants UI)
+ */
+export type StatusColor =
+  | 'bg-green-100 text-green-800'
+  | 'bg-red-100 text-red-800'
+  | 'bg-yellow-100 text-yellow-800'
+  | 'bg-gray-100 text-gray-800';
+
+/**
+ * Interface pour les données du formulaire d'édition d'utilisateur
+ */
+export interface UserEditFormData {
+  email: string;
+  name: string;
+  phone: string;
+  company: string;
+  address: string;
+  roles: string[];
+  status: string;
+  specialty: string;
+  recommended: boolean;
+  clientNotes: string;
+  avatar: string;
+  preferences: {
+    language: string;
+    timezone: string;
+    notifications: boolean;
+  };
+}
+
+/**
+ * Interface pour les statistiques utilisateur
+ */
+export interface UserStatistics {
+  invoices: number;
+  tasks: number;
+  projects: number;
 }

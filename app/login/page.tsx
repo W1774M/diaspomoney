@@ -7,6 +7,7 @@ import {
   OAuthProfileCompletion,
 } from '@/components/features/auth';
 import { useAppointment } from '@/components/features/providers';
+import { getAssetURL } from '@/config/cdn';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useOAuthProfileCheck } from '@/hooks/auth/useOAuthProfileCheck';
 import { CreditCard, Shield, TrendingUp, User } from 'lucide-react';
@@ -104,6 +105,9 @@ export default function LoginPage() {
                   height={54}
                   className='brightness-0 invert'
                   priority
+                  loader={({ src, width, quality }) =>
+                    getAssetURL(src, { width, quality: quality ?? 85 })
+                  }
                 />
               </div>
               <h1 className='text-3xl xl:text-4xl font-bold text-white mb-4 leading-tight'>
@@ -137,7 +141,9 @@ export default function LoginPage() {
                   <CreditCard className='w-5 h-5 text-white' />
                 </div>
                 <div>
-                  <h3 className='text-white font-semibold text-sm xl:text-base'>Services Premium</h3>
+                  <h3 className='text-white font-semibold text-sm xl:text-base'>
+                    Services Premium
+                  </h3>
                   <p className='text-orange-100 text-xs xl:text-sm'>
                     Accès à des prestataires vérifiés et recommandés
                   </p>
@@ -162,15 +168,21 @@ export default function LoginPage() {
             {/* Stats */}
             <div className='mt-8 grid grid-cols-3 gap-4 max-w-xl'>
               <div className='text-center bg-white/10 backdrop-blur-sm rounded-lg p-3'>
-                <div className='text-xl xl:text-2xl font-bold text-white'>10K+</div>
+                <div className='text-xl xl:text-2xl font-bold text-white'>
+                  10K+
+                </div>
                 <div className='text-orange-100 text-xs'>Utilisateurs</div>
               </div>
               <div className='text-center bg-white/10 backdrop-blur-sm rounded-lg p-3'>
-                <div className='text-xl xl:text-2xl font-bold text-white'>1K+</div>
+                <div className='text-xl xl:text-2xl font-bold text-white'>
+                  1K+
+                </div>
                 <div className='text-orange-100 text-xs'>Prestataires</div>
               </div>
               <div className='text-center bg-white/10 backdrop-blur-sm rounded-lg p-3'>
-                <div className='text-xl xl:text-2xl font-bold text-white'>50K+</div>
+                <div className='text-xl xl:text-2xl font-bold text-white'>
+                  50K+
+                </div>
                 <div className='text-orange-100 text-xs'>Transactions</div>
               </div>
             </div>
@@ -190,6 +202,9 @@ export default function LoginPage() {
                   height={48}
                   className='brightness-0 invert'
                   priority
+                  loader={({ src, width, quality }) =>
+                    getAssetURL(src, { width, quality: quality ?? 85 })
+                  }
                 />
               </div>
               <h1 className='text-xl font-bold text-gray-900 mb-2'>
@@ -264,15 +279,21 @@ export default function LoginPage() {
             {/* Mobile stats */}
             <div className='lg:hidden mt-8 grid grid-cols-3 gap-3'>
               <div className='text-center bg-white rounded-xl shadow-md p-3 border border-gray-100'>
-                <div className='text-lg font-bold text-[hsl(25,100%,53%)]'>10K+</div>
+                <div className='text-lg font-bold text-[hsl(25,100%,53%)]'>
+                  10K+
+                </div>
                 <div className='text-gray-600 text-xs'>Utilisateurs</div>
               </div>
               <div className='text-center bg-white rounded-xl shadow-md p-3 border border-gray-100'>
-                <div className='text-lg font-bold text-[hsl(25,100%,53%)]'>1K+</div>
+                <div className='text-lg font-bold text-[hsl(25,100%,53%)]'>
+                  1K+
+                </div>
                 <div className='text-gray-600 text-xs'>Prestataires</div>
               </div>
               <div className='text-center bg-white rounded-xl shadow-md p-3 border border-gray-100'>
-                <div className='text-lg font-bold text-[hsl(25,100%,53%)]'>50K+</div>
+                <div className='text-lg font-bold text-[hsl(25,100%,53%)]'>
+                  50K+
+                </div>
                 <div className='text-gray-600 text-xs'>Transactions</div>
               </div>
             </div>

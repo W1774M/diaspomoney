@@ -102,7 +102,7 @@ db.users.insertOne({
   email: 'admin@diaspomoney.fr',
   phone: '+33123456789',
   password:
-    '$2b$10$rQZ8K9mN2pL3sT4uV5wX6yA7bC8dE9fG0hI1jK2lM3nO4pQ5rS6tU7vW8xY9zA', // password123
+    '$2a$10$XZ6FQellqQWydUCEcBhPjutqJqJqJqJqJqJqJqJqJqJqJqJqJqJqJqJqJqJq', // password123 (sera mis à jour par le script)
   roles: ['ADMIN'], // Changé de 'role' à 'roles' (array)
   status: 'ACTIVE',
   emailVerified: true,

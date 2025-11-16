@@ -1,15 +1,25 @@
+/**
+ * Page de détails d'un prestataire
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (useProviderDetail)
+ * - Error Handling Pattern (Sentry côté client)
+ * - Component Composition Pattern (sous-composants)
+ */
+
 'use client';
 
 import { BookingForm } from '@/components/features/providers/BookingForm';
 import { InfiniteReviewsCarousel } from '@/components/providers/index';
 import { StatusBadge } from '@/components/ui';
 import { useNotificationManager } from '@/components/ui/Notification';
+import { useProviderDetail } from '@/hooks/providers';
+import imageLoader from '@/lib/image-loader';
 import type { BookingFormData } from '@/lib/validations';
-import { ProviderInfo, UserRole } from '@/types';
+import { UserRole } from '@/types';
 import { Building, Calendar, MapPin, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 export default function ProviderDetailPage() {
   const router = useRouter();
@@ -17,22 +27,13 @@ export default function ProviderDetailPage() {
   const id = useParams().id;
   const providerId = Array.isArray(id) ? id[0] : id;
 
-  const [provider, setProvider] = useState<ProviderInfo | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Utiliser le hook personnalisé (Custom Hooks Pattern)
+  const { provider, ratingStats, loading, error } =
+    useProviderDetail(providerId);
+
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showBookingForm, setShowBookingForm] = useState(false);
-  const [ratingStats, setRatingStats] = useState<{
-    averageRating: number;
-    totalReviews: number;
-    ratingDistribution: {
-      5: number;
-      4: number;
-      3: number;
-      2: number;
-      1: number;
-    };
-  } | null>(null);
 
   const ratingColor = (rating: number) => {
     if (rating >= 4.5) return 'text-green-600';
@@ -100,150 +101,17 @@ export default function ProviderDetailPage() {
 
   const handleFormSubmit = async (_data: BookingFormData) => {
     try {
-      // Ici on pourrait envoyer les données à l'API
-      // console.log("Données du formulaire:", data);
-      // console.log("Prestataire:", provider?.name);
-
       // Simuler un délai d'envoi
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Fermer le formulaire et afficher un message de succès
       handleCloseModal();
-
-      // Ici on pourrait rediriger vers une page de confirmation
-      // ou afficher une notification de succès
       addSuccess('Rendez-vous confirmé avec succès !');
     } catch (error) {
       addError('Erreur lors de la prise de rendez-vous. Veuillez réessayer.');
-      console.error('Erreur lors de la prise de rendez-vous:', error);
+      // Les erreurs sont déjà gérées par le hook et Sentry
     }
   };
-
-  useEffect(() => {
-    const loadProvider = async () => {
-      try {
-        setLoading(true);
-        if (!providerId) {
-          console.log('ProviderDetailPage: Aucun ID de provider fourni');
-          setProvider(null);
-          setLoading(false);
-          return;
-        }
-
-        console.log(
-          'ProviderDetailPage: Chargement du provider avec ID:',
-          providerId
-        );
-
-        // Récupérer le prestataire depuis l'API
-        try {
-          const response = await fetch(`/api/providers/${providerId}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            cache: 'no-store', // Éviter le cache pour avoir les données les plus récentes
-          });
-
-          console.log(
-            'ProviderDetailPage: Réponse API status:',
-            response.status
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log('ProviderDetailPage: Données reçues:', {
-              success: data.success,
-              hasData: !!data.data,
-              providerId: data.data?._id || data.data?.id,
-              roles: data.data?.roles,
-              status: data.data?.status,
-            });
-
-            const foundProvider = data.data;
-
-            if (
-              foundProvider &&
-              Array.isArray(foundProvider.roles) &&
-              foundProvider.roles.includes('PROVIDER') &&
-              foundProvider.status === 'ACTIVE'
-            ) {
-              console.log('ProviderDetailPage: Provider valide trouvé');
-
-              // Correction: Ajout d'un fallback pour availabilities et appointments si absents
-              const providerData: ProviderInfo = {
-                ...foundProvider,
-                availabilities: foundProvider.availabilities || [],
-                appointments: foundProvider.appointmentsAsProvider || [],
-                images: foundProvider.images || [],
-                // Assurer que les champs requis sont présents
-                _id: foundProvider._id || foundProvider.id,
-                id: foundProvider._id || foundProvider.id,
-                name:
-                  foundProvider.name ||
-                  `${foundProvider.firstName || ''} ${
-                    foundProvider.lastName || ''
-                  }`.trim(),
-                email: foundProvider.email,
-                roles: foundProvider.roles,
-                status: foundProvider.status,
-                specialty: foundProvider.specialty,
-                rating: foundProvider.rating || 0,
-                city: foundProvider.city,
-                specialties: foundProvider.specialties || [],
-                services: foundProvider.services || [],
-                providerInfo: foundProvider.providerInfo,
-              };
-
-              setProvider(providerData);
-
-              // Charger les statistiques de rating
-              const stats = {
-                averageRating: foundProvider.rating || 4.5,
-                totalReviews: foundProvider.reviewCount || 12,
-                ratingDistribution: {
-                  5: Math.floor((foundProvider.reviewCount || 12) * 0.6),
-                  4: Math.floor((foundProvider.reviewCount || 12) * 0.25),
-                  3: Math.floor((foundProvider.reviewCount || 12) * 0.1),
-                  2: Math.floor((foundProvider.reviewCount || 12) * 0.03),
-                  1: Math.floor((foundProvider.reviewCount || 12) * 0.02),
-                },
-              };
-              setRatingStats(stats);
-            } else {
-              console.log('ProviderDetailPage: Provider invalide ou inactif:', {
-                hasProvider: !!foundProvider,
-                roles: foundProvider?.roles,
-                status: foundProvider?.status,
-              });
-              setProvider(null);
-            }
-          } else {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('ProviderDetailPage: Erreur API:', {
-              status: response.status,
-              statusText: response.statusText,
-              error: errorData.error,
-            });
-            setProvider(null);
-          }
-        } catch (error) {
-          console.error(
-            'ProviderDetailPage: Erreur lors du chargement du prestataire:',
-            error
-          );
-          setProvider(null);
-        }
-      } catch (error) {
-        console.error('ProviderDetailPage: Erreur générale:', error);
-        setProvider(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProvider();
-  }, [providerId]);
 
   if (loading) {
     return (
@@ -253,15 +121,16 @@ export default function ProviderDetailPage() {
     );
   }
 
-  if (!provider) {
+  if (error || !provider) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-center'>
           <h2 className='text-2xl font-bold text-gray-900 mb-4'>
             Prestataire non trouvé
           </h2>
-          <p className='text-gray-600'>
-            Le prestataire que vous recherchez n&apos;existe pas.
+          <p className='text-gray-600 mb-4'>
+            {error ||
+              "Le prestataire que vous recherchez n'existe pas ou n'est plus disponible."}
           </p>
           <button
             onClick={() => router.push('/services')}
@@ -275,13 +144,12 @@ export default function ProviderDetailPage() {
     );
   }
 
-  // Subcomponents for readability
+  // Subcomponents for readability (Component Composition Pattern)
   const HeaderSection = () => (
     <div className='mb-6'>
       <div className='flex items-center gap-3 mb-2'>
         <h1 className='text-3xl font-bold text-gray-900'>{provider.name}</h1>
         <StatusBadge status='ACTIVE' size='md' />
-        {/* Provider type information */}
       </div>
       <p className='text-xl text-gray-600 mb-2'>{provider.specialty}</p>
       {provider.company && (
@@ -304,6 +172,8 @@ export default function ProviderDetailPage() {
             className='object-contain object-center'
             sizes='(max-width: 1024px) 100vw, 33vw'
             priority
+            loader={imageLoader}
+            unoptimized
           />
         ) : (
           <div className='w-full h-full flex items-center justify-center bg-gray-200'>
@@ -376,13 +246,6 @@ export default function ProviderDetailPage() {
     }
 
     if (servicesList.length === 0) return null;
-
-    console.log('ServicesSection - Services trouvés:', {
-      providerInfoServices: provider.providerInfo?.services,
-      specialties: provider.specialties,
-      selectedServices: provider.selectedServices,
-      finalServices: servicesList,
-    });
 
     return (
       <div className='mb-6'>

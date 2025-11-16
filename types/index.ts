@@ -869,6 +869,25 @@ export interface ApiGeo {
   longitude: number;
 }
 
+// === TYPES HEALTH ===
+// Réexport des types de santé
+// Note: Appointment et TimeSlot sont déjà définis ailleurs, on exporte seulement les types spécifiques à la santé
+export type {
+  HealthProvider,
+  HealthProviderFilters,
+  Medication,
+  Prescription,
+  ProviderAvailability,
+  Teleconsultation,
+} from './health';
+
+// Réexport également depuis le repository pour cohérence
+export type {
+  Medication as MedicationRepository,
+  PrescriptionFilters,
+  Prescription as PrescriptionRepository,
+} from '../repositories/interfaces/IPrescriptionRepository';
+
 // === TYPES HEALTH SERVICE ===
 export interface HealthService {
   id: string;
@@ -934,29 +953,22 @@ export interface PaymentMethod {
   createdAt: Date;
 }
 
-// === TYPES DATA SUBJECT REQUEST ===
-export interface DataSubjectRequest {
-  id: string;
-  userId: string;
-  type: 'ACCESS' | 'PORTABILITY' | 'ERASURE';
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'REJECTED';
-  requestedAt: Date;
-  reason: string;
-}
+// === TYPES GDPR ===
+// Réexport des types GDPR
+export type {
+  DataProcessingRecord,
+  DataSubjectRequest,
+  GDPRConsent,
+} from './gdpr';
 
-// === TYPES PCI AUDIT LOG ===
-export interface PCIAuditLog {
-  id: string;
-  timestamp: Date;
-  event: string;
-  userId: string;
-  transactionId?: string;
-  ipAddress?: string;
-  userAgent?: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  details: Record<string, any>;
-  complianceStatus: 'COMPLIANT' | 'NON_COMPLIANT' | 'REVIEW_REQUIRED';
-}
+// === TYPES PCI-DSS ===
+// Réexport des types PCI-DSS
+export type {
+  PCIAuditLog,
+  PCIDataFlow,
+  PCIFinding,
+  PCISecurityScan,
+} from './pci';
 
 export interface NotificationState {
   notifications: Array<{
@@ -976,3 +988,97 @@ export interface ThemeState {
 }
 
 // Réexport groupé supprimé: tous les symboles sont déjà exportés ci-dessus
+
+// === TYPES HOOKS ===
+// Réexport des types de hooks
+export type {
+  UseBookingCancelReturn,
+  UseComplaintsOptions,
+  UseComplaintsReturn,
+  UseNotificationsReturn,
+  UsePaymentReceiptsReturn,
+  UsePaymentsReturn,
+  UseSpecialityReturn,
+  UseStatisticsReturn,
+} from './hooks';
+
+// === TYPES PAYMENTS UI ===
+// Réexport des types UI de paiements
+export type {
+  PaymentIntent,
+  PaymentProvider,
+  PaymentReceipt,
+  PaymentReceiptCardProps,
+  PaymentReceiptFiltersProps,
+  PaymentResult,
+  PaymentStatsProps,
+  StripePaymentMethod,
+  UIAccountBalance,
+  UIBillingAddress,
+  UIPaymentMethod,
+} from './payments';
+
+// === TYPES USERS UI ===
+// Réexport des types UI d'utilisateurs
+export type {
+  RoleColor,
+  StatusColor,
+  UserEditFormData,
+  UserStatistics,
+} from './user';
+
+// === TYPES COMPLAINTS ===
+// Réexport des types de réclamations
+export type {
+  Complaint,
+  ComplaintCardProps,
+  ComplaintFilters,
+  ComplaintFormData,
+  ComplaintFormProps,
+  ComplaintServiceFilters,
+  ComplaintsFiltersProps,
+  ComplaintsHeaderProps,
+  ComplaintsPageProps,
+  ComplaintsSearchProps,
+  ComplaintsTableProps,
+  ComplaintStats,
+  CreateComplaintData,
+  UpdateComplaintData,
+} from './complaints';
+
+// === TYPES BOOKINGS ===
+// Réexport des types de réservations
+export type {
+  Booking,
+  BookingData,
+  BookingFilters,
+  BookingServiceFilters,
+} from './bookings';
+
+// === TYPES AUTH ===
+// Réexport des types d'authentification
+export type {
+  AuthenticatedUser,
+  AuthResponse,
+  AuthUser,
+  LoginCredentials,
+  RegisterData,
+  TwoFactorData,
+} from './auth';
+
+// Export des types bénéficiaires et KYC
+export type {
+  Beneficiary,
+  BeneficiaryData,
+  BeneficiaryFilters,
+  BeneficiaryRelationship,
+} from './beneficiaries';
+
+export type {
+  KYCData,
+  KYCDocument,
+  KYCDocumentStatus,
+  KYCDocumentType,
+  KYCFilters,
+  KYCStatus,
+} from './kyc';

@@ -2,10 +2,14 @@
  * Education Service - DiaspoMoney
  * Service d'éducation (Écoles & Institutions) Company-Grade
  * Basé sur la charte de développement
+ * Utilise le Repository Pattern pour l'accès aux données
  */
 
+import { InvalidateCache, Log } from '@/lib/decorators';
+import { logger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import { random } from '@/lib/utils';
+import { getQuoteRepository, IQuoteRepository } from '@/repositories';
 import { notificationService } from '@/services/notification/notification.service';
 import * as Sentry from '@sentry/nextjs';
 
@@ -270,8 +274,18 @@ export interface EducationFilters {
   };
 }
 
+/**
+ * EducationService utilisant le Service Layer Pattern
+ * Utilise le Repository Pattern pour l'accès aux données (Dependency Injection)
+ */
 export class EducationService {
   private static instance: EducationService;
+  private quoteRepository: IQuoteRepository;
+
+  private constructor() {
+    // Dependency Injection : injecter le repository
+    this.quoteRepository = getQuoteRepository();
+  }
 
   static getInstance(): EducationService {
     if (!EducationService.instance) {
@@ -671,8 +685,108 @@ export class EducationService {
 
   //   return round(totalPoints / grades.length, 2);
   // }
+
+  /**
+   * Créer une demande de renseignements éducation
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('quote:*')
+  async createEducationInquiry(data: {
+    studentType: 'SELF' | 'CHILD' | 'DEPENDENT';
+    studentInfo: {
+      firstName: string;
+      lastName: string;
+      dateOfBirth?: string;
+      gender?: 'MALE' | 'FEMALE' | 'OTHER';
+      nationality?: string;
+    };
+    academicInfo: {
+      currentLevel?: string;
+      desiredProgram?: string;
+      academicYear?: string;
+      previousEducation?: string;
+    };
+    contact: {
+      name: string;
+      email: string;
+      phone?: string;
+      relationship?: string;
+    };
+    preferences?: {
+      language?: string;
+      schedule?: string;
+      budget?: number;
+      urgency?: 'LOW' | 'MEDIUM' | 'HIGH';
+    };
+    questions?: string;
+    schoolId: string;
+  }): Promise<any> {
+    try {
+      // Créer la demande de renseignements via le repository
+      const quoteData: any = {
+        type: 'EDUCATION',
+        studentType: data.studentType,
+        studentInfo: data.studentInfo,
+        academicInfo: data.academicInfo,
+        contact: data.contact,
+        questions: data.questions,
+        status: 'PENDING',
+      };
+
+      // Ajouter les champs optionnels seulement s'ils sont définis
+      if (data.preferences) {
+        quoteData.preferences = data.preferences;
+      }
+      if (data.schoolId) {
+        quoteData.schoolId = data.schoolId;
+      }
+
+      const quote = await this.quoteRepository.create(quoteData);
+
+      // Envoyer une notification
+      if (data.contact.email) {
+        await notificationService.sendNotification({
+          recipient: data.contact.email,
+          type: 'EDUCATION_INQUIRY',
+          template: 'education_inquiry',
+          data: {
+            quoteId: quote.id,
+            studentName: `${data.studentInfo.firstName} ${data.studentInfo.lastName}`,
+            program: data.academicInfo.desiredProgram,
+          },
+          channels: [
+            { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
+            { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
+          ],
+          locale: 'fr',
+          priority: 'MEDIUM',
+        });
+      }
+
+      // Enregistrer les métriques
+      monitoringManager.recordMetric({
+        name: 'education_inquiry_requests',
+        value: 1,
+        timestamp: new Date(),
+        labels: {
+          student_type: data.studentType,
+          academic_level: data.academicInfo.currentLevel || 'unknown',
+          has_school: data.schoolId ? 'true' : 'false',
+        },
+        type: 'counter',
+      });
+
+      return quote;
+    } catch (error) {
+      logger.error(
+        { error, data },
+        'Erreur lors de la création de la demande de renseignements éducation'
+      );
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
 }
 
 // Export de l'instance singleton
 export const educationService = EducationService.getInstance();
-

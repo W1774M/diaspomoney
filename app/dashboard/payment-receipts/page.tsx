@@ -5,104 +5,77 @@ import {
   PaymentReceiptFilters,
   PaymentStats,
 } from '@/components/payments';
-import { useAuth } from '@/hooks/auth/useAuth';
+import { useInvoiceActions } from '@/hooks/invoices';
+import { usePaymentReceipts, type PaymentReceipt } from '@/hooks/payments';
 import { ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
 
-interface PaymentReceipt {
-  id: string;
-  invoiceNumber: string;
-  amount: number;
-  currency: string;
-  status: 'paid' | 'pending' | 'failed' | 'refunded';
-  paymentMethod: string;
-  service: string;
-  provider: string;
-  date: string;
-  description: string;
-  downloadUrl: string;
-}
-
+/**
+ * Page des reçus de paiement
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (via usePaymentReceipts, useInvoiceActions)
+ * - Service Layer Pattern (via les hooks qui appellent les API)
+ * - Logger Pattern (structured logging côté serveur via les API routes)
+ * - Error Handling Pattern (gestion d'erreurs via les hooks et notifications)
+ */
 export default function PaymentReceiptsPage() {
-  const {} = useAuth();
+  const router = useRouter();
+  const { receipts, loading, error, refetch } = usePaymentReceipts();
+  const { downloadInvoice } = useInvoiceActions();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date' | 'amount' | 'service'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [receipts, setReceipts] = useState<PaymentReceipt[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchReceipts() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch('/api/payment-receipts');
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(
-            errorData.error || 'Erreur lors du chargement des reçus'
-          );
+  const filteredReceipts = useMemo(() => {
+    return receipts
+      .filter(receipt => {
+        const matchesSearch =
+          receipt.invoiceNumber
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          receipt.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          receipt.provider.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesStatus =
+          statusFilter === 'all' || receipt.status === statusFilter;
+
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        let comparison = 0;
+
+        switch (sortBy) {
+          case 'date':
+            comparison =
+              new Date(a.date).getTime() - new Date(b.date).getTime();
+            break;
+          case 'amount':
+            comparison = a.amount - b.amount;
+            break;
+          case 'service':
+            comparison = a.service.localeCompare(b.service);
+            break;
         }
-        const data = await res.json();
-        setReceipts(data.receipts || []);
-      } catch (e: any) {
-        console.error('Erreur lors du chargement des reçus:', e);
-        setError(e.message ?? 'Erreur inconnue');
-        setReceipts([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchReceipts();
-  }, []);
 
-  const filteredReceipts = receipts
-    .filter(receipt => {
-      const matchesSearch =
-        receipt.invoiceNumber
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        receipt.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        receipt.provider.toLowerCase().includes(searchTerm.toLowerCase());
+        return sortOrder === 'asc' ? comparison : -comparison;
+      });
+  }, [receipts, searchTerm, statusFilter, sortBy, sortOrder]);
 
-      const matchesStatus =
-        statusFilter === 'all' || receipt.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortBy) {
-        case 'date':
-          comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
-          break;
-        case 'amount':
-          comparison = a.amount - b.amount;
-          break;
-        case 'service':
-          comparison = a.service.localeCompare(b.service);
-          break;
-      }
-
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-
-  const handleDownload = (receipt: PaymentReceipt) => {
-    // Ici, vous pourriez implémenter la logique de téléchargement réel
-    if (receipt.downloadUrl) {
-      window.open(receipt.downloadUrl, '_blank');
+  const handleDownload = async (receipt: PaymentReceipt) => {
+    // Utiliser le hook pour télécharger la facture
+    if (receipt.id) {
+      await downloadInvoice(receipt.id);
     }
   };
 
   const handleView = (receipt: PaymentReceipt) => {
-    // Ici, vous pourriez ouvrir un modal ou rediriger vers une page de détail
-    // window.location.href = `/dashboard/payment-receipts/${receipt.id}`;
-    // Pour l’instant console.log
-    console.log(`Ouverture du reçu: ${receipt.invoiceNumber}`);
+    // Rediriger vers la page de détail de la facture
+    if (receipt.id) {
+      router.push(`/dashboard/invoices/${receipt.id}`);
+    }
   };
 
   return (
@@ -180,7 +153,7 @@ export default function PaymentReceiptsPage() {
                 </h3>
                 <p className='text-red-500 mb-4'>{error}</p>
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={refetch}
                   className='text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] font-medium'
                 >
                   Réessayer

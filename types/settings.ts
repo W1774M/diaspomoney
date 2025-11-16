@@ -1,10 +1,18 @@
 // Settings Types and Interfaces
 export interface ProfileData {
   name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
   company: string;
   address: string;
+  dateOfBirth: string;
+  countryOfResidence: string;
+  targetCountry: string;
+  targetCity: string;
+  monthlyBudget: string;
+  specialty: string;
 }
 
 export interface PreferencesData {
@@ -29,9 +37,11 @@ export interface BillingData {
 }
 
 export interface PrivacyData {
-  profileVisibility: "public" | "private" | "friends";
+  profileVisibility: 'public' | 'private' | 'friends';
   dataSharing: boolean;
   analytics: boolean;
+  marketingConsent: boolean;
+  kycConsent: boolean;
 }
 
 export interface SettingsTab {

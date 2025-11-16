@@ -1,5 +1,35 @@
-// Bookings Types and Interfaces
+/**
+ * Types et interfaces pour les réservations/bookings
+ */
 
+// Types pour les services
+export interface BookingData {
+  requesterId: string;
+  providerId: string;
+  serviceId: string;
+  serviceType: 'HEALTH' | 'BTP' | 'EDUCATION';
+  appointmentDate?: Date;
+  timeslot?: string;
+  consultationMode?: 'video' | 'cabinet';
+  recipient?: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+  };
+  metadata?: Record<string, any>;
+}
+
+export interface BookingServiceFilters {
+  userId?: string;
+  providerId?: string;
+  status?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  limit?: number;
+  offset?: number;
+}
+
+// Types UI pour les composants
 export interface Booking {
   _id: string;
   userId: string;

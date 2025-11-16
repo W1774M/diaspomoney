@@ -1,6 +1,12 @@
 'use client';
 
-import { clearAuthCache, getAuthPromise, getCachedAuth, setAuthPromise, setCachedAuth } from '@/lib/auth/auth-cache';
+import {
+  clearAuthCache,
+  getAuthPromise,
+  getCachedAuth,
+  setAuthPromise,
+  setCachedAuth,
+} from '@/lib/auth/auth-cache';
 import { useEffect, useRef, useState } from 'react';
 import { useSignOut } from './useSignOut';
 
@@ -46,7 +52,7 @@ export function useAuth() {
     // Vérifier le cache partagé
     const cached = getCachedAuth();
     if (cached && cached.user) {
-      console.log('[useAuth] Utilisation du cache pour l\'utilisateur');
+      console.log("[useAuth] Utilisation du cache pour l'utilisateur");
       const me = cached.user;
       setUser({
         id: me.id,
@@ -98,7 +104,10 @@ export function useAuth() {
 
     // Créer une nouvelle requête
     const controller = new AbortController();
-    let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => controller.abort(), 5000);
+    let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(
+      () => controller.abort(),
+      5000
+    );
 
     const cleanup = () => {
       if (timeoutId) {
@@ -107,7 +116,7 @@ export function useAuth() {
       }
     };
 
-    const fetchPromise = fetch('/api/users/me', { 
+    const fetchPromise = fetch('/api/users/me', {
       cache: 'no-store',
       signal: controller.signal,
     })
@@ -120,7 +129,7 @@ export function useAuth() {
         if (res.status === 401) {
           throw new Error('Not authenticated');
         }
-        throw new Error('API error');
+        throw new Error(`API error: ${res.status} ${res.statusText}`);
       })
       .then(data => {
         console.log('[useAuth] User data received:', data.user);
@@ -146,7 +155,9 @@ export function useAuth() {
       .catch(error => {
         cleanup();
         if (error.name === 'AbortError') {
-          console.log('[useAuth] Timeout lors de la vérification de l\'authentification');
+          console.log(
+            "[useAuth] Timeout lors de la vérification de l'authentification"
+          );
         } else {
           console.log('[useAuth] Utilisateur non authentifié:', error.message);
         }

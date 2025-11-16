@@ -8,6 +8,11 @@ const BookingSchema = new Schema<BookingExtended>(
       required: true,
       unique: true,
     },
+    userId: {
+      type: String,
+      required: true,
+      index: true,
+    },
     beneficiary: {
       firstName: { type: String, required: true },
       lastName: { type: String, required: true },
@@ -16,6 +21,7 @@ const BookingSchema = new Schema<BookingExtended>(
     providerId: {
       type: String,
       required: true,
+      index: true,
     },
     // provider: {
     //   id: { type: Schema.Types.Mixed, required: true },

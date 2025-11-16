@@ -27,10 +27,7 @@ services:
       - diaspomoney
     healthcheck:
       test:
-        [
-          "CMD-SHELL",
-          "mongosh --host 127.0.0.1 --username diaspomoney --password password123 --authenticationDatabase diaspomoney --quiet --eval 'db.adminCommand({ ping: 1 }).ok ? 0 : 1'",
-        ]
+        ["CMD-SHELL", "mongosh --eval 'db.adminCommand({ ping: 1 })' --quiet"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -49,7 +46,7 @@ services:
     networks:
       - diaspomoney
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "-a", "redis123", "--raw", "incr", "ping"]
       interval: 30s
       timeout: 10s
       retries: 5

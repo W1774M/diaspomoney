@@ -2,8 +2,9 @@
 
 import AuthGuard from '@/components/auth/AuthGuard';
 import Footer from '@/components/layout/footer/Footer';
-import PublicHeader from '@/components/layout/header/PublicHeader';
+import DashboardHeader from '@/components/layout/header/DashboardHeader';
 import Sidebar from '@/components/layout/Sidebar';
+import Breadcrumb from '@/components/ui/Breadcrumb';
 
 export default function DashboardLayout({
   children,
@@ -12,14 +13,20 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthGuard>
-      <div className='min-h-screen flex flex-col'>
+      <div className='min-h-screen flex flex-col bg-gray-50'>
         {/* Header */}
-        <PublicHeader />
+        <DashboardHeader />
 
         {/* Main content with sidebar */}
-        <div className='flex flex-1 bg-gray-50'>
+        <div className='flex flex-1'>
           <Sidebar />
-          <main className='flex-1 p-6'>{children}</main>
+          <main className='flex-1 p-6'>
+            {/* Fil d'Ariane */}
+            <div className='mb-4'>
+              <Breadcrumb />
+            </div>
+            {children}
+          </main>
         </div>
 
         {/* Footer */}

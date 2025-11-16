@@ -70,10 +70,9 @@ const nextConfig = {
     loaderFile: './lib/image-loader.ts',
   },
 
-  // Configuration expérimentale (instrumentationHook n'est plus nécessaire)
-  // experimental: {
-  //   instrumentationHook: true,
-  // },
+  // Configuration pour exclure certains packages de l'externalisation serveur
+  // Ces packages sont nécessaires pour OpenTelemetry et Sentry
+  serverExternalPackages: ['require-in-the-middle', 'import-in-the-middle'],
 
   // Configuration Webpack pour les modules Node.js
   webpack: (config, { isServer }) => {
@@ -108,7 +107,7 @@ const nextConfig = {
     // Exclure les fichiers de test et autres fichiers non nécessaires dans node_modules
     // Utiliser IgnorePlugin pour exclure les modules de test et fichiers de test
     config.plugins = config.plugins || [];
-    
+
     // Ignorer les fichiers de test et fichiers non nécessaires
     config.plugins.push(
       new webpack.IgnorePlugin({
@@ -116,9 +115,11 @@ const nextConfig = {
           // Ignorer tous les fichiers de test dans node_modules
           if (context.includes('node_modules')) {
             // Ignorer les dossiers de test
-            if (resource.includes('/test/') || 
-                resource.includes('/tests/') ||
-                resource.includes('/__tests__/')) {
+            if (
+              resource.includes('/test/') ||
+              resource.includes('/tests/') ||
+              resource.includes('/__tests__/')
+            ) {
               return true;
             }
             // Ignorer les fichiers de test
@@ -130,28 +131,31 @@ const nextConfig = {
               return true;
             }
             // Ignorer les fichiers bench
-            if (resource.includes('bench.js') || resource.includes('benchmark')) {
+            if (
+              resource.includes('bench.js') ||
+              resource.includes('benchmark')
+            ) {
               return true;
             }
           }
-          
+
           // Ignorer les modules de test spécifiques
           const testModules = [
-            'tap', 
-            'pino-elasticsearch', 
+            'tap',
+            'pino-elasticsearch',
             'why-is-node-running',
             'desm',
-            'fastbench'
+            'fastbench',
           ];
           if (testModules.includes(resource)) {
             return true;
           }
-          
+
           return false;
-        }
+        },
       })
     );
-    
+
     // Ignorer les fichiers de test lors de la résolution
     config.resolve = config.resolve || {};
     config.resolve.alias = config.resolve.alias || {};

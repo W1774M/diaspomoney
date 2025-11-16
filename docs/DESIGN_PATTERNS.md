@@ -20,19 +20,21 @@ Ce document décrit les design patterns utilisés et recommandés pour le projet
 **Description**: Pattern de gestion d'état global inspiré de Redux, implémenté avec Zustand.
 
 **Caractéristiques**:
+
 - **Actions**: Objets typés avec `type` et `payload`
 - **Reducers**: Fonctions pures qui transforment l'état
 - **Dispatch**: Fonction centrale pour déclencher les actions
 - **Slices**: Division de l'état en domaines (auth, notifications, theme, etc.)
 
 **Exemple**:
+
 ```typescript
 // Action
 export const authActions = {
   loginStart: () => ({ type: AUTH_ACTIONS.LOGIN_START }),
-  loginSuccess: (user: any) => ({ 
-    type: AUTH_ACTIONS.LOGIN_SUCCESS, 
-    payload: user 
+  loginSuccess: (user: any) => ({
+    type: AUTH_ACTIONS.LOGIN_SUCCESS,
+    payload: user,
   }),
 };
 
@@ -41,6 +43,7 @@ dispatch(authActions.loginStart());
 ```
 
 **Avantages**:
+
 - ✅ État prévisible et traçable
 - ✅ Séparation claire des responsabilités
 - ✅ Facilite le debugging
@@ -55,19 +58,21 @@ dispatch(authActions.loginStart());
 **Description**: Couche d'abstraction entre les composants UI et la logique métier/données.
 
 **Caractéristiques**:
+
 - Services encapsulent la logique métier
 - Séparation entre présentation et logique
 - Réutilisabilité accrue
 - Facilite les tests unitaires
 
 **Exemple**:
+
 ```typescript
 // services/user/user.service.ts
 export class UserService {
   async getUserById(id: string): Promise<User> {
     // Logique métier
   }
-  
+
   async updateUser(id: string, data: UpdateUserData): Promise<User> {
     // Validation, transformation, persistance
   }
@@ -75,6 +80,7 @@ export class UserService {
 ```
 
 **Avantages**:
+
 - ✅ Réutilisabilité
 - ✅ Testabilité
 - ✅ Maintenabilité
@@ -89,27 +95,30 @@ export class UserService {
 **Description**: Encapsulation de la logique réutilisable dans des hooks React personnalisés.
 
 **Caractéristiques**:
+
 - Logique métier réutilisable
 - Gestion d'état locale
 - Effets de bord encapsulés
 - Interface simple pour les composants
 
 **Exemple**:
+
 ```typescript
 // hooks/auth/useLogin.ts
 export const useLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { addError } = useNotificationManager();
-  
+
   const login = async (data: LoginData) => {
     // Logique de connexion
   };
-  
+
   return { login, isLoading };
 };
 ```
 
 **Avantages**:
+
 - ✅ Réutilisabilité
 - ✅ Séparation logique/UI
 - ✅ Testabilité
@@ -124,6 +133,7 @@ export const useLogin = () => {
 **Description**: Abstraction formelle de l'accès aux données avec interfaces explicites.
 
 **Caractéristiques**:
+
 - ✅ Interfaces explicites pour chaque entité (`IUserRepository`, `ITransactionRepository`, etc.)
 - ✅ Implémentations MongoDB séparées (`MongoUserRepository`, etc.)
 - ✅ Container de dépendances pour l'injection
@@ -131,6 +141,7 @@ export const useLogin = () => {
 - ✅ Méthodes spécifiques par entité
 
 **Structure**:
+
 ```
 repositories/
 ├── interfaces/          # Interfaces des repositories
@@ -146,6 +157,7 @@ repositories/
 ```
 
 **Exemple**:
+
 ```typescript
 // Utilisation du repository
 import { getUserRepository } from '@/repositories';
@@ -172,6 +184,7 @@ const result = await userRepository.findWithPagination(
 ```
 
 **Avantages**:
+
 - ✅ Testabilité (mocks faciles)
 - ✅ Flexibilité (changement de BDD)
 - ✅ Séparation claire des responsabilités
@@ -186,11 +199,13 @@ const result = await userRepository.findWithPagination(
 **Description**: Intercepteurs pour les requêtes HTTP et l'authentification.
 
 **Caractéristiques**:
+
 - Traitement avant/après les requêtes
 - Authentification centralisée
 - Validation des routes protégées
 
 **Exemple**:
+
 ```typescript
 // middleware.ts
 export function middleware(request: NextRequest) {
@@ -201,6 +216,7 @@ export function middleware(request: NextRequest) {
 ```
 
 **Avantages**:
+
 - ✅ Sécurité centralisée
 - ✅ Logging centralisé
 - ✅ Réduction de la duplication
@@ -214,13 +230,13 @@ export function middleware(request: NextRequest) {
 **Description**: Création d'objets/composants via des fonctions factory.
 
 **Exemple**:
+
 ```typescript
 // Action creators sont des factories
 export const authActions = {
   loginStart: () => ({ type: AUTH_ACTIONS.LOGIN_START }),
 };
 ```
-
 
 ### 7. **Strategy Pattern** ✅ **IMPLÉMENTÉ**
 
@@ -231,6 +247,7 @@ export const authActions = {
 **Description**: Pattern pour gérer différents providers de paiement (Stripe, PayPal, etc.) de manière interchangeable.
 
 **Structure**:
+
 ```
 strategies/payment/
 ├── interfaces/
@@ -243,6 +260,7 @@ strategies/payment/
 ```
 
 **Exemple**:
+
 ```typescript
 // Utilisation directe
 import { PaymentStrategyFactory } from '@/strategies/payment';
@@ -276,6 +294,7 @@ const paymentIntent = await paymentService.createPaymentIntent(
 ```
 
 **Avantages**:
+
 - ✅ Flexibilité : Ajouter de nouveaux providers facilement
 - ✅ Testabilité : Mocks faciles pour les tests
 - ✅ Séparation des responsabilités : Chaque provider isolé
@@ -284,6 +303,7 @@ const paymentIntent = await paymentService.createPaymentIntent(
 **Documentation complète**: Voir `strategies/payment/README.md`
 
 **Cas d'usage**:
+
 - ✅ Méthodes de paiement multiples (Stripe, PayPal)
 - 🔄 Algorithmes de validation différents (à implémenter)
 - 🔄 Stratégies de cache (à implémenter)
@@ -300,6 +320,7 @@ const paymentIntent = await paymentService.createPaymentIntent(
 **Description**: Système d'événements pour découpler les composants via un bus d'événements global.
 
 **Structure**:
+
 ```
 lib/events/
 ├── EventBus.ts           # Implémentation principale
@@ -309,11 +330,12 @@ lib/events/
 ```
 
 **Exemple**:
+
 ```typescript
 // Utilisation de base
 import { eventBus } from '@/lib/events';
 
-const unsubscribe = eventBus.on('user:logged-in', (user) => {
+const unsubscribe = eventBus.on('user:logged-in', user => {
   console.log('User logged in:', user);
 });
 
@@ -327,7 +349,7 @@ await eventBus.emit('user:logged-in', {
 import { authEvents, paymentEvents } from '@/lib/events';
 
 // Écouter un événement d'authentification
-authEvents.onUserLoggedIn((data) => {
+authEvents.onUserLoggedIn(data => {
   console.log('User logged in:', data.userId);
 });
 
@@ -343,6 +365,7 @@ await paymentEvents.emitPaymentSucceeded({
 ```
 
 **Fonctionnalités**:
+
 - ✅ Support asynchrone (listeners peuvent retourner des Promises)
 - ✅ Priorité des listeners (ordre d'exécution contrôlable)
 - ✅ Listeners "once" (automatiquement supprimés après le premier appel)
@@ -351,6 +374,7 @@ await paymentEvents.emitPaymentSucceeded({
 - ✅ Gestion d'erreurs (les erreurs dans un listener n'arrêtent pas les autres)
 
 **Avantages**:
+
 - ✅ Découplage : Communication sans dépendances directes
 - ✅ Flexibilité : Ajouter/supprimer des listeners facilement
 - ✅ Scalabilité : Gère de nombreux événements et listeners
@@ -359,11 +383,11 @@ await paymentEvents.emitPaymentSucceeded({
 **Documentation complète**: Voir `lib/events/README.md`
 
 **Cas d'usage**:
+
 - ✅ Notifications en temps réel
 - ✅ Synchronisation entre composants
 - ✅ Logging d'événements
 - ✅ Analytics
-
 
 ### 9. **Builder Pattern** ✅ **IMPLÉMENTÉ**
 
@@ -374,6 +398,7 @@ await paymentEvents.emitPaymentSucceeded({
 **Description**: Pattern pour construire des requêtes MongoDB de manière fluide et lisible.
 
 **Structure**:
+
 ```
 builders/
 ├── QueryBuilder.ts              # Builder de base générique
@@ -385,6 +410,7 @@ builders/
 ```
 
 **Exemple**:
+
 ```typescript
 // Builder de base
 import { QueryBuilder } from '@/builders';
@@ -422,6 +448,7 @@ const result = await userRepository.findUsersWithFilters(
 ```
 
 **Fonctionnalités**:
+
 - ✅ Builder de base avec opérateurs MongoDB complets
 - ✅ Builders spécialisés par entité (User, Transaction, Booking, Invoice)
 - ✅ Méthodes expressives et typées
@@ -429,6 +456,7 @@ const result = await userRepository.findUsersWithFilters(
 - ✅ Support des opérateurs avancés ($or, $and, $in, $gt, etc.)
 
 **Avantages**:
+
 - ✅ Code expressif et lisible
 - ✅ Type-safety complet
 - ✅ Réutilisabilité élevée
@@ -437,271 +465,354 @@ const result = await userRepository.findUsersWithFilters(
 **Documentation complète**: Voir `builders/README.md`
 
 **Cas d'usage**:
+
 - ✅ Construction de requêtes complexes MongoDB
 - 🔄 Configuration d'objets (à implémenter)
 - 🔄 Construction de formulaires dynamiques (à implémenter)
 
 ---
 
+## 🎯 Patterns Implémentés (Suite)
 
-pattern non implementés
+### 10. **Decorator Pattern** ✅ **IMPLÉMENTÉ**
 
-### 10. **Adapter Pattern**
+**Status**: ✅ **Implémenté** - Voir `lib/decorators/`
 
-**Objectif**: Adapter des interfaces incompatibles.
+**Localisation**: `lib/decorators/` (cache, log, retry, validate)
 
-**Implémentation**:
+**Description**: Pattern pour ajouter des fonctionnalités dynamiquement aux méthodes via des decorators TypeScript.
+
+**Structure**:
+
+```
+lib/decorators/
+├── cache.decorator.ts      # @Cacheable - Cache automatique
+├── log.decorator.ts        # @Log - Logging automatique
+├── retry.decorator.ts      # @Retry - Retry automatique
+├── validate.decorator.ts   # @Validate - Validation automatique
+└── index.ts               # Exports
+```
+
+**Exemple**:
+
 ```typescript
-// adapters/payment-adapter.ts
-export interface PaymentProvider {
-  charge(amount: number): Promise<ChargeResult>;
-}
+// Utilisation des decorators
+import { Cacheable, Log, Retry, Validate } from '@/lib/decorators';
+import { z } from 'zod';
 
-// Adapter pour Stripe
-export class StripeAdapter implements PaymentProvider {
-  constructor(private stripe: Stripe) {}
-  
-  async charge(amount: number): Promise<ChargeResult> {
-    const paymentIntent = await this.stripe.paymentIntents.create({
-      amount,
-      currency: 'eur',
-    });
-    
-    return {
-      id: paymentIntent.id,
-      status: paymentIntent.status,
-      // Transformation des données
-    };
+class UserService {
+  @Log({ level: 'info', logArgs: true })
+  @Cacheable(600) // Cache 10 minutes
+  @Validate({
+    rules: [{ paramIndex: 0, schema: z.string().min(1), paramName: 'userId' }],
+  })
+  async getUserById(userId: string) {
+    // Logique
   }
-}
 
-// Adapter pour PayPal
-export class PayPalAdapter implements PaymentProvider {
-  constructor(private paypal: PayPal) {}
-  
-  async charge(amount: number): Promise<ChargeResult> {
-    // Adaptation de l'API PayPal
+  @Retry({ maxAttempts: 3, delay: 1000 })
+  async createUser(data: CreateUserData) {
+    // Logique avec retry automatique
   }
 }
 ```
 
+**Fonctionnalités**:
+
+- ✅ `@Cacheable` : Cache automatique avec Redis ou mémoire
+- ✅ `@Log` : Logging structuré avec pino et Sentry
+- ✅ `@Retry` : Retry automatique avec backoff exponentiel
+- ✅ `@Validate` : Validation automatique avec Zod
+
+**Avantages**:
+
+- ✅ Réduction de la duplication de code
+- ✅ Séparation des préoccupations
+- ✅ Réutilisabilité élevée
+- ✅ Type-safety complet
+
 **Cas d'usage**:
+
+- ✅ Caching automatique
+- ✅ Logging structuré
+- ✅ Validation des paramètres
+- ✅ Retry logic pour les appels API
+
+---
+
+### 11. **Facade Pattern** ✅ **IMPLÉMENTÉ**
+
+**Status**: ✅ **Implémenté** - Voir `facades/`
+
+**Localisation**: `facades/` (payment, booking)
+
+**Description**: Interface simplifiée pour orchestrer des sous-systèmes complexes.
+
+**Structure**:
+
+```
+facades/
+├── payment.facade.ts    # Facade pour le processus de paiement
+├── booking.facade.ts    # Facade pour le processus de réservation
+└── index.ts             # Exports
+```
+
+**Exemple**:
+
+```typescript
+// Utilisation de la facade
+import { paymentFacade } from '@/facades';
+
+const result = await paymentFacade.processPayment({
+  amount: 100,
+  currency: 'EUR',
+  customerId: 'cus_123',
+  paymentMethodId: 'pm_123',
+  payerId: 'user_123',
+  beneficiaryId: 'provider_456',
+  serviceType: 'HEALTH',
+  serviceId: 'service_789',
+  description: 'Consultation médicale',
+  createInvoice: true,
+  sendNotification: true,
+});
+
+// La facade orchestre automatiquement :
+// - PaymentService (création du paiement)
+// - TransactionService (enregistrement de la transaction)
+// - InvoiceService (création de la facture)
+// - NotificationService (envoi de notification)
+```
+
+**Avantages**:
+
+- ✅ Interface simple et intuitive
+- ✅ Masque la complexité de l'orchestration
+- ✅ Facilite les tests (mock de la facade)
+- ✅ Réduction de la duplication
+
+**Cas d'usage**:
+
+- ✅ Processus de paiement complet
+- ✅ Processus de réservation complet
+- ✅ Orchestration de plusieurs services
+
+---
+
+### 12. **Command Pattern** ✅ **IMPLÉMENTÉ**
+
+**Status**: ✅ **Implémenté** - Voir `commands/`
+
+**Localisation**: `commands/` (base, payment, transaction, booking)
+
+**Description**: Encapsule les requêtes comme objets pour permettre l'historique, undo/redo et les transactions.
+
+**Structure**:
+
+```
+commands/
+├── base.command.ts              # Interface et base abstraite
+├── payment.commands.ts          # Commandes de paiement
+├── transaction.commands.ts      # Commandes de transaction
+├── booking.commands.ts          # Commandes de réservation
+├── index.ts                     # Exports
+└── app/api/commands/undo/       # API pour undo
+```
+
+**Exemple**:
+
+```typescript
+// Utilisation des commandes
+import { CreatePaymentCommand, CommandHandler } from '@/commands';
+
+const commandHandler = new CommandHandler();
+
+// Exécuter une commande
+const createPaymentCmd = new CreatePaymentCommand({
+  amount: 100,
+  currency: 'EUR',
+  // ... autres données
+});
+
+const result = await commandHandler.execute(createPaymentCmd);
+
+// Undo (si supporté)
+if (result.success && createPaymentCmd.canUndo()) {
+  await commandHandler.undo();
+}
+```
+
+**Fonctionnalités**:
+
+- ✅ Historique des commandes
+- ✅ Undo/Redo support
+- ✅ Logging automatique
+- ✅ Gestion d'erreurs centralisée
+
+**Avantages**:
+
+- ✅ Historique d'actions
+- ✅ Undo/Redo possible
+- ✅ Transactions atomiques
+- ✅ Queue de commandes
+
+**Cas d'usage**:
+
+- ✅ Historique d'actions utilisateur
+- ✅ Undo/Redo dans l'interface
+- ✅ Transactions atomiques
+- ✅ Queue de commandes asynchrones
+
+---
+
+### 13. **Dependency Injection (DI)** ✅ **IMPLÉMENTÉ**
+
+**Status**: ✅ **Implémenté** - Voir `containers/` et `lib/di/`
+
+**Localisation**: `containers/` (service-container, service-registry), `lib/di/` (initialize)
+
+**Description**: Inversion de contrôle pour gérer les dépendances et faciliter les tests.
+
+**Structure**:
+
+```
+containers/
+├── service-container.ts      # Conteneur principal
+├── service-registry.ts       # Registre de services
+└── index.ts                  # Exports
+
+lib/di/
+└── initialize.ts             # Initialisation du système DI
+```
+
+**Exemple**:
+
+```typescript
+// Enregistrement de services
+import { serviceContainer } from '@/containers';
+import { MongoUserRepository } from '@/repositories';
+import { UserService } from '@/services';
+
+// Enregistrer un repository
+serviceContainer.register(
+  'userRepository',
+  () => new MongoUserRepository(),
+  true // singleton
+);
+
+// Enregistrer un service avec dépendances
+serviceContainer.register(
+  'userService',
+  () => new UserService(serviceContainer.resolve('userRepository')),
+  true
+);
+
+// Utilisation
+const userService = serviceContainer.resolve<UserService>('userService');
+```
+
+**Fonctionnalités**:
+
+- ✅ Support des singletons
+- ✅ Détection des dépendances circulaires
+- ✅ Injection automatique
+- ✅ Service registry centralisé
+
+**Avantages**:
+
+- ✅ Découplage des dépendances
+- ✅ Testabilité élevée (mocks faciles)
+- ✅ Flexibilité (changement d'implémentation)
+- ✅ Gestion centralisée des services
+
+**Cas d'usage**:
+
+- ✅ Injection de repositories dans les services
+- ✅ Injection de services dans les facades
+- ✅ Tests unitaires avec mocks
+- ✅ Configuration centralisée
+
+---
+
+### 14. **Template Method Pattern** ✅ **IMPLÉMENTÉ**
+
+**Status**: ✅ **Implémenté** - Voir `templates/`
+
+**Localisation**: `templates/` (payment-processor)
+
+**Description**: Définit le squelette d'un algorithme avec des étapes communes et des étapes spécifiques.
+
+**Structure**:
+
+```
+templates/
+├── payment-processor.template.ts    # Classe abstraite de base
+├── stripe-payment-processor.ts      # Implémentation Stripe
+└── paypal-payment-processor.ts      # Implémentation PayPal
+```
+
+**Exemple**:
+
+```typescript
+// Utilisation du template method
+import { PaymentProcessor } from '@/templates';
+import { StripePaymentProcessor } from '@/templates/stripe-payment-processor';
+
+const processor = new StripePaymentProcessor();
+
+// Le template method définit le flux :
+// 1. Validation (commune)
+// 2. beforePayment (hook)
+// 3. createPayment (spécifique)
+// 4. confirmPayment (spécifique)
+// 5. afterPayment (hook)
+// 6. recordMetrics (commune)
+// 7. sendNotification (commune, peut être surchargée)
+
+const result = await processor.process({
+  amount: 100,
+  currency: 'EUR',
+  // ... autres données
+});
+```
+
+**Fonctionnalités**:
+
+- ✅ Méthode template définissant le flux
+- ✅ Méthodes abstraites pour les étapes spécifiques
+- ✅ Hooks pour personnalisation (beforePayment, afterPayment)
+- ✅ Méthodes communes réutilisables
+
+**Avantages**:
+
+- ✅ Réduction de la duplication
+- ✅ Structure claire et prévisible
+- ✅ Flexibilité pour personnaliser certaines étapes
+- ✅ Maintenabilité élevée
+
+**Cas d'usage**:
+
+- ✅ Processus de paiement avec étapes communes
+- ✅ Workflows avec structure fixe
+- ✅ Algorithmes avec variantes
+
+---
+
+## 🚫 Patterns Non Implémentés
+
+### 15. **Adapter Pattern**
+
+**Objectif**: Adapter des interfaces incompatibles.
+
+**Status**: ❌ **Non implémenté**
+
+**Cas d'usage potentiels**:
+
 - Intégration de services externes
 - Migration entre APIs
 - Normalisation de données
 
----
-
-### 6. **Decorator Pattern**
-
-**Objectif**: Ajouter des fonctionnalités dynamiquement.
-
-**Implémentation**:
-```typescript
-// decorators/cache.decorator.ts
-export function Cacheable(ttl: number = 300) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const originalMethod = descriptor.value;
-    const cache = new Map();
-    
-    descriptor.value = async function (...args: any[]) {
-      const key = `${propertyKey}_${JSON.stringify(args)}`;
-      const cached = cache.get(key);
-      
-      if (cached && Date.now() - cached.timestamp < ttl * 1000) {
-        return cached.data;
-      }
-      
-      const result = await originalMethod.apply(this, args);
-      cache.set(key, { data: result, timestamp: Date.now() });
-      return result;
-    };
-    
-    return descriptor;
-  };
-}
-
-// Usage
-class UserService {
-  @Cacheable(600) // Cache 10 minutes
-  async getUserById(id: string) {
-    // Logique
-  }
-}
-```
-
-**Cas d'usage**:
-- Caching
-- Logging
-- Validation
-- Retry logic
-
----
-
-### 7. **Facade Pattern**
-
-**Objectif**: Interface simplifiée pour un sous-système complexe.
-
-**Implémentation**:
-```typescript
-// facades/payment.facade.ts
-export class PaymentFacade {
-  constructor(
-    private paymentService: PaymentService,
-    private transactionService: TransactionService,
-    private notificationService: NotificationService
-  ) {}
-  
-  async processPayment(data: PaymentData): Promise<PaymentResult> {
-    // Orchestration complexe
-    const payment = await this.paymentService.process(data);
-    const transaction = await this.transactionService.create({
-      paymentId: payment.id,
-      amount: data.amount,
-    });
-    await this.notificationService.sendPaymentConfirmation(transaction);
-    
-    return {
-      payment,
-      transaction,
-    };
-  }
-}
-```
-
-**Avantages**:
-- ✅ Interface simple
-- ✅ Masque la complexité
-- ✅ Facilite les tests
-
----
-
-### 8. **Command Pattern**
-
-**Objectif**: Encapsuler les requêtes comme objets.
-
-**Implémentation**:
-```typescript
-// commands/payment.commands.ts
-export interface Command {
-  execute(): Promise<any>;
-  undo?(): Promise<any>;
-}
-
-export class CreatePaymentCommand implements Command {
-  constructor(
-    private paymentService: PaymentService,
-    private data: PaymentData
-  ) {}
-  
-  async execute(): Promise<PaymentResult> {
-    return this.paymentService.create(this.data);
-  }
-  
-  async undo(): Promise<void> {
-    // Logique d'annulation
-  }
-}
-
-// Command handler
-export class CommandHandler {
-  private history: Command[] = [];
-  
-  async execute(command: Command) {
-    const result = await command.execute();
-    this.history.push(command);
-    return result;
-  }
-  
-  async undo() {
-    const command = this.history.pop();
-    if (command?.undo) {
-      await command.undo();
-    }
-  }
-}
-```
-
-**Cas d'usage**:
-- Historique d'actions
-- Undo/Redo
-- Transactions
-- Queue de commandes
-
----
-
-### 9. **Dependency Injection (DI)**
-
-**Objectif**: Inversion de contrôle pour les dépendances.
-
-**Implémentation**:
-```typescript
-// containers/service-container.ts
-export class ServiceContainer {
-  private services = new Map();
-  
-  register<T>(key: string, factory: () => T) {
-    this.services.set(key, factory);
-  }
-  
-  resolve<T>(key: string): T {
-    const factory = this.services.get(key);
-    if (!factory) {
-      throw new Error(`Service ${key} not found`);
-    }
-    return factory();
-  }
-}
-
-// Usage
-const container = new ServiceContainer();
-container.register('userRepository', () => new MongoUserRepository());
-container.register('userService', () => 
-  new UserService(container.resolve('userRepository'))
-);
-```
-
-**Avantages**:
-- ✅ Découplage
-- ✅ Testabilité
-- ✅ Flexibilité
-
----
-
-### 10. **Template Method Pattern**
-
-**Objectif**: Définir le squelette d'un algorithme.
-
-**Implémentation**:
-```typescript
-// templates/payment-processor.template.ts
-export abstract class PaymentProcessor {
-  // Template method
-  async process(data: PaymentData): Promise<PaymentResult> {
-    this.validate(data);
-    const payment = await this.createPayment(data);
-    await this.sendNotification(payment);
-    return payment;
-  }
-  
-  protected abstract createPayment(data: PaymentData): Promise<PaymentResult>;
-  
-  protected validate(data: PaymentData): void {
-    // Validation commune
-  }
-  
-  protected async sendNotification(payment: PaymentResult): Promise<void> {
-    // Notification commune
-  }
-}
-
-// Implémentation
-export class StripePaymentProcessor extends PaymentProcessor {
-  protected async createPayment(data: PaymentData) {
-    // Implémentation spécifique Stripe
-  }
-}
-```
+**Note**: Le Strategy Pattern peut parfois servir de substitut pour certains cas d'usage de l'Adapter Pattern.
 
 ---
 
@@ -734,13 +845,13 @@ export class UserService {
     private repository: IUserRepository,
     private validator: ValidationStrategy
   ) {}
-  
+
   async createUser(data: CreateUserData): Promise<User> {
     const validation = this.validator.validate(data);
     if (!validation.isValid) {
       throw new ValidationError(validation.errors);
     }
-    
+
     return this.repository.create(data);
   }
 }
@@ -751,21 +862,25 @@ export class UserService {
 ## ✅ Bonnes Pratiques
 
 ### 1. **Séparation des Responsabilités**
+
 - ✅ Chaque pattern a un rôle clair
 - ✅ Pas de mélange de patterns dans une même classe
 - ✅ Interfaces bien définies
 
 ### 2. **Testabilité**
+
 - ✅ Utiliser des interfaces pour les dépendances
 - ✅ Faciliter le mocking
 - ✅ Tests unitaires pour chaque pattern
 
 ### 3. **Documentation**
+
 - ✅ Documenter les patterns utilisés
 - ✅ Exemples d'utilisation
 - ✅ Cas d'usage clairs
 
 ### 4. **Performance**
+
 - ✅ Éviter les patterns lourds pour des cas simples
 - ✅ Utiliser le caching quand approprié
 - ✅ Optimiser les requêtes
@@ -775,24 +890,28 @@ export class UserService {
 ## 🎯 Recommandations par Domaine
 
 ### **Authentification**
+
 - ✅ Strategy Pattern pour différents providers (OAuth, Credentials)
 - ✅ Observer Pattern pour les événements d'auth
 - ✅ Middleware Pattern pour la protection des routes
 
 ### **Paiements**
+
 - ✅ Strategy Pattern pour différents providers (Stripe, PayPal)
 - ✅ Command Pattern pour les transactions
 - ✅ Facade Pattern pour orchestrer les paiements
 
 ### **Notifications**
+
 - ✅ Observer Pattern pour les événements
 - ✅ Strategy Pattern pour différents canaux (Email, SMS, Push)
 - ✅ Factory Pattern pour créer les notifications
 
 ### **Gestion des Données**
+
 - ✅ Repository Pattern pour l'accès aux données
 - ✅ Builder Pattern pour les requêtes complexes
-- ✅ Adapter Pattern pour différentes sources de données
+- ✅ Dependency Injection pour l'injection de repositories
 
 ---
 
@@ -805,4 +924,3 @@ export class UserService {
 ---
 
 **Dernière mise à jour**: 2024
-

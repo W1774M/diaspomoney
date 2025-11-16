@@ -1,101 +1,50 @@
 'use client';
 
 import { useAuth } from '@/hooks/auth/useAuth';
-import { IInvoice, INVOICE_STATUSES } from '@/types';
+import { useInvoice, useInvoiceActions } from '@/hooks/invoices';
+import {
+  formatCurrency,
+  formatDate,
+  getInvoiceStatusColor,
+} from '@/lib/invoices/utils';
+import { INVOICE_STATUSES } from '@/types';
 import { ArrowLeft, Download, Edit, Mail, Printer } from 'lucide-react';
 import Link from 'next/link';
-// import { useParams } from "next/navigation";
-import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 
+/**
+ * Page de détail d'une facture
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (via useInvoice, useInvoiceActions)
+ * - Service Layer Pattern (via les hooks qui appellent les API)
+ * - Logger Pattern (structured logging côté serveur via les API routes)
+ * - Error Handling Pattern (gestion d'erreurs via les hooks et notifications)
+ */
 export default function InvoiceDetailPage() {
-  // const params = useParams();
-  const invoiceId = 'temp-invoice-id'; // TODO: Get from URL params
-  // const router = useRouter();
+  const params = useParams();
+  const invoiceId = (params?.id as string) || '';
   const { isAdmin } = useAuth();
-  const [invoice, setInvoice] = useState<IInvoice | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  // Simuler des données pour l'exemple
-  useEffect(() => {
-    const mockInvoice: IInvoice = {
-      _id: (Array.isArray(invoiceId) ? invoiceId[0] : invoiceId) || '',
-      invoiceNumber: 'FACT-2024-001',
-      customerId: '1',
-      providerId: '4',
-      amount: 2500.0,
-      currency: 'EUR',
-      status: 'PAID',
-      issueDate: new Date('2024-01-15'),
-      dueDate: new Date('2024-02-15'),
-      paidDate: new Date('2024-02-10'),
-      items: [
-        {
-          description: 'Design UI/UX',
-          quantity: 1,
-          unitPrice: 1500,
-          total: 1500,
-        },
-        {
-          description: 'Développement frontend',
-          quantity: 1,
-          unitPrice: 1000,
-          total: 1000,
-        },
-      ],
-      notes: 'Facture payée avec succès',
-      userId: 'user1',
-      createdAt: new Date('2024-01-15'),
-      updatedAt: new Date('2024-01-15'),
-    };
-    setInvoice(mockInvoice);
-    setLoading(false);
-  }, [invoiceId]);
+  // Utiliser le Custom Hook Pattern
+  const { invoice, loading, error } = useInvoice(invoiceId);
+  const { downloadInvoice, sendInvoiceByEmail, isDownloading, isSending } =
+    useInvoiceActions();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PAID':
-        return 'bg-green-100 text-green-800';
-      case 'SENT':
-        return 'bg-blue-100 text-blue-800';
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'OVERDUE':
-        return 'bg-red-100 text-red-800';
-      case 'CANCELLED':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const handleDownload = () => {
+    if (invoice?._id) {
+      downloadInvoice(invoice._id || invoiceId);
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = 'EUR') => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  };
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }).format(date);
-  };
-
-  const handleDownload = () => {
-    console.log('Téléchargement de la facture:', invoice?.invoiceNumber);
-    alert(`Téléchargement de la facture ${invoice?.invoiceNumber}`);
-  };
-
   const handlePrint = () => {
-    console.log('Impression de la facture:', invoice?.invoiceNumber);
+    // Impression native du navigateur
     window.print();
   };
 
   const handleSendEmail = () => {
-    console.log('Envoi par email:', invoice?.invoiceNumber);
-    alert(`Facture ${invoice?.invoiceNumber} envoyée par email`);
+    if (invoice?._id) {
+      sendInvoiceByEmail(invoice._id || invoiceId);
+    }
   };
 
   if (loading) {
@@ -107,10 +56,10 @@ export default function InvoiceDetailPage() {
     );
   }
 
-  if (!invoice) {
+  if (error || !invoice) {
     return (
       <div className='text-center py-12'>
-        <p className='text-gray-600'>Facture non trouvée</p>
+        <p className='text-red-600 mb-4'>{error || 'Facture non trouvée'}</p>
         <Link
           href='/dashboard/invoices'
           className='mt-4 inline-flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
@@ -137,10 +86,11 @@ export default function InvoiceDetailPage() {
           <div className='flex space-x-2'>
             <button
               onClick={handleDownload}
-              className='flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'
+              disabled={isDownloading}
+              className='flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
             >
               <Download className='h-4 w-4 mr-2' />
-              Télécharger
+              {isDownloading ? 'Téléchargement...' : 'Télécharger'}
             </button>
             <button
               onClick={handlePrint}
@@ -151,10 +101,11 @@ export default function InvoiceDetailPage() {
             </button>
             <button
               onClick={handleSendEmail}
-              className='flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors'
+              disabled={isSending}
+              className='flex items-center px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
             >
               <Mail className='h-4 w-4 mr-2' />
-              Envoyer
+              {isSending ? 'Envoi...' : 'Envoyer'}
             </button>
             {isAdmin() && (
               <Link
@@ -177,7 +128,7 @@ export default function InvoiceDetailPage() {
             </p>
           </div>
           <span
-            className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(
+            className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getInvoiceStatusColor(
               invoice.status
             )}`}
           >
@@ -215,7 +166,7 @@ export default function InvoiceDetailPage() {
                   Statut
                 </label>
                 <span
-                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                  className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getInvoiceStatusColor(
                     invoice.status
                   )}`}
                 >
@@ -359,17 +310,19 @@ export default function InvoiceDetailPage() {
             <div className='space-y-2'>
               <button
                 onClick={handleDownload}
-                className='w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'
+                disabled={isDownloading}
+                className='w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
               >
                 <Download className='h-4 w-4 mr-2' />
-                Télécharger PDF
+                {isDownloading ? 'Téléchargement...' : 'Télécharger PDF'}
               </button>
               <button
                 onClick={handleSendEmail}
-                className='w-full flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors'
+                disabled={isSending}
+                className='w-full flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
               >
                 <Mail className='h-4 w-4 mr-2' />
-                Envoyer par email
+                {isSending ? 'Envoi...' : 'Envoyer par email'}
               </button>
               <button
                 onClick={handlePrint}
