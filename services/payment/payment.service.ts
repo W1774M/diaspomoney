@@ -4,6 +4,7 @@
  * Basé sur la charte de développement
  */
 
+import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
 import Stripe from 'stripe';
 // import { securityManager } from '@/lib/security/advanced-security';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
@@ -82,6 +83,12 @@ export class PaymentService {
   /**
    * Créer un Payment Intent
    */
+  @Retry({
+    maxAttempts: 3,
+    delay: 1000,
+    backoff: 'exponential',
+    shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
+  })
   async createPaymentIntent(
     amount: number,
     currency: string,
@@ -145,6 +152,12 @@ export class PaymentService {
   /**
    * Confirmer un Payment Intent
    */
+  @Retry({
+    maxAttempts: 3,
+    delay: 1000,
+    backoff: 'exponential',
+    shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
+  })
   async confirmPaymentIntent(
     paymentIntentId: string,
     paymentMethodId?: string
@@ -301,6 +314,12 @@ export class PaymentService {
   /**
    * Rembourser un paiement
    */
+  @Retry({
+    maxAttempts: 3,
+    delay: 1000,
+    backoff: 'exponential',
+    shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
+  })
   async refundPayment(
     paymentIntentId: string,
     amount?: number,

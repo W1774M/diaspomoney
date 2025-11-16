@@ -2,19 +2,17 @@ include:
   - compose.monitoring.yml
 
 networks:
-  diaspomoney:
+  diaspomoney-prod:
     driver: bridge
+    name: diaspomoney-prod
   traefik:
-    external: false
+    external: true # Réseau Traefik partagé (créé par docker-compose.traefik.yml)
+    name: traefik
 
 volumes:
-  mongodb_data:
+  mongodb_prod_data:
     driver: local
-  redis_data:
-    driver: local
-  traefik_letsencrypt:
-    driver: local
-  traefik_logs:
+  redis_prod_data:
     driver: local
   prometheus_data:
     driver: local
@@ -22,72 +20,30 @@ volumes:
     driver: local
 
 services:
-  # === REVERSE PROXY ===
-  traefik:
-    image: traefik:v3.1
-    container_name: traefik
-    restart: unless-stopped
-    networks:
-      - traefik
-      - diaspomoney
-    ports:
-      - "80:80"
-      - "443:443"
-    command:
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --entrypoints.metrics.address=:9100
-      - --certificatesresolvers.le.acme.email=contact@diaspomoney.fr
-      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.le.acme.tlschallenge=true
-      - --certificatesresolvers.le.acme.httpchallenge=true
-      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
-      - --certificatesresolvers.le.acme.caserver=https://acme-v02.api.letsencrypt.org/directory
-      - --providers.docker.endpoint=unix:///var/run/docker.sock
-      - --providers.docker.network=diaspomoney
-      - --providers.docker.exposedByDefault=false
-      - --api.dashboard=true
-      - --api.insecure=false
-      - --metrics.prometheus.addEntryPointsLabels=true
-      - --metrics.prometheus.addServicesLabels=true
-      - --metrics.prometheus.entryPoint=metrics
-      - --log.level=DEBUG
-      - --log.format=json
-      - --log.filePath=/var/log/traefik/traefik.log
-      - --accessLog.filePath=/var/log/traefik/access.log
-      - --global.checkNewVersion=false
-      - --global.sendAnonymousUsage=false
-    volumes:
-      - traefik_letsencrypt:/letsencrypt
-      - traefik_logs:/var/log/traefik
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.traefik-dashboard.rule=Host(`dashboard.diaspomoney.fr`)
-      - traefik.http.routers.traefik-dashboard.entrypoints=websecure
-      - traefik.http.routers.traefik-dashboard.tls=true
-      - traefik.http.routers.traefik-dashboard.tls.certresolver=le
-      - traefik.http.routers.traefik-dashboard.service=api@internal
-
-  # === APPLICATION ===
-  app:
+  # === APPLICATION PROD ===
+  app-prod:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: diaspomoney-app
+    container_name: diaspomoney-app-prod
     restart: unless-stopped
     env_file:
-      - .env
+      - .env.prod
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://app.diaspomoney.fr
+      - NEXTAUTH_URL=https://app.diaspomoney.fr
+      - APP_URL=https://app.diaspomoney.fr
     depends_on:
-      mongodb:
+      mongodb-prod:
         condition: service_healthy
-      redis:
+      redis-prod:
         condition: service_healthy
     networks:
       - traefik
-      - diaspomoney
+      - diaspomoney-prod
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -99,30 +55,33 @@ services:
           memory: "1G"
     labels:
       - traefik.enable=true
-      - traefik.docker.network=diaspomoney
-      - traefik.http.routers.app.rule=Host(`app.diaspomoney.fr`)
-      - traefik.http.routers.app.entrypoints=websecure
-      - traefik.http.routers.app.tls=true
-      - traefik.http.routers.app.tls.certresolver=le
-      - traefik.http.services.app.loadbalancer.server.port=3000
-      - traefik.http.routers.app-http.rule=Host(`app.diaspomoney.fr`)
-      - traefik.http.routers.app-http.entrypoints=web
-      - traefik.http.routers.app-http.middlewares=redirect-to-https
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
+      - traefik.docker.network=diaspomoney-prod
+      # Route HTTPS principale
+      - traefik.http.routers.app-prod.rule=Host(`app.diaspomoney.fr`)
+      - traefik.http.routers.app-prod.entrypoints=websecure
+      - traefik.http.routers.app-prod.tls=true
+      - traefik.http.routers.app-prod.tls.certresolver=le
+      - traefik.http.routers.app-prod.service=app-prod-service
+      - traefik.http.services.app-prod-service.loadbalancer.server.port=3000
+      # Redirection HTTP vers HTTPS
+      - traefik.http.routers.app-prod-http.rule=Host(`app.diaspomoney.fr`)
+      - traefik.http.routers.app-prod-http.entrypoints=web
+      - traefik.http.routers.app-prod-http.middlewares=redirect-to-https-prod
+      - traefik.http.middlewares.redirect-to-https-prod.redirectscheme.scheme=https
+      - traefik.http.middlewares.redirect-to-https-prod.redirectscheme.permanent=true
 
-  # === DATABASE ===
-  mongodb:
+  # === DATABASE PROD ===
+  mongodb-prod:
     image: mongo:7.0
-    container_name: diaspomoney-mongodb
+    container_name: diaspomoney-mongodb-prod
     restart: unless-stopped
     env_file:
-      - .env
+      - .env.prod
     volumes:
-      - mongodb_data:/data/db
+      - mongodb_prod_data:/data/db
       - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
-      - diaspomoney
+      - diaspomoney-prod
     healthcheck:
       test:
         [
@@ -134,40 +93,48 @@ services:
       retries: 12
       start_period: 40s
 
-  # === CACHE ===
-  redis:
+  # === CACHE PROD ===
+  redis-prod:
     image: redis:7.2-alpine
-    container_name: diaspomoney-redis
+    container_name: diaspomoney-redis-prod
     restart: unless-stopped
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
-      - redis_data:/data
+      - redis_prod_data:/data
     networks:
-      - diaspomoney
+      - diaspomoney-prod
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 30s
       timeout: 10s
       retries: 5
 
-
-  # === ADMIN TOOLS ===
-  mongo-express:
+  # === ADMIN TOOLS PROD ===
+  mongo-express-prod:
     image: mongo-express:latest
-    container_name: diaspomoney-mongo-express
+    container_name: diaspomoney-mongo-express-prod
     restart: unless-stopped
     env_file:
-      - .env
+      - .env.prod
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb-prod
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD}
+      ME_CONFIG_MONGODB_AUTH_DATABASE: admin
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-admin123}
     depends_on:
-      mongodb:
+      mongodb-prod:
         condition: service_healthy
     networks:
-      - diaspomoney
+      - diaspomoney-prod
       - traefik
     labels:
       - traefik.enable=true
-      - traefik.http.routers.mongo-express.rule=Host(`mongo.diaspomoney.fr`)
-      - traefik.http.routers.mongo-express.entrypoints=websecure
-      - traefik.http.routers.mongo-express.tls=true
-      - traefik.http.routers.mongo-express.tls.certresolver=le
-      - traefik.http.services.mongo-express.loadbalancer.server.port=8081
+      - traefik.docker.network=diaspomoney-prod
+      - traefik.http.routers.mongo-express-prod.rule=Host(`mongo.diaspomoney.fr`)
+      - traefik.http.routers.mongo-express-prod.entrypoints=websecure
+      - traefik.http.routers.mongo-express-prod.tls=true
+      - traefik.http.routers.mongo-express-prod.tls.certresolver=le
+      - traefik.http.services.mongo-express-prod.loadbalancer.server.port=8081

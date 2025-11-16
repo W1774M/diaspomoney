@@ -2,6 +2,7 @@
  * Point d'entrée pour initialiser tous les listeners
  */
 
+import { logger } from '@/lib/logger';
 import { setupAnalyticsEventListeners } from './AnalyticsEventListeners';
 import { setupAuthEventListeners } from './AuthEventListeners';
 import { setupPaymentEventListeners } from './PaymentEventListeners';
@@ -12,14 +13,14 @@ import { setupSystemEventListeners } from './SystemEventListeners';
  * À appeler au démarrage de l'application
  */
 export function setupAllEventListeners() {
-  console.log('[EventListeners] Setting up all event listeners...');
+  logger.info('[EventListeners] Setting up all event listeners...');
 
   setupAuthEventListeners();
   setupPaymentEventListeners();
   setupSystemEventListeners();
   setupAnalyticsEventListeners();
 
-  console.log('[EventListeners] All event listeners initialized');
+  logger.info('[EventListeners] All event listeners initialized');
 }
 
 // Exports individuels pour permettre l'initialisation sélective

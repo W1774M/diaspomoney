@@ -3,8 +3,13 @@
  * Service de gestion des factures utilisant le Repository Pattern
  */
 
-import { getInvoiceRepository, Invoice, InvoiceFilters, PaginatedResult } from '@/repositories';
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { Validate, ValidationRule } from '@/lib/decorators/validate.decorator';
+import { logger } from '@/lib/logger';
+import { getInvoiceRepository, Invoice, PaginatedResult } from '@/repositories';
 import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
 
 export interface InvoiceData {
   userId: string;
@@ -46,6 +51,17 @@ export class InvoiceService {
   /**
    * Créer une nouvelle facture
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      ValidationRule(0, z.object({
+        userId: z.string().min(1, 'User ID is required'),
+        amount: z.number().positive('Amount must be positive'),
+        currency: z.string().length(3, 'Currency must be 3 characters'),
+      }).passthrough(), 'data'),
+    ],
+  })
+  @InvalidateCache('InvoiceService:*')
   async createInvoice(data: InvoiceData): Promise<Invoice> {
     try {
       // Validation
@@ -83,7 +99,7 @@ export class InvoiceService {
 
       return invoice;
     } catch (error) {
-      console.error('Erreur createInvoice:', error);
+      logger.error({ error, data }, 'Erreur createInvoice');
       Sentry.captureException(error);
       throw error;
     }
@@ -92,6 +108,13 @@ export class InvoiceService {
   /**
    * Récupérer une facture par ID
    */
+  @Log({ level: 'info', logArgs: true })
+  @Validate({
+    rules: [
+      ValidationRule(0, z.string().min(1, 'Invoice ID is required'), 'id'),
+    ],
+  })
+  @Cacheable(600, { prefix: 'InvoiceService:getInvoiceById' }) // Cache 10 minutes
   async getInvoiceById(id: string): Promise<Invoice> {
     try {
       const invoice = await this.invoiceRepository.findById(id);
@@ -102,7 +125,7 @@ export class InvoiceService {
 
       return invoice;
     } catch (error) {
-      console.error('Erreur getInvoiceById:', error);
+      logger.error({ error, id }, 'Erreur getInvoiceById');
       Sentry.captureException(error);
       throw error;
     }
@@ -111,6 +134,7 @@ export class InvoiceService {
   /**
    * Récupérer les factures d'un utilisateur
    */
+  @Cacheable(900, { prefix: 'InvoiceService:getUserInvoices' }) // Cache 15 minutes
   async getUserInvoices(
     userId: string,
     options?: { limit?: number; offset?: number }
@@ -118,7 +142,7 @@ export class InvoiceService {
     try {
       return await this.invoiceRepository.findByUser(userId, options);
     } catch (error) {
-      console.error('Erreur getUserInvoices:', error);
+      logger.error({ error, userId }, 'Erreur getUserInvoices');
       Sentry.captureException(error);
       throw error;
     }
@@ -127,14 +151,15 @@ export class InvoiceService {
   /**
    * Récupérer les factures avec filtres
    */
+  @Cacheable(900, { prefix: 'InvoiceService:getInvoices' }) // Cache 15 minutes
   async getInvoices(
-    filters: InvoiceFilters,
+    filters: Record<string, any>,
     options?: { limit?: number; offset?: number }
   ): Promise<PaginatedResult<Invoice>> {
     try {
       return await this.invoiceRepository.findInvoicesWithFilters(filters, options);
     } catch (error) {
-      console.error('Erreur getInvoices:', error);
+      logger.error({ error, filters }, 'Erreur getInvoices');
       Sentry.captureException(error);
       throw error;
     }
@@ -143,6 +168,7 @@ export class InvoiceService {
   /**
    * Mettre à jour une facture
    */
+  @InvalidateCache('InvoiceService:*')
   async updateInvoice(
     id: string,
     data: Partial<InvoiceData>
@@ -172,7 +198,7 @@ export class InvoiceService {
 
       return updatedInvoice;
     } catch (error) {
-      console.error('Erreur updateInvoice:', error);
+      logger.error({ error, id }, 'Erreur updateInvoice');
       Sentry.captureException(error);
       throw error;
     }
@@ -188,7 +214,7 @@ export class InvoiceService {
     try {
       return await this.invoiceRepository.updateStatus(id, status);
     } catch (error) {
-      console.error('Erreur updateInvoiceStatus:', error);
+      logger.error({ error, id, status }, 'Erreur updateInvoiceStatus');
       Sentry.captureException(error);
       throw error;
     }
@@ -201,7 +227,7 @@ export class InvoiceService {
     try {
       return await this.invoiceRepository.markAsPaid(id, paidAt || new Date());
     } catch (error) {
-      console.error('Erreur markInvoiceAsPaid:', error);
+      logger.error({ error, id }, 'Erreur markInvoiceAsPaid');
       Sentry.captureException(error);
       throw error;
     }
@@ -216,7 +242,7 @@ export class InvoiceService {
     try {
       return await this.invoiceRepository.findOverdue(options);
     } catch (error) {
-      console.error('Erreur getOverdueInvoices:', error);
+      logger.error({ error }, 'Erreur getOverdueInvoices');
       Sentry.captureException(error);
       throw error;
     }
@@ -229,7 +255,7 @@ export class InvoiceService {
     try {
       return await this.invoiceRepository.delete(id);
     } catch (error) {
-      console.error('Erreur deleteInvoice:', error);
+      logger.error({ error, id }, 'Erreur deleteInvoice');
       Sentry.captureException(error);
       throw error;
     }

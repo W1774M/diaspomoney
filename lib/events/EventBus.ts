@@ -3,6 +3,8 @@
  * Système d'événements pour découpler les composants
  */
 
+import { logger } from '@/lib/logger';
+
 export type EventCallback<T = any> = (data: T) => void | Promise<void>;
 export type EventUnsubscribe = () => void;
 
@@ -55,9 +57,11 @@ export class EventBus {
     
     // Vérifier la limite
     if (listeners.length >= this.maxListeners) {
-      console.warn(
-        `[EventBus] Maximum listeners (${this.maxListeners}) reached for event "${event}"`
-      );
+      logger.warn({
+        event,
+        maxListeners: this.maxListeners,
+        currentListeners: listeners.length,
+      }, `[EventBus] Maximum listeners reached for event`);
     }
 
     const listener: EventListener = {
@@ -158,7 +162,7 @@ export class EventBus {
           }
         }
       } catch (error) {
-        console.error(`[EventBus] Error in listener for event "${event}":`, error);
+        logger.error({ error, event }, `[EventBus] Error in listener for event`);
         // Continuer avec les autres listeners même en cas d'erreur
       }
     }
@@ -197,7 +201,7 @@ export class EventBus {
           }
         }
       } catch (error) {
-        console.error(`[EventBus] Error in listener for event "${event}":`, error);
+        logger.error({ error, event }, `[EventBus] Error in listener for event`);
       }
     }
 

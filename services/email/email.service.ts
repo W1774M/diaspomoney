@@ -1,3 +1,4 @@
+import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
 import {
   sendAppointmentNotificationEmail,
   sendEmail,
@@ -41,6 +42,12 @@ export class EmailService {
   }
 
   // Envoi d'email de bienvenue
+  @Retry({
+    maxAttempts: 3,
+    delay: 2000,
+    backoff: 'exponential',
+    shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
+  })
   async sendWelcomeEmail(
     email: string,
     name: string,
@@ -65,6 +72,12 @@ export class EmailService {
   }
 
   // Envoi d'email de réinitialisation de mot de passe
+  @Retry({
+    maxAttempts: 3,
+    delay: 2000,
+    backoff: 'exponential',
+    shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
+  })
   async sendPasswordResetEmail(
     email: string,
     name: string,
@@ -89,6 +102,12 @@ export class EmailService {
   }
 
   // Envoi d'email de confirmation de paiement
+  @Retry({
+    maxAttempts: 3,
+    delay: 2000,
+    backoff: 'exponential',
+    shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
+  })
   async sendPaymentConfirmationEmail(
     email: string,
     name: string,

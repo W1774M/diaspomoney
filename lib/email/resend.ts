@@ -301,14 +301,37 @@ function sanitizeTagValue(value: string): string {
     .substring(0, 50); // Limiter la longueur
 }
 
-// Fonction principale d'envoi d'email
+import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
+import { logger } from '@/lib/logger';
+
+// Classe wrapper pour utiliser le decorator
+class EmailSender {
+  @Retry({
+    maxAttempts: 3,
+    delay: 2000,
+    backoff: 'exponential',
+    shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
+  })
+  async send(options: EmailOptions): Promise<boolean> {
+    return await sendEmailInternal(options);
+  }
+}
+
+const emailSender = new EmailSender();
+
+// Fonction principale d'envoi d'email avec retry
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  return await emailSender.send(options);
+}
+
+// Fonction interne sans decorator pour éviter la récursion
+async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
   try {
-    console.log('📧 sendEmail appelée avec options:', {
+    logger.debug({
       to: options.to,
       subject: options.subject,
       from: options.from || 'DiaspoMoney <onboarding@resend.dev>',
-    });
+    }, '📧 sendEmail appelée avec options');
 
     // Nettoyer les tags pour s'assurer qu'ils sont compatibles avec Resend
     const sanitizedTags = (
@@ -330,7 +353,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     );
 
     if (!isValidTags) {
-      console.error('❌ Tags invalides détectés:', sanitizedTags);
+      logger.error({ tags: sanitizedTags }, '❌ Tags invalides détectés');
       return false;
     }
 
@@ -354,14 +377,14 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     });
 
     if (error) {
-      console.error('❌ Erreur Resend:', error);
+      logger.error({ error }, '❌ Erreur Resend');
       return false;
     }
 
-    console.log('✅ Email envoyé avec succès:', data);
+    logger.info({ emailId: data?.id }, '✅ Email envoyé avec succès');
     return true;
   } catch (error) {
-    console.error("❌ Erreur lors de l'envoi d'email:", error);
+    logger.error({ error }, "❌ Erreur lors de l'envoi d'email");
     return false;
   }
 }

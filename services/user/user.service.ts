@@ -4,9 +4,14 @@
  * Basé sur la charte de développement
  */
 
+import { Cacheable } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { Validate, ValidationRule } from '@/lib/decorators/validate.decorator';
+import { logger } from '@/lib/logger';
 import { securityManager } from '@/lib/security/advanced-security';
 import User from '@/models/User';
 import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
 
 export interface UserProfile {
   _id?: string;
@@ -97,6 +102,7 @@ export class UserService {
   /**
    * Récupérer tous les utilisateurs avec filtres
    */
+  @Cacheable(300, { prefix: 'UserService:getUsers' }) // Cache 5 minutes
   async getUsers(filters: any = {}): Promise<{
     data: UserProfile[];
     total: number;
@@ -115,7 +121,7 @@ export class UserService {
         query.status = filters.status; // Utiliser 'status' au lieu de 'isActive'
       }
 
-      console.log('Query filters:', query); // Debug
+      logger.debug({ query }, 'Query filters');
 
       const users = await (User as any)
         .find(query)
@@ -125,7 +131,7 @@ export class UserService {
 
       const total = await (User as any).countDocuments(query);
 
-      console.log('Found users:', users.length); // Debug
+      logger.debug({ count: users.length }, 'Found users');
 
       return {
         data: users.map((user: any) => ({
@@ -162,7 +168,7 @@ export class UserService {
         offset: filters.offset || 0,
       };
     } catch (error) {
-      console.error('Erreur getUsers:', error);
+      logger.error({ error }, 'Erreur getUsers');
       Sentry.captureException(error);
       throw error;
     }
@@ -171,22 +177,29 @@ export class UserService {
   /**
    * Récupérer le profil utilisateur
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      ValidationRule(0, z.string().min(1, 'User ID is required'), 'userId'),
+    ],
+  })
+  @Cacheable(600, { prefix: 'UserService:getUserProfile' }) // Cache 10 minutes
   async getUserProfile(userId: string): Promise<UserProfile> {
     try {
-      console.log('getUserProfile - ID:', userId); // Debug
+      logger.debug({ userId }, 'getUserProfile - ID');
 
       const user = await (User as any).findById(userId).exec();
       if (!user) {
-        console.log('Utilisateur non trouvé pour ID:', userId); // Debug
+        logger.warn({ userId }, 'Utilisateur non trouvé pour ID');
         throw new Error('Utilisateur non trouvé');
       }
 
-      console.log('User trouvé:', {
+      logger.debug({
         _id: user._id,
         email: user.email,
         roles: user.roles,
         status: user.status,
-      }); // Debug
+      }, 'User trouvé');
 
       return {
         _id: user._id?.toString(),
@@ -219,7 +232,7 @@ export class UserService {
           : [],
       };
     } catch (error) {
-      console.error('Erreur getUserProfile:', error);
+      logger.error({ error, userId }, 'Erreur getUserProfile');
       Sentry.captureException(error);
       throw error;
     }
@@ -228,6 +241,18 @@ export class UserService {
   /**
    * Mettre à jour le profil utilisateur
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      ValidationRule(0, z.string().min(1, 'User ID is required'), 'userId'),
+      ValidationRule(1, z.object({
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        phone: z.string().optional(),
+        country: z.string().optional(),
+      }).passthrough(), 'data'),
+    ],
+  })
   async updateUserProfile(
     userId: string,
     data: UpdateProfileData
@@ -274,7 +299,7 @@ export class UserService {
         updatedAt: updatedUser.updatedAt,
       };
     } catch (error) {
-      console.error('Erreur updateUserProfile:', error);
+      logger.error({ error, userId }, 'Erreur updateUserProfile');
       Sentry.captureException(error);
       throw error;
     }
@@ -302,7 +327,7 @@ export class UserService {
       // Enregistrer l'événement de suppression
       await securityManager.detectAnomalies(userId, 'USER_DELETED');
     } catch (error) {
-      console.error('Erreur deleteUserAccount:', error);
+      logger.error({ error, userId }, 'Erreur deleteUserAccount');
       Sentry.captureException(error);
       throw error;
     }
@@ -352,7 +377,7 @@ export class UserService {
 
       return beneficiary;
     } catch (error) {
-      console.error('Erreur addBeneficiary:', error);
+      logger.error({ error, userId }, 'Erreur addBeneficiary');
       Sentry.captureException(error);
       throw error;
     }
@@ -369,7 +394,7 @@ export class UserService {
       // Simulation pour l'instant
       return [];
     } catch (error) {
-      console.error('Erreur getBeneficiaries:', error);
+      logger.error({ error, userId: _userId }, 'Erreur getBeneficiaries');
       Sentry.captureException(error);
       throw error;
     }
@@ -390,7 +415,7 @@ export class UserService {
       //   { isActive: false, updatedAt: new Date() }
       // );
     } catch (error) {
-      console.error('Erreur removeBeneficiary:', error);
+      logger.error({ error, userId: _userId, beneficiaryId: _beneficiaryId }, 'Erreur removeBeneficiary');
       Sentry.captureException(error);
       throw error;
     }
@@ -440,7 +465,7 @@ export class UserService {
 
       return kycData;
     } catch (error) {
-      console.error('Erreur submitKYCDocuments:', error);
+      logger.error({ error, userId }, 'Erreur submitKYCDocuments');
       Sentry.captureException(error);
       throw error;
     }
@@ -457,7 +482,7 @@ export class UserService {
 
       return null;
     } catch (error) {
-      console.error('Erreur getKYCStatus:', error);
+      logger.error({ error, userId: _userId }, 'Erreur getKYCStatus');
       Sentry.captureException(error);
       throw error;
     }
@@ -498,7 +523,7 @@ export class UserService {
 
       return exportData;
     } catch (error) {
-      console.error('Erreur exportUserData:', error);
+      logger.error({ error, userId }, 'Erreur exportUserData');
       Sentry.captureException(error);
       throw error;
     }

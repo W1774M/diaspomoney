@@ -4,6 +4,7 @@
  * Basé sur la charte de développement
  */
 
+import { logger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -162,7 +163,11 @@ export class MonitoringManager {
     });
 
     // TODO: Envoyer notification (Slack, email, etc.)
-    console.log(`🚨 ALERT: ${alert.message}`);
+    logger.warn({
+      alertId: alert.id,
+      message: alert.message,
+      severity: alert.severity,
+    }, '🚨 ALERT');
   }
 
   // Obtenir les métriques
@@ -203,7 +208,7 @@ export class MonitoringManager {
     const alert = this.alerts.find(a => a.id === alertId);
     if (alert) {
       alert.resolved = true;
-      console.log(`✅ Alert resolved: ${alertId}`);
+      logger.info({ alertId }, '✅ Alert resolved');
     }
   }
 

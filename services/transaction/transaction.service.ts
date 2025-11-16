@@ -5,9 +5,14 @@
  */
 
 // import User from '@/models/User';
+import { Cacheable } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { Validate, ValidationRule } from '@/lib/decorators/validate.decorator';
+import { logger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import { securityManager } from '@/lib/security/advanced-security';
 import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
 import { userService } from '../user/user.service';
 
 export interface TransactionData {
@@ -99,6 +104,18 @@ export class TransactionService {
   /**
    * Créer une nouvelle transaction
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      ValidationRule(0, z.object({
+        payerId: z.string().min(1, 'Payer ID is required'),
+        beneficiaryId: z.string().min(1, 'Beneficiary ID is required'),
+        amount: z.number().positive('Amount must be positive'),
+        currency: z.string().length(3, 'Currency must be 3 characters'),
+        serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']),
+      }).passthrough(), 'data'),
+    ],
+  })
   async createTransaction(data: TransactionData): Promise<Transaction> {
     try {
       if (
@@ -162,7 +179,7 @@ export class TransactionService {
 
       return transaction as Transaction;
     } catch (error) {
-      console.error('Erreur createTransaction:', error);
+      logger.error({ error, data }, 'Erreur createTransaction');
       Sentry.captureException(error);
       throw error;
     }
@@ -171,6 +188,14 @@ export class TransactionService {
   /**
    * Récupérer une transaction par ID
    */
+  @Log({ level: 'info', logArgs: true })
+  @Validate({
+    rules: [
+      ValidationRule(0, z.string().min(1, 'Transaction ID is required'), 'transactionId'),
+      ValidationRule(1, z.string().min(1, 'User ID is required'), 'userId'),
+    ],
+  })
+  @Cacheable(600, { prefix: 'TransactionService:getTransaction' }) // Cache 10 minutes
   async getTransaction(
     _transactionId: string,
     _userId: string
@@ -183,7 +208,7 @@ export class TransactionService {
       );
       return transaction;
     } catch (error) {
-      console.error('Erreur getTransaction:', error);
+      logger.error({ error, transactionId: _transactionId, userId: _userId }, 'Erreur getTransaction');
       Sentry.captureException(error);
       throw error;
     }
@@ -192,6 +217,7 @@ export class TransactionService {
   /**
    * Récupérer les transactions avec filtres
    */
+  @Cacheable(600, { prefix: 'TransactionService:getTransactions' }) // Cache 10 minutes
   async getTransactions(
     _userId: string,
     _filters: TransactionFilters = {}
@@ -200,7 +226,7 @@ export class TransactionService {
       // FIXME: DB fetch to be implemented
       return [];
     } catch (error) {
-      console.error('Erreur getTransactions:', error);
+      logger.error({ error, userId: _userId, filters: _filters }, 'Erreur getTransactions');
       Sentry.captureException(error);
       throw error;
     }
@@ -236,7 +262,7 @@ export class TransactionService {
       // Retourne l'objet vide casté pour la forme, en attendant DB
       return {} as Transaction;
     } catch (error) {
-      console.error('Erreur updateTransactionStatus:', error);
+      logger.error({ error, transactionId: _transactionId, status }, 'Erreur updateTransactionStatus');
       Sentry.captureException(error);
       throw error;
     }
@@ -255,7 +281,7 @@ export class TransactionService {
       // FIXME: implement refund logic and DB ops
       return {} as Transaction;
     } catch (error) {
-      console.error('Erreur refundTransaction:', error);
+      logger.error({ error, transactionId: _transactionId }, 'Erreur refundTransaction');
       Sentry.captureException(error);
       throw error;
     }
@@ -279,7 +305,7 @@ export class TransactionService {
         serviceTypeBreakdown: {},
       };
     } catch (error) {
-      console.error('Erreur getTransactionStats:', error);
+      logger.error({ error, userId: _userId }, 'Erreur getTransactionStats');
       Sentry.captureException(error);
       throw error;
     }
@@ -297,7 +323,7 @@ export class TransactionService {
       };
       return rates[from]?.[to] || 1;
     } catch (error) {
-      console.error('Erreur getExchangeRate:', error);
+      logger.error({ error, from, to }, 'Erreur getExchangeRate');
       return 1;
     }
   }

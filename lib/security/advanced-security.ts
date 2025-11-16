@@ -4,6 +4,7 @@
  * Basé sur la charte de développement
  */
 
+import { logger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
@@ -308,11 +309,12 @@ export class SecurityManager {
   async detectAnomalies(userId: string, action: string, metadata: any = {}) {
     try {
       // Log de l'action pour analyse
-      console.log(`Security Event: ${action}`, {
+      logger.info({
+        action,
         userId,
         timestamp: new Date().toISOString(),
         metadata,
-      });
+      }, `Security Event: ${action}`);
 
       // Détection de patterns suspects
       if (action === 'LOGIN_FAILED') {
@@ -332,7 +334,7 @@ export class SecurityManager {
         data: { userId, metadata },
       });
     } catch (error) {
-      console.error('Erreur détection anomalies:', error);
+      logger.error({ error, userId, action }, 'Erreur détection anomalies');
     }
   }
 }

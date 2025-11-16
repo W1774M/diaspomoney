@@ -4,6 +4,7 @@
  */
 
 import { paymentEvents, PaymentSucceededEvent } from '@/lib/events';
+import { logger } from '@/lib/logger';
 import { notificationService } from '@/services/notification/notification.service';
 import * as Sentry from '@sentry/nextjs';
 
@@ -13,7 +14,7 @@ import * as Sentry from '@sentry/nextjs';
 export function setupPaymentEventListeners() {
   // Listener pour paiement réussi
   paymentEvents.onPaymentSucceeded(async (data: PaymentSucceededEvent) => {
-    console.log('[PaymentEventListeners] Payment succeeded:', data.transactionId);
+    logger.info({ transactionId: data.transactionId, userId: data.userId }, '[PaymentEventListeners] Payment succeeded');
 
     try {
       // 1. Envoyer une notification de confirmation
@@ -50,14 +51,14 @@ export function setupPaymentEventListeners() {
       //   lastPaymentDate: data.timestamp,
       // });
     } catch (error) {
-      console.error('[PaymentEventListeners] Error handling payment succeeded:', error);
+      logger.error({ error, transactionId: data.transactionId }, '[PaymentEventListeners] Error handling payment succeeded');
       Sentry.captureException(error);
     }
   });
 
   // Listener pour paiement échoué
   paymentEvents.onPaymentFailed(async (data) => {
-    console.log('[PaymentEventListeners] Payment failed:', data.transactionId);
+    logger.warn({ transactionId: data.transactionId }, '[PaymentEventListeners] Payment failed');
 
     try {
       // TODO: Récupérer userId depuis la transaction en base de données
@@ -87,14 +88,14 @@ export function setupPaymentEventListeners() {
       //   error: data.error,
       // });
     } catch (error) {
-      console.error('[PaymentEventListeners] Error handling payment failed:', error);
+      logger.error({ error, transactionId: data.transactionId }, '[PaymentEventListeners] Error handling payment failed');
       Sentry.captureException(error);
     }
   });
 
   // Listener pour remboursement
   paymentEvents.onPaymentRefunded(async (data) => {
-    console.log('[PaymentEventListeners] Payment refunded:', data.transactionId);
+    logger.info({ transactionId: data.transactionId }, '[PaymentEventListeners] Payment refunded');
 
     try {
       // TODO: Récupérer userId depuis la transaction en base de données
@@ -124,7 +125,7 @@ export function setupPaymentEventListeners() {
       //   amount: data.amount,
       // });
     } catch (error) {
-      console.error('[PaymentEventListeners] Error handling payment refunded:', error);
+      logger.error({ error, transactionId: data.transactionId }, '[PaymentEventListeners] Error handling payment refunded');
       Sentry.captureException(error);
     }
   });

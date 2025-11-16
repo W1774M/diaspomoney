@@ -4,8 +4,13 @@
  * Service refactoré utilisant le Repository Pattern
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { Validate, ValidationRule } from '@/lib/decorators/validate.decorator';
+import { logger } from '@/lib/logger';
 import { Booking, getBookingRepository, PaginatedResult } from '@/repositories';
 import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
 
 export interface BookingData {
   requesterId: string;
@@ -52,6 +57,7 @@ export class BookingService {
    * AVANT: Accès direct à MongoDB via getDatabase()
    * APRÈS: Utilisation du repository
    */
+  @Cacheable(900, { prefix: 'BookingService:getBookings' }) // Cache 15 minutes
   async getBookings(filters: BookingServiceFilters = {}): Promise<{
     data: Booking[];
     total: number;
@@ -84,7 +90,7 @@ export class BookingService {
         offset: result.offset,
       };
     } catch (error) {
-      console.error('Erreur getBookings:', error);
+      logger.error({ error, filters }, 'Erreur getBookings');
       Sentry.captureException(error);
       throw error;
     }
@@ -95,6 +101,13 @@ export class BookingService {
    * AVANT: Accès direct à MongoDB
    * APRÈS: Utilisation du repository
    */
+  @Log({ level: 'info', logArgs: true })
+  @Validate({
+    rules: [
+      ValidationRule(0, z.string().min(1, 'Booking ID is required'), 'id'),
+    ],
+  })
+  @Cacheable(600, { prefix: 'BookingService:getBookingById' }) // Cache 10 minutes
   async getBookingById(id: string): Promise<Booking> {
     try {
       const booking = await this.bookingRepository.findById(id);
@@ -105,7 +118,7 @@ export class BookingService {
 
       return booking;
     } catch (error) {
-      console.error('Erreur getBookingById:', error);
+      logger.error({ error, id }, 'Erreur getBookingById');
       Sentry.captureException(error);
       throw error;
     }
@@ -116,6 +129,18 @@ export class BookingService {
    * AVANT: Accès direct à MongoDB
    * APRÈS: Utilisation du repository
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      ValidationRule(0, z.object({
+        requesterId: z.string().min(1, 'Requester ID is required'),
+        providerId: z.string().min(1, 'Provider ID is required'),
+        serviceId: z.string().min(1, 'Service ID is required'),
+        serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']),
+      }).passthrough(), 'data'),
+    ],
+  })
+  @InvalidateCache('BookingService:*')
   async createBooking(data: BookingData): Promise<Booking> {
     try {
       // Validation
@@ -139,7 +164,7 @@ export class BookingService {
 
       return booking;
     } catch (error) {
-      console.error('Erreur createBooking:', error);
+      logger.error({ error, data }, 'Erreur createBooking');
       Sentry.captureException(error);
       throw error;
     }
@@ -148,6 +173,7 @@ export class BookingService {
   /**
    * Mettre à jour un rendez-vous
    */
+  @InvalidateCache('BookingService:*')
   async updateBooking(
     id: string,
     data: Partial<BookingData>
@@ -164,7 +190,7 @@ export class BookingService {
 
       return updatedBooking;
     } catch (error) {
-      console.error('Erreur updateBooking:', error);
+      logger.error({ error, id }, 'Erreur updateBooking');
       Sentry.captureException(error);
       throw error;
     }
@@ -180,7 +206,7 @@ export class BookingService {
     try {
       return await this.bookingRepository.updateStatus(id, status);
     } catch (error) {
-      console.error('Erreur updateBookingStatus:', error);
+      logger.error({ error, id, status }, 'Erreur updateBookingStatus');
       Sentry.captureException(error);
       throw error;
     }
@@ -193,7 +219,7 @@ export class BookingService {
     try {
       return await this.bookingRepository.delete(id);
     } catch (error) {
-      console.error('Erreur deleteBooking:', error);
+      logger.error({ error, id }, 'Erreur deleteBooking');
       Sentry.captureException(error);
       throw error;
     }
@@ -202,6 +228,7 @@ export class BookingService {
   /**
    * Récupérer les réservations d'un utilisateur
    */
+  @Cacheable(900, { prefix: 'BookingService:getUserBookings' }) // Cache 15 minutes
   async getUserBookings(
     userId: string,
     options?: { limit?: number; offset?: number }
@@ -209,7 +236,7 @@ export class BookingService {
     try {
       return await this.bookingRepository.findByRequester(userId, options);
     } catch (error) {
-      console.error('Erreur getUserBookings:', error);
+      logger.error({ error, userId }, 'Erreur getUserBookings');
       Sentry.captureException(error);
       throw error;
     }
@@ -218,6 +245,7 @@ export class BookingService {
   /**
    * Récupérer les réservations d'un provider
    */
+  @Cacheable(900, { prefix: 'BookingService:getProviderBookings' }) // Cache 15 minutes
   async getProviderBookings(
     providerId: string,
     options?: { limit?: number; offset?: number }
@@ -225,7 +253,7 @@ export class BookingService {
     try {
       return await this.bookingRepository.findByProvider(providerId, options);
     } catch (error) {
-      console.error('Erreur getProviderBookings:', error);
+      logger.error({ error, providerId }, 'Erreur getProviderBookings');
       Sentry.captureException(error);
       throw error;
     }
@@ -240,7 +268,7 @@ export class BookingService {
     try {
       return await this.bookingRepository.findUpcoming(options);
     } catch (error) {
-      console.error('Erreur getUpcomingBookings:', error);
+      logger.error({ error }, 'Erreur getUpcomingBookings');
       Sentry.captureException(error);
       throw error;
     }

@@ -4,6 +4,7 @@
  */
 
 import { authEvents, UserLoggedInEvent } from '@/lib/events';
+import { logger } from '@/lib/logger';
 import { notificationService } from '@/services/notification/notification.service';
 import * as Sentry from '@sentry/nextjs';
 
@@ -13,7 +14,7 @@ import * as Sentry from '@sentry/nextjs';
 export function setupAuthEventListeners() {
   // Listener pour la connexion réussie
   authEvents.onUserLoggedIn(async (data: UserLoggedInEvent) => {
-    console.log('[AuthEventListeners] User logged in:', data.userId);
+    logger.info({ userId: data.userId, email: data.email }, '[AuthEventListeners] User logged in');
 
     try {
       // 1. Envoyer une notification de bienvenue (si première connexion)
@@ -48,14 +49,14 @@ export function setupAuthEventListeners() {
       //   lastLoginIp: data.ipAddress,
       // });
     } catch (error) {
-      console.error('[AuthEventListeners] Error handling user logged in:', error);
+      logger.error({ error, userId: data.userId }, '[AuthEventListeners] Error handling user logged in');
       Sentry.captureException(error);
     }
   });
 
   // Listener pour l'inscription
   authEvents.onUserRegistered(async (data) => {
-    console.log('[AuthEventListeners] User registered:', data.userId);
+    logger.info({ userId: data.userId, email: data.email }, '[AuthEventListeners] User registered');
 
     try {
       // Envoyer un email de bienvenue
@@ -79,14 +80,14 @@ export function setupAuthEventListeners() {
       //   email: data.email,
       // });
     } catch (error) {
-      console.error('[AuthEventListeners] Error handling user registered:', error);
+      logger.error({ error, userId: data.userId }, '[AuthEventListeners] Error handling user registered');
       Sentry.captureException(error);
     }
   });
 
   // Listener pour la déconnexion
   authEvents.onUserLoggedOut(async (data) => {
-    console.log('[AuthEventListeners] User logged out:', data.userId);
+    logger.info({ userId: data.userId }, '[AuthEventListeners] User logged out');
 
     try {
       // Logger pour analytics
@@ -97,7 +98,7 @@ export function setupAuthEventListeners() {
       // Nettoyer les données de session côté serveur si nécessaire
       // await sessionService.clearUserSessions(data.userId);
     } catch (error) {
-      console.error('[AuthEventListeners] Error handling user logged out:', error);
+      logger.error({ error, userId: data.userId }, '[AuthEventListeners] Error handling user logged out');
       Sentry.captureException(error);
     }
   });
