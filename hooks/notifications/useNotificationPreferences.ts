@@ -93,7 +93,7 @@ export function useNotificationPreferences(): UseNotificationPreferencesReturn {
         setSaving(false);
       }
     },
-    [preferences]
+    [preferences],
   );
 
   return {

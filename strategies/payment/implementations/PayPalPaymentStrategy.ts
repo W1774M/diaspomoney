@@ -162,7 +162,7 @@ export class PayPalPaymentStrategy implements IPaymentStrategy {
 
   async confirmPaymentIntent(
     paymentIntentId: string,
-    _paymentMethodId?: string
+    _paymentMethodId?: string,
   ): Promise<PaymentResult> {
     try {
       const accessToken = await this.getAccessToken();
@@ -191,7 +191,7 @@ export class PayPalPaymentStrategy implements IPaymentStrategy {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -242,7 +242,7 @@ export class PayPalPaymentStrategy implements IPaymentStrategy {
               : undefined,
             note_to_payer: data.reason,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -288,7 +288,7 @@ export class PayPalPaymentStrategy implements IPaymentStrategy {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {

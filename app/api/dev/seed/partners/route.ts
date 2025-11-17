@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json(
       { error: 'Forbidden in production' },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       const res = await col.updateOne(
         { website: p.website },
         { $set: doc },
-        { upsert: true }
+        { upsert: true },
       );
       if (res.upsertedCount || res.modifiedCount) upserted += 1;
     }

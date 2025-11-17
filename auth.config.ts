@@ -39,7 +39,7 @@ export const authConfig: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(
-        credentials?: Record<'email' | 'password', string>
+        credentials?: Record<'email' | 'password', string>,
       ): Promise<{
         id: string;
         email: string;
@@ -76,7 +76,7 @@ export const authConfig: NextAuthOptions = {
 
           log.debug(
             { userId: user.id, email },
-            'User found, checking password'
+            'User found, checking password',
           );
 
           // Vérifier que le mot de passe existe et est hashé
@@ -90,7 +90,7 @@ export const authConfig: NextAuthOptions = {
           if (storedPassword.length < 20) {
             log.error(
               { email },
-              'Password appears to be stored in plain text!'
+              'Password appears to be stored in plain text!',
             );
             Sentry.captureMessage('Password stored in plain text', {
               level: 'error',
@@ -123,7 +123,7 @@ export const authConfig: NextAuthOptions = {
             .catch(error => {
               log.error(
                 { error, email, userId: user.id },
-                'Error emitting user logged in event'
+                'Error emitting user logged in event',
               );
               Sentry.captureException(error, {
                 tags: {
@@ -151,7 +151,7 @@ export const authConfig: NextAuthOptions = {
               email: userObject.email,
               name: userObject.name,
             },
-            'Returning user object'
+            'Returning user object',
           );
 
           return userObject;
@@ -222,7 +222,7 @@ export const authConfig: NextAuthOptions = {
           if (!existingUser) {
             log.info(
               { email, provider: account.provider },
-              'Creating new OAuth user'
+              'Creating new OAuth user',
             );
 
             // Créer un nouvel utilisateur via le repository
@@ -246,7 +246,7 @@ export const authConfig: NextAuthOptions = {
           } else {
             log.debug(
               { userId: existingUser.id, email },
-              'Existing user found, updating OAuth info'
+              'Existing user found, updating OAuth info',
             );
 
             // Mettre à jour les informations OAuth via le repository
@@ -271,7 +271,7 @@ export const authConfig: NextAuthOptions = {
             .catch(error => {
               log.error(
                 { error, userId: user.id, email: user.email },
-                'Error emitting user logged in event'
+                'Error emitting user logged in event',
               );
               Sentry.captureException(error, {
                 tags: {
@@ -285,7 +285,7 @@ export const authConfig: NextAuthOptions = {
 
           log.info(
             { userId: user.id, provider: account.provider },
-            'OAuth sign in authorized'
+            'OAuth sign in authorized',
           );
           return true;
         }
@@ -294,7 +294,7 @@ export const authConfig: NextAuthOptions = {
         // Le statut a déjà été vérifié dans authorize(), donc on accepte directement
         if (account?.provider === 'credentials') {
           log.debug(
-            'Credentials login - user already validated in authorize()'
+            'Credentials login - user already validated in authorize()',
           );
 
           // Vérifier que l'utilisateur a bien un email et un id
@@ -316,7 +316,7 @@ export const authConfig: NextAuthOptions = {
 
           log.info(
             { email: user.email, userId: user.id },
-            'Credentials sign in authorized'
+            'Credentials sign in authorized',
           );
           return true;
         }
@@ -368,7 +368,7 @@ export const authConfig: NextAuthOptions = {
         if (user) {
           log.debug(
             { userId: user.id, email: user.email },
-            'First call - setting token from user'
+            'First call - setting token from user',
           );
           token.provider = account?.provider;
           token.providerAccountId = account?.providerAccountId;
@@ -382,13 +382,13 @@ export const authConfig: NextAuthOptions = {
         if (token && !token.userId && token.email) {
           log.debug(
             { email: token.email },
-            'UserId missing, fetching from repository by email'
+            'UserId missing, fetching from repository by email',
           );
           try {
             // Utiliser le repository (Repository Pattern)
             const userRepository = getUserRepository();
             const dbUser = await userRepository.findByEmail(
-              token.email.toLowerCase()
+              token.email.toLowerCase(),
             );
 
             if (dbUser) {
@@ -401,7 +401,7 @@ export const authConfig: NextAuthOptions = {
           } catch (error) {
             log.error(
               { error, email: token.email },
-              'Error fetching user from repository'
+              'Error fetching user from repository',
             );
             Sentry.captureException(error, {
               tags: {
@@ -420,7 +420,7 @@ export const authConfig: NextAuthOptions = {
             email: token?.email,
             name: token?.name,
           },
-          'Token finalized'
+          'Token finalized',
         );
 
         return token;
@@ -500,7 +500,7 @@ export const authConfig: NextAuthOptions = {
 
         log.debug(
           { userId: token.userId, email: token.email },
-          'Session enriched successfully'
+          'Session enriched successfully',
         );
 
         return session;
@@ -555,7 +555,7 @@ export const authConfig: NextAuthOptions = {
           // Si baseUrl est invalide, extraire juste le chemin de l'URL
           log.warn(
             { pathname: urlObj.pathname },
-            'Invalid base URL, extracting path'
+            'Invalid base URL, extracting path',
           );
           return urlObj.pathname + urlObj.search || '/dashboard';
         }
@@ -569,7 +569,7 @@ export const authConfig: NextAuthOptions = {
 
         log.debug(
           { pathname: urlObj.pathname },
-          'External URL detected, extracting path'
+          'External URL detected, extracting path',
         );
         return urlObj.pathname + urlObj.search;
       } catch (error) {

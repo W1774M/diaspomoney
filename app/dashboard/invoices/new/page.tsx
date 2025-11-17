@@ -108,7 +108,7 @@ export default function NewInvoicePage() {
 
     // Valider que tous les items
     const validItems = formData.items.filter(
-      item => item.description && item.quantity > 0 && item.unitPrice > 0
+      item => item.description && item.quantity > 0 && item.unitPrice > 0,
     );
 
     if (validItems.length === 0) {
@@ -352,7 +352,7 @@ export default function NewInvoicePage() {
                         handleItemChange(
                           index,
                           'quantity',
-                          parseInt(e.target.value)
+                          parseInt(e.target.value),
                         )
                       }
                       className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -374,7 +374,7 @@ export default function NewInvoicePage() {
                         handleItemChange(
                           index,
                           'unitPrice',
-                          parseFloat(e.target.value)
+                          parseFloat(e.target.value),
                         )
                       }
                       className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'

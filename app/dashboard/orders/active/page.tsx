@@ -57,21 +57,21 @@ export default function ActiveOrdersPage() {
     (order: ActiveOrder) => {
       router.push(`/dashboard/orders/${order._id}`);
     },
-    [router]
+    [router],
   );
 
   const handleChat = useCallback(
     (order: ActiveOrder) => {
       if (order.conversationId) {
         router.push(
-          `/dashboard/messaging/users?conversation=${order.conversationId}`
+          `/dashboard/messaging/users?conversation=${order.conversationId}`,
         );
       } else {
         // Créer une conversation si elle n'existe pas
         router.push(`/dashboard/orders/${order._id}/chat`);
       }
     },
-    [router]
+    [router],
   );
 
   const filteredOrders = orders.filter(order => {
@@ -183,7 +183,7 @@ export default function ActiveOrdersPage() {
                   | 'all'
                   | 'pending'
                   | 'confirmed'
-                  | 'in_progress'
+                  | 'in_progress',
               )
             }
             className='px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'

@@ -118,7 +118,7 @@ export class MongoComplaintRepository implements IComplaintRepository {
       const mappedComplaint = this.mapToComplaint(complaint);
       this.log.info(
         { complaintId: mappedComplaint.id, userId: mappedComplaint.userId },
-        'Complaint created successfully'
+        'Complaint created successfully',
       );
       return mappedComplaint;
     } catch (error) {
@@ -135,7 +135,7 @@ export class MongoComplaintRepository implements IComplaintRepository {
   @InvalidateCache('ComplaintRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
-    data: Partial<Complaint>
+    data: Partial<Complaint>,
   ): Promise<Complaint | null> {
     try {
       const collection = await this.getCollection();
@@ -146,7 +146,7 @@ export class MongoComplaintRepository implements IComplaintRepository {
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       return result?.['value'] ? this.mapToComplaint(result['value']) : null;
     } catch (error) {
@@ -207,7 +207,7 @@ export class MongoComplaintRepository implements IComplaintRepository {
 
   async findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Complaint>> {
     try {
       const collection = await this.getCollection();
@@ -242,7 +242,7 @@ export class MongoComplaintRepository implements IComplaintRepository {
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findWithPagination'
+        'Error in findWithPagination',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -257,21 +257,21 @@ export class MongoComplaintRepository implements IComplaintRepository {
 
   async findByUser(
     userId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Complaint>> {
     return this.findWithPagination({ userId }, options);
   }
 
   async findByProvider(
     provider: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Complaint>> {
     return this.findWithPagination({ provider }, options);
   }
 
   async findByStatus(
     status: ComplaintStatus,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Complaint>> {
     return this.findWithPagination({ status }, options);
   }
@@ -280,7 +280,7 @@ export class MongoComplaintRepository implements IComplaintRepository {
   @Cacheable(300, { prefix: 'ComplaintRepository:findComplaintsWithFilters' }) // Cache 5 minutes
   async findComplaintsWithFilters(
     filters: ComplaintFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Complaint>> {
     try {
       const query: Record<string, any> = {};
@@ -317,7 +317,7 @@ export class MongoComplaintRepository implements IComplaintRepository {
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findComplaintsWithFilters'
+        'Error in findComplaintsWithFilters',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -339,7 +339,7 @@ export class MongoComplaintRepository implements IComplaintRepository {
       // Trouver le dernier numéro de l'année
       const lastComplaint = await collection.findOne(
         { number: { $regex: `^${prefix}` } },
-        { sort: { number: -1 } }
+        { sort: { number: -1 } },
       );
 
       let sequence = 1;

@@ -77,7 +77,7 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
 
       this.log.debug(
         { consentId: createdConsent.id, userId: createdConsent.userId },
-        'GDPR consent created'
+        'GDPR consent created',
       );
 
       return createdConsent;
@@ -206,7 +206,7 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
   @InvalidateCache('GDPRConsentRepository')
   async update(
     id: string,
-    data: Partial<GDPRConsent>
+    data: Partial<GDPRConsent>,
   ): Promise<GDPRConsent | null> {
     try {
       const collection = await this.getCollection();
@@ -221,7 +221,7 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
       const result = await collection.findOneAndUpdate(
         { $or: [{ _id: new ObjectId(id) }, { id }] },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
 
       if (!result) {
@@ -269,7 +269,7 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
   @Cacheable(300, { prefix: 'GDPRConsentRepository:findWithPagination' })
   async findWithPagination(
     filter: Record<string, any> = {},
-    options: PaginationOptions = {}
+    options: PaginationOptions = {},
   ): Promise<PaginatedResult<GDPRConsent>> {
     try {
       const collection = await this.getCollection();
@@ -300,7 +300,7 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
     } catch (error) {
       this.log.error(
         { error, filter, options },
-        'Error finding GDPR consents with pagination'
+        'Error finding GDPR consents with pagination',
       );
       Sentry.captureException(error, {
         tags: {
@@ -317,7 +317,7 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
   @Cacheable(300, { prefix: 'GDPRConsentRepository:searchConsents' })
   async searchConsents(
     query: GDPRConsentQuery,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<GDPRConsent>> {
     try {
       const mongoQuery: Record<string, any> = {};
@@ -376,17 +376,17 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
   @Cacheable(300, { prefix: 'GDPRConsentRepository:findActiveByUserId' })
   async findActiveByUserId(
     userId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<GDPRConsent>> {
     try {
       return this.findWithPagination(
         { userId, isActive: true },
-        options || { sort: { grantedAt: -1 } }
+        options || { sort: { grantedAt: -1 } },
       );
     } catch (error) {
       this.log.error(
         { error, userId },
-        'Error finding active consents by userId'
+        'Error finding active consents by userId',
       );
       Sentry.captureException(error, {
         tags: {
@@ -404,7 +404,7 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
   async withdrawConsent(
     consentId: string,
     userId: string,
-    reason?: string
+    reason?: string,
   ): Promise<GDPRConsent | null> {
     try {
       const collection = await this.getCollection();
@@ -430,7 +430,7 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
         {
           $set: updateData,
         },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
 
       if (!result) {
@@ -441,7 +441,7 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
     } catch (error) {
       this.log.error(
         { error, consentId, userId, reason },
-        'Error withdrawing GDPR consent'
+        'Error withdrawing GDPR consent',
       );
       Sentry.captureException(error, {
         tags: {

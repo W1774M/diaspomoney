@@ -39,7 +39,7 @@ export function getQuoteStatusText(status: string): string {
  */
 export function formatCurrency(
   amount: number,
-  currency: string = "EUR"
+  currency: string = "EUR",
 ): string {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -79,7 +79,7 @@ export function getQuotePriority(quote: any): "low" | "medium" | "high" {
   const validUntil = new Date(quote.validUntil);
   const today = new Date();
   const daysUntilExpiry = Math.ceil(
-    (validUntil.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    (validUntil.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   );
 
   if (daysUntilExpiry <= 3) {

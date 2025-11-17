@@ -37,7 +37,7 @@ const AttachmentSchema = new Schema<Attachment>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index pour améliorer les performances

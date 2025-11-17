@@ -21,7 +21,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -35,7 +35,7 @@ export async function GET(
       log.warn({ bookingId: params.id }, 'Invalid booking ID format');
       return NextResponse.json(
         { error: 'ID de réservation invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,7 +46,7 @@ export async function GET(
 
     log.info(
       { bookingId: params.id, status: booking.status },
-      'Booking fetched successfully'
+      'Booking fetched successfully',
     );
 
     return NextResponse.json({
@@ -56,20 +56,20 @@ export async function GET(
   } catch (error) {
     log.error(
       { error, bookingId: params.id, msg: 'Error fetching booking' },
-      'Error fetching booking'
+      'Error fetching booking',
     );
 
     // Gérer le cas où la réservation n'est pas trouvée
     if (error instanceof Error && error.message === 'Réservation non trouvée') {
       return NextResponse.json(
         { error: 'Réservation non trouvée' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -79,7 +79,7 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -99,14 +99,14 @@ export async function PUT(
       log.warn({ bookingId: params.id }, 'Invalid booking ID format');
       return NextResponse.json(
         { error: 'ID de réservation invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const body = await request.json();
     log.debug(
       { bookingId: params.id, fields: Object.keys(body) },
-      'Updating booking'
+      'Updating booking',
     );
 
     // Utiliser le service avec décorateurs (@Log, @InvalidateCache)
@@ -114,7 +114,7 @@ export async function PUT(
 
     log.info(
       { bookingId: params.id, status: updatedBooking.status },
-      'Booking updated successfully'
+      'Booking updated successfully',
     );
 
     return NextResponse.json({
@@ -125,19 +125,19 @@ export async function PUT(
   } catch (error) {
     log.error(
       { error, bookingId: params.id, msg: 'Error updating booking' },
-      'Error updating booking'
+      'Error updating booking',
     );
 
     if (error instanceof Error && error.message === 'Réservation non trouvée') {
       return NextResponse.json(
         { error: 'Réservation non trouvée' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
       { error: 'Erreur lors de la mise à jour de la réservation' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -147,7 +147,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -167,13 +167,13 @@ export async function DELETE(
       log.warn({ bookingId: params.id }, 'Invalid booking ID format');
       return NextResponse.json(
         { error: 'ID de réservation invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     log.debug(
       { bookingId: params.id, userId: session.user.id },
-      'Cancelling booking'
+      'Cancelling booking',
     );
 
     // Utiliser le service avec décorateurs (@Log, @InvalidateCache)
@@ -181,7 +181,7 @@ export async function DELETE(
 
     log.info(
       { bookingId: params.id, userId: session.user.id },
-      'Booking cancelled successfully'
+      'Booking cancelled successfully',
     );
 
     return NextResponse.json({
@@ -192,14 +192,14 @@ export async function DELETE(
   } catch (error) {
     log.error(
       { error, bookingId: params.id, msg: 'Error cancelling booking' },
-      'Error cancelling booking'
+      'Error cancelling booking',
     );
 
     if (error instanceof Error) {
       if (error.message === 'Réservation non trouvée') {
         return NextResponse.json(
           { error: 'Réservation non trouvée' },
-          { status: 404 }
+          { status: 404 },
         );
       }
       if (
@@ -212,7 +212,7 @@ export async function DELETE(
 
     return NextResponse.json(
       { error: "Erreur lors de l'annulation de la réservation" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

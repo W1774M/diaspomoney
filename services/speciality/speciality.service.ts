@@ -6,7 +6,10 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
-import { Validate, ValidationRule } from '@/lib/decorators/validate.decorator';
+import {
+  createValidationRule,
+  Validate,
+} from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
 import { getSpecialityRepository, ISpecialityRepository } from '@/repositories';
 import { ISpeciality } from '@/types';
@@ -53,7 +56,11 @@ export class SpecialityService {
   @Cacheable(300, { prefix: 'speciality' }) // Cache 5 minutes
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'Speciality ID is required'), 'id'),
+      createValidationRule(
+        0,
+        z.string().min(1, 'Speciality ID is required'),
+        'id',
+      ),
     ],
   })
   async getSpecialityById(id: string): Promise<ISpeciality | null> {
@@ -63,7 +70,7 @@ export class SpecialityService {
     } catch (error) {
       logger.error(
         { error, id },
-        'Erreur lors de la récupération de la spécialité'
+        'Erreur lors de la récupération de la spécialité',
       );
       throw error;
     }
@@ -75,7 +82,7 @@ export class SpecialityService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(
+      createValidationRule(
         0,
         z.object({
           name: z.string().min(1, 'Name is required'),
@@ -83,7 +90,7 @@ export class SpecialityService {
           group: z.string().min(1, 'Group is required'),
           isActive: z.boolean().optional(),
         }),
-        'data'
+        'data',
       ),
     ],
   })
@@ -106,7 +113,7 @@ export class SpecialityService {
     } catch (error) {
       logger.error(
         { error, data },
-        'Erreur lors de la création de la spécialité'
+        'Erreur lors de la création de la spécialité',
       );
       throw error;
     }
@@ -118,8 +125,12 @@ export class SpecialityService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'Speciality ID is required'), 'id'),
-      ValidationRule(
+      createValidationRule(
+        0,
+        z.string().min(1, 'Speciality ID is required'),
+        'id',
+      ),
+      createValidationRule(
         1,
         z.object({
           name: z.string().min(1).optional(),
@@ -127,14 +138,14 @@ export class SpecialityService {
           group: z.string().min(1).optional(),
           isActive: z.boolean().optional(),
         }),
-        'data'
+        'data',
       ),
     ],
   })
   @InvalidateCache('speciality:*')
   async updateSpeciality(
     id: string,
-    data: UpdateSpecialityData
+    data: UpdateSpecialityData,
   ): Promise<ISpeciality> {
     try {
       // Vérifier que la spécialité existe (Repository Pattern)
@@ -161,7 +172,7 @@ export class SpecialityService {
     } catch (error) {
       logger.error(
         { error, id, data },
-        'Erreur lors de la mise à jour de la spécialité'
+        'Erreur lors de la mise à jour de la spécialité',
       );
       throw error;
     }
@@ -174,7 +185,11 @@ export class SpecialityService {
   @InvalidateCache('speciality:*')
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'Speciality ID is required'), 'id'),
+      createValidationRule(
+        0,
+        z.string().min(1, 'Speciality ID is required'),
+        'id',
+      ),
     ],
   })
   async deleteSpeciality(id: string): Promise<boolean> {
@@ -190,7 +205,7 @@ export class SpecialityService {
     } catch (error) {
       logger.error(
         { error, id },
-        'Erreur lors de la suppression de la spécialité'
+        'Erreur lors de la suppression de la spécialité',
       );
       throw error;
     }

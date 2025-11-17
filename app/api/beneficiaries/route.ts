@@ -20,7 +20,7 @@ export async function GET(_request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: 'Utilisateur non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     if (!name || !relationship) {
       return NextResponse.json(
         { error: 'Le nom et la relation sont obligatoires' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: 'Utilisateur non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       if (existingBeneficiary) {
         return NextResponse.json(
           { error: 'Un bénéficiaire avec cet email existe déjà' },
-          { status: 409 }
+          { status: 409 },
         );
       }
     }
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
           _id: result.insertedId,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error('Erreur lors de la création du bénéficiaire:', error);

@@ -43,7 +43,7 @@ export function useInvoiceFilters(invoices: any[]) {
     (key: keyof InvoiceFilters, value: string) => {
       setFilters(prev => ({ ...prev, [key]: value }));
     },
-    []
+    [],
   );
 
   const clearFilters = useCallback(() => {

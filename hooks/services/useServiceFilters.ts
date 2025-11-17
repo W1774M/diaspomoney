@@ -29,7 +29,7 @@ export function useServiceFilters(providers: IUser[]) {
       .flatMap(p =>
         p.selectedServices
           ? p.selectedServices.map((s: string) => s.trim())
-          : []
+          : [],
       )
       .filter((service): service is string => Boolean(service))
       .filter((service, idx, arr) => arr.indexOf(service) === idx)
@@ -41,7 +41,7 @@ export function useServiceFilters(providers: IUser[]) {
       ...new Set(
         safeProviders
           .map(p => p.specialty)
-          .filter((specialty): specialty is string => Boolean(specialty))
+          .filter((specialty): specialty is string => Boolean(specialty)),
       ),
     ].sort();
   }, [safeProviders]);
@@ -51,7 +51,7 @@ export function useServiceFilters(providers: IUser[]) {
       ...new Set(
         safeProviders
           .map(p => p.address)
-          .filter((address): address is string => Boolean(address))
+          .filter((address): address is string => Boolean(address)),
       ),
     ].sort();
   }, [safeProviders]);
@@ -106,7 +106,7 @@ export function useServiceFilters(providers: IUser[]) {
     (key: keyof ServiceFilters, value: string | number) => {
       setFilters(prev => ({ ...prev, [key]: value }));
     },
-    []
+    [],
   );
 
   const clearFilters = useCallback(() => {
@@ -121,7 +121,7 @@ export function useServiceFilters(providers: IUser[]) {
 
   const hasActiveFilters = useMemo(() => {
     return Object.values(filters).some(value =>
-      typeof value === 'string' ? value.length > 0 : value > 0
+      typeof value === 'string' ? value.length > 0 : value > 0,
     );
   }, [filters]);
 

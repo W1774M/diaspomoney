@@ -97,7 +97,7 @@ export const useProvidersOptimized = (filters: ProviderFilters = {}): UseProvide
 
       const response = await fetch(
         `/api/providers?${searchParams.toString()}`,
-        { signal: abortControllerRef.current.signal }
+        { signal: abortControllerRef.current.signal },
       );
 
       if (!response.ok) {
@@ -115,7 +115,7 @@ export const useProvidersOptimized = (filters: ProviderFilters = {}): UseProvide
         // Mettre en cache
         cache.set(filtersKey, {
           data: providersData,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       } else {
         throw new Error(data.error || "Erreur inconnue");

@@ -118,7 +118,7 @@ export const performanceMonitoring = {
 // Middleware pour tracker automatiquement les performances
 export function withPerformanceTracking<T extends any[], R>(
   fn: (...args: T) => Promise<R>,
-  endpoint: string
+  endpoint: string,
 ) {
   return async (...args: T): Promise<R> => {
     const start = Date.now();
@@ -132,7 +132,7 @@ export function withPerformanceTracking<T extends any[], R>(
       performanceMonitoring.trackAPIPerformance(endpoint, duration);
       performanceMonitoring.trackError(
         endpoint,
-        error instanceof Error ? error.message : 'Unknown error'
+        error instanceof Error ? error.message : 'Unknown error',
       );
       throw error;
     }

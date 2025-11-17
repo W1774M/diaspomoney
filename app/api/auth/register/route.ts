@@ -56,14 +56,14 @@ export async function POST(request: NextRequest) {
           hasLastName: !!lastName,
           hasCountry: !!countryOfResidence,
         },
-        'Registration validation failed: missing required fields'
+        'Registration validation failed: missing required fields',
       );
       return NextResponse.json(
         {
           error: 'Tous les champs obligatoires doivent être remplis',
           success: false,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -71,14 +71,14 @@ export async function POST(request: NextRequest) {
     if (!oauth && !password) {
       log.warn(
         { email: email.trim().toLowerCase(), hasOAuth: !!oauth },
-        'Registration validation failed: password required'
+        'Registration validation failed: password required',
       );
       return NextResponse.json(
         {
           error: 'Le mot de passe est obligatoire',
           success: false,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -86,14 +86,14 @@ export async function POST(request: NextRequest) {
     if (!termsAccepted) {
       log.warn(
         { email: email.trim().toLowerCase() },
-        'Registration validation failed: terms not accepted'
+        'Registration validation failed: terms not accepted',
       );
       return NextResponse.json(
         {
           error: "Vous devez accepter les conditions d'utilisation",
           success: false,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
             email: email.trim().toLowerCase(),
             phoneLength: sanitizedPhone.length,
           },
-          'Registration validation failed: phone field seems to contain a password'
+          'Registration validation failed: phone field seems to contain a password',
         );
         Sentry.captureMessage('Suspicious phone field in registration', {
           level: 'warning',
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
             error: 'Format de téléphone invalide',
             success: false,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
         hasOAuth: !!sanitizedData.oauth,
         ipAddress,
       },
-      'Attempting user registration'
+      'Attempting user registration',
     );
 
     // Tentative d'inscription
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
         country: sanitizedData.country,
         ipAddress,
       },
-      'User registration successful'
+      'User registration successful',
     );
 
     // Retourner la réponse
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
         message:
           'Compte créé avec succès. Vérifiez votre email pour activer votre compte.',
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     log.error(
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
         msg: 'Error during user registration',
         email: (error as any)?.email || 'unknown',
       },
-      'Registration failed'
+      'Registration failed',
     );
 
     // Enregistrer les métriques d'échec
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
         error: error instanceof Error ? error.message : "Erreur d'inscription",
         success: false,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     log.error({ err, msg: 'Failed to fetch partners' });
     return NextResponse.json(
       { error: 'Failed to fetch partners' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

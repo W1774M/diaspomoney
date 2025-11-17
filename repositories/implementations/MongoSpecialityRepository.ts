@@ -125,7 +125,7 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
       const mappedSpeciality = this.mapToSpeciality(speciality);
       this.log.info(
         { specialityId: mappedSpeciality._id, name: mappedSpeciality.name },
-        'Speciality created successfully'
+        'Speciality created successfully',
       );
       return mappedSpeciality;
     } catch (error) {
@@ -142,7 +142,7 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
   @InvalidateCache('SpecialityRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
-    data: Partial<ISpeciality>
+    data: Partial<ISpeciality>,
   ): Promise<ISpeciality | null> {
     try {
       const collection = await this.getCollection();
@@ -157,7 +157,7 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       return result?.['value'] ? this.mapToSpeciality(result['value']) : null;
     } catch (error) {

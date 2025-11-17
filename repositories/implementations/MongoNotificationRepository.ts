@@ -115,13 +115,13 @@ export class MongoNotificationRepository implements INotificationRepository {
           type: mappedNotification.type,
           status: mappedNotification.status,
         },
-        'Notification created successfully'
+        'Notification created successfully',
       );
       return mappedNotification;
     } catch (error) {
       this.log.error(
         { error, recipient: data.recipient, type: data.type },
-        'Error in create'
+        'Error in create',
       );
       Sentry.captureException(error);
       throw error;
@@ -132,7 +132,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   @InvalidateCache('NotificationRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
-    data: Partial<Notification>
+    data: Partial<Notification>,
   ): Promise<Notification | null> {
     try {
       const collection = await this.getCollection();
@@ -143,7 +143,7 @@ export class MongoNotificationRepository implements INotificationRepository {
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       const updated = result?.['value']
         ? this.mapToNotification(result['value'])
@@ -151,12 +151,12 @@ export class MongoNotificationRepository implements INotificationRepository {
       if (updated) {
         this.log.info(
           { notificationId: id },
-          'Notification updated successfully'
+          'Notification updated successfully',
         );
       } else {
         this.log.warn(
           { notificationId: id },
-          'Notification not found for update'
+          'Notification not found for update',
         );
       }
       return updated;
@@ -177,12 +177,12 @@ export class MongoNotificationRepository implements INotificationRepository {
       if (deleted) {
         this.log.info(
           { notificationId: id },
-          'Notification deleted successfully'
+          'Notification deleted successfully',
         );
       } else {
         this.log.warn(
           { notificationId: id },
-          'Notification not found for deletion'
+          'Notification not found for deletion',
         );
       }
       return deleted;
@@ -217,7 +217,7 @@ export class MongoNotificationRepository implements INotificationRepository {
       const exists = count > 0;
       this.log.debug(
         { notificationId: id, exists },
-        'Notification existence checked'
+        'Notification existence checked',
       );
       return exists;
     } catch (error) {
@@ -231,7 +231,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   @Cacheable(300, { prefix: 'NotificationRepository:findWithPagination' }) // Cache 5 minutes
   async findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Notification>> {
     try {
       const collection = await this.getCollection();
@@ -273,14 +273,14 @@ export class MongoNotificationRepository implements INotificationRepository {
           offset,
           filters,
         },
-        'Notifications paginated'
+        'Notifications paginated',
       );
 
       return result;
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findWithPagination'
+        'Error in findWithPagination',
       );
       Sentry.captureException(error);
       throw error;
@@ -291,13 +291,13 @@ export class MongoNotificationRepository implements INotificationRepository {
   @Cacheable(300, { prefix: 'NotificationRepository:findByRecipient' }) // Cache 5 minutes
   async findByRecipient(
     recipient: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Notification>> {
     try {
       const result = await this.findWithPagination({ recipient }, options);
       this.log.debug(
         { recipient, count: result.data.length },
-        'Notifications found by recipient'
+        'Notifications found by recipient',
       );
       return result;
     } catch (error) {
@@ -311,13 +311,13 @@ export class MongoNotificationRepository implements INotificationRepository {
   @Cacheable(300, { prefix: 'NotificationRepository:findByStatus' }) // Cache 5 minutes
   async findByStatus(
     status: NotificationStatus,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Notification>> {
     try {
       const result = await this.findWithPagination({ status }, options);
       this.log.debug(
         { status, count: result.data.length },
-        'Notifications found by status'
+        'Notifications found by status',
       );
       return result;
     } catch (error) {
@@ -331,13 +331,13 @@ export class MongoNotificationRepository implements INotificationRepository {
   @Cacheable(300, { prefix: 'NotificationRepository:findByType' }) // Cache 5 minutes
   async findByType(
     type: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Notification>> {
     try {
       const result = await this.findWithPagination({ type }, options);
       this.log.debug(
         { type, count: result.data.length },
-        'Notifications found by type'
+        'Notifications found by type',
       );
       return result;
     } catch (error) {
@@ -350,16 +350,16 @@ export class MongoNotificationRepository implements INotificationRepository {
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'NotificationRepository:findPending' }) // Cache 5 minutes
   async findPending(
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Notification>> {
     try {
       const result = await this.findWithPagination(
         { status: 'PENDING' },
-        options
+        options,
       );
       this.log.debug(
         { count: result.data.length },
-        'Pending notifications found'
+        'Pending notifications found',
       );
       return result;
     } catch (error) {
@@ -375,7 +375,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   }) // Cache 5 minutes
   async findNotificationsWithFilters(
     filters: NotificationFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Notification>> {
     try {
       const query: Record<string, any> = {};
@@ -409,13 +409,13 @@ export class MongoNotificationRepository implements INotificationRepository {
           total: result.total,
           filters,
         },
-        'Notifications found with filters'
+        'Notifications found with filters',
       );
       return result;
     } catch (error) {
       this.log.error(
         { error, filters },
-        'Error in findNotificationsWithFilters'
+        'Error in findNotificationsWithFilters',
       );
       Sentry.captureException(error);
       throw error;
@@ -432,7 +432,7 @@ export class MongoNotificationRepository implements INotificationRepository {
       deliveredAt?: Date;
       failedAt?: Date;
       failureReason?: string;
-    }
+    },
   ): Promise<Notification | null> {
     try {
       const updateData: Partial<Notification> = {
@@ -452,14 +452,14 @@ export class MongoNotificationRepository implements INotificationRepository {
       if (result) {
         this.log.info(
           { notificationId: id, status },
-          'Notification status updated successfully'
+          'Notification status updated successfully',
         );
       }
       return result;
     } catch (error) {
       this.log.error(
         { error, notificationId: id, status },
-        'Error in updateStatus'
+        'Error in updateStatus',
       );
       Sentry.captureException(error);
       throw error;

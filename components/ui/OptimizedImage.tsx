@@ -233,7 +233,7 @@ export const useImagePreloader = () => {
     async (sources: string[]): Promise<void[]> => {
       return Promise.all(sources.map(preloadImage));
     },
-    [preloadImage]
+    [preloadImage],
   );
 
   return { preloadImage, preloadImages };

@@ -54,7 +54,7 @@ export function useSignOut() {
               : 'Erreur inconnue';
           logger.warn(
             { error: errorMessage },
-            "Erreur lors de l'émission de l'événement de déconnexion"
+            "Erreur lors de l'émission de l'événement de déconnexion",
           );
         }
       }
@@ -92,7 +92,7 @@ export function useSignOut() {
           error: errorMessage,
           errorType: error instanceof Error ? error.name : 'UnknownError',
         },
-        'Erreur lors de la déconnexion'
+        'Erreur lors de la déconnexion',
       );
 
       // En cas d'erreur, forcer la redirection

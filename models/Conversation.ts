@@ -34,7 +34,7 @@ const ConversationSchema = new Schema<Conversation>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index pour améliorer les performances
@@ -45,20 +45,20 @@ ConversationSchema.index({ 'participants.0': 1, 'participants.1': 1 }); // Index
 
 // Méthode pour obtenir l'autre participant
 ConversationSchema.methods['getOtherParticipant'] = function (
-  userId: string
+  userId: string,
 ): string | null {
   const participants = this['participants'].map((p: any) =>
-    p.toString ? p.toString() : p
+    p.toString ? p.toString() : p,
   );
   const other = participants.find(
-    (p: string) => p !== userId && p !== userId.toString()
+    (p: string) => p !== userId && p !== userId.toString(),
   );
   return other || null;
 };
 
 // Méthode pour incrémenter le compteur de messages non lus
 ConversationSchema.methods['incrementUnreadCount'] = function (
-  userId: string
+  userId: string,
 ): void {
   const self = this as any;
   const userIdStr = userId.toString();
@@ -71,7 +71,7 @@ ConversationSchema.methods['incrementUnreadCount'] = function (
 
 // Méthode pour réinitialiser le compteur de messages non lus
 ConversationSchema.methods['resetUnreadCount'] = function (
-  userId: string
+  userId: string,
 ): void {
   const self = this as any;
   if (self['unreadCount']) {

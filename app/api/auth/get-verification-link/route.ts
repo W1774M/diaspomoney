@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     if (!email) {
       return NextResponse.json(
         { error: 'Adresse email requise' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: 'Aucun compte trouvé avec cette adresse email' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const emailVerificationToken = jwt.sign(
       { userId: user._id?.toString() || user.id, type: 'email_verification' },
       process.env['JWT_SECRET']!,
-      { expiresIn: '24h' }
+      { expiresIn: '24h' },
     );
 
     // Créer le lien de vérification
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         verificationUrl: verificationUrl,
         note: "En développement, l'email est envoyé à malarbillaudrey@gmail.com. Utilisez ce lien pour tester la vérification.",
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error('Erreur get-verification-link API:', error);
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
             : 'Erreur lors de la génération du lien',
         success: false,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

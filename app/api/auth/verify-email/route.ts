@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: 'Token de vérification requis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -31,14 +31,14 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       return NextResponse.json(
         { error: 'Token invalide ou expiré', reason: 'expired' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (decoded.type !== 'email_verification') {
       return NextResponse.json(
         { error: 'Type de token invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: 'Utilisateur non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
           message: 'Email déjà vérifié',
           email: user.email,
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
         message: 'Email vérifié avec succès',
         email: user.email,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error('Erreur verify-email API:', error);
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
             : "Erreur de vérification d'email",
         success: false,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

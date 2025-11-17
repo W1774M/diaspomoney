@@ -55,7 +55,7 @@ const AccessRestricted = React.memo<AccessRestrictedProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 AccessRestricted.displayName = 'AccessRestricted';

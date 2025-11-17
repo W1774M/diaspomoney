@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     if (!email) {
       return NextResponse.json(
         { error: 'Adresse email requise' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: 'Aucun compte trouvé avec cette adresse email' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
           message: 'Email déjà vérifié',
           email: user.email,
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const emailVerificationToken = jwt.sign(
       { userId: user._id?.toString() || user.id, type: 'email_verification' },
       process.env['JWT_SECRET']!,
-      { expiresIn: '24h' }
+      { expiresIn: '24h' },
     );
 
     // Envoyer l'email de bienvenue avec lien de vérification
@@ -58,13 +58,13 @@ export async function POST(request: NextRequest) {
     const emailSent = await sendWelcomeEmail(
       user.email,
       `${user.firstName} ${user.lastName}`,
-      verificationUrl
+      verificationUrl,
     );
 
     if (!emailSent) {
       return NextResponse.json(
         { error: "Erreur lors de l'envoi de l'email" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         message: 'Email de vérification renvoyé avec succès',
         email: user.email,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error('Erreur resend-verification API:', error);
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
             : "Erreur lors de l'envoi de l'email",
         success: false,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

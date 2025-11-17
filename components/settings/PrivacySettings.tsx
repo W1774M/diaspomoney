@@ -10,7 +10,7 @@ const PrivacySettings = React.memo<PrivacySettingsProps>(
       (field: keyof typeof data, value: string | boolean) => {
         setData({ ...data, [field]: value });
       },
-      [data, setData]
+      [data, setData],
     );
 
     const handleSubmit = useCallback(
@@ -18,7 +18,7 @@ const PrivacySettings = React.memo<PrivacySettingsProps>(
         e.preventDefault();
         onSave();
       },
-      [onSave]
+      [onSave],
     );
 
     return (
@@ -228,7 +228,7 @@ const PrivacySettings = React.memo<PrivacySettingsProps>(
         </form>
       </div>
     );
-  }
+  },
 );
 
 PrivacySettings.displayName = 'PrivacySettings';

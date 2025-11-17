@@ -119,7 +119,7 @@ export const authReducer = (state = initialAuthState, action: AppAction) => {
 // Notification Reducer
 export const notificationReducer = (
   state = initialNotificationState,
-  action: AppAction
+  action: AppAction,
 ) => {
   switch (action.type) {
     case NOTIFICATION_ACTIONS.ADD_NOTIFICATION:
@@ -199,7 +199,7 @@ export const userReducer = (state = initialUserState, action: AppAction) => {
 // Appointment Reducer
 export const appointmentReducer = (
   state = initialAppointmentState,
-  action: AppAction
+  action: AppAction,
 ) => {
   switch (action.type) {
     case APPOINTMENT_ACTIONS.SET_APPOINTMENTS:
@@ -222,7 +222,7 @@ export const appointmentReducer = (
         appointments: state.appointments.map(apt =>
           apt.id === action.payload.id
             ? { ...apt, ...action.payload.updates }
-            : apt
+            : apt,
         ),
       };
 
@@ -230,7 +230,7 @@ export const appointmentReducer = (
       return {
         ...state,
         appointments: state.appointments.filter(
-          apt => apt.id !== action.payload
+          apt => apt.id !== action.payload,
         ),
       };
 
@@ -255,7 +255,7 @@ export const appointmentReducer = (
 // Provider Reducer
 export const providerReducer = (
   state = initialProviderState,
-  action: AppAction
+  action: AppAction,
 ) => {
   switch (action.type) {
     case PROVIDER_ACTIONS.SET_PROVIDERS:
@@ -278,7 +278,7 @@ export const providerReducer = (
         providers: state.providers.map(provider =>
           provider.id === action.payload.id
             ? { ...provider, ...action.payload.updates }
-            : provider
+            : provider,
         ),
       };
 
@@ -286,7 +286,7 @@ export const providerReducer = (
       return {
         ...state,
         providers: state.providers.filter(
-          provider => provider.id !== action.payload
+          provider => provider.id !== action.payload,
         ),
       };
 
@@ -311,7 +311,7 @@ export const providerReducer = (
 // Invoice Reducer
 export const invoiceReducer = (
   state = initialInvoiceState,
-  action: AppAction
+  action: AppAction,
 ) => {
   switch (action.type) {
     case INVOICE_ACTIONS.SET_INVOICES:
@@ -334,7 +334,7 @@ export const invoiceReducer = (
         invoices: state.invoices.map(invoice =>
           invoice.id === action.payload.id
             ? { ...invoice, ...action.payload.updates }
-            : invoice
+            : invoice,
         ),
       };
 
@@ -342,7 +342,7 @@ export const invoiceReducer = (
       return {
         ...state,
         invoices: state.invoices.filter(
-          invoice => invoice.id !== action.payload
+          invoice => invoice.id !== action.payload,
         ),
       };
 

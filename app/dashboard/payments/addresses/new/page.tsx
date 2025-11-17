@@ -33,7 +33,7 @@ export default function NewAddressPage() {
 
   const handleInputChange = (
     field: keyof BillingAddressFormData,
-    value: string | boolean
+    value: string | boolean,
   ) => {
     setFormData(prev => ({
       ...prev,

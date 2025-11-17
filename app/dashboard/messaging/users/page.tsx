@@ -82,7 +82,7 @@ export default function UserMessagesPage() {
       selectedConversation,
       messageText,
       user.id,
-      attachmentIds.length > 0 ? attachmentIds : undefined
+      attachmentIds.length > 0 ? attachmentIds : undefined,
     ).then(() => {
       fetchConversations(user.id);
     });
@@ -118,7 +118,7 @@ export default function UserMessagesPage() {
 
         if (!allowedTypes.includes(file.type)) {
           throw new Error(
-            `Type de fichier non autorisé pour ${file.name}. Types autorisés: images, PDF, Word, texte.`
+            `Type de fichier non autorisé pour ${file.name}. Types autorisés: images, PDF, Word, texte.`,
           );
         }
 
@@ -126,7 +126,7 @@ export default function UserMessagesPage() {
         const maxSize = 10 * 1024 * 1024; // 10MB
         if (file.size > maxSize) {
           throw new Error(
-            `Le fichier ${file.name} est trop volumineux (max 10MB).`
+            `Le fichier ${file.name} est trop volumineux (max 10MB).`,
           );
         }
 
@@ -143,7 +143,7 @@ export default function UserMessagesPage() {
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(
-            errorData.error || `Erreur lors de l'upload de ${file.name}`
+            errorData.error || `Erreur lors de l'upload de ${file.name}`,
           );
         }
 
@@ -157,7 +157,7 @@ export default function UserMessagesPage() {
           };
         } else {
           throw new Error(
-            data.error || `Erreur lors de l'upload de ${file.name}`
+            data.error || `Erreur lors de l'upload de ${file.name}`,
           );
         }
       });
@@ -183,7 +183,7 @@ export default function UserMessagesPage() {
   };
 
   const filteredConversations = conversations.filter(conv =>
-    conv.participant.name.toLowerCase().includes(searchQuery.toLowerCase())
+    conv.participant.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   if (isLoading || loading) {
@@ -199,7 +199,7 @@ export default function UserMessagesPage() {
   }
 
   const currentConversation = conversations.find(
-    c => c.id === selectedConversation
+    c => c.id === selectedConversation,
   );
 
   return (
@@ -287,7 +287,7 @@ export default function UserMessagesPage() {
                           {
                             hour: '2-digit',
                             minute: '2-digit',
-                          }
+                          },
                         )}
                       </p>
                     </div>
@@ -358,7 +358,7 @@ export default function UserMessagesPage() {
                             {
                               hour: '2-digit',
                               minute: '2-digit',
-                            }
+                            },
                           )}
                         </p>
                       </div>

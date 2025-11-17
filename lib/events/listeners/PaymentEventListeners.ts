@@ -17,7 +17,7 @@ export function setupPaymentEventListeners() {
   paymentEvents.onPaymentSucceeded(async (data: PaymentSucceededEvent) => {
     logger.info(
       { transactionId: data.transactionId, userId: data.userId },
-      '[PaymentEventListeners] Payment succeeded'
+      '[PaymentEventListeners] Payment succeeded',
     );
 
     try {
@@ -57,7 +57,7 @@ export function setupPaymentEventListeners() {
     } catch (error) {
       logger.error(
         { error, transactionId: data.transactionId },
-        '[PaymentEventListeners] Error handling payment succeeded'
+        '[PaymentEventListeners] Error handling payment succeeded',
       );
       Sentry.captureException(error);
     }
@@ -67,14 +67,14 @@ export function setupPaymentEventListeners() {
   paymentEvents.onPaymentFailed(async data => {
     logger.warn(
       { transactionId: data.transactionId },
-      '[PaymentEventListeners] Payment failed'
+      '[PaymentEventListeners] Payment failed',
     );
 
     try {
       // Récupérer userId depuis la transaction en base de données (Repository Pattern)
       const userId =
         (await transactionService.getUserIdFromTransaction(
-          data.transactionId
+          data.transactionId,
         )) || 'unknown';
 
       // Envoyer une notification d'échec
@@ -102,7 +102,7 @@ export function setupPaymentEventListeners() {
     } catch (error) {
       logger.error(
         { error, transactionId: data.transactionId },
-        '[PaymentEventListeners] Error handling payment failed'
+        '[PaymentEventListeners] Error handling payment failed',
       );
       Sentry.captureException(error);
     }
@@ -112,14 +112,14 @@ export function setupPaymentEventListeners() {
   paymentEvents.onPaymentRefunded(async data => {
     logger.info(
       { transactionId: data.transactionId },
-      '[PaymentEventListeners] Payment refunded'
+      '[PaymentEventListeners] Payment refunded',
     );
 
     try {
       // Récupérer userId depuis la transaction en base de données (Repository Pattern)
       const userId =
         (await transactionService.getUserIdFromTransaction(
-          data.transactionId
+          data.transactionId,
         )) || 'unknown';
 
       // Envoyer une notification de remboursement
@@ -147,7 +147,7 @@ export function setupPaymentEventListeners() {
     } catch (error) {
       logger.error(
         { error, transactionId: data.transactionId },
-        '[PaymentEventListeners] Error handling payment refunded'
+        '[PaymentEventListeners] Error handling payment refunded',
       );
       Sentry.captureException(error);
     }

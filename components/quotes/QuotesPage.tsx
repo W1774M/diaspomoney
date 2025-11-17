@@ -59,14 +59,14 @@ const QuotesPage = React.memo(function QuotesPage() {
     (id: string) => {
       router.push(`/dashboard/quotes/${id}`);
     },
-    [router]
+    [router],
   );
 
   const handleEdit = useCallback(
     (id: string) => {
       router.push(`/dashboard/quotes/${id}/edit`);
     },
-    [router]
+    [router],
   );
 
   // Suppression réelle du devis via l'API
@@ -80,7 +80,7 @@ const QuotesPage = React.memo(function QuotesPage() {
           });
           if (response.ok) {
             setQuotes(prev =>
-              prev.filter(quote => quote._id !== id && quote.id !== id)
+              prev.filter(quote => quote._id !== id && quote.id !== id),
             );
             addSuccess('Devis supprimé avec succès');
           } else {
@@ -93,7 +93,7 @@ const QuotesPage = React.memo(function QuotesPage() {
         }
       }
     },
-    [addSuccess, addError]
+    [addSuccess, addError],
   );
 
   const handleDownload = useCallback(
@@ -137,7 +137,7 @@ const QuotesPage = React.memo(function QuotesPage() {
         addError('Erreur lors du téléchargement du devis');
       }
     },
-    [addSuccess, addError]
+    [addSuccess, addError],
   );
 
   const handleApprove = useCallback(
@@ -154,8 +154,8 @@ const QuotesPage = React.memo(function QuotesPage() {
               prev.map(quote =>
                 quote._id === id || quote.id === id
                   ? { ...quote, status: 'APPROVED' }
-                  : quote
-              )
+                  : quote,
+              ),
             );
             addSuccess('Devis approuvé avec succès');
           } else {
@@ -168,7 +168,7 @@ const QuotesPage = React.memo(function QuotesPage() {
         }
       }
     },
-    [addSuccess, addError]
+    [addSuccess, addError],
   );
 
   const handleReject = useCallback(
@@ -184,8 +184,8 @@ const QuotesPage = React.memo(function QuotesPage() {
               prev.map(quote =>
                 quote._id === id || quote.id === id
                   ? { ...quote, status: 'REJECTED' }
-                  : quote
-              )
+                  : quote,
+              ),
             );
             addSuccess('Devis rejeté avec succès');
           } else {
@@ -198,7 +198,7 @@ const QuotesPage = React.memo(function QuotesPage() {
         }
       }
     },
-    [addSuccess, addError]
+    [addSuccess, addError],
   );
 
   const handleAddQuote = useCallback(() => {
@@ -210,7 +210,7 @@ const QuotesPage = React.memo(function QuotesPage() {
       setSearchTerm(value);
       updateFilter('searchTerm', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handleStatusChange = useCallback(
@@ -218,7 +218,7 @@ const QuotesPage = React.memo(function QuotesPage() {
       setStatusFilter(value);
       updateFilter('statusFilter', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handleDateChange = useCallback(
@@ -226,7 +226,7 @@ const QuotesPage = React.memo(function QuotesPage() {
       setDateFilter(value);
       updateFilter('dateFilter', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   // Les clients peuvent voir les devis mais ne peuvent pas en créer

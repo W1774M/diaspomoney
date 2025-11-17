@@ -59,7 +59,7 @@ export default function HistoricalOrderCard({
               </h3>
               <span
                 className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                  order.status
+                  order.status,
                 )}`}
               >
                 {getStatusLabel(order.status)}

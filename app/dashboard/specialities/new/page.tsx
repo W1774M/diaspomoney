@@ -27,7 +27,7 @@ export default function NewSpecialityPage() {
 
   const handleInputChange = (
     field: keyof ISpeciality,
-    value: string | number | boolean
+    value: string | number | boolean,
   ) => {
     setFormData(prev => ({
       ...prev,

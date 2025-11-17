@@ -29,7 +29,7 @@ export function useNotifications(): UseNotificationsReturn {
 
       try {
         const response = await fetch(
-          `/api/notifications?page=${pageNum}&limit=20&status=${filter}`
+          `/api/notifications?page=${pageNum}&limit=20&status=${filter}`,
         );
 
         if (!response.ok) {
@@ -55,7 +55,7 @@ export function useNotifications(): UseNotificationsReturn {
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
   const markAsRead = useCallback(async (notificationId: string) => {
@@ -68,7 +68,7 @@ export function useNotifications(): UseNotificationsReturn {
 
       if (response.ok) {
         setNotifications(prev =>
-          prev.map(n => (n.id === notificationId ? { ...n, read: true } : n))
+          prev.map(n => (n.id === notificationId ? { ...n, read: true } : n)),
         );
         setUnreadCount(prev => Math.max(0, prev - 1));
       } else {

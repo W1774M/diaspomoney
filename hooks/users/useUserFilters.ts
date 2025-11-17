@@ -32,7 +32,7 @@ export function useUserFilters(users: IUser[]) {
         [key]: value,
       }));
     },
-    []
+    [],
   );
 
   const clearFilters = useCallback(() => {

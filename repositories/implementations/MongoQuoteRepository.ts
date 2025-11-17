@@ -133,7 +133,7 @@ export class MongoQuoteRepository implements IQuoteRepository {
         ...(data._id ? { _id: new ObjectId(data._id) } : {}),
       };
       const result = await collection.insertOne(
-        quoteData as OptionalId<Document>
+        quoteData as OptionalId<Document>,
       );
       const quote = await collection.findOne({ _id: result.insertedId });
       if (!quote) {
@@ -142,7 +142,7 @@ export class MongoQuoteRepository implements IQuoteRepository {
       const mappedQuote = this.mapToQuote(quote);
       this.log.info(
         { quoteId: mappedQuote.id, type: mappedQuote.type },
-        'Quote created successfully'
+        'Quote created successfully',
       );
       return mappedQuote;
     } catch (error) {
@@ -171,7 +171,7 @@ export class MongoQuoteRepository implements IQuoteRepository {
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       return result?.['value'] ? this.mapToQuote(result['value']) : null;
     } catch (error) {
@@ -244,7 +244,7 @@ export class MongoQuoteRepository implements IQuoteRepository {
   }
 
   async findByStatus(
-    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED'
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED',
   ): Promise<Quote[]> {
     try {
       return await this.findAll({ status });

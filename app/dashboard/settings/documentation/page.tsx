@@ -129,7 +129,7 @@ export default function DocumentationPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
-    new Set(['getting-started'])
+    new Set(['getting-started']),
   );
 
   useEffect(() => {
@@ -154,7 +154,7 @@ export default function DocumentationPage() {
     articles: section.articles.filter(
       article =>
         article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        article.description.toLowerCase().includes(searchQuery.toLowerCase())
+        article.description.toLowerCase().includes(searchQuery.toLowerCase()),
     ),
   }));
 

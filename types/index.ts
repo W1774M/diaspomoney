@@ -281,7 +281,7 @@ export interface Payment extends BaseEntity {
   transactionId: string;
   amount: number;
   currency: string;
-  method: PaymentMethod;
+  method: PaymentMethodType;
   status: PaymentStatus;
   paymentIntentId: string;
   clientSecret?: string;
@@ -340,6 +340,7 @@ export const NotificationType = {
   WHATSAPP: 'WHATSAPP',
 } as const;
 
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export type NotificationType =
   (typeof NotificationType)[keyof typeof NotificationType];
 
@@ -350,6 +351,7 @@ export const NotificationStatus = {
   FAILED: 'FAILED',
 } as const;
 
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export type NotificationStatus =
   (typeof NotificationStatus)[keyof typeof NotificationStatus];
 
@@ -936,6 +938,7 @@ export interface EmailQueueItem {
 }
 
 // === TYPES PAYMENT METHOD ===
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export interface PaymentMethod {
   id: string;
   type: string;

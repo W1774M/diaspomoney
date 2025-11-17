@@ -36,7 +36,7 @@ const DashboardActionCard = React.memo<DashboardActionCardProps>(
         </div>
       </Link>
     );
-  }
+  },
 );
 
 DashboardActionCard.displayName = "DashboardActionCard";

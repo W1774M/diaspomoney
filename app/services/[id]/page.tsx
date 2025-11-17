@@ -74,7 +74,7 @@ export default function ProviderDetailPage() {
           ? parseStringSlot(item)
           : isTimeSlot(item)
           ? (item as TimeSlot)
-          : null
+          : null,
       )
       .filter((v): v is TimeSlot => !!v);
 
@@ -85,7 +85,7 @@ export default function ProviderDetailPage() {
 
     return normalized.filter(
       slot =>
-        !taken.some(appt => appt.start === slot.start && appt.end === slot.end)
+        !taken.some(appt => appt.start === slot.start && appt.end === slot.end),
     );
   }, [provider]);
 
@@ -188,7 +188,7 @@ export default function ProviderDetailPage() {
           <Star className='w-6 h-6 text-yellow-400 mr-2' />
           <span
             className={`text-2xl font-bold ${ratingColor(
-              ratingStats?.averageRating ?? 0
+              ratingStats?.averageRating ?? 0,
             )}`}
           >
             {ratingStats?.averageRating !== undefined &&
@@ -237,7 +237,7 @@ export default function ProviderDetailPage() {
 
     if (Array.isArray(services)) {
       servicesList = services.map(s =>
-        typeof s === 'string' ? s : (s as any).name || s.toString()
+        typeof s === 'string' ? s : (s as any).name || s.toString(),
       );
     } else if (typeof services === 'string') {
       servicesList = (services as string)
@@ -269,7 +269,7 @@ export default function ProviderDetailPage() {
   const BookingButton = () => {
     const handleQuoteRequest = () => {
       addError(
-        'Fonctionnalité pas encore disponible, veuillez patienter pour le moment'
+        'Fonctionnalité pas encore disponible, veuillez patienter pour le moment',
       );
     };
 

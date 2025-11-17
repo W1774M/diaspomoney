@@ -61,11 +61,11 @@ export function LoginForm() {
     if (urlStatus) {
       if (urlStatus === 'pending') {
         addInfo(
-          'Votre compte est en cours de vérification par notre équipe DiaspoMoney. Veuillez patienter, nous vous contacterons bientôt.'
+          'Votre compte est en cours de vérification par notre équipe DiaspoMoney. Veuillez patienter, nous vous contacterons bientôt.',
         );
       } else if (urlStatus === 'suspended') {
         addError(
-          "Votre accès a été refusé car votre compte est suspendu. Veuillez contacter notre support pour plus d'informations."
+          "Votre accès a été refusé car votre compte est suspendu. Veuillez contacter notre support pour plus d'informations.",
         );
       }
     }
@@ -80,7 +80,7 @@ export function LoginForm() {
       
       if (urlError === 'CredentialsSignin') {
         addError(
-          'Identifiants incorrects. Vérifiez votre email et mot de passe.'
+          'Identifiants incorrects. Vérifiez votre email et mot de passe.',
         );
       } else if (urlError === 'Callback') {
         addError('Erreur lors de la connexion. Veuillez réessayer.');
@@ -416,20 +416,20 @@ export function LoginForm() {
                   onClick={() => {
                     // Fill form fields with test data
                     const emailInput = document.getElementById(
-                      'email'
+                      'email',
                     ) as HTMLInputElement;
                     const passwordInput = document.getElementById(
-                      'password'
+                      'password',
                     ) as HTMLInputElement;
                     if (emailInput && passwordInput) {
                       emailInput.value = 'customer@diaspomoney.com';
                       passwordInput.value = 'password123';
                       // Trigger change events
                       emailInput.dispatchEvent(
-                        new Event('change', { bubbles: true })
+                        new Event('change', { bubbles: true }),
                       );
                       passwordInput.dispatchEvent(
-                        new Event('change', { bubbles: true })
+                        new Event('change', { bubbles: true }),
                       );
                     }
                     // Simulate successful login for testing

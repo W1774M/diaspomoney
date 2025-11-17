@@ -145,7 +145,7 @@ export const emailTemplates = {
     name: string,
     amount: number,
     currency: string,
-    service: string
+    service: string,
   ): EmailTemplate => ({
     subject: `Confirmation de paiement - ${service}`,
     html: `
@@ -177,7 +177,7 @@ export const emailTemplates = {
                 <p><strong>Service :</strong> ${service}</p>
                 <p><strong>Montant :</strong> <span class="amount">${amount} ${currency}</span></p>
                 <p><strong>Date :</strong> ${new Date().toLocaleDateString(
-                  'fr-FR'
+                  'fr-FR',
                 )}</p>
                 <p><strong>Statut :</strong> ✅ Confirmé</p>
               </div>
@@ -217,7 +217,7 @@ export const emailTemplates = {
     provider: string,
     date: string,
     time: string,
-    type: 'confirmation' | 'reminder'
+    type: 'confirmation' | 'reminder',
   ): EmailTemplate => ({
     subject:
       type === 'confirmation'
@@ -343,7 +343,7 @@ async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
         subject: options.subject,
         from: options.from || 'DiaspoMoney <onboarding@resend.dev>',
       },
-      '📧 sendEmail appelée avec options'
+      '📧 sendEmail appelée avec options',
     );
 
     // Nettoyer les tags pour s'assurer qu'ils sont compatibles avec Resend
@@ -362,7 +362,7 @@ async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
     // Validation finale des tags
     const isValidTags = sanitizedTags.every(
       tag =>
-        /^[a-zA-Z0-9_-]+$/.test(tag.name) && /^[a-zA-Z0-9_-]+$/.test(tag.value)
+        /^[a-zA-Z0-9_-]+$/.test(tag.name) && /^[a-zA-Z0-9_-]+$/.test(tag.value),
     );
 
     if (!isValidTags) {
@@ -396,7 +396,7 @@ async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
     if (error) {
       log.error(
         { error, to: options.to, subject: options.subject },
-        'Resend error'
+        'Resend error',
       );
       Sentry.captureException(error, {
         tags: { component: 'EmailService', action: 'sendEmail' },
@@ -407,13 +407,13 @@ async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
 
     log.info(
       { emailId: data?.id, to: options.to, subject: options.subject },
-      'Email sent successfully'
+      'Email sent successfully',
     );
     return true;
   } catch (error) {
     log.error(
       { error, to: options.to, subject: options.subject },
-      'Error sending email'
+      'Error sending email',
     );
     Sentry.captureException(error, {
       tags: { component: 'EmailService', action: 'sendEmail' },
@@ -427,7 +427,7 @@ async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
 export async function sendWelcomeEmail(
   email: string,
   name: string,
-  verificationUrl: string
+  verificationUrl: string,
 ): Promise<boolean> {
   // En développement, utiliser l'email autorisé par Resend
   // En production, utiliser l'email original
@@ -460,7 +460,7 @@ export async function sendWelcomeEmail(
 export async function sendPasswordResetEmail(
   email: string,
   name: string,
-  resetUrl: string
+  resetUrl: string,
 ): Promise<boolean> {
   const template = emailTemplates.passwordReset(name, resetUrl);
 
@@ -481,13 +481,13 @@ export async function sendPaymentConfirmationEmail(
   name: string,
   amount: number,
   currency: string,
-  service: string
+  service: string,
 ): Promise<boolean> {
   const template = emailTemplates.paymentConfirmation(
     name,
     amount,
     currency,
-    service
+    service,
   );
 
   return await sendEmail({
@@ -509,14 +509,14 @@ export async function sendAppointmentNotificationEmail(
   provider: string,
   date: string,
   time: string,
-  type: 'confirmation' | 'reminder'
+  type: 'confirmation' | 'reminder',
 ): Promise<boolean> {
   const template = emailTemplates.appointmentNotification(
     name,
     provider,
     date,
     time,
-    type
+    type,
   );
 
   return await sendEmail({

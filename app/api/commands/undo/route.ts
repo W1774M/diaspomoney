@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
           success: false,
           error: result.error,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     logger.error({ error }, 'Error undoing command');
     return NextResponse.json(
       { error: error?.message || 'Erreur lors de l\'annulation de la commande' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     logger.error({ error }, 'Error getting command history');
     return NextResponse.json(
       { error: error?.message || 'Erreur lors de la récupération de l\'historique' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

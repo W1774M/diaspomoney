@@ -32,7 +32,7 @@ const refreshTokens = new Map<
 
 // Générer un token sécurisé
 export function generateSecureToken(
-  length: number = SESSION_CONFIG.tokenLength
+  length: number = SESSION_CONFIG.tokenLength,
 ): string {
   return randomBytes(length).toString("hex");
 }
@@ -46,7 +46,7 @@ export function generateHash(data: string): string {
 export function createSession(
   userId: string,
   ip: string,
-  userAgent: string
+  userAgent: string,
 ): { sessionId: string; refreshToken: string } {
   const sessionId = generateSecureToken();
   const refreshToken = generateSecureToken(SESSION_CONFIG.refreshTokenLength);
@@ -57,16 +57,16 @@ export function createSession(
 
   // Vérifier le nombre maximum de sessions
   const userSessions = Array.from(activeSessions.values()).filter(
-    session => session.userId === userId
+    session => session.userId === userId,
   );
 
   if (userSessions.length >= SESSION_CONFIG.maxSessionsPerUser) {
     // Supprimer la session la plus ancienne
     const oldestSession = userSessions.reduce((oldest, current) =>
-      current.createdAt < oldest.createdAt ? current : oldest
+      current.createdAt < oldest.createdAt ? current : oldest,
     );
     const oldestSessionId = Array.from(activeSessions.entries()).find(
-      ([, session]) => session === oldestSession
+      ([, session]) => session === oldestSession,
     )?.[0];
     if (oldestSessionId) {
       activeSessions.delete(oldestSessionId);
@@ -95,7 +95,7 @@ export function createSession(
 // Valider une session
 export function validateSession(
   sessionId: string,
-  ip: string
+  ip: string,
 ): {
   valid: boolean;
   userId?: string;
@@ -119,7 +119,7 @@ export function validateSession(
   if (session.ip !== ip) {
     // Log de sécurité
     console.warn(
-      `Suspicious session access: expected IP ${session.ip}, got ${ip}`
+      `Suspicious session access: expected IP ${session.ip}, got ${ip}`,
     );
     // Ne pas bloquer pour l'instant, mais log
   }
@@ -133,7 +133,7 @@ export function validateSession(
 // Rafraîchir une session
 export function refreshSession(
   refreshToken: string,
-  ip: string
+  ip: string,
 ): {
   success: boolean;
   sessionId?: string;
@@ -160,7 +160,7 @@ export function refreshSession(
   const { sessionId, refreshToken: newRefreshToken } = createSession(
     tokenData.userId,
     ip,
-    "refreshed" // User agent non disponible lors du rafraîchissement
+    "refreshed", // User agent non disponible lors du rafraîchissement
   );
 
   return {

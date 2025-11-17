@@ -403,7 +403,7 @@ export class BTPService {
     } catch (error) {
       this.log.error(
         { error, propertyId: _propertyId },
-        'Error in getProperty'
+        'Error in getProperty',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'BTPService', action: 'getProperty' },
@@ -419,7 +419,7 @@ export class BTPService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @InvalidateCache('BTPService:*') // Invalider le cache après création
   async createProperty(
-    propertyData: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>
+    propertyData: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<Property> {
     try {
       const property: Property = {
@@ -448,13 +448,13 @@ export class BTPService {
 
       this.log.info(
         { propertyId: property.id, type: property.type },
-        'Property created successfully'
+        'Property created successfully',
       );
       return property;
     } catch (error) {
       this.log.error(
         { error, propertyType: propertyData.type },
-        'Error in createProperty'
+        'Error in createProperty',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'BTPService', action: 'createProperty' },
@@ -508,7 +508,7 @@ export class BTPService {
     } catch (error) {
       this.log.error(
         { error, filters: _filters },
-        'Error in searchContractors'
+        'Error in searchContractors',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'BTPService', action: 'searchContractors' },
@@ -579,7 +579,7 @@ export class BTPService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @InvalidateCache('BTPService:*') // Invalider le cache après création
   async createConstructionProject(
-    projectData: Omit<ConstructionProject, 'id' | 'createdAt' | 'updatedAt'>
+    projectData: Omit<ConstructionProject, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<ConstructionProject> {
     try {
       const project: ConstructionProject = {
@@ -629,13 +629,13 @@ export class BTPService {
           type: project.type,
           clientId: project.clientId,
         },
-        'Construction project created successfully'
+        'Construction project created successfully',
       );
       return project;
     } catch (error) {
       this.log.error(
         { error, projectType: projectData.type },
-        'Error in createConstructionProject'
+        'Error in createConstructionProject',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'BTPService', action: 'createConstructionProject' },
@@ -653,7 +653,7 @@ export class BTPService {
   async updateProjectProgress(
     projectId: string,
     progress: number,
-    milestoneId?: string
+    milestoneId?: string,
   ): Promise<void> {
     try {
       // TODO: Mettre à jour le projet
@@ -692,12 +692,12 @@ export class BTPService {
       });
       this.log.info(
         { projectId, progress, milestoneId },
-        'Project progress updated'
+        'Project progress updated',
       );
     } catch (error) {
       this.log.error(
         { error, projectId, progress },
-        'Error in updateProjectProgress'
+        'Error in updateProjectProgress',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'BTPService', action: 'updateProjectProgress' },
@@ -715,7 +715,7 @@ export class BTPService {
   async calculateProjectCost(
     _projectType: string,
     area: number,
-    features: string[]
+    features: string[],
   ): Promise<{
     estimatedCost: number;
     currency: string;
@@ -749,7 +749,7 @@ export class BTPService {
     } catch (error) {
       this.log.error(
         { error, projectType: _projectType, area },
-        'Error in calculateProjectCost'
+        'Error in calculateProjectCost',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'BTPService', action: 'calculateProjectCost' },
@@ -788,7 +788,7 @@ export class BTPService {
       const costEstimate = await this.calculateProjectCost(
         data.projectType,
         data.area,
-        data.features
+        data.features,
       );
 
       // Créer la demande de devis via le repository
@@ -856,7 +856,7 @@ export class BTPService {
 
       this.log.info(
         { quoteId: quote.id, projectType: data.projectType },
-        'BTP quote created successfully'
+        'BTP quote created successfully',
       );
       return quote;
     } catch (error) {

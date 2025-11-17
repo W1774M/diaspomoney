@@ -103,7 +103,7 @@ export default function EditInvoicePage() {
 
   const handleInputChange = <K extends keyof typeof formData>(
     field: K,
-    value: (typeof formData)[K]
+    value: (typeof formData)[K],
   ) => {
     setFormData(prev => ({
       ...prev,
@@ -116,7 +116,7 @@ export default function EditInvoicePage() {
   const handleItemChange = (
     index: number,
     field: ItemField,
-    value: (typeof formData.items)[number][ItemField]
+    value: (typeof formData.items)[number][ItemField],
   ) => {
     const newItems = [...formData.items];
     const currentItem = newItems[index];
@@ -510,7 +510,7 @@ export default function EditInvoicePage() {
                         handleItemChange(
                           index,
                           'quantity',
-                          parseInt(e.target.value) || 1
+                          parseInt(e.target.value) || 1,
                         )
                       }
                       className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -532,7 +532,7 @@ export default function EditInvoicePage() {
                         handleItemChange(
                           index,
                           'unitPrice',
-                          parseFloat(e.target.value) || 0
+                          parseFloat(e.target.value) || 0,
                         )
                       }
                       className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'

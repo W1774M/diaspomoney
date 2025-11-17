@@ -20,7 +20,7 @@ const Form = forwardRef<HTMLFormElement, FormProps>(
         {...props}
       />
     );
-  }
+  },
 );
 Form.displayName = "Form";
 
@@ -36,7 +36,7 @@ const FormField = forwardRef<HTMLDivElement, FormFieldProps>(
         {error && <p className="text-sm text-destructive">{error}</p>}
       </div>
     );
-  }
+  },
 );
 FormField.displayName = "FormField";
 
@@ -49,7 +49,7 @@ const FormLabel = forwardRef<
       ref={ref}
       className={cn(
         "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
-        className
+        className,
       )}
       {...props}
     />

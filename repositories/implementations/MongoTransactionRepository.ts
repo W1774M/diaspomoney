@@ -110,7 +110,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
       const mapped = this.mapToTransaction(transaction);
       this.log.info(
         { transactionId: mapped.id, payerId: mapped.payerId },
-        'Transaction created successfully'
+        'Transaction created successfully',
       );
       return mapped;
     } catch (error) {
@@ -124,7 +124,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
   @InvalidateCache('TransactionRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
-    data: Partial<Transaction>
+    data: Partial<Transaction>,
   ): Promise<Transaction | null> {
     try {
       const collection = await this.getCollection();
@@ -135,7 +135,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       const mapped = result?.['value']
         ? this.mapToTransaction(result['value'])
@@ -143,12 +143,12 @@ export class MongoTransactionRepository implements ITransactionRepository {
       if (mapped) {
         this.log.info(
           { transactionId: id },
-          'Transaction updated successfully'
+          'Transaction updated successfully',
         );
       } else {
         this.log.warn(
           { transactionId: id },
-          'Transaction not found for update'
+          'Transaction not found for update',
         );
       }
       return mapped;
@@ -169,12 +169,12 @@ export class MongoTransactionRepository implements ITransactionRepository {
       if (deleted) {
         this.log.info(
           { transactionId: id },
-          'Transaction deleted successfully'
+          'Transaction deleted successfully',
         );
       } else {
         this.log.warn(
           { transactionId: id },
-          'Transaction not found for deletion'
+          'Transaction not found for deletion',
         );
       }
       return deleted;
@@ -209,7 +209,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
       const result = count > 0;
       this.log.debug(
         { transactionId: id, exists: result },
-        'Exists check completed'
+        'Exists check completed',
       );
       return result;
     } catch (error) {
@@ -223,7 +223,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
   @Cacheable(300, { prefix: 'TransactionRepository:findWithPagination' }) // Cache 5 minutes
   async findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Transaction>> {
     try {
       const collection = await this.getCollection();
@@ -251,13 +251,13 @@ export class MongoTransactionRepository implements ITransactionRepository {
       };
       this.log.debug(
         { count: result.data.length, total, page, limit, filters },
-        'findWithPagination completed'
+        'findWithPagination completed',
       );
       return result;
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findWithPagination'
+        'Error in findWithPagination',
       );
       Sentry.captureException(error);
       throw error;
@@ -268,7 +268,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
   @Cacheable(300, { prefix: 'TransactionRepository:findByPayer' }) // Cache 5 minutes
   async findByPayer(
     payerId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Transaction>> {
     return this.findWithPagination({ payerId }, options);
   }
@@ -277,7 +277,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
   @Cacheable(300, { prefix: 'TransactionRepository:findByBeneficiary' }) // Cache 5 minutes
   async findByBeneficiary(
     beneficiaryId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Transaction>> {
     return this.findWithPagination({ beneficiaryId }, options);
   }
@@ -286,7 +286,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
   @Cacheable(300, { prefix: 'TransactionRepository:findByStatus' }) // Cache 5 minutes
   async findByStatus(
     status: Transaction['status'],
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Transaction>> {
     return this.findWithPagination({ status }, options);
   }
@@ -295,7 +295,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
   @InvalidateCache('TransactionRepository:*') // Invalider le cache après mise à jour du statut
   async updateStatus(
     transactionId: string,
-    status: Transaction['status']
+    status: Transaction['status'],
   ): Promise<boolean> {
     try {
       const result = await this.update(transactionId, {
@@ -305,12 +305,12 @@ export class MongoTransactionRepository implements ITransactionRepository {
       if (updated) {
         this.log.info(
           { transactionId, status },
-          'Transaction status updated successfully'
+          'Transaction status updated successfully',
         );
       } else {
         this.log.warn(
           { transactionId, status },
-          'Transaction not found for status update'
+          'Transaction not found for status update',
         );
       }
       return updated;
@@ -324,19 +324,19 @@ export class MongoTransactionRepository implements ITransactionRepository {
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'TransactionRepository:findByPaymentIntentId' }) // Cache 5 minutes
   async findByPaymentIntentId(
-    paymentIntentId: string
+    paymentIntentId: string,
   ): Promise<Transaction | null> {
     try {
       const result = await this.findOne({ paymentIntentId });
       this.log.debug(
         { paymentIntentId, found: !!result },
-        'findByPaymentIntentId completed'
+        'findByPaymentIntentId completed',
       );
       return result;
     } catch (error) {
       this.log.error(
         { error, paymentIntentId },
-        'Error in findByPaymentIntentId'
+        'Error in findByPaymentIntentId',
       );
       Sentry.captureException(error);
       throw error;
@@ -353,7 +353,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
       failedAt?: Date;
       failureReason?: string;
       metadata?: Record<string, any>;
-    }
+    },
   ): Promise<Transaction | null> {
     try {
       const existingTransaction = await this.findById(transactionId);
@@ -373,14 +373,14 @@ export class MongoTransactionRepository implements ITransactionRepository {
       if (result) {
         this.log.info(
           { transactionId, updatedFields: Object.keys(data) },
-          'Transaction metadata updated successfully'
+          'Transaction metadata updated successfully',
         );
       }
       return result;
     } catch (error) {
       this.log.error(
         { error, transactionId, data },
-        'Error in updateWithMetadata'
+        'Error in updateWithMetadata',
       );
       Sentry.captureException(error);
       throw error;
@@ -393,7 +393,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
   }) // Cache 5 minutes
   async findTransactionsWithFilters(
     filters: TransactionFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Transaction>> {
     try {
       // Utiliser TransactionQueryBuilder pour construire la requête
@@ -402,17 +402,17 @@ export class MongoTransactionRepository implements ITransactionRepository {
 
       const result = await this.findWithPagination(
         query.filters,
-        query.pagination
+        query.pagination,
       );
       this.log.debug(
         { count: result.data.length, total: result.total, filters },
-        'findTransactionsWithFilters completed'
+        'findTransactionsWithFilters completed',
       );
       return result;
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findTransactionsWithFilters'
+        'Error in findTransactionsWithFilters',
       );
       Sentry.captureException(error);
       throw error;
@@ -424,7 +424,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
    */
   private buildTransactionQuery(
     filters: TransactionFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): TransactionQueryBuilder {
     const builder = new TransactionQueryBuilder();
 
@@ -497,7 +497,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
   @Cacheable(300, { prefix: 'TransactionRepository:calculateTotalByUser' }) // Cache 5 minutes
   async calculateTotalByUser(
     userId: string,
-    filters?: TransactionFilters
+    filters?: TransactionFilters,
   ): Promise<number> {
     try {
       const collection = await this.getCollection();
@@ -529,13 +529,13 @@ export class MongoTransactionRepository implements ITransactionRepository {
       const total = result[0]?.['total'] || 0;
       this.log.debug(
         { userId, total, filters },
-        'calculateTotalByUser completed'
+        'calculateTotalByUser completed',
       );
       return total;
     } catch (error) {
       this.log.error(
         { error, userId, filters },
-        'Error in calculateTotalByUser'
+        'Error in calculateTotalByUser',
       );
       Sentry.captureException(error);
       throw error;

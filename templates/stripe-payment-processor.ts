@@ -69,7 +69,7 @@ export class StripePaymentProcessor extends PaymentProcessor {
    */
   protected async confirmPayment(
     paymentIntent: PaymentIntent,
-    data: PaymentData
+    data: PaymentData,
   ): Promise<PaymentResult> {
     try {
       logger.debug({ paymentIntentId: paymentIntent.id }, 'Confirming Stripe payment');
@@ -78,7 +78,7 @@ export class StripePaymentProcessor extends PaymentProcessor {
         paymentIntent.id,
         {
           payment_method: data.paymentMethodId,
-        }
+        },
       );
 
       // Vérifier si une action supplémentaire est requise (3D Secure, etc.)
@@ -150,7 +150,7 @@ export class StripePaymentProcessor extends PaymentProcessor {
    */
   protected override async sendNotification(
     paymentIntent: PaymentIntent,
-    result: PaymentResult
+    result: PaymentResult,
   ): Promise<void> {
     await super.sendNotification(paymentIntent, result);
 

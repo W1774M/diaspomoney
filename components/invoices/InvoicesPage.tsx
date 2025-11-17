@@ -72,14 +72,14 @@ const InvoicesPage = React.memo(function InvoicesPage() {
     (id: string) => {
       router.push(`/dashboard/invoices/${id}`);
     },
-    [router]
+    [router],
   );
 
   const handleEdit = useCallback(
     (id: string) => {
       router.push(`/dashboard/invoices/${id}/edit`);
     },
-    [router]
+    [router],
   );
 
   // Optionnel: Ici on peut appeler une API pour supprimer réellement la facture
@@ -106,7 +106,7 @@ const InvoicesPage = React.memo(function InvoicesPage() {
         }
       }
     },
-    [addSuccess, addError]
+    [addSuccess, addError],
   );
 
   const handleDownload = useCallback((id: string) => {
@@ -123,7 +123,7 @@ const InvoicesPage = React.memo(function InvoicesPage() {
       setSearchTerm(value);
       updateFilter('searchTerm', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handleStatusChange = useCallback(
@@ -131,7 +131,7 @@ const InvoicesPage = React.memo(function InvoicesPage() {
       setStatusFilter(value);
       updateFilter('statusFilter', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handleDateChange = useCallback(
@@ -139,7 +139,7 @@ const InvoicesPage = React.memo(function InvoicesPage() {
       setDateFilter(value);
       updateFilter('dateFilter', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   // Les clients peuvent voir les factures mais ne peuvent pas en créer

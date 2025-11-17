@@ -61,7 +61,7 @@ redis.on('error', err => {
         host: process.env['REDIS_HOST'] || 'localhost',
         port: process.env['REDIS_PORT'] || '6379',
       },
-      'Redis connection error'
+      'Redis connection error',
     );
 
     // Envoyer à Sentry seulement pour les premières erreurs ou erreurs critiques
@@ -88,7 +88,7 @@ redis.on('connect', () => {
       host: process.env['REDIS_HOST'] || 'localhost',
       port: process.env['REDIS_PORT'] || '6379',
     },
-    'Redis connected successfully'
+    'Redis connected successfully',
   );
 });
 

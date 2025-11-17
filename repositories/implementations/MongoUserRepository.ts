@@ -113,7 +113,7 @@ export class MongoUserRepository implements IUserRepository {
         ...(data._id ? { _id: new ObjectId(data._id) } : {}),
       };
       const result = await collection.insertOne(
-        userData as OptionalId<Document>
+        userData as OptionalId<Document>,
       );
       const user = await collection.findOne({ _id: result.insertedId });
       if (!user) {
@@ -122,7 +122,7 @@ export class MongoUserRepository implements IUserRepository {
       const mappedUser = this.mapToUser(user);
       this.log.info(
         { userId: mappedUser.id, email: mappedUser.email },
-        'User created successfully'
+        'User created successfully',
       );
       return mappedUser;
     } catch (error) {
@@ -142,7 +142,7 @@ export class MongoUserRepository implements IUserRepository {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le mot de passe
   @InvalidateCache('UserRepository:*') // Invalider le cache après création
   async createWithPassword(
-    data: Partial<User> & { password?: string }
+    data: Partial<User> & { password?: string },
   ): Promise<User> {
     try {
       // Import the User model to use pre('save') and hash the password
@@ -180,7 +180,7 @@ export class MongoUserRepository implements IUserRepository {
     } catch (error) {
       this.log.error(
         { error, email: data.email },
-        'Error in createWithPassword'
+        'Error in createWithPassword',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -205,7 +205,7 @@ export class MongoUserRepository implements IUserRepository {
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       // result.value is the updated document
       return result?.['value'] ? this.mapToUser(result['value']) : null;
@@ -267,7 +267,7 @@ export class MongoUserRepository implements IUserRepository {
 
   async findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<User>> {
     try {
       const collection = await this.getCollection();
@@ -296,7 +296,7 @@ export class MongoUserRepository implements IUserRepository {
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findWithPagination'
+        'Error in findWithPagination',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -326,7 +326,7 @@ export class MongoUserRepository implements IUserRepository {
   async updatePassword(
     userId: string,
     hashedPassword: string,
-    updatePasswordChangedAt: boolean = true
+    updatePasswordChangedAt: boolean = true,
   ): Promise<boolean> {
     try {
       const updateData: any = {
@@ -424,7 +424,7 @@ export class MongoUserRepository implements IUserRepository {
   async setup2FA(
     userId: string,
     secret: string,
-    backupCodes: string[]
+    backupCodes: string[],
   ): Promise<boolean> {
     try {
       const result = await this.update(userId, {
@@ -494,7 +494,7 @@ export class MongoUserRepository implements IUserRepository {
   @InvalidateCache('UserRepository:*') // Invalider le cache après mise à jour des codes
   async update2FABackupCodes(
     userId: string,
-    backupCodes: string[]
+    backupCodes: string[],
   ): Promise<boolean> {
     try {
       const result = await this.update(userId, {
@@ -549,7 +549,7 @@ export class MongoUserRepository implements IUserRepository {
   @Cacheable(300, { prefix: 'UserRepository:findUsersWithFilters' }) // Cache 5 minutes
   async findUsersWithFilters(
     filters: UserFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<User>> {
     try {
       // Use UserQueryBuilder to build query
@@ -560,7 +560,7 @@ export class MongoUserRepository implements IUserRepository {
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findUsersWithFilters'
+        'Error in findUsersWithFilters',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -578,7 +578,7 @@ export class MongoUserRepository implements IUserRepository {
    */
   private buildUserQuery(
     filters: UserFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): UserQueryBuilder {
     const builder = new UserQueryBuilder();
 

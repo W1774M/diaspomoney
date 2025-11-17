@@ -66,7 +66,7 @@ export class PaymentService {
     amount: number,
     currency: string,
     customerId: string,
-    metadata: Record<string, string> = {}
+    metadata: Record<string, string> = {},
   ): Promise<PaymentIntent> {
     try {
       // Validation des paramètres
@@ -118,7 +118,7 @@ export class PaymentService {
           currency,
           customerId,
         },
-        'Payment intent created successfully'
+        'Payment intent created successfully',
       );
 
       return {
@@ -132,7 +132,7 @@ export class PaymentService {
     } catch (error) {
       this.log.error(
         { error, amount, currency, customerId },
-        'Error creating payment intent'
+        'Error creating payment intent',
       );
       Sentry.captureException(error);
       throw error;
@@ -151,12 +151,12 @@ export class PaymentService {
   })
   async confirmPaymentIntent(
     paymentIntentId: string,
-    paymentMethodId?: string
+    paymentMethodId?: string,
   ): Promise<PaymentResult> {
     try {
       const paymentIntent = await stripe.paymentIntents.confirm(
         paymentIntentId,
-        paymentMethodId ? { payment_method: paymentMethodId } : undefined
+        paymentMethodId ? { payment_method: paymentMethodId } : undefined,
       );
 
       // Enregistrer les métriques
@@ -174,7 +174,7 @@ export class PaymentService {
       if (paymentIntent.status === 'succeeded') {
         this.log.info(
           { paymentIntentId, status: paymentIntent.status },
-          'Payment intent confirmed successfully'
+          'Payment intent confirmed successfully',
         );
         return {
           success: true,
@@ -183,7 +183,7 @@ export class PaymentService {
       } else if (paymentIntent.status === 'requires_action') {
         this.log.info(
           { paymentIntentId, status: paymentIntent.status },
-          'Payment intent requires action'
+          'Payment intent requires action',
         );
         return {
           success: false,
@@ -196,7 +196,7 @@ export class PaymentService {
       } else {
         this.log.warn(
           { paymentIntentId, status: paymentIntent.status },
-          'Payment intent failed'
+          'Payment intent failed',
         );
         return {
           success: false,
@@ -206,7 +206,7 @@ export class PaymentService {
     } catch (error) {
       this.log.error(
         { error, paymentIntentId, paymentMethodId },
-        'Error confirming payment intent'
+        'Error confirming payment intent',
       );
       Sentry.captureException(error);
 
@@ -267,7 +267,7 @@ export class PaymentService {
 
       this.log.debug(
         { customerId, count: methods.length, defaultPaymentMethodId },
-        'Payment methods retrieved'
+        'Payment methods retrieved',
       );
 
       return methods;
@@ -285,7 +285,7 @@ export class PaymentService {
   async addPaymentMethod(
     customerId: string,
     paymentMethodId: string,
-    setAsDefault: boolean = false
+    setAsDefault: boolean = false,
   ): Promise<StripePaymentMethod> {
     try {
       // Attacher la méthode de paiement au client
@@ -293,7 +293,7 @@ export class PaymentService {
         paymentMethodId,
         {
           customer: customerId,
-        }
+        },
       );
 
       // Si c'est la première méthode ou si on demande explicitement, la définir comme défaut
@@ -308,7 +308,7 @@ export class PaymentService {
         });
         this.log.info(
           { customerId, paymentMethodId },
-          'Payment method set as default'
+          'Payment method set as default',
         );
       }
 
@@ -334,14 +334,14 @@ export class PaymentService {
 
       this.log.info(
         { customerId, paymentMethodId, setAsDefault },
-        'Payment method added successfully'
+        'Payment method added successfully',
       );
 
       return result;
     } catch (error) {
       this.log.error(
         { error, customerId, paymentMethodId },
-        'Error adding payment method'
+        'Error adding payment method',
       );
       Sentry.captureException(error);
       throw error;
@@ -354,7 +354,7 @@ export class PaymentService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   async setDefaultPaymentMethod(
     customerId: string,
-    paymentMethodId: string
+    paymentMethodId: string,
   ): Promise<void> {
     try {
       await stripe.customers.update(customerId, {
@@ -368,12 +368,12 @@ export class PaymentService {
 
       this.log.info(
         { customerId, paymentMethodId },
-        'Default payment method updated'
+        'Default payment method updated',
       );
     } catch (error) {
       this.log.error(
         { error, customerId, paymentMethodId },
-        'Error setting default payment method'
+        'Error setting default payment method',
       );
       Sentry.captureException(error);
       throw error;
@@ -391,7 +391,7 @@ export class PaymentService {
     } catch (error) {
       this.log.error(
         { error, paymentMethodId },
-        'Error removing payment method'
+        'Error removing payment method',
       );
       Sentry.captureException(error);
       throw error;
@@ -411,7 +411,7 @@ export class PaymentService {
   async refundPayment(
     paymentIntentId: string,
     amount?: number,
-    reason?: string
+    reason?: string,
   ): Promise<PaymentResult> {
     try {
       const refund = await stripe.refunds.create({
@@ -439,7 +439,7 @@ export class PaymentService {
         });
         this.log.info(
           { transactionId: transaction.id, refundId: refund.id },
-          'Transaction updated with refund information'
+          'Transaction updated with refund information',
         );
       }
 
@@ -456,7 +456,7 @@ export class PaymentService {
 
       this.log.info(
         { paymentIntentId, refundId: refund.id, amount, reason },
-        'Refund created successfully'
+        'Refund created successfully',
       );
 
       return {
@@ -466,7 +466,7 @@ export class PaymentService {
     } catch (error) {
       this.log.error(
         { error, paymentIntentId, amount, reason },
-        'Error creating refund'
+        'Error creating refund',
       );
       Sentry.captureException(error);
 
@@ -487,7 +487,7 @@ export class PaymentService {
       const event = stripe.webhooks.constructEvent(
         payload,
         signature,
-        process.env['STRIPE_WEBHOOK_SECRET']!
+        process.env['STRIPE_WEBHOOK_SECRET']!,
       );
 
       this.log.info({ eventType: event.type }, 'Stripe webhook received');
@@ -495,13 +495,13 @@ export class PaymentService {
       switch (event.type) {
         case 'payment_intent.succeeded':
           await this.handlePaymentSucceeded(
-            event.data.object as Stripe.PaymentIntent
+            event.data.object as Stripe.PaymentIntent,
           );
           break;
 
         case 'payment_intent.payment_failed':
           await this.handlePaymentFailed(
-            event.data.object as Stripe.PaymentIntent
+            event.data.object as Stripe.PaymentIntent,
           );
           break;
 
@@ -524,13 +524,13 @@ export class PaymentService {
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   private async handlePaymentSucceeded(
-    paymentIntent: Stripe.PaymentIntent
+    paymentIntent: Stripe.PaymentIntent,
   ): Promise<void> {
     try {
       // Trouver la transaction par paymentIntentId
       const transaction =
         await this.transactionRepository.findByPaymentIntentId(
-          paymentIntent.id
+          paymentIntent.id,
         );
 
       if (transaction) {
@@ -553,12 +553,12 @@ export class PaymentService {
             amount: paymentIntent.amount / 100,
             currency: paymentIntent.currency,
           },
-          'Transaction status updated to COMPLETED'
+          'Transaction status updated to COMPLETED',
         );
       } else {
         this.log.warn(
           { paymentIntentId: paymentIntent.id },
-          'Transaction not found for payment intent'
+          'Transaction not found for payment intent',
         );
       }
 
@@ -576,7 +576,7 @@ export class PaymentService {
     } catch (error) {
       this.log.error(
         { error, paymentIntentId: paymentIntent.id },
-        'Error handling payment succeeded'
+        'Error handling payment succeeded',
       );
       Sentry.captureException(error);
     }
@@ -587,13 +587,13 @@ export class PaymentService {
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   private async handlePaymentFailed(
-    paymentIntent: Stripe.PaymentIntent
+    paymentIntent: Stripe.PaymentIntent,
   ): Promise<void> {
     try {
       // Trouver la transaction par paymentIntentId
       const transaction =
         await this.transactionRepository.findByPaymentIntentId(
-          paymentIntent.id
+          paymentIntent.id,
         );
 
       if (transaction) {
@@ -618,18 +618,18 @@ export class PaymentService {
             paymentIntentId: paymentIntent.id,
             failureReason: paymentIntent.last_payment_error?.message,
           },
-          'Transaction status updated to FAILED'
+          'Transaction status updated to FAILED',
         );
       } else {
         this.log.warn(
           { paymentIntentId: paymentIntent.id },
-          'Transaction not found for payment intent'
+          'Transaction not found for payment intent',
         );
       }
     } catch (error) {
       this.log.error(
         { error, paymentIntentId: paymentIntent.id },
-        'Error handling payment failed'
+        'Error handling payment failed',
       );
       Sentry.captureException(error);
     }
@@ -673,7 +673,7 @@ export class PaymentService {
             currency: dispute.currency,
             reason: dispute.reason,
           },
-          'Transaction quarantined due to dispute'
+          'Transaction quarantined due to dispute',
         );
 
         // Notifier l'équipe de support
@@ -704,25 +704,25 @@ export class PaymentService {
               transactionId: transaction.id,
               supportEmail,
             },
-            'Support team notified of dispute'
+            'Support team notified of dispute',
           );
         } catch (notificationError) {
           this.log.error(
             { error: notificationError, disputeId: dispute.id },
-            'Error notifying support team'
+            'Error notifying support team',
           );
           // Ne pas faire échouer le traitement de la dispute si la notification échoue
         }
       } else {
         this.log.warn(
           { paymentIntentId, disputeId: dispute.id },
-          'Transaction not found for dispute'
+          'Transaction not found for dispute',
         );
       }
     } catch (error) {
       this.log.error(
         { error, disputeId: dispute.id },
-        'Error handling dispute created'
+        'Error handling dispute created',
       );
       Sentry.captureException(error);
     }

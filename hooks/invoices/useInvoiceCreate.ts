@@ -42,7 +42,7 @@ export function useInvoiceCreate(): UseInvoiceCreateReturn {
             throw new Error('Accès non autorisé');
           } else {
             throw new Error(
-              errorData.error || 'Erreur lors de la création de la facture'
+              errorData.error || 'Erreur lors de la création de la facture',
             );
           }
         }
@@ -88,7 +88,7 @@ export function useInvoiceCreate(): UseInvoiceCreateReturn {
         setCreating(false);
       }
     },
-    [addSuccess, addError]
+    [addSuccess, addError],
   );
 
   return {

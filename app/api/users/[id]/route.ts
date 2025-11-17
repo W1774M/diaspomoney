@@ -20,7 +20,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -54,19 +54,19 @@ export async function GET(
   } catch (error: any) {
     log.error(
       { error, userId: params.id, msg: 'Error fetching user' },
-      'Error fetching user'
+      'Error fetching user',
     );
 
     if (error.message === 'Utilisateur non trouvé') {
       return NextResponse.json(
         { error: 'Utilisateur non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
       { error: "Erreur lors de la récupération de l'utilisateur" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -76,7 +76,7 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -105,11 +105,11 @@ export async function PUT(
       if (!isAdmin) {
         log.warn(
           { currentUserId, targetUserId, msg: 'Insufficient permissions' },
-          'User attempted to update another user without admin rights'
+          'User attempted to update another user without admin rights',
         );
         return NextResponse.json(
           { error: 'Permissions insuffisantes' },
-          { status: 403 }
+          { status: 403 },
         );
       }
     }
@@ -160,19 +160,19 @@ export async function PUT(
   } catch (error: any) {
     log.error(
       { error, userId: params.id, msg: 'Error updating user' },
-      'Error updating user'
+      'Error updating user',
     );
 
     if (error.message === 'Utilisateur non trouvé') {
       return NextResponse.json(
         { error: 'Utilisateur non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
       { error: "Erreur lors de la mise à jour de l'utilisateur" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
         invoicesCount: invoices.data.length,
         total: invoices.total,
       },
-      'Invoices fetched successfully'
+      'Invoices fetched successfully',
     );
 
     return NextResponse.json({
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     log.error(
       { error, msg: 'Error fetching invoices' },
-      'Error fetching invoices'
+      'Error fetching invoices',
     );
     Sentry.captureException(error, {
       tags: {
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des factures' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json(
         { error: 'Accès non autorisé - Admin uniquement' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
       log.warn({ userId, body }, 'Invalid invoice data');
       return NextResponse.json(
         { error: 'Données de facture incomplètes' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     const amount = body.items.reduce(
       (sum: number, item: any) =>
         sum + (item.total || item.quantity * item.unitPrice),
-      0
+      0,
     );
 
     // Préparer les données pour le service
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
     // Utiliser le Service Layer Pattern (InvoiceService utilise déjà Repository Pattern)
     // Le service a déjà les decorators @Log, @InvalidateCache, @Validate
     const invoice = await invoiceService.createInvoice(
-      invoiceData as unknown as any
+      invoiceData as unknown as any,
     );
     log.info(
       {
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
         userId,
         customerId: body.customerId,
       },
-      'Invoice created successfully'
+      'Invoice created successfully',
     );
 
     return NextResponse.json({
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     log.error(
       { error, msg: 'Error creating invoice' },
-      'Error creating invoice'
+      'Error creating invoice',
     );
     Sentry.captureException(error, {
       tags: {
@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: 'Erreur lors de la création de la facture' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

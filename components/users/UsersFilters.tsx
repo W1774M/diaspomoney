@@ -16,21 +16,21 @@ const UsersFilters = React.memo<UsersFiltersProps>(function UsersFilters({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchTerm(e.target.value);
     },
-    [setSearchTerm]
+    [setSearchTerm],
   );
 
   const handleRoleChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       setRoleFilter(e.target.value as any);
     },
-    [setRoleFilter]
+    [setRoleFilter],
   );
 
   const handleStatusChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       setStatusFilter(e.target.value as any);
     },
-    [setStatusFilter]
+    [setStatusFilter],
   );
 
   return (

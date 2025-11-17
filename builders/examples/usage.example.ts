@@ -58,7 +58,7 @@ export async function exampleUserQueryBuilder() {
 
   const result = await userRepository.findUsersWithFilters(
     query.filters,
-    query.pagination
+    query.pagination,
   );
 
   console.log(`Found ${result.total} providers`);
@@ -80,7 +80,7 @@ export async function exampleTransactionQueryBuilder(userId: string) {
     .amountBetween(50, 500)
     .createdBetween(
       new Date('2024-01-01'),
-      new Date('2024-12-31')
+      new Date('2024-12-31'),
     )
     .orderByAmount('desc')
     .page(1, 20)
@@ -88,7 +88,7 @@ export async function exampleTransactionQueryBuilder(userId: string) {
 
   const result = await transactionRepository.findTransactionsWithFilters(
     query.filters,
-    query.pagination
+    query.pagination,
   );
 
   console.log(`Found ${result.total} transactions`);
@@ -113,7 +113,7 @@ export async function exampleBookingQueryBuilder(providerId: string) {
 
   const result = await bookingRepository.findBookingsWithFilters(
     query.filters,
-    query.pagination
+    query.pagination,
   );
 
   console.log(`Found ${result.total} upcoming bookings`);
@@ -136,7 +136,7 @@ export async function exampleInvoiceQueryBuilder(userId: string) {
 
   const result = await invoiceRepository.findInvoicesWithFilters(
     query.filters,
-    query.pagination
+    query.pagination,
   );
 
   console.log(`Found ${result.total} overdue invoices`);
@@ -163,7 +163,7 @@ export async function exampleComplexQuery() {
 
   const result = await userRepository.findUsersWithFilters(
     query.filters,
-    query.pagination
+    query.pagination,
   );
 
   return result.data;
@@ -254,7 +254,7 @@ export async function exampleAPIRoute(request: Request) {
 
   const result = await transactionRepository.findTransactionsWithFilters(
     query.getFilters(),
-    query.getPagination()
+    query.getPagination(),
   );
 
   return {
@@ -282,7 +282,7 @@ export async function exampleResetBuilder() {
   const userRepository = getUserRepository();
   const result1 = await userRepository.findUsersWithFilters(
     query.getFilters(),
-    query.getPagination()
+    query.getPagination(),
   );
 
   // Réinitialiser et créer une nouvelle query
@@ -293,7 +293,7 @@ export async function exampleResetBuilder() {
 
   const result2 = await userRepository.findUsersWithFilters(
     query.getFilters(),
-    query.getPagination()
+    query.getPagination(),
   );
 
   return {

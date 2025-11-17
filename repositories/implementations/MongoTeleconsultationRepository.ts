@@ -55,7 +55,7 @@ export class MongoTeleconsultationRepository
       } else {
         this.log.debug(
           { teleconsultationId: id },
-          'Teleconsultation not found'
+          'Teleconsultation not found',
         );
       }
       return result;
@@ -75,7 +75,7 @@ export class MongoTeleconsultationRepository
       const result = teleconsultations.map(t => this.mapToTeleconsultation(t));
       this.log.debug(
         { count: result.length, filters },
-        'Teleconsultations found'
+        'Teleconsultations found',
       );
       return result;
     } catch (error) {
@@ -88,7 +88,7 @@ export class MongoTeleconsultationRepository
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'TeleconsultationRepository:findOne' }) // Cache 5 minutes
   async findOne(
-    filters: Record<string, any>
+    filters: Record<string, any>,
   ): Promise<Teleconsultation | null> {
     try {
       const collection = await this.getCollection();
@@ -132,13 +132,13 @@ export class MongoTeleconsultationRepository
           appointmentId: mappedTeleconsultation.appointmentId,
           status: mappedTeleconsultation.status,
         },
-        'Teleconsultation created successfully'
+        'Teleconsultation created successfully',
       );
       return mappedTeleconsultation;
     } catch (error) {
       this.log.error(
         { error, appointmentId: data.appointmentId },
-        'Error in create'
+        'Error in create',
       );
       Sentry.captureException(error);
       throw error;
@@ -149,7 +149,7 @@ export class MongoTeleconsultationRepository
   @InvalidateCache('TeleconsultationRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
-    data: Partial<Teleconsultation>
+    data: Partial<Teleconsultation>,
   ): Promise<Teleconsultation | null> {
     try {
       const collection = await this.getCollection();
@@ -160,7 +160,7 @@ export class MongoTeleconsultationRepository
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       const updated = result?.['value']
         ? this.mapToTeleconsultation(result['value'])
@@ -168,12 +168,12 @@ export class MongoTeleconsultationRepository
       if (updated) {
         this.log.info(
           { teleconsultationId: id },
-          'Teleconsultation updated successfully'
+          'Teleconsultation updated successfully',
         );
       } else {
         this.log.warn(
           { teleconsultationId: id },
-          'Teleconsultation not found for update'
+          'Teleconsultation not found for update',
         );
       }
       return updated;
@@ -194,12 +194,12 @@ export class MongoTeleconsultationRepository
       if (deleted) {
         this.log.info(
           { teleconsultationId: id },
-          'Teleconsultation deleted successfully'
+          'Teleconsultation deleted successfully',
         );
       } else {
         this.log.warn(
           { teleconsultationId: id },
-          'Teleconsultation not found for deletion'
+          'Teleconsultation not found for deletion',
         );
       }
       return deleted;
@@ -234,7 +234,7 @@ export class MongoTeleconsultationRepository
       const exists = count > 0;
       this.log.debug(
         { teleconsultationId: id, exists },
-        'Teleconsultation existence checked'
+        'Teleconsultation existence checked',
       );
       return exists;
     } catch (error) {
@@ -248,7 +248,7 @@ export class MongoTeleconsultationRepository
   @Cacheable(300, { prefix: 'TeleconsultationRepository:findWithPagination' }) // Cache 5 minutes
   async findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Teleconsultation>> {
     try {
       const collection = await this.getCollection();
@@ -271,7 +271,7 @@ export class MongoTeleconsultationRepository
 
       const data = await cursor.toArray();
       const teleconsultations = data.map(doc =>
-        this.mapToTeleconsultation(doc)
+        this.mapToTeleconsultation(doc),
       );
 
       const result = {
@@ -292,14 +292,14 @@ export class MongoTeleconsultationRepository
           offset,
           filters,
         },
-        'Teleconsultations paginated'
+        'Teleconsultations paginated',
       );
 
       return result;
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findWithPagination'
+        'Error in findWithPagination',
       );
       Sentry.captureException(error);
       throw error;
@@ -310,13 +310,13 @@ export class MongoTeleconsultationRepository
   @Cacheable(300, { prefix: 'TeleconsultationRepository:findByAppointment' }) // Cache 5 minutes
   async findByAppointment(
     appointmentId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Teleconsultation>> {
     try {
       const result = await this.findWithPagination({ appointmentId }, options);
       this.log.debug(
         { appointmentId, count: result.data.length },
-        'Teleconsultations found by appointment'
+        'Teleconsultations found by appointment',
       );
       return result;
     } catch (error) {
@@ -330,13 +330,13 @@ export class MongoTeleconsultationRepository
   @Cacheable(300, { prefix: 'TeleconsultationRepository:findByStatus' }) // Cache 5 minutes
   async findByStatus(
     status: TeleconsultationStatus,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Teleconsultation>> {
     try {
       const result = await this.findWithPagination({ status }, options);
       this.log.debug(
         { status, count: result.data.length },
-        'Teleconsultations found by status'
+        'Teleconsultations found by status',
       );
       return result;
     } catch (error) {
@@ -349,16 +349,16 @@ export class MongoTeleconsultationRepository
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'TeleconsultationRepository:findActive' }) // Cache 5 minutes
   async findActive(
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Teleconsultation>> {
     try {
       const result = await this.findWithPagination(
         { status: { $in: ['WAITING', 'ACTIVE'] } },
-        options
+        options,
       );
       this.log.debug(
         { count: result.data.length },
-        'Active teleconsultations found'
+        'Active teleconsultations found',
       );
       return result;
     } catch (error) {
@@ -372,7 +372,7 @@ export class MongoTeleconsultationRepository
   @InvalidateCache('TeleconsultationRepository:*') // Invalider le cache après mise à jour du statut
   async updateStatus(
     teleconsultationId: string,
-    status: TeleconsultationStatus
+    status: TeleconsultationStatus,
   ): Promise<boolean> {
     try {
       const result = await this.update(teleconsultationId, {
@@ -382,19 +382,19 @@ export class MongoTeleconsultationRepository
       if (updated) {
         this.log.info(
           { teleconsultationId, status },
-          'Teleconsultation status updated successfully'
+          'Teleconsultation status updated successfully',
         );
       } else {
         this.log.warn(
           { teleconsultationId, status },
-          'Teleconsultation not found for status update'
+          'Teleconsultation not found for status update',
         );
       }
       return updated;
     } catch (error) {
       this.log.error(
         { error, teleconsultationId, status },
-        'Error in updateStatus'
+        'Error in updateStatus',
       );
       Sentry.captureException(error);
       throw error;
@@ -404,7 +404,7 @@ export class MongoTeleconsultationRepository
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @InvalidateCache('TeleconsultationRepository:*') // Invalider le cache après fin de téléconsultation
   async endTeleconsultation(
-    teleconsultationId: string
+    teleconsultationId: string,
   ): Promise<Teleconsultation | null> {
     try {
       // Récupérer la téléconsultation pour obtenir startedAt
@@ -412,7 +412,7 @@ export class MongoTeleconsultationRepository
       if (!teleconsultation || !teleconsultation.startedAt) {
         this.log.warn(
           { teleconsultationId },
-          'Teleconsultation not found or not started'
+          'Teleconsultation not found or not started',
         );
         return null;
       }
@@ -420,7 +420,7 @@ export class MongoTeleconsultationRepository
       // Calculer la durée en minutes
       const endedAt = new Date();
       const duration = Math.floor(
-        (endedAt.getTime() - teleconsultation.startedAt.getTime()) / (1000 * 60)
+        (endedAt.getTime() - teleconsultation.startedAt.getTime()) / (1000 * 60),
       );
 
       // Mettre à jour la téléconsultation
@@ -437,7 +437,7 @@ export class MongoTeleconsultationRepository
             duration,
             appointmentId: result.appointmentId,
           },
-          'Teleconsultation ended successfully'
+          'Teleconsultation ended successfully',
         );
       }
 
@@ -445,7 +445,7 @@ export class MongoTeleconsultationRepository
     } catch (error) {
       this.log.error(
         { error, teleconsultationId },
-        'Error in endTeleconsultation'
+        'Error in endTeleconsultation',
       );
       Sentry.captureException(error);
       throw error;
@@ -458,7 +458,7 @@ export class MongoTeleconsultationRepository
   }) // Cache 5 minutes
   async findTeleconsultationsWithFilters(
     filters: TeleconsultationFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Teleconsultation>> {
     try {
       const query: Record<string, any> = {};
@@ -486,13 +486,13 @@ export class MongoTeleconsultationRepository
           total: result.total,
           filters,
         },
-        'Teleconsultations found with filters'
+        'Teleconsultations found with filters',
       );
       return result;
     } catch (error) {
       this.log.error(
         { error, filters },
-        'Error in findTeleconsultationsWithFilters'
+        'Error in findTeleconsultationsWithFilters',
       );
       Sentry.captureException(error);
       throw error;

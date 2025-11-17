@@ -65,7 +65,7 @@ export class PayPalPaymentProcessor extends PaymentProcessor {
    */
   protected async confirmPayment(
     paymentIntent: PaymentIntent,
-    data: PaymentData
+    data: PaymentData,
   ): Promise<PaymentResult> {
     try {
       logger.debug({ paymentIntentId: paymentIntent.id }, 'Confirming PayPal payment');

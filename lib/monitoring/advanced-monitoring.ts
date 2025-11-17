@@ -190,13 +190,13 @@ export class MonitoringManager {
 
     if (severity) {
       filteredAlerts = filteredAlerts.filter(
-        alert => alert.severity === severity
+        alert => alert.severity === severity,
       );
     }
 
     if (resolved !== undefined) {
       filteredAlerts = filteredAlerts.filter(
-        alert => alert.resolved === resolved
+        alert => alert.resolved === resolved,
       );
     }
 
@@ -221,13 +221,13 @@ export class MonitoringManager {
   } {
     const totalMetrics = Array.from(this.metrics.values()).reduce(
       (sum, metrics) => sum + metrics.length,
-      0
+      0,
     );
 
     const totalAlerts = this.alerts.length;
     const activeAlerts = this.alerts.filter(a => !a.resolved).length;
     const criticalAlerts = this.alerts.filter(
-      a => !a.resolved && a.severity === 'critical'
+      a => !a.resolved && a.severity === 'critical',
     ).length;
 
     return {
@@ -243,7 +243,7 @@ export class MonitoringManager {
 export function recordPerformanceMetric(
   name: string,
   value: number,
-  labels: Record<string, string> = {}
+  labels: Record<string, string> = {},
 ): void {
   const monitoring = MonitoringManager.getInstance();
 
@@ -260,7 +260,7 @@ export function recordPerformanceMetric(
 export function recordBusinessMetric(
   name: string,
   value: number,
-  labels: Record<string, string> = {}
+  labels: Record<string, string> = {},
 ): void {
   const monitoring = MonitoringManager.getInstance();
 
@@ -318,7 +318,7 @@ export function monitorTransaction(
   transactionId: string,
   amount: number,
   currency: string,
-  status: 'initiated' | 'completed' | 'failed' | 'refunded'
+  status: 'initiated' | 'completed' | 'failed' | 'refunded',
 ): void {
   const monitoring = MonitoringManager.getInstance();
 
@@ -355,7 +355,7 @@ export function monitorTransaction(
   ).filter(m => Date.now() - m.timestamp.getTime() < 5 * 60 * 1000); // 5 minutes
 
   const completedTransactions = recentTransactions.filter(
-    m => m.labels?.['status'] === 'completed'
+    m => m.labels?.['status'] === 'completed',
   ).length;
   const totalTransactions = recentTransactions.length;
 

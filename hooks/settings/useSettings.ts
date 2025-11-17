@@ -79,7 +79,7 @@ export function useSettings() {
         address: (user as any).address || '',
         dateOfBirth: (user as any).dateOfBirth
           ? String(
-              new Date((user as any).dateOfBirth).toISOString().split('T')[0]
+              new Date((user as any).dateOfBirth).toISOString().split('T')[0],
             )
           : '',
         countryOfResidence: (user as any).countryOfResidence || '',
@@ -192,7 +192,7 @@ export function useSettings() {
         alert(
           error instanceof Error
             ? error.message
-            : 'Erreur lors de la sauvegarde des paramètres.'
+            : 'Erreur lors de la sauvegarde des paramètres.',
         );
       } finally {
         setSaving(false);
@@ -205,7 +205,7 @@ export function useSettings() {
       billingData,
       privacyData,
       complaintsData,
-    ]
+    ],
   );
 
   return {

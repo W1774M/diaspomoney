@@ -21,7 +21,7 @@ import { NextRequest } from 'next/server';
  * Essaie d'abord NextAuth (cookies), puis JWT (Bearer token)
  */
 export async function authenticateUser(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<AuthenticatedUser | null> {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -56,7 +56,7 @@ export async function authenticateUser(
             const userId = (decoded.sub || decoded['userId'] || '') as string;
             log.debug(
               { userId, email: decoded.email, authMethod: 'NextAuth' },
-              'User authenticated via NextAuth'
+              'User authenticated via NextAuth',
             );
 
             return {
@@ -74,7 +74,7 @@ export async function authenticateUser(
           ) {
             log.warn(
               { error: decodeError.message, authMethod: 'NextAuth' },
-              'Error decoding session token'
+              'Error decoding session token',
             );
             Sentry.captureException(decodeError, {
               tags: {
@@ -93,7 +93,7 @@ export async function authenticateUser(
       // Les erreurs de décryptage sont normales pour les sessions expirées
       log.debug(
         { error: authError },
-        'NextAuth authentication attempt failed (normal for expired sessions)'
+        'NextAuth authentication attempt failed (normal for expired sessions)',
       );
     }
 
@@ -119,7 +119,7 @@ export async function authenticateUser(
               role: decoded.role,
               authMethod: 'JWT',
             },
-            'User authenticated via JWT'
+            'User authenticated via JWT',
           );
 
           return {
@@ -131,7 +131,7 @@ export async function authenticateUser(
       } catch (jwtError) {
         log.debug(
           { error: jwtError, authMethod: 'JWT' },
-          'JWT verification failed (normal for invalid/expired tokens)'
+          'JWT verification failed (normal for invalid/expired tokens)',
         );
         // Ne pas logger les erreurs JWT normales (tokens invalides/expirés)
         // Seulement capturer les erreurs critiques

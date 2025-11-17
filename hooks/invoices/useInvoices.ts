@@ -40,17 +40,17 @@ export function useInvoices({
       if (isProvider) {
         // Les providers voient leurs factures (où ils sont le providerId)
         filteredInvoices = filteredInvoices.filter(
-          invoice => invoice.providerId === userId
+          invoice => invoice.providerId === userId,
         );
       } else if (isCustomer) {
         // Les customers voient leurs factures (où ils sont le customerId)
         filteredInvoices = filteredInvoices.filter(
-          invoice => invoice.customerId === userId
+          invoice => invoice.customerId === userId,
         );
       } else if (userId) {
         // Si un userId est spécifié mais pas de rôle, filtrer par customerId ou providerId
         filteredInvoices = filteredInvoices.filter(
-          invoice => invoice.customerId === userId || invoice.providerId === userId
+          invoice => invoice.customerId === userId || invoice.providerId === userId,
         );
       }
     }

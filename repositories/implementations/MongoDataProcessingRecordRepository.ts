@@ -42,7 +42,7 @@ export class MongoDataProcessingRecordRepository
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @InvalidateCache('DataProcessingRecordRepository')
   async create(
-    data: Partial<DataProcessingRecord>
+    data: Partial<DataProcessingRecord>,
   ): Promise<DataProcessingRecord> {
     try {
       const collection = await this.getCollection();
@@ -79,7 +79,7 @@ export class MongoDataProcessingRecordRepository
 
       this.log.debug(
         { recordId: createdRecord.id, userId: createdRecord.userId },
-        'Data processing record created'
+        'Data processing record created',
       );
 
       return createdRecord;
@@ -113,7 +113,7 @@ export class MongoDataProcessingRecordRepository
     } catch (error) {
       this.log.error(
         { error, id },
-        'Error finding data processing record by id'
+        'Error finding data processing record by id',
       );
       Sentry.captureException(error, {
         tags: {
@@ -129,7 +129,7 @@ export class MongoDataProcessingRecordRepository
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'DataProcessingRecordRepository:findAll' })
   async findAll(
-    filter: Record<string, any> = {}
+    filter: Record<string, any> = {},
   ): Promise<DataProcessingRecord[]> {
     try {
       const collection = await this.getCollection();
@@ -138,7 +138,7 @@ export class MongoDataProcessingRecordRepository
     } catch (error) {
       this.log.error(
         { error, filter },
-        'Error finding data processing records'
+        'Error finding data processing records',
       );
       Sentry.captureException(error, {
         tags: {
@@ -154,7 +154,7 @@ export class MongoDataProcessingRecordRepository
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'DataProcessingRecordRepository:findOne' })
   async findOne(
-    filter: Record<string, any>
+    filter: Record<string, any>,
   ): Promise<DataProcessingRecord | null> {
     try {
       const collection = await this.getCollection();
@@ -182,7 +182,7 @@ export class MongoDataProcessingRecordRepository
     } catch (error) {
       this.log.error(
         { error, filter },
-        'Error counting data processing records'
+        'Error counting data processing records',
       );
       Sentry.captureException(error, {
         tags: {
@@ -207,7 +207,7 @@ export class MongoDataProcessingRecordRepository
     } catch (error) {
       this.log.error(
         { error, id },
-        'Error checking data processing record existence'
+        'Error checking data processing record existence',
       );
       Sentry.captureException(error, {
         tags: {
@@ -224,7 +224,7 @@ export class MongoDataProcessingRecordRepository
   @InvalidateCache('DataProcessingRecordRepository')
   async update(
     id: string,
-    data: Partial<DataProcessingRecord>
+    data: Partial<DataProcessingRecord>,
   ): Promise<DataProcessingRecord | null> {
     try {
       const collection = await this.getCollection();
@@ -239,7 +239,7 @@ export class MongoDataProcessingRecordRepository
       const result = await collection.findOneAndUpdate(
         { $or: [{ _id: new ObjectId(id) }, { id }] },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
 
       if (!result) {
@@ -250,7 +250,7 @@ export class MongoDataProcessingRecordRepository
     } catch (error) {
       this.log.error(
         { error, id, data },
-        'Error updating data processing record'
+        'Error updating data processing record',
       );
       Sentry.captureException(error, {
         tags: {
@@ -292,7 +292,7 @@ export class MongoDataProcessingRecordRepository
   })
   async findWithPagination(
     filter: Record<string, any> = {},
-    options: PaginationOptions = {}
+    options: PaginationOptions = {},
   ): Promise<PaginatedResult<DataProcessingRecord>> {
     try {
       const collection = await this.getCollection();
@@ -323,7 +323,7 @@ export class MongoDataProcessingRecordRepository
     } catch (error) {
       this.log.error(
         { error, filter, options },
-        'Error finding data processing records with pagination'
+        'Error finding data processing records with pagination',
       );
       Sentry.captureException(error, {
         tags: {
@@ -340,7 +340,7 @@ export class MongoDataProcessingRecordRepository
   @Cacheable(300, { prefix: 'DataProcessingRecordRepository:searchRecords' })
   async searchRecords(
     query: DataProcessingRecordQuery,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<DataProcessingRecord>> {
     try {
       const mongoQuery: Record<string, any> = {};
@@ -385,7 +385,7 @@ export class MongoDataProcessingRecordRepository
     } catch (error) {
       this.log.error(
         { error, query },
-        'Error searching data processing records'
+        'Error searching data processing records',
       );
       Sentry.captureException(error, {
         tags: {
@@ -402,12 +402,12 @@ export class MongoDataProcessingRecordRepository
   @Cacheable(300, { prefix: 'DataProcessingRecordRepository:findByUserId' })
   async findByUserId(
     userId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<DataProcessingRecord>> {
     try {
       return this.findWithPagination(
         { userId },
-        options || { sort: { processedAt: -1 } }
+        options || { sort: { processedAt: -1 } },
       );
     } catch (error) {
       this.log.error({ error, userId }, 'Error finding records by userId');

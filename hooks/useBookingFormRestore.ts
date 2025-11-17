@@ -45,7 +45,7 @@ export function useBookingFormRestore() {
       } catch (error) {
         console.error(
           "Erreur lors de la lecture des données sauvegardées:",
-          error
+          error,
         );
         localStorage.removeItem("bookingFormData");
       }

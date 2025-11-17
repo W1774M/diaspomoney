@@ -104,7 +104,7 @@ const ServicesProviderList = React.memo<ServiceProviderListProps>(
         ))}
       </div>
     );
-  }
+  },
 );
 
 ServicesProviderList.displayName = "ServicesProviderList";

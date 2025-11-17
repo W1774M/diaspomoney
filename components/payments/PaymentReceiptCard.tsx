@@ -72,7 +72,7 @@ export function PaymentReceiptCard({
             </span>
             <span
               className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
-                receipt.status
+                receipt.status,
               )}`}
             >
               {getStatusText(receipt.status)}

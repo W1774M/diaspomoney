@@ -83,11 +83,11 @@ export function useBookingFilters(bookings: Booking[]) {
   const updateFilter = useCallback(
     (
       key: keyof BookingFilters,
-      value: string | { start: string; end: string }
+      value: string | { start: string; end: string },
     ) => {
       setFilters(prev => ({ ...prev, [key]: value }));
     },
-    []
+    [],
   );
 
   const clearFilters = useCallback(() => {

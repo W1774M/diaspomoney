@@ -192,7 +192,7 @@ export default function EducationInquiryForm({
       alert(
         error instanceof Error
           ? error.message
-          : "Erreur lors de l'envoi de la demande"
+          : "Erreur lors de l'envoi de la demande",
       );
     } finally {
       setIsSubmitting(false);

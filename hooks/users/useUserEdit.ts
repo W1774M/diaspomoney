@@ -33,7 +33,7 @@ export function useUserEdit() {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(
-            errorData.error || "Erreur lors de la mise à jour de l'utilisateur"
+            errorData.error || "Erreur lors de la mise à jour de l'utilisateur",
           );
         }
 
@@ -53,7 +53,7 @@ export function useUserEdit() {
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
   return {

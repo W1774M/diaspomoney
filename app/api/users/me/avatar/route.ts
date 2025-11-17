@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json(
         { error: 'Aucun fichier fourni' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (!file.type.startsWith('image/')) {
       return NextResponse.json(
         { error: 'Le fichier doit être une image' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     if (file.size > maxSize) {
       return NextResponse.json(
         { error: 'Le fichier est trop volumineux (max 5MB)' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
           avatar: avatarUrl,
           updatedAt: new Date(),
         },
-      }
+      },
     );
 
     return NextResponse.json({
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     console.error('[API][users/me/avatar][POST] Erreur:', error);
     return NextResponse.json(
       { error: "Erreur lors de l'upload de la photo de profil" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -132,7 +132,7 @@ export async function DELETE() {
         } catch (error) {
           console.warn(
             "Impossible de supprimer l'avatar du système de fichiers:",
-            error
+            error,
           );
         }
       }
@@ -145,7 +145,7 @@ export async function DELETE() {
           avatar: null,
           updatedAt: new Date(),
         },
-      }
+      },
     );
 
     return NextResponse.json({
@@ -156,7 +156,7 @@ export async function DELETE() {
     console.error('[API][users/me/avatar][DELETE] Erreur:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la suppression de la photo de profil' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -162,13 +162,13 @@ export class SecurityManager {
 
     if (password.length < config.minLength) {
       errors.push(
-        `Le mot de passe doit contenir au moins ${config.minLength} caractères`
+        `Le mot de passe doit contenir au moins ${config.minLength} caractères`,
       );
     }
 
     if (password.length > config.maxLength) {
       errors.push(
-        `Le mot de passe ne peut pas dépasser ${config.maxLength} caractères`
+        `Le mot de passe ne peut pas dépasser ${config.maxLength} caractères`,
       );
     }
 
@@ -189,7 +189,7 @@ export class SecurityManager {
       !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
     ) {
       errors.push(
-        'Le mot de passe doit contenir au moins un caractère spécial'
+        'Le mot de passe doit contenir au moins un caractère spécial',
       );
     }
 
@@ -229,7 +229,7 @@ export class SecurityManager {
       {
         expiresIn: SECURITY_CONFIG.JWT_EXPIRES_IN,
         algorithm: 'HS256',
-      } as SignOptions
+      } as SignOptions,
     );
 
     const refreshToken = jwt.sign(
@@ -238,7 +238,7 @@ export class SecurityManager {
       {
         expiresIn: SECURITY_CONFIG.JWT_REFRESH_EXPIRES_IN,
         algorithm: 'HS256',
-      } as SignOptions
+      } as SignOptions,
     );
 
     return { accessToken, refreshToken };
@@ -247,7 +247,7 @@ export class SecurityManager {
   // Vérification du token
   async verifyToken(
     token: string,
-    type: 'access' | 'refresh' = 'access'
+    type: 'access' | 'refresh' = 'access',
   ): Promise<any> {
     try {
       const secret =
@@ -290,13 +290,13 @@ export class SecurityManager {
     return role.permissions.some(
       permission =>
         (permission.resource === resource || permission.resource === '*') &&
-        (permission.action === action || permission.action === '*')
+        (permission.action === action || permission.action === '*'),
     );
   }
 
   // Middleware d'authentification
   authenticate = async (
-    request: NextRequest
+    request: NextRequest,
   ): Promise<{ user: any; error?: string }> => {
     try {
       const authHeader = request.headers.get('authorization');
@@ -339,7 +339,7 @@ export class SecurityManager {
           timestamp: new Date().toISOString(),
           metadata,
         },
-        `Security Event: ${action}`
+        `Security Event: ${action}`,
       );
 
       // Détection de patterns suspects
@@ -383,7 +383,7 @@ export class SecurityManager {
    */
   private async detectBruteForce(
     userId: string,
-    metadata: any = {}
+    metadata: any = {},
   ): Promise<void> {
     try {
       const { maxAttempts, windowSeconds, blockDurationSeconds } =
@@ -405,7 +405,7 @@ export class SecurityManager {
             action: 'LOGIN_FAILED',
             blocked: true,
           },
-          'User is currently blocked due to brute force attempts'
+          'User is currently blocked due to brute force attempts',
         );
 
         // Envoyer une alerte à Sentry
@@ -428,7 +428,7 @@ export class SecurityManager {
       // Incrémenter le compteur de tentatives avec expiration
       const attemptCount = await this.redisClient.incrWithExpiry(
         attemptKey,
-        windowSeconds
+        windowSeconds,
       );
 
       logger.debug(
@@ -438,7 +438,7 @@ export class SecurityManager {
           maxAttempts,
           windowSeconds,
         },
-        'Login failed attempt counted'
+        'Login failed attempt counted',
       );
 
       // Si le seuil est dépassé, bloquer l'utilisateur
@@ -451,7 +451,7 @@ export class SecurityManager {
             attemptCount,
             reason: 'BRUTE_FORCE',
           }),
-          blockDurationSeconds
+          blockDurationSeconds,
         );
 
         logger.warn(
@@ -462,7 +462,7 @@ export class SecurityManager {
             blockDurationSeconds,
             action: 'LOGIN_FAILED',
           },
-          'User blocked due to brute force attack'
+          'User blocked due to brute force attack',
         );
 
         // Envoyer une alerte critique à Sentry
@@ -483,7 +483,7 @@ export class SecurityManager {
               blockDurationSeconds,
               metadata,
             },
-          }
+          },
         );
       } else if (attemptCount >= maxAttempts * 0.8) {
         // Alerter si on approche du seuil (80%)
@@ -494,7 +494,7 @@ export class SecurityManager {
             maxAttempts,
             percentage: Math.round((attemptCount / maxAttempts) * 100),
           },
-          'Approaching brute force threshold'
+          'Approaching brute force threshold',
         );
 
         Sentry.addBreadcrumb({
@@ -512,7 +512,7 @@ export class SecurityManager {
     } catch (error) {
       logger.error(
         { error, userId, metadata },
-        'Erreur lors de la détection de force brute'
+        'Erreur lors de la détection de force brute',
       );
       Sentry.captureException(error, {
         tags: {
@@ -536,7 +536,7 @@ export class SecurityManager {
     } catch (error) {
       logger.error(
         { error, userId },
-        'Erreur lors de la vérification du blocage'
+        'Erreur lors de la vérification du blocage',
       );
       // En cas d'erreur Redis, ne pas bloquer l'utilisateur
       return false;
@@ -554,7 +554,7 @@ export class SecurityManager {
     } catch (error) {
       logger.error(
         { error, userId },
-        'Erreur lors de la réinitialisation du compteur'
+        'Erreur lors de la réinitialisation du compteur',
       );
     }
   }
@@ -599,7 +599,7 @@ export class SecurityManager {
             amount,
             threshold: veryHighAmountThreshold,
           },
-          'Very high amount transaction detected'
+          'Very high amount transaction detected',
         );
       } else if (amount >= highAmountThreshold) {
         fraudFlags.push('HIGH_AMOUNT');
@@ -611,7 +611,7 @@ export class SecurityManager {
             amount,
             threshold: highAmountThreshold,
           },
-          'High amount transaction detected'
+          'High amount transaction detected',
         );
       }
 
@@ -621,7 +621,7 @@ export class SecurityManager {
         fraudScore.value += 15;
         logger.warn(
           { userId, transactionId, amount },
-          'Suspicious round amount detected'
+          'Suspicious round amount detected',
         );
       }
 
@@ -645,7 +645,7 @@ export class SecurityManager {
             hourCount,
             maxTransactionsPerHour,
           },
-          'High transaction frequency per hour detected'
+          'High transaction frequency per hour detected',
         );
       }
 
@@ -661,14 +661,14 @@ export class SecurityManager {
             dayCount,
             maxTransactionsPerDay,
           },
-          'High transaction frequency per day detected'
+          'High transaction frequency per day detected',
         );
       }
 
       // Transactions rapides (dans la même minute)
       const rapidCount = await this.redisClient.incrWithExpiry(
         rapidKey,
-        rapidTransactionWindowSeconds
+        rapidTransactionWindowSeconds,
       );
       if (rapidCount > maxRapidTransactions) {
         fraudFlags.push('RAPID_TRANSACTIONS');
@@ -681,7 +681,7 @@ export class SecurityManager {
             maxRapidTransactions,
             windowSeconds: rapidTransactionWindowSeconds,
           },
-          'Rapid successive transactions detected'
+          'Rapid successive transactions detected',
         );
       }
 
@@ -700,7 +700,7 @@ export class SecurityManager {
             currentHour,
             normalHours: normalBusinessHours,
           },
-          'Transaction outside normal business hours'
+          'Transaction outside normal business hours',
         );
       }
 
@@ -708,7 +708,7 @@ export class SecurityManager {
       const amountPatternKey = `security:transactions:user:${userId}:amount:${amount}`;
       const sameAmountCount = await this.redisClient.incrWithExpiry(
         amountPatternKey,
-        3600
+        3600,
       ); // 1 heure
       if (sameAmountCount > 5) {
         fraudFlags.push('REPEATED_AMOUNT');
@@ -720,7 +720,7 @@ export class SecurityManager {
             amount,
             sameAmountCount,
           },
-          'Repeated identical amount detected'
+          'Repeated identical amount detected',
         );
       }
 
@@ -749,7 +749,7 @@ export class SecurityManager {
             dayCount,
             rapidCount,
           },
-          'Fraud detected in transaction'
+          'Fraud detected in transaction',
         );
 
         // Envoyer une alerte critique à Sentry
@@ -778,7 +778,7 @@ export class SecurityManager {
               rapidCount,
               metadata,
             },
-          }
+          },
         );
 
         // Si le risque est critique, marquer la transaction comme suspecte
@@ -796,7 +796,7 @@ export class SecurityManager {
               fraudFlags,
               detectedAt: new Date().toISOString(),
             }),
-            86400 * 7
+            86400 * 7,
           ); // Conserver 7 jours
 
           logger.error(
@@ -806,7 +806,7 @@ export class SecurityManager {
               fraudScore: fraudScore.value,
               riskLevel,
             },
-            'Transaction marked as suspicious due to critical fraud score'
+            'Transaction marked as suspicious due to critical fraud score',
           );
         }
       } else if (fraudScore.value >= 30) {
@@ -820,7 +820,7 @@ export class SecurityManager {
             riskLevel,
             fraudFlags,
           },
-          'Medium risk transaction detected'
+          'Medium risk transaction detected',
         );
 
         Sentry.addBreadcrumb({
@@ -840,7 +840,7 @@ export class SecurityManager {
     } catch (error) {
       logger.error(
         { error, userId, metadata },
-        'Erreur lors de la détection de fraude'
+        'Erreur lors de la détection de fraude',
       );
       Sentry.captureException(error, {
         tags: {
@@ -864,7 +864,7 @@ export class SecurityManager {
     } catch (error) {
       logger.error(
         { error, transactionId },
-        'Erreur lors de la vérification de transaction suspecte'
+        'Erreur lors de la vérification de transaction suspecte',
       );
       return false;
     }

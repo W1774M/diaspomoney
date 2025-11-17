@@ -83,7 +83,7 @@ export default function NotificationsPage() {
     setHistoryLoading(true);
     try {
       const response = await fetch(
-        `/api/notifications?page=${historyPage}&limit=50&status=all`
+        `/api/notifications?page=${historyPage}&limit=50&status=all`,
       );
       if (!response.ok) {
         throw new Error("Erreur lors de la récupération de l'historique");
@@ -498,7 +498,7 @@ function NotificationsList({
                     <span>{formatDate(notification.createdAt)}</span>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        notification.status
+                        notification.status,
                       )}`}
                     >
                       {notification.status}

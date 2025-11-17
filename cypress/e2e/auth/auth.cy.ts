@@ -135,7 +135,7 @@ describe('Authentification et Inscription (API)', () => {
           expect(response.status).to.eq(400);
           expect(response.body.success).to.be.false;
           expect(response.body.error).to.contain(
-            'Un compte avec cet email existe déjà'
+            'Un compte avec cet email existe déjà',
           );
         });
       });

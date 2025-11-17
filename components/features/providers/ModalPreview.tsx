@@ -86,7 +86,7 @@ export const ModalPreview = ({
   const handleConfirmPayment = useCallback(async () => {
     if (!isValid) {
       setErrorMsg(
-        'Veuillez remplir tous les champs obligatoires avant de confirmer le paiement.'
+        'Veuillez remplir tous les champs obligatoires avant de confirmer le paiement.',
       );
       return;
     }
@@ -113,7 +113,7 @@ export const ModalPreview = ({
         if (errorResponse.ok) {
           // const errorResult = await errorResponse.json();
           alert(
-            '❌ Erreur de paiement détectée. Un email a été envoyé à contact@diaspomoney.fr et à votre adresse email avec un lien pour réessayer le paiement. Le lien est valide 15 minutes.'
+            '❌ Erreur de paiement détectée. Un email a été envoyé à contact@diaspomoney.fr et à votre adresse email avec un lien pour réessayer le paiement. Le lien est valide 15 minutes.',
           );
         } else {
           alert('❌ Erreur de paiement. Veuillez réessayer plus tard.');
@@ -144,7 +144,7 @@ export const ModalPreview = ({
 
       console.log('Paiement confirmé', { appointment, paymentData });
       alert(
-        `✅ Paiement effectué avec succès ! Un email de confirmation a été envoyé à contact@diaspomoney.fr et à votre adresse email. Numéro de réservation : ${result.reservationNumber}`
+        `✅ Paiement effectué avec succès ! Un email de confirmation a été envoyé à contact@diaspomoney.fr et à votre adresse email. Numéro de réservation : ${result.reservationNumber}`,
       );
       setIsClosing(true);
       setTimeout(() => onFinalValidation?.(), 300);
@@ -168,11 +168,11 @@ export const ModalPreview = ({
         });
 
         alert(
-          "❌ Erreur lors de la confirmation du paiement. Un email d'erreur a été envoyé à contact@diaspomoney.fr et à votre adresse email avec un lien pour réessayer."
+          "❌ Erreur lors de la confirmation du paiement. Un email d'erreur a été envoyé à contact@diaspomoney.fr et à votre adresse email avec un lien pour réessayer.",
         );
       } catch {
         alert(
-          '❌ Erreur lors de la confirmation du paiement. Veuillez réessayer plus tard.'
+          '❌ Erreur lors de la confirmation du paiement. Veuillez réessayer plus tard.',
         );
       }
     }

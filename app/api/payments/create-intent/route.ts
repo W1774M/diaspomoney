@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (!userRole || userRole !== UserRole.CUSTOMER) {
       return NextResponse.json(
         { error: 'Seuls les clients peuvent effectuer des paiements' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       return NextResponse.json(
         { error: 'Le corps de la requête doit être au format JSON valide.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
     const { amount, currency = 'eur', email, metadata } = body || {};
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     if (!amount || typeof amount !== 'number' || amount <= 0) {
       return NextResponse.json(
         { error: 'Invalid amount (minor units)' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return NextResponse.json(
         { error: 'Email manquant ou invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         {
           ...metadata,
           customerEmail: email,
-        }
+        },
       );
     } catch (intentError: any) {
       const reqId = req.headers.get('x-request-id');
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
             intentError?.message ||
             'Erreur lors de la création du PaymentIntent',
         },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
     log.error({ err: error, msg: 'Failed to create PaymentIntent' });
     return NextResponse.json(
       { error: error?.message || 'Failed to create PaymentIntent' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

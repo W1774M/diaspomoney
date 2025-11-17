@@ -173,12 +173,12 @@ export class StripePaymentStrategy implements IPaymentStrategy {
 
   async confirmPaymentIntent(
     paymentIntentId: string,
-    paymentMethodId?: string
+    paymentMethodId?: string,
   ): Promise<PaymentResult> {
     try {
       const paymentIntent = await this.stripe.paymentIntents.confirm(
         paymentIntentId,
-        paymentMethodId ? { payment_method: paymentMethodId } : {}
+        paymentMethodId ? { payment_method: paymentMethodId } : {},
       );
 
       return {

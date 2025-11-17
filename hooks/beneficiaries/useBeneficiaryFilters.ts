@@ -61,7 +61,7 @@ export function useBeneficiaryFilters(beneficiaries: Beneficiary[]) {
     (key: keyof BeneficiaryFilters, value: string) => {
       setFilters(prev => ({ ...prev, [key]: value }));
     },
-    []
+    [],
   );
 
   const clearFilters = useCallback(() => {

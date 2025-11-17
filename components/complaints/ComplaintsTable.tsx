@@ -86,7 +86,7 @@ const ComplaintsTable = React.memo<ComplaintsTableProps>(
         ))}
       </div>
     );
-  }
+  },
 );
 
 ComplaintsTable.displayName = "ComplaintsTable";

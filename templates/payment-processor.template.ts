@@ -135,7 +135,7 @@ export abstract class PaymentProcessor {
    */
   protected async afterPayment(
     paymentIntent: PaymentIntent,
-    result: PaymentResult
+    result: PaymentResult,
   ): Promise<void> {
     if (result.success) {
       logger.info({
@@ -188,7 +188,7 @@ export abstract class PaymentProcessor {
    */
   protected async sendNotification(
     paymentIntent: PaymentIntent,
-    result: PaymentResult
+    result: PaymentResult,
   ): Promise<void> {
     if (result.success) {
       logger.debug({

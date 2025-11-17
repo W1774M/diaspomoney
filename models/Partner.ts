@@ -11,7 +11,7 @@ const PartnerSchema = new Schema(
     location: { type: String, required: true },
     established: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default models["Partner"] || model("Partner", PartnerSchema);

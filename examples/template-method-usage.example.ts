@@ -67,7 +67,7 @@ export class PaymentServiceExample {
     userId: string,
     amount: number,
     currency: string,
-    paymentMethodId: string
+    paymentMethodId: string,
   ): Promise<PaymentResult> {
     const paymentData: PaymentData = {
       amount,

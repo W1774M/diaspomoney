@@ -89,7 +89,7 @@ export class EmailService {
   async sendWelcomeEmail(
     email: string,
     name: string,
-    verificationUrl: string
+    verificationUrl: string,
   ): Promise<boolean> {
     try {
       this.log.debug({ email, name }, 'Sending welcome email');
@@ -133,7 +133,7 @@ export class EmailService {
   async sendPasswordResetEmail(
     email: string,
     name: string,
-    resetUrl: string
+    resetUrl: string,
   ): Promise<boolean> {
     try {
       this.log.debug({ email, name }, 'Sending password reset email');
@@ -143,7 +143,7 @@ export class EmailService {
       if (result) {
         this.log.info(
           { email, name },
-          'Password reset email sent successfully'
+          'Password reset email sent successfully',
         );
         return true;
       } else {
@@ -157,7 +157,7 @@ export class EmailService {
     } catch (error) {
       this.log.error(
         { error, email, name },
-        'Password reset email sending error'
+        'Password reset email sending error',
       );
       Sentry.captureException(error, {
         tags: {
@@ -185,12 +185,12 @@ export class EmailService {
     name: string,
     amount: number,
     currency: string,
-    service: string
+    service: string,
   ): Promise<boolean> {
     try {
       this.log.debug(
         { email, name, amount, currency, service },
-        'Sending payment confirmation email'
+        'Sending payment confirmation email',
       );
 
       const result = await sendPaymentConfirmationEmail(
@@ -198,19 +198,19 @@ export class EmailService {
         name,
         amount,
         currency,
-        service
+        service,
       );
 
       if (result) {
         this.log.info(
           { email, name, amount, currency },
-          'Payment confirmation email sent successfully'
+          'Payment confirmation email sent successfully',
         );
         return true;
       } else {
         this.log.error(
           { email, name, amount, currency },
-          'Failed to send payment confirmation email'
+          'Failed to send payment confirmation email',
         );
         Sentry.captureMessage('Failed to send payment confirmation email', {
           level: 'warning',
@@ -221,7 +221,7 @@ export class EmailService {
     } catch (error) {
       this.log.error(
         { error, email, name, amount, currency },
-        'Payment confirmation email sending error'
+        'Payment confirmation email sending error',
       );
       Sentry.captureException(error, {
         tags: {
@@ -244,12 +244,12 @@ export class EmailService {
     provider: string,
     date: string,
     time: string,
-    type: 'confirmation' | 'reminder'
+    type: 'confirmation' | 'reminder',
   ): Promise<boolean> {
     try {
       this.log.debug(
         { email, name, provider, date, time, type },
-        'Sending appointment notification email'
+        'Sending appointment notification email',
       );
 
       const result = await sendAppointmentNotificationEmail(
@@ -258,19 +258,19 @@ export class EmailService {
         provider,
         date,
         time,
-        type
+        type,
       );
 
       if (result) {
         this.log.info(
           { email, name, provider, date, time, type },
-          'Appointment notification email sent successfully'
+          'Appointment notification email sent successfully',
         );
         return true;
       } else {
         this.log.error(
           { email, name, provider, date, time, type },
-          'Failed to send appointment notification email'
+          'Failed to send appointment notification email',
         );
         Sentry.captureMessage('Failed to send appointment notification email', {
           level: 'warning',
@@ -281,7 +281,7 @@ export class EmailService {
     } catch (error) {
       this.log.error(
         { error, email, name, provider, date, time, type },
-        'Appointment notification email sending error'
+        'Appointment notification email sending error',
       );
       Sentry.captureException(error, {
         tags: {
@@ -303,13 +303,13 @@ export class EmailService {
     subject: string,
     html: string,
     text?: string,
-    tags?: Array<{ name: string; value: string }>
+    tags?: Array<{ name: string; value: string }>,
   ): Promise<boolean> {
     try {
       const recipients = Array.isArray(to) ? to.join(', ') : to;
       this.log.debug(
         { recipients, subject, hasTags: !!tags?.length },
-        'Sending custom email'
+        'Sending custom email',
       );
 
       await sendEmail({
@@ -325,7 +325,7 @@ export class EmailService {
     } catch (error) {
       this.log.error(
         { error, recipients: Array.isArray(to) ? to.join(', ') : to, subject },
-        'Custom email sending error'
+        'Custom email sending error',
       );
       Sentry.captureException(error, {
         tags: {
@@ -347,7 +347,7 @@ export class EmailService {
     to: string | string[],
     data: any,
     priority: 'high' | 'normal' | 'low' = 'normal',
-    scheduledAt?: Date
+    scheduledAt?: Date,
   ): string {
     const id = `email_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -368,7 +368,7 @@ export class EmailService {
     this.queue.push(queueItem);
     this.log.info(
       { emailId: id, type, priority, scheduledAt: queueItem.scheduledAt },
-      'Email added to queue'
+      'Email added to queue',
     );
 
     return id;
@@ -391,7 +391,7 @@ export class EmailService {
       const pendingEmails = this.queue.filter(
         email =>
           email.status === 'pending' &&
-          (!email.scheduledAt || email.scheduledAt <= new Date())
+          (!email.scheduledAt || email.scheduledAt <= new Date()),
       );
 
       // Trier par priorité
@@ -406,7 +406,7 @@ export class EmailService {
 
       this.log.info(
         { processedCount: pendingEmails.length },
-        'Email queue processed'
+        'Email queue processed',
       );
     } catch (error) {
       this.log.error({ error }, 'Email queue processing error');
@@ -433,7 +433,7 @@ export class EmailService {
 
       this.log.debug(
         { emailId: email.id, attempt: email.attempts, type: email.type },
-        'Processing email'
+        'Processing email',
       );
 
       let result = false;
@@ -443,7 +443,7 @@ export class EmailService {
           result = await this.sendWelcomeEmail(
             Array.isArray(email.to) ? email.to[0] : email.to,
             email.data.name,
-            email.data.verificationUrl
+            email.data.verificationUrl,
           );
           break;
 
@@ -451,7 +451,7 @@ export class EmailService {
           result = await this.sendPasswordResetEmail(
             Array.isArray(email.to) ? email.to[0] : email.to,
             email.data.name,
-            email.data.resetUrl
+            email.data.resetUrl,
           );
           break;
 
@@ -461,7 +461,7 @@ export class EmailService {
             email.data.name,
             email.data.amount,
             email.data.currency,
-            email.data.service
+            email.data.service,
           );
           break;
 
@@ -472,7 +472,7 @@ export class EmailService {
             email.data.provider,
             email.data.date,
             email.data.time,
-            email.data.type
+            email.data.type,
           );
           break;
 
@@ -482,7 +482,7 @@ export class EmailService {
             email.data.subject,
             email.data.html,
             email.data.text,
-            email.data.tags
+            email.data.tags,
           );
       }
 
@@ -494,7 +494,7 @@ export class EmailService {
           email.status = 'failed';
           this.log.error(
             { emailId: email.id, attempts: email.attempts },
-            'Email failed permanently'
+            'Email failed permanently',
           );
           Sentry.captureMessage('Email failed permanently', {
             level: 'error',
@@ -508,7 +508,7 @@ export class EmailService {
           email.status = 'pending';
           this.log.warn(
             { emailId: email.id, attempts: email.attempts },
-            'Email will be retried later'
+            'Email will be retried later',
           );
         }
       }
@@ -557,14 +557,14 @@ export class EmailService {
 
     const initialLength = this.queue.length;
     this.queue = this.queue.filter(
-      email => email.status !== 'sent' || email.updatedAt > cutoffDate
+      email => email.status !== 'sent' || email.updatedAt > cutoffDate,
     );
 
     const removedCount = initialLength - this.queue.length;
     if (removedCount > 0) {
       this.log.info(
         { removedCount, remainingCount: this.queue.length },
-        'Email queue cleaned up'
+        'Email queue cleaned up',
       );
     }
   }
@@ -600,7 +600,7 @@ export async function testEmailService(): Promise<boolean> {
       'test@diaspomoney.fr',
       'Test Service Email',
       '<p>Test du service email DiaspoMoney</p>',
-      'Test du service email DiaspoMoney'
+      'Test du service email DiaspoMoney',
     );
 
     if (testResult) {

@@ -16,21 +16,21 @@ const ComplaintsFilters = React.memo<ComplaintsFiltersProps>(
       (e: React.ChangeEvent<HTMLSelectElement>) => {
         onFilterChange("status", e.target.value);
       },
-      [onFilterChange]
+      [onFilterChange],
     );
 
     const handleTypeChange = useCallback(
       (e: React.ChangeEvent<HTMLSelectElement>) => {
         onFilterChange("type", e.target.value);
       },
-      [onFilterChange]
+      [onFilterChange],
     );
 
     const handlePriorityChange = useCallback(
       (e: React.ChangeEvent<HTMLSelectElement>) => {
         onFilterChange("priority", e.target.value);
       },
-      [onFilterChange]
+      [onFilterChange],
     );
 
     return (
@@ -96,7 +96,7 @@ const ComplaintsFilters = React.memo<ComplaintsFiltersProps>(
         </button>
       </div>
     );
-  }
+  },
 );
 
 ComplaintsFilters.displayName = "ComplaintsFilters";

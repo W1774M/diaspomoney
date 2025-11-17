@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     if (!userRole || userRole !== UserRole.CUSTOMER) {
       return NextResponse.json(
         { error: 'Seuls les clients peuvent effectuer des paiements' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       return NextResponse.json(
         { error: 'Le corps de la requête doit être au format JSON valide.' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -71,21 +71,21 @@ export async function POST(req: NextRequest) {
     if (!amount || typeof amount !== 'number' || amount <= 0) {
       return NextResponse.json(
         { error: 'Montant invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!paymentMethodId || typeof paymentMethodId !== 'string') {
       return NextResponse.json(
         { error: 'Méthode de paiement requise' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!serviceType || !['HEALTH', 'BTP', 'EDUCATION'].includes(serviceType)) {
       return NextResponse.json(
         { error: 'Type de service invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
           success: false,
           error: commandResult.error || 'Erreur lors du traitement du paiement',
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
           nextAction: result.nextAction,
           error: result.error,
         },
-        { status: 200 } // 200 car c'est un état valide qui nécessite une action utilisateur
+        { status: 200 }, // 200 car c'est un état valide qui nécessite une action utilisateur
       );
     }
 
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
     logger.error({ error }, 'Error processing payment via PaymentFacade');
     return NextResponse.json(
       { error: error?.message || 'Erreur lors du traitement du paiement' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

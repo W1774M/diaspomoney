@@ -10,7 +10,7 @@ const BeneficiariesSearch = React.memo<BeneficiariesSearchProps>(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
       },
-      [setSearchTerm]
+      [setSearchTerm],
     );
 
     return (
@@ -27,7 +27,7 @@ const BeneficiariesSearch = React.memo<BeneficiariesSearchProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 BeneficiariesSearch.displayName = "BeneficiariesSearch";

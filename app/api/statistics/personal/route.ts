@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         servicesCount: statistics.services.mostUsed.length,
         providersCount: statistics.providers.favorites.length,
       },
-      'Personal statistics fetched successfully'
+      'Personal statistics fetched successfully',
     );
 
     return NextResponse.json({
@@ -56,11 +56,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     log.error(
       { error, msg: 'Error fetching personal statistics' },
-      'Error fetching personal statistics'
+      'Error fetching personal statistics',
     );
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des statistiques' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

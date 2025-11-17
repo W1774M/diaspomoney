@@ -47,7 +47,7 @@ export class EventBus {
   on<T = any>(
     event: string,
     callback: EventCallback<T>,
-    priority: number = 0
+    priority: number = 0,
   ): EventUnsubscribe {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
@@ -99,7 +99,7 @@ export class EventBus {
   once<T = any>(
     event: string,
     callback: EventCallback<T>,
-    priority: number = 0
+    priority: number = 0,
   ): EventUnsubscribe {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);

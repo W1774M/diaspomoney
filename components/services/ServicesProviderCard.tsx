@@ -111,7 +111,7 @@ const ServicesProviderCard = React.memo<ServiceCardProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 ServicesProviderCard.displayName = "ServicesProviderCard";

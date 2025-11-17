@@ -35,7 +35,7 @@ export async function GET(_request: NextRequest) {
         ticketId: result.ticket.id,
         messageCount: result.messages.length,
       },
-      'Support ticket fetched successfully'
+      'Support ticket fetched successfully',
     );
 
     return NextResponse.json({
@@ -52,11 +52,11 @@ export async function GET(_request: NextRequest) {
   } catch (error) {
     log.error(
       { error, msg: 'Error fetching support chat' },
-      'Error fetching support chat'
+      'Error fetching support chat',
     );
     return NextResponse.json(
       { error: 'Erreur lors de la récupération du chat support' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     log.debug(
       { userId, hasText: !!text, attachmentCount: attachments?.length || 0 },
-      'Sending support message'
+      'Sending support message',
     );
 
     // Permettre l'envoi de messages avec uniquement des attachments
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       log.warn({ userId }, 'Message rejected: no text or attachments');
       return NextResponse.json(
         { error: 'Texte du message ou pièce jointe requis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     const message = await messagingService.sendSupportMessage(
       userId,
       text || '',
-      attachments
+      attachments,
     );
 
     log.info(
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         messageId: message.id,
         hasAttachments: (message.attachments?.length || 0) > 0,
       },
-      'Support message sent successfully'
+      'Support message sent successfully',
     );
 
     return NextResponse.json({
@@ -118,11 +118,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     log.error(
       { error, msg: 'Error sending support message' },
-      'Error sending support message'
+      'Error sending support message',
     );
     return NextResponse.json(
       { error: "Erreur lors de l'envoi du message" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

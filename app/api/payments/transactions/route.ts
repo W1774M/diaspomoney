@@ -28,7 +28,7 @@ export async function GET(_request: NextRequest) {
         limit: 100,
         offset: 0,
         sort: { createdAt: -1 },
-      }
+      },
     );
 
     const transactions = result.data;
@@ -64,7 +64,7 @@ export async function GET(_request: NextRequest) {
     console.error('Error fetching transactions:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des transactions' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

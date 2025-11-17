@@ -106,7 +106,7 @@ export class MongoKYCRepository implements IKYCRepository {
       const mapped = this.mapToKYC(kyc);
       this.log.info(
         { kycId: mapped._id, userId: mapped.userId },
-        'KYC created successfully'
+        'KYC created successfully',
       );
       return mapped;
     } catch (error) {
@@ -128,7 +128,7 @@ export class MongoKYCRepository implements IKYCRepository {
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       const mapped = result?.['value'] ? this.mapToKYC(result['value']) : null;
       if (mapped) {
@@ -199,7 +199,7 @@ export class MongoKYCRepository implements IKYCRepository {
   @Cacheable(300, { prefix: 'KYCRepository:findWithPagination' }) // Cache 5 minutes
   async findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<KYCData>> {
     try {
       const collection = await this.getCollection();
@@ -227,13 +227,13 @@ export class MongoKYCRepository implements IKYCRepository {
       };
       this.log.debug(
         { count: result.data.length, total, page, limit, filters },
-        'findWithPagination completed'
+        'findWithPagination completed',
       );
       return result;
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findWithPagination'
+        'Error in findWithPagination',
       );
       Sentry.captureException(error);
       throw error;
@@ -260,7 +260,7 @@ export class MongoKYCRepository implements IKYCRepository {
   }) // Cache 5 minutes
   async findKYCWithFilters(
     filters: KYCFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<KYCData>> {
     try {
       const query: Record<string, any> = {};
@@ -281,13 +281,13 @@ export class MongoKYCRepository implements IKYCRepository {
       const result = await this.findWithPagination(query, options);
       this.log.debug(
         { count: result.data.length, total: result.total, filters },
-        'findKYCWithFilters completed'
+        'findKYCWithFilters completed',
       );
       return result;
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findKYCWithFilters'
+        'Error in findKYCWithFilters',
       );
       Sentry.captureException(error);
       throw error;
@@ -300,7 +300,7 @@ export class MongoKYCRepository implements IKYCRepository {
     kycId: string,
     status: KYCData['status'],
     reviewedAt?: Date,
-    rejectionReason?: string
+    rejectionReason?: string,
   ): Promise<KYCData | null> {
     try {
       const updateData: Partial<KYCData> = {
@@ -332,7 +332,7 @@ export class MongoKYCRepository implements IKYCRepository {
     documentIndex: number,
     status: KYCData['documents'][0]['status'],
     reviewedAt?: Date,
-    rejectionReason?: string
+    rejectionReason?: string,
   ): Promise<KYCData | null> {
     try {
       const collection = await this.getCollection();
@@ -361,21 +361,21 @@ export class MongoKYCRepository implements IKYCRepository {
             updatedAt: new Date(),
           },
         },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
 
       const mapped = result?.['value'] ? this.mapToKYC(result['value']) : null;
       if (mapped) {
         this.log.info(
           { kycId, documentIndex, status },
-          'Document status updated successfully'
+          'Document status updated successfully',
         );
       }
       return mapped;
     } catch (error) {
       this.log.error(
         { error, kycId, documentIndex, status },
-        'Error in updateDocumentStatus'
+        'Error in updateDocumentStatus',
       );
       Sentry.captureException(error);
       throw error;

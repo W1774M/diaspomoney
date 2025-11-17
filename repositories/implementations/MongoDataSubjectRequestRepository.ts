@@ -77,7 +77,7 @@ export class MongoDataSubjectRequestRepository
 
       this.log.debug(
         { requestId: createdRequest.id, userId: createdRequest.userId },
-        'Data subject request created'
+        'Data subject request created',
       );
 
       return createdRequest;
@@ -124,7 +124,7 @@ export class MongoDataSubjectRequestRepository
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'DataSubjectRequestRepository:findAll' })
   async findAll(
-    filter: Record<string, any> = {}
+    filter: Record<string, any> = {},
   ): Promise<DataSubjectRequest[]> {
     try {
       const collection = await this.getCollection();
@@ -146,7 +146,7 @@ export class MongoDataSubjectRequestRepository
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'DataSubjectRequestRepository:findOne' })
   async findOne(
-    filter: Record<string, any>
+    filter: Record<string, any>,
   ): Promise<DataSubjectRequest | null> {
     try {
       const collection = await this.getCollection();
@@ -196,7 +196,7 @@ export class MongoDataSubjectRequestRepository
     } catch (error) {
       this.log.error(
         { error, id },
-        'Error checking data subject request existence'
+        'Error checking data subject request existence',
       );
       Sentry.captureException(error, {
         tags: {
@@ -213,7 +213,7 @@ export class MongoDataSubjectRequestRepository
   @InvalidateCache('DataSubjectRequestRepository')
   async update(
     id: string,
-    data: Partial<DataSubjectRequest>
+    data: Partial<DataSubjectRequest>,
   ): Promise<DataSubjectRequest | null> {
     try {
       const collection = await this.getCollection();
@@ -228,7 +228,7 @@ export class MongoDataSubjectRequestRepository
       const result = await collection.findOneAndUpdate(
         { $or: [{ _id: new ObjectId(id) }, { id }] },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
 
       if (!result) {
@@ -239,7 +239,7 @@ export class MongoDataSubjectRequestRepository
     } catch (error) {
       this.log.error(
         { error, id, data },
-        'Error updating data subject request'
+        'Error updating data subject request',
       );
       Sentry.captureException(error, {
         tags: {
@@ -279,7 +279,7 @@ export class MongoDataSubjectRequestRepository
   @Cacheable(300, { prefix: 'DataSubjectRequestRepository:findWithPagination' })
   async findWithPagination(
     filter: Record<string, any> = {},
-    options: PaginationOptions = {}
+    options: PaginationOptions = {},
   ): Promise<PaginatedResult<DataSubjectRequest>> {
     try {
       const collection = await this.getCollection();
@@ -310,7 +310,7 @@ export class MongoDataSubjectRequestRepository
     } catch (error) {
       this.log.error(
         { error, filter, options },
-        'Error finding data subject requests with pagination'
+        'Error finding data subject requests with pagination',
       );
       Sentry.captureException(error, {
         tags: {
@@ -327,7 +327,7 @@ export class MongoDataSubjectRequestRepository
   @Cacheable(300, { prefix: 'DataSubjectRequestRepository:searchRequests' })
   async searchRequests(
     query: DataSubjectRequestQuery,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<DataSubjectRequest>> {
     try {
       const mongoQuery: Record<string, any> = {};
@@ -378,12 +378,12 @@ export class MongoDataSubjectRequestRepository
   @Cacheable(300, { prefix: 'DataSubjectRequestRepository:findByUserId' })
   async findByUserId(
     userId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<DataSubjectRequest>> {
     try {
       return this.findWithPagination(
         { userId },
-        options || { sort: { requestedAt: -1 } }
+        options || { sort: { requestedAt: -1 } },
       );
     } catch (error) {
       this.log.error({ error, userId }, 'Error finding requests by userId');
@@ -404,7 +404,7 @@ export class MongoDataSubjectRequestRepository
     requestId: string,
     status: DataSubjectRequest['status'],
     completedAt?: Date,
-    data?: any
+    data?: any,
   ): Promise<DataSubjectRequest | null> {
     try {
       const collection = await this.getCollection();
@@ -424,7 +424,7 @@ export class MongoDataSubjectRequestRepository
       const result = await collection.findOneAndUpdate(
         { $or: [{ _id: new ObjectId(requestId) }, { id: requestId }] },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
 
       if (!result) {
@@ -435,7 +435,7 @@ export class MongoDataSubjectRequestRepository
     } catch (error) {
       this.log.error(
         { error, requestId, status },
-        'Error updating data subject request status'
+        'Error updating data subject request status',
       );
       Sentry.captureException(error, {
         tags: {

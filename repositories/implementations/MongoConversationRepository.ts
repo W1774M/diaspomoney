@@ -30,7 +30,7 @@ export class MongoConversationRepository implements IConversationRepository {
   async findById(id: string): Promise<ConversationType | null> {
     try {
       const conversation = await (Conversation as any).findById(
-        new ObjectId(id)
+        new ObjectId(id),
       );
       const result = conversation ? this.mapToConversation(conversation) : null;
       if (result) {
@@ -53,7 +53,7 @@ export class MongoConversationRepository implements IConversationRepository {
   @Cacheable(300, { prefix: 'ConversationRepository:findByParticipant' }) // Cache 5 minutes
   async findByParticipant(
     userId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<ConversationType>> {
     try {
       const page = options?.page || 1;
@@ -102,7 +102,7 @@ export class MongoConversationRepository implements IConversationRepository {
   @Cacheable(300, { prefix: 'ConversationRepository:findByParticipants' }) // Cache 5 minutes
   async findByParticipants(
     participantIds: string[],
-    type?: 'user' | 'support'
+    type?: 'user' | 'support',
   ): Promise<ConversationType | null> {
     try {
       const filters: any = {
@@ -120,7 +120,7 @@ export class MongoConversationRepository implements IConversationRepository {
     } catch (error) {
       this.log.error(
         { error, participantIds, type },
-        'Error in findByParticipants'
+        'Error in findByParticipants',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -140,7 +140,7 @@ export class MongoConversationRepository implements IConversationRepository {
       const conversation = new Conversation({
         ...data,
         participants: data.participants?.map(
-          (p: any) => new ObjectId(p.toString())
+          (p: any) => new ObjectId(p.toString()),
         ),
       });
       await conversation.save();
@@ -148,7 +148,7 @@ export class MongoConversationRepository implements IConversationRepository {
     } catch (error) {
       this.log.error(
         { error, participants: data.participants, type: data.type },
-        'Error in create'
+        'Error in create',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'MongoConversationRepository', action: 'create' },
@@ -162,13 +162,13 @@ export class MongoConversationRepository implements IConversationRepository {
   @InvalidateCache('ConversationRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
-    data: Partial<ConversationType>
+    data: Partial<ConversationType>,
   ): Promise<ConversationType | null> {
     try {
       const conversation = await (Conversation as any).findByIdAndUpdate(
         new ObjectId(id),
         { $set: data },
-        { new: true }
+        { new: true },
       );
       return conversation ? this.mapToConversation(conversation) : null;
     } catch (error) {
@@ -186,7 +186,7 @@ export class MongoConversationRepository implements IConversationRepository {
   async updateLastMessage(
     id: string,
     message: string,
-    timestamp: Date
+    timestamp: Date,
   ): Promise<boolean> {
     try {
       await (Conversation as any).updateOne(
@@ -196,13 +196,13 @@ export class MongoConversationRepository implements IConversationRepository {
             lastMessage: message,
             lastMessageAt: timestamp,
           },
-        }
+        },
       );
       return true;
     } catch (error) {
       this.log.error(
         { error, id, message, timestamp },
-        'Error in updateLastMessage'
+        'Error in updateLastMessage',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -219,7 +219,7 @@ export class MongoConversationRepository implements IConversationRepository {
   @InvalidateCache('ConversationRepository:*') // Invalider le cache après incrément
   async incrementUnreadCount(
     conversationId: string,
-    userId: string
+    userId: string,
   ): Promise<boolean> {
     try {
       await (Conversation as any).updateOne(
@@ -228,13 +228,13 @@ export class MongoConversationRepository implements IConversationRepository {
           $inc: {
             [`unreadCount.${userId}`]: 1,
           },
-        }
+        },
       );
       return true;
     } catch (error) {
       this.log.error(
         { error, conversationId, userId },
-        'Error in incrementUnreadCount'
+        'Error in incrementUnreadCount',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -251,7 +251,7 @@ export class MongoConversationRepository implements IConversationRepository {
   @InvalidateCache('ConversationRepository:*') // Invalider le cache après réinitialisation
   async resetUnreadCount(
     conversationId: string,
-    userId: string
+    userId: string,
   ): Promise<boolean> {
     try {
       await (Conversation as any).updateOne(
@@ -260,13 +260,13 @@ export class MongoConversationRepository implements IConversationRepository {
           $set: {
             [`unreadCount.${userId}`]: 0,
           },
-        }
+        },
       );
       return true;
     } catch (error) {
       this.log.error(
         { error, conversationId, userId },
-        'Error in resetUnreadCount'
+        'Error in resetUnreadCount',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -301,7 +301,7 @@ export class MongoConversationRepository implements IConversationRepository {
     return {
       _id: doc._id,
       participants: doc.participants?.map((p: any) =>
-        p.toString ? p.toString() : p
+        p.toString ? p.toString() : p,
       ),
       type: doc.type,
       lastMessage: doc.lastMessage,

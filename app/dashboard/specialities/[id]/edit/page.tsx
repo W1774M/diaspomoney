@@ -78,7 +78,7 @@ export default function EditSpecialityPage() {
 
   const handleInputChange = (
     field: keyof ISpeciality,
-    value: string | number
+    value: string | number,
   ) => {
     setFormData(prev => ({
       ...prev,

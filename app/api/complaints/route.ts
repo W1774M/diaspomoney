@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     // Utiliser le service avec décorateurs (@Log, @Cacheable)
     const result = await complaintService.getComplaints(
-      filters as ComplaintServiceFilters
+      filters as ComplaintServiceFilters,
     );
 
     log.info(
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
         total: result.total,
         count: result.data.length,
       },
-      'Complaints fetched successfully'
+      'Complaints fetched successfully',
     );
 
     return NextResponse.json({
@@ -81,11 +81,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     log.error(
       { error, msg: 'Error fetching complaints' },
-      'Error fetching complaints'
+      'Error fetching complaints',
     );
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des réclamations' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
         type,
         priority,
       },
-      'Creating complaint'
+      'Creating complaint',
     );
 
     // Validation
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
       log.warn({ body }, 'Validation failed: missing required fields');
       return NextResponse.json(
         { error: 'Tous les champs obligatoires doivent être remplis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
         complaintId: complaint.id,
         number: complaint.number,
       },
-      'Complaint created successfully'
+      'Complaint created successfully',
     );
 
     return NextResponse.json(
@@ -163,16 +163,16 @@ export async function POST(request: NextRequest) {
         complaint,
         message: 'Réclamation créée avec succès',
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     log.error(
       { error, msg: 'Error creating complaint' },
-      'Error creating complaint'
+      'Error creating complaint',
     );
     return NextResponse.json(
       { error: 'Erreur lors de la création de la réclamation' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -48,7 +48,7 @@ export class ExampleService {
       amount,
       'EUR',
       userId,
-      {}
+      {},
     );
     return payment;
   }
@@ -86,7 +86,7 @@ export function exampleServiceWithDependencies() {
   // Note: Cette approche nécessite que les dépendances soient déjà enregistrées
   const bookingService = createService<BookingService>(
     BookingService,
-    [ServiceKeys.BookingRepository] // Dépendances requises
+    [ServiceKeys.BookingRepository], // Dépendances requises
   );
 }
 

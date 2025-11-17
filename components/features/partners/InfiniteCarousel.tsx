@@ -522,7 +522,7 @@ export function InfiniteCarousel() {
                   className={`w-2 h-2 rounded-full transition-colors ${
                     Math.floor(
                       ((currentIndex - startIndex + baseLength) % baseLength) /
-                        visibleItems
+                        visibleItems,
                     ) === index
                       ? 'bg-[hsl(25,100%,53%)]'
                       : 'bg-gray-300'
@@ -532,7 +532,7 @@ export function InfiniteCarousel() {
                     setCurrentIndex(startIndex + index * visibleItems);
                   }}
                 />
-              )
+              ),
             )}
           </div>
         )}

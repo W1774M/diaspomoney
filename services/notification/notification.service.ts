@@ -68,7 +68,7 @@ export class NotificationService {
             type: data.type,
             template: data.template,
           },
-          'Invalid notification data'
+          'Invalid notification data',
         );
         throw error;
       }
@@ -117,7 +117,7 @@ export class NotificationService {
 
       // Sauvegarder en base de données via le repository
       const savedNotification = await this.notificationRepository.create(
-        notification
+        notification,
       );
 
       // Envoyer via les canaux activés
@@ -142,7 +142,7 @@ export class NotificationService {
           recipient: savedNotification.recipient,
           type: savedNotification.type,
         },
-        'Notification sent successfully'
+        'Notification sent successfully',
       );
 
       return savedNotification;
@@ -154,7 +154,7 @@ export class NotificationService {
           type: data.type,
           template: data.template,
         },
-        'Error sending notification'
+        'Error sending notification',
       );
       Sentry.captureException(error);
       throw error;
@@ -168,7 +168,7 @@ export class NotificationService {
   async sendWelcomeNotification(
     userEmail: string,
     userName: string,
-    locale: string = 'fr'
+    locale: string = 'fr',
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -187,7 +187,7 @@ export class NotificationService {
     } catch (error) {
       this.log.error(
         { error, userEmail, userName },
-        'Error sending welcome notification'
+        'Error sending welcome notification',
       );
       Sentry.captureException(error);
       throw error;
@@ -203,7 +203,7 @@ export class NotificationService {
     amount: number,
     currency: string,
     serviceName: string,
-    locale: string = 'fr'
+    locale: string = 'fr',
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -226,7 +226,7 @@ export class NotificationService {
     } catch (error) {
       this.log.error(
         { error, userEmail, amount, currency },
-        'Error sending payment success notification'
+        'Error sending payment success notification',
       );
       Sentry.captureException(error);
       throw error;
@@ -242,7 +242,7 @@ export class NotificationService {
     amount: number,
     currency: string,
     reason: string,
-    locale: string = 'fr'
+    locale: string = 'fr',
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -265,7 +265,7 @@ export class NotificationService {
     } catch (error) {
       this.log.error(
         { error, userEmail, amount, reason },
-        'Error sending payment failed notification'
+        'Error sending payment failed notification',
       );
       Sentry.captureException(error);
       throw error;
@@ -279,7 +279,7 @@ export class NotificationService {
   async sendKYCApprovedNotification(
     userEmail: string,
     userName: string,
-    locale: string = 'fr'
+    locale: string = 'fr',
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -300,7 +300,7 @@ export class NotificationService {
     } catch (error) {
       this.log.error(
         { error, userEmail, userName },
-        'Error sending KYC approved notification'
+        'Error sending KYC approved notification',
       );
       Sentry.captureException(error);
       throw error;
@@ -314,7 +314,7 @@ export class NotificationService {
   async send2FACode(
     userPhone: string,
     code: string,
-    locale: string = 'fr'
+    locale: string = 'fr',
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -347,7 +347,7 @@ export class NotificationService {
     appointmentDate: Date,
     serviceName: string,
     providerName: string,
-    locale: string = 'fr'
+    locale: string = 'fr',
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -371,7 +371,7 @@ export class NotificationService {
     } catch (error) {
       this.log.error(
         { error, userEmail, appointmentDate, serviceName },
-        'Error sending appointment reminder'
+        'Error sending appointment reminder',
       );
       Sentry.captureException(error);
       throw error;
@@ -385,13 +385,13 @@ export class NotificationService {
   @Cacheable(300, { prefix: 'NotificationService:getTemplate' }) // Cache 5 minutes
   private async getTemplate(
     templateName: string,
-    locale: string
+    locale: string,
   ): Promise<NotificationTemplate | null> {
     try {
       // Essayer de récupérer depuis la base de données
       const dbTemplate = await this.templateRepository.findByNameAndLocale(
         templateName,
-        locale
+        locale,
       );
       if (dbTemplate) {
         this.log.debug({ templateName, locale }, 'Template found in database');
@@ -490,7 +490,7 @@ export class NotificationService {
       } else {
         this.log.warn(
           { templateName, locale },
-          'Template not found in database or defaults'
+          'Template not found in database or defaults',
         );
       }
       return template;
@@ -506,7 +506,7 @@ export class NotificationService {
    */
   private processTemplate(
     template: NotificationTemplate,
-    data: Record<string, any>
+    data: Record<string, any>,
   ): { subject: string; content: string } {
     let subject = template.subject;
     let content = template.content;
@@ -549,7 +549,7 @@ export class NotificationService {
       } catch (error) {
         this.log.error(
           { error, channel: channel.type, notificationId: notification.id },
-          `Error sending notification via ${channel.type}`
+          `Error sending notification via ${channel.type}`,
         );
         // Mettre à jour le statut de la notification en cas d'erreur
         await this.notificationRepository.updateStatus(
@@ -560,7 +560,7 @@ export class NotificationService {
             failureReason: `Erreur lors de l'envoi via ${channel.type}: ${
               error instanceof Error ? error.message : 'Unknown error'
             }`,
-          }
+          },
         );
         // Continuer avec les autres canaux
       }
@@ -589,14 +589,14 @@ export class NotificationService {
         await this.notificationRepository.updateStatus(
           notification.id,
           'SENT',
-          { sentAt: new Date() }
+          { sentAt: new Date() },
         );
         this.log.info(
           {
             notificationId: notification.id,
             recipient: notification.recipient,
           },
-          'Email sent successfully'
+          'Email sent successfully',
         );
       } else {
         throw new Error('Failed to send email via Resend');
@@ -608,7 +608,7 @@ export class NotificationService {
           notificationId: notification.id,
           recipient: notification.recipient,
         },
-        'Error sending email'
+        'Error sending email',
       );
       Sentry.captureException(error);
       throw error;
@@ -629,7 +629,7 @@ export class NotificationService {
           recipient: notification.recipient,
           content: notification.content,
         },
-        'SMS sending (not implemented yet)'
+        'SMS sending (not implemented yet)',
       );
 
       // Simulation d'envoi pour le moment
@@ -642,7 +642,7 @@ export class NotificationService {
     } catch (error) {
       this.log.error(
         { error, notificationId: notification.id },
-        'Error sending SMS'
+        'Error sending SMS',
       );
       Sentry.captureException(error);
       throw error;
@@ -663,7 +663,7 @@ export class NotificationService {
           recipient: notification.recipient,
           subject: notification.subject,
         },
-        'Push notification sending (not implemented yet)'
+        'Push notification sending (not implemented yet)',
       );
 
       // Simulation d'envoi pour le moment
@@ -676,7 +676,7 @@ export class NotificationService {
     } catch (error) {
       this.log.error(
         { error, notificationId: notification.id },
-        'Error sending push notification'
+        'Error sending push notification',
       );
       Sentry.captureException(error);
       throw error;
@@ -697,7 +697,7 @@ export class NotificationService {
           recipient: notification.recipient,
           content: notification.content,
         },
-        'WhatsApp sending (not implemented yet)'
+        'WhatsApp sending (not implemented yet)',
       );
 
       // Simulation d'envoi pour le moment
@@ -710,7 +710,7 @@ export class NotificationService {
     } catch (error) {
       this.log.error(
         { error, notificationId: notification.id },
-        'Error sending WhatsApp'
+        'Error sending WhatsApp',
       );
       Sentry.captureException(error);
       throw error;
@@ -735,12 +735,12 @@ export class NotificationService {
           notificationId: notification.id,
           recipient: notification.recipient,
         },
-        'In-app notification saved'
+        'In-app notification saved',
       );
     } catch (error) {
       this.log.error(
         { error, notificationId: notification.id },
-        'Error saving in-app notification'
+        'Error saving in-app notification',
       );
       Sentry.captureException(error);
       throw error;
@@ -753,7 +753,7 @@ export class NotificationService {
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'NotificationService:getNotificationStats' }) // Cache 5 minutes
   async getNotificationStats(
-    period: 'day' | 'week' | 'month' = 'day'
+    period: 'day' | 'week' | 'month' = 'day',
   ): Promise<NotificationStats> {
     try {
       const stats = await this.notificationRepository.getStats(period);

@@ -16,21 +16,21 @@ const QuotesFilters = React.memo<QuotesFiltersProps>(function QuotesFilters({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchTerm(e.target.value);
     },
-    [setSearchTerm]
+    [setSearchTerm],
   );
 
   const handleStatusChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       setStatusFilter(e.target.value as any);
     },
-    [setStatusFilter]
+    [setStatusFilter],
   );
 
   const handleDateChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setDateFilter(e.target.value);
     },
-    [setDateFilter]
+    [setDateFilter],
   );
 
   return (

@@ -57,7 +57,7 @@ export class MongoAttachmentRepository implements IAttachmentRepository {
       type?: string;
       search?: string;
     },
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<AttachmentType>> {
     try {
       const page = options?.page || 1;
@@ -108,7 +108,7 @@ export class MongoAttachmentRepository implements IAttachmentRepository {
     } catch (error) {
       this.log.error(
         { error, userId, filters, options },
-        'Error in findByUser'
+        'Error in findByUser',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'MongoAttachmentRepository', action: 'findByUser' },

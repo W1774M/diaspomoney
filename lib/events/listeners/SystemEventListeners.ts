@@ -48,7 +48,7 @@ export function setupSystemEventListeners() {
       }, '[SystemEventListeners] Error details');
 
       // 4. Envoyer une alerte pour les erreurs critiques
-      if (data.context && 'critical' in data.context && data.context['critical']) {  // eslint-disable-line no-unused-expressions
+      if (data.context && 'critical' in data.context && data.context['critical']) {   
         // await alertService.sendCriticalAlert({
         //   error: data.error.message,
         //   context: data.context,

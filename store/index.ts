@@ -80,7 +80,7 @@ export const useAppStore = create<AppStore>()(
             // Apply reducer to get new slice state
             const newSliceState = rootReducer[sliceName](
               currentSliceState,
-              action
+              action,
             );
 
             // Update the store with the new slice state
@@ -141,9 +141,9 @@ export const useAppStore = create<AppStore>()(
             isAuthenticated: state.auth.isAuthenticated,
           },
         }),
-      }
-    )
-  )
+      },
+    ),
+  ),
 );
 
 // ============================================================================

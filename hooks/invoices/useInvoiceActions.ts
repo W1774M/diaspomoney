@@ -69,7 +69,7 @@ export function useInvoiceActions(): UseInvoiceActionsReturn {
         setIsDownloading(false);
       }
     },
-    [addSuccess, addError]
+    [addSuccess, addError],
   );
 
   const sendInvoiceByEmail = useCallback(
@@ -97,7 +97,7 @@ export function useInvoiceActions(): UseInvoiceActionsReturn {
             addError('Accès non autorisé');
           } else {
             addError(
-              data.error || "Erreur lors de l'envoi de la facture par email"
+              data.error || "Erreur lors de l'envoi de la facture par email",
             );
           }
           return;
@@ -115,7 +115,7 @@ export function useInvoiceActions(): UseInvoiceActionsReturn {
         setIsSending(false);
       }
     },
-    [addSuccess, addError]
+    [addSuccess, addError],
   );
 
   return {

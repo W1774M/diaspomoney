@@ -40,7 +40,7 @@ export function useComplaints(): UseComplaintsReturn {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(
-            errorData.error || 'Erreur lors de la récupération des réclamations'
+            errorData.error || 'Erreur lors de la récupération des réclamations',
           );
         }
 
@@ -58,7 +58,7 @@ export function useComplaints(): UseComplaintsReturn {
                 typeof c.updatedAt === 'string'
                   ? c.updatedAt
                   : new Date(c.updatedAt).toISOString(),
-            })
+            }),
           );
           setComplaints(parsedComplaints);
           setTotal(data.total || parsedComplaints.length);
@@ -74,7 +74,7 @@ export function useComplaints(): UseComplaintsReturn {
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
   return {

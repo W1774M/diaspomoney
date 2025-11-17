@@ -192,26 +192,26 @@ function calculatePerformanceMetrics() {
 
   // Calculer le taux d'erreur
   const errorMetrics = (metrics || []).filter((m: any) =>
-    m.name.includes('http_errors')
+    m.name.includes('http_errors'),
   );
   const totalErrors = errorMetrics.reduce(
     (sum: number, m: any) => sum + m.value,
-    0
+    0,
   );
 
   const requestMetrics = (metrics || []).filter((m: any) =>
-    m.name.includes('http_requests')
+    m.name.includes('http_requests'),
   );
   const totalRequests = requestMetrics.reduce(
     (sum: number, m: any) => sum + m.value,
-    0
+    0,
   );
 
   const errorRate = totalRequests > 0 ? totalErrors / totalRequests : 0;
 
   // Calculer le temps de réponse moyen
   const responseTimeMetrics = (metrics || []).filter((m: any) =>
-    m.name.includes('http_request_duration')
+    m.name.includes('http_request_duration'),
   );
   const averageResponseTime =
     responseTimeMetrics.length > 0
@@ -356,7 +356,7 @@ export async function GET(request: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 }

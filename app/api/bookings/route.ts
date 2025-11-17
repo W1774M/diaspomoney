@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     console.error("Erreur lors de la récupération des réservations:", error);
     return NextResponse.json(
       { error: "Erreur interne du serveur" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Données de rendez-vous incomplètes" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
             success: false,
             error: commandResult.error || 'Erreur lors de la création de la réservation',
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -112,13 +112,13 @@ export async function POST(request: NextRequest) {
           paymentResult: result.paymentResult,
           message: "Rendez-vous créé avec paiement traité avec succès",
         },
-        { status: 201 }
+        { status: 201 },
       );
     }
 
     // Sinon, créer simplement la réservation sans paiement
     const newAppointment = await bookingService.createBooking(
-      appointmentData as BookingData
+      appointmentData as BookingData,
     );
 
     return NextResponse.json(
@@ -127,13 +127,13 @@ export async function POST(request: NextRequest) {
         appointment: newAppointment,
         message: "Rendez-vous créé avec succès",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     logger.error({ error }, "Erreur lors de la création du rendez-vous");
     return NextResponse.json(
       { error: error?.message || "Erreur interne du serveur" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

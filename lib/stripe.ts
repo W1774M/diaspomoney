@@ -27,7 +27,7 @@ export interface StripeValidationResult {
  * Valide les données de carte avec l'API Stripe
  */
 export async function validateCardWithStripe(
-  cardData: StripeCardData
+  cardData: StripeCardData,
 ): Promise<StripeValidationResult> {
   const log = childLogger({
     component: 'StripeService',
@@ -44,7 +44,7 @@ export async function validateCardWithStripe(
     if (!cardData.number || cardData.number.length < 13) {
       log.warn(
         { cardLength: cardData.number?.length },
-        'Invalid card number length'
+        'Invalid card number length',
       );
       return { valid: false, error: 'Numéro de carte invalide' };
     }
@@ -57,7 +57,7 @@ export async function validateCardWithStripe(
     if (!cardData.name || cardData.name.length < 2) {
       log.warn(
         { nameLength: cardData.name?.length },
-        'Invalid cardholder name'
+        'Invalid cardholder name',
       );
       return { valid: false, error: 'Nom du titulaire invalide' };
     }
@@ -73,7 +73,7 @@ export async function validateCardWithStripe(
     ) {
       log.warn(
         { expYear: cardData.exp_year, expMonth: cardData.exp_month },
-        'Card expired'
+        'Card expired',
       );
       return { valid: false, error: 'La carte a expiré' };
     }
@@ -102,7 +102,7 @@ export async function validateCardWithStripe(
 export async function processPaymentWithStripe(
   token: string,
   amount: number,
-  currency: string = 'EUR'
+  currency: string = 'EUR',
 ): Promise<{ success: boolean; error?: string; paymentId?: string }> {
   const log = childLogger({
     component: 'StripeService',
@@ -111,8 +111,8 @@ export async function processPaymentWithStripe(
 
   try {
     log.debug(
-      { amount, currency, token: token.slice(0, 10) + '...' },
-      'Processing payment'
+      { amount, currency, token: `${token.slice(0, 10)  }...` },
+      'Processing payment',
     );
 
     // Simulation du traitement de paiement
@@ -128,7 +128,7 @@ export async function processPaymentWithStripe(
       const paymentId = `pi_${Math.random().toString(36).substr(2, 14)}`;
       log.info(
         { paymentId, amount, currency },
-        'Payment processed successfully'
+        'Payment processed successfully',
       );
       return { success: true, paymentId };
     } else {

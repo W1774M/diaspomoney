@@ -49,7 +49,7 @@ export class CreateTransactionCommand extends BaseCommand<Transaction> {
         transactionId,
         0,
         'Command undo',
-        '' // userId
+        '', // userId
       );
 
       logger.info({
@@ -91,7 +91,7 @@ export class UpdateTransactionStatusCommand extends BaseCommand<Transaction> {
       // Récupérer le statut actuel
       const transaction = await transactionService.getTransaction(
         this.commandData.transactionId,
-        '' // userId non requis pour cette opération
+        '', // userId non requis pour cette opération
       );
 
       if (!transaction) {
@@ -103,13 +103,13 @@ export class UpdateTransactionStatusCommand extends BaseCommand<Transaction> {
       // Mettre à jour le statut
       await transactionService.updateTransactionStatus(
         this.commandData.transactionId,
-        this.commandData.newStatus as any
+        this.commandData.newStatus as any,
       );
 
       // Récupérer la transaction mise à jour
       const updatedTransaction = await transactionService.getTransaction(
         this.commandData.transactionId,
-        ''
+        '',
       );
 
       if (!updatedTransaction) {
@@ -140,7 +140,7 @@ export class UpdateTransactionStatusCommand extends BaseCommand<Transaction> {
       // Restaurer le statut précédent
       await transactionService.updateTransactionStatus(
         this.commandData.transactionId,
-        this.previousStatus as any
+        this.previousStatus as any,
       );
 
       logger.info({
@@ -183,7 +183,7 @@ export class RefundTransactionCommand extends BaseCommand<Transaction> {
       // Récupérer la transaction avant remboursement
       const transaction = await transactionService.getTransaction(
         this.commandData.transactionId,
-        ''
+        '',
       );
 
       if (!transaction) {
@@ -195,7 +195,7 @@ export class RefundTransactionCommand extends BaseCommand<Transaction> {
         this.commandData.transactionId,
         0,
         this.commandData.reason || 'Refund requested',
-        '' // userId
+        '', // userId
       );
 
       return result;

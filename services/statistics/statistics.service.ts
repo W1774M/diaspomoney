@@ -25,7 +25,7 @@ export class StatisticsService {
   constructor(
     private bookingRepository: IBookingRepository,
     private transactionRepository: ITransactionRepository,
-    private userRepository: IUserRepository
+    private userRepository: IUserRepository,
   ) {}
 
   /**
@@ -49,7 +49,7 @@ export class StatisticsService {
           {
             limit: 1000,
             offset: 0,
-          }
+          },
         );
       const allBookings = allBookingsResult.data;
 
@@ -64,10 +64,10 @@ export class StatisticsService {
           {
             limit: 1000,
             offset: 0,
-          }
+          },
         );
       const monthlyTransactions = monthlyTransactionsResult.data.filter(
-        (t: any) => new Date(t.createdAt) >= startOfMonth
+        (t: any) => new Date(t.createdAt) >= startOfMonth,
       );
 
       const annualTransactionsResult =
@@ -80,10 +80,10 @@ export class StatisticsService {
           {
             limit: 1000,
             offset: 0,
-          }
+          },
         );
       const annualTransactions = annualTransactionsResult.data.filter(
-        (t: any) => new Date(t.createdAt) >= startOfYear
+        (t: any) => new Date(t.createdAt) >= startOfYear,
       );
 
       // Récupérer les budgets depuis l'utilisateur (Repository Pattern)
@@ -112,11 +112,11 @@ export class StatisticsService {
 
       const monthlySpent = monthlyTransactions.reduce(
         (sum: number, t: any) => sum + (t.amount || 0),
-        0
+        0,
       );
       const annualSpent = annualTransactions.reduce(
         (sum: number, t: any) => sum + (t.amount || 0),
-        0
+        0,
       );
 
       // Services les plus utilisés
@@ -147,7 +147,7 @@ export class StatisticsService {
               .sort(
                 (a: any, b: any) =>
                   new Date(b.createdAt).getTime() -
-                  new Date(a.createdAt).getTime()
+                  new Date(a.createdAt).getTime(),
               )[0]?.createdAt || new Date(),
         }))
         .sort((a, b) => b.count - a.count)
@@ -170,7 +170,7 @@ export class StatisticsService {
         providerCounts[providerId].count++;
         const bookingDoc = allBookings.find(
           (doc: any) =>
-            (doc._id?.toString() || doc.id) === (booking.id || booking._id)
+            (doc._id?.toString() || doc.id) === (booking.id || booking._id),
         );
         providerCounts[providerId].totalAmount +=
           (bookingDoc as any)?.selectedService?.price || 0;
@@ -206,7 +206,7 @@ export class StatisticsService {
               roles: 'PROVIDER',
             });
             providers = allProviders.filter(
-              (p: any): p is any => p.roles?.includes('PROVIDER') ?? false
+              (p: any): p is any => p.roles?.includes('PROVIDER') ?? false,
             );
           }
         } catch (error) {
@@ -216,16 +216,16 @@ export class StatisticsService {
               providerIds,
               msg: 'Error fetching providers, falling back to individual queries',
             },
-            'Error fetching providers with findAll'
+            'Error fetching providers with findAll',
           );
           // Fallback: récupérer chaque provider individuellement
           const providerPromises = providerIds.map(id =>
-            this.userRepository.findById(id).catch(() => null)
+            this.userRepository.findById(id).catch(() => null),
           );
           const providerResults = await Promise.all(providerPromises);
           providers = providerResults.filter(
             (p: any): p is any =>
-              p !== null && (p.roles?.includes('PROVIDER') ?? false)
+              p !== null && (p.roles?.includes('PROVIDER') ?? false),
           );
         }
       }
@@ -234,7 +234,7 @@ export class StatisticsService {
         providers.map((p: any) => [
           (p.id || p._id?.toString() || '').toString(),
           p,
-        ])
+        ]),
       );
 
       const favorites = Object.entries(providerCounts)
@@ -285,10 +285,10 @@ export class StatisticsService {
           {
             limit: 10000, // Limite élevée pour récupérer toutes les transactions
             offset: 0,
-          }
+          },
         );
       const trendsTransactions = trendsTransactionsResult.data.filter(
-        (t: any) => new Date(t.createdAt) >= twelveMonthsAgo
+        (t: any) => new Date(t.createdAt) >= twelveMonthsAgo,
       );
 
       // Grouper les transactions par mois
@@ -297,7 +297,7 @@ export class StatisticsService {
       trendsTransactions.forEach((transaction: any) => {
         const transactionDate = new Date(transaction.createdAt);
         const monthKey = `${transactionDate.getFullYear()}-${String(
-          transactionDate.getMonth() + 1
+          transactionDate.getMonth() + 1,
         ).padStart(2, '0')}`;
 
         if (!transactionsByMonth[monthKey]) {
@@ -313,7 +313,7 @@ export class StatisticsService {
         monthDate.setDate(1); // Premier jour du mois
 
         const periodKey = `${monthDate.getFullYear()}-${String(
-          monthDate.getMonth() + 1
+          monthDate.getMonth() + 1,
         ).padStart(2, '0')}`;
 
         const monthData = transactionsByMonth[periodKey] || { spent: 0 };
@@ -396,7 +396,7 @@ export class StatisticsService {
     } catch (error) {
       logger.error(
         { error, userId },
-        'Erreur lors de la récupération des statistiques personnelles'
+        'Erreur lors de la récupération des statistiques personnelles',
       );
       throw error;
     }
@@ -407,5 +407,5 @@ export class StatisticsService {
 export const statisticsService = new StatisticsService(
   getBookingRepository(),
   getTransactionRepository(),
-  getUserRepository()
+  getUserRepository(),
 );

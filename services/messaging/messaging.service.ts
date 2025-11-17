@@ -57,7 +57,7 @@ export class MessagingService {
     private conversationRepository: IConversationRepository,
     private messageRepository: IMessageRepository,
     private supportTicketRepository: ISupportTicketRepository,
-    private attachmentRepository: IAttachmentRepository
+    private attachmentRepository: IAttachmentRepository,
   ) {}
 
   // ==================== CONVERSATIONS ====================
@@ -65,7 +65,7 @@ export class MessagingService {
   @Log({ level: 'info', logArgs: true })
   async getConversations(
     userId: string,
-    options?: { page?: number; limit?: number }
+    options?: { page?: number; limit?: number },
   ): Promise<UIConversation[]> {
     try {
       const conversations = await this.conversationRepository.findByParticipant(
@@ -74,7 +74,7 @@ export class MessagingService {
           page: options?.page || 1,
           limit: options?.limit || 20,
           sort: { lastMessageAt: -1 },
-        }
+        },
       );
 
       // Transformer pour l'UI
@@ -82,7 +82,7 @@ export class MessagingService {
         conversations.data.map(async conv => {
           // Trouver l'autre participant
           const otherParticipantId = conv.participants?.find(
-            (p: any) => p.toString() !== userId
+            (p: any) => p.toString() !== userId,
           );
 
           if (!otherParticipantId) {
@@ -93,13 +93,13 @@ export class MessagingService {
           const { getUserRepository } = await import('@/repositories');
           const userRepo = getUserRepository();
           const otherUser = await userRepo.findById(
-            otherParticipantId.toString()
+            otherParticipantId.toString(),
           );
 
           // Récupérer le dernier message
           const messages = await this.messageRepository.findByConversation(
             conv._id!.toString(),
-            { page: 1, limit: 1 }
+            { page: 1, limit: 1 },
           );
           const lastMessage = messages.data[0];
 
@@ -109,7 +109,7 @@ export class MessagingService {
             unreadCountMap[userId] ||
             (await this.messageRepository.countUnread(
               conv._id!.toString(),
-              userId
+              userId,
             ));
 
           return {
@@ -125,14 +125,14 @@ export class MessagingService {
               lastMessage?.createdAt || conv.lastMessageAt || new Date(),
             unreadCount: unreadCount || 0,
           };
-        })
+        }),
       );
 
       return uiConversations.filter(c => c !== null);
     } catch (error) {
       logger.error(
         { error, userId },
-        'Erreur lors de la récupération des conversations'
+        'Erreur lors de la récupération des conversations',
       );
       throw error;
     }
@@ -140,13 +140,13 @@ export class MessagingService {
 
   @Log({ level: 'info', logArgs: true })
   async createConversation(
-    data: CreateConversationData
+    data: CreateConversationData,
   ): Promise<UIConversation> {
     try {
       // Vérifier si une conversation existe déjà
       const existing = await this.conversationRepository.findByParticipants(
         data.participants,
-        data.type || 'user'
+        data.type || 'user',
       );
 
       if (existing) {
@@ -168,7 +168,7 @@ export class MessagingService {
 
       // Transformer en UIConversation
       const conversations = await this.getConversations(
-        data.participants[0] || ''
+        data.participants[0] || '',
       );
       return (
         conversations.find(c => c.id === conversation._id!.toString()) ||
@@ -177,7 +177,7 @@ export class MessagingService {
     } catch (error) {
       logger.error(
         { error, data },
-        'Erreur lors de la création de la conversation'
+        'Erreur lors de la création de la conversation',
       );
       throw error;
     }
@@ -189,19 +189,19 @@ export class MessagingService {
   async getMessages(
     conversationId: string,
     userId: string,
-    options?: { page?: number; limit?: number }
+    options?: { page?: number; limit?: number },
   ): Promise<{ messages: UIMessage[]; total: number }> {
     try {
       // Vérifier que l'utilisateur est participant
       const conversation = await this.conversationRepository.findById(
-        conversationId
+        conversationId,
       );
       if (!conversation) {
         throw new Error('Conversation non trouvée');
       }
 
       const isParticipant = conversation.participants?.some(
-        (p: any) => p.toString() === userId
+        (p: any) => p.toString() === userId,
       );
       if (!isParticipant) {
         throw new Error('Accès non autorisé');
@@ -214,17 +214,17 @@ export class MessagingService {
           page: options?.page || 1,
           limit: options?.limit || 50,
           sort: { createdAt: -1 },
-        }
+        },
       );
 
       // Marquer comme lus
       await this.messageRepository.markConversationAsRead(
         conversationId,
-        userId
+        userId,
       );
       await this.conversationRepository.resetUnreadCount(
         conversationId,
-        userId
+        userId,
       );
 
       // Transformer pour l'UI
@@ -244,7 +244,7 @@ export class MessagingService {
     } catch (error) {
       logger.error(
         { error, conversationId, userId },
-        'Erreur lors de la récupération des messages'
+        'Erreur lors de la récupération des messages',
       );
       throw error;
     }
@@ -255,14 +255,14 @@ export class MessagingService {
     try {
       // Vérifier que l'utilisateur est participant
       const conversation = await this.conversationRepository.findById(
-        data.conversationId
+        data.conversationId,
       );
       if (!conversation) {
         throw new Error('Conversation non trouvée');
       }
 
       const isParticipant = conversation.participants?.some(
-        (p: any) => p.toString() === userId
+        (p: any) => p.toString() === userId,
       );
       if (!isParticipant) {
         throw new Error('Accès non autorisé');
@@ -281,17 +281,17 @@ export class MessagingService {
       await this.conversationRepository.updateLastMessage(
         data.conversationId,
         data.text,
-        new Date()
+        new Date(),
       );
 
       // Incrémenter le compteur de messages non lus pour l'autre participant
       const otherParticipant = conversation.participants?.find(
-        (p: any) => p.toString() !== userId
+        (p: any) => p.toString() !== userId,
       );
       if (otherParticipant) {
         await this.conversationRepository.incrementUnreadCount(
           data.conversationId,
-          otherParticipant.toString()
+          otherParticipant.toString(),
         );
       }
 
@@ -307,7 +307,7 @@ export class MessagingService {
     } catch (error) {
       logger.error(
         { error, data, userId },
-        "Erreur lors de l'envoi du message"
+        "Erreur lors de l'envoi du message",
       );
       throw error;
     }
@@ -328,7 +328,7 @@ export class MessagingService {
       });
 
       let ticket = tickets.data.find(
-        t => t.status === 'open' || t.status === 'in_progress'
+        t => t.status === 'open' || t.status === 'in_progress',
       );
 
       if (!ticket) {
@@ -343,7 +343,7 @@ export class MessagingService {
       // Récupérer les messages
       const messages = await this.messageRepository.findByConversation(
         ticket._id!.toString(),
-        { page: 1, limit: 100 }
+        { page: 1, limit: 100 },
       );
 
       // Transformer pour l'UI
@@ -367,7 +367,7 @@ export class MessagingService {
     } catch (error) {
       logger.error(
         { error, userId },
-        'Erreur lors de la récupération du ticket de support'
+        'Erreur lors de la récupération du ticket de support',
       );
       throw error;
     }
@@ -377,7 +377,7 @@ export class MessagingService {
   async sendSupportMessage(
     userId: string,
     text: string,
-    attachments?: string[]
+    attachments?: string[],
   ): Promise<UIMessage> {
     try {
       // Récupérer ou créer un ticket
@@ -398,7 +398,7 @@ export class MessagingService {
       // Ajouter le message au ticket
       await this.supportTicketRepository.addMessage(
         ticket.id,
-        message._id!.toString()
+        message._id!.toString(),
       );
 
       // Mettre à jour le statut du ticket si nécessaire
@@ -420,7 +420,7 @@ export class MessagingService {
     } catch (error) {
       logger.error(
         { error, userId },
-        "Erreur lors de l'envoi du message de support"
+        "Erreur lors de l'envoi du message de support",
       );
       throw error;
     }
@@ -437,7 +437,7 @@ export class MessagingService {
       type?: string;
       search?: string;
     },
-    options?: { page?: number; limit?: number }
+    options?: { page?: number; limit?: number },
   ): Promise<{ attachments: UIAttachment[]; total: number }> {
     try {
       const result = await this.attachmentRepository.findByUser(
@@ -447,7 +447,7 @@ export class MessagingService {
           page: options?.page || 1,
           limit: options?.limit || 20,
           sort: { createdAt: -1 },
-        }
+        },
       );
 
       // Transformer pour l'UI
@@ -470,7 +470,7 @@ export class MessagingService {
             }),
             ...(att.messageId && { messageId: att.messageId.toString() }),
           };
-        })
+        }),
       );
 
       return {
@@ -480,7 +480,7 @@ export class MessagingService {
     } catch (error) {
       logger.error(
         { error, userId, filters },
-        'Erreur lors de la récupération des attachments'
+        'Erreur lors de la récupération des attachments',
       );
       throw error;
     }
@@ -521,7 +521,7 @@ export class MessagingService {
   @Log({ level: 'info', logArgs: true })
   async deleteAttachment(
     attachmentId: string,
-    userId: string
+    userId: string,
   ): Promise<boolean> {
     try {
       const attachment = await this.attachmentRepository.findById(attachmentId);
@@ -537,7 +537,7 @@ export class MessagingService {
     } catch (error) {
       logger.error(
         { error, attachmentId, userId },
-        "Erreur lors de la suppression de l'attachment"
+        "Erreur lors de la suppression de l'attachment",
       );
       throw error;
     }
@@ -549,5 +549,5 @@ export const messagingService = new MessagingService(
   getConversationRepository(),
   getMessageRepository(),
   getSupportTicketRepository(),
-  getAttachmentRepository()
+  getAttachmentRepository(),
 );

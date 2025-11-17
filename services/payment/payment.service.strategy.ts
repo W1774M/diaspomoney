@@ -75,7 +75,7 @@ export class PaymentService {
   private getStrategy(): IPaymentStrategy {
     if (!this.currentStrategy) {
       this.currentStrategy = PaymentStrategyFactory.getStrategy(
-        this.defaultProvider
+        this.defaultProvider,
       );
     }
     return this.currentStrategy;
@@ -86,11 +86,11 @@ export class PaymentService {
    */
   private getBestStrategy(
     currency: string,
-    country?: string
+    country?: string,
   ): IPaymentStrategy {
     const bestStrategy = PaymentStrategyFactory.getBestStrategy(
       currency,
-      country
+      country,
     );
     if (!bestStrategy) {
       // Fallback sur la stratégie par défaut
@@ -108,7 +108,7 @@ export class PaymentService {
     currency: string,
     customerId: string,
     metadata: Record<string, string> = {},
-    provider?: string
+    provider?: string,
   ): Promise<PaymentIntent> {
     try {
       // Validation des paramètres
@@ -138,7 +138,7 @@ export class PaymentService {
 
       if (!result.success) {
         throw new Error(
-          result.error || 'Erreur lors de la création du Payment Intent'
+          result.error || 'Erreur lors de la création du Payment Intent',
         );
       }
 
@@ -175,13 +175,13 @@ export class PaymentService {
           currency,
           provider: provider || this.defaultProvider,
         },
-        'Payment intent created successfully'
+        'Payment intent created successfully',
       );
       return paymentIntent;
     } catch (error) {
       this.log.error(
         { error, amount, currency, customerId },
-        'Error in createPaymentIntent'
+        'Error in createPaymentIntent',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'PaymentService', action: 'createPaymentIntent' },
@@ -198,7 +198,7 @@ export class PaymentService {
   async confirmPaymentIntent(
     paymentIntentId: string,
     paymentMethodId?: string,
-    provider?: PaymentProvider
+    provider?: PaymentProvider,
   ): Promise<PaymentResult> {
     try {
       const strategy = provider
@@ -207,7 +207,7 @@ export class PaymentService {
 
       const result = await strategy.confirmPaymentIntent(
         paymentIntentId,
-        paymentMethodId
+        paymentMethodId,
       );
 
       // Émettre les événements selon le résultat
@@ -228,7 +228,7 @@ export class PaymentService {
         paymentEvents
           .emitPaymentFailed(
             result.transactionId || paymentIntentId,
-            result.error || 'Payment confirmation failed'
+            result.error || 'Payment confirmation failed',
           )
           .catch(error => {
             this.log.error({ error }, 'Error emitting payment failed event');
@@ -241,13 +241,13 @@ export class PaymentService {
           success: result.success,
           provider: provider || this.defaultProvider,
         },
-        'Payment intent confirmed'
+        'Payment intent confirmed',
       );
       return result;
     } catch (error) {
       this.log.error(
         { error, paymentIntentId },
-        'Error in confirmPaymentIntent'
+        'Error in confirmPaymentIntent',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'PaymentService', action: 'confirmPaymentIntent' },
@@ -267,7 +267,7 @@ export class PaymentService {
     customerId: string,
     paymentMethodId: string,
     metadata: Record<string, string> = {},
-    provider?: PaymentProvider
+    provider?: PaymentProvider,
   ): Promise<PaymentResult> {
     try {
       // Validation
@@ -313,7 +313,7 @@ export class PaymentService {
         paymentEvents
           .emitPaymentFailed(
             result.transactionId || 'unknown',
-            result.error || 'Payment processing failed'
+            result.error || 'Payment processing failed',
           )
           .catch(error => {
             this.log.error({ error }, 'Error emitting payment failed event');
@@ -328,13 +328,13 @@ export class PaymentService {
           currency,
           provider: provider || this.defaultProvider,
         },
-        'Payment processed'
+        'Payment processed',
       );
       return result;
     } catch (error: any) {
       this.log.error(
         { error, amount, currency, customerId },
-        'Error in processPayment'
+        'Error in processPayment',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'PaymentService', action: 'processPayment' },
@@ -345,7 +345,7 @@ export class PaymentService {
       paymentEvents
         .emitPaymentFailed(
           'unknown',
-          error.message || 'Erreur lors du traitement du paiement'
+          error.message || 'Erreur lors du traitement du paiement',
         )
         .catch(err => {
           this.log.error({ error: err }, 'Error emitting payment failed event');
@@ -366,7 +366,7 @@ export class PaymentService {
     transactionId: string,
     amount?: number,
     reason?: string,
-    provider?: PaymentProvider
+    provider?: PaymentProvider,
   ): Promise<RefundResult> {
     try {
       const strategy = provider
@@ -394,7 +394,7 @@ export class PaymentService {
             amount: result.amount || amount,
             provider: provider || this.defaultProvider,
           },
-          'Payment refunded successfully'
+          'Payment refunded successfully',
         );
       }
 
@@ -420,7 +420,7 @@ export class PaymentService {
   @Cacheable(60, { prefix: 'PaymentService:getTransactionStatus' }) // Cache 1 minute
   async getTransactionStatus(
     transactionId: string,
-    provider?: PaymentProvider
+    provider?: PaymentProvider,
   ): Promise<PaymentResult> {
     try {
       const strategy = provider
@@ -434,7 +434,7 @@ export class PaymentService {
           success: result.success,
           provider: provider || this.defaultProvider,
         },
-        'Transaction status retrieved'
+        'Transaction status retrieved',
       );
       return result;
     } catch (error: any) {

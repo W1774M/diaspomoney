@@ -59,7 +59,7 @@ export class PDFGeneratorService {
       let providerData;
       if (invoice.metadata?.['providerId']) {
         const provider = await this.userRepository.findById(
-          invoice.metadata['providerId']
+          invoice.metadata['providerId'],
         );
         if (provider) {
           providerData = {
@@ -235,13 +235,13 @@ export class PDFGeneratorService {
             this.formatCurrency(item.unitPrice, invoice.currency),
             tableStartX + 300,
             currentY,
-            { width: 80, align: 'right' }
+            { width: 80, align: 'right' },
           )
           .text(
             this.formatCurrency(item.total, invoice.currency),
             tableStartX + 380,
             currentY,
-            { width: 120, align: 'right' }
+            { width: 120, align: 'right' },
           );
 
         currentY += itemHeight;
@@ -264,11 +264,11 @@ export class PDFGeneratorService {
         .text(
           this.formatCurrency(
             invoice.amount - (invoice.tax || 0),
-            invoice.currency
+            invoice.currency,
           ),
           tableStartX + 380,
           totalsY + 10,
-          { width: 120, align: 'right' }
+          { width: 120, align: 'right' },
         );
 
       if (invoice.tax && invoice.tax > 0) {
@@ -282,7 +282,7 @@ export class PDFGeneratorService {
             this.formatCurrency(invoice.tax, invoice.currency),
             tableStartX + 380,
             totalsY + 30,
-            { width: 120, align: 'right' }
+            { width: 120, align: 'right' },
           );
       }
 
@@ -296,11 +296,11 @@ export class PDFGeneratorService {
         .text(
           this.formatCurrency(
             invoice.totalAmount || invoice.amount,
-            invoice.currency
+            invoice.currency,
           ),
           tableStartX + 380,
           totalsY + 50,
-          { width: 120, align: 'right' }
+          { width: 120, align: 'right' },
         );
 
       // Notes
@@ -327,7 +327,7 @@ export class PDFGeneratorService {
           'DiaspoMoney - Plateforme de services pour la diaspora',
           tableStartX,
           footerY + 15,
-          { align: 'center', width: tableWidth }
+          { align: 'center', width: tableWidth },
         );
 
       // Finaliser le PDF et collecter le buffer
@@ -342,7 +342,7 @@ export class PDFGeneratorService {
           const buffer = Buffer.concat(chunks);
           this.log.info(
             { invoiceId: invoice.id, pdfSize: buffer.length },
-            'Invoice PDF generated successfully'
+            'Invoice PDF generated successfully',
           );
           resolve(buffer);
         });
@@ -350,7 +350,7 @@ export class PDFGeneratorService {
         doc.on('error', (error: Error) => {
           this.log.error(
             { error, invoiceId: invoice.id },
-            'PDF generation error'
+            'PDF generation error',
           );
           Sentry.captureException(error, {
             tags: {
@@ -368,7 +368,7 @@ export class PDFGeneratorService {
     } catch (error) {
       this.log.error(
         { error, invoiceId: invoice.id },
-        'Error generating invoice PDF'
+        'Error generating invoice PDF',
       );
       Sentry.captureException(error, {
         tags: {

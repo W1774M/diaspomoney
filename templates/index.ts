@@ -5,7 +5,7 @@
  */
 
 export {
-  PaymentProcessor, type PaymentData, type PaymentResult
+  PaymentProcessor, type PaymentData, type PaymentResult,
 } from './payment-processor.template';
 
 export { PaymentProcessorFactory, type PaymentProvider } from './payment-processor-factory';

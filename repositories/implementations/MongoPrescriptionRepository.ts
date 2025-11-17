@@ -111,13 +111,13 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
           prescriptionId: mappedPrescription.id,
           appointmentId: mappedPrescription.appointmentId,
         },
-        'Prescription created successfully'
+        'Prescription created successfully',
       );
       return mappedPrescription;
     } catch (error) {
       this.log.error(
         { error, appointmentId: data.appointmentId },
-        'Error in create'
+        'Error in create',
       );
       Sentry.captureException(error);
       throw error;
@@ -128,7 +128,7 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   @InvalidateCache('PrescriptionRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
-    data: Partial<Prescription>
+    data: Partial<Prescription>,
   ): Promise<Prescription | null> {
     try {
       const collection = await this.getCollection();
@@ -139,7 +139,7 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       const updated = result?.['value']
         ? this.mapToPrescription(result['value'])
@@ -147,12 +147,12 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
       if (updated) {
         this.log.info(
           { prescriptionId: id },
-          'Prescription updated successfully'
+          'Prescription updated successfully',
         );
       } else {
         this.log.warn(
           { prescriptionId: id },
-          'Prescription not found for update'
+          'Prescription not found for update',
         );
       }
       return updated;
@@ -173,12 +173,12 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
       if (deleted) {
         this.log.info(
           { prescriptionId: id },
-          'Prescription deleted successfully'
+          'Prescription deleted successfully',
         );
       } else {
         this.log.warn(
           { prescriptionId: id },
-          'Prescription not found for deletion'
+          'Prescription not found for deletion',
         );
       }
       return deleted;
@@ -213,7 +213,7 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
       const exists = count > 0;
       this.log.debug(
         { prescriptionId: id, exists },
-        'Prescription existence checked'
+        'Prescription existence checked',
       );
       return exists;
     } catch (error) {
@@ -227,7 +227,7 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   @Cacheable(300, { prefix: 'PrescriptionRepository:findWithPagination' }) // Cache 5 minutes
   async findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Prescription>> {
     try {
       const collection = await this.getCollection();
@@ -269,14 +269,14 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
           offset,
           filters,
         },
-        'Prescriptions paginated'
+        'Prescriptions paginated',
       );
 
       return result;
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findWithPagination'
+        'Error in findWithPagination',
       );
       Sentry.captureException(error);
       throw error;
@@ -287,13 +287,13 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   @Cacheable(300, { prefix: 'PrescriptionRepository:findByAppointment' }) // Cache 5 minutes
   async findByAppointment(
     appointmentId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Prescription>> {
     try {
       const result = await this.findWithPagination({ appointmentId }, options);
       this.log.debug(
         { appointmentId, count: result.data.length },
-        'Prescriptions found by appointment'
+        'Prescriptions found by appointment',
       );
       return result;
     } catch (error) {
@@ -307,13 +307,13 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   @Cacheable(300, { prefix: 'PrescriptionRepository:findByIssuer' }) // Cache 5 minutes
   async findByIssuer(
     issuedBy: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Prescription>> {
     try {
       const result = await this.findWithPagination({ issuedBy }, options);
       this.log.debug(
         { issuedBy, count: result.data.length },
-        'Prescriptions found by issuer'
+        'Prescriptions found by issuer',
       );
       return result;
     } catch (error) {
@@ -326,17 +326,17 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'PrescriptionRepository:findValid' }) // Cache 5 minutes
   async findValid(
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Prescription>> {
     try {
       const now = new Date();
       const result = await this.findWithPagination(
         { validUntil: { $gte: now } },
-        options
+        options,
       );
       this.log.debug(
         { count: result.data.length },
-        'Valid prescriptions found'
+        'Valid prescriptions found',
       );
       return result;
     } catch (error) {
@@ -349,17 +349,17 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'PrescriptionRepository:findExpired' }) // Cache 5 minutes
   async findExpired(
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Prescription>> {
     try {
       const now = new Date();
       const result = await this.findWithPagination(
         { validUntil: { $lt: now } },
-        options
+        options,
       );
       this.log.debug(
         { count: result.data.length },
-        'Expired prescriptions found'
+        'Expired prescriptions found',
       );
       return result;
     } catch (error) {
@@ -375,7 +375,7 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   }) // Cache 5 minutes
   async findPrescriptionsWithFilters(
     filters: PrescriptionFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Prescription>> {
     try {
       const query: Record<string, any> = {};
@@ -412,13 +412,13 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
           total: result.total,
           filters,
         },
-        'Prescriptions found with filters'
+        'Prescriptions found with filters',
       );
       return result;
     } catch (error) {
       this.log.error(
         { error, filters },
-        'Error in findPrescriptionsWithFilters'
+        'Error in findPrescriptionsWithFilters',
       );
       Sentry.captureException(error);
       throw error;

@@ -33,7 +33,7 @@ const MessageSchema = new Schema<Message>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index pour améliorer les performances

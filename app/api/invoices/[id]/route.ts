@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({ requestId: reqId, route: 'api/invoices/[id]' });
@@ -32,7 +32,7 @@ export async function GET(
       log.warn({ invoiceId, msg: 'Invalid invoice ID format' });
       return NextResponse.json(
         { error: 'ID de facture invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -55,7 +55,7 @@ export async function GET(
       });
       return NextResponse.json(
         { error: 'Accès non autorisé' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -103,13 +103,13 @@ export async function GET(
     if (error instanceof Error && error.message === 'Facture non trouvée') {
       return NextResponse.json(
         { error: 'Facture non trouvée' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
       { error: 'Erreur lors de la récupération de la facture' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -120,7 +120,7 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({ requestId: reqId, route: 'api/invoices/[id]' });
@@ -140,7 +140,7 @@ export async function PUT(
       log.warn({ invoiceId, msg: 'Invalid invoice ID format' });
       return NextResponse.json(
         { error: 'ID de facture invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -157,7 +157,7 @@ export async function PUT(
       });
       return NextResponse.json(
         { error: 'Accès non autorisé - Admin uniquement' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -196,7 +196,7 @@ export async function PUT(
       await (Invoice as any).findByIdAndUpdate(
         new mongoose.Types.ObjectId(invoiceId),
         { $set: additionalUpdates },
-        { new: true }
+        { new: true },
       );
     }
 
@@ -247,13 +247,13 @@ export async function PUT(
     if (error instanceof Error && error.message === 'Facture non trouvée') {
       return NextResponse.json(
         { error: 'Facture non trouvée' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
       { error: 'Erreur lors de la mise à jour de la facture' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

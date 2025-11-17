@@ -120,7 +120,7 @@ export function useBillingAddressCreate(): UseBillingAddressCreateReturn {
               action: 'createAddress',
             },
             extra: { data },
-          }
+          },
         );
 
         return null;
@@ -128,7 +128,7 @@ export function useBillingAddressCreate(): UseBillingAddressCreateReturn {
         setLoading(false);
       }
     },
-    [addSuccess, addError]
+    [addSuccess, addError],
   );
 
   return {

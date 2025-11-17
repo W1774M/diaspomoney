@@ -26,7 +26,7 @@ const BeneficiariesHeader = React.memo<BeneficiariesHeaderProps>(
         </button>
       </div>
     );
-  }
+  },
 );
 
 BeneficiariesHeader.displayName = "BeneficiariesHeader";

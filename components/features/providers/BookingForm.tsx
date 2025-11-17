@@ -68,7 +68,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
   >('idle');
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [expandedConsignes, setExpandedConsignes] = useState<Set<number>>(
-    new Set()
+    new Set(),
   );
   const [kycConsent, setKycConsent] = useState(false);
   // Indique qu'une inscription vient d'être effectuée (sans connexion auto)
@@ -279,7 +279,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           if (watchedValues?.["consultationMode"] === 'video') {
             // Pour les consultations vidéo, utiliser le prix du service "Consultation"
             const consultationService = provider['services']?.find(
-              (service: any) => service.name === 'Consultation'
+              (service: any) => service.name === 'Consultation',
             );
             basePrice = consultationService?.price || provider['price'] || 0;
           } else {
@@ -315,7 +315,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           const popup = window.open(
             '/register-popup',
             'registerPopup',
-            'width=800,height=900,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no'
+            'width=800,height=900,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no',
           );
 
           // Écouter les messages de la popup
@@ -1606,7 +1606,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 window.open(
                   '/login',
                   '_blank',
-                  'width=800,height=600,scrollbars=yes,resizable=yes'
+                  'width=800,height=600,scrollbars=yes,resizable=yes',
                 );
               }}
             >
@@ -1637,7 +1637,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 window.open(
                   '/register-popup',
                   '_blank',
-                  'width=800,height=600,scrollbars=yes,resizable=yes'
+                  'width=800,height=600,scrollbars=yes,resizable=yes',
                 );
               }}
             >
@@ -1689,7 +1689,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               let basePrice = 0;
               if (watchedValues['consultationMode'] === 'video') {
                 const consultationService = provider['services']?.find(
-                  (service: any) => service.name === 'Consultation'
+                  (service: any) => service.name === 'Consultation',
                 );
                 basePrice =
                   consultationService?.price || provider['price'] || 0;
@@ -1709,7 +1709,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                   metadata={{
                     providerId: String(provider._id || ''),
                     consultationMode: String(
-                      watchedValues['consultationMode'] || ''
+                      watchedValues['consultationMode'] || '',
                     ),
                   }}
                   onSuccess={async (paymentId: string) => {
@@ -1779,7 +1779,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                     if (watchedValues['consultationMode'] === 'video') {
                       // Chercher le service "Consultation" dans les services du provider
                       const consultationService = provider['services']?.find(
-                        (service: any) => service.name === 'Consultation'
+                        (service: any) => service.name === 'Consultation',
                       );
                       return (
                         consultationService?.price || provider['price'] || 0
@@ -1804,7 +1804,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                     if (watchedValues['consultationMode'] === 'video') {
                       // Pour les consultations vidéo, utiliser le prix du service "Consultation"
                       const consultationService = provider['services']?.find(
-                        (service: any) => service.name === 'Consultation'
+                        (service: any) => service.name === 'Consultation',
                       );
                       basePrice =
                         consultationService?.price || provider['price'] || 0;
@@ -2074,7 +2074,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               {watchedValues['timeslot'] &&
                 (() => {
                   const [startIso, endIso] = String(
-                    watchedValues['timeslot']
+                    watchedValues['timeslot'],
                   ).split('|');
                   const formatTime = (iso?: string) =>
                     iso

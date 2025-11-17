@@ -45,12 +45,12 @@ export async function GET(request: NextRequest) {
           limit: 100,
           offset: 0,
           sort: { createdAt: -1 },
-        }
+        },
       );
 
     // Filtrer pour avoir seulement les statuts actifs (PENDING, CONFIRMED)
     const activeBookings = activeBookingsResult.data.filter(
-      b => b.status === 'PENDING' || b.status === 'CONFIRMED'
+      b => b.status === 'PENDING' || b.status === 'CONFIRMED',
     );
 
     // Récupérer les données brutes depuis MongoDB pour avoir selectedService, beneficiary, etc.
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       .lean();
 
     const bookingDocMap = new Map(
-      bookingDocs.map((doc: any) => [doc._id.toString(), doc])
+      bookingDocs.map((doc: any) => [doc._id.toString(), doc]),
     );
 
     // Récupérer les informations des prestataires séparément via Repository Pattern
@@ -76,8 +76,8 @@ export async function GET(request: NextRequest) {
       new Set(
         activeBookings
           .map((b: any) => b.providerId as string)
-          .filter((id: any): id is string => Boolean(id))
-      )
+          .filter((id: any): id is string => Boolean(id)),
+      ),
     ) as string[];
 
     interface ProviderInfo {
@@ -110,15 +110,15 @@ export async function GET(request: NextRequest) {
         } catch {
           return null;
         }
-      })
+      }),
     );
 
     const validProviders = providers.filter(
-      (p): p is ProviderInfo => p !== null
+      (p): p is ProviderInfo => p !== null,
     );
 
     const providerMap = new Map<string, ProviderInfo>(
-      validProviders.map(p => [p._id.toString(), p])
+      validProviders.map(p => [p._id.toString(), p]),
     );
 
     // Récupérer les conversations pour chaque booking (customer <-> provider)
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
         try {
           const conversation = await conversationRepository.findByParticipants(
             [userId, providerId],
-            'user'
+            'user',
           );
           if (conversation?._id) {
             // Trouver tous les bookings entre userId et providerId
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
             msg: 'Failed to find conversation for booking',
           });
         }
-      })
+      }),
     );
 
     // Transformer en ActiveOrder
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
       activeBookings.map(async booking => {
         // Récupérer les données complètes depuis MongoDB
         const bookingDoc: any = bookingDocMap.get(
-          booking.id || booking._id || ''
+          booking.id || booking._id || '',
         );
         const bookingStatus = booking.status.toLowerCase();
         const docStatus = bookingDoc?.status?.toLowerCase() || bookingStatus;
@@ -207,7 +207,7 @@ export async function GET(request: NextRequest) {
         ];
 
         const completedSteps = progressSteps.filter(
-          s => s.status === 'completed'
+          s => s.status === 'completed',
         ).length;
         const percentage = (completedSteps / progressSteps.length) * 100;
 
@@ -273,7 +273,7 @@ export async function GET(request: NextRequest) {
           createdAt: booking.createdAt,
           updatedAt: booking.updatedAt,
         };
-      })
+      }),
     );
 
     log.info({
@@ -294,7 +294,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des commandes actives' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

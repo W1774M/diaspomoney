@@ -13,7 +13,7 @@ import {
   PaymentEvents,
   PaymentSucceededEvent,
   SystemEvents,
-  UserLoggedInEvent
+  UserLoggedInEvent,
 } from './EventTypes';
 
 /**
@@ -117,7 +117,7 @@ export const systemEvents = {
  * Helper générique pour créer des helpers personnalisés
  */
 export function createEventHelpers<T extends Record<string, string>>(
-  _events: T
+  _events: T,
 ): {
   on: <D = any>(event: T[keyof T], callback: EventCallback<D>) => EventUnsubscribe;
   once: <D = any>(event: T[keyof T], callback: EventCallback<D>) => EventUnsubscribe;

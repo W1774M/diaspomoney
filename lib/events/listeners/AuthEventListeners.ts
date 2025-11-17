@@ -16,7 +16,7 @@ export function setupAuthEventListeners() {
   authEvents.onUserLoggedIn(async (data: UserLoggedInEvent) => {
     logger.info(
       { userId: data.userId, email: data.email },
-      '[AuthEventListeners] User logged in'
+      '[AuthEventListeners] User logged in',
     );
 
     try {
@@ -48,7 +48,7 @@ export function setupAuthEventListeners() {
         if (errorMessage.includes('Template non trouvé')) {
           logger.warn(
             { template: 'login_success', userId: data.userId },
-            '[AuthEventListeners] Template de notification non disponible, ignoré'
+            '[AuthEventListeners] Template de notification non disponible, ignoré',
           );
         } else {
           throw notificationError; // Re-lancer les autres erreurs
@@ -78,10 +78,10 @@ export function setupAuthEventListeners() {
           errorStack,
           userId: data.userId,
         },
-        '[AuthEventListeners] Error handling user logged in'
+        '[AuthEventListeners] Error handling user logged in',
       );
       Sentry.captureException(
-        error instanceof Error ? error : new Error(errorMessage)
+        error instanceof Error ? error : new Error(errorMessage),
       );
     }
   });
@@ -90,7 +90,7 @@ export function setupAuthEventListeners() {
   authEvents.onUserRegistered(async data => {
     logger.info(
       { userId: data.userId, email: data.email },
-      '[AuthEventListeners] User registered'
+      '[AuthEventListeners] User registered',
     );
 
     try {
@@ -116,7 +116,7 @@ export function setupAuthEventListeners() {
         if (errorMessage.includes('Template non trouvé')) {
           logger.warn(
             { template: 'welcome', userId: data.userId },
-            '[AuthEventListeners] Template de bienvenue non disponible, ignoré'
+            '[AuthEventListeners] Template de bienvenue non disponible, ignoré',
           );
         } else {
           throw notificationError; // Re-lancer les autres erreurs
@@ -138,10 +138,10 @@ export function setupAuthEventListeners() {
           errorStack,
           userId: data.userId,
         },
-        '[AuthEventListeners] Error handling user registered'
+        '[AuthEventListeners] Error handling user registered',
       );
       Sentry.captureException(
-        error instanceof Error ? error : new Error(errorMessage)
+        error instanceof Error ? error : new Error(errorMessage),
       );
     }
   });
@@ -150,7 +150,7 @@ export function setupAuthEventListeners() {
   authEvents.onUserLoggedOut(async data => {
     logger.info(
       { userId: data.userId },
-      '[AuthEventListeners] User logged out'
+      '[AuthEventListeners] User logged out',
     );
 
     try {
@@ -170,10 +170,10 @@ export function setupAuthEventListeners() {
           errorStack,
           userId: data.userId,
         },
-        '[AuthEventListeners] Error handling user logged out'
+        '[AuthEventListeners] Error handling user logged out',
       );
       Sentry.captureException(
-        error instanceof Error ? error : new Error(errorMessage)
+        error instanceof Error ? error : new Error(errorMessage),
       );
     }
   });

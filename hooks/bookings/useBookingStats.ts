@@ -9,14 +9,14 @@ export function useBookingStats(bookings: Booking[]): BookingStats {
     const safeBookings = bookings || [];
     const totalBookings = safeBookings.length;
     const confirmedBookings = safeBookings.filter(
-      b => b.status === "confirmed"
+      b => b.status === "confirmed",
     ).length;
     const pendingBookings = safeBookings.filter(b => b.status === "pending").length;
     const cancelledBookings = safeBookings.filter(
-      b => b.status === "cancelled"
+      b => b.status === "cancelled",
     ).length;
     const completedBookings = safeBookings.filter(
-      b => b.status === "completed"
+      b => b.status === "completed",
     ).length;
 
     const totalRevenue = safeBookings

@@ -45,7 +45,7 @@ export const useMessaging = () => {
         setLoading(false);
       }
     },
-    [] // Plus de dépendance sur addError
+    [], // Plus de dépendance sur addError
   );
 
   const createConversation = useCallback(
@@ -84,7 +84,7 @@ export const useMessaging = () => {
         setLoading(false);
       }
     },
-    [fetchConversations] // Seulement fetchConversations comme dépendance
+    [fetchConversations], // Seulement fetchConversations comme dépendance
   );
 
   const fetchMessages = useCallback(
@@ -93,7 +93,7 @@ export const useMessaging = () => {
       setError(null);
       try {
         const response = await fetch(
-          `/api/messaging/messages?conversationId=${conversationId}`
+          `/api/messaging/messages?conversationId=${conversationId}`,
         );
         if (!response.ok) {
           throw new Error('Erreur lors de la récupération des messages');
@@ -118,7 +118,7 @@ export const useMessaging = () => {
         setLoading(false);
       }
     },
-    [] // Plus de dépendance sur addError
+    [], // Plus de dépendance sur addError
   );
 
   const sendMessage = useCallback(
@@ -126,7 +126,7 @@ export const useMessaging = () => {
       conversationId: string,
       text: string,
       _userId: string,
-      attachments?: string[]
+      attachments?: string[],
     ) => {
       setError(null);
       try {
@@ -167,7 +167,7 @@ export const useMessaging = () => {
         throw err;
       }
     },
-    [] // Plus de dépendance sur addError
+    [], // Plus de dépendance sur addError
   );
 
   return {

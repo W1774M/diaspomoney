@@ -89,7 +89,7 @@ export default function UserDetailPage() {
           </div>
           <span
             className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(
-              user.status
+              user.status,
             )}`}
           >
             {user.status}
@@ -160,7 +160,7 @@ export default function UserDetailPage() {
                     <span
                       key={role}
                       className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(
-                        role
+                        role,
                       )}`}
                     >
                       {getRoleIcon(role)}
@@ -175,7 +175,7 @@ export default function UserDetailPage() {
                 </label>
                 <span
                   className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                    user.status
+                    user.status,
                   )}`}
                 >
                   {user.status}

@@ -109,7 +109,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
       const mapped = this.mapToAuditLog(auditLog);
       this.log.info(
         { auditLogId: mapped.id, userId: mapped.userId },
-        'Audit log created successfully'
+        'Audit log created successfully',
       );
       return mapped;
     } catch (error) {
@@ -130,7 +130,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       const updated = result?.['value']
         ? this.mapToAuditLog(result['value'])
@@ -203,7 +203,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   @Cacheable(300, { prefix: 'AuditLogRepository:findWithPagination' }) // Cache 5 minutes
   async findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<AuditLog>> {
     try {
       const collection = await this.getCollection();
@@ -245,14 +245,14 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
           offset,
           filters,
         },
-        'Audit logs paginated'
+        'Audit logs paginated',
       );
 
       return result;
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findWithPagination'
+        'Error in findWithPagination',
       );
       Sentry.captureException(error);
       throw error;
@@ -263,7 +263,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   @Cacheable(300, { prefix: 'AuditLogRepository:searchAuditLogs' }) // Cache 5 minutes
   async searchAuditLogs(
     query: AuditQuery,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<AuditLog>> {
     try {
       const collection = await this.getCollection();
@@ -332,7 +332,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
           offset,
           query,
         },
-        'Audit logs searched'
+        'Audit logs searched',
       );
 
       return result;
@@ -550,7 +550,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
 
       this.log.info(
         { deletedCount },
-        'Expired audit logs deleted successfully'
+        'Expired audit logs deleted successfully',
       );
 
       return deletedCount;
@@ -565,13 +565,13 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   @Cacheable(300, { prefix: 'AuditLogRepository:findByUserId' }) // Cache 5 minutes
   async findByUserId(
     userId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<AuditLog>> {
     try {
       const result = await this.findWithPagination({ userId }, options);
       this.log.debug(
         { userId, count: result.data.length },
-        'Audit logs found by user ID'
+        'Audit logs found by user ID',
       );
       return result;
     } catch (error) {
@@ -585,13 +585,13 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   @Cacheable(300, { prefix: 'AuditLogRepository:findByAction' }) // Cache 5 minutes
   async findByAction(
     action: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<AuditLog>> {
     try {
       const result = await this.findWithPagination({ action }, options);
       this.log.debug(
         { action, count: result.data.length },
-        'Audit logs found by action'
+        'Audit logs found by action',
       );
       return result;
     } catch (error) {
@@ -605,13 +605,13 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   @Cacheable(300, { prefix: 'AuditLogRepository:findByCategory' }) // Cache 5 minutes
   async findByCategory(
     category: AuditLog['category'],
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<AuditLog>> {
     try {
       const result = await this.findWithPagination({ category }, options);
       this.log.debug(
         { category, count: result.data.length },
-        'Audit logs found by category'
+        'Audit logs found by category',
       );
       return result;
     } catch (error) {
@@ -625,13 +625,13 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   @Cacheable(300, { prefix: 'AuditLogRepository:findBySeverity' }) // Cache 5 minutes
   async findBySeverity(
     severity: AuditLog['severity'],
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<AuditLog>> {
     try {
       const result = await this.findWithPagination({ severity }, options);
       this.log.debug(
         { severity, count: result.data.length },
-        'Audit logs found by severity'
+        'Audit logs found by severity',
       );
       return result;
     } catch (error) {

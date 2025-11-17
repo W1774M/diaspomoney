@@ -21,7 +21,7 @@ import { useCallback, useState } from 'react';
 export function usePayments(): UsePaymentsReturn {
   const [paymentMethods, setPaymentMethods] = useState<UIPaymentMethod[]>([]);
   const [billingAddresses, setBillingAddresses] = useState<UIBillingAddress[]>(
-    []
+    [],
   );
   const [balance, setBalance] = useState<UIAccountBalance | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,7 @@ export function usePayments(): UsePaymentsReturn {
 
       if (!response.ok) {
         throw new Error(
-          'Erreur lors de la récupération des méthodes de paiement'
+          'Erreur lors de la récupération des méthodes de paiement',
         );
       }
 
@@ -135,7 +135,7 @@ export function usePayments(): UsePaymentsReturn {
           prev.map(method => ({
             ...method,
             isDefault: method.id === id && method.type === type,
-          }))
+          })),
         );
       } catch (err) {
         const errorMessage =
@@ -144,7 +144,7 @@ export function usePayments(): UsePaymentsReturn {
         // Le logging est fait côté serveur via PaymentService avec @Log decorator
       }
     },
-    []
+    [],
   );
 
   const setDefaultAddress = useCallback(async (id: string) => {
@@ -164,7 +164,7 @@ export function usePayments(): UsePaymentsReturn {
         prev.map(address => ({
           ...address,
           isDefault: address.id === id,
-        }))
+        })),
       );
     } catch (err) {
       const errorMessage =
@@ -187,7 +187,7 @@ export function usePayments(): UsePaymentsReturn {
 
         // Mettre à jour l'état local
         setPaymentMethods(prev =>
-          prev.filter(method => !(method.id === id && method.type === type))
+          prev.filter(method => !(method.id === id && method.type === type)),
         );
       } catch (err) {
         const errorMessage =
@@ -197,7 +197,7 @@ export function usePayments(): UsePaymentsReturn {
         throw err;
       }
     },
-    []
+    [],
   );
 
   const deleteAddress = useCallback(async (id: string) => {

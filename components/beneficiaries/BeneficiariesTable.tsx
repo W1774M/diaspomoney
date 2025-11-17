@@ -69,7 +69,7 @@ const BeneficiariesTable = React.memo<BeneficiariesTableProps>(
         ))}
       </div>
     );
-  }
+  },
 );
 
 BeneficiariesTable.displayName = "BeneficiariesTable";

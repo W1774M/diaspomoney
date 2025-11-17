@@ -108,7 +108,7 @@ export function useSpecialityCreate(): UseSpecialityCreateReturn {
               action: 'createSpeciality',
             },
             extra: { data },
-          }
+          },
         );
 
         return null;
@@ -116,7 +116,7 @@ export function useSpecialityCreate(): UseSpecialityCreateReturn {
         setLoading(false);
       }
     },
-    [addSuccess, addError]
+    [addSuccess, addError],
   );
 
   return {

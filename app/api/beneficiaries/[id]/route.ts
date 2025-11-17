@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // PUT /api/beneficiaries/[id] - Modifier un bénéficiaire
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await auth();
@@ -26,7 +26,7 @@ export async function PUT(
     if (!ObjectId.isValid(beneficiaryId)) {
       return NextResponse.json(
         { error: 'ID de bénéficiaire invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -37,7 +37,7 @@ export async function PUT(
     if (!name || !relationship) {
       return NextResponse.json(
         { error: 'Le nom et la relation sont obligatoires' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -48,7 +48,7 @@ export async function PUT(
     if (!user) {
       return NextResponse.json(
         { error: 'Utilisateur non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -67,7 +67,7 @@ export async function PUT(
     if (!existingBeneficiary) {
       return NextResponse.json(
         { error: 'Bénéficiaire non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -84,7 +84,7 @@ export async function PUT(
       if (duplicateBeneficiary) {
         return NextResponse.json(
           { error: 'Un autre bénéficiaire avec cet email existe déjà' },
-          { status: 409 }
+          { status: 409 },
         );
       }
     }
@@ -102,13 +102,13 @@ export async function PUT(
       .collection('beneficiaries')
       .updateOne(
         { _id: new ObjectId(beneficiaryId), userId },
-        { $set: updateData }
+        { $set: updateData },
       );
 
     if (result.matchedCount === 0) {
       return NextResponse.json(
         { error: 'Bénéficiaire non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -125,7 +125,7 @@ export async function PUT(
           _id: updatedBeneficiary?._id,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error('Erreur lors de la mise à jour du bénéficiaire:', error);
@@ -136,7 +136,7 @@ export async function PUT(
 // DELETE /api/beneficiaries/[id] - Supprimer un bénéficiaire
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await auth();
@@ -150,7 +150,7 @@ export async function DELETE(
     if (!ObjectId.isValid(beneficiaryId)) {
       return NextResponse.json(
         { error: 'ID de bénéficiaire invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -161,7 +161,7 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json(
         { error: 'Utilisateur non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -180,7 +180,7 @@ export async function DELETE(
     if (!existingBeneficiary) {
       return NextResponse.json(
         { error: 'Bénéficiaire non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -193,13 +193,13 @@ export async function DELETE(
     if (result.deletedCount === 0) {
       return NextResponse.json(
         { error: 'Bénéficiaire non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
       { message: 'Bénéficiaire supprimé avec succès' },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error('Erreur lors de la suppression du bénéficiaire:', error);

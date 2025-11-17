@@ -35,7 +35,7 @@ export function useDashboardStats({
         providers: (users || []).filter(
           u =>
             u.roles.includes("{PROVIDER:INSTITUTION}") ||
-            u.roles.includes("{PROVIDER:INDIVIDUAL}")
+            u.roles.includes("{PROVIDER:INDIVIDUAL}"),
         ).length,
         bookings: totalBookings,
         invoices: totalInvoices,

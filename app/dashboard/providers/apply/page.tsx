@@ -44,25 +44,25 @@ export default function ProviderApplyPage() {
         "Pièce d'identité valide",
         "Justificatif de domicile",
         "Certificats de compétences",
-        "Assurance responsabilité civile"
-      ]
+        "Assurance responsabilité civile",
+      ],
     },
     {
       title: "Expérience professionnelle",
       items: [
         "Minimum 2 ans d'expérience",
         "Références professionnelles",
-        "Portfolio de réalisations"
-      ]
+        "Portfolio de réalisations",
+      ],
     },
     {
       title: "Engagements",
       items: [
         "Respecter le code de conduite",
         "Maintenir la qualité de service",
-        "Disponibilité minimale requise"
-      ]
-    }
+        "Disponibilité minimale requise",
+      ],
+    },
   ];
 
   return (

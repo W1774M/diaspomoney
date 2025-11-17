@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching attachments:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des pièces jointes' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
         { error: 'Type de fichier non autorisé' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     if (file.size > maxSize) {
       return NextResponse.json(
         { error: 'Fichier trop volumineux (max 10MB)' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
     console.error('Error uploading attachment:', error);
     return NextResponse.json(
       { error: "Erreur lors de l'upload du fichier" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -182,7 +182,7 @@ export async function DELETE(request: NextRequest) {
     if (!attachmentId) {
       return NextResponse.json(
         { error: 'ID de pièce jointe requis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -193,7 +193,7 @@ export async function DELETE(request: NextRequest) {
     if (!attachment) {
       return NextResponse.json(
         { error: 'Pièce jointe non trouvée' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -201,7 +201,7 @@ export async function DELETE(request: NextRequest) {
     if (att.uploadedBy.toString() !== userId) {
       return NextResponse.json(
         { error: 'Accès non autorisé' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -225,7 +225,7 @@ export async function DELETE(request: NextRequest) {
     console.error('Error deleting attachment:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la suppression' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

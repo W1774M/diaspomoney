@@ -109,7 +109,7 @@ export function useAuth() {
     const controller = new AbortController();
     let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(
       () => controller.abort(),
-      5000
+      5000,
     );
 
     const cleanup = () => {

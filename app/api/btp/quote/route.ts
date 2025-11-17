@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         area,
         hasFeatures: (features || []).length > 0,
       },
-      'Creating BTP quote request'
+      'Creating BTP quote request',
     );
 
     // Validation des entrées
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       log.warn({ body }, 'Validation failed: missing required fields');
       return NextResponse.json(
         { error: 'Tous les champs obligatoires doivent être remplis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         projectType,
         estimatedCost: quote.costEstimate,
       },
-      'BTP quote request created successfully'
+      'BTP quote request created successfully',
     );
 
     return NextResponse.json(
@@ -93,12 +93,12 @@ export async function POST(request: NextRequest) {
         quote,
         message: 'Demande de devis envoyée avec succès',
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     log.error(
       { error, msg: 'Error creating BTP quote' },
-      'Error creating BTP quote'
+      'Error creating BTP quote',
     );
 
     return NextResponse.json(
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
             : 'Erreur de traitement de la demande',
         success: false,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

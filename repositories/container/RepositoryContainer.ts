@@ -78,12 +78,12 @@ class RepositoryContainer {
     this.repositories.set('complaint', new MongoComplaintRepository());
     this.repositories.set(
       'teleconsultation',
-      new MongoTeleconsultationRepository()
+      new MongoTeleconsultationRepository(),
     );
     this.repositories.set('prescription', new MongoPrescriptionRepository());
     this.repositories.set(
       'healthProvider',
-      new MongoHealthProviderRepository()
+      new MongoHealthProviderRepository(),
     );
     // Repositories de messagerie
     this.repositories.set('conversation', new MongoConversationRepository());
@@ -94,7 +94,7 @@ class RepositoryContainer {
     this.repositories.set('notification', new MongoNotificationRepository());
     this.repositories.set(
       'notificationTemplate',
-      new MongoNotificationTemplateRepository()
+      new MongoNotificationTemplateRepository(),
     );
     // Repositories utilisateur
     this.repositories.set('beneficiary', new MongoBeneficiaryRepository());

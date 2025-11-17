@@ -10,17 +10,17 @@ export type { Command, CommandResult } from './base.command';
 
 // Payment Commands
 export {
-  ConfirmPaymentCommand, CreatePaymentCommand
+  ConfirmPaymentCommand, CreatePaymentCommand,
 } from './payment.commands';
 
 // Booking Commands
 export {
-  CancelBookingCommand, CreateBookingCommand, UpdateBookingStatusCommand
+  CancelBookingCommand, CreateBookingCommand, UpdateBookingStatusCommand,
 } from './booking.commands';
 
 // Transaction Commands
 export {
-  CreateTransactionCommand, RefundTransactionCommand, UpdateTransactionStatusCommand
+  CreateTransactionCommand, RefundTransactionCommand, UpdateTransactionStatusCommand,
 } from './transaction.commands';
 
 // Instance singleton du CommandHandler

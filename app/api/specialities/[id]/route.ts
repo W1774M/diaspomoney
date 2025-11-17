@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const reqId = _request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -36,7 +36,7 @@ export async function GET(
       log.warn({ msg: 'Missing speciality ID' });
       return NextResponse.json(
         { error: 'ID de spécialité requis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -49,7 +49,7 @@ export async function GET(
       log.warn({ specialityId: id }, 'Speciality not found');
       return NextResponse.json(
         { error: 'Spécialité non trouvée' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -62,18 +62,18 @@ export async function GET(
   } catch (error) {
     log.error(
       { error, msg: 'Error fetching speciality' },
-      'Error fetching speciality'
+      'Error fetching speciality',
     );
     return NextResponse.json(
       { error: 'Erreur lors de la récupération de la spécialité' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -93,11 +93,11 @@ export async function PUT(
     if (!userRoles.includes('ADMIN') && !userRoles.includes('SUPERADMIN')) {
       log.warn(
         { userId: session.user.id, roles: userRoles },
-        'Insufficient permissions'
+        'Insufficient permissions',
       );
       return NextResponse.json(
         { error: 'Permissions insuffisantes' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -106,7 +106,7 @@ export async function PUT(
       log.warn({ msg: 'Missing speciality ID' });
       return NextResponse.json(
         { error: 'ID de spécialité requis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -115,7 +115,7 @@ export async function PUT(
 
     log.debug(
       { specialityId: id, hasName: !!name, hasDescription: !!description },
-      'Updating speciality'
+      'Updating speciality',
     );
 
     // Utiliser le service avec décorateurs (@Log, @Validate, @InvalidateCache)
@@ -135,7 +135,7 @@ export async function PUT(
   } catch (error) {
     log.error(
       { error, msg: 'Error updating speciality' },
-      'Error updating speciality'
+      'Error updating speciality',
     );
 
     // Gérer les erreurs spécifiques
@@ -143,7 +143,7 @@ export async function PUT(
       if (error.message.includes('non trouvée')) {
         return NextResponse.json(
           { error: 'Spécialité non trouvée' },
-          { status: 404 }
+          { status: 404 },
         );
       }
       if (error.message.includes('existe déjà')) {
@@ -153,14 +153,14 @@ export async function PUT(
 
     return NextResponse.json(
       { error: 'Erreur lors de la mise à jour de la spécialité' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const reqId = _request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -180,11 +180,11 @@ export async function DELETE(
     if (!userRoles.includes('ADMIN') && !userRoles.includes('SUPERADMIN')) {
       log.warn(
         { userId: session.user.id, roles: userRoles },
-        'Insufficient permissions'
+        'Insufficient permissions',
       );
       return NextResponse.json(
         { error: 'Permissions insuffisantes' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -193,7 +193,7 @@ export async function DELETE(
       log.warn({ msg: 'Missing speciality ID' });
       return NextResponse.json(
         { error: 'ID de spécialité requis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -211,20 +211,20 @@ export async function DELETE(
   } catch (error) {
     log.error(
       { error, msg: 'Error deleting speciality' },
-      'Error deleting speciality'
+      'Error deleting speciality',
     );
 
     // Gérer les erreurs spécifiques
     if (error instanceof Error && error.message.includes('non trouvée')) {
       return NextResponse.json(
         { error: 'Spécialité non trouvée' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
       { error: 'Erreur lors de la suppression de la spécialité' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

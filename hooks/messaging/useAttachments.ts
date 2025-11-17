@@ -22,7 +22,7 @@ export const useAttachments = () => {
         messageId?: string;
         type?: string;
         search?: string;
-      }
+      },
     ) => {
       setLoading(true);
       setError(null);
@@ -42,7 +42,7 @@ export const useAttachments = () => {
         }
 
         const response = await fetch(
-          `/api/messaging/attachments?${params.toString()}`
+          `/api/messaging/attachments?${params.toString()}`,
         );
         if (!response.ok) {
           throw new Error('Erreur lors de la récupération des pièces jointes');
@@ -70,7 +70,7 @@ export const useAttachments = () => {
         setLoading(false);
       }
     },
-    [addError]
+    [addError],
   );
 
   const deleteAttachment = useCallback(
@@ -81,7 +81,7 @@ export const useAttachments = () => {
           `/api/messaging/attachments?id=${attachmentId}`,
           {
             method: 'DELETE',
-          }
+          },
         );
         if (!response.ok) {
           throw new Error('Erreur lors de la suppression de la pièce jointe');
@@ -101,7 +101,7 @@ export const useAttachments = () => {
         throw err;
       }
     },
-    [addError, addSuccess]
+    [addError, addSuccess],
   );
 
   return {

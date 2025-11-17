@@ -9,13 +9,13 @@ export function useComplaintStats(complaints: Complaint[]): ComplaintStats {
     const safeComplaints = complaints || [];
     const openComplaints = safeComplaints.filter(c => c.status === "OPEN").length;
     const inProgressComplaints = safeComplaints.filter(
-      c => c.status === "IN_PROGRESS"
+      c => c.status === "IN_PROGRESS",
     ).length;
     const resolvedComplaints = safeComplaints.filter(
-      c => c.status === "RESOLVED"
+      c => c.status === "RESOLVED",
     ).length;
     const closedComplaints = safeComplaints.filter(
-      c => c.status === "CLOSED"
+      c => c.status === "CLOSED",
     ).length;
 
     return {

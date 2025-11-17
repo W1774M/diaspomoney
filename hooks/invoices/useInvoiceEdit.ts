@@ -24,7 +24,7 @@ export function useInvoiceEdit(): UseInvoiceEditReturn {
   const updateInvoice = useCallback(
     async (
       invoiceId: string,
-      data: Partial<IInvoice>
+      data: Partial<IInvoice>,
     ): Promise<IInvoice | null> => {
       setSaving(true);
       setError(null);
@@ -89,7 +89,7 @@ export function useInvoiceEdit(): UseInvoiceEditReturn {
         setSaving(false);
       }
     },
-    []
+    [],
   );
 
   return {

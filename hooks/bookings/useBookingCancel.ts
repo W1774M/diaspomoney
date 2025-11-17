@@ -31,7 +31,7 @@ export function useBookingCancel(): UseBookingCancelReturn {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.error || "Erreur lors de l'annulation de la réservation"
+          errorData.error || "Erreur lors de l'annulation de la réservation",
         );
       }
 

@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -51,7 +51,7 @@ export async function POST(
       });
       return NextResponse.json(
         { error: 'Accès non autorisé' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -61,7 +61,7 @@ export async function POST(
 
     return NextResponse.json(
       { error: 'Envoi par email non implémenté' },
-      { status: 501 }
+      { status: 501 },
     );
 
     // Une fois implémenté, le code ressemblera à :
@@ -79,7 +79,7 @@ export async function POST(
     });
     return NextResponse.json(
       { error: "Erreur lors de l'envoi de la facture par email" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

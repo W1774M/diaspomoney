@@ -13,7 +13,10 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
-import { Validate, ValidationRule } from '@/lib/decorators/validate.decorator';
+import {
+  Validate,
+  createValidationRule,
+} from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
 import { securityManager } from '@/lib/security/advanced-security';
 import User from '@/models/User';
@@ -121,7 +124,7 @@ export class UserService {
         {
           limit: filters.limit || 50,
           offset: filters.offset || 0,
-        }
+        },
       );
 
       logger.debug({ count: result.data.length }, 'Found users');
@@ -176,7 +179,11 @@ export class UserService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'User ID is required'), 'userId'),
+      createValidationRule(
+        0,
+        z.string().min(1, 'User ID is required'),
+        'userId',
+      ),
     ],
   })
   @Cacheable(600, { prefix: 'UserService:getUserProfile' }) // Cache 10 minutes
@@ -198,7 +205,7 @@ export class UserService {
           roles: user.roles,
           status: user.status,
         },
-        'User trouvé'
+        'User trouvé',
       );
 
       // Construire l'objet UserProfile de manière conditionnelle pour éviter les erreurs TypeScript
@@ -265,8 +272,12 @@ export class UserService {
   @InvalidateCache('UserService:*') // Invalider le cache après mise à jour
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'User ID is required'), 'userId'),
-      ValidationRule(
+      createValidationRule(
+        0,
+        z.string().min(1, 'User ID is required'),
+        'userId',
+      ),
+      createValidationRule(
         1,
         z
           .object({
@@ -288,7 +299,7 @@ export class UserService {
               .optional(),
           })
           .passthrough(),
-        'data'
+        'data',
       ),
     ],
   })
@@ -305,7 +316,7 @@ export class UserService {
         timezone?: string;
         notifications?: boolean;
       };
-    }
+    },
   ): Promise<UserProfile> {
     try {
       // Validation des données
@@ -430,7 +441,7 @@ export class UserService {
         }
         logger.info(
           { userId, count: notifications.length },
-          'Notifications deleted'
+          'Notifications deleted',
         );
 
         // Désactiver les bénéficiaires de l'utilisateur
@@ -441,7 +452,7 @@ export class UserService {
         }
         logger.info(
           { userId, count: beneficiaries.data.length },
-          'Beneficiaries deactivated'
+          'Beneficiaries deactivated',
         );
 
         // Supprimer les données KYC (documents sensibles)
@@ -453,7 +464,7 @@ export class UserService {
       } catch (cleanupError) {
         logger.error(
           { error: cleanupError, userId },
-          'Error during data cleanup, continuing with account deletion'
+          'Error during data cleanup, continuing with account deletion',
         );
         // Ne pas bloquer la suppression si le nettoyage échoue
       }
@@ -475,7 +486,7 @@ export class UserService {
   @InvalidateCache('BeneficiaryRepository:*') // Invalider le cache après création
   async addBeneficiary(
     userId: string,
-    data: BeneficiaryData
+    data: BeneficiaryData,
   ): Promise<Beneficiary> {
     try {
       // Validation des données
@@ -516,12 +527,12 @@ export class UserService {
         beneficiaryData.address = data.address;
       }
       const beneficiary = await this.beneficiaryRepository.create(
-        beneficiaryData
+        beneficiaryData,
       );
 
       logger.info(
         { userId, beneficiaryId: beneficiary.id },
-        'Beneficiary added successfully'
+        'Beneficiary added successfully',
       );
       return beneficiary;
     } catch (error) {
@@ -542,7 +553,7 @@ export class UserService {
       const result = await this.beneficiaryRepository.findActiveByPayer(userId);
       logger.debug(
         { userId, count: result.data.length },
-        'Beneficiaries retrieved successfully'
+        'Beneficiaries retrieved successfully',
       );
       return result.data;
     } catch (error) {
@@ -559,27 +570,27 @@ export class UserService {
   @InvalidateCache('BeneficiaryRepository:*') // Invalider le cache après désactivation
   async removeBeneficiary(
     userId: string,
-    beneficiaryId: string
+    beneficiaryId: string,
   ): Promise<void> {
     try {
       // Vérifier que le bénéficiaire appartient à l'utilisateur et le désactiver
       const deactivated = await this.beneficiaryRepository.deactivate(
         beneficiaryId,
-        userId
+        userId,
       );
       if (!deactivated) {
         throw new Error(
-          "Bénéficiaire non trouvé ou n'appartient pas à cet utilisateur"
+          "Bénéficiaire non trouvé ou n'appartient pas à cet utilisateur",
         );
       }
       logger.info(
         { userId, beneficiaryId },
-        'Beneficiary removed successfully'
+        'Beneficiary removed successfully',
       );
     } catch (error) {
       logger.error(
         { error, userId, beneficiaryId },
-        'Erreur removeBeneficiary'
+        'Erreur removeBeneficiary',
       );
       Sentry.captureException(error);
       throw error;
@@ -593,7 +604,7 @@ export class UserService {
   @InvalidateCache('KYCRepository:*') // Invalider le cache après création
   async submitKYCDocuments(
     userId: string,
-    documents: KYCDocument[]
+    documents: KYCDocument[],
   ): Promise<KYCData> {
     try {
       // Validation des documents
@@ -605,12 +616,12 @@ export class UserService {
       const requiredTypes = ['ID_CARD', 'PASSPORT'];
       const submittedTypes = documents.map(doc => doc.type);
       const hasRequiredType = requiredTypes.some(type =>
-        submittedTypes.includes(type as any)
+        submittedTypes.includes(type as any),
       );
 
       if (!hasRequiredType) {
         throw new Error(
-          "Au moins une pièce d'identité requise (carte d'identité ou passeport)"
+          "Au moins une pièce d'identité requise (carte d'identité ou passeport)",
         );
       }
 
@@ -630,7 +641,7 @@ export class UserService {
 
       logger.info(
         { userId, kycId: kycData._id },
-        'KYC documents submitted successfully'
+        'KYC documents submitted successfully',
       );
       return kycData;
     } catch (error) {

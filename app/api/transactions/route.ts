@@ -10,6 +10,7 @@ import {
   TransactionData,
   TransactionService,
 } from '@/services/transaction/transaction.service';
+import type { TransactionFilters } from '@/types/transaction';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET - Récupérer les transactions
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: "Token d'authentification requis" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('dateFrom') && searchParams.get('dateTo')) {
       queryBuilder.createdBetween(
         new Date(searchParams.get('dateFrom')!),
-        new Date(searchParams.get('dateTo')!)
+        new Date(searchParams.get('dateTo')!),
       );
     } else if (searchParams.get('dateFrom')) {
       queryBuilder.createdAfter(new Date(searchParams.get('dateFrom')!));
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('minAmount') && searchParams.get('maxAmount')) {
       queryBuilder.amountBetween(
         parseFloat(searchParams.get('minAmount')!),
-        parseFloat(searchParams.get('maxAmount')!)
+        parseFloat(searchParams.get('maxAmount')!),
       );
     } else if (searchParams.get('minAmount')) {
       queryBuilder.minAmount(parseFloat(searchParams.get('minAmount')!));
@@ -81,7 +82,7 @@ export async function GET(request: NextRequest) {
     // Récupérer les transactions
     const transactions = await TransactionService.getInstance().getTransactions(
       user.id,
-      filters as TransactionFilters
+      filters as TransactionFilters,
     );
 
     // Enregistrer les métriques
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
       labels: {
         user_role: String(user.role),
         filter_count: String(
-          Object.values(filters).filter(v => v !== undefined).length
+          Object.values(filters).filter(v => v !== undefined).length,
         ),
       },
       type: 'counter',
@@ -114,7 +115,7 @@ export async function GET(request: NextRequest) {
             : 'Erreur de récupération des transactions',
         success: false,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -127,7 +128,7 @@ export async function POST(request: NextRequest) {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: "Token d'authentification requis" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: 'Permissions insuffisantes' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -167,7 +168,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: 'Tous les champs obligatoires doivent être remplis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -185,7 +186,7 @@ export async function POST(request: NextRequest) {
       amount: parseFloat(
         typeof securityManager.sanitize === 'function'
           ? securityManager.sanitize(amount)
-          : amount
+          : amount,
       ),
       currency:
         typeof securityManager.sanitizeInput === 'function'
@@ -213,7 +214,7 @@ export async function POST(request: NextRequest) {
     // Créer la transaction
     const transaction =
       await TransactionService.getInstance().createTransaction(
-        sanitizedData as TransactionData
+        sanitizedData as TransactionData,
       );
 
     // Enregistrer les métriques
@@ -241,7 +242,7 @@ export async function POST(request: NextRequest) {
         transaction,
         message: 'Transaction créée avec succès',
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error('Erreur POST transactions:', error);
@@ -254,7 +255,7 @@ export async function POST(request: NextRequest) {
             : 'Erreur de création de transaction',
         success: false,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

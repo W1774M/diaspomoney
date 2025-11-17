@@ -57,7 +57,7 @@ export default function OrderHistoryPage() {
     (order: HistoricalOrder) => {
       router.push(`/dashboard/orders/${order._id}`);
     },
-    [router]
+    [router],
   );
 
   const handleDownloadInvoice = useCallback(async (order: HistoricalOrder) => {
@@ -88,14 +88,14 @@ export default function OrderHistoryPage() {
     (order: HistoricalOrder) => {
       router.push(`/dashboard/orders/${order._id}/rate`);
     },
-    [router]
+    [router],
   );
 
   const handleReorder = useCallback(
     (order: HistoricalOrder) => {
       router.push(`/dashboard/services?reorder=${order.bookingId}`);
     },
-    [router]
+    [router],
   );
 
   const filteredOrders = orders.filter(order => {
@@ -195,7 +195,7 @@ export default function OrderHistoryPage() {
             value={filterStatus}
             onChange={e =>
               setFilterStatus(
-                e.target.value as 'all' | 'completed' | 'cancelled'
+                e.target.value as 'all' | 'completed' | 'cancelled',
               )
             }
             className='px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'

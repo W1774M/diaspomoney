@@ -10,7 +10,7 @@ const BillingSettings = React.memo<BillingSettingsProps>(
       (field: keyof typeof data, value: string) => {
         setData({ ...data, [field]: value });
       },
-      [data, setData]
+      [data, setData],
     );
 
     const handleSubmit = useCallback(
@@ -18,7 +18,7 @@ const BillingSettings = React.memo<BillingSettingsProps>(
         e.preventDefault();
         onSave();
       },
-      [onSave]
+      [onSave],
     );
 
     return (
@@ -106,7 +106,7 @@ const BillingSettings = React.memo<BillingSettingsProps>(
         </form>
       </div>
     );
-  }
+  },
 );
 
 BillingSettings.displayName = 'BillingSettings';

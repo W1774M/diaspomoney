@@ -50,7 +50,7 @@ export function useSpecialityEdit(): UseSpecialityEditReturn {
           if (response.status === 409) {
             const errorData = await response.json();
             throw new Error(
-              errorData.error || 'Conflit lors de la mise à jour'
+              errorData.error || 'Conflit lors de la mise à jour',
             );
           }
           throw new Error('Erreur lors de la mise à jour de la spécialité');
@@ -83,7 +83,7 @@ export function useSpecialityEdit(): UseSpecialityEditReturn {
         setLoading(false);
       }
     },
-    []
+    [],
   );
 
   return {

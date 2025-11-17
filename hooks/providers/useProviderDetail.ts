@@ -34,11 +34,11 @@ export interface UseProviderDetailReturn {
  * Hook pour charger les détails d'un provider avec transformation des données
  */
 export function useProviderDetail(
-  providerId: string | undefined
+  providerId: string | undefined,
 ): UseProviderDetailReturn {
   const [provider, setProvider] = useState<ProviderInfo | null>(null);
   const [ratingStats, setRatingStats] = useState<ProviderRatingStats | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,7 +172,7 @@ export function useProviderDetail(
             action: 'fetchProvider',
           },
           extra: { providerId },
-        }
+        },
       );
     } finally {
       setLoading(false);

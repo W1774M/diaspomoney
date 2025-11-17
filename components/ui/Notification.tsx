@@ -8,10 +8,6 @@ import { NotificationType } from '@/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 
-// Pour corriger l'erreur TS7053 (Element implicitly has an 'any' type...),
-// on s'assure que notification.type est bien de type NotificationType.
-// Si ce n'est pas garanti par le store, on peut faire une vérification ou un cast de type.
-
 const notificationVariants = {
   initial: { opacity: 0, y: 50, scale: 0.3 },
   animate: { opacity: 1, y: 0, scale: 1 },
@@ -103,7 +99,7 @@ export const useNotificationManager = () => {
           type: 'success',
           message,
           duration,
-        })
+        }),
       );
     },
 
@@ -113,7 +109,7 @@ export const useNotificationManager = () => {
           type: 'error',
           message,
           duration,
-        })
+        }),
       );
     },
 
@@ -123,7 +119,7 @@ export const useNotificationManager = () => {
           type: 'warning',
           message,
           duration,
-        })
+        }),
       );
     },
 
@@ -133,7 +129,7 @@ export const useNotificationManager = () => {
           type: 'info',
           message,
           duration,
-        })
+        }),
       );
     },
   };

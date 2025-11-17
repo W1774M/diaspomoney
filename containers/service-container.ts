@@ -127,7 +127,7 @@ export function Inject(_key: ServiceKey) {
  */
 export function createService<T>(
   ServiceClass: new (...args: any[]) => T,
-  dependencies: ServiceKey[]
+  dependencies: ServiceKey[],
 ): T {
   const resolvedDependencies = dependencies.map(key => serviceContainer.resolve(key));
   return new ServiceClass(...resolvedDependencies);

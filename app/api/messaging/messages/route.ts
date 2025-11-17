@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     if (!conversationId) {
       return NextResponse.json(
         { error: 'ID de conversation requis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     if (!conversationDoc) {
       return NextResponse.json(
         { error: 'Conversation non trouvée' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     if (!isParticipant) {
       return NextResponse.json(
         { error: 'Accès non autorisé' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -78,14 +78,14 @@ export async function GET(request: NextRequest) {
       {
         read: true,
         readAt: new Date(),
-      }
+      },
     );
 
     // Réinitialiser le compteur de messages non lus
     // NOTE: Since we retrieved with .lean(), update with model
     await (Conversation as any).updateOne(
       { _id: new mongoose.Types.ObjectId(conversationId) },
-      { $set: { [`unreadCount.${userId}`]: 0 } }
+      { $set: { [`unreadCount.${userId}`]: 0 } },
     );
 
     return NextResponse.json({
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching messages:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des messages' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -121,18 +121,18 @@ export async function POST(request: NextRequest) {
     if (!conversationId || !text) {
       return NextResponse.json(
         { error: 'ID de conversation et texte requis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Vérifier que l'utilisateur est participant
     const conversation = await (Conversation as any).findById(
-      new mongoose.Types.ObjectId(conversationId)
+      new mongoose.Types.ObjectId(conversationId),
     );
     if (!conversation) {
       return NextResponse.json(
         { error: 'Conversation non trouvée' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     if (!isParticipant) {
       return NextResponse.json(
         { error: 'Accès non autorisé' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
     console.error('Error creating message:', error);
     return NextResponse.json(
       { error: "Erreur lors de l'envoi du message" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

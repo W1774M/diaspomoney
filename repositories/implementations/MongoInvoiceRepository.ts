@@ -127,7 +127,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
           invoiceId: mappedInvoice.id,
           invoiceNumber: mappedInvoice.invoiceNumber,
         },
-        'Invoice created successfully'
+        'Invoice created successfully',
       );
       return mappedInvoice;
     } catch (error) {
@@ -151,7 +151,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       return result?.['value'] ? this.mapToInvoice(result['value']) : null;
     } catch (error) {
@@ -212,7 +212,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
 
   async findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Invoice>> {
     try {
       const collection = await this.getCollection();
@@ -241,7 +241,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findWithPagination'
+        'Error in findWithPagination',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -256,14 +256,14 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
 
   async findByUser(
     userId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Invoice>> {
     return this.findWithPagination({ userId }, options);
   }
 
   async findByStatus(
     status: Invoice['status'],
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Invoice>> {
     return this.findWithPagination({ status }, options);
   }
@@ -271,7 +271,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'InvoiceRepository:findOverdue' }) // Cache 5 minutes
   async findOverdue(
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Invoice>> {
     try {
       const now = new Date();
@@ -280,7 +280,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
           status: { $in: ['PENDING', 'SENT'] },
           dueDate: { $lt: now },
         },
-        options
+        options,
       );
     } catch (error) {
       this.log.error({ error }, 'Error in findOverdue');
@@ -300,14 +300,14 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
       // Trouver le dernier numéro de facture de l'année
       const lastInvoice = await collection.findOne(
         { invoiceNumber: { $regex: `^${prefix}` } },
-        { sort: { invoiceNumber: -1 } }
+        { sort: { invoiceNumber: -1 } },
       );
 
       let sequence = 1;
       if (lastInvoice?.['invoiceNumber']) {
         const lastSequence = parseInt(
           lastInvoice['invoiceNumber'].replace(prefix, ''),
-          10
+          10,
         );
         if (!isNaN(lastSequence)) {
           sequence = lastSequence + 1;
@@ -331,7 +331,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
   @InvalidateCache('InvoiceRepository:*') // Invalider le cache après changement de statut
   async updateStatus(
     invoiceId: string,
-    status: Invoice['status']
+    status: Invoice['status'],
   ): Promise<boolean> {
     try {
       const result = await this.update(invoiceId, {
@@ -371,7 +371,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
   @Cacheable(300, { prefix: 'InvoiceRepository:findInvoicesWithFilters' }) // Cache 5 minutes
   async findInvoicesWithFilters(
     filters: InvoiceFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Invoice>> {
     try {
       // Utiliser InvoiceQueryBuilder pour construire la requête
@@ -382,7 +382,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findInvoicesWithFilters'
+        'Error in findInvoicesWithFilters',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -400,7 +400,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
    */
   private buildInvoiceQuery(
     filters: InvoiceFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): InvoiceQueryBuilder {
     const builder = new InvoiceQueryBuilder();
 

@@ -174,7 +174,7 @@ export default function ProviderContactsPage() {
                 </div>
                 <span
                   className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                    provider.status
+                    provider.status,
                   )}`}
                 >
                   {provider.status}

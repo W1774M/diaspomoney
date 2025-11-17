@@ -93,7 +93,7 @@ export default function TutorialsPage() {
   const categories = Array.from(new Set(tutorials.map(t => t.category)));
 
   const filteredTutorials = tutorials.filter(
-    tutorial => !selectedCategory || tutorial.category === selectedCategory
+    tutorial => !selectedCategory || tutorial.category === selectedCategory,
   );
 
   const handlePlay = (tutorial: Tutorial) => {

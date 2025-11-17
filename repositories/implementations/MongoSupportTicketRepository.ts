@@ -51,7 +51,7 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
   @Cacheable(300, { prefix: 'SupportTicketRepository:findByUser' }) // Cache 5 minutes
   async findByUser(
     userId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<SupportTicketType>> {
     try {
       const page = options?.page || 1;
@@ -100,7 +100,7 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
   @Cacheable(300, { prefix: 'SupportTicketRepository:findByStatus' }) // Cache 5 minutes
   async findByStatus(
     status: 'open' | 'in_progress' | 'closed' | 'resolved',
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<SupportTicketType>> {
     try {
       const page = options?.page || 1;
@@ -169,13 +169,13 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
   @InvalidateCache('SupportTicketRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
-    data: Partial<SupportTicketType>
+    data: Partial<SupportTicketType>,
   ): Promise<SupportTicketType | null> {
     try {
       const ticket = await (SupportTicket as any).findByIdAndUpdate(
         new ObjectId(id),
         { $set: data },
-        { new: true }
+        { new: true },
       );
       return ticket ? this.mapToTicket(ticket) : null;
     } catch (error) {
@@ -198,7 +198,7 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
           $push: {
             messages: new ObjectId(messageId),
           },
-        }
+        },
       );
       return true;
     } catch (error) {

@@ -43,14 +43,14 @@ const BookingsPage = React.memo(function BookingsPage() {
     (booking: Booking) => {
       router.push(`/dashboard/bookings/${booking._id}`);
     },
-    [router]
+    [router],
   );
 
   const handleEditBooking = useCallback(
     (booking: Booking) => {
       router.push(`/dashboard/bookings/${booking._id}/edit`);
     },
-    [router]
+    [router],
   );
 
   const handleCancelBooking = useCallback(
@@ -61,28 +61,28 @@ const BookingsPage = React.memo(function BookingsPage() {
 
       await cancelBooking(booking._id || booking['id']);
     },
-    [cancelBooking]
+    [cancelBooking],
   );
 
   const handleSearchChange = useCallback(
     (value: string) => {
       updateFilter('searchTerm', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handleStatusChange = useCallback(
     (value: string) => {
       updateFilter('status', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handlePaymentStatusChange = useCallback(
     (value: string) => {
       updateFilter('paymentStatus', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   // const handleDateRangeChange = useCallback(

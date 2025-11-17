@@ -13,14 +13,14 @@ const BeneficiariesFilters = React.memo<BeneficiariesFiltersProps>(
       (e: React.ChangeEvent<HTMLSelectElement>) => {
         onFilterChange("relationship", e.target.value);
       },
-      [onFilterChange]
+      [onFilterChange],
     );
 
     const handleAccountStatusChange = useCallback(
       (e: React.ChangeEvent<HTMLSelectElement>) => {
         onFilterChange("hasAccount", e.target.value);
       },
-      [onFilterChange]
+      [onFilterChange],
     );
 
     return (
@@ -61,7 +61,7 @@ const BeneficiariesFilters = React.memo<BeneficiariesFiltersProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 BeneficiariesFilters.displayName = "BeneficiariesFilters";

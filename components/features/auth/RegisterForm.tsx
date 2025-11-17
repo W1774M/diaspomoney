@@ -33,19 +33,19 @@ export function RegisterForm() {
 
   const oauthProvider = useMemo(
     () => searchParams?.get('oauth') || '',
-    [searchParams]
+    [searchParams],
   );
   const oauthEmail = useMemo(
     () => searchParams?.get('email') || '',
-    [searchParams]
+    [searchParams],
   );
   const oauthName = useMemo(
     () => searchParams?.get('name') || '',
-    [searchParams]
+    [searchParams],
   );
   const oauthProviderAccountId = useMemo(
     () => searchParams?.get('providerAccountId') || '',
-    [searchParams]
+    [searchParams],
   );
 
   // Vérifier si c'est un flux d'inscription simplifiée post-paiement
@@ -136,7 +136,7 @@ export function RegisterForm() {
     setSelectedServices(prev =>
       prev.includes(service)
         ? prev.filter(s => s !== service)
-        : [...prev, service]
+        : [...prev, service],
     );
   };
 
@@ -472,7 +472,7 @@ export function RegisterForm() {
                         },
                       ].map(service => {
                         const isSelected = selectedServices.includes(
-                          service.id
+                          service.id,
                         );
                         return (
                           <div
@@ -591,7 +591,7 @@ export function RegisterForm() {
                             onChange={e =>
                               handleInputChange(
                                 'confirmPassword',
-                                e.target.value
+                                e.target.value,
                               )
                             }
                             className='w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
@@ -628,7 +628,7 @@ export function RegisterForm() {
                           onChange={e =>
                             handleInputChange(
                               'securityQuestion',
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           className='w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300'
@@ -697,7 +697,7 @@ export function RegisterForm() {
                         onChange={e =>
                           handleInputChange(
                             'marketingConsent',
-                            e.target.checked
+                            e.target.checked,
                           )
                         }
                         className='mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500'

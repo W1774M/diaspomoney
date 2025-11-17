@@ -107,7 +107,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
       const mapped = this.mapToBeneficiary(beneficiary);
       this.log.info(
         { beneficiaryId: mapped.id, payerId: mapped.payerId },
-        'Beneficiary created successfully'
+        'Beneficiary created successfully',
       );
       return mapped;
     } catch (error) {
@@ -121,7 +121,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
   @InvalidateCache('BeneficiaryRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
-    data: Partial<Beneficiary>
+    data: Partial<Beneficiary>,
   ): Promise<Beneficiary | null> {
     try {
       const collection = await this.getCollection();
@@ -136,7 +136,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       const mapped = result?.['value']
         ? this.mapToBeneficiary(result['value'])
@@ -144,12 +144,12 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
       if (mapped) {
         this.log.info(
           { beneficiaryId: id },
-          'Beneficiary updated successfully'
+          'Beneficiary updated successfully',
         );
       } else {
         this.log.warn(
           { beneficiaryId: id },
-          'Beneficiary not found for update'
+          'Beneficiary not found for update',
         );
       }
       return mapped;
@@ -170,12 +170,12 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
       if (deleted) {
         this.log.info(
           { beneficiaryId: id },
-          'Beneficiary deleted successfully'
+          'Beneficiary deleted successfully',
         );
       } else {
         this.log.warn(
           { beneficiaryId: id },
-          'Beneficiary not found for deletion'
+          'Beneficiary not found for deletion',
         );
       }
       return deleted;
@@ -210,7 +210,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
       const result = count > 0;
       this.log.debug(
         { beneficiaryId: id, exists: result },
-        'Exists check completed'
+        'Exists check completed',
       );
       return result;
     } catch (error) {
@@ -224,7 +224,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
   @Cacheable(300, { prefix: 'BeneficiaryRepository:findWithPagination' }) // Cache 5 minutes
   async findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Beneficiary>> {
     try {
       const collection = await this.getCollection();
@@ -252,13 +252,13 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
       };
       this.log.debug(
         { count: result.data.length, total, page, limit, filters },
-        'findWithPagination completed'
+        'findWithPagination completed',
       );
       return result;
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findWithPagination'
+        'Error in findWithPagination',
       );
       Sentry.captureException(error);
       throw error;
@@ -269,7 +269,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
   @Cacheable(300, { prefix: 'BeneficiaryRepository:findByPayer' }) // Cache 5 minutes
   async findByPayer(
     payerId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Beneficiary>> {
     try {
       const query = {
@@ -290,7 +290,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
   @Cacheable(300, { prefix: 'BeneficiaryRepository:findActiveByPayer' }) // Cache 5 minutes
   async findActiveByPayer(
     payerId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Beneficiary>> {
     try {
       const query = {
@@ -314,7 +314,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
   }) // Cache 5 minutes
   async findBeneficiariesWithFilters(
     filters: BeneficiaryFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Beneficiary>> {
     try {
       const query: Record<string, any> = {};
@@ -346,13 +346,13 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
       const result = await this.findWithPagination(query, options);
       this.log.debug(
         { count: result.data.length, total: result.total, filters },
-        'findBeneficiariesWithFilters completed'
+        'findBeneficiariesWithFilters completed',
       );
       return result;
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findBeneficiariesWithFilters'
+        'Error in findBeneficiariesWithFilters',
       );
       Sentry.captureException(error);
       throw error;
@@ -398,18 +398,18 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
             updatedAt: new Date(),
           },
         },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       const deactivated = result?.['value'] !== null;
       if (deactivated) {
         this.log.info(
           { beneficiaryId, payerId },
-          'Beneficiary deactivated successfully'
+          'Beneficiary deactivated successfully',
         );
       } else {
         this.log.warn(
           { beneficiaryId, payerId },
-          'Beneficiary not found or does not belong to payer'
+          'Beneficiary not found or does not belong to payer',
         );
       }
       return deactivated;

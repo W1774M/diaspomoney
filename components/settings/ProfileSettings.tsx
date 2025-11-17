@@ -43,7 +43,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
       (field: keyof typeof data, value: string) => {
         setData({ ...data, [field]: value });
       },
-      [data, setData]
+      [data, setData],
     );
 
     const handleSubmit = useCallback(
@@ -51,7 +51,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
         e.preventDefault();
         onSave();
       },
-      [onSave]
+      [onSave],
     );
 
     const handleAvatarUpload = useCallback(
@@ -83,13 +83,13 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
           alert(
             error instanceof Error
               ? error.message
-              : "Erreur lors de l'upload de la photo de profil"
+              : "Erreur lors de l'upload de la photo de profil",
           );
         } finally {
           setUploadingAvatar(false);
         }
       },
-      []
+      [],
     );
 
     const handleAvatarDelete = useCallback(async () => {
@@ -118,7 +118,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
         alert(
           error instanceof Error
             ? error.message
-            : 'Erreur lors de la suppression de la photo de profil'
+            : 'Erreur lors de la suppression de la photo de profil',
         );
       } finally {
         setDeletingAvatar(false);
@@ -513,7 +513,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 ProfileSettings.displayName = 'ProfileSettings';

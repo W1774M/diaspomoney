@@ -54,7 +54,7 @@ export class MongoNotificationTemplateRepository
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'NotificationTemplateRepository:findAll' }) // Cache 5 minutes
   async findAll(
-    filters?: Record<string, any>
+    filters?: Record<string, any>,
   ): Promise<NotificationTemplate[]> {
     try {
       const collection = await this.getCollection();
@@ -62,7 +62,7 @@ export class MongoNotificationTemplateRepository
       const result = templates.map(t => this.mapToTemplate(t));
       this.log.debug(
         { count: result.length, filters },
-        'Notification templates found'
+        'Notification templates found',
       );
       return result;
     } catch (error) {
@@ -75,7 +75,7 @@ export class MongoNotificationTemplateRepository
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'NotificationTemplateRepository:findOne' }) // Cache 5 minutes
   async findOne(
-    filters: Record<string, any>
+    filters: Record<string, any>,
   ): Promise<NotificationTemplate | null> {
     try {
       const collection = await this.getCollection();
@@ -93,7 +93,7 @@ export class MongoNotificationTemplateRepository
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @InvalidateCache('NotificationTemplateRepository:*') // Invalider le cache après création
   async create(
-    data: Partial<NotificationTemplate>
+    data: Partial<NotificationTemplate>,
   ): Promise<NotificationTemplate> {
     try {
       const collection = await this.getCollection();
@@ -116,13 +116,13 @@ export class MongoNotificationTemplateRepository
           name: mappedTemplate.name,
           locale: mappedTemplate.locale,
         },
-        'Notification template created successfully'
+        'Notification template created successfully',
       );
       return mappedTemplate;
     } catch (error) {
       this.log.error(
         { error, name: data.name, locale: data.locale },
-        'Error in create'
+        'Error in create',
       );
       Sentry.captureException(error);
       throw error;
@@ -133,7 +133,7 @@ export class MongoNotificationTemplateRepository
   @InvalidateCache('NotificationTemplateRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
-    data: Partial<NotificationTemplate>
+    data: Partial<NotificationTemplate>,
   ): Promise<NotificationTemplate | null> {
     try {
       const collection = await this.getCollection();
@@ -144,7 +144,7 @@ export class MongoNotificationTemplateRepository
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       const updated = result?.['value']
         ? this.mapToTemplate(result['value'])
@@ -152,12 +152,12 @@ export class MongoNotificationTemplateRepository
       if (updated) {
         this.log.info(
           { templateId: id },
-          'Notification template updated successfully'
+          'Notification template updated successfully',
         );
       } else {
         this.log.warn(
           { templateId: id },
-          'Notification template not found for update'
+          'Notification template not found for update',
         );
       }
       return updated;
@@ -178,12 +178,12 @@ export class MongoNotificationTemplateRepository
       if (deleted) {
         this.log.info(
           { templateId: id },
-          'Notification template deleted successfully'
+          'Notification template deleted successfully',
         );
       } else {
         this.log.warn(
           { templateId: id },
-          'Notification template not found for deletion'
+          'Notification template not found for deletion',
         );
       }
       return deleted;
@@ -202,7 +202,7 @@ export class MongoNotificationTemplateRepository
       const count = await collection.countDocuments(filters || {});
       this.log.debug(
         { count, filters },
-        'Notification template count retrieved'
+        'Notification template count retrieved',
       );
       return count;
     } catch (error) {
@@ -221,7 +221,7 @@ export class MongoNotificationTemplateRepository
       const exists = count > 0;
       this.log.debug(
         { templateId: id, exists },
-        'Notification template existence checked'
+        'Notification template existence checked',
       );
       return exists;
     } catch (error) {
@@ -237,13 +237,13 @@ export class MongoNotificationTemplateRepository
   }) // Cache 5 minutes
   async findByNameAndLocale(
     name: string,
-    locale: string
+    locale: string,
   ): Promise<NotificationTemplate | null> {
     try {
       const result = await this.findOne({ name, locale });
       this.log.debug(
         { name, locale, found: !!result },
-        'Template found by name and locale'
+        'Template found by name and locale',
       );
       return result;
     } catch (error) {
@@ -260,7 +260,7 @@ export class MongoNotificationTemplateRepository
       const result = await this.findAll({ locale });
       this.log.debug(
         { locale, count: result.length },
-        'Templates found by locale'
+        'Templates found by locale',
       );
       return result;
     } catch (error) {

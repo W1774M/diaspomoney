@@ -201,7 +201,7 @@ export default function SpecialitiesPage() {
                 <div className="flex space-x-1 ml-2">
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
-                      speciality.group
+                      speciality.group,
                     )}`}
                   >
                     {speciality.group}

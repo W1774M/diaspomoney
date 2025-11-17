@@ -108,7 +108,7 @@ export default function SupportTicketsPage() {
       !searchTerm ||
       ticket.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.messages.some(message =>
-        message.text?.toLowerCase().includes(searchTerm.toLowerCase())
+        message.text?.toLowerCase().includes(searchTerm.toLowerCase()),
       );
 
     const matchesStatus =
@@ -219,7 +219,7 @@ export default function SupportTicketsPage() {
                   | 'open'
                   | 'in_progress'
                   | 'closed'
-                  | 'resolved'
+                  | 'resolved',
               )
             }
             className='px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -272,14 +272,14 @@ export default function SupportTicketsPage() {
                     </h3>
                     <span
                       className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                        ticket.status
+                        ticket.status,
                       )}`}
                     >
                       {getStatusLabel(ticket.status)}
                     </span>
                     <span
                       className={`text-xs font-medium ${getPriorityColor(
-                        ticket.priority
+                        ticket.priority,
                       )}`}
                     >
                       {ticket.priority === 'high'

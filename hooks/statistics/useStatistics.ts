@@ -73,7 +73,7 @@ export function useStatistics(): UseStatisticsReturn {
               (provider: any) => ({
                 ...provider,
                 lastOrderDate: new Date(provider.lastOrderDate),
-              })
+              }),
             ),
           },
           period: {

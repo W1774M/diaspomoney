@@ -20,8 +20,12 @@ import type {
   PaginatedResult,
   PaginationOptions,
 } from '../interfaces/IRepository';
+
+export class MongoMessageRepository implements IMessageRepository {
+  private readonly log = childLogger({
     component: 'MongoMessageRepository',
   });
+
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'MessageRepository:findById' }) // Cache 5 minutes
   async findById(id: string): Promise<MessageType | null> {
@@ -48,7 +52,7 @@ import type {
   @Cacheable(300, { prefix: 'MessageRepository:findByConversation' }) // Cache 5 minutes
   async findByConversation(
     conversationId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<MessageType>> {
     try {
       const page = options?.page || 1;
@@ -81,9 +85,15 @@ import type {
         hasMore: offset + limit < total,
       };
     } catch (error) {
-      this.log.error({ error, conversationId, options }, 'Error in findByConversation');
+      this.log.error(
+        { error, conversationId, options },
+        'Error in findByConversation',
+      );
       Sentry.captureException(error as Error, {
-        tags: { component: 'MongoMessageRepository', action: 'findByConversation' },
+        tags: {
+          component: 'MongoMessageRepository',
+          action: 'findByConversation',
+        },
         extra: { conversationId },
       });
       throw error;
@@ -103,7 +113,10 @@ import type {
       await message.save();
       return this.mapToMessage(message);
     } catch (error) {
-      this.log.error({ error, senderId: data.senderId, conversationId: data.conversationId }, 'Error in create');
+      this.log.error(
+        { error, senderId: data.senderId, conversationId: data.conversationId },
+        'Error in create',
+      );
       Sentry.captureException(error as Error, {
         tags: { component: 'MongoMessageRepository', action: 'create' },
         extra: { senderId: data.senderId, conversationId: data.conversationId },
@@ -126,7 +139,7 @@ import type {
             read: true,
             readAt: new Date(),
           },
-        }
+        },
       );
       return true;
     } catch (error) {
@@ -143,7 +156,7 @@ import type {
   @InvalidateCache('MessageRepository:*') // Invalider le cache après marquage comme lu
   async markConversationAsRead(
     conversationId: string,
-    userId: string
+    userId: string,
   ): Promise<number> {
     try {
       const result = await (Message as any).updateMany(
@@ -157,13 +170,19 @@ import type {
             read: true,
             readAt: new Date(),
           },
-        }
+        },
       );
       return result.modifiedCount;
     } catch (error) {
-      this.log.error({ error, conversationId, userId }, 'Error in markConversationAsRead');
+      this.log.error(
+        { error, conversationId, userId },
+        'Error in markConversationAsRead',
+      );
       Sentry.captureException(error as Error, {
-        tags: { component: 'MongoMessageRepository', action: 'markConversationAsRead' },
+        tags: {
+          component: 'MongoMessageRepository',
+          action: 'markConversationAsRead',
+        },
         extra: { conversationId, userId },
       });
       throw error;
@@ -214,7 +233,7 @@ import type {
       senderId: doc.senderId,
       text: doc.text,
       attachments: doc.attachments?.map((a: any) =>
-        a.toString ? a.toString() : a
+        a.toString ? a.toString() : a,
       ),
       read: doc.read,
       readAt: doc.readAt,

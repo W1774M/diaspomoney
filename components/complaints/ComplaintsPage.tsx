@@ -57,21 +57,21 @@ const ComplaintsPage = React.memo(function ComplaintsPage() {
     (complaint: Complaint) => {
       router.push(`/dashboard/complaints/${complaint.id}`);
     },
-    [router]
+    [router],
   );
 
   const handleCommentComplaint = useCallback(
     (complaint: Complaint) => {
       router.push(`/dashboard/complaints/${complaint.id}#comments`);
     },
-    [router]
+    [router],
   );
 
   const handleSearchChange = useCallback(
     (value: string) => {
       updateFilter('searchTerm', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   // const handleStatusChange = useCallback(

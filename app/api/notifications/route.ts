@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const client = await getMongoClient();
     const db = client.db();
     const notificationsCollection = db.collection(
-      DATABASE.COLLECTIONS.NOTIFICATIONS
+      DATABASE.COLLECTIONS.NOTIFICATIONS,
     );
 
     // Construire le filtre pour l'utilisateur
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       read: { $ne: true },
     };
     const unreadCount = await notificationsCollection.countDocuments(
-      unreadFilter
+      unreadFilter,
     );
 
     // Fonction helper pour convertir une date en ISO string
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
         }
 
         return mapped;
-      }
+      },
     );
 
     return NextResponse.json({
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
     console.error('[API][notifications] Erreur:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des notifications' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -164,7 +164,7 @@ export async function PATCH(request: NextRequest) {
     if (!notificationId) {
       return NextResponse.json(
         { error: 'ID de notification requis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -172,7 +172,7 @@ export async function PATCH(request: NextRequest) {
     const client = await getMongoClient();
     const db = client.db();
     const notificationsCollection = db.collection(
-      DATABASE.COLLECTIONS.NOTIFICATIONS
+      DATABASE.COLLECTIONS.NOTIFICATIONS,
     );
 
     // Vérifier que la notification appartient à l'utilisateur
@@ -185,7 +185,7 @@ export async function PATCH(request: NextRequest) {
     } catch {
       return NextResponse.json(
         { error: 'ID de notification invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -201,14 +201,14 @@ export async function PATCH(request: NextRequest) {
     if (!notification) {
       return NextResponse.json(
         { error: 'Notification non trouvée ou accès non autorisé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // Mettre à jour la notification comme lue
     await notificationsCollection.updateOne(
       { _id: notificationObjectId },
-      { $set: { read: true, updatedAt: new Date() } }
+      { $set: { read: true, updatedAt: new Date() } },
     );
 
     return NextResponse.json({
@@ -219,7 +219,7 @@ export async function PATCH(request: NextRequest) {
     console.error('[API][notifications] Erreur PATCH:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la mise à jour de la notification' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -240,7 +240,7 @@ export async function PUT(request: NextRequest) {
     if (!markAllAsRead) {
       return NextResponse.json(
         { error: 'Paramètre markAllAsRead requis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -248,7 +248,7 @@ export async function PUT(request: NextRequest) {
     const client = await getMongoClient();
     const db = client.db();
     const notificationsCollection = db.collection(
-      DATABASE.COLLECTIONS.NOTIFICATIONS
+      DATABASE.COLLECTIONS.NOTIFICATIONS,
     );
 
     // Construire le filtre pour l'utilisateur
@@ -276,7 +276,7 @@ export async function PUT(request: NextRequest) {
     console.error('[API][notifications] Erreur PUT:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la mise à jour des notifications' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

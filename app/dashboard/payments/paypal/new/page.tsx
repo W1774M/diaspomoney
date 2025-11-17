@@ -27,7 +27,7 @@ export default function NewPayPalPage() {
 
   const handleInputChange = (
     field: keyof PayPalFormData,
-    value: string | boolean
+    value: string | boolean,
   ) => {
     setFormData(prev => ({
       ...prev,

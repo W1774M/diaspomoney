@@ -75,7 +75,7 @@ export const getAssetURL = (
     quality?: number;
     format?: 'webp' | 'avif' | 'jpg' | 'png';
     transformation?: string;
-  }
+  },
 ): string => {
   const config = getCDNConfig();
 
@@ -121,7 +121,7 @@ export const getAssetURL = (
   if (config.provider === 'cloudinary') {
     const cloudName = process.env['CLOUDINARY_CLOUD_NAME'];
     if (!cloudName) {
-      // eslint-disable-next-line no-console
+       
       console.warn('CLOUDINARY_CLOUD_NAME not configured, using fallback');
       return `${config.fallbackUrl}${cleanPath}`;
     }
@@ -212,7 +212,7 @@ export const optimizeImage = (
     height?: number;
     quality?: number;
     format?: 'webp' | 'avif' | 'auto';
-  } = {}
+  } = {},
 ): string => {
   const config = getCDNConfig();
 

@@ -81,7 +81,7 @@ export class MongoDBAtlasSearch {
    */
   async createSearchIndex(
     collectionName: string,
-    config: SearchConfig
+    config: SearchConfig,
   ): Promise<void> {
     try {
       if (!this.isConnected) {
@@ -105,12 +105,12 @@ export class MongoDBAtlasSearch {
 
       this.log.info(
         { indexName: config.indexName, collectionName },
-        'Search index created'
+        'Search index created',
       );
     } catch (error) {
       this.log.error(
         { error, indexName: config.indexName },
-        'Error creating search index'
+        'Error creating search index',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'MongoDBAtlasSearch', action: 'createSearchIndex' },
@@ -126,7 +126,7 @@ export class MongoDBAtlasSearch {
   async search<T = any>(
     collectionName: string,
     indexName: string,
-    query: SearchQuery
+    query: SearchQuery,
   ): Promise<SearchResult<T>> {
     try {
       if (!this.isConnected) {
@@ -217,7 +217,7 @@ export class MongoDBAtlasSearch {
           total,
           took,
         },
-        'Search completed'
+        'Search completed',
       );
 
       return {

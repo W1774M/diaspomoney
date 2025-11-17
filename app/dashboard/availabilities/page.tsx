@@ -17,7 +17,7 @@ export default function AvailabilitiesPage() {
   const router = useRouter();
   const [availabilities, setAvailabilities] = useState<Availability[]>([]);
   const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'custom'>(
-    'weekly'
+    'weekly',
   );
   const [showForm, setShowForm] = useState(false);
   const [editingRule, setEditingRule] = useState<Availability | null>(null);
@@ -167,7 +167,7 @@ export default function AvailabilitiesPage() {
 
   // Filter availabilities by active tab
   const filteredAvailabilities = (availabilities || []).filter(
-    (rule: Availability) => rule.type === activeTab
+    (rule: Availability) => rule.type === activeTab,
   );
 
   // Save new or edited rule
@@ -175,8 +175,8 @@ export default function AvailabilitiesPage() {
     if (editingRule) {
       setAvailabilities(prev =>
         prev.map(r =>
-          r.id === rule.id ? { ...r, ...rule, updatedAt: new Date() } : r
-        )
+          r.id === rule.id ? { ...r, ...rule, updatedAt: new Date() } : r,
+        ),
       );
     } else {
       setAvailabilities(prev => [
@@ -197,7 +197,7 @@ export default function AvailabilitiesPage() {
   const handleDeleteRule = (id: string) => {
     if (
       window.confirm(
-        'Êtes-vous sûr de vouloir supprimer cette règle de disponibilité ?'
+        'Êtes-vous sûr de vouloir supprimer cette règle de disponibilité ?',
       )
     ) {
       setAvailabilities(prev => (prev || []).filter(r => r.id !== id));
@@ -212,8 +212,8 @@ export default function AvailabilitiesPage() {
   const toggleRuleStatus = (id: string) => {
     setAvailabilities(prev =>
       prev.map(r =>
-        r.id === id ? { ...r, isActive: !r.isActive, updatedAt: new Date() } : r
-      )
+        r.id === id ? { ...r, isActive: !r.isActive, updatedAt: new Date() } : r,
+      ),
     );
   };
 
@@ -352,7 +352,7 @@ export default function AvailabilitiesPage() {
                 {daysOfWeek
                   .map((day, index) => {
                     const slots = (rule.timeSlots || []).filter(
-                      (slot: TimeSlot) => slot.dayOfWeek === index
+                      (slot: TimeSlot) => slot.dayOfWeek === index,
                     );
                     if (slots.length === 0) return null;
                     return (
@@ -501,7 +501,7 @@ function AvailabilityForm({
     setFormData(prev => ({
       ...prev,
       timeSlots: prev.timeSlots.map((slot: TimeSlot) =>
-        slot.id === id ? { ...slot, ...updates } : slot
+        slot.id === id ? { ...slot, ...updates } : slot,
       ),
     }));
   };
@@ -532,7 +532,7 @@ function AvailabilityForm({
     for (const slot of formData.timeSlots) {
       if (slot.startTime >= slot.endTime) {
         alert(
-          "L'heure de début doit précéder celle de fin pour tous les créneaux."
+          "L'heure de début doit précéder celle de fin pour tous les créneaux.",
         );
         return;
       }
@@ -560,25 +560,25 @@ function AvailabilityForm({
       timeSlots: formData.timeSlots,
       isActive: formData.isActive,
       monday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 0
+        (slot: TimeSlot) => slot.dayOfWeek === 0,
       ),
       tuesday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 1
+        (slot: TimeSlot) => slot.dayOfWeek === 1,
       ),
       wednesday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 2
+        (slot: TimeSlot) => slot.dayOfWeek === 2,
       ),
       thursday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 3
+        (slot: TimeSlot) => slot.dayOfWeek === 3,
       ),
       friday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 4
+        (slot: TimeSlot) => slot.dayOfWeek === 4,
       ),
       saturday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 5
+        (slot: TimeSlot) => slot.dayOfWeek === 5,
       ),
       sunday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 6
+        (slot: TimeSlot) => slot.dayOfWeek === 6,
       ),
       timezone: 'UTC',
     });
@@ -680,7 +680,7 @@ function AvailabilityForm({
               <div className='space-y-4'>
                 {daysOfWeek.map((day, dayIndex) => {
                   const daySlots = (formData.timeSlots || []).filter( 
-                    (slot: TimeSlot) => slot.dayOfWeek === dayIndex
+                    (slot: TimeSlot) => slot.dayOfWeek === dayIndex,
                   );
                   return (
                     <div

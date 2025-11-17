@@ -118,13 +118,13 @@ export class MongoBookingRepository implements IBookingRepository {
       const mappedBooking = this.mapToBooking(booking);
       this.log.info(
         { bookingId: mappedBooking.id, requesterId: mappedBooking.requesterId },
-        'Booking created successfully'
+        'Booking created successfully',
       );
       return mappedBooking;
     } catch (error) {
       this.log.error(
         { error, requesterId: data.requesterId },
-        'Error in create'
+        'Error in create',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'MongoBookingRepository', action: 'create' },
@@ -146,7 +146,7 @@ export class MongoBookingRepository implements IBookingRepository {
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       return result?.['value'] ? this.mapToBooking(result['value']) : null;
     } catch (error) {
@@ -207,7 +207,7 @@ export class MongoBookingRepository implements IBookingRepository {
 
   async findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Booking>> {
     try {
       const collection = await this.getCollection();
@@ -236,7 +236,7 @@ export class MongoBookingRepository implements IBookingRepository {
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findWithPagination'
+        'Error in findWithPagination',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -251,21 +251,21 @@ export class MongoBookingRepository implements IBookingRepository {
 
   async findByRequester(
     requesterId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Booking>> {
     return this.findWithPagination({ requesterId }, options);
   }
 
   async findByProvider(
     providerId: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Booking>> {
     return this.findWithPagination({ providerId }, options);
   }
 
   async findByStatus(
     status: Booking['status'],
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Booking>> {
     return this.findWithPagination({ status }, options);
   }
@@ -273,7 +273,7 @@ export class MongoBookingRepository implements IBookingRepository {
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'BookingRepository:findUpcoming' }) // Cache 5 minutes
   async findUpcoming(
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Booking>> {
     try {
       const now = new Date();
@@ -282,7 +282,7 @@ export class MongoBookingRepository implements IBookingRepository {
           status: { $in: ['PENDING', 'CONFIRMED'] },
           appointmentDate: { $gte: now },
         },
-        options
+        options,
       );
     } catch (error) {
       this.log.error({ error }, 'Error in findUpcoming');
@@ -297,7 +297,7 @@ export class MongoBookingRepository implements IBookingRepository {
   @InvalidateCache('BookingRepository:*') // Invalider le cache après changement de statut
   async updateStatus(
     bookingId: string,
-    status: Booking['status']
+    status: Booking['status'],
   ): Promise<boolean> {
     try {
       const result = await this.update(bookingId, {
@@ -318,7 +318,7 @@ export class MongoBookingRepository implements IBookingRepository {
   @Cacheable(300, { prefix: 'BookingRepository:findBookingsWithFilters' }) // Cache 5 minutes
   async findBookingsWithFilters(
     filters: BookingFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<Booking>> {
     try {
       // Utiliser BookingQueryBuilder pour construire la requête
@@ -329,7 +329,7 @@ export class MongoBookingRepository implements IBookingRepository {
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findBookingsWithFilters'
+        'Error in findBookingsWithFilters',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -347,7 +347,7 @@ export class MongoBookingRepository implements IBookingRepository {
    */
   private buildBookingQuery(
     filters: BookingFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): BookingQueryBuilder {
     const builder = new BookingQueryBuilder();
 
@@ -371,7 +371,7 @@ export class MongoBookingRepository implements IBookingRepository {
           | 'CONFIRMED'
           | 'COMPLETED'
           | 'CANCELLED'
-          | 'NO_SHOW'
+          | 'NO_SHOW',
       );
     }
     if (filters.dateFrom || filters.dateTo) {

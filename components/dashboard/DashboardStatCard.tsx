@@ -35,7 +35,7 @@ const DashboardStatCard = React.memo<DashboardStatCardProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 DashboardStatCard.displayName = "DashboardStatCard";

@@ -67,7 +67,7 @@ export class MongoHealthProviderRepository
       const result = providers.map(p => this.mapToHealthProvider(p));
       this.log.debug(
         { count: result.length, filters },
-        'Health providers found'
+        'Health providers found',
       );
       return result;
     } catch (error) {
@@ -117,13 +117,13 @@ export class MongoHealthProviderRepository
           name: mappedProvider.name,
           type: mappedProvider.type,
         },
-        'Health provider created successfully'
+        'Health provider created successfully',
       );
       return mappedProvider;
     } catch (error) {
       this.log.error(
         { error, name: data.name, type: data.type },
-        'Error in create'
+        'Error in create',
       );
       Sentry.captureException(error);
       throw error;
@@ -134,7 +134,7 @@ export class MongoHealthProviderRepository
   @InvalidateCache('HealthProviderRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
-    data: Partial<HealthProvider>
+    data: Partial<HealthProvider>,
   ): Promise<HealthProvider | null> {
     try {
       const collection = await this.getCollection();
@@ -145,7 +145,7 @@ export class MongoHealthProviderRepository
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
       const updated = result?.['value']
         ? this.mapToHealthProvider(result['value'])
@@ -153,12 +153,12 @@ export class MongoHealthProviderRepository
       if (updated) {
         this.log.info(
           { providerId: id },
-          'Health provider updated successfully'
+          'Health provider updated successfully',
         );
       } else {
         this.log.warn(
           { providerId: id },
-          'Health provider not found for update'
+          'Health provider not found for update',
         );
       }
       return updated;
@@ -179,12 +179,12 @@ export class MongoHealthProviderRepository
       if (deleted) {
         this.log.info(
           { providerId: id },
-          'Health provider deleted successfully'
+          'Health provider deleted successfully',
         );
       } else {
         this.log.warn(
           { providerId: id },
-          'Health provider not found for deletion'
+          'Health provider not found for deletion',
         );
       }
       return deleted;
@@ -219,7 +219,7 @@ export class MongoHealthProviderRepository
       const exists = count > 0;
       this.log.debug(
         { providerId: id, exists },
-        'Health provider existence checked'
+        'Health provider existence checked',
       );
       return exists;
     } catch (error) {
@@ -233,7 +233,7 @@ export class MongoHealthProviderRepository
   @Cacheable(300, { prefix: 'HealthProviderRepository:findWithPagination' }) // Cache 5 minutes
   async findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<HealthProvider>> {
     try {
       const collection = await this.getCollection();
@@ -275,14 +275,14 @@ export class MongoHealthProviderRepository
           offset,
           filters,
         },
-        'Health providers paginated'
+        'Health providers paginated',
       );
 
       return result;
     } catch (error) {
       this.log.error(
         { error, filters, options },
-        'Error in findWithPagination'
+        'Error in findWithPagination',
       );
       Sentry.captureException(error);
       throw error;
@@ -293,13 +293,13 @@ export class MongoHealthProviderRepository
   @Cacheable(300, { prefix: 'HealthProviderRepository:findByType' }) // Cache 5 minutes
   async findByType(
     type: 'DOCTOR' | 'HOSPITAL' | 'PHARMACY' | 'CLINIC',
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<HealthProvider>> {
     try {
       const result = await this.findWithPagination({ type }, options);
       this.log.debug(
         { type, count: result.data.length },
-        'Health providers found by type'
+        'Health providers found by type',
       );
       return result;
     } catch (error) {
@@ -313,16 +313,16 @@ export class MongoHealthProviderRepository
   @Cacheable(300, { prefix: 'HealthProviderRepository:findBySpecialty' }) // Cache 5 minutes
   async findBySpecialty(
     specialty: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<HealthProvider>> {
     try {
       const result = await this.findWithPagination(
         { specialties: { $in: [specialty] } },
-        options
+        options,
       );
       this.log.debug(
         { specialty, count: result.data.length },
-        'Health providers found by specialty'
+        'Health providers found by specialty',
       );
       return result;
     } catch (error) {
@@ -336,16 +336,16 @@ export class MongoHealthProviderRepository
   @Cacheable(300, { prefix: 'HealthProviderRepository:findByCity' }) // Cache 5 minutes
   async findByCity(
     city: string,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<HealthProvider>> {
     try {
       const result = await this.findWithPagination(
         { 'address.city': city },
-        options
+        options,
       );
       this.log.debug(
         { city, count: result.data.length },
-        'Health providers found by city'
+        'Health providers found by city',
       );
       return result;
     } catch (error) {
@@ -358,13 +358,13 @@ export class MongoHealthProviderRepository
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'HealthProviderRepository:findActive' }) // Cache 5 minutes
   async findActive(
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<HealthProvider>> {
     try {
       const result = await this.findWithPagination({ isActive: true }, options);
       this.log.debug(
         { count: result.data.length },
-        'Active health providers found'
+        'Active health providers found',
       );
       return result;
     } catch (error) {
@@ -378,16 +378,16 @@ export class MongoHealthProviderRepository
   @Cacheable(300, { prefix: 'HealthProviderRepository:findByMinRating' }) // Cache 5 minutes
   async findByMinRating(
     minRating: number,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<HealthProvider>> {
     try {
       const result = await this.findWithPagination(
         { rating: { $gte: minRating } },
-        options
+        options,
       );
       this.log.debug(
         { minRating, count: result.data.length },
-        'Health providers found by min rating'
+        'Health providers found by min rating',
       );
       return result;
     } catch (error) {
@@ -403,7 +403,7 @@ export class MongoHealthProviderRepository
   }) // Cache 5 minutes
   async findProvidersWithFilters(
     filters: HealthProviderFilters,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<HealthProvider>> {
     try {
       const query: Record<string, any> = {};
@@ -437,7 +437,7 @@ export class MongoHealthProviderRepository
           total: result.total,
           filters,
         },
-        'Health providers found with filters'
+        'Health providers found with filters',
       );
       return result;
     } catch (error) {

@@ -53,7 +53,7 @@ export function useInvoiceUsers(): UseInvoiceUsersReturn {
           name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Client',
           email: user.email,
           label: `${user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Client'}${user.email ? ` - ${user.email}` : ''}`,
-        })
+        }),
       );
 
       // Transformer les prestataires
@@ -63,7 +63,7 @@ export function useInvoiceUsers(): UseInvoiceUsersReturn {
           name: provider.name || `${provider.firstName || ''} ${provider.lastName || ''}`.trim() || 'Prestataire',
           email: provider.email,
           label: `${provider.name || `${provider.firstName || ''} ${provider.lastName || ''}`.trim() || 'Prestataire'}${provider.specialties?.length ? ` - ${provider.specialties[0]}` : ''}${provider.email ? ` (${provider.email})` : ''}`,
-        })
+        }),
       );
 
       setCustomers(customersList);

@@ -360,7 +360,7 @@ UserSchema.pre('save', async function (next) {
 
 // Méthode pour comparer les mots de passe
 UserSchema.methods['comparePassword'] = async function (
-  candidatePassword: string
+  candidatePassword: string,
 ): Promise<boolean> {
   if (!this['password']) return false;
   return bcrypt.compare(candidatePassword, this['password']);

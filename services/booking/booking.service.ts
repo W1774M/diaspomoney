@@ -6,7 +6,10 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
-import { Validate, ValidationRule } from '@/lib/decorators/validate.decorator';
+import {
+  createValidationRule,
+  Validate,
+} from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
 import { Booking, getBookingRepository, PaginatedResult } from '@/repositories';
 import type { BookingData, BookingServiceFilters } from '@/types/bookings';
@@ -54,7 +57,7 @@ export class BookingService {
         {
           limit: filters['limit'] || 50,
           offset: filters['offset'] || 0,
-        }
+        },
       );
 
       return {
@@ -77,7 +80,11 @@ export class BookingService {
   @Log({ level: 'info', logArgs: true })
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'Booking ID is required'), 'id'),
+      createValidationRule(
+        0,
+        z.string().min(1, 'Booking ID is required'),
+        'id',
+      ),
     ],
   })
   @Cacheable(600, { prefix: 'BookingService:getBookingById' }) // Cache 10 minutes
@@ -104,7 +111,7 @@ export class BookingService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(
+      createValidationRule(
         0,
         z
           .object({
@@ -114,7 +121,7 @@ export class BookingService {
             serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']),
           })
           .passthrough(),
-        'data'
+        'data',
       ),
     ],
   })
@@ -154,12 +161,12 @@ export class BookingService {
   @InvalidateCache('BookingService:*')
   async updateBooking(
     id: string,
-    data: Partial<BookingData>
+    data: Partial<BookingData>,
   ): Promise<Booking> {
     try {
       const updatedBooking = await this.bookingRepository.update(
         id,
-        data as Partial<Booking>
+        data as Partial<Booking>,
       );
 
       if (!updatedBooking) {
@@ -181,7 +188,7 @@ export class BookingService {
   @InvalidateCache('BookingService:*')
   async updateBookingStatus(
     id: string,
-    status: Booking['status']
+    status: Booking['status'],
   ): Promise<boolean> {
     try {
       return await this.bookingRepository.updateStatus(id, status);
@@ -198,7 +205,11 @@ export class BookingService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'Booking ID is required'), 'id'),
+      createValidationRule(
+        0,
+        z.string().min(1, 'Booking ID is required'),
+        'id',
+      ),
     ],
   })
   @InvalidateCache('BookingService:*')
@@ -222,7 +233,7 @@ export class BookingService {
       // Mettre à jour le statut
       const updated = await this.bookingRepository.updateStatus(
         id,
-        'CANCELLED'
+        'CANCELLED',
       );
       if (!updated) {
         throw new Error("Erreur lors de l'annulation de la réservation");
@@ -261,7 +272,7 @@ export class BookingService {
   @Cacheable(900, { prefix: 'BookingService:getUserBookings' }) // Cache 15 minutes
   async getUserBookings(
     userId: string,
-    options?: { limit?: number; offset?: number }
+    options?: { limit?: number; offset?: number },
   ): Promise<PaginatedResult<Booking>> {
     try {
       return await this.bookingRepository.findByRequester(userId, options);
@@ -278,7 +289,7 @@ export class BookingService {
   @Cacheable(900, { prefix: 'BookingService:getProviderBookings' }) // Cache 15 minutes
   async getProviderBookings(
     providerId: string,
-    options?: { limit?: number; offset?: number }
+    options?: { limit?: number; offset?: number },
   ): Promise<PaginatedResult<Booking>> {
     try {
       return await this.bookingRepository.findByProvider(providerId, options);

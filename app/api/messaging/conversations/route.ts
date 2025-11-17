@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       conversations.map(async (conv: any) => {
         // Trouver l'autre participant
         const otherParticipant = conv.participants.find(
-          (p: any) => p._id.toString() !== userId
+          (p: any) => p._id.toString() !== userId,
         );
 
         if (!otherParticipant) return null;
@@ -64,12 +64,12 @@ export async function GET(request: NextRequest) {
             lastMessage?.createdAt || conv.lastMessageAt || new Date(),
           unreadCount: unreadCount || 0,
         };
-      })
+      }),
     );
 
     // Filtrer les null
     const filteredConversations = uiConversations.filter(
-      (c: any) => c !== null
+      (c: any) => c !== null,
     ) as any[];
 
     return NextResponse.json({
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching conversations:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des conversations' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     if (!participantId) {
       return NextResponse.json(
         { error: 'ID du participant requis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     console.error('Error creating conversation:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la création de la conversation' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

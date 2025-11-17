@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     const query = queryBuilder.build();
     const result = await userRepository.findUsersWithFilters(
       query.filters,
-      query.pagination
+      query.pagination,
     );
 
     return NextResponse.json({
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
         success: false,
         error: 'Erreur lors de la récupération des utilisateurs',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
           success: false,
           error: 'Email, prénom et nom sont requis',
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
         success: false,
         error: "Erreur lors de la création de l'utilisateur",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

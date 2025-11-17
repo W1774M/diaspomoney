@@ -33,7 +33,7 @@ export function Cacheable(ttl: number = 300, options: CacheOptions = {}) {
   return function (
     target: any,
     propertyKey: string,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) {
     const originalMethod = descriptor.value;
     if (!originalMethod) {
@@ -113,7 +113,7 @@ export function InvalidateCache(pattern: string) {
   return function (
     _target: any,
     _propertyKey: string,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) {
     const originalMethod = descriptor.value;
     if (!originalMethod) {

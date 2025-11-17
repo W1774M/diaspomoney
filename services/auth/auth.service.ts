@@ -14,7 +14,10 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
-import { Validate, ValidationRule } from '@/lib/decorators/validate.decorator';
+import {
+  createValidationRule,
+  Validate,
+} from '@/lib/decorators/validate.decorator';
 import { sendPasswordResetEmail, sendWelcomeEmail } from '@/lib/email/resend';
 import { childLogger } from '@/lib/logger';
 import dbConnect from '@/lib/mongodb';
@@ -59,7 +62,7 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le mot de passe
   @Validate({
     rules: [
-      ValidationRule(
+      createValidationRule(
         0,
         z
           .object({
@@ -67,7 +70,7 @@ class AuthService {
             password: z.string().min(1, 'Le mot de passe est requis'),
           })
           .passthrough(),
-        'credentials'
+        'credentials',
       ),
     ],
   })
@@ -77,7 +80,7 @@ class AuthService {
     options?: {
       ipAddress?: string;
       userAgent?: string;
-    }
+    },
   ): Promise<AuthResponse> {
     const log = childLogger({ route: 'AuthService:login' });
     try {
@@ -89,7 +92,7 @@ class AuthService {
       if (!user || user.status !== 'ACTIVE') {
         log.warn(
           { email: credentials.email.toLowerCase() },
-          'Login failed: invalid credentials or inactive user'
+          'Login failed: invalid credentials or inactive user',
         );
         // Détecter les tentatives de force brute
         await securityManager.detectAnomalies(
@@ -98,7 +101,7 @@ class AuthService {
           {
             email: credentials.email.toLowerCase(),
             reason: 'user_not_found_or_inactive',
-          }
+          },
         );
         // Enregistrer l'audit log
         await auditLogging.createAuditLog(
@@ -115,7 +118,7 @@ class AuthService {
             outcome: 'FAILURE',
             ipAddress: options?.ipAddress || 'unknown',
             userAgent: options?.userAgent || 'unknown',
-          }
+          },
         );
         throw new Error('Identifiants invalides');
       }
@@ -123,13 +126,13 @@ class AuthService {
       // Vérifier le mot de passe via le repository
       const isPasswordValid = await this.userRepository.verifyPassword(
         user.id,
-        credentials.password
+        credentials.password,
       );
 
       if (!isPasswordValid) {
         log.warn(
           { email: credentials.email.toLowerCase() },
-          'Login failed: invalid password'
+          'Login failed: invalid password',
         );
         // Détecter les tentatives de force brute
         await securityManager.detectAnomalies(user.id, 'LOGIN_FAILED', {
@@ -151,7 +154,7 @@ class AuthService {
             outcome: 'FAILURE',
             ipAddress: options?.ipAddress || 'unknown',
             userAgent: options?.userAgent || 'unknown',
-          }
+          },
         );
         throw new Error('Identifiants invalides');
       }
@@ -186,12 +189,12 @@ class AuthService {
           outcome: 'SUCCESS',
           ipAddress: options?.ipAddress || 'unknown',
           userAgent: options?.userAgent || 'unknown',
-        }
+        },
       );
 
       log.info(
         { userId: user.id, email: user.email },
-        'User logged in successfully'
+        'User logged in successfully',
       );
 
       return {
@@ -220,7 +223,7 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le mot de passe
   @Validate({
     rules: [
-      ValidationRule(
+      createValidationRule(
         0,
         z
           .object({
@@ -233,7 +236,7 @@ class AuthService {
             }),
           })
           .passthrough(),
-        'data'
+        'data',
       ),
     ],
   })
@@ -243,7 +246,7 @@ class AuthService {
     options?: {
       ipAddress?: string;
       userAgent?: string;
-    }
+    },
   ): Promise<AuthResponse> {
     const log = childLogger({ route: 'AuthService:register' });
     try {
@@ -254,7 +257,7 @@ class AuthService {
       if (data.password && data.password.length < 8) {
         log.warn(
           { email: data.email.toLowerCase() },
-          'Registration failed: password too short'
+          'Registration failed: password too short',
         );
         throw new Error('Le mot de passe doit contenir au moins 8 caractères');
       }
@@ -267,7 +270,7 @@ class AuthService {
       if (existingUser) {
         log.warn(
           { email: data.email.toLowerCase() },
-          'Registration failed: email already exists'
+          'Registration failed: email already exists',
         );
         // Enregistrer l'audit log
         await auditLogging.createAuditLog(
@@ -283,7 +286,7 @@ class AuthService {
             outcome: 'FAILURE',
             ipAddress: options?.ipAddress || 'unknown',
             userAgent: options?.userAgent || 'unknown',
-          }
+          },
         );
         throw new Error('Un compte avec cet email existe déjà');
       }
@@ -318,7 +321,7 @@ class AuthService {
       const emailVerificationToken = jwt.sign(
         { userId: user._id?.toString() || user.id, type: 'email_verification' },
         process.env['JWT_SECRET']!,
-        { expiresIn: '24h' }
+        { expiresIn: '24h' },
       );
 
       // Envoyer l'email de bienvenue avec lien de vérification
@@ -328,13 +331,13 @@ class AuthService {
       const emailSent = await sendWelcomeEmail(
         user.email,
         `${user.firstName} ${user.lastName}`,
-        verificationUrl
+        verificationUrl,
       );
 
       if (!emailSent) {
         log.warn(
           { email: user.email },
-          "⚠️ Échec de l'envoi de l'email de bienvenue"
+          "⚠️ Échec de l'envoi de l'email de bienvenue",
         );
         // Ne pas faire échouer l'inscription à cause de l'email
         // L'utilisateur peut toujours se connecter et demander un renvoi
@@ -343,7 +346,7 @@ class AuthService {
         await notificationService.sendWelcomeNotification(
           user.email,
           `${user.firstName} ${user.lastName}`,
-          'fr'
+          'fr',
         );
       }
 
@@ -369,12 +372,12 @@ class AuthService {
           outcome: 'SUCCESS',
           ipAddress: options?.ipAddress || 'unknown',
           userAgent: options?.userAgent || 'unknown',
-        }
+        },
       );
 
       log.info(
         { userId: user._id?.toString() || user.id, email: user.email },
-        'User registered successfully'
+        'User registered successfully',
       );
 
       return {
@@ -393,7 +396,7 @@ class AuthService {
       const log = childLogger({ route: 'AuthService:register' });
       log.error(
         { error, msg: 'Error during registration' },
-        'Registration error'
+        'Registration error',
       );
       Sentry.captureException(error);
       throw error;
@@ -406,10 +409,10 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token
   @Validate({
     rules: [
-      ValidationRule(
+      createValidationRule(
         0,
         z.string().min(1, 'Le refresh token est requis'),
-        'refreshToken'
+        'refreshToken',
       ),
     ],
   })
@@ -420,7 +423,7 @@ class AuthService {
       // Vérifier le refresh token
       const decoded = await securityManager.verifyToken(
         refreshToken,
-        'refresh'
+        'refresh',
       );
 
       // Récupérer l'utilisateur via le repository
@@ -429,7 +432,7 @@ class AuthService {
       if (!user || user.status !== 'ACTIVE') {
         log.warn(
           { userId: decoded.userId },
-          'Token refresh failed: user not found or inactive'
+          'Token refresh failed: user not found or inactive',
         );
         throw new Error('Utilisateur non trouvé ou inactif');
       }
@@ -443,7 +446,7 @@ class AuthService {
 
       log.info(
         { userId: user.id, email: user.email },
-        'Token refreshed successfully'
+        'Token refreshed successfully',
       );
 
       return {
@@ -462,7 +465,7 @@ class AuthService {
       const log = childLogger({ route: 'AuthService:refreshToken' });
       log.error(
         { error, msg: 'Error refreshing token' },
-        'Token refresh error'
+        'Token refresh error',
       );
       throw new Error('Token de rafraîchissement invalide');
     }
@@ -474,10 +477,10 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token
   @Validate({
     rules: [
-      ValidationRule(
+      createValidationRule(
         0,
         z.string().min(1, 'Le token est requis'),
-        'accessToken'
+        'accessToken',
       ),
     ],
   })
@@ -510,7 +513,7 @@ class AuthService {
           // Ne pas faire échouer la déconnexion si Redis échoue
           log.warn(
             { error: redisError, userId },
-            'Failed to delete session from Redis, continuing logout'
+            'Failed to delete session from Redis, continuing logout',
           );
         }
       }
@@ -528,7 +531,11 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'Le token est requis'), 'token'),
+      createValidationRule(
+        0,
+        z.string().min(1, 'Le token est requis'),
+        'token',
+      ),
     ],
   })
   @Cacheable(300, { prefix: 'AuthService:verifyToken' }) // Cache 5 minutes
@@ -543,14 +550,14 @@ class AuthService {
       if (!user || user.status !== 'ACTIVE') {
         log.warn(
           { userId: decoded.userId },
-          'Token verification failed: user not found or inactive'
+          'Token verification failed: user not found or inactive',
         );
         throw new Error('Utilisateur non trouvé ou inactif');
       }
 
       log.debug(
         { userId: user.id, email: user.email },
-        'Token verified successfully'
+        'Token verified successfully',
       );
 
       return {
@@ -564,7 +571,7 @@ class AuthService {
       const log = childLogger({ route: 'AuthService:verifyToken' });
       log.error(
         { error, msg: 'Error verifying token' },
-        'Token verification error'
+        'Token verification error',
       );
       throw new Error('Token invalide');
     }
@@ -576,7 +583,11 @@ class AuthService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'User ID is required'), 'userId'),
+      createValidationRule(
+        0,
+        z.string().min(1, 'User ID is required'),
+        'userId',
+      ),
     ],
   })
   @InvalidateCache('AuthService:*') // Invalider le cache après configuration 2FA
@@ -610,7 +621,7 @@ class AuthService {
       await this.userRepository.setup2FA(
         userId,
         secret.base32 || '',
-        backupCodes
+        backupCodes,
       );
 
       log.info({ userId }, '2FA setup initiated');
@@ -623,7 +634,7 @@ class AuthService {
     } catch (error) {
       log.error(
         { error, userId, msg: 'Error setting up 2FA' },
-        '2FA setup error'
+        '2FA setup error',
       );
       Sentry.captureException(error);
       throw error;
@@ -636,8 +647,12 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'User ID is required'), 'userId'),
-      ValidationRule(1, z.string().min(1, 'Token is required'), 'token'),
+      createValidationRule(
+        0,
+        z.string().min(1, 'User ID is required'),
+        'userId',
+      ),
+      createValidationRule(1, z.string().min(1, 'Token is required'), 'token'),
     ],
   })
   @InvalidateCache('AuthService:*') // Invalider le cache après activation 2FA
@@ -670,7 +685,7 @@ class AuthService {
     } catch (error) {
       log.error(
         { error, userId, msg: 'Error enabling 2FA' },
-        '2FA enable error'
+        '2FA enable error',
       );
       Sentry.captureException(error);
       throw error;
@@ -683,8 +698,12 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'User ID is required'), 'userId'),
-      ValidationRule(1, z.string().min(1, 'Token is required'), 'token'),
+      createValidationRule(
+        0,
+        z.string().min(1, 'User ID is required'),
+        'userId',
+      ),
+      createValidationRule(1, z.string().min(1, 'Token is required'), 'token'),
     ],
   })
   async verify2FA(userId: string, token: string): Promise<boolean> {
@@ -695,7 +714,7 @@ class AuthService {
       if (!twoFAInfo || !twoFAInfo.twoFactorEnabled) {
         log.warn(
           { userId },
-          '2FA verification failed: user not found or 2FA not enabled'
+          '2FA verification failed: user not found or 2FA not enabled',
         );
         return false;
       }
@@ -712,7 +731,7 @@ class AuthService {
           updatedBackupCodes.splice(backupIndex, 1);
           await this.userRepository.update2FABackupCodes(
             userId,
-            updatedBackupCodes
+            updatedBackupCodes,
           );
           log.debug({ userId }, '2FA verified successfully with backup code');
           return true;
@@ -742,7 +761,7 @@ class AuthService {
     } catch (error) {
       log.error(
         { error, userId, msg: 'Error verifying 2FA' },
-        '2FA verification error'
+        '2FA verification error',
       );
       Sentry.captureException(error);
       return false;
@@ -754,7 +773,9 @@ class AuthService {
    */
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger l'email
   @Validate({
-    rules: [ValidationRule(0, z.string().email('Email invalide'), 'email')],
+    rules: [
+      createValidationRule(0, z.string().email('Email invalide'), 'email'),
+    ],
   })
   async requestPasswordReset(email: string): Promise<boolean> {
     const log = childLogger({ route: 'AuthService:requestPasswordReset' });
@@ -768,7 +789,7 @@ class AuthService {
         // Ne pas révéler si l'email existe ou non
         log.warn(
           { email: email.toLowerCase() },
-          'Password reset requested for non-existent email'
+          'Password reset requested for non-existent email',
         );
         return false;
       }
@@ -780,7 +801,7 @@ class AuthService {
           type: 'password_reset',
         },
         process.env['JWT_SECRET']!,
-        { expiresIn: '1h' }
+        { expiresIn: '1h' },
       );
 
       // Construire l'URL de réinitialisation
@@ -794,18 +815,18 @@ class AuthService {
         const emailSent = await sendPasswordResetEmail(
           user.email,
           userName,
-          resetUrl
+          resetUrl,
         );
 
         if (emailSent) {
           log.info(
             { email: user.email, userId: user.id },
-            'Password reset email sent successfully'
+            'Password reset email sent successfully',
           );
         } else {
           log.warn(
             { email: user.email, userId: user.id },
-            'Failed to send password reset email'
+            'Failed to send password reset email',
           );
           // Ne pas faire échouer la demande si l'email échoue
           // L'utilisateur peut toujours demander un nouveau reset
@@ -818,7 +839,7 @@ class AuthService {
             resetToken,
             resetUrl,
           },
-          'Password reset token generated (email service not configured - token logged for development)'
+          'Password reset token generated (email service not configured - token logged for development)',
         );
       }
 
@@ -826,7 +847,7 @@ class AuthService {
     } catch (error) {
       log.error(
         { error, msg: 'Error requesting password reset' },
-        'Password reset request error'
+        'Password reset request error',
       );
       return false;
     }
@@ -838,13 +859,13 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token ni le mot de passe
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'Token is required'), 'token'),
-      ValidationRule(
+      createValidationRule(0, z.string().min(1, 'Token is required'), 'token'),
+      createValidationRule(
         1,
         z
           .string()
           .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
-        'newPassword'
+        'newPassword',
       ),
     ],
   })
@@ -863,7 +884,7 @@ class AuthService {
       if (newPassword.length < 8) {
         log.warn(
           { userId: decoded.userId },
-          'Password reset failed: password too short'
+          'Password reset failed: password too short',
         );
         return false;
       }
@@ -875,13 +896,13 @@ class AuthService {
       const updated = await this.userRepository.updatePassword(
         decoded.userId,
         hashedPassword,
-        true // Mettre à jour passwordChangedAt
+        true, // Mettre à jour passwordChangedAt
       );
 
       if (!updated) {
         log.warn(
           { userId: decoded.userId },
-          'Password reset failed: user not found'
+          'Password reset failed: user not found',
         );
         return false;
       }
@@ -896,7 +917,7 @@ class AuthService {
           category: 'AUTHENTICATION',
           severity: 'MEDIUM',
           outcome: 'SUCCESS',
-        }
+        },
       );
 
       log.info({ userId: decoded.userId }, 'Password reset successfully');
@@ -905,7 +926,7 @@ class AuthService {
     } catch (error) {
       log.error(
         { error, msg: 'Error resetting password' },
-        'Password reset error'
+        'Password reset error',
       );
       return false;
     }

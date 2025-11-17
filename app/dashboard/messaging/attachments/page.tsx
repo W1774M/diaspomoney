@@ -23,7 +23,7 @@ export default function AttachmentsPage() {
   const [attachments, setAttachments] = useState<UIAttachment[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'image' | 'document'>(
-    'all'
+    'all',
   );
   const [loading, setLoading] = useState(true);
 
@@ -52,7 +52,7 @@ export default function AttachmentsPage() {
       }
 
       const response = await fetch(
-        `/api/messaging/attachments?${params.toString()}`
+        `/api/messaging/attachments?${params.toString()}`,
       );
       const data = await response.json();
 
@@ -68,7 +68,7 @@ export default function AttachmentsPage() {
             uploadedAt: new Date(att.uploadedAt),
             conversationId: att.conversationId,
             messageId: att.messageId,
-          }))
+          })),
         );
       }
     } catch (error) {
@@ -79,9 +79,9 @@ export default function AttachmentsPage() {
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    if (bytes < 1024) return `${bytes  } B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)  } KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)  } MB`;
   };
 
   const getFileIcon = (type: string) => {
@@ -115,7 +115,7 @@ export default function AttachmentsPage() {
         `/api/messaging/attachments?id=${attachmentId}`,
         {
           method: 'DELETE',
-        }
+        },
       );
 
       const data = await response.json();

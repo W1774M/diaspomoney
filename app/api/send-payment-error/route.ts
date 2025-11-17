@@ -29,8 +29,8 @@ const sendEmail = async (to: string, subject: string, html: string) => {
   // En mode développement, simuler l'envoi d'email
   if (config.isDevelopment) {
     console.log("📧 [DEV] Email simulé :", { to, subject });
-    console.log("📧 [DEV] Contenu HTML :", html.substring(0, 200) + "...");
-    return { messageId: "dev-" + Date.now() };
+    console.log("📧 [DEV] Contenu HTML :", `${html.substring(0, 200)  }...`);
+    return { messageId: `dev-${  Date.now()}` };
   }
 
   return await transporter.sendMail({
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (!appointment || !paymentData) {
       return NextResponse.json(
         { error: "Données manquantes" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
             <div class="highlight">
                 <h2>🚨 Action requise</h2>
                 <p><strong>Date de l'erreur :</strong> ${new Date().toLocaleDateString(
-                  "fr-FR"
+                  "fr-FR",
                 )} à ${new Date().toLocaleTimeString("fr-FR")}</p>
                 <p><strong>Erreur :</strong> ${errorMessage}</p>
             </div>
@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
             <div class="warning">
                 <h3>⏰ Lien valide 15 minutes</h3>
                 <p>Ce lien expirera le <strong>${expiresAt.toLocaleString(
-                  "fr-FR"
+                  "fr-FR",
                 )}</strong></p>
                 <p>Si le lien expire, vous devrez refaire votre réservation.</p>
             </div>
@@ -301,14 +301,14 @@ export async function POST(request: NextRequest) {
     await sendEmail(
       process.env["EMAIL_CONTACT"] || "contact@diaspomoney.fr",
       adminSubject,
-      adminEmailContent
+      adminEmailContent,
     );
 
     // Envoi au client
     await sendEmail(
       appointment.requester.email,
       clientSubject,
-      clientEmailContent
+      clientEmailContent,
     );
 
     return NextResponse.json(
@@ -319,13 +319,13 @@ export async function POST(request: NextRequest) {
         expiresAt: expiresAt.toISOString(),
         retryUrl: retryUrl,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Erreur lors de l'envoi des emails d'erreur:", error);
     return NextResponse.json(
       { error: "Erreur lors de l'envoi des emails d'erreur" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

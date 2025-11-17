@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         limit,
         offset: (page - 1) * limit,
         sort: { paidAt: -1, createdAt: -1 },
-      }
+      },
     );
 
     // Récupérer les informations des prestataires
@@ -57,8 +57,8 @@ export async function GET(request: NextRequest) {
       new Set(
         invoicesResult.data
           .map(inv => inv.metadata?.['providerId'])
-          .filter((id): id is string => Boolean(id))
-      )
+          .filter((id): id is string => Boolean(id)),
+      ),
     );
 
     const providers = await Promise.all(
@@ -79,13 +79,13 @@ export async function GET(request: NextRequest) {
         } catch {
           return null;
         }
-      })
+      }),
     );
 
     const providerMap = new Map(
       providers
         .filter((p): p is { id: string; name: string } => p !== null)
-        .map(p => [p.id, p.name])
+        .map(p => [p.id, p.name]),
     );
 
     // Transformer les factures en reçus de paiement
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
         receiptsCount: receipts.length,
         total: invoicesResult.total,
       },
-      'Payment receipts fetched successfully'
+      'Payment receipts fetched successfully',
     );
 
     return NextResponse.json({
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     log.error(
       { error, msg: 'Error fetching payment receipts' },
-      'Error fetching payment receipts'
+      'Error fetching payment receipts',
     );
     Sentry.captureException(error, {
       tags: {
@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des reçus' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

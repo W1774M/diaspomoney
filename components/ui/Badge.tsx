@@ -20,13 +20,13 @@ const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
               variant === 'destructive',
             'text-foreground': variant === 'outline',
           },
-          className
+          className,
         )}
         ref={ref}
         {...props}
       />
     );
-  }
+  },
 );
 Badge.displayName = 'Badge';
 

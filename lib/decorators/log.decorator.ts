@@ -56,7 +56,7 @@ export function Log(options: LogOptions = {}) {
   return function (
     target: any,
     propertyKey: string,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) {
     const originalMethod = descriptor.value;
     if (!originalMethod) {

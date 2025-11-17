@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -53,7 +53,7 @@ export async function GET(
       });
       return NextResponse.json(
         { error: 'Accès non autorisé' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -67,7 +67,7 @@ export async function GET(
         invoiceNumber: invoice.invoiceNumber,
         pdfSize: pdfBuffer.length,
       },
-      'Invoice PDF generated successfully'
+      'Invoice PDF generated successfully',
     );
 
     // Retourner le PDF avec les headers appropriés
@@ -89,7 +89,7 @@ export async function GET(
     });
     return NextResponse.json(
       { error: 'Erreur lors du téléchargement de la facture' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

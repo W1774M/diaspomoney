@@ -30,7 +30,7 @@ export default function NewCardPage() {
 
   const handleInputChange = (
     field: keyof CardFormData,
-    value: string | boolean
+    value: string | boolean,
   ) => {
     setFormData(prev => ({
       ...prev,
@@ -81,7 +81,7 @@ export default function NewCardPage() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear + i);
   const months = Array.from({ length: 12 }, (_, i) =>
-    String(i + 1).padStart(2, '0')
+    String(i + 1).padStart(2, '0'),
   );
 
   return (

@@ -117,7 +117,7 @@ export function usePaymentMethodCreate(): UsePaymentMethodCreateReturn {
               component: 'usePaymentMethodCreate',
               action: 'createCard',
             },
-          }
+          },
         );
 
         return null;
@@ -125,7 +125,7 @@ export function usePaymentMethodCreate(): UsePaymentMethodCreateReturn {
         setLoading(false);
       }
     },
-    [addSuccess, addError]
+    [addSuccess, addError],
   );
 
   const createPayPal = useCallback(
@@ -201,7 +201,7 @@ export function usePaymentMethodCreate(): UsePaymentMethodCreateReturn {
               component: 'usePaymentMethodCreate',
               action: 'createPayPal',
             },
-          }
+          },
         );
 
         return null;
@@ -209,7 +209,7 @@ export function usePaymentMethodCreate(): UsePaymentMethodCreateReturn {
         setLoading(false);
       }
     },
-    [addSuccess, addError]
+    [addSuccess, addError],
   );
 
   return {

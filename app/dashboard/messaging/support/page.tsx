@@ -59,7 +59,7 @@ export default function SupportChatPage() {
     await sendSupportMessage(
       user.id,
       messageText,
-      attachmentIds.length > 0 ? attachmentIds : undefined
+      attachmentIds.length > 0 ? attachmentIds : undefined,
     ).catch(() => {
       // Le hook gère déjà les erreurs via notifications
     });
@@ -94,7 +94,7 @@ export default function SupportChatPage() {
 
         if (!allowedTypes.includes(file.type)) {
           throw new Error(
-            `Type de fichier non autorisé pour ${file.name}. Types autorisés: images, PDF, Word, texte.`
+            `Type de fichier non autorisé pour ${file.name}. Types autorisés: images, PDF, Word, texte.`,
           );
         }
 
@@ -102,7 +102,7 @@ export default function SupportChatPage() {
         const maxSize = 10 * 1024 * 1024; // 10MB
         if (file.size > maxSize) {
           throw new Error(
-            `Le fichier ${file.name} est trop volumineux (max 10MB).`
+            `Le fichier ${file.name} est trop volumineux (max 10MB).`,
           );
         }
 
@@ -119,7 +119,7 @@ export default function SupportChatPage() {
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(
-            errorData.error || `Erreur lors de l'upload de ${file.name}`
+            errorData.error || `Erreur lors de l'upload de ${file.name}`,
           );
         }
 
@@ -133,7 +133,7 @@ export default function SupportChatPage() {
           };
         } else {
           throw new Error(
-            data.error || `Erreur lors de l'upload de ${file.name}`
+            data.error || `Erreur lors de l'upload de ${file.name}`,
           );
         }
       });

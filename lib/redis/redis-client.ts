@@ -262,7 +262,7 @@ export class RedisClient {
   async rateLimit(
     key: string,
     limit: number,
-    window: number
+    window: number,
   ): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
     try {
       const current = await this.incrWithExpiry(key, window);
@@ -296,7 +296,7 @@ export class RedisClient {
   async cache<T>(
     key: string,
     fetcher: () => Promise<T>,
-    ttl: number = 3600
+    ttl: number = 3600,
   ): Promise<T> {
     try {
       // Essayer de récupérer du cache
@@ -327,7 +327,7 @@ export class RedisClient {
   async setSession(
     sessionId: string,
     data: any,
-    ttl: number = 86400
+    ttl: number = 86400,
   ): Promise<boolean> {
     try {
       const key = `session:${sessionId}`;
@@ -385,14 +385,14 @@ export class RedisClient {
       const key = `blacklist:${token}`;
       const result = await this.set(key, '1', expiresIn);
       log.debug(
-        { token: token.slice(0, 10) + '...', expiresIn },
-        'Redis blacklistToken'
+        { token: `${token.slice(0, 10)  }...`, expiresIn },
+        'Redis blacklistToken',
       );
       return result;
     } catch (error) {
       log.error(
-        { error, token: token.slice(0, 10) + '...' },
-        'Redis blacklistToken error'
+        { error, token: `${token.slice(0, 10)  }...` },
+        'Redis blacklistToken error',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'RedisClient', action: 'blacklistToken' },
@@ -406,14 +406,14 @@ export class RedisClient {
       const key = `blacklist:${token}`;
       const isBlacklisted = await this.exists(key);
       log.debug(
-        { token: token.slice(0, 10) + '...', isBlacklisted },
-        'Redis isTokenBlacklisted'
+        { token: `${token.slice(0, 10)  }...`, isBlacklisted },
+        'Redis isTokenBlacklisted',
       );
       return isBlacklisted;
     } catch (error) {
       log.error(
-        { error, token: token.slice(0, 10) + '...' },
-        'Redis isTokenBlacklisted error'
+        { error, token: `${token.slice(0, 10)  }...` },
+        'Redis isTokenBlacklisted error',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'RedisClient', action: 'isTokenBlacklisted' },

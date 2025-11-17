@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching support tickets:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des tickets' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -5,7 +5,10 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
-import { Validate, ValidationRule } from '@/lib/decorators/validate.decorator';
+import {
+  createValidationRule,
+  Validate,
+} from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
 import { getInvoiceRepository, Invoice, PaginatedResult } from '@/repositories';
 import * as Sentry from '@sentry/nextjs';
@@ -54,11 +57,17 @@ export class InvoiceService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(0, z.object({
-        userId: z.string().min(1, 'User ID is required'),
-        amount: z.number().positive('Amount must be positive'),
-        currency: z.string().length(3, 'Currency must be 3 characters'),
-      }).passthrough(), 'data'),
+      createValidationRule(
+        0,
+        z
+          .object({
+            userId: z.string().min(1, 'User ID is required'),
+            amount: z.number().positive('Amount must be positive'),
+            currency: z.string().length(3, 'Currency must be 3 characters'),
+          })
+          .passthrough(),
+        'data',
+      ),
     ],
   })
   @InvalidateCache('InvoiceService:*')
@@ -78,7 +87,8 @@ export class InvoiceService {
       const totalAmount = data.amount + tax;
 
       // Générer le numéro de facture
-      const invoiceNumber = await this.invoiceRepository.generateInvoiceNumber();
+      const invoiceNumber =
+        await this.invoiceRepository.generateInvoiceNumber();
 
       // Créer la facture via le repository
       const invoice = await this.invoiceRepository.create({
@@ -111,14 +121,18 @@ export class InvoiceService {
   @Log({ level: 'info', logArgs: true })
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'Invoice ID is required'), 'id'),
+      createValidationRule(
+        0,
+        z.string().min(1, 'Invoice ID is required'),
+        'id',
+      ),
     ],
   })
   @Cacheable(600, { prefix: 'InvoiceService:getInvoiceById' }) // Cache 10 minutes
   async getInvoiceById(id: string): Promise<Invoice> {
     try {
       const invoice = await this.invoiceRepository.findById(id);
-      
+
       if (!invoice) {
         throw new Error('Facture non trouvée');
       }
@@ -137,7 +151,7 @@ export class InvoiceService {
   @Cacheable(900, { prefix: 'InvoiceService:getUserInvoices' }) // Cache 15 minutes
   async getUserInvoices(
     userId: string,
-    options?: { limit?: number; offset?: number }
+    options?: { limit?: number; offset?: number },
   ): Promise<PaginatedResult<Invoice>> {
     try {
       return await this.invoiceRepository.findByUser(userId, options);
@@ -154,10 +168,13 @@ export class InvoiceService {
   @Cacheable(900, { prefix: 'InvoiceService:getInvoices' }) // Cache 15 minutes
   async getInvoices(
     filters: Record<string, any>,
-    options?: { limit?: number; offset?: number }
+    options?: { limit?: number; offset?: number },
   ): Promise<PaginatedResult<Invoice>> {
     try {
-      return await this.invoiceRepository.findInvoicesWithFilters(filters, options);
+      return await this.invoiceRepository.findInvoicesWithFilters(
+        filters,
+        options,
+      );
     } catch (error) {
       logger.error({ error, filters }, 'Erreur getInvoices');
       Sentry.captureException(error);
@@ -171,7 +188,7 @@ export class InvoiceService {
   @InvalidateCache('InvoiceService:*')
   async updateInvoice(
     id: string,
-    data: Partial<InvoiceData>
+    data: Partial<InvoiceData>,
   ): Promise<Invoice> {
     try {
       const updateData: Partial<Invoice> = {
@@ -186,11 +203,15 @@ export class InvoiceService {
       if (data.amount !== undefined || data.tax !== undefined) {
         const invoice = await this.invoiceRepository.findById(id);
         if (invoice) {
-          updateData.totalAmount = (data.amount || invoice.amount) + (data.tax || invoice.tax || 0);
+          updateData.totalAmount =
+            (data.amount || invoice.amount) + (data.tax || invoice.tax || 0);
         }
       }
 
-      const updatedInvoice = await this.invoiceRepository.update(id, updateData);
+      const updatedInvoice = await this.invoiceRepository.update(
+        id,
+        updateData,
+      );
 
       if (!updatedInvoice) {
         throw new Error('Facture non trouvée');
@@ -209,7 +230,7 @@ export class InvoiceService {
    */
   async updateInvoiceStatus(
     id: string,
-    status: Invoice['status']
+    status: Invoice['status'],
   ): Promise<boolean> {
     try {
       return await this.invoiceRepository.updateStatus(id, status);
@@ -236,9 +257,10 @@ export class InvoiceService {
   /**
    * Récupérer les factures en retard
    */
-  async getOverdueInvoices(
-    options?: { limit?: number; offset?: number }
-  ): Promise<PaginatedResult<Invoice>> {
+  async getOverdueInvoices(options?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<PaginatedResult<Invoice>> {
     try {
       return await this.invoiceRepository.findOverdue(options);
     } catch (error) {
@@ -273,4 +295,3 @@ export class InvoiceService {
 
 // Export singleton
 export const invoiceService = InvoiceService.getInstance();
-

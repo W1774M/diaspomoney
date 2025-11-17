@@ -15,14 +15,14 @@ const ServicesFilters = React.memo<ServiceFiltersProps>(
       (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedSpecialty(e.target.value);
       },
-      [setSelectedSpecialty]
+      [setSelectedSpecialty],
     );
 
     const handleRatingChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         setMinRating(Number(e.target.value));
       },
-      [setMinRating]
+      [setMinRating],
     );
 
     return (
@@ -62,7 +62,7 @@ const ServicesFilters = React.memo<ServiceFiltersProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 ServicesFilters.displayName = "ServicesFilters";

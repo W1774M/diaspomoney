@@ -416,7 +416,7 @@ export class EducationService {
     studentData: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>,
     schoolId: string,
     programId: string,
-    academicYear: string
+    academicYear: string,
   ): Promise<Enrollment> {
     try {
       // Créer l'étudiant
@@ -486,7 +486,7 @@ export class EducationService {
 
       this.log.info(
         { enrollmentId: enrollment.id, studentId: student.id, schoolId },
-        'Student enrolled successfully'
+        'Student enrolled successfully',
       );
       return enrollment;
     } catch (error) {
@@ -508,7 +508,7 @@ export class EducationService {
     _enrollmentId: string,
     amount: number,
     currency: string,
-    paymentMethod: string
+    paymentMethod: string,
   ): Promise<{
     success: boolean;
     transactionId?: string;
@@ -556,7 +556,7 @@ export class EducationService {
     } catch (error) {
       this.log.error(
         { error, enrollmentId: _enrollmentId, amount },
-        'Error in payTuition'
+        'Error in payTuition',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'EducationService', action: 'payTuition' },
@@ -579,7 +579,7 @@ export class EducationService {
     grade: number,
     maxGrade: number,
     instructorId: string,
-    comments?: string
+    comments?: string,
   ): Promise<any> {
     try {
       const gradeRecord = {
@@ -602,7 +602,7 @@ export class EducationService {
 
       this.log.info(
         { gradeId: gradeRecord.id, studentId, courseId, grade },
-        'Grade recorded successfully'
+        'Grade recorded successfully',
       );
       return gradeRecord;
     } catch (error) {
@@ -626,7 +626,7 @@ export class EducationService {
     date: Date,
     status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED',
     recordedBy: string,
-    notes?: string
+    notes?: string,
   ): Promise<Attendance> {
     try {
       const attendance: Attendance = {
@@ -656,13 +656,13 @@ export class EducationService {
 
       this.log.info(
         { attendanceId: attendance.id, studentId, courseId, status },
-        'Attendance recorded successfully'
+        'Attendance recorded successfully',
       );
       return attendance;
     } catch (error) {
       this.log.error(
         { error, studentId, courseId },
-        'Error in recordAttendance'
+        'Error in recordAttendance',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'EducationService', action: 'recordAttendance' },
@@ -679,7 +679,7 @@ export class EducationService {
   @Cacheable(300, { prefix: 'EducationService:getStudentTranscript' }) // Cache 5 minutes
   async getStudentTranscript(
     _studentId: string,
-    _academicYear?: string
+    _academicYear?: string,
   ): Promise<{
     student: Student;
     grades: any[];
@@ -697,7 +697,7 @@ export class EducationService {
     } catch (error) {
       this.log.error(
         { error, studentId: _studentId },
-        'Error in getStudentTranscript'
+        'Error in getStudentTranscript',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'EducationService', action: 'getStudentTranscript' },
@@ -850,7 +850,7 @@ export class EducationService {
           studentType: data.studentType,
           schoolId: data.schoolId,
         },
-        'Education inquiry created successfully'
+        'Education inquiry created successfully',
       );
       return quote;
     } catch (error) {

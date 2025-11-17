@@ -19,7 +19,7 @@ function formatPrometheusMetrics(): string {
 
   // Métriques de performance
   const performanceMetrics = metrics.filter(m =>
-    m.name.includes('http_request_duration')
+    m.name.includes('http_request_duration'),
   );
   for (const metric of performanceMetrics) {
     const labels = metric.labels
@@ -94,7 +94,7 @@ function formatPrometheusMetrics(): string {
 
   // Métriques par sévérité
   const criticalAlerts = activeAlerts.filter(
-    a => a.severity === 'critical'
+    a => a.severity === 'critical',
   ).length;
   const highAlerts = activeAlerts.filter(a => a.severity === 'high').length;
   const mediumAlerts = activeAlerts.filter(a => a.severity === 'medium').length;

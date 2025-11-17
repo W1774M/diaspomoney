@@ -129,12 +129,12 @@ export default function InvoiceDetailPage() {
           </div>
           <span
             className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getInvoiceStatusColor(
-              invoice.status
+              invoice.status,
             )}`}
           >
             {(() => {
               const found = INVOICE_STATUSES.find(
-                s => s.valueOf() === invoice.status
+                s => s.valueOf() === invoice.status,
               );
               return typeof found === 'string'
                 ? found
@@ -167,7 +167,7 @@ export default function InvoiceDetailPage() {
                 </label>
                 <span
                   className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getInvoiceStatusColor(
-                    invoice.status
+                    invoice.status,
                   )}`}
                 >
                   {invoice.status}

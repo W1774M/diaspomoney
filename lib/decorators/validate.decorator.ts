@@ -1,6 +1,6 @@
 /**
  * Validate Decorator Pattern
- * 
+ *
  * Decorator pour ajouter de la validation automatique aux méthodes de service
  * Utilise Zod pour valider les arguments
  */
@@ -23,9 +23,9 @@ interface ValidateOptions {
 
 /**
  * Decorator Validate pour ajouter de la validation aux méthodes
- * 
+ *
  * @param options - Options de validation avec les règles
- * 
+ *
  * @example
  * class UserService {
  *   @Validate({
@@ -42,23 +42,23 @@ export function Validate(options: ValidateOptions) {
   return function (
     target: any,
     propertyKey: string,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) {
     const originalMethod = descriptor.value;
     if (!originalMethod) {
       return;
     }
 
-    const {
-      rules,
-      throwOnError = true,
-      logErrors = true,
-    } = options;
+    const { rules, throwOnError = true, logErrors = true } = options;
 
     descriptor.value = async function (this: any, ...args: any[]) {
       const className = target.constructor.name;
       const methodName = propertyKey;
-      const validationErrors: Array<{ paramIndex: number; paramName?: string; errors: string[] }> = [];
+      const validationErrors: Array<{
+        paramIndex: number;
+        paramName?: string;
+        errors: string[];
+      }> = [];
 
       // Valider chaque paramètre selon les règles
       for (const rule of rules) {
@@ -81,15 +81,20 @@ export function Validate(options: ValidateOptions) {
 
           // Logger l'erreur de validation
           if (logErrors) {
-            logger.warn({
-              type: 'validation_error',
-              class: className,
-              method: methodName,
-              paramIndex,
-              paramName: paramName || `param${paramIndex}`,
-              errors,
-              value: paramValue,
-            }, `Validation failed for ${className}.${methodName} - ${paramName || `param${paramIndex}`}`);
+            logger.warn(
+              {
+                type: 'validation_error',
+                class: className,
+                method: methodName,
+                paramIndex,
+                paramName: paramName || `param${paramIndex}`,
+                errors,
+                value: paramValue,
+              },
+              `Validation failed for ${className}.${methodName} - ${
+                paramName || `param${paramIndex}`
+              }`,
+            );
           }
         } else {
           // Remplacer la valeur par la valeur validée (peut être transformée par Zod)
@@ -133,12 +138,13 @@ export function Validate(options: ValidateOptions) {
 
 /**
  * Helper pour créer une règle de validation
+ * Note: TypeScript permet d'avoir une interface et une fonction avec le même nom (namespace merging)
  */
-export function ValidationRule(
-  paramIndex: number,
-  schema: z.ZodTypeAny,
-  paramName?: string
-): ValidationRule {
-  return { paramIndex, schema, paramName: paramName || 'unknown' };
-}
 
+export function createValidationRule(
+  paramIndex: number,
+  schema: z.ZodType<any>,
+  paramName?: string,
+): z.ZodTypeAny {
+  return schema;
+}

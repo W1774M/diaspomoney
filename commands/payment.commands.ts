@@ -43,7 +43,7 @@ export class CreatePaymentCommand extends BaseCommand<PaymentFacadeResult> {
         this.executedResult.transactionId,
         undefined as any,
         'Command undo',
-        undefined as any
+        undefined as any,
       );
 
       logger.info({
@@ -87,7 +87,7 @@ export class ConfirmPaymentCommand extends BaseCommand<PaymentFacadeResult> {
 
     const result = await paymentService.confirmPaymentIntent(
       this.commandData.paymentIntentId,
-      this.commandData.paymentMethodId
+      this.commandData.paymentMethodId,
     );
 
     return {

@@ -25,7 +25,7 @@ export function usePaymentReceipts(): UsePaymentReceiptsReturn {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.error || 'Erreur lors du chargement des reçus'
+          errorData.error || 'Erreur lors du chargement des reçus',
         );
       }
 

@@ -13,7 +13,10 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
-import { Validate, ValidationRule } from '@/lib/decorators/validate.decorator';
+import {
+  createValidationRule,
+  Validate,
+} from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
 import {
   Complaint,
@@ -56,7 +59,11 @@ export class ComplaintService {
   @Cacheable(300, { prefix: 'ComplaintService:getComplaintById' }) // Cache 5 minutes
   @Validate({
     rules: [
-      ValidationRule(0, z.string().min(1, 'Complaint ID is required'), 'id'),
+      createValidationRule(
+        0,
+        z.string().min(1, 'Complaint ID is required'),
+        'id',
+      ),
     ],
   })
   async getComplaintById(id: string): Promise<Complaint | null> {
@@ -65,7 +72,7 @@ export class ComplaintService {
     } catch (error) {
       logger.error(
         { error, id },
-        'Erreur lors de la récupération de la réclamation'
+        'Erreur lors de la récupération de la réclamation',
       );
       Sentry.captureException(error);
       throw error;
@@ -100,7 +107,7 @@ export class ComplaintService {
         {
           limit: filters.limit || 50,
           offset: filters.offset || 0,
-        }
+        },
       );
 
       return {
@@ -122,7 +129,7 @@ export class ComplaintService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(
+      createValidationRule(
         0,
         z
           .object({
@@ -134,7 +141,7 @@ export class ComplaintService {
             appointmentId: z.string().min(1, 'Appointment ID is required'),
           })
           .passthrough(),
-        'data'
+        'data',
       ),
     ],
   })
@@ -172,12 +179,12 @@ export class ComplaintService {
   @InvalidateCache('ComplaintService:*')
   async updateComplaint(
     id: string,
-    data: UpdateComplaintData
+    data: UpdateComplaintData,
   ): Promise<Complaint> {
     try {
       const updatedComplaint = await this.complaintRepository.update(
         id,
-        data as Partial<Complaint>
+        data as Partial<Complaint>,
       );
 
       if (!updatedComplaint) {

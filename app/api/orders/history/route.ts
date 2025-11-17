@@ -44,12 +44,12 @@ export async function GET(request: NextRequest) {
           limit: 100,
           offset: 0,
           sort: { createdAt: -1 },
-        }
+        },
       );
 
     // Filtrer pour avoir seulement les statuts terminés ou annulés
     const historicalBookings = historicalBookingsResult.data.filter(
-      b => b.status === 'COMPLETED' || b.status === 'CANCELLED'
+      b => b.status === 'COMPLETED' || b.status === 'CANCELLED',
     );
 
     // Récupérer les données brutes depuis MongoDB pour avoir selectedService, beneficiary, etc.
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       .lean();
 
     const bookingDocMap = new Map(
-      bookingDocs.map((doc: any) => [doc._id.toString(), doc])
+      bookingDocs.map((doc: any) => [doc._id.toString(), doc]),
     );
 
     // Récupérer les informations des prestataires séparément
@@ -73,8 +73,8 @@ export async function GET(request: NextRequest) {
       new Set(
         historicalBookings
           .map((b: any) => b.providerId as string)
-          .filter((id: any): id is string => Boolean(id))
-      )
+          .filter((id: any): id is string => Boolean(id)),
+      ),
     ) as string[];
 
     interface ProviderInfo {
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       .lean()) as ProviderInfo[];
 
     const providerMap = new Map<string, ProviderInfo>(
-      providers.map((p: ProviderInfo) => [p._id.toString(), p])
+      providers.map((p: ProviderInfo) => [p._id.toString(), p]),
     );
 
     // Utiliser le repository pour les factures
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     const reviewsCollection = db.collection('reviews');
 
     const bookingIdsForReviews = historicalBookings.map(
-      b => b.id || b._id || ''
+      b => b.id || b._id || '',
     );
     const reviews = await reviewsCollection
       .find({
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
           comment: review.comment || review.review,
           reviewedAt: review.createdAt || review.reviewedAt,
         },
-      ])
+      ]),
     );
 
     // Transformer en HistoricalOrder
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
       historicalBookings.map(async booking => {
         // Récupérer les données complètes depuis MongoDB
         const bookingDoc: any = bookingDocMap.get(
-          booking.id || booking._id || ''
+          booking.id || booking._id || '',
         );
         const bookingStatus = booking.status.toLowerCase();
         const docStatus = bookingDoc?.status?.toLowerCase() || bookingStatus;
@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
           createdAt: booking.createdAt,
           updatedAt: booking.updatedAt,
         };
-      })
+      }),
     );
 
     log.info(
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
         ordersCount: orders.length,
         reviewsCount: reviews.length,
       },
-      'Historical orders fetched successfully'
+      'Historical orders fetched successfully',
     );
 
     return NextResponse.json({
@@ -213,11 +213,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     log.error(
       { error, msg: 'Error fetching historical orders' },
-      'Error fetching historical orders'
+      'Error fetching historical orders',
     );
     return NextResponse.json(
       { error: "Erreur lors de la récupération de l'historique" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -39,7 +39,7 @@ const SupportTicketSchema = new Schema<SupportTicket>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index pour améliorer les performances

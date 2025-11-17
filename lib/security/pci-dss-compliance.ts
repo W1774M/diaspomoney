@@ -45,7 +45,7 @@ export class PCIDSSCompliance {
     userId?: string,
     transactionId?: string,
     details: Record<string, any> = {},
-    severity: PCIAuditLog['severity'] = 'LOW'
+    severity: PCIAuditLog['severity'] = 'LOW',
   ): Promise<void> {
     try {
       const auditLog: Omit<PCIAuditLog, 'userId' | 'transactionId'> & {
@@ -76,7 +76,7 @@ export class PCIDSSCompliance {
           severity: auditLog.severity,
           complianceStatus: auditLog.complianceStatus,
         },
-        'PCI audit log saved to database'
+        'PCI audit log saved to database',
       );
 
       // Envoyer à Sentry si critique
@@ -102,7 +102,7 @@ export class PCIDSSCompliance {
     } catch (error) {
       this.log.error(
         { error, event, userId, transactionId },
-        'PCI audit logging error'
+        'PCI audit logging error',
       );
       Sentry.captureException(error, {
         tags: {
@@ -125,7 +125,7 @@ export class PCIDSSCompliance {
       cvv: string;
       holderName: string;
     },
-    userId: string
+    userId: string,
   ): Promise<{
     encryptedNumber: string;
     encryptedCVV: string;
@@ -137,7 +137,7 @@ export class PCIDSSCompliance {
       const encryptedNumber = fieldEncryption.encrypt(
         'cardNumber',
         cardData.number,
-        userId
+        userId,
       );
 
       // Chiffrer le CVV
@@ -147,7 +147,7 @@ export class PCIDSSCompliance {
       const encryptedHolderName = fieldEncryption.encrypt(
         'cardHolderName',
         cardData.holderName,
-        userId
+        userId,
       );
 
       // Générer un token de référence
@@ -163,7 +163,7 @@ export class PCIDSSCompliance {
           token,
           encryptionMethod: 'AES-256-GCM',
         },
-        'MEDIUM'
+        'MEDIUM',
       );
 
       return {
@@ -179,7 +179,7 @@ export class PCIDSSCompliance {
         userId,
         undefined,
         { error: (error as Error).message },
-        'HIGH'
+        'HIGH',
       );
       throw error;
     }
@@ -194,7 +194,7 @@ export class PCIDSSCompliance {
       encryptedCVV: string;
       encryptedHolderName: string;
     },
-    userId: string
+    userId: string,
   ): Promise<{
     number: string;
     cvv: string;
@@ -205,21 +205,21 @@ export class PCIDSSCompliance {
       const decryptedNumber = fieldEncryption.decrypt(
         'cardNumber',
         JSON.parse(encryptedData.encryptedNumber),
-        userId
+        userId,
       );
 
       // Déchiffrer le CVV
       const decryptedCVV = fieldEncryption.decrypt(
         'cvv',
         JSON.parse(encryptedData.encryptedCVV),
-        userId
+        userId,
       );
 
       // Déchiffrer le nom du titulaire
       const decryptedHolderName = fieldEncryption.decrypt(
         'cardHolderName',
         JSON.parse(encryptedData.encryptedHolderName),
-        userId
+        userId,
       );
 
       // Enregistrer l'audit
@@ -231,7 +231,7 @@ export class PCIDSSCompliance {
           cardLast4: decryptedNumber.slice(-4),
           decryptionMethod: 'AES-256-GCM',
         },
-        'MEDIUM'
+        'MEDIUM',
       );
 
       return {
@@ -246,7 +246,7 @@ export class PCIDSSCompliance {
         userId,
         undefined,
         { error: (error as Error).message },
-        'HIGH'
+        'HIGH',
       );
       throw error;
     }
@@ -256,7 +256,7 @@ export class PCIDSSCompliance {
    * Effectuer un scan de sécurité PCI
    */
   async performSecurityScan(
-    scanType: PCISecurityScan['scanType']
+    scanType: PCISecurityScan['scanType'],
   ): Promise<PCISecurityScan> {
     try {
       const scan: PCISecurityScan = {
@@ -296,7 +296,7 @@ export class PCIDSSCompliance {
           findingsCount: findings.length,
           criticalCount: criticalFindings.length,
         },
-        scan.status === 'FAILED' ? 'HIGH' : 'LOW'
+        scan.status === 'FAILED' ? 'HIGH' : 'LOW',
       );
 
       return scan;
@@ -396,7 +396,7 @@ export class PCIDSSCompliance {
       ];
 
       const compliantCount = requirements.filter(
-        r => r.status === 'COMPLIANT'
+        r => r.status === 'COMPLIANT',
       ).length;
       const score = Math.round((compliantCount / requirements.length) * 100);
       const isCompliant = score >= 100;
@@ -462,7 +462,7 @@ export class PCIDSSCompliance {
    */
   private assessComplianceStatus(
     event: string,
-    _details: Record<string, any>
+    _details: Record<string, any>,
   ): PCIAuditLog['complianceStatus'] {
     // Logique d'évaluation basée sur l'événement et les détails
     if (event.includes('FAILED') || event.includes('ERROR')) {

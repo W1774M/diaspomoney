@@ -69,7 +69,7 @@ export const useLogin = () => {
             errorType: errorName,
             stack: errorStack,
           },
-          "Erreur lors de l'appel à signIn"
+          "Erreur lors de l'appel à signIn",
         );
         // Si l'erreur est liée à une URL invalide, essayer sans callbackUrl
         if (
@@ -80,7 +80,7 @@ export const useLogin = () => {
         ) {
           logger.warn(
             { originalError: errorMessage },
-            'Tentative sans callbackUrl'
+            'Tentative sans callbackUrl',
           );
           try {
             result = await signIn('credentials', {
@@ -101,7 +101,7 @@ export const useLogin = () => {
                 error: errorMessage,
                 errorType: errorName,
               },
-              'Erreur lors de la tentative de reconnexion'
+              'Erreur lors de la tentative de reconnexion',
             );
             throw retryError;
           }
@@ -119,18 +119,18 @@ export const useLogin = () => {
           hasError: result?.error !== undefined,
           hasUrl: result?.url !== undefined,
         },
-        'Résultat de signIn'
+        'Résultat de signIn',
       );
 
       // Vérifier si result est un objet vide ou avec toutes les propriétés undefined
       if (result && typeof result === 'object') {
         const hasAnyValue = Object.values(result).some(
-          val => val !== undefined && val !== null
+          val => val !== undefined && val !== null,
         );
         if (!hasAnyValue) {
           logger.warn(
             { result },
-            'signIn a retourné un objet vide, traitement comme undefined'
+            'signIn a retourné un objet vide, traitement comme undefined',
           );
           result = undefined;
         }
@@ -146,7 +146,7 @@ export const useLogin = () => {
       ) {
         logger.warn(
           { result },
-          'signIn a retourné undefined, vérification de la session'
+          'signIn a retourné undefined, vérification de la session',
         );
 
         // Attendre un peu pour que la session soit créée
@@ -174,7 +174,7 @@ export const useLogin = () => {
                 });
                 logger.debug(
                   { email: maskedEmail },
-                  'Événement de connexion émis'
+                  'Événement de connexion émis',
                 );
               } catch (eventError: unknown) {
                 const errorMessage =
@@ -183,7 +183,7 @@ export const useLogin = () => {
                     : 'Erreur inconnue';
                 logger.warn(
                   { error: errorMessage },
-                  "Erreur lors de l'émission de l'événement de connexion"
+                  "Erreur lors de l'émission de l'événement de connexion",
                 );
               }
 
@@ -196,7 +196,7 @@ export const useLogin = () => {
                 status: sessionResponse.status,
                 statusText: sessionResponse.statusText,
               },
-              'Erreur lors de la vérification de la session'
+              'Erreur lors de la vérification de la session',
             );
             const errorText = await sessionResponse.text();
             logger.debug({ errorText }, "Détails de l'erreur de session");
@@ -214,7 +214,7 @@ export const useLogin = () => {
               error: errorMessage,
               errorType: errorName,
             },
-            'Erreur lors de la vérification de la session'
+            'Erreur lors de la vérification de la session',
           );
         }
 
@@ -228,7 +228,7 @@ export const useLogin = () => {
       if (result?.url && result.url.includes('localhost')) {
         logger.warn(
           { url: result.url },
-          'NextAuth a retourné une URL avec localhost, correction nécessaire'
+          'NextAuth a retourné une URL avec localhost, correction nécessaire',
         );
         // Extraire le chemin de l'URL et ignorer le domaine localhost
         try {
@@ -245,7 +245,7 @@ export const useLogin = () => {
               url: result.url,
               error: errorMessage,
             },
-            "Impossible de parser l'URL"
+            "Impossible de parser l'URL",
           );
         }
       }
@@ -255,7 +255,7 @@ export const useLogin = () => {
       if (result?.url && result.url.includes('/api/auth/error')) {
         logger.warn(
           { url: result.url },
-          'NextAuth a tenté de rediriger vers /api/auth/error'
+          'NextAuth a tenté de rediriger vers /api/auth/error',
         );
 
         // Extraire le code d'erreur de l'URL si disponible
@@ -264,7 +264,7 @@ export const useLogin = () => {
           const errorParam = urlObj.searchParams.get('error');
           logger.warn(
             { errorCode: errorParam },
-            "Code d'erreur extrait de l'URL"
+            "Code d'erreur extrait de l'URL",
           );
         } catch (e: unknown) {
           const errorMessage =
@@ -275,14 +275,14 @@ export const useLogin = () => {
               url: result.url,
               error: errorMessage,
             },
-            "Impossible d'extraire l'erreur de l'URL"
+            "Impossible d'extraire l'erreur de l'URL",
           );
         }
 
         // Ne pas suivre cette redirection, traiter comme une erreur
         dispatch(authActions.loginFailure('CredentialsSignin'));
         addError(
-          'Identifiants incorrects. Vérifiez votre email et mot de passe.'
+          'Identifiants incorrects. Vérifiez votre email et mot de passe.',
         );
         return false;
       }
@@ -294,7 +294,7 @@ export const useLogin = () => {
             url: result.url || undefined,
             status: result.status || undefined,
           },
-          'Erreur de connexion'
+          'Erreur de connexion',
         );
 
         dispatch(authActions.loginFailure(result.error || 'Erreur inconnue'));
@@ -315,7 +315,7 @@ export const useLogin = () => {
       if (result?.ok) {
         logger.info(
           { redirectUrl: '/dashboard' },
-          'Connexion réussie, redirection vers /dashboard'
+          'Connexion réussie, redirection vers /dashboard',
         );
 
         // Observer Pattern : Émettre l'événement de connexion réussie
@@ -334,7 +334,7 @@ export const useLogin = () => {
               });
               logger.debug(
                 { email: data.email.replace(/(.{2})(.*)(@.*)/, '$1***$3') },
-                'Événement de connexion émis'
+                'Événement de connexion émis',
               );
             }
           }
@@ -345,7 +345,7 @@ export const useLogin = () => {
               : 'Erreur inconnue';
           logger.warn(
             { error: errorMessage },
-            "Erreur lors de l'émission de l'événement de connexion"
+            "Erreur lors de l'émission de l'événement de connexion",
           );
         }
 
@@ -362,7 +362,7 @@ export const useLogin = () => {
             url: result?.url,
           },
         },
-        'Résultat inattendu de la connexion'
+        'Résultat inattendu de la connexion',
       );
       dispatch(authActions.loginFailure('Connexion échouée'));
       addError('Erreur lors de la connexion. Veuillez réessayer.');
@@ -387,7 +387,7 @@ export const useLogin = () => {
           errorType: errorName,
           stack: errorStack,
         },
-        'Erreur de connexion'
+        'Erreur de connexion',
       );
       dispatch(authActions.loginFailure('Une erreur est survenue'));
       addError('Erreur lors de la connexion. Veuillez réessayer.');
@@ -408,7 +408,7 @@ export const useLogin = () => {
 
     logger.info(
       { redirectUrl, hasCallbackUrl: !!callbackUrl },
-      'Redirection après connexion réussie'
+      'Redirection après connexion réussie',
     );
 
     // Nettoyer l'URL de callback du sessionStorage

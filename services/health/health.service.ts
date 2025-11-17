@@ -14,7 +14,10 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
-import { Validate, ValidationRule } from '@/lib/decorators/validate.decorator';
+import {
+  Validate,
+  createValidationRule,
+} from '@/lib/decorators/validate.decorator';
 import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import type {
@@ -72,7 +75,7 @@ class HealthService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Cacheable(600, { prefix: 'HealthService:searchProviders' }) // Cache 10 minutes
   async searchProviders(
-    filters: HealthProviderFilters = {}
+    filters: HealthProviderFilters = {},
   ): Promise<HealthProvider[]> {
     const log = childLogger({ route: 'HealthService:searchProviders' });
     try {
@@ -80,12 +83,12 @@ class HealthService {
       const result =
         await this.healthProviderRepository.findProvidersWithFilters(
           filters,
-          { limit: 100 } // Limite par défaut pour la recherche
+          { limit: 100 }, // Limite par défaut pour la recherche
         );
 
       log.info(
         { count: result.data.length, total: result.total, filters },
-        'Health providers found'
+        'Health providers found',
       );
 
       return result.data;
@@ -102,35 +105,35 @@ class HealthService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(
+      createValidationRule(
         0,
         z.string().min(1, 'Patient ID is required'),
-        'patientId'
+        'patientId',
       ),
-      ValidationRule(
+      createValidationRule(
         1,
         z.string().min(1, 'Provider ID is required'),
-        'providerId'
+        'providerId',
       ),
-      ValidationRule(
+      createValidationRule(
         2,
         z.string().min(1, 'Service ID is required'),
-        'serviceId'
+        'serviceId',
       ),
-      ValidationRule(3, z.date(), 'date'),
-      ValidationRule(
+      createValidationRule(3, z.date(), 'date'),
+      createValidationRule(
         4,
         z
           .string()
           .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format'),
-        'time'
+        'time',
       ),
-      ValidationRule(
+      createValidationRule(
         5,
         z.number().positive('Duration must be positive'),
-        'duration'
+        'duration',
       ),
-      ValidationRule(6, z.enum(['IN_PERSON', 'TELEMEDICINE']), 'type'),
+      createValidationRule(6, z.enum(['IN_PERSON', 'TELEMEDICINE']), 'type'),
     ],
   })
   @InvalidateCache('HealthService:*')
@@ -141,7 +144,7 @@ class HealthService {
     date: Date,
     time: string,
     duration: number,
-    type: 'IN_PERSON' | 'TELEMEDICINE'
+    type: 'IN_PERSON' | 'TELEMEDICINE',
   ): Promise<Appointment> {
     const log = childLogger({ route: 'HealthService:bookAppointment' });
     try {
@@ -192,14 +195,14 @@ class HealthService {
 
       log.info(
         { appointmentId: appointment.id, patientId, providerId },
-        'Appointment booked successfully'
+        'Appointment booked successfully',
       );
 
       return appointment;
     } catch (error) {
       log.error(
         { error, patientId, providerId, serviceId },
-        'Error booking appointment'
+        'Error booking appointment',
       );
       Sentry.captureException(error);
       throw error;
@@ -210,7 +213,7 @@ class HealthService {
    * Mapper le statut Booking vers Appointment
    */
   private mapBookingStatusToAppointmentStatus(
-    bookingStatus: string
+    bookingStatus: string,
   ): Appointment['status'] {
     const statusMap: Record<string, Appointment['status']> = {
       PENDING: 'SCHEDULED',
@@ -228,16 +231,16 @@ class HealthService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(
+      createValidationRule(
         0,
         z.string().min(1, 'Appointment ID is required'),
-        'appointmentId'
+        'appointmentId',
       ),
     ],
   })
   @InvalidateCache('HealthService:*')
   async startTeleconsultation(
-    appointmentId: string
+    appointmentId: string,
   ): Promise<Teleconsultation> {
     const log = childLogger({ route: 'HealthService:startTeleconsultation' });
     try {
@@ -269,7 +272,7 @@ class HealthService {
 
       log.info(
         { teleconsultationId: teleconsultation.id, appointmentId },
-        'Teleconsultation started'
+        'Teleconsultation started',
       );
 
       return teleconsultation;
@@ -286,10 +289,10 @@ class HealthService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(
+      createValidationRule(
         0,
         z.string().min(1, 'Teleconsultation ID is required'),
-        'teleconsultationId'
+        'teleconsultationId',
       ),
     ],
   })
@@ -301,7 +304,7 @@ class HealthService {
       // Le repository calcule automatiquement la durée à partir de startedAt
       const endedTeleconsultation =
         await this.teleconsultationRepository.endTeleconsultation(
-          teleconsultationId
+          teleconsultationId,
         );
 
       if (!endedTeleconsultation) {
@@ -331,12 +334,12 @@ class HealthService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      ValidationRule(
+      createValidationRule(
         0,
         z.string().min(1, 'Appointment ID is required'),
-        'appointmentId'
+        'appointmentId',
       ),
-      ValidationRule(
+      createValidationRule(
         1,
         z.array(
           z.object({
@@ -344,17 +347,21 @@ class HealthService {
             dosage: z.string().min(1),
             frequency: z.string().min(1),
             duration: z.string().min(1),
-          })
+          }),
         ),
-        'medications'
+        'medications',
       ),
-      ValidationRule(
+      createValidationRule(
         2,
         z.string().min(1, 'Instructions are required'),
-        'instructions'
+        'instructions',
       ),
-      ValidationRule(3, z.date(), 'validUntil'),
-      ValidationRule(4, z.string().min(1, 'Issued by is required'), 'issuedBy'),
+      createValidationRule(3, z.date(), 'validUntil'),
+      createValidationRule(
+        4,
+        z.string().min(1, 'Issued by is required'),
+        'issuedBy',
+      ),
     ],
   })
   @InvalidateCache('HealthService:*')
@@ -363,7 +370,7 @@ class HealthService {
     medications: Medication[],
     instructions: string,
     validUntil: Date,
-    issuedBy: string
+    issuedBy: string,
   ): Promise<Prescription> {
     const log = childLogger({ route: 'HealthService:createPrescription' });
     try {
@@ -398,7 +405,7 @@ class HealthService {
 
       log.info(
         { prescriptionId: prescription.id, appointmentId },
-        'Prescription created successfully'
+        'Prescription created successfully',
       );
 
       return prescription;
@@ -418,7 +425,7 @@ class HealthService {
     patientId: string,
     status?: string,
     dateFrom?: Date,
-    dateTo?: Date
+    dateTo?: Date,
   ): Promise<Appointment[]> {
     const log = childLogger({ route: 'HealthService:getPatientAppointments' });
     try {
@@ -430,7 +437,7 @@ class HealthService {
 
       if (status) {
         filters['status'] = this.mapAppointmentStatusToBookingStatus(
-          status as Appointment['status']
+          status as Appointment['status'],
         );
       }
 
@@ -445,7 +452,7 @@ class HealthService {
       // Récupérer les bookings via le repository
       const result = await this.bookingRepository.findBookingsWithFilters(
         filters,
-        { limit: 1000 } // Limite élevée pour récupérer tous les rendez-vous
+        { limit: 1000 }, // Limite élevée pour récupérer tous les rendez-vous
       );
 
       // Mapper les bookings vers des appointments
@@ -467,7 +474,7 @@ class HealthService {
 
       log.info(
         { patientId, count: appointments.length },
-        'Patient appointments retrieved successfully'
+        'Patient appointments retrieved successfully',
       );
 
       return appointments;
@@ -482,7 +489,7 @@ class HealthService {
    * Mapper le statut Appointment vers Booking
    */
   private mapAppointmentStatusToBookingStatus(
-    appointmentStatus: Appointment['status']
+    appointmentStatus: Appointment['status'],
   ): string {
     const statusMap: Record<Appointment['status'], string> = {
       SCHEDULED: 'PENDING',

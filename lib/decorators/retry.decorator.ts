@@ -32,7 +32,7 @@ export function Retry(options: RetryOptions = {}) {
   return function (
     target: any,
     propertyKey: string,
-    descriptor: PropertyDescriptor
+    descriptor: PropertyDescriptor,
   ) {
     const originalMethod = descriptor.value;
     if (!originalMethod) {
@@ -190,7 +190,7 @@ export const RetryHelpers = {
     return !errorTypes.some(type => 
       error?.name === type || 
       error?.code === type ||
-      error?.message?.includes(type)
+      error?.message?.includes(type),
     );
   },
 };

@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     if (!appointment || !paymentData) {
       return NextResponse.json(
         { error: 'Données manquantes' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
             <div class="highlight">
                 <h2>Numéro de réservation : ${reservationNumber}</h2>
                 <p><strong>Date de réservation :</strong> ${new Date().toLocaleDateString(
-                  'fr-FR'
+                  'fr-FR',
                 )}</p>
             </div>
 
@@ -170,13 +170,13 @@ export async function POST(request: NextRequest) {
         message: 'Email de confirmation envoyé avec succès',
         reservationNumber,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Erreur lors de l'envoi de l'email:", error);
     return NextResponse.json(
       { error: "Erreur lors de l'envoi de l'email" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

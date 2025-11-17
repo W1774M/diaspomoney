@@ -44,7 +44,7 @@ export const useSupportChat = () => {
               timestamp: new Date(msg.timestamp),
               attachments: msg.attachments || [],
               read: false,
-            })
+            }),
           );
           setMessages(uiMessages);
           setTicket(data.ticket || null);
@@ -56,13 +56,13 @@ export const useSupportChat = () => {
           err instanceof Error ? err.message : 'Erreur inconnue';
         setError(errorMessage);
         addErrorRef.current(
-          'Erreur lors de la récupération du chat de support'
+          'Erreur lors de la récupération du chat de support',
         );
       } finally {
         setLoading(false);
       }
     },
-    [] // Plus de dépendance sur addError
+    [], // Plus de dépendance sur addError
   );
 
   const sendSupportMessage = useCallback(
@@ -106,7 +106,7 @@ export const useSupportChat = () => {
         throw err;
       }
     },
-    [] // Plus de dépendance sur addError et addSuccess
+    [], // Plus de dépendance sur addError et addSuccess
   );
 
   return {

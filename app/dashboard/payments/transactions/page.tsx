@@ -186,7 +186,7 @@ export default function TransactionsPage() {
                   | 'completed'
                   | 'pending'
                   | 'failed'
-                  | 'refunded'
+                  | 'refunded',
               )
             }
             className='px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -265,7 +265,7 @@ export default function TransactionsPage() {
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                          transaction.status
+                          transaction.status,
                         )}`}
                       >
                         {getStatusLabel(transaction.status)}
@@ -273,7 +273,7 @@ export default function TransactionsPage() {
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
                       {new Date(transaction.createdAt).toLocaleDateString(
-                        'fr-FR'
+                        'fr-FR',
                       )}
                     </td>
                   </tr>

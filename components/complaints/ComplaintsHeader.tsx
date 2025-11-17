@@ -26,7 +26,7 @@ const ComplaintsHeader = React.memo<ComplaintsHeaderProps>(
         </button>
       </div>
     );
-  }
+  },
 );
 
 ComplaintsHeader.displayName = "ComplaintsHeader";

@@ -89,7 +89,7 @@ const TransactionSchema = new Schema<ITransaction>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index pour améliorer les performances

@@ -77,7 +77,7 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
 
       this.log.debug(
         { auditLogId: createdLog.id, event: createdLog.event },
-        'PCI audit log created'
+        'PCI audit log created',
       );
 
       return createdLog;
@@ -206,7 +206,7 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
   @InvalidateCache('PCIAuditLogRepository')
   async update(
     id: string,
-    data: Partial<PCIAuditLog>
+    data: Partial<PCIAuditLog>,
   ): Promise<PCIAuditLog | null> {
     try {
       const collection = await this.getCollection();
@@ -222,7 +222,7 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
       const result = await collection.findOneAndUpdate(
         { $or: [{ _id: new ObjectId(id) }, { id }] },
         { $set: updateData },
-        { returnDocument: 'after' }
+        { returnDocument: 'after' },
       );
 
       if (!result) {
@@ -270,7 +270,7 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
   @Cacheable(300, { prefix: 'PCIAuditLogRepository:findWithPagination' }) // Cache 5 minutes
   async findWithPagination(
     filter: Record<string, any> = {},
-    options: PaginationOptions = {}
+    options: PaginationOptions = {},
   ): Promise<PaginatedResult<PCIAuditLog>> {
     try {
       const collection = await this.getCollection();
@@ -303,7 +303,7 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
     } catch (error) {
       this.log.error(
         { error, filter, options },
-        'Error finding PCI audit logs with pagination'
+        'Error finding PCI audit logs with pagination',
       );
       Sentry.captureException(error, {
         tags: {
@@ -320,7 +320,7 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
   @Cacheable(300, { prefix: 'PCIAuditLogRepository:searchPCIAuditLogs' }) // Cache 5 minutes
   async searchPCIAuditLogs(
     query: PCIAuditLogQuery,
-    options?: PaginationOptions
+    options?: PaginationOptions,
   ): Promise<PaginatedResult<PCIAuditLog>> {
     try {
       const mongoQuery: Record<string, any> = {};
@@ -552,7 +552,7 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
 
       this.log.info(
         { deletedCount: result.deletedCount },
-        'Expired PCI audit logs deleted'
+        'Expired PCI audit logs deleted',
       );
 
       return result.deletedCount;

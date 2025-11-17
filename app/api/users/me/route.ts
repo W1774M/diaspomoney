@@ -18,7 +18,7 @@ export async function GET() {
     if (!userDoc) {
       return NextResponse.json(
         { error: 'Utilisateur non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -172,7 +172,7 @@ export async function PUT(request: NextRequest) {
     if (result.matchedCount === 0) {
       return NextResponse.json(
         { error: 'Utilisateur non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -188,7 +188,7 @@ export async function PUT(request: NextRequest) {
     console.error('[USER][me][PUT] erreur:', error);
     return NextResponse.json(
       { error: 'Erreur lors de la mise à jour du profil' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

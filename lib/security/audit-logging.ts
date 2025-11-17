@@ -118,7 +118,7 @@ export class AuditLoggingSystem {
       riskScore?: number;
       complianceFlags?: string[];
       retentionPeriod?: number;
-    } = {}
+    } = {},
   ): Promise<AuditLog> {
     try {
       const auditLog: Omit<AuditLog, 'userId' | 'sessionId' | 'resourceId'> & {
@@ -184,14 +184,14 @@ export class AuditLoggingSystem {
           severity: auditLog.severity,
           category: auditLog.category,
         },
-        'Audit log created successfully'
+        'Audit log created successfully',
       );
 
       return auditLog as unknown as AuditLog;
     } catch (error) {
       this.log.error(
         { error, action, resource, userId: options.userId },
-        'Error creating audit log'
+        'Error creating audit log',
       );
       Sentry.captureException(error, {
         tags: {
@@ -226,7 +226,7 @@ export class AuditLoggingSystem {
 
       const result = await this.auditLogRepository.searchAuditLogs(
         query,
-        paginationOptions
+        paginationOptions,
       );
 
       this.log.debug(
@@ -236,7 +236,7 @@ export class AuditLoggingSystem {
           hasMore: result.hasMore,
           query,
         },
-        'Audit logs searched successfully'
+        'Audit logs searched successfully',
       );
 
       return {
@@ -263,7 +263,7 @@ export class AuditLoggingSystem {
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(600, { prefix: 'AuditLoggingSystem:getAuditStats' }) // Cache 10 minutes
   async getAuditStats(
-    period: 'day' | 'week' | 'month' = 'day'
+    period: 'day' | 'week' | 'month' = 'day',
   ): Promise<AuditStats> {
     try {
       const stats = await this.auditLogRepository.getAuditStats(period);
@@ -345,7 +345,7 @@ export class AuditLoggingSystem {
 
       // Détecter les modifications de données suspectes
       const suspiciousModifications = await this.detectSuspiciousModifications(
-        userId
+        userId,
       );
       if (suspiciousModifications.length > 0) {
         anomalies.push({
@@ -369,7 +369,7 @@ export class AuditLoggingSystem {
           anomalyCount: anomalies.length,
           riskLevel,
         },
-        'Anomalies detected'
+        'Anomalies detected',
       );
 
       return {
@@ -396,7 +396,7 @@ export class AuditLoggingSystem {
   async generateAuditReport(
     startDate: Date,
     endDate: Date,
-    format: 'JSON' | 'PDF' | 'CSV' = 'JSON'
+    format: 'JSON' | 'PDF' | 'CSV' = 'JSON',
   ): Promise<{
     reportId: string;
     format: string;
@@ -413,7 +413,7 @@ export class AuditLoggingSystem {
 
       this.log.debug(
         { startDate, endDate, format },
-        'Starting audit report generation'
+        'Starting audit report generation',
       );
 
       // Récupérer tous les logs d'audit dans la période
@@ -429,7 +429,7 @@ export class AuditLoggingSystem {
       // Calculer les statistiques réelles
       const totalLogs = logsResult.total;
       const criticalLogs = allLogs.filter(
-        log => log.severity === 'CRITICAL' || log.riskScore > 80
+        log => log.severity === 'CRITICAL' || log.riskScore > 80,
       );
       const criticalIssues = criticalLogs.length;
 
@@ -437,7 +437,7 @@ export class AuditLoggingSystem {
       const failureLogs = allLogs.filter(log => log.outcome === 'FAILURE');
       const failureRate = totalLogs > 0 ? failureLogs.length / totalLogs : 0;
       const highRiskLogs = allLogs.filter(
-        log => log.severity === 'HIGH' || log.severity === 'CRITICAL'
+        log => log.severity === 'HIGH' || log.severity === 'CRITICAL',
       );
       const highRiskRate = totalLogs > 0 ? highRiskLogs.length / totalLogs : 0;
 
@@ -448,9 +448,9 @@ export class AuditLoggingSystem {
         Math.min(
           100,
           Math.round(
-            100 - failureRate * 30 - highRiskRate * 50 - criticalIssues * 2
-          )
-        )
+            100 - failureRate * 30 - highRiskRate * 50 - criticalIssues * 2,
+          ),
+        ),
       );
 
       // Détecter les anomalies pour générer des recommandations
@@ -461,7 +461,7 @@ export class AuditLoggingSystem {
 
       if (criticalIssues > 0) {
         recommendations.push(
-          `Address ${criticalIssues} critical security issue(s) immediately`
+          `Address ${criticalIssues} critical security issue(s) immediately`,
         );
       }
 
@@ -473,13 +473,13 @@ export class AuditLoggingSystem {
 
       if (failureRate > 0.1) {
         recommendations.push(
-          'High failure rate detected - review authentication and authorization processes'
+          'High failure rate detected - review authentication and authorization processes',
         );
       }
 
       if (highRiskRate > 0.05) {
         recommendations.push(
-          'Elevated risk activities detected - implement additional monitoring'
+          'Elevated risk activities detected - implement additional monitoring',
         );
       }
 
@@ -488,7 +488,7 @@ export class AuditLoggingSystem {
         recommendations.push(
           'Implement additional monitoring for high-risk activities',
           'Review and update access control policies',
-          'Conduct regular security training for staff'
+          'Conduct regular security training for staff',
         );
       }
 
@@ -531,7 +531,7 @@ export class AuditLoggingSystem {
           criticalIssues,
           complianceScore,
         },
-        'Audit report generated successfully'
+        'Audit report generated successfully',
       );
 
       // Enregistrer l'audit de génération de rapport
@@ -551,7 +551,7 @@ export class AuditLoggingSystem {
           category: 'SYSTEM',
           severity: 'LOW',
           outcome: 'SUCCESS',
-        }
+        },
       );
 
       return {
@@ -563,7 +563,7 @@ export class AuditLoggingSystem {
     } catch (error) {
       this.log.error(
         { error, startDate, endDate, format },
-        'Error generating audit report'
+        'Error generating audit report',
       );
       Sentry.captureException(error, {
         tags: {
@@ -585,12 +585,12 @@ export class AuditLoggingSystem {
       await this.auditLogRepository.create(auditLog);
       this.log.debug(
         { auditLogId: auditLog.id, action: auditLog.action },
-        'Audit log saved to database'
+        'Audit log saved to database',
       );
     } catch (error) {
       this.log.error(
         { error, auditLogId: auditLog.id },
-        'Error saving audit log to database'
+        'Error saving audit log to database',
       );
       Sentry.captureException(error, {
         tags: {
@@ -641,7 +641,7 @@ export class AuditLoggingSystem {
    */
   private getTopActions(
     logs: AuditLog[],
-    limit: number = 10
+    limit: number = 10,
   ): Array<{
     action: string;
     count: number;
@@ -662,7 +662,7 @@ export class AuditLoggingSystem {
    */
   private getTopUsers(
     logs: AuditLog[],
-    limit: number = 10
+    limit: number = 10,
   ): Array<{
     userId: string;
     count: number;
@@ -722,7 +722,7 @@ export class AuditLoggingSystem {
     const csvContent = [
       headers.join(','),
       ...rows.map(row =>
-        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','),
       ),
       '',
       'SUMMARY',
@@ -742,12 +742,12 @@ export class AuditLoggingSystem {
       await redis.set(cacheKey, JSON.stringify(auditLog), 3600); // 1 heure
       this.log.debug(
         { auditLogId: auditLog.id, cacheKey },
-        'Audit log cached successfully'
+        'Audit log cached successfully',
       );
     } catch (error) {
       this.log.warn(
         { error, auditLogId: auditLog.id },
-        'Error caching audit log (non-critical)'
+        'Error caching audit log (non-critical)',
       );
       // Ne pas faire échouer l'opération principale
     }
@@ -758,7 +758,7 @@ export class AuditLoggingSystem {
    */
   private calculateRiskScore(
     action: string,
-    details: Record<string, any>
+    details: Record<string, any>,
   ): number {
     let score = 0;
 
@@ -795,10 +795,10 @@ export class AuditLoggingSystem {
    * Calculer le niveau de risque
    */
   private calculateRiskLevel(
-    anomalies: Array<{ severity: string }>
+    anomalies: Array<{ severity: string }>,
   ): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
     const criticalCount = anomalies.filter(
-      a => a.severity === 'CRITICAL'
+      a => a.severity === 'CRITICAL',
     ).length;
     const highCount = anomalies.filter(a => a.severity === 'HIGH').length;
 
@@ -828,7 +828,7 @@ export class AuditLoggingSystem {
       const result = await this.auditLogRepository.searchAuditLogs(query);
       this.log.debug(
         { userId, count: result.data.length },
-        'Suspicious logins detected'
+        'Suspicious logins detected',
       );
       return result.data;
     } catch (error) {
@@ -864,7 +864,7 @@ export class AuditLoggingSystem {
       const result = await this.auditLogRepository.searchAuditLogs(query);
       this.log.debug(
         { userId, count: result.data.length },
-        'Unauthorized access detected'
+        'Unauthorized access detected',
       );
       return result.data;
     } catch (error) {
@@ -899,13 +899,13 @@ export class AuditLoggingSystem {
       const result = await this.auditLogRepository.searchAuditLogs(query);
       this.log.debug(
         { userId, count: result.data.length },
-        'Suspicious modifications detected'
+        'Suspicious modifications detected',
       );
       return result.data;
     } catch (error) {
       this.log.error(
         { error, userId },
-        'Error detecting suspicious modifications'
+        'Error detecting suspicious modifications',
       );
       Sentry.captureException(error, {
         tags: {

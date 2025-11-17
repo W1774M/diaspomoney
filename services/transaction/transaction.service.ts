@@ -89,7 +89,7 @@ export class TransactionService {
       const fees = this.calculateFees(
         data.amount,
         data.currency,
-        data.serviceType
+        data.serviceType,
       );
       const totalAmount = data.amount + fees;
 
@@ -115,7 +115,7 @@ export class TransactionService {
       await securityManager.detectAnomalies(
         data.payerId,
         'TRANSACTION_CREATED',
-        transaction
+        transaction,
       );
 
       // Enregistrement des métriques
@@ -136,7 +136,7 @@ export class TransactionService {
           amount: transaction.amount,
           currency: transaction.currency,
         },
-        'Transaction created successfully'
+        'Transaction created successfully',
       );
       return transaction;
     } catch (error) {
@@ -156,11 +156,11 @@ export class TransactionService {
   @Cacheable(300, { prefix: 'TransactionService:getTransaction' })
   async getTransaction(
     transactionId: string,
-    userId: string
+    userId: string,
   ): Promise<Transaction | null> {
     try {
       const transaction = await this.transactionRepository.findById(
-        transactionId
+        transactionId,
       );
 
       if (
@@ -174,7 +174,7 @@ export class TransactionService {
     } catch (error) {
       this.log.error(
         { error, transactionId, userId },
-        'Error in getTransaction'
+        'Error in getTransaction',
       );
       Sentry.captureException(error as Error, {
         tags: { component: 'TransactionService', action: 'getTransaction' },
@@ -193,7 +193,7 @@ export class TransactionService {
   @Cacheable(300, { prefix: 'TransactionService:getTransactions' })
   async getTransactions(
     userId: string,
-    filters: TransactionFilters = {}
+    filters: TransactionFilters = {},
   ): Promise<Transaction[]> {
     try {
       // Séparer pagination des vrais filtres
@@ -218,16 +218,16 @@ export class TransactionService {
           {
             limit: Number(limit) || 50,
             offset: Number(offset) || 0,
-          }
+          },
         );
 
       // Filtre côté service pour la cohérence (sécurité supplémentaire)
       const filtered = result.data.filter(
-        t => t.payerId === userId || t.beneficiaryId === userId
+        t => t.payerId === userId || t.beneficiaryId === userId,
       );
       this.log.debug(
         { count: filtered.length, userId },
-        'Transactions retrieved'
+        'Transactions retrieved',
       );
       return filtered;
     } catch (error) {
@@ -248,7 +248,7 @@ export class TransactionService {
   async updateTransactionStatus(
     transactionId: string,
     status: Transaction['status'],
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): Promise<Transaction> {
     try {
       const updateData: Partial<Transaction> = {
@@ -260,7 +260,7 @@ export class TransactionService {
 
       const updatedTransaction = await this.transactionRepository.update(
         transactionId,
-        updateData
+        updateData,
       );
 
       if (!updatedTransaction) {
@@ -292,13 +292,13 @@ export class TransactionService {
 
       this.log.info(
         { transactionId, status },
-        'Transaction status updated successfully'
+        'Transaction status updated successfully',
       );
       return updatedTransaction;
     } catch (error) {
       this.log.error(
         { error, transactionId, status },
-        'Error in updateTransactionStatus'
+        'Error in updateTransactionStatus',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -318,11 +318,11 @@ export class TransactionService {
   @InvalidateCache('TransactionService:*')
   async refundTransaction(
     transactionId: string,
-    reason?: string
+    reason?: string,
   ): Promise<Transaction> {
     try {
       const transaction = await this.transactionRepository.findById(
-        transactionId
+        transactionId,
       );
 
       if (!transaction) {
@@ -331,19 +331,19 @@ export class TransactionService {
 
       if (transaction.status !== 'COMPLETED') {
         throw new Error(
-          'Seules les transactions complétées peuvent être remboursées'
+          'Seules les transactions complétées peuvent être remboursées',
         );
       }
 
       const refundedTransaction = await this.updateTransactionStatus(
         transactionId,
         'REFUNDED',
-        { refundReason: reason }
+        { refundReason: reason },
       );
 
       this.log.info(
         { transactionId, reason },
-        'Transaction refunded successfully'
+        'Transaction refunded successfully',
       );
       return refundedTransaction;
     } catch (error) {
@@ -363,17 +363,17 @@ export class TransactionService {
   @Cacheable(300, { prefix: 'TransactionService:getTransactionStats' })
   async getTransactionStats(
     userId: string,
-    filters: TransactionFilters = {}
+    filters: TransactionFilters = {},
   ): Promise<TransactionStats> {
     try {
       const transactions = await this.getTransactions(userId, filters);
       const completedTransactions = transactions.filter(
-        t => t.status === 'COMPLETED'
+        t => t.status === 'COMPLETED',
       );
 
       const totalAmount = completedTransactions.reduce(
         (sum, t) => sum + t.amount,
-        0
+        0,
       );
       const successRate =
         transactions.length > 0
@@ -419,7 +419,7 @@ export class TransactionService {
     } catch (error) {
       this.log.error(
         { error, userId, filters },
-        'Error in getTransactionStats'
+        'Error in getTransactionStats',
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -438,7 +438,7 @@ export class TransactionService {
   private calculateFees(
     amount: number,
     _currency: string,
-    serviceType: 'HEALTH' | 'BTP' | 'EDUCATION'
+    serviceType: 'HEALTH' | 'BTP' | 'EDUCATION',
   ): number {
     // Frais de base : 2.5% + 0.30€
     const baseFee = amount * 0.025 + 0.3;

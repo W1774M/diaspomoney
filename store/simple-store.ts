@@ -95,7 +95,7 @@ const notificationReducer = (state: any, action: AppAction) => {
     case NOTIFICATION_ACTIONS.ADD:
       // Use a more stable ID generation to prevent hydration mismatches
       const id = `notification-${Date.now()}-${Math.floor(
-        Math.random() * 1000
+        Math.random() * 1000,
       )}`;
       const newNotification = { ...action.payload, id };
       return {
@@ -106,7 +106,7 @@ const notificationReducer = (state: any, action: AppAction) => {
       return {
         ...state,
         notifications: state.notifications.filter(
-          (n: any) => n.id !== action.payload
+          (n: any) => n.id !== action.payload,
         ),
       };
     case NOTIFICATION_ACTIONS.CLEAR_ALL:

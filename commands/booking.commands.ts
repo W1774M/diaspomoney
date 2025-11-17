@@ -55,7 +55,7 @@ export class CreateBookingCommand extends BaseCommand<BookingFacadeResult> {
           this.executedResult.paymentResult.transactionId,
           undefined as any,
           'Booking cancelled',
-          undefined as any
+          undefined as any,
         );
       }
 
@@ -102,7 +102,7 @@ export class CancelBookingCommand extends BaseCommand<boolean> {
       // Annuler la réservation
       const result = await bookingService.updateBookingStatus(
         this.commandData.bookingId,
-        'CANCELLED'
+        'CANCELLED',
       );
 
       return result;
@@ -129,7 +129,7 @@ export class CancelBookingCommand extends BaseCommand<boolean> {
       // Restaurer le statut précédent
       await bookingService.updateBookingStatus(
         this.commandData.bookingId,
-        this.previousStatus as any
+        this.previousStatus as any,
       );
 
       logger.info({
@@ -176,7 +176,7 @@ export class UpdateBookingStatusCommand extends BaseCommand<boolean> {
       // Mettre à jour le statut
       const result = await bookingService.updateBookingStatus(
         this.commandData.bookingId,
-        this.commandData.newStatus as any
+        this.commandData.newStatus as any,
       );
 
       return result;
@@ -203,7 +203,7 @@ export class UpdateBookingStatusCommand extends BaseCommand<boolean> {
       // Restaurer le statut précédent
       await bookingService.updateBookingStatus(
         this.commandData.bookingId,
-        this.previousStatus as any
+        this.previousStatus as any,
       );
 
       logger.info({

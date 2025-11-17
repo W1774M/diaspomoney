@@ -40,7 +40,7 @@ export default function PaymentsPage() {
     deleteAddress,
   } = usePayments();
   const [activeTab, setActiveTab] = useState<'cards' | 'paypal' | 'addresses'>(
-    'cards'
+    'cards',
   );
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export default function PaymentsPage() {
 
   const handleSetDefault = async (
     type: 'card' | 'paypal' | 'address',
-    id: string
+    id: string,
   ) => {
     // Le hook gère déjà les erreurs (ne lance pas d'erreur)
     if (type === 'card' || type === 'paypal') {
@@ -70,7 +70,7 @@ export default function PaymentsPage() {
 
   const handleDelete = async (
     type: 'card' | 'paypal' | 'address',
-    id: string
+    id: string,
   ) => {
     if (
       !confirm(
@@ -80,7 +80,7 @@ export default function PaymentsPage() {
             : type === 'card'
             ? 'carte'
             : 'compte PayPal'
-        } ?`
+        } ?`,
       )
     ) {
       return;

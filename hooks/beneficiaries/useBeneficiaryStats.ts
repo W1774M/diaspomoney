@@ -4,7 +4,7 @@ import { Beneficiary, BeneficiaryStats } from "@/types/beneficiaries";
 import { useMemo } from "react";
 
 export function useBeneficiaryStats(
-  beneficiaries: Beneficiary[]
+  beneficiaries: Beneficiary[],
 ): BeneficiaryStats {
   return useMemo(() => {
     // Sécurité : s'assurer que beneficiaries est un tableau

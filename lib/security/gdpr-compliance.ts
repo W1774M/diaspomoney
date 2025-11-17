@@ -68,7 +68,7 @@ export class GDPRCompliance {
     purpose: string,
     dataCategories: string[],
     legalBasis: GDPRConsent['legalBasis'],
-    retentionPeriod: number = 365
+    retentionPeriod: number = 365,
   ): Promise<GDPRConsent> {
     try {
       const consent: GDPRConsent = {
@@ -93,7 +93,7 @@ export class GDPRCompliance {
           purpose: consent.purpose,
           legalBasis: consent.legalBasis,
         },
-        'GDPR consent saved to database'
+        'GDPR consent saved to database',
       );
 
       // Enregistrer l'audit
@@ -102,7 +102,7 @@ export class GDPRCompliance {
         purpose,
         dataCategories,
         legalBasis,
-        retentionPeriod
+        retentionPeriod,
       );
 
       // Enregistrer les métriques
@@ -122,7 +122,7 @@ export class GDPRCompliance {
     } catch (error) {
       this.log.error(
         { error, userId, purpose, legalBasis },
-        'GDPR consent recording error'
+        'GDPR consent recording error',
       );
       Sentry.captureException(error, {
         tags: {
@@ -142,7 +142,7 @@ export class GDPRCompliance {
     try {
       // Récupérer le consentement existant
       const existingConsent = await this.gdprConsentRepository.findById(
-        consentId
+        consentId,
       );
 
       if (!existingConsent) {
@@ -153,7 +153,7 @@ export class GDPRCompliance {
       const updatedConsent = await this.gdprConsentRepository.withdrawConsent(
         consentId,
         existingConsent.userId,
-        reason
+        reason,
       );
 
       if (!updatedConsent) {
@@ -166,7 +166,7 @@ export class GDPRCompliance {
           userId: updatedConsent.userId,
           reason,
         },
-        'GDPR consent withdrawn'
+        'GDPR consent withdrawn',
       );
 
       // Enregistrer l'audit
@@ -175,7 +175,7 @@ export class GDPRCompliance {
         'consent_withdrawal',
         ['consent_data'],
         'LEGAL_OBLIGATION',
-        30
+        30,
       );
 
       // Enregistrer les métriques
@@ -192,7 +192,7 @@ export class GDPRCompliance {
     } catch (error) {
       this.log.error(
         { error, consentId, reason },
-        'GDPR consent withdrawal error'
+        'GDPR consent withdrawal error',
       );
       Sentry.captureException(error, {
         tags: {
@@ -220,7 +220,7 @@ export class GDPRCompliance {
 
       // Sauvegarder la demande via le repository
       const savedRequest = await this.dataSubjectRequestRepository.create(
-        request
+        request,
       );
 
       this.log.debug(
@@ -229,7 +229,7 @@ export class GDPRCompliance {
           userId: savedRequest.userId,
           type: savedRequest.type,
         },
-        'Data access request saved to database'
+        'Data access request saved to database',
       );
 
       // Collecter toutes les données personnelles
@@ -244,12 +244,12 @@ export class GDPRCompliance {
           savedRequest.id,
           'COMPLETED',
           new Date(),
-          decryptedData
+          decryptedData,
         );
 
       if (!updatedRequest) {
         throw new Error(
-          `Failed to update data access request: ${savedRequest.id}`
+          `Failed to update data access request: ${savedRequest.id}`,
         );
       }
 
@@ -259,7 +259,7 @@ export class GDPRCompliance {
         'data_access_request',
         ['personal_data'],
         'LEGAL_OBLIGATION',
-        30
+        30,
       );
 
       return updatedRequest;
@@ -281,7 +281,7 @@ export class GDPRCompliance {
    */
   async handleDataErasureRequest(
     userId: string,
-    reason?: string
+    reason?: string,
   ): Promise<DataSubjectRequest> {
     try {
       const request: Omit<DataSubjectRequest, 'reason'> & { reason?: string } =
@@ -296,7 +296,7 @@ export class GDPRCompliance {
 
       // Sauvegarder la demande via le repository
       const savedRequest = await this.dataSubjectRequestRepository.create(
-        request
+        request,
       );
 
       this.log.debug(
@@ -306,7 +306,7 @@ export class GDPRCompliance {
           type: savedRequest.type,
           reason: savedRequest.reason,
         },
-        'Data erasure request saved to database'
+        'Data erasure request saved to database',
       );
 
       // Anonymiser les données au lieu de les supprimer (pour les obligations légales)
@@ -320,12 +320,12 @@ export class GDPRCompliance {
         await this.dataSubjectRequestRepository.updateStatus(
           savedRequest.id,
           'COMPLETED',
-          new Date()
+          new Date(),
         );
 
       if (!updatedRequest) {
         throw new Error(
-          `Failed to update data erasure request: ${savedRequest.id}`
+          `Failed to update data erasure request: ${savedRequest.id}`,
         );
       }
 
@@ -335,14 +335,14 @@ export class GDPRCompliance {
         'data_erasure_request',
         ['personal_data'],
         'LEGAL_OBLIGATION',
-        30
+        30,
       );
 
       return updatedRequest;
     } catch (error) {
       this.log.error(
         { error, userId, reason },
-        'GDPR data erasure request error'
+        'GDPR data erasure request error',
       );
       Sentry.captureException(error, {
         tags: {
@@ -359,7 +359,7 @@ export class GDPRCompliance {
    * Traiter une demande de portabilité (Article 20)
    */
   async handleDataPortabilityRequest(
-    userId: string
+    userId: string,
   ): Promise<DataSubjectRequest> {
     try {
       const request: DataSubjectRequest = {
@@ -388,7 +388,7 @@ export class GDPRCompliance {
 
       // Sauvegarder la demande via le repository
       const savedRequest = await this.dataSubjectRequestRepository.create(
-        request
+        request,
       );
 
       this.log.debug(
@@ -397,7 +397,7 @@ export class GDPRCompliance {
           userId: savedRequest.userId,
           type: savedRequest.type,
         },
-        'Data portability request saved to database'
+        'Data portability request saved to database',
       );
 
       // Mettre à jour la demande avec les données portables
@@ -406,12 +406,12 @@ export class GDPRCompliance {
           savedRequest.id,
           'COMPLETED',
           new Date(),
-          portableData
+          portableData,
         );
 
       if (!updatedRequest) {
         throw new Error(
-          `Failed to update data portability request: ${savedRequest.id}`
+          `Failed to update data portability request: ${savedRequest.id}`,
         );
       }
 
@@ -459,7 +459,7 @@ export class GDPRCompliance {
             limit: 10000, // Limite élevée pour récupérer toutes les transactions
             offset: 0,
             sort: { createdAt: -1 },
-          }
+          },
         ),
 
         // Bookings/Appointments (requesterId)
@@ -471,7 +471,7 @@ export class GDPRCompliance {
             limit: 10000,
             offset: 0,
             sort: { createdAt: -1 },
-          }
+          },
         ),
 
         // Notifications (recipient)
@@ -489,7 +489,7 @@ export class GDPRCompliance {
             limit: 10000,
             offset: 0,
             sort: { timestamp: -1 },
-          }
+          },
         ),
 
         // Consentements GDPR
@@ -588,7 +588,7 @@ export class GDPRCompliance {
             processor: r.processor,
             retentionPeriod: r.retentionPeriod,
             isAnonymized: r.isAnonymized,
-          })
+          }),
         ),
         dataSubjectRequests: dataSubjectRequestsResult.data.map((r: any) => ({
           id: r.id || r._id,
@@ -614,7 +614,7 @@ export class GDPRCompliance {
           auditLogsCount: auditLogsResult.data.length,
           consentsCount: consentsResult.data.length,
         },
-        'Personal data collected successfully'
+        'Personal data collected successfully',
       );
 
       return personalData;
@@ -643,7 +643,7 @@ export class GDPRCompliance {
         decrypted.user = fieldEncryption.decryptObject(
           data.user,
           SENSITIVE_FIELDS.PERSONAL,
-          userId
+          userId,
         );
       }
 
@@ -653,8 +653,8 @@ export class GDPRCompliance {
           fieldEncryption.decryptObject(
             transaction,
             SENSITIVE_FIELDS.FINANCIAL,
-            userId
-          )
+            userId,
+          ),
         );
       }
 
@@ -702,7 +702,7 @@ export class GDPRCompliance {
       // Mettre à jour l'utilisateur via le repository
       const updatedUser = await this.userRepository.update(
         userId,
-        anonymizedData
+        anonymizedData,
       );
 
       if (!updatedUser) {
@@ -715,7 +715,7 @@ export class GDPRCompliance {
           anonymizedEmail: anonymizedData['email'],
           anonymizedAt: anonymizedData['anonymizedAt'],
         },
-        'User data anonymized successfully'
+        'User data anonymized successfully',
       );
 
       // Enregistrer l'audit
@@ -724,7 +724,7 @@ export class GDPRCompliance {
         'data_anonymization',
         ['personal_data', 'contact_data', 'identification_data'],
         'LEGAL_OBLIGATION',
-        365 // Rétention de 1 an pour les données anonymisées
+        365, // Rétention de 1 an pour les données anonymisées
       );
 
       // Enregistrer les métriques
@@ -772,7 +772,7 @@ export class GDPRCompliance {
           {
             limit: 10000,
             offset: 0,
-          }
+          },
         );
 
         for (const notification of notifications.data) {
@@ -782,12 +782,12 @@ export class GDPRCompliance {
 
         this.log.info(
           { userId, count: deletionResults.notifications },
-          'Notifications deleted'
+          'Notifications deleted',
         );
       } catch (notificationError) {
         this.log.warn(
           { error: notificationError, userId },
-          'Error deleting notifications, continuing'
+          'Error deleting notifications, continuing',
         );
       }
 
@@ -806,12 +806,12 @@ export class GDPRCompliance {
 
         this.log.info(
           { userId, count: deletionResults.beneficiaries },
-          'Beneficiaries deactivated'
+          'Beneficiaries deactivated',
         );
       } catch (beneficiaryError) {
         this.log.warn(
           { error: beneficiaryError, userId },
-          'Error deactivating beneficiaries, continuing'
+          'Error deactivating beneficiaries, continuing',
         );
       }
 
@@ -826,7 +826,7 @@ export class GDPRCompliance {
       } catch (kycError) {
         this.log.warn(
           { error: kycError, userId },
-          'Error deleting KYC data, continuing'
+          'Error deleting KYC data, continuing',
         );
       }
 
@@ -838,7 +838,7 @@ export class GDPRCompliance {
       } catch (sessionError) {
         this.log.warn(
           { error: sessionError, userId },
-          'Error destroying sessions, continuing'
+          'Error destroying sessions, continuing',
         );
       }
 
@@ -852,7 +852,7 @@ export class GDPRCompliance {
       } catch (redisError) {
         this.log.warn(
           { error: redisError, userId },
-          'Error deleting Redis session, continuing'
+          'Error deleting Redis session, continuing',
         );
       }
 
@@ -861,7 +861,7 @@ export class GDPRCompliance {
           userId,
           deletionResults,
         },
-        'Non-essential data deleted successfully'
+        'Non-essential data deleted successfully',
       );
 
       // Enregistrer l'audit
@@ -870,7 +870,7 @@ export class GDPRCompliance {
         'non_essential_data_deletion',
         ['notifications', 'sessions', 'cache', 'beneficiaries', 'kyc'],
         'LEGAL_OBLIGATION',
-        30 // Rétention de 30 jours pour les logs d'audit
+        30, // Rétention de 30 jours pour les logs d'audit
       );
 
       // Enregistrer les métriques
@@ -913,7 +913,7 @@ export class GDPRCompliance {
     } catch (error) {
       this.log.error(
         { error, userId: _userId },
-        'Collect exportable data error'
+        'Collect exportable data error',
       );
       throw error;
     }
@@ -927,7 +927,7 @@ export class GDPRCompliance {
     purpose: string,
     dataCategories: string[],
     legalBasis: string,
-    retentionPeriod: number
+    retentionPeriod: number,
   ): Promise<void> {
     try {
       const record: DataProcessingRecord = {
@@ -952,12 +952,12 @@ export class GDPRCompliance {
           purpose: record.purpose,
           legalBasis: record.legalBasis,
         },
-        'Data processing record saved to database'
+        'Data processing record saved to database',
       );
     } catch (error) {
       this.log.error(
         { error, userId, purpose },
-        'Record data processing error'
+        'Record data processing error',
       );
       Sentry.captureException(error, {
         tags: {

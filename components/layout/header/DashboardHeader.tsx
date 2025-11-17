@@ -27,7 +27,7 @@ export default function DashboardHeader() {
 
     try {
       const response = await fetch(
-        '/api/notifications?page=1&limit=5&status=unread'
+        '/api/notifications?page=1&limit=5&status=unread',
       );
       const data = await response.json();
 
@@ -81,7 +81,7 @@ export default function DashboardHeader() {
       if (response.ok) {
         // Mettre à jour l'état local
         setNotifications(prev =>
-          prev.map(n => (n.id === notificationId ? { ...n, read: true } : n))
+          prev.map(n => (n.id === notificationId ? { ...n, read: true } : n)),
         );
         setUnreadCount(prev => Math.max(0, prev - 1));
         // Rafraîchir les notifications
@@ -148,7 +148,7 @@ export default function DashboardHeader() {
       const names = user.name.split(' ');
       if (names.length >= 2) {
         return `${names[0]?.charAt(0)}${names[names.length - 1]?.charAt(
-          0
+          0,
         )}`.toUpperCase();
       }
       return user.name.substring(0, 2).toUpperCase();

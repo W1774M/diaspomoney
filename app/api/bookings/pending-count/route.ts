@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     // Utiliser le repository (Repository Pattern)
     const bookingRepository = getBookingRepository();
 
-    let filters: any = {};
+    const filters: any = {};
 
     // Filtrer selon le rôle
     if (role === 'admin' || role === 'csm') {
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
         role,
         pendingCount,
       },
-      'Pending bookings count fetched successfully'
+      'Pending bookings count fetched successfully',
     );
 
     return NextResponse.json({
@@ -75,14 +75,14 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     log.error(
       { error, msg: 'Error fetching pending bookings count' },
-      'Error fetching pending bookings count'
+      'Error fetching pending bookings count',
     );
     return NextResponse.json(
       {
         error:
           'Erreur lors de la récupération du nombre de commandes en attente',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

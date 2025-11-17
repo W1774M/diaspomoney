@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         }`,
         hasSchool: !!schoolId,
       },
-      'Creating education inquiry request'
+      'Creating education inquiry request',
     );
 
     // Validation des entrées
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       log.warn({ body }, 'Validation failed: missing required fields');
       return NextResponse.json(
         { error: 'Tous les champs obligatoires doivent être remplis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         studentType,
         program: academicInfo?.desiredProgram,
       },
-      'Education inquiry request created successfully'
+      'Education inquiry request created successfully',
     );
 
     return NextResponse.json(
@@ -90,12 +90,12 @@ export async function POST(request: NextRequest) {
         inquiryRequest: quote,
         message: 'Demande de renseignements envoyée avec succès',
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     log.error(
       { error, msg: 'Error creating education inquiry' },
-      'Error creating education inquiry'
+      'Error creating education inquiry',
     );
 
     return NextResponse.json(
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
             : 'Erreur de traitement de la demande',
         success: false,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

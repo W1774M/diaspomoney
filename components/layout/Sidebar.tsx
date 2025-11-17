@@ -136,7 +136,7 @@ function buildNavigationSections(
   isCSM: () => boolean,
   isCustomer: () => boolean,
   unreadNotificationsCount?: number,
-  pendingBookingsCount?: number
+  pendingBookingsCount?: number,
 ): NavigationSection[] {
   const sections: NavigationSection[] = [];
 
@@ -465,12 +465,12 @@ function NavigationMenu({
   if (!item.values || item.values.length === 0) return null;
 
   const visibleSubItems = item.values.filter(
-    (subItem: NavigationSubItem) => subItem.show
+    (subItem: NavigationSubItem) => subItem.show,
   );
   if (visibleSubItems.length === 0) return null;
 
   const hasActiveSubItem = visibleSubItems.some(
-    (subItem: NavigationSubItem) => pathname === subItem.href
+    (subItem: NavigationSubItem) => pathname === subItem.href,
   );
 
   return (
@@ -559,7 +559,7 @@ function UserSection({ user }: UserSectionProps) {
       const names = user.name.split(' ');
       if (names.length >= 2) {
         return `${names[0]?.charAt(0)}${names[names.length - 1]?.charAt(
-          0
+          0,
         )}`.toUpperCase();
       }
       return user.name.substring(0, 2).toUpperCase();
@@ -677,7 +677,7 @@ function FooterActions({
 
   const visibleSettingsItems = settingsItems.filter(item => item.show);
   const hasActiveSettingsItem = visibleSettingsItems.some(
-    item => pathname === item.href || pathname.startsWith(item.href + '/')
+    item => pathname === item.href || pathname.startsWith(`${item.href  }/`),
   );
 
   return (
@@ -705,7 +705,7 @@ function FooterActions({
           <div className='flex flex-col bg-slate-800/50'>
             {visibleSettingsItems.map(item => {
               const isActive =
-                pathname === item.href || pathname.startsWith(item.href + '/');
+                pathname === item.href || pathname.startsWith(`${item.href  }/`);
               return (
                 <Link
                   key={item.key}
@@ -846,7 +846,7 @@ export default function Sidebar() {
     const fetchUnreadCount = async () => {
       try {
         const response = await fetch(
-          '/api/notifications?page=1&limit=1&status=unread'
+          '/api/notifications?page=1&limit=1&status=unread',
         );
         const data = await response.json();
 
@@ -883,7 +883,7 @@ export default function Sidebar() {
           ? 'provider'
           : 'all';
         const response = await fetch(
-          `/api/bookings/pending-count?role=${role}`
+          `/api/bookings/pending-count?role=${role}`,
         );
         const data = await response.json();
 
@@ -917,7 +917,7 @@ export default function Sidebar() {
     isCSM,
     isCustomer,
     unreadNotificationsCount,
-    pendingBookingsCount
+    pendingBookingsCount,
   );
 
   return (
