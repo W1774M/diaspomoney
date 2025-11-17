@@ -1,4 +1,10 @@
 'use client';
+/**
+ * useServiceFilters Hook
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern
+ * - Filter Pattern
+ */
 
 import { getProviderRatingStats } from '@/mocks';
 import { IUser } from '@/types';
@@ -92,17 +98,6 @@ export function useServiceFilters(providers: IUser[]) {
 
       return true;
     });
-
-    // Debug temporaire
-    if (filters.category) {
-      console.log(`Filtrage par catégorie: ${filters.category}`);
-      console.log(`Providers avant filtrage: ${safeProviders.length}`);
-      console.log(`Providers après filtrage: ${result.length}`);
-      console.log(
-        'Providers filtrés:',
-        result.map(p => ({ name: p.name, category: p.category }))
-      );
-    }
 
     return result;
   }, [safeProviders, filters]);

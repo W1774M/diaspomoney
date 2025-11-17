@@ -31,7 +31,6 @@ const TransactionSchema = new Schema<ITransaction>(
     userId: {
       type: String,
       required: true,
-      index: true,
     },
     transactionId: {
       type: String,

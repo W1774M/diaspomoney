@@ -29,14 +29,14 @@ export enum TransactionStatus {
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
   CANCELLED = 'CANCELLED',
-  REFUNDED = 'REFUNDED'
+  REFUNDED = 'REFUNDED',
 }
 
 export enum TransactionType {
   PAYMENT = 'PAYMENT',
   REFUND = 'REFUND',
   TRANSFER = 'TRANSFER',
-  FEE = 'FEE'
+  FEE = 'FEE',
 }
 
 // === TYPES PAIEMENT ===
@@ -58,14 +58,14 @@ export enum PaymentStatus {
   SUCCEEDED = 'SUCCEEDED',
   FAILED = 'FAILED',
   CANCELLED = 'CANCELLED',
-  REFUNDED = 'REFUNDED'
+  REFUNDED = 'REFUNDED',
 }
 
 export enum PaymentMethod {
   CARD = 'CARD',
   BANK_TRANSFER = 'BANK_TRANSFER',
   MOBILE_MONEY = 'MOBILE_MONEY',
-  PAYPAL = 'PAYPAL'
+  PAYPAL = 'PAYPAL',
 }
 
 // === TYPES DE REQUÊTES ===
@@ -162,4 +162,34 @@ export interface CurrencyConversion {
   amount: number;
   convertedAmount: number;
   timestamp: Date;
+}
+
+export interface TransactionFilters {
+  status?: TransactionStatus[];
+  type?: TransactionType[];
+  serviceType?: 'HEALTH' | 'BTP' | 'EDUCATION';
+  currency?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  amountMin?: number;
+  amountMax?: number;
+}
+export interface TransactionData {
+  payerId: string;
+  beneficiaryId: string;
+  amount: number;
+  currency: string;
+  serviceType: 'HEALTH' | 'BTP' | 'EDUCATION';
+  serviceId: string;
+  description: string;
+  metadata?: Record<string, any>;
+}
+
+export interface TransactionStats {
+  totalTransactions: number;
+  totalAmount: number;
+  successRate: number;
+  averageAmount: number;
+  currencyBreakdown: Record<string, { count: number; amount: number }>;
+  serviceTypeBreakdown: Record<string, { count: number; amount: number }>;
 }

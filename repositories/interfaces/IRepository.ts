@@ -48,7 +48,8 @@ export interface IRepository<T, TId = string> {
 /**
  * Interface pour les repositories avec pagination
  */
-export interface IPaginatedRepository<T, TId = string> extends IRepository<T, TId> {
+export interface IPaginatedRepository<T, TId = string>
+  extends IRepository<T, TId> {
   /**
    * Trouver des entités avec pagination
    */
@@ -60,6 +61,7 @@ export interface IPaginatedRepository<T, TId = string> extends IRepository<T, TI
 
 /**
  * Options de pagination
+ * Utilisé pour contrôler la pagination des résultats de requêtes
  */
 export interface PaginationOptions {
   page?: number;
@@ -70,6 +72,7 @@ export interface PaginationOptions {
 
 /**
  * Résultat paginé
+ * Contient les données paginées ainsi que les métadonnées de pagination
  */
 export interface PaginatedResult<T> {
   data: T[];
@@ -79,4 +82,3 @@ export interface PaginatedResult<T> {
   offset: number;
   hasMore: boolean;
 }
-

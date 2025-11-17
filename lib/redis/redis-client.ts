@@ -1,10 +1,17 @@
 /**
  * Redis Client - DiaspoMoney
  * Client Redis pour cache, sessions et rate limiting
+ * Implémente les design patterns :
+ * - Singleton Pattern (via getRedisClient)
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Error Handling Pattern (Sentry)
  */
 
+import { childLogger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
 import Redis, { RedisOptions } from 'ioredis';
+
+const log = childLogger({ component: 'RedisClient' });
 
 export interface RedisConfig {
   host: string;
@@ -41,16 +48,18 @@ export class RedisClient {
 
     // Hook up events
     this.client.on('error', (error: unknown) => {
-      console.error('❌ Redis Error:', error);
-      Sentry.captureException(error);
+      log.error({ error }, 'Redis error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', event: 'error' },
+      });
     });
 
     this.client.on('connect', () => {
-      console.log('✅ Redis Connected');
+      log.info('Redis connected');
     });
 
     this.client.on('close', () => {
-      console.log('⚠️ Redis Disconnected');
+      log.warn('Redis disconnected');
     });
   }
 
@@ -61,9 +70,12 @@ export class RedisClient {
     try {
       // ioredis automatically connects unless lazyConnect is true
       await this.client.connect?.();
+      log.info('Redis connection established');
     } catch (error) {
-      console.error('❌ Redis connection failed:', error);
-      Sentry.captureException(error);
+      log.error({ error }, 'Redis connection failed');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'connect' },
+      });
       throw error;
     }
   }
@@ -74,10 +86,14 @@ export class RedisClient {
   async ping(): Promise<boolean> {
     try {
       const result = await this.client.ping();
-      return result === 'PONG';
+      const isAlive = result === 'PONG';
+      log.debug({ isAlive }, 'Redis ping');
+      return isAlive;
     } catch (error) {
-      console.error('❌ Redis ping failed:', error);
-      Sentry.captureException(error);
+      log.error({ error }, 'Redis ping failed');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'ping' },
+      });
       return false;
     }
   }
@@ -87,10 +103,15 @@ export class RedisClient {
    */
   async get(key: string): Promise<string | null> {
     try {
-      return await this.client.get(key);
+      const value = await this.client.get(key);
+      log.debug({ key, hasValue: !!value }, 'Redis get');
+      return value;
     } catch (error) {
-      console.error('❌ Redis get error:', error);
-      Sentry.captureException(error);
+      log.error({ error, key }, 'Redis get error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'get' },
+        extra: { key },
+      });
       return null;
     }
   }
@@ -105,10 +126,14 @@ export class RedisClient {
       } else {
         await this.client.set(key, value);
       }
+      log.debug({ key, ttl }, 'Redis set');
       return true;
     } catch (error) {
-      console.error('❌ Redis set error:', error);
-      Sentry.captureException(error);
+      log.error({ error, key, ttl }, 'Redis set error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'set' },
+        extra: { key },
+      });
       return false;
     }
   }
@@ -119,10 +144,15 @@ export class RedisClient {
   async del(key: string): Promise<boolean> {
     try {
       const result = await this.client.del(key);
-      return result > 0;
+      const deleted = result > 0;
+      log.debug({ key, deleted }, 'Redis del');
+      return deleted;
     } catch (error) {
-      console.error('❌ Redis del error:', error);
-      Sentry.captureException(error);
+      log.error({ error, key }, 'Redis del error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'del' },
+        extra: { key },
+      });
       return false;
     }
   }
@@ -133,10 +163,15 @@ export class RedisClient {
   async exists(key: string): Promise<boolean> {
     try {
       const result = await this.client.exists(key);
-      return result === 1;
+      const exists = result === 1;
+      log.debug({ key, exists }, 'Redis exists');
+      return exists;
     } catch (error) {
-      console.error('❌ Redis exists error:', error);
-      Sentry.captureException(error);
+      log.error({ error, key }, 'Redis exists error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'exists' },
+        extra: { key },
+      });
       return false;
     }
   }
@@ -147,10 +182,15 @@ export class RedisClient {
   async expire(key: string, seconds: number): Promise<boolean> {
     try {
       const result = await this.client.expire(key, seconds);
-      return result === 1;
+      const set = result === 1;
+      log.debug({ key, seconds, set }, 'Redis expire');
+      return set;
     } catch (error) {
-      console.error('❌ Redis expire error:', error);
-      Sentry.captureException(error);
+      log.error({ error, key, seconds }, 'Redis expire error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'expire' },
+        extra: { key, seconds },
+      });
       return false;
     }
   }
@@ -160,10 +200,15 @@ export class RedisClient {
    */
   async ttl(key: string): Promise<number> {
     try {
-      return await this.client.ttl(key);
+      const ttl = await this.client.ttl(key);
+      log.debug({ key, ttl }, 'Redis ttl');
+      return ttl;
     } catch (error) {
-      console.error('❌ Redis ttl error:', error);
-      Sentry.captureException(error);
+      log.error({ error, key }, 'Redis ttl error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'ttl' },
+        extra: { key },
+      });
       return -1;
     }
   }
@@ -173,10 +218,15 @@ export class RedisClient {
    */
   async incr(key: string): Promise<number> {
     try {
-      return await this.client.incr(key);
+      const value = await this.client.incr(key);
+      log.debug({ key, value }, 'Redis incr');
+      return value;
     } catch (error) {
-      console.error('❌ Redis incr error:', error);
-      Sentry.captureException(error);
+      log.error({ error, key }, 'Redis incr error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'incr' },
+        extra: { key },
+      });
       return 0;
     }
   }
@@ -192,12 +242,16 @@ export class RedisClient {
       pipeline.expire(key, ttl);
       const results = await pipeline.exec();
       // The first command in the pipeline is incr
-      return typeof results?.[0]?.[1] === 'number'
-        ? (results[0][1] as number)
-        : 0;
+      const value =
+        typeof results?.[0]?.[1] === 'number' ? (results[0][1] as number) : 0;
+      log.debug({ key, value, ttl }, 'Redis incrWithExpiry');
+      return value;
     } catch (error) {
-      console.error('❌ Redis incrWithExpiry error:', error);
-      Sentry.captureException(error);
+      log.error({ error, key, ttl }, 'Redis incrWithExpiry error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'incrWithExpiry' },
+        extra: { key, ttl },
+      });
       return 0;
     }
   }
@@ -215,14 +269,19 @@ export class RedisClient {
       const remaining = Math.max(0, limit - current);
       const resetTime = Date.now() + window * 1000;
 
-      return {
+      const result = {
         allowed: current <= limit,
         remaining,
         resetTime,
       };
+      log.debug({ key, limit, window, ...result }, 'Redis rateLimit');
+      return result;
     } catch (error) {
-      console.error('❌ Redis rateLimit error:', error);
-      Sentry.captureException(error);
+      log.error({ error, key, limit, window }, 'Redis rateLimit error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'rateLimit' },
+        extra: { key, limit, window },
+      });
       return {
         allowed: false,
         remaining: 0,
@@ -249,10 +308,14 @@ export class RedisClient {
       // Exécuter la fonction et mettre en cache
       const result = await fetcher();
       await this.set(key, JSON.stringify(result), ttl);
+      log.debug({ key, ttl }, 'Redis cache set');
       return result;
     } catch (error) {
-      console.error('❌ Redis cache error:', error);
-      Sentry.captureException(error);
+      log.error({ error, key }, 'Redis cache error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'cache' },
+        extra: { key },
+      });
       // En cas d'erreur, exécuter la fonction sans cache
       return await fetcher();
     }
@@ -268,10 +331,15 @@ export class RedisClient {
   ): Promise<boolean> {
     try {
       const key = `session:${sessionId}`;
-      return await this.set(key, JSON.stringify(data), ttl);
+      const result = await this.set(key, JSON.stringify(data), ttl);
+      log.debug({ sessionId, ttl }, 'Redis setSession');
+      return result;
     } catch (error) {
-      console.error('❌ Redis setSession error:', error);
-      Sentry.captureException(error);
+      log.error({ error, sessionId }, 'Redis setSession error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'setSession' },
+        extra: { sessionId },
+      });
       return false;
     }
   }
@@ -280,10 +348,15 @@ export class RedisClient {
     try {
       const key = `session:${sessionId}`;
       const data = await this.get(key);
-      return data ? JSON.parse(data) : null;
+      const session = data ? JSON.parse(data) : null;
+      log.debug({ sessionId, hasSession: !!session }, 'Redis getSession');
+      return session;
     } catch (error) {
-      console.error('❌ Redis getSession error:', error);
-      Sentry.captureException(error);
+      log.error({ error, sessionId }, 'Redis getSession error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'getSession' },
+        extra: { sessionId },
+      });
       return null;
     }
   }
@@ -291,10 +364,15 @@ export class RedisClient {
   async deleteSession(sessionId: string): Promise<boolean> {
     try {
       const key = `session:${sessionId}`;
-      return await this.del(key);
+      const result = await this.del(key);
+      log.debug({ sessionId, deleted: result }, 'Redis deleteSession');
+      return result;
     } catch (error) {
-      console.error('❌ Redis deleteSession error:', error);
-      Sentry.captureException(error);
+      log.error({ error, sessionId }, 'Redis deleteSession error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'deleteSession' },
+        extra: { sessionId },
+      });
       return false;
     }
   }
@@ -305,10 +383,20 @@ export class RedisClient {
   async blacklistToken(token: string, expiresIn: number): Promise<boolean> {
     try {
       const key = `blacklist:${token}`;
-      return await this.set(key, '1', expiresIn);
+      const result = await this.set(key, '1', expiresIn);
+      log.debug(
+        { token: token.slice(0, 10) + '...', expiresIn },
+        'Redis blacklistToken'
+      );
+      return result;
     } catch (error) {
-      console.error('❌ Redis blacklistToken error:', error);
-      Sentry.captureException(error);
+      log.error(
+        { error, token: token.slice(0, 10) + '...' },
+        'Redis blacklistToken error'
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'blacklistToken' },
+      });
       return false;
     }
   }
@@ -316,10 +404,20 @@ export class RedisClient {
   async isTokenBlacklisted(token: string): Promise<boolean> {
     try {
       const key = `blacklist:${token}`;
-      return await this.exists(key);
+      const isBlacklisted = await this.exists(key);
+      log.debug(
+        { token: token.slice(0, 10) + '...', isBlacklisted },
+        'Redis isTokenBlacklisted'
+      );
+      return isBlacklisted;
     } catch (error) {
-      console.error('❌ Redis isTokenBlacklisted error:', error);
-      Sentry.captureException(error);
+      log.error(
+        { error, token: token.slice(0, 10) + '...' },
+        'Redis isTokenBlacklisted error'
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'isTokenBlacklisted' },
+      });
       return false;
     }
   }
@@ -330,10 +428,12 @@ export class RedisClient {
   async disconnect(): Promise<void> {
     try {
       await this.client.quit();
-      console.log('✅ Redis disconnected');
+      log.info('Redis disconnected');
     } catch (error) {
-      console.error('❌ Redis disconnect error:', error);
-      Sentry.captureException(error);
+      log.error({ error }, 'Redis disconnect error');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'RedisClient', action: 'disconnect' },
+      });
     }
   }
 

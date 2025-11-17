@@ -2,7 +2,11 @@
  * Interface du repository pour les factures
  */
 
-import { IPaginatedRepository, PaginatedResult, PaginationOptions } from './IRepository';
+import {
+  IPaginatedRepository,
+  PaginatedResult,
+  PaginationOptions,
+} from './IRepository';
 
 export interface Invoice {
   id: string;
@@ -30,7 +34,12 @@ export interface Invoice {
   updatedAt: Date;
 }
 
-export type InvoiceStatus = 'DRAFT' | 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+export type InvoiceStatus =
+  | 'DRAFT'
+  | 'PENDING'
+  | 'PAID'
+  | 'OVERDUE'
+  | 'CANCELLED';
 
 export interface InvoiceItem {
   description: string;
@@ -39,6 +48,9 @@ export interface InvoiceItem {
   total: number;
 }
 
+/**
+ * Filtres pour la recherche de factures
+ */
 export interface InvoiceFilters {
   userId?: string;
   transactionId?: string;
@@ -51,7 +63,8 @@ export interface InvoiceFilters {
   [key: string]: any;
 }
 
-export interface IInvoiceRepository extends IPaginatedRepository<Invoice, string> {
+export interface IInvoiceRepository
+  extends IPaginatedRepository<Invoice, string> {
   /**
    * Trouver des factures par utilisateur
    */
@@ -96,4 +109,3 @@ export interface IInvoiceRepository extends IPaginatedRepository<Invoice, string
     options?: PaginationOptions
   ): Promise<PaginatedResult<Invoice>>;
 }
-

@@ -2,11 +2,18 @@
  * BTP Service - DiaspoMoney
  * Service BTP (Immobilier & Construction) Company-Grade
  * Basé sur la charte de développement
- * Utilise le Repository Pattern pour l'accès aux données
+ * Implémente les design patterns :
+ * - Service Layer Pattern
+ * - Repository Pattern
+ * - Dependency Injection
+ * - Singleton Pattern
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache)
+ * - Error Handling Pattern (Sentry)
  */
 
-import { InvalidateCache, Log } from '@/lib/decorators';
-import { logger } from '@/lib/logger';
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import { getQuoteRepository, IQuoteRepository } from '@/repositories';
 import { notificationService } from '@/services/notification/notification.service';
@@ -270,6 +277,9 @@ export interface BTPFilters {
 export class BTPService {
   private static instance: BTPService;
   private quoteRepository: IQuoteRepository;
+  private readonly log = childLogger({
+    component: 'BTPService',
+  });
 
   private constructor() {
     // Dependency Injection : injecter le repository
@@ -286,6 +296,8 @@ export class BTPService {
   /**
    * Rechercher des propriétés
    */
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'BTPService:searchProperties' }) // Cache 5 minutes
   async searchProperties(filters: BTPFilters): Promise<Property[]> {
     try {
       // TODO: Implémenter la recherche avec Elasticsearch
@@ -356,10 +368,15 @@ export class BTPService {
         type: 'counter',
       });
 
-      return mockProperties;
+      const result = mockProperties;
+      this.log.debug({ count: result.length, filters }, 'Properties searched');
+      return result;
     } catch (error) {
-      console.error('Erreur searchProperties:', error);
-      Sentry.captureException(error);
+      this.log.error({ error, filters }, 'Error in searchProperties');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'BTPService', action: 'searchProperties' },
+        extra: { filters },
+      });
       throw error;
     }
   }
@@ -367,6 +384,8 @@ export class BTPService {
   /**
    * Récupérer une propriété par ID
    */
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'BTPService:getProperty' }) // Cache 5 minutes
   async getProperty(_propertyId: string): Promise<Property | null> {
     try {
       // TODO: Récupérer depuis la base de données
@@ -382,8 +401,14 @@ export class BTPService {
 
       return null;
     } catch (error) {
-      console.error('Erreur getProperty:', error);
-      Sentry.captureException(error);
+      this.log.error(
+        { error, propertyId: _propertyId },
+        'Error in getProperty'
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'BTPService', action: 'getProperty' },
+        extra: { propertyId: _propertyId },
+      });
       throw error;
     }
   }
@@ -391,6 +416,8 @@ export class BTPService {
   /**
    * Créer une propriété
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('BTPService:*') // Invalider le cache après création
   async createProperty(
     propertyData: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<Property> {
@@ -419,10 +446,20 @@ export class BTPService {
         type: 'counter',
       });
 
+      this.log.info(
+        { propertyId: property.id, type: property.type },
+        'Property created successfully'
+      );
       return property;
     } catch (error) {
-      console.error('Erreur createProperty:', error);
-      Sentry.captureException(error);
+      this.log.error(
+        { error, propertyType: propertyData.type },
+        'Error in createProperty'
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'BTPService', action: 'createProperty' },
+        extra: { propertyType: propertyData.type },
+      });
       throw error;
     }
   }
@@ -430,6 +467,8 @@ export class BTPService {
   /**
    * Rechercher des entrepreneurs
    */
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'BTPService:searchContractors' }) // Cache 5 minutes
   async searchContractors(_filters: BTPFilters): Promise<Contractor[]> {
     try {
       // TODO: Implémenter la recherche d'entrepreneurs
@@ -463,10 +502,18 @@ export class BTPService {
         },
       ];
 
-      return mockContractors;
+      const result = mockContractors;
+      this.log.debug({ count: result.length }, 'Contractors searched');
+      return result;
     } catch (error) {
-      console.error('Erreur searchContractors:', error);
-      Sentry.captureException(error);
+      this.log.error(
+        { error, filters: _filters },
+        'Error in searchContractors'
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'BTPService', action: 'searchContractors' },
+        extra: { filters: _filters },
+      });
       throw error;
     }
   }
@@ -474,6 +521,8 @@ export class BTPService {
   /**
    * Rechercher des matériaux
    */
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'BTPService:searchMaterials' }) // Cache 5 minutes
   async searchMaterials(_filters: BTPFilters): Promise<Material[]> {
     try {
       // TODO: Implémenter la recherche de matériaux
@@ -511,10 +560,15 @@ export class BTPService {
         },
       ];
 
-      return mockMaterials;
+      const result = mockMaterials;
+      this.log.debug({ count: result.length }, 'Materials searched');
+      return result;
     } catch (error) {
-      console.error('Erreur searchMaterials:', error);
-      Sentry.captureException(error);
+      this.log.error({ error, filters: _filters }, 'Error in searchMaterials');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'BTPService', action: 'searchMaterials' },
+        extra: { filters: _filters },
+      });
       throw error;
     }
   }
@@ -522,6 +576,8 @@ export class BTPService {
   /**
    * Créer un projet de construction
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('BTPService:*') // Invalider le cache après création
   async createConstructionProject(
     projectData: Omit<ConstructionProject, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<ConstructionProject> {
@@ -567,10 +623,24 @@ export class BTPService {
         type: 'counter',
       });
 
+      this.log.info(
+        {
+          projectId: project.id,
+          type: project.type,
+          clientId: project.clientId,
+        },
+        'Construction project created successfully'
+      );
       return project;
     } catch (error) {
-      console.error('Erreur createConstructionProject:', error);
-      Sentry.captureException(error);
+      this.log.error(
+        { error, projectType: projectData.type },
+        'Error in createConstructionProject'
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'BTPService', action: 'createConstructionProject' },
+        extra: { projectType: projectData.type },
+      });
       throw error;
     }
   }
@@ -578,6 +648,8 @@ export class BTPService {
   /**
    * Mettre à jour le progrès d'un projet
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('BTPService:*') // Invalider le cache après mise à jour
   async updateProjectProgress(
     projectId: string,
     progress: number,
@@ -618,9 +690,19 @@ export class BTPService {
         },
         type: 'gauge',
       });
+      this.log.info(
+        { projectId, progress, milestoneId },
+        'Project progress updated'
+      );
     } catch (error) {
-      console.error('Erreur updateProjectProgress:', error);
-      Sentry.captureException(error);
+      this.log.error(
+        { error, projectId, progress },
+        'Error in updateProjectProgress'
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'BTPService', action: 'updateProjectProgress' },
+        extra: { projectId, progress },
+      });
       throw error;
     }
   }
@@ -628,6 +710,8 @@ export class BTPService {
   /**
    * Calculer le coût d'un projet
    */
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(600, { prefix: 'BTPService:calculateProjectCost' }) // Cache 10 minutes
   async calculateProjectCost(
     _projectType: string,
     area: number,
@@ -663,8 +747,14 @@ export class BTPService {
         },
       };
     } catch (error) {
-      logger.error({ error }, 'Erreur calculateProjectCost');
-      Sentry.captureException(error);
+      this.log.error(
+        { error, projectType: _projectType, area },
+        'Error in calculateProjectCost'
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'BTPService', action: 'calculateProjectCost' },
+        extra: { projectType: _projectType, area },
+      });
       throw error;
     }
   }
@@ -764,10 +854,17 @@ export class BTPService {
         type: 'counter',
       });
 
+      this.log.info(
+        { quoteId: quote.id, projectType: data.projectType },
+        'BTP quote created successfully'
+      );
       return quote;
     } catch (error) {
-      logger.error({ error, data }, 'Erreur lors de la création du devis BTP');
-      Sentry.captureException(error);
+      this.log.error({ error, data }, 'Error in createBTPQuote');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'BTPService', action: 'createBTPQuote' },
+        extra: { projectType: data.projectType },
+      });
       throw error;
     }
   }

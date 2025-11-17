@@ -1,19 +1,35 @@
 /**
  * Implémentation MongoDB du repository booking
+ * Implémente les design patterns :
+ * - Repository Pattern
+ * - Dependency Injection
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache)
+ * - Error Handling Pattern (Sentry)
  */
 
 import { BookingQueryBuilder } from '@/builders';
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
+import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
-import {
+import type {
   Booking,
   BookingFilters,
   IBookingRepository,
 } from '../interfaces/IBookingRepository';
-import { PaginatedResult, PaginationOptions } from '../interfaces/IRepository';
+import type {
+  PaginatedResult,
+  PaginationOptions,
+} from '../interfaces/IRepository';
 
 export class MongoBookingRepository implements IBookingRepository {
   private readonly collectionName = 'bookings';
+  private readonly log = childLogger({
+    component: 'MongoBookingRepository',
+  });
 
   private async getCollection() {
     const client = await mongoClient;
@@ -21,39 +37,69 @@ export class MongoBookingRepository implements IBookingRepository {
     return db.collection(this.collectionName);
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'BookingRepository:findById' }) // Cache 5 minutes
   async findById(id: string): Promise<Booking | null> {
     try {
       const collection = await this.getCollection();
       const booking = await collection.findOne({ _id: new ObjectId(id) });
-      return booking ? this.mapToBooking(booking) : null;
+      const result = booking ? this.mapToBooking(booking) : null;
+      if (result) {
+        this.log.debug({ bookingId: id }, 'Booking found');
+      } else {
+        this.log.debug({ bookingId: id }, 'Booking not found');
+      }
+      return result;
     } catch (error) {
-      console.error('[MongoBookingRepository] Error in findById:', error);
+      this.log.error({ error, id }, 'Error in findById');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoBookingRepository', action: 'findById' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'BookingRepository:findAll' }) // Cache 5 minutes
   async findAll(filters?: Record<string, any>): Promise<Booking[]> {
     try {
       const collection = await this.getCollection();
       const bookings = await collection.find(filters || {}).toArray();
-      return bookings.map(b => this.mapToBooking(b));
+      const result = bookings.map(b => this.mapToBooking(b));
+      this.log.debug({ count: result.length, filters }, 'Bookings found');
+      return result;
     } catch (error) {
-      console.error('[MongoBookingRepository] Error in findAll:', error);
+      this.log.error({ error, filters }, 'Error in findAll');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoBookingRepository', action: 'findAll' },
+        extra: { filters },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'BookingRepository:findOne' }) // Cache 5 minutes
   async findOne(filters: Record<string, any>): Promise<Booking | null> {
     try {
       const collection = await this.getCollection();
       const booking = await collection.findOne(filters);
-      return booking ? this.mapToBooking(booking) : null;
+      const result = booking ? this.mapToBooking(booking) : null;
+      this.log.debug({ filters, found: !!result }, 'findOne completed');
+      return result;
     } catch (error) {
-      console.error('[MongoBookingRepository] Error in findOne:', error);
+      this.log.error({ error, filters }, 'Error in findOne');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoBookingRepository', action: 'findOne' },
+        extra: { filters },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('BookingRepository:*') // Invalider le cache après création
   async create(data: Partial<Booking>): Promise<Booking> {
     try {
       const collection = await this.getCollection();
@@ -69,13 +115,27 @@ export class MongoBookingRepository implements IBookingRepository {
       if (!booking) {
         throw new Error('Failed to create booking');
       }
-      return this.mapToBooking(booking);
+      const mappedBooking = this.mapToBooking(booking);
+      this.log.info(
+        { bookingId: mappedBooking.id, requesterId: mappedBooking.requesterId },
+        'Booking created successfully'
+      );
+      return mappedBooking;
     } catch (error) {
-      console.error('[MongoBookingRepository] Error in create:', error);
+      this.log.error(
+        { error, requesterId: data.requesterId },
+        'Error in create'
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoBookingRepository', action: 'create' },
+        extra: { requesterId: data.requesterId },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('BookingRepository:*') // Invalider le cache après mise à jour
   async update(id: string, data: Partial<Booking>): Promise<Booking | null> {
     try {
       const collection = await this.getCollection();
@@ -90,18 +150,28 @@ export class MongoBookingRepository implements IBookingRepository {
       );
       return result?.['value'] ? this.mapToBooking(result['value']) : null;
     } catch (error) {
-      console.error('[MongoBookingRepository] Error in update:', error);
+      this.log.error({ error, id, data }, 'Error in update');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoBookingRepository', action: 'update' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('BookingRepository:*') // Invalider le cache après suppression
   async delete(id: string): Promise<boolean> {
     try {
       const collection = await this.getCollection();
       const result = await collection.deleteOne({ _id: new ObjectId(id) });
       return Boolean(result.deletedCount && result.deletedCount > 0);
     } catch (error) {
-      console.error('[MongoBookingRepository] Error in delete:', error);
+      this.log.error({ error, id }, 'Error in delete');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoBookingRepository', action: 'delete' },
+        extra: { id },
+      });
       throw error;
     }
   }
@@ -111,7 +181,11 @@ export class MongoBookingRepository implements IBookingRepository {
       const collection = await this.getCollection();
       return collection.countDocuments(filters || {});
     } catch (error) {
-      console.error('[MongoBookingRepository] Error in count:', error);
+      this.log.error({ error, filters }, 'Error in count');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoBookingRepository', action: 'count' },
+        extra: { filters },
+      });
       throw error;
     }
   }
@@ -122,7 +196,11 @@ export class MongoBookingRepository implements IBookingRepository {
       const count = await collection.countDocuments({ _id: new ObjectId(id) });
       return count > 0;
     } catch (error) {
-      console.error('[MongoBookingRepository] Error in exists:', error);
+      this.log.error({ error, id }, 'Error in exists');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoBookingRepository', action: 'exists' },
+        extra: { id },
+      });
       throw error;
     }
   }
@@ -156,7 +234,17 @@ export class MongoBookingRepository implements IBookingRepository {
         hasMore: offset + limit < total,
       };
     } catch (error) {
-      console.error('[MongoBookingRepository] Error in findWithPagination:', error);
+      this.log.error(
+        { error, filters, options },
+        'Error in findWithPagination'
+      );
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoBookingRepository',
+          action: 'findWithPagination',
+        },
+        extra: { filters, options },
+      });
       throw error;
     }
   }
@@ -182,7 +270,11 @@ export class MongoBookingRepository implements IBookingRepository {
     return this.findWithPagination({ status }, options);
   }
 
-  async findUpcoming(options?: PaginationOptions): Promise<PaginatedResult<Booking>> {
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'BookingRepository:findUpcoming' }) // Cache 5 minutes
+  async findUpcoming(
+    options?: PaginationOptions
+  ): Promise<PaginatedResult<Booking>> {
     try {
       const now = new Date();
       return this.findWithPagination(
@@ -193,24 +285,37 @@ export class MongoBookingRepository implements IBookingRepository {
         options
       );
     } catch (error) {
-      console.error('[MongoBookingRepository] Error in findUpcoming:', error);
+      this.log.error({ error }, 'Error in findUpcoming');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoBookingRepository', action: 'findUpcoming' },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('BookingRepository:*') // Invalider le cache après changement de statut
   async updateStatus(
     bookingId: string,
     status: Booking['status']
   ): Promise<boolean> {
     try {
-      const result = await this.update(bookingId, { status } as Partial<Booking>);
+      const result = await this.update(bookingId, {
+        status,
+      } as Partial<Booking>);
       return result !== null;
     } catch (error) {
-      console.error('[MongoBookingRepository] Error in updateStatus:', error);
+      this.log.error({ error, bookingId, status }, 'Error in updateStatus');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoBookingRepository', action: 'updateStatus' },
+        extra: { bookingId, status },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'BookingRepository:findBookingsWithFilters' }) // Cache 5 minutes
   async findBookingsWithFilters(
     filters: BookingFilters,
     options?: PaginationOptions
@@ -222,7 +327,17 @@ export class MongoBookingRepository implements IBookingRepository {
 
       return this.findWithPagination(query.filters, query.pagination);
     } catch (error) {
-      console.error('[MongoBookingRepository] Error in findBookingsWithFilters:', error);
+      this.log.error(
+        { error, filters, options },
+        'Error in findBookingsWithFilters'
+      );
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoBookingRepository',
+          action: 'findBookingsWithFilters',
+        },
+        extra: { filters, options },
+      });
       throw error;
     }
   }
@@ -250,7 +365,14 @@ export class MongoBookingRepository implements IBookingRepository {
       builder.byServiceType(filters.serviceType);
     }
     if (filters.status) {
-      builder.byStatus(filters.status);
+      builder.byStatus(
+        filters.status as
+          | 'PENDING'
+          | 'CONFIRMED'
+          | 'COMPLETED'
+          | 'CANCELLED'
+          | 'NO_SHOW'
+      );
     }
     if (filters.dateFrom || filters.dateTo) {
       if (filters.dateFrom && filters.dateTo) {
@@ -319,4 +441,3 @@ export class MongoBookingRepository implements IBookingRepository {
     return statusMap[status.toLowerCase()] || 'PENDING';
   }
 }
-

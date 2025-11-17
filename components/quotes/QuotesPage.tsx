@@ -1,5 +1,13 @@
 'use client';
+/**
+ * QuotesPage Component
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (useQuoteFilters, usePermissions)
+ * - Error Handling Pattern (via useNotificationManager)
+ * - Notification Pattern (via useNotificationManager)
+ */
 
+import { useNotificationManager } from '@/components/ui/Notification';
 import { useQuoteFilters } from '@/hooks/quotes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useRouter } from 'next/navigation';
@@ -10,6 +18,7 @@ import QuotesTable from './QuotesTable';
 
 const QuotesPage = React.memo(function QuotesPage() {
   const { canCreateQuotes } = usePermissions();
+  const { addSuccess, addError } = useNotificationManager();
   const router = useRouter();
 
   const [quotes, setQuotes] = useState<any[]>([]);
@@ -61,79 +70,136 @@ const QuotesPage = React.memo(function QuotesPage() {
   );
 
   // Suppression réelle du devis via l'API
-  const handleDelete = useCallback(async (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce devis ?')) {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/quotes/${id}`, {
-          method: 'DELETE',
-        });
-        if (response.ok) {
-          setQuotes(prev =>
-            prev.filter(quote => quote._id !== id && quote.id !== id)
-          );
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (window.confirm('Êtes-vous sûr de vouloir supprimer ce devis ?')) {
+        try {
+          setLoading(true);
+          const response = await fetch(`/api/quotes/${id}`, {
+            method: 'DELETE',
+          });
+          if (response.ok) {
+            setQuotes(prev =>
+              prev.filter(quote => quote._id !== id && quote.id !== id)
+            );
+            addSuccess('Devis supprimé avec succès');
+          } else {
+            addError('Erreur lors de la suppression du devis');
+          }
+        } catch (e) {
+          addError('Erreur lors de la suppression du devis');
+        } finally {
+          setLoading(false);
         }
-      } catch (e) {
-        // Gérer l'erreur si besoin
-      } finally {
-        setLoading(false);
       }
-    }
-  }, []);
+    },
+    [addSuccess, addError]
+  );
 
-  const handleDownload = useCallback((id: string) => {
-    // À implémenter : téléchargement d'un PDF de devis
-    console.log('Télécharger le devis:', id);
-  }, []);
-
-  const handleApprove = useCallback(async (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir approuver ce devis ?')) {
+  const handleDownload = useCallback(
+    async (id: string) => {
       try {
-        setLoading(true);
-        const response = await fetch(`/api/quotes/${id}/approve`, {
-          method: 'POST',
+        const response = await fetch(`/api/quotes/${id}/download`, {
+          method: 'GET',
         });
-        if (response.ok) {
-          // Optionnel : mettre à jour le status dans la liste côté client
-          setQuotes(prev =>
-            prev.map(quote =>
-              quote._id === id || quote.id === id
-                ? { ...quote, status: 'APPROVED' }
-                : quote
-            )
-          );
-        }
-      } catch (e) {
-        // Gérer l'erreur si besoin
-      } finally {
-        setLoading(false);
-      }
-    }
-  }, []);
 
-  const handleReject = useCallback(async (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir rejeter ce devis ?')) {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/quotes/${id}/reject`, {
-          method: 'POST',
-        });
-        if (response.ok) {
-          setQuotes(prev =>
-            prev.map(quote =>
-              quote._id === id || quote.id === id
-                ? { ...quote, status: 'REJECTED' }
-                : quote
-            )
-          );
+        if (!response.ok) {
+          if (response.status === 404) {
+            addError('Devis non trouvé');
+          } else if (response.status === 403) {
+            addError('Accès non autorisé');
+          } else {
+            addError('Erreur lors du téléchargement du devis');
+          }
+          return;
         }
-      } catch (e) {
-        // Gérer l'erreur si besoin
-      } finally {
-        setLoading(false);
+
+        // Récupérer le blob PDF
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+
+        // Extraire le nom de fichier depuis les headers ou utiliser un nom par défaut
+        const contentDisposition = response.headers.get('content-disposition');
+        const filename =
+          contentDisposition?.split('filename=')[1]?.replace(/"/g, '') ||
+          `devis-${id}.pdf`;
+
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        addSuccess('Devis téléchargé avec succès');
+      } catch (error) {
+        addError('Erreur lors du téléchargement du devis');
       }
-    }
-  }, []);
+    },
+    [addSuccess, addError]
+  );
+
+  const handleApprove = useCallback(
+    async (id: string) => {
+      if (window.confirm('Êtes-vous sûr de vouloir approuver ce devis ?')) {
+        try {
+          setLoading(true);
+          const response = await fetch(`/api/quotes/${id}/approve`, {
+            method: 'POST',
+          });
+          if (response.ok) {
+            // Mettre à jour le statut dans la liste côté client pour un feedback immédiat
+            setQuotes(prev =>
+              prev.map(quote =>
+                quote._id === id || quote.id === id
+                  ? { ...quote, status: 'APPROVED' }
+                  : quote
+              )
+            );
+            addSuccess('Devis approuvé avec succès');
+          } else {
+            addError("Erreur lors de l'approbation du devis");
+          }
+        } catch (e) {
+          addError("Erreur lors de l'approbation du devis");
+        } finally {
+          setLoading(false);
+        }
+      }
+    },
+    [addSuccess, addError]
+  );
+
+  const handleReject = useCallback(
+    async (id: string) => {
+      if (window.confirm('Êtes-vous sûr de vouloir rejeter ce devis ?')) {
+        try {
+          setLoading(true);
+          const response = await fetch(`/api/quotes/${id}/reject`, {
+            method: 'POST',
+          });
+          if (response.ok) {
+            setQuotes(prev =>
+              prev.map(quote =>
+                quote._id === id || quote.id === id
+                  ? { ...quote, status: 'REJECTED' }
+                  : quote
+              )
+            );
+            addSuccess('Devis rejeté avec succès');
+          } else {
+            addError('Erreur lors du rejet du devis');
+          }
+        } catch (e) {
+          addError('Erreur lors du rejet du devis');
+        } finally {
+          setLoading(false);
+        }
+      }
+    },
+    [addSuccess, addError]
+  );
 
   const handleAddQuote = useCallback(() => {
     router.push('/dashboard/quotes/new');

@@ -1,4 +1,13 @@
 'use client';
+/**
+ * ModalPayment Component
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (useCallback, useMemo, useState)
+ * - Error Handling Pattern (via useNotificationManager)
+ * - Notification Pattern (via useNotificationManager)
+ */
+
+import { useNotificationManager } from '@/components/ui/Notification';
 import { ModalPaymentProps, PaymentData } from '@/types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -16,6 +25,7 @@ export const ModalPayment = ({
   setModalOpen,
   setSteps,
 }: ModalPaymentPropsExtended) => {
+  const { addError } = useNotificationManager();
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -175,26 +185,27 @@ export const ModalPayment = ({
     );
 
     if (!isCardNumberValid) {
-      alert('Veuillez saisir un numéro de carte valide');
+      addError('Veuillez saisir un numéro de carte valide');
       return;
     }
 
     if (!isExpiryDateValid) {
-      alert('Veuillez saisir une date d&apos;expiration valide (format MM/AA)');
+      addError(
+        'Veuillez saisir une date d&apos;expiration valide (format MM/AA)'
+      );
       return;
     }
 
     if (!isCVVValid) {
-      alert('Veuillez saisir un code CVV valide (3 ou 4 chiffres)');
+      addError('Veuillez saisir un code CVV valide (3 ou 4 chiffres)');
       return;
     }
 
     if (!isCardholderNameValid) {
-      alert('Veuillez saisir le nom du titulaire de la carte');
+      addError('Veuillez saisir le nom du titulaire de la carte');
       return;
     }
 
-    console.log('Paiement effectué', { appointment, paymentData });
     setIsClosing(true);
     setTimeout(() => setSteps?.(2), 300);
   }, [
@@ -205,11 +216,11 @@ export const ModalPayment = ({
     validateCVV,
     validateCardholderName,
     setSteps,
+    addError,
   ]);
 
   const handleBack = useCallback(() => {
     setIsClosing(true);
-    console.log(setSteps);
     setTimeout(() => {
       if (setSteps) setSteps(0); // Retour à l'étape 0 (étape précédente)
     }, 300);

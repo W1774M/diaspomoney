@@ -8,8 +8,7 @@ import { securityManager } from '@/lib/security/advanced-security';
 import { authService } from '@/services/auth/auth.service';
 import {
   TransactionData,
-  TransactionFilters,
-  transactionService,
+  TransactionService,
 } from '@/services/transaction/transaction.service';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -33,8 +32,7 @@ export async function GET(request: NextRequest) {
 
     // Utiliser TransactionQueryBuilder pour construire la requête
     const { TransactionQueryBuilder } = await import('@/builders');
-    const queryBuilder = new TransactionQueryBuilder()
-      .byUser(user.id);
+    const queryBuilder = new TransactionQueryBuilder().byUser(user.id);
 
     // Appliquer les filtres
     if (searchParams.get('status')) {
@@ -68,11 +66,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Pagination
-    const limit = searchParams.get('limit') 
-      ? parseInt(searchParams.get('limit')!) 
+    const limit = searchParams.get('limit')
+      ? parseInt(searchParams.get('limit')!)
       : 50;
-    const page = searchParams.get('page') 
-      ? parseInt(searchParams.get('page')!) 
+    const page = searchParams.get('page')
+      ? parseInt(searchParams.get('page')!)
       : 1;
     queryBuilder.page(page, limit);
 
@@ -81,7 +79,10 @@ export async function GET(request: NextRequest) {
     const filters = builtFilters.filters;
 
     // Récupérer les transactions
-    const transactions = await transactionService.getTransactions(user.id, filters as TransactionFilters);
+    const transactions = await TransactionService.getInstance().getTransactions(
+      user.id,
+      filters as TransactionFilters
+    );
 
     // Enregistrer les métriques
     monitoringManager.recordMetric({
@@ -210,9 +211,10 @@ export async function POST(request: NextRequest) {
     };
 
     // Créer la transaction
-    const transaction = await transactionService.createTransaction(
-      sanitizedData as TransactionData
-    );
+    const transaction =
+      await TransactionService.getInstance().createTransaction(
+        sanitizedData as TransactionData
+      );
 
     // Enregistrer les métriques
     monitoringManager.recordMetric({
@@ -227,8 +229,8 @@ export async function POST(request: NextRequest) {
           sanitizedData.amount < 50
             ? 'low'
             : sanitizedData.amount < 500
-              ? 'medium'
-              : 'high',
+            ? 'medium'
+            : 'high',
       },
       type: 'counter',
     });

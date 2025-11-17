@@ -4,10 +4,9 @@ import mongoose, { Schema } from 'mongoose';
 const SupportTicketSchema = new Schema<SupportTicket>(
   {
     userId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: 'User',
       required: true,
-      index: true,
     },
     subject: {
       type: String,
@@ -18,7 +17,6 @@ const SupportTicketSchema = new Schema<SupportTicket>(
       enum: ['open', 'in_progress', 'resolved', 'closed'],
       default: 'open',
       required: true,
-      index: true,
     },
     priority: {
       type: String,
@@ -27,7 +25,7 @@ const SupportTicketSchema = new Schema<SupportTicket>(
       required: true,
     },
     messages: {
-      type: [Schema.Types.ObjectId],
+      type: [String],
       ref: 'Message',
       default: [],
     },
@@ -52,4 +50,3 @@ SupportTicketSchema.index({ createdAt: -1 });
 
 export default mongoose.models['SupportTicket'] ||
   mongoose.model<SupportTicket>('SupportTicket', SupportTicketSchema);
-

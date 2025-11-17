@@ -1,3 +1,11 @@
+/**
+ * Page de connexion
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (useAuth, useOAuthProfileCheck)
+ * - Error Handling Pattern (gestion des erreurs via LoginForm)
+ * - Component Composition Pattern (sous-composants)
+ */
+
 'use client';
 
 import {
@@ -28,9 +36,6 @@ export default function LoginPage() {
     // Redirection simplifiée - si l'utilisateur est authentifié, rediriger immédiatement
     if (isAuthenticated && !hasRedirected.current) {
       hasRedirected.current = true;
-      console.log(
-        '[LOGIN] Utilisateur authentifié, redirection vers /dashboard'
-      );
 
       // Redirection immédiate vers le dashboard
       if (appointmentData) {
@@ -44,16 +49,9 @@ export default function LoginPage() {
   // Gérer les paramètres d'URL pour les erreurs d'authentification
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const error = urlParams.get('error');
     const callbackUrl = urlParams.get('callbackUrl');
 
-    if (error) {
-      console.log("[LOGIN] Erreur d'authentification:", error);
-      // L'erreur sera gérée par le composant LoginForm
-    }
-
     if (callbackUrl) {
-      console.log('[LOGIN] Callback URL:', callbackUrl);
       // Stocker l'URL de callback pour la redirection après connexion
       sessionStorage.setItem('authCallbackUrl', callbackUrl);
     }

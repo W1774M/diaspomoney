@@ -2,8 +2,14 @@
  * MongoDB Atlas Search - DiaspoMoney
  * Configuration de recherche avancée avec MongoDB Atlas
  * Alternative à Elasticsearch
+ * Implémente les design patterns :
+ * - Singleton Pattern (via getSearchInstance)
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Error Handling Pattern (Sentry)
+ * - Builder Pattern (via QueryBuilder)
  */
 
+import { childLogger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
 import { Db, MongoClient } from 'mongodb';
 
@@ -54,14 +60,18 @@ export class MongoDBAtlasSearch {
   /**
    * Se connecter à MongoDB Atlas
    */
+  private readonly log = childLogger({ component: 'MongoDBAtlasSearch' });
+
   async connect(): Promise<void> {
     try {
       await this.client.connect();
       this.isConnected = true;
-      console.log('✅ MongoDB Atlas Search connected');
+      this.log.info('MongoDB Atlas Search connected');
     } catch (error) {
-      console.error('❌ MongoDB Atlas Search connection failed:', error);
-      Sentry.captureException(error);
+      this.log.error({ error }, 'MongoDB Atlas Search connection failed');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoDBAtlasSearch', action: 'connect' },
+      });
       throw error;
     }
   }
@@ -70,7 +80,7 @@ export class MongoDBAtlasSearch {
    * Créer un index de recherche
    */
   async createSearchIndex(
-    _collectionName: string,
+    collectionName: string,
     config: SearchConfig
   ): Promise<void> {
     try {
@@ -93,10 +103,19 @@ export class MongoDBAtlasSearch {
       // Note: En production, utilisez l'API Atlas Search
       // await this.db.collection(collectionName).createSearchIndex(indexDefinition);
 
-      console.log(`✅ Search index created: ${config.indexName}`);
+      this.log.info(
+        { indexName: config.indexName, collectionName },
+        'Search index created'
+      );
     } catch (error) {
-      console.error('❌ Error creating search index:', error);
-      Sentry.captureException(error);
+      this.log.error(
+        { error, indexName: config.indexName },
+        'Error creating search index'
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoDBAtlasSearch', action: 'createSearchIndex' },
+        extra: { indexName: config.indexName },
+      });
       throw error;
     }
   }
@@ -106,7 +125,7 @@ export class MongoDBAtlasSearch {
    */
   async search<T = any>(
     collectionName: string,
-    _indexName: string,
+    indexName: string,
     query: SearchQuery
   ): Promise<SearchResult<T>> {
     try {
@@ -190,14 +209,28 @@ export class MongoDBAtlasSearch {
       const total = await collection.countDocuments(mongoQuery);
       const took = Date.now() - startTime;
 
+      this.log.debug(
+        {
+          collectionName,
+          indexName,
+          hitsCount: hits.length,
+          total,
+          took,
+        },
+        'Search completed'
+      );
+
       return {
         hits: hits as T[],
         total,
         took,
       };
     } catch (error) {
-      console.error('❌ Error searching:', error);
-      Sentry.captureException(error);
+      this.log.error({ error, collectionName, indexName }, 'Error searching');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoDBAtlasSearch', action: 'search' },
+        extra: { collectionName, indexName },
+      });
       throw error;
     }
   }
@@ -277,4 +310,3 @@ export const getSearchInstance = (): MongoDBAtlasSearch => {
   }
   return searchInstance;
 };
-

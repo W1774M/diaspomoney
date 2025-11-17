@@ -1,14 +1,27 @@
 /**
  * Implémentation MongoDB du repository spécialité
+ * Implémente les design patterns :
+ * - Repository Pattern
+ * - Dependency Injection
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache)
+ * - Error Handling Pattern (Sentry)
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
 import { ISpeciality } from '@/types';
+import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import { ISpecialityRepository } from '../interfaces/ISpecialityRepository';
 
 export class MongoSpecialityRepository implements ISpecialityRepository {
   private readonly collectionName = 'specialitytypes';
+  private readonly log = childLogger({
+    component: 'MongoSpecialityRepository',
+  });
 
   private async getCollection() {
     const client = await mongoClient;
@@ -28,39 +41,69 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
     };
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'SpecialityRepository:findById' }) // Cache 5 minutes
   async findById(id: string): Promise<ISpeciality | null> {
     try {
       const collection = await this.getCollection();
       const speciality = await collection.findOne({ _id: new ObjectId(id) });
-      return speciality ? this.mapToSpeciality(speciality) : null;
+      const result = speciality ? this.mapToSpeciality(speciality) : null;
+      if (result) {
+        this.log.debug({ specialityId: id }, 'Speciality found');
+      } else {
+        this.log.debug({ specialityId: id }, 'Speciality not found');
+      }
+      return result;
     } catch (error) {
-      console.error('[MongoSpecialityRepository] Error in findById:', error);
+      this.log.error({ error, id }, 'Error in findById');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSpecialityRepository', action: 'findById' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'SpecialityRepository:findAll' }) // Cache 5 minutes
   async findAll(filters?: Record<string, any>): Promise<ISpeciality[]> {
     try {
       const collection = await this.getCollection();
       const specialities = await collection.find(filters || {}).toArray();
-      return specialities.map(s => this.mapToSpeciality(s));
+      const result = specialities.map(s => this.mapToSpeciality(s));
+      this.log.debug({ count: result.length, filters }, 'Specialities found');
+      return result;
     } catch (error) {
-      console.error('[MongoSpecialityRepository] Error in findAll:', error);
+      this.log.error({ error, filters }, 'Error in findAll');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSpecialityRepository', action: 'findAll' },
+        extra: { filters },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'SpecialityRepository:findOne' }) // Cache 5 minutes
   async findOne(filters: Record<string, any>): Promise<ISpeciality | null> {
     try {
       const collection = await this.getCollection();
       const speciality = await collection.findOne(filters);
-      return speciality ? this.mapToSpeciality(speciality) : null;
+      const result = speciality ? this.mapToSpeciality(speciality) : null;
+      this.log.debug({ filters, found: !!result }, 'findOne completed');
+      return result;
     } catch (error) {
-      console.error('[MongoSpecialityRepository] Error in findOne:', error);
+      this.log.error({ error, filters }, 'Error in findOne');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSpecialityRepository', action: 'findOne' },
+        extra: { filters },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('SpecialityRepository:*') // Invalider le cache après création
   async create(data: Partial<ISpeciality>): Promise<ISpeciality> {
     try {
       const collection = await this.getCollection();
@@ -79,13 +122,24 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
       if (!speciality) {
         throw new Error('Failed to create speciality');
       }
-      return this.mapToSpeciality(speciality);
+      const mappedSpeciality = this.mapToSpeciality(speciality);
+      this.log.info(
+        { specialityId: mappedSpeciality._id, name: mappedSpeciality.name },
+        'Speciality created successfully'
+      );
+      return mappedSpeciality;
     } catch (error) {
-      console.error('[MongoSpecialityRepository] Error in create:', error);
+      this.log.error({ error, name: data.name }, 'Error in create');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSpecialityRepository', action: 'create' },
+        extra: { name: data.name },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('SpecialityRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
     data: Partial<ISpeciality>
@@ -107,18 +161,28 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
       );
       return result?.['value'] ? this.mapToSpeciality(result['value']) : null;
     } catch (error) {
-      console.error('[MongoSpecialityRepository] Error in update:', error);
+      this.log.error({ error, id, data }, 'Error in update');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSpecialityRepository', action: 'update' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('SpecialityRepository:*') // Invalider le cache après suppression
   async delete(id: string): Promise<boolean> {
     try {
       const collection = await this.getCollection();
       const result = await collection.deleteOne({ _id: new ObjectId(id) });
       return result.deletedCount > 0;
     } catch (error) {
-      console.error('[MongoSpecialityRepository] Error in delete:', error);
+      this.log.error({ error, id }, 'Error in delete');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSpecialityRepository', action: 'delete' },
+        extra: { id },
+      });
       throw error;
     }
   }
@@ -128,7 +192,11 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
       const collection = await this.getCollection();
       return await collection.countDocuments(filters || {});
     } catch (error) {
-      console.error('[MongoSpecialityRepository] Error in count:', error);
+      this.log.error({ error, filters }, 'Error in count');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSpecialityRepository', action: 'count' },
+        extra: { filters },
+      });
       throw error;
     }
   }
@@ -139,7 +207,11 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
       const count = await collection.countDocuments({ _id: new ObjectId(id) });
       return count > 0;
     } catch (error) {
-      console.error('[MongoSpecialityRepository] Error in exists:', error);
+      this.log.error({ error, id }, 'Error in exists');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSpecialityRepository', action: 'exists' },
+        extra: { id },
+      });
       throw error;
     }
   }
@@ -148,7 +220,11 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
     try {
       return await this.findOne({ name });
     } catch (error) {
-      console.error('[MongoSpecialityRepository] Error in findByName:', error);
+      this.log.error({ error, name }, 'Error in findByName');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSpecialityRepository', action: 'findByName' },
+        extra: { name },
+      });
       throw error;
     }
   }
@@ -157,7 +233,11 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
     try {
       return await this.findAll({ group });
     } catch (error) {
-      console.error('[MongoSpecialityRepository] Error in findByGroup:', error);
+      this.log.error({ error, group }, 'Error in findByGroup');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSpecialityRepository', action: 'findByGroup' },
+        extra: { group },
+      });
       throw error;
     }
   }
@@ -166,7 +246,10 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
     try {
       return await this.findAll({ isActive: true });
     } catch (error) {
-      console.error('[MongoSpecialityRepository] Error in findActive:', error);
+      this.log.error({ error }, 'Error in findActive');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSpecialityRepository', action: 'findActive' },
+      });
       throw error;
     }
   }

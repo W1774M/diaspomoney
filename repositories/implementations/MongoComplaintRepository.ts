@@ -1,19 +1,35 @@
 /**
  * Implémentation MongoDB du repository complaint
+ * Implémente les design patterns :
+ * - Repository Pattern
+ * - Dependency Injection
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache)
+ * - Error Handling Pattern (Sentry)
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
+import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
-import {
+import type {
   Complaint,
   ComplaintFilters,
   ComplaintStatus,
   IComplaintRepository,
 } from '../interfaces/IComplaintRepository';
-import { PaginatedResult, PaginationOptions } from '../interfaces/IRepository';
+import type {
+  PaginatedResult,
+  PaginationOptions,
+} from '../interfaces/IRepository';
 
 export class MongoComplaintRepository implements IComplaintRepository {
   private readonly collectionName = 'complaints';
+  private readonly log = childLogger({
+    component: 'MongoComplaintRepository',
+  });
 
   private async getCollection() {
     const client = await mongoClient;
@@ -21,39 +37,69 @@ export class MongoComplaintRepository implements IComplaintRepository {
     return db.collection(this.collectionName);
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'ComplaintRepository:findById' }) // Cache 5 minutes
   async findById(id: string): Promise<Complaint | null> {
     try {
       const collection = await this.getCollection();
       const complaint = await collection.findOne({ _id: new ObjectId(id) });
-      return complaint ? this.mapToComplaint(complaint) : null;
+      const result = complaint ? this.mapToComplaint(complaint) : null;
+      if (result) {
+        this.log.debug({ complaintId: id }, 'Complaint found');
+      } else {
+        this.log.debug({ complaintId: id }, 'Complaint not found');
+      }
+      return result;
     } catch (error) {
-      console.error('[MongoComplaintRepository] Error in findById:', error);
+      this.log.error({ error, id }, 'Error in findById');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoComplaintRepository', action: 'findById' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'ComplaintRepository:findAll' }) // Cache 5 minutes
   async findAll(filters?: Record<string, any>): Promise<Complaint[]> {
     try {
       const collection = await this.getCollection();
       const complaints = await collection.find(filters || {}).toArray();
-      return complaints.map(c => this.mapToComplaint(c));
+      const result = complaints.map(c => this.mapToComplaint(c));
+      this.log.debug({ count: result.length, filters }, 'Complaints found');
+      return result;
     } catch (error) {
-      console.error('[MongoComplaintRepository] Error in findAll:', error);
+      this.log.error({ error, filters }, 'Error in findAll');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoComplaintRepository', action: 'findAll' },
+        extra: { filters },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'ComplaintRepository:findOne' }) // Cache 5 minutes
   async findOne(filters: Record<string, any>): Promise<Complaint | null> {
     try {
       const collection = await this.getCollection();
       const complaint = await collection.findOne(filters);
-      return complaint ? this.mapToComplaint(complaint) : null;
+      const result = complaint ? this.mapToComplaint(complaint) : null;
+      this.log.debug({ filters, found: !!result }, 'findOne completed');
+      return result;
     } catch (error) {
-      console.error('[MongoComplaintRepository] Error in findOne:', error);
+      this.log.error({ error, filters }, 'Error in findOne');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoComplaintRepository', action: 'findOne' },
+        extra: { filters },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('ComplaintRepository:*') // Invalider le cache après création
   async create(data: Partial<Complaint>): Promise<Complaint> {
     try {
       const collection = await this.getCollection();
@@ -69,13 +115,24 @@ export class MongoComplaintRepository implements IComplaintRepository {
       if (!complaint) {
         throw new Error('Failed to create complaint');
       }
-      return this.mapToComplaint(complaint);
+      const mappedComplaint = this.mapToComplaint(complaint);
+      this.log.info(
+        { complaintId: mappedComplaint.id, userId: mappedComplaint.userId },
+        'Complaint created successfully'
+      );
+      return mappedComplaint;
     } catch (error) {
-      console.error('[MongoComplaintRepository] Error in create:', error);
+      this.log.error({ error, userId: data.userId }, 'Error in create');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoComplaintRepository', action: 'create' },
+        extra: { userId: data.userId },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('ComplaintRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
     data: Partial<Complaint>
@@ -93,18 +150,28 @@ export class MongoComplaintRepository implements IComplaintRepository {
       );
       return result?.['value'] ? this.mapToComplaint(result['value']) : null;
     } catch (error) {
-      console.error('[MongoComplaintRepository] Error in update:', error);
+      this.log.error({ error, id, data }, 'Error in update');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoComplaintRepository', action: 'update' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('ComplaintRepository:*') // Invalider le cache après suppression
   async delete(id: string): Promise<boolean> {
     try {
       const collection = await this.getCollection();
       const result = await collection.deleteOne({ _id: new ObjectId(id) });
       return result.deletedCount > 0;
     } catch (error) {
-      console.error('[MongoComplaintRepository] Error in delete:', error);
+      this.log.error({ error, id }, 'Error in delete');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoComplaintRepository', action: 'delete' },
+        extra: { id },
+      });
       throw error;
     }
   }
@@ -114,7 +181,11 @@ export class MongoComplaintRepository implements IComplaintRepository {
       const collection = await this.getCollection();
       return await collection.countDocuments(filters || {});
     } catch (error) {
-      console.error('[MongoComplaintRepository] Error in count:', error);
+      this.log.error({ error, filters }, 'Error in count');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoComplaintRepository', action: 'count' },
+        extra: { filters },
+      });
       throw error;
     }
   }
@@ -125,7 +196,11 @@ export class MongoComplaintRepository implements IComplaintRepository {
       const count = await collection.countDocuments({ _id: new ObjectId(id) });
       return count > 0;
     } catch (error) {
-      console.error('[MongoComplaintRepository] Error in exists:', error);
+      this.log.error({ error, id }, 'Error in exists');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoComplaintRepository', action: 'exists' },
+        extra: { id },
+      });
       throw error;
     }
   }
@@ -165,10 +240,17 @@ export class MongoComplaintRepository implements IComplaintRepository {
         hasMore: offset + limit < total,
       };
     } catch (error) {
-      console.error(
-        '[MongoComplaintRepository] Error in findWithPagination:',
-        error
+      this.log.error(
+        { error, filters, options },
+        'Error in findWithPagination'
       );
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoComplaintRepository',
+          action: 'findWithPagination',
+        },
+        extra: { filters, options },
+      });
       throw error;
     }
   }
@@ -194,6 +276,8 @@ export class MongoComplaintRepository implements IComplaintRepository {
     return this.findWithPagination({ status }, options);
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'ComplaintRepository:findComplaintsWithFilters' }) // Cache 5 minutes
   async findComplaintsWithFilters(
     filters: ComplaintFilters,
     options?: PaginationOptions
@@ -231,10 +315,17 @@ export class MongoComplaintRepository implements IComplaintRepository {
 
       return this.findWithPagination(query, options);
     } catch (error) {
-      console.error(
-        '[MongoComplaintRepository] Error in findComplaintsWithFilters:',
-        error
+      this.log.error(
+        { error, filters, options },
+        'Error in findComplaintsWithFilters'
       );
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoComplaintRepository',
+          action: 'findComplaintsWithFilters',
+        },
+        extra: { filters, options },
+      });
       throw error;
     }
   }
@@ -259,10 +350,13 @@ export class MongoComplaintRepository implements IComplaintRepository {
 
       return `${prefix}${sequence.toString().padStart(3, '0')}`;
     } catch (error) {
-      console.error(
-        '[MongoComplaintRepository] Error in generateComplaintNumber:',
-        error
-      );
+      this.log.error({ error }, 'Error in generateComplaintNumber');
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoComplaintRepository',
+          action: 'generateComplaintNumber',
+        },
+      });
       throw error;
     }
   }

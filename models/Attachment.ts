@@ -22,20 +22,17 @@ const AttachmentSchema = new Schema<Attachment>(
       required: true,
     },
     uploadedBy: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: 'User',
       required: true,
-      index: true,
     },
     conversationId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: 'Conversation',
-      index: true,
     },
     messageId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: 'Message',
-      index: true,
     },
   },
   {
@@ -51,4 +48,3 @@ AttachmentSchema.index({ type: 1 });
 
 export default mongoose.models['Attachment'] ||
   mongoose.model<Attachment>('Attachment', AttachmentSchema);
-

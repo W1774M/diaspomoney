@@ -1,3 +1,17 @@
+/**
+ * Performance Monitoring
+ * Implémente les design patterns :
+ * - Singleton Pattern (instance unique)
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Error Handling Pattern (Sentry)
+ * - Monitoring Pattern
+ */
+
+import { childLogger } from '@/lib/logger';
+import * as Sentry from '@sentry/nextjs';
+
+const log = childLogger({ component: 'PerformanceMonitoring' });
+
 // Monitoring de performance basique pour la Phase 1
 export const performanceMonitoring = {
   // Track des métriques de performance
@@ -24,7 +38,11 @@ export const performanceMonitoring = {
 
     // Alert si > 2 secondes
     if (duration > 2000) {
-      console.warn(`⚠️ Slow API: ${endpoint} took ${duration}ms`);
+      log.warn({ endpoint, duration }, 'Slow API detected');
+      Sentry.captureMessage(`Slow API: ${endpoint}`, {
+        level: 'warning',
+        extra: { endpoint, duration },
+      });
     }
   },
 
@@ -49,7 +67,11 @@ export const performanceMonitoring = {
     const count = metrics.get(endpoint) || 0;
     metrics.set(endpoint, count + 1);
 
-    console.error(`❌ Error in ${endpoint}: ${error}`);
+    log.error({ endpoint, error }, 'API error tracked');
+    Sentry.captureMessage(`Error in ${endpoint}`, {
+      level: 'error',
+      extra: { endpoint, error },
+    });
   },
 
   // Obtenir les statistiques de performance
@@ -110,7 +132,7 @@ export function withPerformanceTracking<T extends any[], R>(
       performanceMonitoring.trackAPIPerformance(endpoint, duration);
       performanceMonitoring.trackError(
         endpoint,
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : 'Unknown error'
       );
       throw error;
     }
@@ -121,22 +143,7 @@ export function withPerformanceTracking<T extends any[], R>(
 export function getPerformanceReport() {
   const stats = performanceMonitoring.getStats();
 
-  console.log("📊 Performance Report:");
-  console.log("==================");
-
-  for (const [key, value] of Object.entries(stats)) {
-    if (key.includes("response_time")) {
-      const v = value as { avg: number; min: number; max: number };
-      console.log(
-        `${key}: ${v.avg.toFixed(2)}ms (avg), ${v.min}ms (min), ${v.max}ms (max)`
-      );
-    } else if (key.includes("cache_hit_rate")) {
-      const v = value as number;
-      console.log(`${key}: ${v.toFixed(2)}%`);
-    } else if (key.includes("errors")) {
-      console.log(`${key}: ${value}`);
-    }
-  }
+  log.info({ stats }, 'Performance report generated');
 
   return stats;
 }

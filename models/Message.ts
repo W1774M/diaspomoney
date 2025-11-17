@@ -4,16 +4,14 @@ import mongoose, { Schema } from 'mongoose';
 const MessageSchema = new Schema<Message>(
   {
     conversationId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: 'Conversation',
       required: true,
-      index: true,
     },
     senderId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: 'User',
       required: true,
-      index: true,
     },
     text: {
       type: String,
@@ -54,4 +52,3 @@ MessageSchema.post('save', async function () {
 
 export default mongoose.models['Message'] ||
   mongoose.model<Message>('Message', MessageSchema);
-

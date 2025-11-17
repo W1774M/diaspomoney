@@ -1,4 +1,13 @@
 'use client';
+/**
+ * ModalSelectService Component
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (useCallback, useMemo, useState)
+ * - Error Handling Pattern (via useNotificationManager)
+ * - Notification Pattern (via useNotificationManager)
+ */
+
+import { useNotificationManager } from '@/components/ui/Notification';
 import {
   AppointmentData,
   Availability,
@@ -23,8 +32,7 @@ export const ModalSelectService = ({
   setSteps,
   provider,
 }: ModalSelectServiceProps) => {
-  // Debug: afficher les données du demandeur
-  console.log('Modal - Données du demandeur:', appointment.requester);
+  const { addError } = useNotificationManager();
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [currentStep, setCurrentStep] = useState<
@@ -212,16 +220,15 @@ export const ModalSelectService = ({
 
   const handleSubmit = useCallback(() => {
     if (!isFormValid) {
-      alert('Veuillez remplir tous les champs obligatoires correctement');
+      addError('Veuillez remplir tous les champs obligatoires correctement');
       return;
     }
 
-    console.log('Réservation soumise', appointment);
     setIsClosing(true);
     setTimeout(() => {
       setSteps(1);
     }, 300);
-  }, [isFormValid, appointment, setSteps]);
+  }, [isFormValid, appointment, setSteps, addError]);
 
   // Fonction pour obtenir la classe CSS d'un champ
   const getFieldClassName = useCallback(

@@ -1,24 +1,54 @@
 /**
  * Implémentation MongoDB du repository d'attachments
+ * Implémente les design patterns :
+ * - Repository Pattern
+ * - Dependency Injection
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache)
+ * - Error Handling Pattern (Sentry)
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { childLogger } from '@/lib/logger';
 import Attachment from '@/models/Attachment';
 import { Attachment as AttachmentType } from '@/types/messaging';
+import * as Sentry from '@sentry/nextjs';
 import { ObjectId } from 'mongodb';
 import { IAttachmentRepository } from '../interfaces/IMessagingRepository';
-import { PaginatedResult, PaginationOptions } from '../interfaces/IRepository';
+import type {
+  PaginatedResult,
+  PaginationOptions,
+} from '../interfaces/IRepository';
 
 export class MongoAttachmentRepository implements IAttachmentRepository {
+  private readonly log = childLogger({
+    component: 'MongoAttachmentRepository',
+  });
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'AttachmentRepository:findById' }) // Cache 5 minutes
   async findById(id: string): Promise<AttachmentType | null> {
     try {
       const attachment = await (Attachment as any).findById(new ObjectId(id));
-      return attachment ? this.mapToAttachment(attachment) : null;
+      const result = attachment ? this.mapToAttachment(attachment) : null;
+      if (result) {
+        this.log.debug({ attachmentId: id }, 'Attachment found');
+      } else {
+        this.log.debug({ attachmentId: id }, 'Attachment not found');
+      }
+      return result;
     } catch (error) {
-      console.error('[MongoAttachmentRepository] Error in findById:', error);
+      this.log.error({ error, id }, 'Error in findById');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoAttachmentRepository', action: 'findById' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'AttachmentRepository:findByUser' }) // Cache 5 minutes
   async findByUser(
     userId: string,
     filters?: {
@@ -76,11 +106,20 @@ export class MongoAttachmentRepository implements IAttachmentRepository {
         hasMore: offset + limit < total,
       };
     } catch (error) {
-      console.error('[MongoAttachmentRepository] Error in findByUser:', error);
+      this.log.error(
+        { error, userId, filters, options },
+        'Error in findByUser'
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoAttachmentRepository', action: 'findByUser' },
+        extra: { userId, filters },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('AttachmentRepository:*') // Invalider le cache après création
   async create(data: Partial<AttachmentType>): Promise<AttachmentType> {
     try {
       const attachment = new Attachment({
@@ -96,11 +135,17 @@ export class MongoAttachmentRepository implements IAttachmentRepository {
       await attachment.save();
       return this.mapToAttachment(attachment);
     } catch (error) {
-      console.error('[MongoAttachmentRepository] Error in create:', error);
+      this.log.error({ error, uploadedBy: data.uploadedBy }, 'Error in create');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoAttachmentRepository', action: 'create' },
+        extra: { uploadedBy: data.uploadedBy },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('AttachmentRepository:*') // Invalider le cache après suppression
   async delete(id: string): Promise<boolean> {
     try {
       const result = await (Attachment as any).deleteOne({
@@ -108,11 +153,17 @@ export class MongoAttachmentRepository implements IAttachmentRepository {
       });
       return result.deletedCount > 0;
     } catch (error) {
-      console.error('[MongoAttachmentRepository] Error in delete:', error);
+      this.log.error({ error, id }, 'Error in delete');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoAttachmentRepository', action: 'delete' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('AttachmentRepository:*') // Invalider le cache après suppression
   async deleteByMessage(messageId: string): Promise<number> {
     try {
       const result = await (Attachment as any).deleteMany({
@@ -120,10 +171,14 @@ export class MongoAttachmentRepository implements IAttachmentRepository {
       });
       return result.deletedCount;
     } catch (error) {
-      console.error(
-        '[MongoAttachmentRepository] Error in deleteByMessage:',
-        error
-      );
+      this.log.error({ error, messageId }, 'Error in deleteByMessage');
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoAttachmentRepository',
+          action: 'deleteByMessage',
+        },
+        extra: { messageId },
+      });
       throw error;
     }
   }

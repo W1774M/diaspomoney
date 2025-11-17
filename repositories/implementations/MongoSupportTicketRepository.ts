@@ -1,24 +1,54 @@
 /**
  * Implémentation MongoDB du repository de tickets de support
+ * Implémente les design patterns :
+ * - Repository Pattern
+ * - Dependency Injection
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache)
+ * - Error Handling Pattern (Sentry)
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { childLogger } from '@/lib/logger';
 import SupportTicket from '@/models/SupportTicket';
 import { SupportTicket as SupportTicketType } from '@/types/messaging';
+import * as Sentry from '@sentry/nextjs';
 import { ObjectId } from 'mongodb';
 import { ISupportTicketRepository } from '../interfaces/IMessagingRepository';
-import { PaginatedResult, PaginationOptions } from '../interfaces/IRepository';
+import type {
+  PaginatedResult,
+  PaginationOptions,
+} from '../interfaces/IRepository';
 
 export class MongoSupportTicketRepository implements ISupportTicketRepository {
+  private readonly log = childLogger({
+    component: 'MongoSupportTicketRepository',
+  });
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'SupportTicketRepository:findById' }) // Cache 5 minutes
   async findById(id: string): Promise<SupportTicketType | null> {
     try {
       const ticket = await (SupportTicket as any).findById(new ObjectId(id));
-      return ticket ? this.mapToTicket(ticket) : null;
+      const result = ticket ? this.mapToTicket(ticket) : null;
+      if (result) {
+        this.log.debug({ ticketId: id }, 'Support ticket found');
+      } else {
+        this.log.debug({ ticketId: id }, 'Support ticket not found');
+      }
+      return result;
     } catch (error) {
-      console.error('[MongoSupportTicketRepository] Error in findById:', error);
+      this.log.error({ error, id }, 'Error in findById');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSupportTicketRepository', action: 'findById' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'SupportTicketRepository:findByUser' }) // Cache 5 minutes
   async findByUser(
     userId: string,
     options?: PaginationOptions
@@ -54,14 +84,20 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
         hasMore: offset + limit < total,
       };
     } catch (error) {
-      console.error(
-        '[MongoSupportTicketRepository] Error in findByUser:',
-        error
-      );
+      this.log.error({ error, userId, options }, 'Error in findByUser');
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoSupportTicketRepository',
+          action: 'findByUser',
+        },
+        extra: { userId },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'SupportTicketRepository:findByStatus' }) // Cache 5 minutes
   async findByStatus(
     status: 'open' | 'in_progress' | 'closed' | 'resolved',
     options?: PaginationOptions
@@ -93,14 +129,20 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
         hasMore: offset + limit < total,
       };
     } catch (error) {
-      console.error(
-        '[MongoSupportTicketRepository] Error in findByStatus:',
-        error
-      );
+      this.log.error({ error, status, options }, 'Error in findByStatus');
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoSupportTicketRepository',
+          action: 'findByStatus',
+        },
+        extra: { status },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('SupportTicketRepository:*') // Invalider le cache après création
   async create(data: Partial<SupportTicketType>): Promise<SupportTicketType> {
     try {
       const ticket = new SupportTicket({
@@ -114,11 +156,17 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
       await ticket.save();
       return this.mapToTicket(ticket);
     } catch (error) {
-      console.error('[MongoSupportTicketRepository] Error in create:', error);
+      this.log.error({ error, userId: data.userId }, 'Error in create');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSupportTicketRepository', action: 'create' },
+        extra: { userId: data.userId },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('SupportTicketRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
     data: Partial<SupportTicketType>
@@ -131,11 +179,17 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
       );
       return ticket ? this.mapToTicket(ticket) : null;
     } catch (error) {
-      console.error('[MongoSupportTicketRepository] Error in update:', error);
+      this.log.error({ error, id, data }, 'Error in update');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSupportTicketRepository', action: 'update' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('SupportTicketRepository:*') // Invalider le cache après ajout de message
   async addMessage(ticketId: string, messageId: string): Promise<boolean> {
     try {
       await (SupportTicket as any).updateOne(
@@ -148,14 +202,20 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
       );
       return true;
     } catch (error) {
-      console.error(
-        '[MongoSupportTicketRepository] Error in addMessage:',
-        error
-      );
+      this.log.error({ error, ticketId, messageId }, 'Error in addMessage');
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoSupportTicketRepository',
+          action: 'addMessage',
+        },
+        extra: { ticketId, messageId },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('SupportTicketRepository:*') // Invalider le cache après suppression
   async delete(id: string): Promise<boolean> {
     try {
       const result = await (SupportTicket as any).deleteOne({
@@ -163,7 +223,11 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
       });
       return result.deletedCount > 0;
     } catch (error) {
-      console.error('[MongoSupportTicketRepository] Error in delete:', error);
+      this.log.error({ error, id }, 'Error in delete');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoSupportTicketRepository', action: 'delete' },
+        extra: { id },
+      });
       throw error;
     }
   }

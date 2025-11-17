@@ -1,26 +1,56 @@
 /**
  * Implémentation MongoDB du repository de conversations
+ * Implémente les design patterns :
+ * - Repository Pattern
+ * - Dependency Injection
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache)
+ * - Error Handling Pattern (Sentry)
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { childLogger } from '@/lib/logger';
 import Conversation from '@/models/Conversation';
 import { Conversation as ConversationType } from '@/types/messaging';
+import * as Sentry from '@sentry/nextjs';
 import { ObjectId } from 'mongodb';
 import { IConversationRepository } from '../interfaces/IMessagingRepository';
-import { PaginatedResult, PaginationOptions } from '../interfaces/IRepository';
+import type {
+  PaginatedResult,
+  PaginationOptions,
+} from '../interfaces/IRepository';
 
 export class MongoConversationRepository implements IConversationRepository {
+  private readonly log = childLogger({
+    component: 'MongoConversationRepository',
+  });
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'ConversationRepository:findById' }) // Cache 5 minutes
   async findById(id: string): Promise<ConversationType | null> {
     try {
       const conversation = await (Conversation as any).findById(
         new ObjectId(id)
       );
-      return conversation ? this.mapToConversation(conversation) : null;
+      const result = conversation ? this.mapToConversation(conversation) : null;
+      if (result) {
+        this.log.debug({ conversationId: id }, 'Conversation found');
+      } else {
+        this.log.debug({ conversationId: id }, 'Conversation not found');
+      }
+      return result;
     } catch (error) {
-      console.error('[MongoConversationRepository] Error in findById:', error);
+      this.log.error({ error, id }, 'Error in findById');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoConversationRepository', action: 'findById' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'ConversationRepository:findByParticipant' }) // Cache 5 minutes
   async findByParticipant(
     userId: string,
     options?: PaginationOptions
@@ -56,14 +86,20 @@ export class MongoConversationRepository implements IConversationRepository {
         hasMore: offset + limit < total,
       };
     } catch (error) {
-      console.error(
-        '[MongoConversationRepository] Error in findByParticipant:',
-        error
-      );
+      this.log.error({ error, userId, options }, 'Error in findByParticipant');
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoConversationRepository',
+          action: 'findByParticipant',
+        },
+        extra: { userId },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'ConversationRepository:findByParticipants' }) // Cache 5 minutes
   async findByParticipants(
     participantIds: string[],
     type?: 'user' | 'support'
@@ -82,14 +118,23 @@ export class MongoConversationRepository implements IConversationRepository {
       const conversation = await (Conversation as any).findOne(filters).lean();
       return conversation ? this.mapToConversation(conversation) : null;
     } catch (error) {
-      console.error(
-        '[MongoConversationRepository] Error in findByParticipants:',
-        error
+      this.log.error(
+        { error, participantIds, type },
+        'Error in findByParticipants'
       );
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoConversationRepository',
+          action: 'findByParticipants',
+        },
+        extra: { participantIds, type },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('ConversationRepository:*') // Invalider le cache après création
   async create(data: Partial<ConversationType>): Promise<ConversationType> {
     try {
       const conversation = new Conversation({
@@ -101,11 +146,20 @@ export class MongoConversationRepository implements IConversationRepository {
       await conversation.save();
       return this.mapToConversation(conversation);
     } catch (error) {
-      console.error('[MongoConversationRepository] Error in create:', error);
+      this.log.error(
+        { error, participants: data.participants, type: data.type },
+        'Error in create'
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoConversationRepository', action: 'create' },
+        extra: { participants: data.participants, type: data.type },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('ConversationRepository:*') // Invalider le cache après mise à jour
   async update(
     id: string,
     data: Partial<ConversationType>
@@ -118,11 +172,17 @@ export class MongoConversationRepository implements IConversationRepository {
       );
       return conversation ? this.mapToConversation(conversation) : null;
     } catch (error) {
-      console.error('[MongoConversationRepository] Error in update:', error);
+      this.log.error({ error, id, data }, 'Error in update');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoConversationRepository', action: 'update' },
+        extra: { id, data },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('ConversationRepository:*') // Invalider le cache après mise à jour du dernier message
   async updateLastMessage(
     id: string,
     message: string,
@@ -140,14 +200,23 @@ export class MongoConversationRepository implements IConversationRepository {
       );
       return true;
     } catch (error) {
-      console.error(
-        '[MongoConversationRepository] Error in updateLastMessage:',
-        error
+      this.log.error(
+        { error, id, message, timestamp },
+        'Error in updateLastMessage'
       );
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoConversationRepository',
+          action: 'updateLastMessage',
+        },
+        extra: { id, message, timestamp },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('ConversationRepository:*') // Invalider le cache après incrément
   async incrementUnreadCount(
     conversationId: string,
     userId: string
@@ -163,14 +232,23 @@ export class MongoConversationRepository implements IConversationRepository {
       );
       return true;
     } catch (error) {
-      console.error(
-        '[MongoConversationRepository] Error in incrementUnreadCount:',
-        error
+      this.log.error(
+        { error, conversationId, userId },
+        'Error in incrementUnreadCount'
       );
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoConversationRepository',
+          action: 'incrementUnreadCount',
+        },
+        extra: { conversationId, userId },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('ConversationRepository:*') // Invalider le cache après réinitialisation
   async resetUnreadCount(
     conversationId: string,
     userId: string
@@ -186,14 +264,23 @@ export class MongoConversationRepository implements IConversationRepository {
       );
       return true;
     } catch (error) {
-      console.error(
-        '[MongoConversationRepository] Error in resetUnreadCount:',
-        error
+      this.log.error(
+        { error, conversationId, userId },
+        'Error in resetUnreadCount'
       );
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoConversationRepository',
+          action: 'resetUnreadCount',
+        },
+        extra: { conversationId, userId },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('ConversationRepository:*') // Invalider le cache après suppression
   async delete(id: string): Promise<boolean> {
     try {
       const result = await (Conversation as any).deleteOne({
@@ -201,7 +288,11 @@ export class MongoConversationRepository implements IConversationRepository {
       });
       return result.deletedCount > 0;
     } catch (error) {
-      console.error('[MongoConversationRepository] Error in delete:', error);
+      this.log.error({ error, id }, 'Error in delete');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoConversationRepository', action: 'delete' },
+        extra: { id },
+      });
       throw error;
     }
   }

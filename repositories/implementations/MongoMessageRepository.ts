@@ -1,24 +1,51 @@
 /**
  * Implémentation MongoDB du repository de messages
+ * Implémente les design patterns :
+ * - Repository Pattern
+ * - Dependency Injection
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache)
+ * - Error Handling Pattern (Sentry)
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { childLogger } from '@/lib/logger';
 import Message from '@/models/Message';
 import { Message as MessageType } from '@/types/messaging';
+import * as Sentry from '@sentry/nextjs';
 import { ObjectId } from 'mongodb';
 import { IMessageRepository } from '../interfaces/IMessagingRepository';
-import { PaginatedResult, PaginationOptions } from '../interfaces/IRepository';
-
-export class MongoMessageRepository implements IMessageRepository {
+import type {
+  PaginatedResult,
+  PaginationOptions,
+} from '../interfaces/IRepository';
+    component: 'MongoMessageRepository',
+  });
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'MessageRepository:findById' }) // Cache 5 minutes
   async findById(id: string): Promise<MessageType | null> {
     try {
       const message = await (Message as any).findById(new ObjectId(id));
-      return message ? this.mapToMessage(message) : null;
+      const result = message ? this.mapToMessage(message) : null;
+      if (result) {
+        this.log.debug({ messageId: id }, 'Message found');
+      } else {
+        this.log.debug({ messageId: id }, 'Message not found');
+      }
+      return result;
     } catch (error) {
-      console.error('[MongoMessageRepository] Error in findById:', error);
+      this.log.error({ error, id }, 'Error in findById');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoMessageRepository', action: 'findById' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'MessageRepository:findByConversation' }) // Cache 5 minutes
   async findByConversation(
     conversationId: string,
     options?: PaginationOptions
@@ -54,14 +81,17 @@ export class MongoMessageRepository implements IMessageRepository {
         hasMore: offset + limit < total,
       };
     } catch (error) {
-      console.error(
-        '[MongoMessageRepository] Error in findByConversation:',
-        error
-      );
+      this.log.error({ error, conversationId, options }, 'Error in findByConversation');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoMessageRepository', action: 'findByConversation' },
+        extra: { conversationId },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('MessageRepository:*') // Invalider le cache après création
   async create(data: Partial<MessageType>): Promise<MessageType> {
     try {
       const message = new Message({
@@ -73,11 +103,17 @@ export class MongoMessageRepository implements IMessageRepository {
       await message.save();
       return this.mapToMessage(message);
     } catch (error) {
-      console.error('[MongoMessageRepository] Error in create:', error);
+      this.log.error({ error, senderId: data.senderId, conversationId: data.conversationId }, 'Error in create');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoMessageRepository', action: 'create' },
+        extra: { senderId: data.senderId, conversationId: data.conversationId },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('MessageRepository:*') // Invalider le cache après marquage comme lu
   async markAsRead(messageId: string, userId: string): Promise<boolean> {
     try {
       await (Message as any).updateOne(
@@ -94,11 +130,17 @@ export class MongoMessageRepository implements IMessageRepository {
       );
       return true;
     } catch (error) {
-      console.error('[MongoMessageRepository] Error in markAsRead:', error);
+      this.log.error({ error, messageId, userId }, 'Error in markAsRead');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoMessageRepository', action: 'markAsRead' },
+        extra: { messageId, userId },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('MessageRepository:*') // Invalider le cache après marquage comme lu
   async markConversationAsRead(
     conversationId: string,
     userId: string
@@ -119,14 +161,17 @@ export class MongoMessageRepository implements IMessageRepository {
       );
       return result.modifiedCount;
     } catch (error) {
-      console.error(
-        '[MongoMessageRepository] Error in markConversationAsRead:',
-        error
-      );
+      this.log.error({ error, conversationId, userId }, 'Error in markConversationAsRead');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoMessageRepository', action: 'markConversationAsRead' },
+        extra: { conversationId, userId },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('MessageRepository:*') // Invalider le cache après suppression
   async delete(id: string): Promise<boolean> {
     try {
       const result = await (Message as any).deleteOne({
@@ -134,11 +179,17 @@ export class MongoMessageRepository implements IMessageRepository {
       });
       return result.deletedCount > 0;
     } catch (error) {
-      console.error('[MongoMessageRepository] Error in delete:', error);
+      this.log.error({ error, id }, 'Error in delete');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoMessageRepository', action: 'delete' },
+        extra: { id },
+      });
       throw error;
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(60, { prefix: 'MessageRepository:countUnread' }) // Cache 1 minute (plus fréquent)
   async countUnread(conversationId: string, userId: string): Promise<number> {
     try {
       return await (Message as any).countDocuments({
@@ -147,7 +198,11 @@ export class MongoMessageRepository implements IMessageRepository {
         read: false,
       });
     } catch (error) {
-      console.error('[MongoMessageRepository] Error in countUnread:', error);
+      this.log.error({ error, conversationId, userId }, 'Error in countUnread');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'MongoMessageRepository', action: 'countUnread' },
+        extra: { conversationId, userId },
+      });
       throw error;
     }
   }
