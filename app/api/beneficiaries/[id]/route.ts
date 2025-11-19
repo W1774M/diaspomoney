@@ -1,208 +1,168 @@
 /**
  * API Route - Beneficiary by ID
  * Endpoints pour modifier et supprimer un bénéficiaire spécifique
+ * Utilise BeneficiaryFacade (Facade Pattern) et handleApiRoute (Error Handling Pattern)
  */
 
 import { auth } from '@/auth';
-import { getMongoClient } from '@/lib/database/mongodb';
+import { handleApiRoute, ApiErrors, validateBody } from '@/lib/api/error-handler';
+import { beneficiaryFacade } from '@/facades';
 import { getUserRepository } from '@/repositories';
-import { ObjectId } from 'mongodb';
-import { NextRequest, NextResponse } from 'next/server';
+import {
+  UpdateBeneficiaryApiSchema,
+  type UpdateBeneficiaryApiInput,
+} from '@/lib/validations/beneficiary.schema';
+import { NextRequest } from 'next/server';
 
-// PUT /api/beneficiaries/[id] - Modifier un bénéficiaire
+/**
+ * PUT /api/beneficiaries/[id] - Modifier un bénéficiaire
+ */
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  try {
-    const session = await auth();
-    const userEmail = session?.user?.email;
+  return handleApiRoute(
+    request,
+    async () => {
+      const session = await auth();
+      const userEmail = session?.user?.email;
 
-    if (!userEmail) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
+      if (!userEmail) {
+        throw ApiErrors.UNAUTHORIZED;
+      }
 
-    const beneficiaryId = params.id;
-    if (!ObjectId.isValid(beneficiaryId)) {
-      return NextResponse.json(
-        { error: 'ID de bénéficiaire invalide' },
-        { status: 400 },
+      const beneficiaryId = params.id;
+
+      if (!beneficiaryId) {
+        throw ApiErrors.VALIDATION_ERROR('ID de bénéficiaire requis');
+      }
+
+      // Valider le body avec Zod
+      const body = await request.json();
+      const validatedData = validateBody<UpdateBeneficiaryApiInput>(
+        body,
+        UpdateBeneficiaryApiSchema,
       );
-    }
 
-    const body = await request.json();
-    const { name, email, phone, relationship } = body;
+      // Utiliser UserRepository (Repository Pattern)
+      const userRepository = getUserRepository();
+      const user = await userRepository.findByEmail(userEmail);
 
-    // Validation
-    if (!name || !relationship) {
-      return NextResponse.json(
-        { error: 'Le nom et la relation sont obligatoires' },
-        { status: 400 },
+      if (!user) {
+        throw ApiErrors.NOT_FOUND;
+      }
+
+      const userId = user.id || (user as any)._id?.toString() || '';
+
+      // Préparer les données de mise à jour
+      const updateData: any = {};
+
+      if (validatedData.firstName && validatedData.lastName) {
+        updateData.firstName = validatedData.firstName.trim();
+        updateData.lastName = validatedData.lastName.trim();
+      } else if (validatedData.name) {
+        const nameParts = validatedData.name.trim().split(' ');
+        updateData.firstName = nameParts[0] || '';
+        updateData.lastName = nameParts.slice(1).join(' ') || '';
+      }
+
+      if (validatedData.email !== undefined) {
+        updateData.email = validatedData.email?.trim() || undefined;
+      }
+
+      if (validatedData.phone !== undefined) {
+        updateData.phone = validatedData.phone?.trim() || undefined;
+      }
+
+      if (validatedData.relationship) {
+        updateData.relationship = validatedData.relationship;
+      }
+
+      if (validatedData.country) {
+        updateData.country = validatedData.country;
+      }
+
+      // Utiliser BeneficiaryFacade pour mettre à jour le bénéficiaire
+      const result = await beneficiaryFacade.updateBeneficiary(
+        userId,
+        beneficiaryId,
+        updateData,
       );
-    }
 
-    // Utiliser UserRepository (Repository Pattern)
-    const userRepository = getUserRepository();
-    const user = await userRepository.findByEmail(userEmail);
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Utilisateur non trouvé' },
-        { status: 404 },
-      );
-    }
-
-    const client = await getMongoClient();
-    const db = client.db();
-
-    // Convertir l'ID utilisateur en ObjectId pour MongoDB
-    const userId = new ObjectId(user.id || user._id);
-
-    // Vérifier que le bénéficiaire appartient à l'utilisateur
-    const existingBeneficiary = await db.collection('beneficiaries').findOne({
-      _id: new ObjectId(beneficiaryId),
-      userId,
-    });
-
-    if (!existingBeneficiary) {
-      return NextResponse.json(
-        { error: 'Bénéficiaire non trouvé' },
-        { status: 404 },
-      );
-    }
-
-    // Vérifier si un autre bénéficiaire avec le même email existe déjà pour cet utilisateur
-    if (email) {
-      const duplicateBeneficiary = await db
-        .collection('beneficiaries')
-        .findOne({
-          userId,
-          email: email.toLowerCase(),
-          _id: { $ne: new ObjectId(beneficiaryId) },
-        });
-
-      if (duplicateBeneficiary) {
-        return NextResponse.json(
-          { error: 'Un autre bénéficiaire avec cet email existe déjà' },
-          { status: 409 },
+      if (!result.success || !result.beneficiary) {
+        throw ApiErrors.VALIDATION_ERROR(
+          result.error || 'Erreur lors de la mise à jour du bénéficiaire',
         );
       }
-    }
 
-    // Mettre à jour le bénéficiaire
-    const updateData = {
-      name: name.trim(),
-      email: email?.toLowerCase().trim() || null,
-      phone: phone?.trim() || null,
-      relationship: relationship.trim(),
-      updatedAt: new Date(),
-    };
+      const beneficiary = result.beneficiary;
 
-    const result = await db
-      .collection('beneficiaries')
-      .updateOne(
-        { _id: new ObjectId(beneficiaryId), userId },
-        { $set: updateData },
-      );
+      // Mapper vers le format attendu par le frontend (compatibilité)
+      const mappedBeneficiary = {
+        _id: beneficiary.id || (beneficiary as any)._id?.toString(),
+        id: beneficiary.id || (beneficiary as any)._id?.toString(),
+        name: `${beneficiary.firstName} ${beneficiary.lastName}`,
+        firstName: beneficiary.firstName,
+        lastName: beneficiary.lastName,
+        email: beneficiary.email || '',
+        phone: beneficiary.phone || '',
+        relationship: beneficiary.relationship,
+        hasAccount: false,
+        status: beneficiary.isActive ? 'active' : 'inactive',
+        createdAt: beneficiary.createdAt?.toISOString() || new Date().toISOString(),
+        updatedAt: beneficiary.updatedAt?.toISOString() || new Date().toISOString(),
+      };
 
-    if (result.matchedCount === 0) {
-      return NextResponse.json(
-        { error: 'Bénéficiaire non trouvé' },
-        { status: 404 },
-      );
-    }
-
-    // Récupérer le bénéficiaire mis à jour
-    const updatedBeneficiary = await db.collection('beneficiaries').findOne({
-      _id: new ObjectId(beneficiaryId),
-    });
-
-    return NextResponse.json(
-      {
-        beneficiary: {
-          id: updatedBeneficiary?._id.toString(),
-          ...updatedBeneficiary,
-          _id: updatedBeneficiary?._id,
-        },
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error('Erreur lors de la mise à jour du bénéficiaire:', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
-  }
+      return { beneficiary: mappedBeneficiary };
+    },
+    'api/beneficiaries/[id]',
+  );
 }
 
-// DELETE /api/beneficiaries/[id] - Supprimer un bénéficiaire
+/**
+ * DELETE /api/beneficiaries/[id] - Supprimer un bénéficiaire
+ */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } },
 ) {
-  try {
-    const session = await auth();
-    const userEmail = session?.user?.email;
+  return handleApiRoute(
+    request,
+    async () => {
+      const session = await auth();
+      const userEmail = session?.user?.email;
 
-    if (!userEmail) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
+      if (!userEmail) {
+        throw ApiErrors.UNAUTHORIZED;
+      }
 
-    const beneficiaryId = params.id;
-    if (!ObjectId.isValid(beneficiaryId)) {
-      return NextResponse.json(
-        { error: 'ID de bénéficiaire invalide' },
-        { status: 400 },
-      );
-    }
+      const beneficiaryId = params.id;
 
-    // Utiliser UserRepository (Repository Pattern)
-    const userRepository = getUserRepository();
-    const user = await userRepository.findByEmail(userEmail);
+      if (!beneficiaryId) {
+        throw ApiErrors.VALIDATION_ERROR('ID de bénéficiaire requis');
+      }
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Utilisateur non trouvé' },
-        { status: 404 },
-      );
-    }
+      // Utiliser UserRepository (Repository Pattern)
+      const userRepository = getUserRepository();
+      const user = await userRepository.findByEmail(userEmail);
 
-    const client = await getMongoClient();
-    const db = client.db();
+      if (!user) {
+        throw ApiErrors.NOT_FOUND;
+      }
 
-    // Convertir l'ID utilisateur en ObjectId pour MongoDB
-    const userId = new ObjectId(user.id || user._id);
+      const userId = user.id || (user as any)._id?.toString() || '';
 
-    // Vérifier que le bénéficiaire appartient à l'utilisateur
-    const existingBeneficiary = await db.collection('beneficiaries').findOne({
-      _id: new ObjectId(beneficiaryId),
-      userId,
-    });
+      // Utiliser BeneficiaryFacade pour supprimer le bénéficiaire
+      const result = await beneficiaryFacade.deleteBeneficiary(userId, beneficiaryId);
 
-    if (!existingBeneficiary) {
-      return NextResponse.json(
-        { error: 'Bénéficiaire non trouvé' },
-        { status: 404 },
-      );
-    }
+      if (!result.success) {
+        throw ApiErrors.VALIDATION_ERROR(
+          result.error || 'Erreur lors de la suppression du bénéficiaire',
+        );
+      }
 
-    // Supprimer le bénéficiaire
-    const result = await db.collection('beneficiaries').deleteOne({
-      _id: new ObjectId(beneficiaryId),
-      userId,
-    });
-
-    if (result.deletedCount === 0) {
-      return NextResponse.json(
-        { error: 'Bénéficiaire non trouvé' },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json(
-      { message: 'Bénéficiaire supprimé avec succès' },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error('Erreur lors de la suppression du bénéficiaire:', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
-  }
+      return { message: 'Bénéficiaire supprimé avec succès' };
+    },
+    'api/beneficiaries/[id]',
+  );
 }

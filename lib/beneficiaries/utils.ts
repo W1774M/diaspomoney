@@ -1,10 +1,14 @@
-import { Beneficiary } from "@/types/beneficiaries";
+import type { Beneficiary } from "@/lib/types";
 
 /**
  * Format beneficiary name with relationship
  */
 export function formatBeneficiaryName(beneficiary: Beneficiary): string {
-  return `${beneficiary.name} (${beneficiary.relationship})`;
+  const name = beneficiary.name || 
+               `${beneficiary.firstName || ''} ${beneficiary.lastName || ''}`.trim() ||
+               beneficiary.email ||
+               'Unknown';
+  return `${name} (${beneficiary.relationship})`;
 }
 
 /**
@@ -58,9 +62,13 @@ export function formatCreationDate(beneficiary: Beneficiary): string {
  * Get beneficiary initials
  */
 export function getBeneficiaryInitials(beneficiary: Beneficiary): string {
-  return beneficiary.name
+  const name = beneficiary.name || 
+               `${beneficiary.firstName || ''} ${beneficiary.lastName || ''}`.trim() ||
+               beneficiary.email ||
+               'Unknown';
+  return name
     .split(" ")
-    .map(word => word.charAt(0))
+    .map((word: string) => word.charAt(0))
     .join("")
     .toUpperCase()
     .slice(0, 2);

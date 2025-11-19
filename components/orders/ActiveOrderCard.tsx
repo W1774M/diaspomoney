@@ -6,7 +6,7 @@
  */
 
 import imageLoader from '@/lib/image-loader';
-import { ActiveOrderCardProps } from '@/types/orders';
+import type { ActiveOrderCardProps } from '@/lib/types';
 import {
   Calendar,
   ChevronRight,

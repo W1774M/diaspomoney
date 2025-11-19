@@ -1,4 +1,4 @@
-import { Booking } from "@/types/bookings";
+import type { Booking } from "@/lib/types";
 
 /**
  * Get booking status color

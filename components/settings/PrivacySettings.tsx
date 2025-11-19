@@ -1,6 +1,6 @@
 'use client';
 
-import { PrivacySettingsProps } from '@/types/settings';
+import type { PrivacySettingsProps } from '@/lib/types';
 import { Save, Shield, Users } from 'lucide-react';
 import React, { useCallback } from 'react';
 

@@ -3,37 +3,33 @@
  * Endpoint de gestion des transactions
  */
 
+import { auth } from '@/auth';
+import { handleApiRoute, ApiErrors, validateBody } from '@/lib/api/error-handler';
+import { CreateTransactionSchema } from '@/lib/validations/transaction.schema';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
-import { securityManager } from '@/lib/security/advanced-security';
-import { authService } from '@/services/auth/auth.service';
 import {
-  TransactionData,
   TransactionService,
 } from '@/services/transaction/transaction.service';
-import type { TransactionFilters } from '@/types/transaction';
-import { NextRequest, NextResponse } from 'next/server';
+import type { TransactionData, TransactionFilters } from '@/lib/types';
+import { NextRequest } from 'next/server';
 
-// GET - Récupérer les transactions
+/**
+ * GET /api/transactions - Récupérer les transactions
+ */
 export async function GET(request: NextRequest) {
-  try {
-    // Authentification
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: "Token d'authentification requis" },
-        { status: 401 },
-      );
+  return handleApiRoute(request, async () => {
+    // Authentification via NextAuth
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw ApiErrors.UNAUTHORIZED;
     }
-
-    const token = authHeader.replace('Bearer ', '');
-    const user = await authService.verifyToken(token);
 
     // Récupérer les paramètres de filtrage
     const { searchParams } = new URL(request.url);
 
     // Utiliser TransactionQueryBuilder pour construire la requête
     const { TransactionQueryBuilder } = await import('@/builders');
-    const queryBuilder = new TransactionQueryBuilder().byUser(user.id);
+    const queryBuilder = new TransactionQueryBuilder().byUser(session.user.id);
 
     // Appliquer les filtres
     if (searchParams.get('status')) {
@@ -81,7 +77,7 @@ export async function GET(request: NextRequest) {
 
     // Récupérer les transactions
     const transactions = await TransactionService.getInstance().getTransactions(
-      user.id,
+      session.user.id,
       filters as TransactionFilters,
     );
 
@@ -91,7 +87,7 @@ export async function GET(request: NextRequest) {
       value: transactions.length,
       timestamp: new Date(),
       labels: {
-        user_role: String(user.role),
+        user_role: String(session.user.roles?.[0] || 'UNKNOWN'),
         filter_count: String(
           Object.values(filters).filter(v => v !== undefined).length,
         ),
@@ -99,163 +95,69 @@ export async function GET(request: NextRequest) {
       type: 'counter',
     });
 
-    return NextResponse.json({
+    return {
       success: true,
       transactions,
       count: transactions.length,
-    });
-  } catch (error) {
-    console.error('Erreur GET transactions:', error);
-
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Erreur de récupération des transactions',
-        success: false,
-      },
-      { status: 500 },
-    );
-  }
+    };
+  }, 'api/transactions');
 }
 
-// POST - Créer une transaction
+/**
+ * POST /api/transactions - Créer une nouvelle transaction
+ * 
+ * Implémente les design patterns :
+ * - Service Layer Pattern (via TransactionService)
+ * - Repository Pattern (via TransactionService qui utilise les repositories)
+ * - Error Handling Pattern (via handleApiRoute)
+ * - Validation Pattern (via CreateTransactionSchema)
+ */
 export async function POST(request: NextRequest) {
-  try {
-    // Authentification
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: "Token d'authentification requis" },
-        { status: 401 },
-      );
+  return handleApiRoute(request, async () => {
+    // Authentification via NextAuth
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw ApiErrors.UNAUTHORIZED;
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const user = await authService.verifyToken(token);
-
-    // Vérifier les permissions
-    if (
-      typeof securityManager.hasPermission !== 'function' ||
-      !securityManager.hasPermission(user.role, 'transactions', 'create')
-    ) {
-      return NextResponse.json(
-        { error: 'Permissions insuffisantes' },
-        { status: 403 },
-      );
-    }
-
+    // Validation avec Zod
     const body = await request.json();
-    const {
-      beneficiaryId,
-      amount,
-      currency,
-      serviceType,
-      serviceId,
-      description,
-      metadata,
-    } = body;
+    const data = validateBody(body, CreateTransactionSchema);
 
-    // Validation des entrées
-    if (
-      !beneficiaryId ||
-      !amount ||
-      !currency ||
-      !serviceType ||
-      !serviceId ||
-      !description
-    ) {
-      return NextResponse.json(
-        { error: 'Tous les champs obligatoires doivent être remplis' },
-        { status: 400 },
-      );
-    }
-
-    // Sanitisation/remplacement si nécessaire
-    function sanitize(val: string) {
-      return typeof val === 'string' ? val : '';
-    }
-
-    const sanitizedData = {
-      payerId: user.id,
-      beneficiaryId:
-        typeof securityManager.sanitizeInput === 'function'
-          ? securityManager.sanitize(beneficiaryId)
-          : sanitize(beneficiaryId),
-      amount: parseFloat(
-        typeof securityManager.sanitize === 'function'
-          ? securityManager.sanitize(amount)
-          : amount,
-      ),
-      currency:
-        typeof securityManager.sanitizeInput === 'function'
-          ? securityManager.sanitize(currency)
-          : sanitize(currency),
-      serviceType:
-        typeof securityManager.sanitize === 'function'
-          ? securityManager.sanitize(serviceType)
-          : sanitize(serviceType),
-      serviceId:
-        typeof securityManager.sanitizeInput === 'function'
-          ? securityManager.sanitize(serviceId)
-          : sanitize(serviceId),
-      description:
-        typeof securityManager.sanitize === 'function'
-          ? securityManager.sanitize(description)
-          : sanitize(description),
-      metadata: metadata
-        ? typeof securityManager.sanitize === 'function'
-          ? securityManager.sanitize(metadata)
-          : metadata
-        : undefined,
+    // Préparer les données pour le service avec types stricts
+    const transactionData: TransactionData = {
+      payerId: session.user.id,
+      beneficiaryId: data.beneficiaryId,
+      serviceType: data.serviceType as 'HEALTH' | 'BTP' | 'EDUCATION',
+      serviceId: data.serviceId,
+      amount: data.amount,
+      currency: data.currency,
+      description: data.description,
+      metadata: data.metadata as Record<string, any>,
     };
 
     // Créer la transaction
-    const transaction =
-      await TransactionService.getInstance().createTransaction(
-        sanitizedData as TransactionData,
-      );
+    const transaction = await TransactionService.getInstance().createTransaction(transactionData);
 
     // Enregistrer les métriques
+    const amountRange = transactionData.amount < 50 ? 'low' : transactionData.amount < 500 ? 'medium' : 'high';
     monitoringManager.recordMetric({
       name: 'api_transactions_created',
       value: 1,
       timestamp: new Date(),
       labels: {
-        user_role: String(user.role),
-        service_type: sanitizedData.serviceType as string,
-        currency: sanitizedData.currency ?? '',
-        amount_range:
-          sanitizedData.amount < 50
-            ? 'low'
-            : sanitizedData.amount < 500
-            ? 'medium'
-            : 'high',
+        user_role: String(session.user.roles?.[0] || 'UNKNOWN'),
+        service_type: transactionData.serviceType,
+        currency: transactionData.currency,
+        amount_range: amountRange,
       },
       type: 'counter',
     });
 
-    return NextResponse.json(
-      {
-        success: true,
-        transaction,
-        message: 'Transaction créée avec succès',
-      },
-      { status: 201 },
-    );
-  } catch (error) {
-    console.error('Erreur POST transactions:', error);
-
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Erreur de création de transaction',
-        success: false,
-      },
-      { status: 400 },
-    );
-  }
+    return {
+      success: true,
+      transaction,
+      message: 'Transaction créée avec succès',
+    };
+  }, 'api/transactions');
 }

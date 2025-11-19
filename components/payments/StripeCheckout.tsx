@@ -57,8 +57,8 @@ export function StripeCheckout(props: StripeCheckoutProps) {
         if (!res.ok) throw new Error("Impossible de créer le paiement");
         const data = await res.json();
         if (!cancelled) setClientSecret(data.clientSecret);
-      } catch (e: any) {
-        const msg = e?.message || "Erreur lors de l'initialisation du paiement";
+      } catch (error: any) {
+        const msg = error?.message || "Erreur lors de l'initialisation du paiement";
         setError(msg);
         onError?.(msg);
       }
@@ -135,8 +135,8 @@ function InnerCheckout({
       } else {
         onError?.("Paiement non complété");
       }
-    } catch (e: any) {
-      onError?.(e?.message || "Erreur lors du paiement");
+    } catch (error: any) {
+      onError?.(error?.message || "Erreur lors du paiement");
     } finally {
       setSubmitting(false);
     }

@@ -2,7 +2,7 @@
  * Interface du repository pour les consentements GDPR
  */
 
-import type { GDPRConsent } from '@/types/gdpr';
+import type { GDPRConsent } from '@/lib/types';
 import {
   IPaginatedRepository,
   PaginatedResult,

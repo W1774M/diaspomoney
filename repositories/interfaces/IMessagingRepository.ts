@@ -7,7 +7,7 @@ import {
   Conversation,
   Message,
   SupportTicket,
-} from '@/types/messaging';
+} from '@/lib/types';
 import { PaginatedResult, PaginationOptions } from './IRepository';
 
 /**

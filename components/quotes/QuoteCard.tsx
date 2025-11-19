@@ -6,7 +6,7 @@ import {
   getQuoteStatusColor,
   getQuoteStatusText,
 } from "@/lib/quotes/utils";
-import { QuoteCardProps } from "@/types/quotes";
+import type { QuoteCardProps } from "@/lib/types";
 import { Calendar, Clock, FileText } from "lucide-react";
 import React from "react";
 import QuoteActions from "./QuoteActions";

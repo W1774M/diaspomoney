@@ -200,7 +200,7 @@ export class FieldEncryption {
     try {
       const decrypted = this.decrypt(fieldName, encryptedField, userId);
       return decrypted !== null && decrypted !== '';
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

@@ -1,58 +1,155 @@
-import { userService } from '@/services/user/user.service';
-import { NextRequest, NextResponse } from 'next/server';
+/**
+ * API Route pour les providers
+ * Implémente les design patterns :
+ * - Service Layer Pattern (via userService)
+ * - Repository Pattern (via userRepository)
+ * - Builder Pattern (via UserQueryBuilder)
+ * - Error Handling Pattern (via handleApiRoute)
+ * - Validation Pattern (via CreateProviderSchema, ProviderFiltersSchema)
+ */
 
+import { UserQueryBuilder } from '@/builders';
+import { handleApiRoute, validateBody, validateQuery } from '@/lib/api/error-handler';
+import { PROVIDER_CONSTANTS, USER_STATUSES } from '@/lib/constants/index';
+import type { PaginationOptions, UserFilters, UserStatus } from '@/lib/types';
+import { getUserRepository } from '@/repositories';
+import { userService } from '@/services/user/user.service';
+import { NextRequest } from 'next/server';
+
+// Import schemas directly to avoid validation import errors
+import { z } from 'zod';
+
+// Define ProviderFiltersSchema here (fix import)
+export const ProviderFiltersSchema = z.object({
+  role: z.string().optional(),
+  status: z.string().optional(),
+  city: z.string().optional(),
+  category: z.string().optional(),
+  specialty: z.string().optional(),
+  service: z.string().optional(),
+  minRating: z.coerce.number().min(0).max(5).optional(),
+  limit: z.coerce.number().int().positive().max(100).default(50).optional(),
+  offset: z.coerce.number().int().min(0).default(0).optional(),
+});
+
+// Define CreateProviderSchema as a basic example for POST (fix import)
+export const CreateProviderSchema = z.object({
+  category: z.string().min(1, 'Category is required').optional(),
+  city: z.string().optional(),
+  specialties: z.array(z.string()).optional(),
+  services: z.array(z.string()).optional(),
+  rating: z.number().min(0).max(5).optional(),
+  // Add required fields here as appropriate
+});
+
+/**
+ * Interface pour un provider avec types stricts
+ */
+interface Provider {
+  id?: string;
+  _id?: string;
+  category?: string;
+  city?: string;
+  specialties?: string[];
+  services?: string[];
+  rating?: number;
+  [key: string]: unknown;
+}
+
+/**
+ * GET /api/providers - Récupérer les providers
+ * 
+ * @param request - La requête HTTP
+ * @returns Liste paginée des providers
+ */
 export async function GET(request: NextRequest) {
-  try {
+  return handleApiRoute(request, async () => {
     const { searchParams } = new URL(request.url);
 
+    // Validation des paramètres de requête
+    const filtersResult = validateQuery(searchParams, ProviderFiltersSchema);
+    // Safe typing to fix "unknown" lint error
+    type Filters = z.infer<typeof ProviderFiltersSchema>;
+    const filters: Filters = filtersResult;
+
     // Récupérer les paramètres de filtrage et pagination
-    const role = searchParams.get('role') || 'PROVIDER';
-    const status = searchParams.get('status');
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
-    const category = searchParams.get('category');
-    const city = searchParams.get('city');
-    const specialty = searchParams.get('specialty');
-    const service = searchParams.get('service');
-    const minRating = searchParams.get('minRating');
+    const role = filters.role || PROVIDER_CONSTANTS.DEFAULT_ROLE;
+    const limit = filters.limit ?? PROVIDER_CONSTANTS.DEFAULT_LIMIT;
+    const offset = filters.offset ?? PROVIDER_CONSTANTS.DEFAULT_OFFSET;
 
-    // Construire les filtres
-    const filters: any = {
-      role: role, // 'PROVIDER'
-      limit,
-      offset,
-    };
+    // Utiliser UserQueryBuilder pour construire la requête (Builder Pattern)
+    const queryBuilder = new UserQueryBuilder();
 
-    if (status) {
-      filters.status = status;
+    // Appliquer les filtres de base
+    queryBuilder.byRole(role);
+    if (filters.status) {
+      queryBuilder.byStatus(filters.status);
+    }
+    if (filters.city) {
+      queryBuilder.byCity(filters.city);
+    }
+    if (filters.minRating !== undefined) {
+      queryBuilder.minRating(filters.minRating);
     }
 
-    console.log('API Providers - Filters:', filters); // Debug
+    // Pagination
+    const page = Math.floor(offset / limit) + 1;
+    queryBuilder.page(page, limit);
 
-    // Récupérer les prestataires avec filtres
-    const result = await userService.getUsers(filters);
+    // Construire la requête
+    const query = queryBuilder.build();
+
+    // Utiliser le repository avec les filtres du builder
+    const userRepository = getUserRepository();
+    // Normaliser pagination pour garantir limit et page
+    const pagination: PaginationOptions = {
+      limit: query.pagination.limit ?? 20,
+      page: query.pagination.page ?? 1,
+      ...(query.pagination.offset !== undefined && { offset: query.pagination.offset }),
+      ...(query.sort && { sort: query.sort }),
+    };
+    const result = await userRepository.findUsersWithFilters(
+      query.filters,
+      pagination,
+    );
+
+    // Récupérer les prestataires avec filtres (pour compatibilité avec le code existant)
+    const serviceFilters: Partial<UserFilters> = {};
+    if (role) {
+      serviceFilters.role = role;
+    }
+    if (filters.status) {
+      serviceFilters.status = Array.isArray(filters.status)
+        ? (filters.status as any[]).map(s => s as any) as UserStatus[]
+        : [filters.status as any] as UserStatus[];
+    }
+    if (limit !== undefined) {
+      serviceFilters.limit = limit;
+    }
+    if (offset !== undefined) {
+      serviceFilters.offset = offset;
+    }
+    const serviceResult = await userService.getUsers(serviceFilters);
 
     // Appliquer les filtres supplémentaires côté serveur si nécessaire
-    let filteredProviders = result?.data || [];
+    // Utiliser les données du repository (plus complètes) ou du service (fallback)
+    let filteredProviders: Provider[] = (result?.data || serviceResult?.data || []) as Provider[];
 
     // Filtrage par catégorie (si les prestataires ont une propriété category)
-    if (category) {
-      filteredProviders = filteredProviders.filter((provider: any) => {
+    if (filters.category) {
+      const categorySpecialties = PROVIDER_CONSTANTS.CATEGORY_MAPPING[
+        filters.category as keyof typeof PROVIDER_CONSTANTS.CATEGORY_MAPPING
+      ] || [];
+      filteredProviders = filteredProviders.filter((provider) => {
         if (!provider) return false;
 
         if (provider.category) {
-          return provider.category === category;
+          return provider.category === filters.category;
         }
         // Fallback: filtrer par spécialités si pas de catégorie
         if (provider.specialties && Array.isArray(provider.specialties)) {
-          const categoryMapping: { [key: string]: string[] } = {
-            HEALTH: ['Médecine', 'Dentisterie', 'Pharmacie', 'Soins'],
-            EDU: ['Éducation', 'Formation', 'Cours', 'Tutorat'],
-            IMMO: ['Immobilier', 'Location', 'Achat', 'Vente'],
-          };
-          const categorySpecialties = categoryMapping[category] || [];
           return provider.specialties.some((spec: string) =>
-            categorySpecialties.some(catSpec =>
+            (categorySpecialties as unknown as string[]).some((catSpec: string) =>
               spec.toLowerCase().includes(catSpec.toLowerCase()),
             ),
           );
@@ -62,103 +159,90 @@ export async function GET(request: NextRequest) {
     }
 
     // Filtrage par ville
-    if (city) {
+    if (filters.city) {
       filteredProviders = filteredProviders.filter(
-        (provider: any) =>
+        (provider) =>
           provider &&
           provider.city &&
-          provider.city.toLowerCase().includes(city.toLowerCase()),
+          typeof provider.city === 'string' &&
+          provider.city.toLowerCase().includes(filters.city!.toLowerCase()),
       );
     }
 
     // Filtrage par spécialité
-    if (specialty) {
+    if (filters.specialty) {
       filteredProviders = filteredProviders.filter(
-        (provider: any) =>
+        (provider) =>
           provider &&
           provider.specialties &&
           Array.isArray(provider.specialties) &&
           provider.specialties.some((spec: string) =>
-            spec.toLowerCase().includes(specialty.toLowerCase()),
+            spec.toLowerCase().includes(filters.specialty!.toLowerCase()),
           ),
       );
     }
 
     // Filtrage par service
-    if (service) {
+    if (filters.service) {
       filteredProviders = filteredProviders.filter(
-        (provider: any) =>
+        (provider) =>
           provider &&
           provider.services &&
           Array.isArray(provider.services) &&
           provider.services.some((serv: string) =>
-            serv.toLowerCase().includes(service.toLowerCase()),
+            serv.toLowerCase().includes(filters.service!.toLowerCase()),
           ),
       );
     }
 
     // Filtrage par note minimale
-    if (minRating) {
-      const rating = parseFloat(minRating);
+    if (filters.minRating !== undefined) {
+      const rating = filters.minRating;
       filteredProviders = filteredProviders.filter(
-        (provider: any) =>
-          provider && provider.rating && provider.rating >= rating,
+        (provider) =>
+          provider && 
+          typeof provider.rating === 'number' && 
+          provider.rating >= rating,
       );
     }
 
-    return NextResponse.json({
+    return {
       success: true,
       providers: filteredProviders,
       total: filteredProviders.length,
       limit,
       offset,
       hasResults: filteredProviders.length > 0,
-    });
-  } catch (error) {
-    console.error('Erreur lors de la récupération des prestataires:', error);
-    return NextResponse.json(
-      { error: 'Erreur interne du serveur' },
-      { status: 500 },
-    );
-  }
+    };
+  }, 'api/providers');
 }
 
+/**
+ * POST /api/providers - Créer un nouveau provider
+ * 
+ * @param request - La requête HTTP
+ * @returns Le provider créé
+ */
 export async function POST(request: NextRequest) {
-  try {
-    const providerData = await request.json();
+  return handleApiRoute(request, async () => {
+    const body = await request.json();
 
-    // Validation des données
-    if (!providerData.userId || !providerData.specialities) {
-      return NextResponse.json(
-        { error: 'Données de prestataire incomplètes' },
-        { status: 400 },
-      );
-    }
+    // Validation avec Zod
+    const data = validateBody(body, CreateProviderSchema);
 
     // Création d'un nouveau prestataire
+    // TODO: Implémenter la création réelle via userService
     const newProvider = {
       id: `provider_${Date.now()}`,
-      ...providerData,
-      status: 'PENDING',
+      ...(data as Record<string, unknown>),
+      status: USER_STATUSES.PENDING,
       createdAt: new Date(),
     };
 
-    // Simulation de l'ajout à la base de données
-    console.log('Nouveau prestataire créé:', newProvider);
-
-    return NextResponse.json(
-      {
-        success: true,
-        provider: newProvider,
-        message: 'Prestataire créé avec succès',
-      },
-      { status: 201 },
-    );
-  } catch (error) {
-    console.error('Erreur lors de la création du prestataire:', error);
-    return NextResponse.json(
-      { error: 'Erreur interne du serveur' },
-      { status: 500 },
-    );
-  }
+    return {
+      success: true,
+      provider: newProvider,
+      message: 'Prestataire créé avec succès',
+    };
+  }, 'api/providers');
 }

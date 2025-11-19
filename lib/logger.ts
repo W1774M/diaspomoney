@@ -1,8 +1,9 @@
 import pino from 'pino';
+import { LOG_LEVELS } from '@/lib/constants';
 
 const level =
-  process.env['LOG_LEVEL'] ||
-  (process.env.NODE_ENV === 'production' ? 'info' : 'debug');
+  (process.env['LOG_LEVEL'] as typeof LOG_LEVELS[keyof typeof LOG_LEVELS]) ||
+  (process.env.NODE_ENV === 'production' ? LOG_LEVELS.INFO : LOG_LEVELS.DEBUG);
 
 const loggerOptions: pino.LoggerOptions = {
   level,
@@ -20,7 +21,7 @@ const loggerOptions: pino.LoggerOptions = {
 
 if (process.env.NODE_ENV !== 'production') {
   // Configuration simple pour le développement
-  loggerOptions.level = 'debug';
+  loggerOptions.level = LOG_LEVELS.DEBUG;
 }
 
 export const logger = pino(loggerOptions);

@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardStatsProps } from "@/types/dashboard";
+import type { DashboardStatsProps } from "@/lib/types";
 import { Calendar, FileText, Users } from "lucide-react";
 import React from "react";
 import DashboardStatCard from "./DashboardStatCard";

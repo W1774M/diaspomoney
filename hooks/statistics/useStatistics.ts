@@ -6,14 +6,9 @@
  * Utilise les API routes au lieu d'importer directement les services (évite les imports MongoDB côté client)
  */
 
-import { UseStatisticsReturn } from '@/types/hooks';
-import { PersonalStatistics } from '@/types/statistics';
+import { UseStatisticsReturn, PersonalStatistics } from '@/lib/types';
 import { useCallback, useState } from 'react';
 
-/**
- * Custom Hook pour gérer les statistiques personnelles
- * Implémente le Custom Hooks Pattern
- */
 export function useStatistics(): UseStatisticsReturn {
   const [statistics, setStatistics] = useState<PersonalStatistics | null>(null);
   const [loading, setLoading] = useState(false);
@@ -86,9 +81,9 @@ export function useStatistics(): UseStatisticsReturn {
       } else {
         throw new Error(data.error || 'Erreur inconnue');
       }
-    } catch (err) {
+    } catch (error) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Erreur inconnue';
+        error instanceof Error ? error.message : 'Erreur inconnue';
       setError(errorMessage);
       // Le logging est fait côté serveur via les services avec @Log decorator
     } finally {

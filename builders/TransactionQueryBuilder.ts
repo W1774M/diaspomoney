@@ -3,6 +3,7 @@
  * Étend QueryBuilder avec des méthodes spécifiques aux transactions
  */
 
+import { TRANSACTION_STATUSES } from '@/lib/constants';
 import { QueryBuilder } from './QueryBuilder';
 
 export class TransactionQueryBuilder extends QueryBuilder {
@@ -41,14 +42,14 @@ export class TransactionQueryBuilder extends QueryBuilder {
    * Filtrer les transactions complétées
    */
   completed(): this {
-    return this.where('status', 'COMPLETED');
+    return this.where('status', TRANSACTION_STATUSES.COMPLETED);
   }
 
   /**
    * Filtrer les transactions échouées
    */
   failed(): this {
-    return this.where('status', 'FAILED');
+    return this.where('status', TRANSACTION_STATUSES.FAILED);
   }
 
   /**

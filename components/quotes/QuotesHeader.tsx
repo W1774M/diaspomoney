@@ -1,6 +1,6 @@
 'use client';
 
-import { QuotesHeaderProps } from '@/types/quotes';
+import type { QuotesHeaderProps } from '@/lib/types';
 import { Plus } from 'lucide-react';
 import React from 'react';
 

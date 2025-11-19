@@ -1,6 +1,6 @@
 "use client";
 
-import { BeneficiariesTableProps } from "@/types/beneficiaries";
+import { BeneficiariesTableProps } from "@/lib/types";
 import { AlertCircle, Loader2, User } from "lucide-react";
 import React from "react";
 import BeneficiaryCard from "./BeneficiaryCard";

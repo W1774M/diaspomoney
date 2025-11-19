@@ -19,7 +19,7 @@ import {
   useComplaintStats,
   useComplaints,
 } from '@/hooks/complaints';
-import { Complaint } from '@/types/complaints';
+import type { Complaint } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect } from 'react';
 import ComplaintsFilters from './ComplaintsFilters';
@@ -55,14 +55,14 @@ const ComplaintsPage = React.memo(function ComplaintsPage() {
 
   const handleViewComplaint = useCallback(
     (complaint: Complaint) => {
-      router.push(`/dashboard/complaints/${complaint.id}`);
+      router.push(`/dashboard/complaints/${complaint._id || (complaint as any).id}`);
     },
     [router],
   );
 
   const handleCommentComplaint = useCallback(
     (complaint: Complaint) => {
-      router.push(`/dashboard/complaints/${complaint.id}#comments`);
+      router.push(`/dashboard/complaints/${complaint._id || (complaint as any).id}#comments`);
     },
     [router],
   );

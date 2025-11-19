@@ -1,20 +1,30 @@
 'use client';
 
+/**
+ * Page de création d'un nouvel utilisateur
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (via useCreateUser)
+ * - Toast Pattern (via useNotificationManager)
+ * - Error Handling Pattern (via logger)
+ */
+
+import { useCreateUser } from '@/hooks/users';
+import { useNotificationManager } from '@/components/ui/Notification';
+import { logger } from '@/lib/logger';
 import {
-  IUser,
   USER_ROLES,
   USER_STATUSES,
-  UserRole,
-  UserStatus,
-} from '@/types';
+} from '@/lib/types';
+import { LANGUAGES, TIMEZONES, USER_STATUSES as CONST_USER_STATUSES } from '@/lib/constants';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 export default function NewUserPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const { createUser, loading } = useCreateUser();
+  const { addSuccess, addError } = useNotificationManager();
   const [formData, setFormData] = useState({
     email: '',
     name: '',
@@ -22,35 +32,35 @@ export default function NewUserPage() {
     company: '',
     address: '',
     roles: [] as string[],
-    status: 'ACTIVE' as string,
+    status: CONST_USER_STATUSES.ACTIVE,
     specialty: '',
     recommended: false,
     clientNotes: '',
     avatar: '',
     preferences: {
-      language: 'fr',
-      timezone: 'Europe/Paris',
+      language: LANGUAGES.FR.code,
+      timezone: TIMEZONES.PARIS,
       notifications: true,
     },
   });
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = useCallback((field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
-  };
+  }, []);
 
-  const handleRoleChange = (role: string, checked: boolean) => {
+  const handleRoleChange = useCallback((role: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
       roles: checked
         ? [...prev.roles, role]
         : prev.roles.filter(r => r !== role),
     }));
-  };
+  }, []);
 
-  const handlePreferenceChange = (field: string, value: any) => {
+  const handlePreferenceChange = useCallback((field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       preferences: {
@@ -58,38 +68,94 @@ export default function NewUserPage() {
         [field]: value,
       },
     }));
-  };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-    try {
-      // Simuler un appel API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Validation côté client
+      if (!formData.email || !formData.name || formData.roles.length === 0) {
+        addError(
+          'Veuillez remplir tous les champs obligatoires (email, nom, rôles)',
+          6000,
+        );
+        return;
+      }
 
-      const newUser: Partial<IUser> = {
-        ...formData,
-        roles: formData.roles as UserRole[], // Cast roles to UserRole[] to match IUser type
-        status: formData.status as UserStatus, // If status is an enum, cast accordingly
-        avatar: {
-          image: formData.avatar,
-          name: '',
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      try {
+        logger.info(
+          {
+            email: formData.email,
+            roles: formData.roles,
+            status: formData.status,
+          },
+          'Submitting user creation form',
+        );
 
-      console.log('Nouvel utilisateur:', newUser);
-      alert('Utilisateur créé avec succès !');
-      router.push('/users');
-    } catch (error) {
-      console.error('Erreur lors de la création:', error);
-      alert("Erreur lors de la création de l'utilisateur");
-    } finally {
-      setLoading(false);
-    }
-  };
+        // Utiliser le hook personnalisé (Custom Hooks Pattern)
+        const result = await createUser({
+          email: formData.email,
+          name: formData.name,
+          firstName: formData.name.split(' ')[0] || '',
+          lastName: formData.name.split(' ').slice(1).join(' ') || '',
+          phone: formData.phone,
+          company: formData.company,
+          address: formData.address,
+          roles: formData.roles,
+          status: formData.status,
+          specialty: formData.specialty,
+          recommended: formData.recommended,
+          clientNotes: formData.clientNotes,
+          preferences: formData.preferences,
+        });
+
+        if (result.success && result.user) {
+          logger.info(
+            {
+              userId: result.user.id || result.user._id,
+              email: result.user.email,
+            },
+            'User created successfully',
+          );
+
+          // Utiliser les toasts au lieu d'alert (Toast Pattern)
+          addSuccess(
+            `Utilisateur créé avec succès ! Email : ${result.user.email}`,
+            8000,
+          );
+
+          // Rediriger vers la liste des utilisateurs
+          router.push('/dashboard/users');
+        } else {
+          const errorMessage =
+            result.error || "Erreur lors de la création de l'utilisateur";
+          logger.error(
+            {
+              error: result.error,
+              email: formData.email,
+            },
+            'User creation failed',
+          );
+          addError(errorMessage, 8000);
+        }
+      } catch (error) {
+        logger.error(
+          {
+            error,
+            email: formData.email,
+            roles: formData.roles,
+          },
+          'Error submitting user creation form',
+        );
+        addError(
+          "Erreur lors de la création de l'utilisateur. Veuillez réessayer.",
+          8000,
+        );
+      }
+    },
+    [formData, createUser, addSuccess, addError, router],
+  );
 
   return (
     <>
@@ -219,6 +285,8 @@ export default function NewUserPage() {
                 value={formData.status}
                 onChange={e => handleInputChange('status', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                title="Statut de l'utilisateur"
+                aria-label="Statut de l'utilisateur"
               >
                 {USER_STATUSES.map(status => (
                   <option key={status} value={status}>
@@ -253,13 +321,16 @@ export default function NewUserPage() {
               <div className='flex items-center'>
                 <input
                   type='checkbox'
+                  id='recommended'
                   checked={formData.recommended}
                   onChange={e =>
                     handleInputChange('recommended', e.target.checked)
                   }
                   className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded'
+                  title='Prestataire recommandé'
+                  aria-label='Prestataire recommandé'
                 />
-                <label className='ml-2 text-sm text-gray-700'>
+                <label htmlFor='recommended' className='ml-2 text-sm text-gray-700'>
                   Prestataire recommandé
                 </label>
               </div>
@@ -304,6 +375,8 @@ export default function NewUserPage() {
                   handlePreferenceChange('language', e.target.value)
                 }
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                title='Langue préférée'
+                aria-label='Langue préférée'
               >
                 <option value='fr'>Français</option>
                 <option value='en'>English</option>
@@ -321,6 +394,8 @@ export default function NewUserPage() {
                   handlePreferenceChange('timezone', e.target.value)
                 }
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                title='Fuseau horaire'
+                aria-label='Fuseau horaire'
               >
                 <option value='Europe/Paris'>Europe/Paris</option>
                 <option value='UTC'>UTC</option>
@@ -331,13 +406,16 @@ export default function NewUserPage() {
             <div className='flex items-center'>
               <input
                 type='checkbox'
+                id='notifications'
                 checked={formData.preferences.notifications}
                 onChange={e =>
                   handlePreferenceChange('notifications', e.target.checked)
                 }
                 className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded'
+                title='Notifications activées'
+                aria-label='Notifications activées'
               />
-              <label className='ml-2 text-sm text-gray-700'>
+              <label htmlFor='notifications' className='ml-2 text-sm text-gray-700'>
                 Notifications activées
               </label>
             </div>

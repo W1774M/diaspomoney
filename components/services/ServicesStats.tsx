@@ -1,6 +1,6 @@
 "use client";
 
-import { ServiceStats } from "@/types/services";
+import type { ServiceStats } from "@/lib/types";
 import { Briefcase, CheckCircle, Star, Users } from "lucide-react";
 import React from "react";
 

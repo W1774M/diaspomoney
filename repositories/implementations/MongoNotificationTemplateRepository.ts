@@ -11,11 +11,22 @@
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
+import { LANGUAGES } from '@/lib/constants';
 import { mongoClient } from '@/lib/mongodb';
-import type { NotificationTemplate } from '@/types/notifications';
+import type { NotificationTemplate } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import type { INotificationTemplateRepository } from '../interfaces/INotificationTemplateRepository';
+
+/**
+ * Filtres pour la recherche de templates de notifications
+ */
+export interface NotificationTemplateFilters {
+  name?: string;
+  locale?: string;
+  channels?: string[];
+  [key: string]: unknown;
+}
 
 export class MongoNotificationTemplateRepository
   implements INotificationTemplateRepository
@@ -54,7 +65,7 @@ export class MongoNotificationTemplateRepository
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'NotificationTemplateRepository:findAll' }) // Cache 5 minutes
   async findAll(
-    filters?: Record<string, any>,
+    filters?: NotificationTemplateFilters,
   ): Promise<NotificationTemplate[]> {
     try {
       const collection = await this.getCollection();
@@ -75,7 +86,7 @@ export class MongoNotificationTemplateRepository
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'NotificationTemplateRepository:findOne' }) // Cache 5 minutes
   async findOne(
-    filters: Record<string, any>,
+    filters: NotificationTemplateFilters,
   ): Promise<NotificationTemplate | null> {
     try {
       const collection = await this.getCollection();
@@ -196,7 +207,7 @@ export class MongoNotificationTemplateRepository
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'NotificationTemplateRepository:count' }) // Cache 5 minutes
-  async count(filters?: Record<string, any>): Promise<number> {
+  async count(filters?: NotificationTemplateFilters): Promise<number> {
     try {
       const collection = await this.getCollection();
       const count = await collection.countDocuments(filters || {});
@@ -270,17 +281,19 @@ export class MongoNotificationTemplateRepository
     }
   }
 
-  private mapToTemplate(doc: any): NotificationTemplate {
+  private mapToTemplate(doc: Document): NotificationTemplate {
+    const docId = doc['_id']?.toString() || doc['id'] || '';
     return {
-      id: doc._id?.toString() || doc.id,
-      name: doc.name,
-      subject: doc.subject,
-      content: doc.content,
-      variables: doc.variables || [],
-      channels: doc.channels || [],
-      locale: doc.locale || 'fr',
-      createdAt: doc.createdAt || new Date(),
-      updatedAt: doc.updatedAt || new Date(),
+      _id: docId,
+      id: docId,
+      name: doc['name'],
+      subject: doc['subject'],
+      content: doc['content'],
+      variables: doc['variables'] || [],
+      channels: doc['channels'] || [],
+      locale: doc['locale'] || LANGUAGES.FR.code,
+      createdAt: doc['createdAt'] ? new Date(doc['createdAt']) : new Date(),
+      updatedAt: doc['updatedAt'] ? new Date(doc['updatedAt']) : new Date(),
     };
   }
 }

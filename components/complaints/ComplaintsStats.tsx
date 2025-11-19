@@ -1,6 +1,6 @@
 "use client";
 
-import { ComplaintStats } from "@/types/complaints";
+import type { ComplaintStats } from "@/lib/types";
 import { AlertTriangle, CheckCircle, Clock, XCircle } from "lucide-react";
 import React from "react";
 

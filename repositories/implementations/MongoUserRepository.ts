@@ -12,13 +12,14 @@ import { UserQueryBuilder } from '@/builders';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
+import { USER_STATUSES, ROLES } from '@/lib/constants';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 import type {
   IUserRepository,
   User,
@@ -38,10 +39,14 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
-  @Cacheable(300, { prefix: 'UserRepository:findById' }) // Cache 5 minutes
+  @Cacheable(300, { prefix: 'UserRepository:findById' })
   async findById(id: string): Promise<User | null> {
     try {
       const collection = await this.getCollection();
+      if (!ObjectId.isValid(id)) {
+        this.log.warn({ userId: id }, 'Invalid ObjectId passed to findById');
+        return null;
+      }
       const user = await collection.findOne({ _id: new ObjectId(id) });
       const result = user ? this.mapToUser(user) : null;
       if (result) {
@@ -61,8 +66,8 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
-  @Cacheable(300, { prefix: 'UserRepository:findAll' }) // Cache 5 minutes
-  async findAll(filters?: Record<string, any>): Promise<User[]> {
+  @Cacheable(300, { prefix: 'UserRepository:findAll' })
+  async findAll(filters?: UserFilters): Promise<User[]> {
     try {
       const collection = await this.getCollection();
       const users = await collection.find(filters || {}).toArray();
@@ -80,8 +85,8 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
-  @Cacheable(300, { prefix: 'UserRepository:findOne' }) // Cache 5 minutes
-  async findOne(filters: Record<string, any>): Promise<User | null> {
+  @Cacheable(300, { prefix: 'UserRepository:findOne' })
+  async findOne(filters: UserFilters): Promise<User | null> {
     try {
       const collection = await this.getCollection();
       const user = await collection.findOne(filters);
@@ -99,15 +104,33 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @InvalidateCache('UserRepository:*') // Invalider le cache après création
+  @InvalidateCache('UserRepository:*')
   async create(data: Partial<User>): Promise<User> {
     try {
       const collection = await this.getCollection();
       const now = new Date();
-      const userData: OptionalId<
-        Document & { _id?: string | ObjectId | undefined }
-      > = {
-        ...data,
+      // Exclure _id et id du spread pour éviter les conflits avec OptionalId
+      type UserDataWithExtras = Partial<User> & {
+        country?: string;
+        countryOfResidence?: string;
+        dateOfBirth?: string;
+        targetCountry?: string;
+        targetCity?: string;
+        monthlyBudget?: string;
+        securityQuestion?: string;
+        securityAnswer?: string;
+        selectedServices?: string[];
+        isEmailVerified?: boolean;
+        emailVerified?: boolean;
+        marketingConsent?: boolean;
+        kycConsent?: boolean;
+        kycStatus?: string;
+        oauth?: unknown;
+      };
+      const userDataTyped = data as UserDataWithExtras;
+      const { _id, id, ...dataWithoutIds } = userDataTyped;
+      const userData: OptionalId<Document> = {
+        ...dataWithoutIds,
         createdAt: now,
         updatedAt: now,
         ...(data._id ? { _id: new ObjectId(data._id) } : {}),
@@ -137,15 +160,15 @@ export class MongoUserRepository implements IUserRepository {
 
   /**
    * Create a user with automatic password hashing
-   * Uses the Mongoose User model to benefit from pre('save') hook
+   * Uses the Mongoose User model for pre('save') hook
    */
-  @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le mot de passe
-  @InvalidateCache('UserRepository:*') // Invalider le cache après création
+  @Log({ level: 'info', logArgs: false, logExecutionTime: true })
+  @InvalidateCache('UserRepository:*')
   async createWithPassword(
     data: Partial<User> & { password?: string },
   ): Promise<User> {
     try {
-      // Import the User model to use pre('save') and hash the password
+      // Dynamically import UserModel to guarantee correct schema/hook use
       const UserModel = (await import('@/models/User')).default;
       const user = new UserModel({
         email: data.email?.toLowerCase(),
@@ -155,27 +178,26 @@ export class MongoUserRepository implements IUserRepository {
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone ? String(data.phone).trim() : undefined,
-        countryOfResidence: data.country ?? (data as any)['countryOfResidence'],
-        dateOfBirth: (data as any)['dateOfBirth'],
-        targetCountry: (data as any)['targetCountry'],
-        targetCity: (data as any)['targetCity'],
-        monthlyBudget: (data as any)['monthlyBudget'],
-        securityQuestion: (data as any)['securityQuestion'],
-        securityAnswer: (data as any)['securityAnswer'],
-        selectedServices: (data as any)['selectedServices'],
-        roles: data.roles || ['CUSTOMER'],
-        status: data.status || 'ACTIVE',
-        emailVerified: data.isEmailVerified || false,
-        marketingConsent: (data as any)['marketingConsent'] || false,
-        kycConsent: (data as any)['kycConsent'],
-        kycStatus: data.kycStatus || 'PENDING',
-        oauth: (data as any)['oauth'],
+        countryOfResidence: data['country'] ?? data['countryOfResidence'],
+        dateOfBirth: data['dateOfBirth'],
+        targetCountry: data['targetCountry'],
+        targetCity: data['targetCity'],
+        monthlyBudget: data['monthlyBudget'],
+        securityQuestion: data['securityQuestion'],
+        securityAnswer: data['securityAnswer'],
+        selectedServices: data['selectedServices'],
+        roles: data.roles || [ROLES.CUSTOMER],
+        status: data.status || USER_STATUSES.ACTIVE,
+        emailVerified: data['isEmailVerified'] ?? data['emailVerified'] ?? false,
+        marketingConsent: data['marketingConsent'] || false,
+        kycConsent: data['kycConsent'],
+        kycStatus: data['kycStatus'] || 'PENDING', // TODO: Créer KYC_STATUSES constant
+        oauth: data['oauth'],
         ...data,
       });
 
       await user.save();
 
-      // Return user in User format
       return this.mapToUser(user.toObject());
     } catch (error) {
       this.log.error(
@@ -194,9 +216,13 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @InvalidateCache('UserRepository:*') // Invalider le cache après mise à jour
+  @InvalidateCache('UserRepository:*')
   async update(id: string, data: Partial<User>): Promise<User | null> {
     try {
+      if (!ObjectId.isValid(id)) {
+        this.log.warn({ id }, 'Invalid ObjectId passed to update');
+        return null;
+      }
       const collection = await this.getCollection();
       const updateData: Partial<User> = {
         ...data,
@@ -207,8 +233,11 @@ export class MongoUserRepository implements IUserRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      // result.value is the updated document
-      return result?.['value'] ? this.mapToUser(result['value']) : null;
+      type FindOneAndUpdateResult = {
+        value?: Document | null;
+      };
+      const typedResult = result as FindOneAndUpdateResult;
+      return typedResult.value ? this.mapToUser(typedResult.value) : null;
     } catch (error) {
       this.log.error({ error, id, data }, 'Error in update');
       Sentry.captureException(error as Error, {
@@ -220,9 +249,13 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @InvalidateCache('UserRepository:*') // Invalider le cache après suppression
+  @InvalidateCache('UserRepository:*')
   async delete(id: string): Promise<boolean> {
     try {
+      if (!ObjectId.isValid(id)) {
+        this.log.warn({ id }, 'Invalid ObjectId passed to delete');
+        return false;
+      }
       const collection = await this.getCollection();
       const result = await collection.deleteOne({ _id: new ObjectId(id) });
       return Boolean(result.deletedCount && result.deletedCount > 0);
@@ -236,7 +269,7 @@ export class MongoUserRepository implements IUserRepository {
     }
   }
 
-  async count(filters?: Record<string, any>): Promise<number> {
+  async count(filters?: UserFilters): Promise<number> {
     try {
       const collection = await this.getCollection();
       return collection.countDocuments(filters || {});
@@ -252,6 +285,10 @@ export class MongoUserRepository implements IUserRepository {
 
   async exists(id: string): Promise<boolean> {
     try {
+      if (!ObjectId.isValid(id)) {
+        this.log.warn({ id }, 'Invalid ObjectId passed to exists');
+        return false;
+      }
       const collection = await this.getCollection();
       const count = await collection.countDocuments({ _id: new ObjectId(id) });
       return count > 0;
@@ -266,18 +303,25 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   async findWithPagination(
-    filters?: Record<string, any>,
+    filters?: UserFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<User>> {
+  ): Promise<PaginatedFindResult<User>> {
     try {
       const collection = await this.getCollection();
-      const limit = options?.limit ?? 50;
-      const offset = options?.offset ?? 0;
-      const page = options?.page ?? Math.floor(offset / limit) + 1;
+      const limit = Math.max(1, options?.limit ?? 50);
+      const offset = Math.max(0, options?.offset ?? 0);
+      // Defensive: If page is provided, calculate offset.
+      let page = 1;
+      if (options?.page && limit) {
+        page = options.page;
+      } else if (offset && limit) {
+        page = Math.floor(offset / limit) + 1;
+      }
       const sort = options?.sort || { createdAt: -1 };
 
       const query = filters || {};
       const total = await collection.countDocuments(query);
+
       const users = await collection
         .find(query)
         .sort(sort)
@@ -285,13 +329,20 @@ export class MongoUserRepository implements IUserRepository {
         .limit(limit)
         .toArray();
 
+      const pages = Math.ceil(total / limit);
+
       return {
         data: users.map(user => this.mapToUser(user)),
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error(
@@ -310,34 +361,63 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.findOne({ email: email.toLowerCase() });
+    if (!email) return null;
+    // Utiliser directement la collection pour findByEmail
+    const collection = await this.getCollection();
+    const user = await collection.findOne({ email: email.toLowerCase() });
+    return user ? this.mapToUser(user) : null;
   }
 
   async findByRole(role: string): Promise<User[]> {
-    return this.findAll({ roles: role });
+    const collection = await this.getCollection();
+    const users = await collection.find({ roles: role }).toArray();
+    return users.map(user => this.mapToUser(user));
   }
 
   async findByStatus(status: string): Promise<User[]> {
-    return this.findAll({ status });
+    const collection = await this.getCollection();
+    const users = await collection.find({ status }).toArray();
+    return users.map(user => this.mapToUser(user));
   }
 
-  @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le mot de passe
-  @InvalidateCache('UserRepository:*') // Invalider le cache après changement de mot de passe
+  @Log({ level: 'info', logArgs: false, logExecutionTime: true })
+  @InvalidateCache('UserRepository:*')
   async updatePassword(
     userId: string,
     hashedPassword: string,
     updatePasswordChangedAt: boolean = true,
   ): Promise<boolean> {
     try {
-      const updateData: any = {
+      if (!userId || typeof userId !== 'string') {
+        this.log.warn({ userId }, 'Invalid userId in updatePassword');
+        return false;
+      }
+      type UserUpdateData = Partial<User> & {
+        country?: string;
+        countryOfResidence?: string;
+        dateOfBirth?: string;
+        targetCountry?: string;
+        targetCity?: string;
+        monthlyBudget?: string;
+        securityQuestion?: string;
+        securityAnswer?: string;
+        selectedServices?: string[];
+        isEmailVerified?: boolean;
+        emailVerified?: boolean;
+        marketingConsent?: boolean;
+        kycConsent?: boolean;
+        kycStatus?: string;
+        oauth?: unknown;
+        twoFactorSecret?: string;
+        twoFactorBackupCodes?: string[];
+        twoFactorEnabled?: boolean;
+      };
+      const updateData: UserUpdateData = {
         password: hashedPassword,
       };
-
-      // Update passwordChangedAt if required
       if (updatePasswordChangedAt) {
-        updateData.passwordChangedAt = new Date();
+        updateData['passwordChangedAt'] = new Date();
       }
-
       const result = await this.update(userId, updateData);
       return result !== null;
     } catch (error) {
@@ -351,13 +431,11 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   /**
-   * Verify a user's password
-   * Uses the Mongoose User model to access comparePassword
+   * Verify a user's password using their stored hash
    */
-  @Log({ level: 'debug', logArgs: false, logExecutionTime: true }) // Ne pas logger le mot de passe
+  @Log({ level: 'debug', logArgs: false, logExecutionTime: true })
   async verifyPassword(userId: string, password: string): Promise<boolean> {
     try {
-      // Import User model to use comparePassword
       const UserModel = (await import('@/models/User')).default;
       const objectId = ObjectId.isValid(userId) ? new ObjectId(userId) : userId;
       const userDoc = await (UserModel as any)
@@ -381,7 +459,7 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @InvalidateCache('UserRepository:*') // Invalider le cache après vérification email
+  @InvalidateCache('UserRepository:*')
   async verifyEmail(userId: string): Promise<boolean> {
     try {
       const result = await this.update(userId, {
@@ -399,7 +477,7 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @InvalidateCache('UserRepository:*') // Invalider le cache après mise à jour KYC
+  @InvalidateCache('UserRepository:*')
   async updateKYCStatus(userId: string, status: string): Promise<boolean> {
     try {
       const result = await this.update(userId, {
@@ -417,10 +495,10 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   /**
-   * Configure 2FA for a user
+   * Setup 2FA for a user
    */
-  @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger les secrets 2FA
-  @InvalidateCache('UserRepository:*') // Invalider le cache après configuration 2FA
+  @Log({ level: 'info', logArgs: false, logExecutionTime: true })
+  @InvalidateCache('UserRepository:*')
   async setup2FA(
     userId: string,
     secret: string,
@@ -447,7 +525,7 @@ export class MongoUserRepository implements IUserRepository {
    * Enable 2FA for a user
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @InvalidateCache('UserRepository:*') // Invalider le cache après activation 2FA
+  @InvalidateCache('UserRepository:*')
   async enable2FA(userId: string): Promise<boolean> {
     try {
       const result = await this.update(userId, {
@@ -468,13 +546,13 @@ export class MongoUserRepository implements IUserRepository {
    * Disable 2FA for a user
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @InvalidateCache('UserRepository:*') // Invalider le cache après désactivation 2FA
+  @InvalidateCache('UserRepository:*')
   async disable2FA(userId: string): Promise<boolean> {
     try {
       const result = await this.update(userId, {
         twoFactorEnabled: false,
-        twoFactorSecret: undefined,
-        twoFactorBackupCodes: undefined,
+        twoFactorSecret: null,
+        twoFactorBackupCodes: [],
       });
       return result !== null;
     } catch (error) {
@@ -490,8 +568,8 @@ export class MongoUserRepository implements IUserRepository {
   /**
    * Update 2FA backup codes
    */
-  @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger les codes de backup
-  @InvalidateCache('UserRepository:*') // Invalider le cache après mise à jour des codes
+  @Log({ level: 'info', logArgs: false, logExecutionTime: true })
+  @InvalidateCache('UserRepository:*')
   async update2FABackupCodes(
     userId: string,
     backupCodes: string[],
@@ -518,7 +596,7 @@ export class MongoUserRepository implements IUserRepository {
    * Get a user's 2FA information
    */
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
-  @Cacheable(300, { prefix: 'UserRepository:get2FAInfo' }) // Cache 5 minutes
+  @Cacheable(300, { prefix: 'UserRepository:get2FAInfo' })
   async get2FAInfo(userId: string): Promise<{
     twoFactorSecret?: string;
     twoFactorBackupCodes?: string[];
@@ -529,12 +607,27 @@ export class MongoUserRepository implements IUserRepository {
       if (!user) {
         return null;
       }
-
-      return {
-        twoFactorSecret: (user as any)['twoFactorSecret'],
-        twoFactorBackupCodes: (user as any)['twoFactorBackupCodes'],
-        twoFactorEnabled: (user as any)['twoFactorEnabled'],
+      type UserWith2FA = User & {
+        twoFactorSecret?: string;
+        twoFactorBackupCodes?: string[];
+        twoFactorEnabled?: boolean;
       };
+      const userWith2FA = user as UserWith2FA;
+      const result: {
+        twoFactorSecret?: string;
+        twoFactorBackupCodes?: string[];
+        twoFactorEnabled?: boolean;
+      } = {};
+      if (userWith2FA.twoFactorSecret !== undefined) {
+        result.twoFactorSecret = userWith2FA.twoFactorSecret;
+      }
+      if (userWith2FA.twoFactorBackupCodes !== undefined) {
+        result.twoFactorBackupCodes = userWith2FA.twoFactorBackupCodes;
+      }
+      if (userWith2FA.twoFactorEnabled !== undefined) {
+        result.twoFactorEnabled = userWith2FA.twoFactorEnabled;
+      }
+      return result;
     } catch (error) {
       this.log.error({ error, userId }, 'Error in get2FAInfo');
       Sentry.captureException(error as Error, {
@@ -546,17 +639,22 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
-  @Cacheable(300, { prefix: 'UserRepository:findUsersWithFilters' }) // Cache 5 minutes
+  @Cacheable(300, { prefix: 'UserRepository:findUsersWithFilters' })
   async findUsersWithFilters(
     filters: UserFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<User>> {
+  ): Promise<PaginatedFindResult<User>> {
     try {
-      // Use UserQueryBuilder to build query
       const queryBuilder = this.buildUserQuery(filters, options);
       const query = queryBuilder.build();
-
-      return this.findWithPagination(query.filters, query.pagination);
+      // Normaliser pagination pour s'assurer que limit et page sont présents
+      const pagination: PaginationOptions = {
+        limit: query.pagination.limit ?? 50,
+        page: query.pagination.page ?? 1,
+        ...(query.pagination.offset !== undefined && { offset: query.pagination.offset }),
+        ...(query.sort && Object.keys(query.sort).length > 0 && { sort: query.sort }),
+      };
+      return this.findWithPagination(query.filters, pagination);
     } catch (error) {
       this.log.error(
         { error, filters, options },
@@ -582,7 +680,6 @@ export class MongoUserRepository implements IUserRepository {
   ): UserQueryBuilder {
     const builder = new UserQueryBuilder();
 
-    // Apply filters
     if (filters.role) {
       builder.byRole(filters.role);
     }
@@ -590,7 +687,12 @@ export class MongoUserRepository implements IUserRepository {
       builder.whereIn('roles', filters.roles);
     }
     if (filters.status) {
-      builder.byStatus(filters.status);
+      // byStatus attend un string, mais filters.status peut être un array
+      if (Array.isArray(filters.status)) {
+        builder.whereIn('status', filters.status);
+      } else {
+        builder.byStatus(filters.status);
+      }
     }
     if (filters.email) {
       builder.byEmail(filters.email);
@@ -622,7 +724,6 @@ export class MongoUserRepository implements IUserRepository {
       builder.byCity(filters.city);
     }
 
-    // Apply pagination
     if (options) {
       if (options.limit) {
         builder.limit(options.limit);
@@ -644,28 +745,43 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   /**
-   * Map a MongoDB document to a User object
+   * Map a MongoDB document to a User object.
+   * This handles _id/id normalization, field mapping, booleans, role defaults, etc.
    */
-  private mapToUser(doc: any): User {
+  private mapToUser(doc: Document): User {
+    if (!doc) return doc;
+
+    // _id handling: Accept either native ObjectId, string, etc.
+    let idStr: string | undefined = undefined;
+    if (doc['_id'] && typeof doc['_id'].toString === 'function') {
+      idStr = doc['_id'].toString();
+    } else if (typeof doc['_id'] === 'string') {
+      idStr = doc['_id'];
+    }
+
+    if (!idStr) {
+      throw new Error('Unable to extract _id from document');
+    }
+
     return {
-      _id: doc._id?.toString(),
-      id: doc._id?.toString() || doc.id,
-      email: doc.email,
-      firstName: doc.firstName,
-      lastName: doc.lastName,
-      name: doc.name,
-      phone: doc.phone,
-      country: doc.countryOfResidence || doc.country,
-      roles: doc.roles || [],
-      status: doc.status,
-      isActive: doc.status === 'ACTIVE',
+      _id: idStr,
+      id: idStr ?? doc['id'],
+      email: doc['email'],
+      firstName: doc['firstName'],
+      lastName: doc['lastName'],
+      name: doc['name'] ?? `${doc['firstName'] ?? ''} ${doc['lastName'] ?? ''}`.trim(),
+      phone: doc['phone'],
+      country: doc['countryOfResidence'] || doc['country'],
+      roles: Array.isArray(doc['roles']) ? doc['roles'] : (doc['roles'] ? [doc['roles']] : []),
+      status: doc['status'],
+      isActive: doc['status'] === USER_STATUSES.ACTIVE,
       isEmailVerified:
-        doc.emailVerified !== undefined
-          ? doc.emailVerified
-          : doc.isEmailVerified || false,
-      kycStatus: doc.kycStatus || 'PENDING',
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
+        doc['emailVerified'] !== undefined
+          ? doc['emailVerified']
+          : doc['isEmailVerified'] ?? false,
+      kycStatus: doc['kycStatus'] || 'PENDING', // TODO: Créer KYC_STATUSES constant
+      createdAt: doc['createdAt'],
+      updatedAt: doc['updatedAt'],
       ...doc,
     };
   }

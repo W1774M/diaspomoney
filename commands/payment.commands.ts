@@ -41,9 +41,7 @@ export class CreatePaymentCommand extends BaseCommand<PaymentFacadeResult> {
       // Rembourser la transaction
       await transactionService.refundTransaction(
         this.executedResult.transactionId,
-        undefined as any,
         'Command undo',
-        undefined as any,
       );
 
       logger.info({

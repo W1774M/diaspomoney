@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       } else {
         console.log(`Token de récupération généré pour ${email}: ${resetToken} (email non envoyé - RESEND_API_KEY non configuré)`);
       }
-    } catch (error) {
+    } catch (_error) {
       // L'utilisateur n'existe pas, mais on ne révèle pas cette information
       console.log(
         `Tentative de récupération pour un email inexistant: ${email}`,

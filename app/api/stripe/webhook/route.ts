@@ -1,6 +1,7 @@
 import { paymentEvents } from "@/lib/events";
 import { childLogger } from "@/lib/logger";
 import { verifyStripeSignature } from "@/lib/stripe-server";
+import type { StripePaymentIntent } from "@/lib/types";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic"; // disable caching for webhooks
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     switch (event.type) {
       case "payment_intent.succeeded": {
-        const pi = event.data.object as any;
+        const pi = event.data.object as StripePaymentIntent;
         log.info({
           msg: "Payment succeeded",
           paymentIntentId: pi.id,
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
           transactionId: pi.id,
           amount: pi.amount / 100, // Convertir de centimes
           currency: pi.currency.toUpperCase(),
-          userId: pi.metadata?.userId || pi.customer || 'unknown',
+          userId: (pi.metadata?.['userId'] as string) || (typeof pi.customer === 'string' ? pi.customer : pi.customer?.id || 'unknown') || 'unknown',
           provider: 'STRIPE',
           timestamp: new Date(),
         }).catch(error => {
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
         break;
       }
       case "payment_intent.payment_failed": {
-        const pi = event.data.object as any;
+        const pi = event.data.object as StripePaymentIntent;
         log.warn({
           msg: "Payment failed",
           error: pi?.last_payment_error,

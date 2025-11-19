@@ -1,4 +1,4 @@
-import { IUser as Provider, UseProviderReturn } from "@/types";
+import { IUser as Provider, UseProviderReturn } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 export function useProvider(id: string | number): UseProviderReturn {
@@ -27,9 +27,9 @@ export function useProvider(id: string | number): UseProviderReturn {
       } else {
         throw new Error(data.error || "Erreur inconnue");
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
-      console.error("Erreur useProvider:", err);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Erreur inconnue");
+      console.error("Erreur useProvider:", error);
     } finally {
       setLoading(false);
     }

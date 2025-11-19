@@ -7,7 +7,7 @@
  */
 
 import { useNotificationManager } from '@/components/ui/Notification';
-import type { UIBillingAddress } from '@/types/payments';
+import type { UIBillingAddress } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { useCallback, useState } from 'react';
 
@@ -105,15 +105,15 @@ export function useBillingAddressCreate(): UseBillingAddressCreateReturn {
 
         addSuccess('Adresse de facturation ajoutée avec succès !');
         return result.address as UIBillingAddress;
-      } catch (err) {
+      } catch (error) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Erreur inconnue';
+          error instanceof Error ? error.message : 'Erreur inconnue';
         setError(errorMessage);
         addError("Erreur lors de l'ajout de l'adresse");
 
         // Capturer l'erreur avec Sentry
         Sentry.captureException(
-          err instanceof Error ? err : new Error(errorMessage),
+          error instanceof Error ? error : new Error(errorMessage),
           {
             tags: {
               component: 'useBillingAddressCreate',

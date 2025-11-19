@@ -43,6 +43,22 @@ export default [
       'dist/**',
       'build/**',
       'coverage/**',
+      // Exclure tous les fichiers de tests
+      '**/*.test.{js,jsx,ts,tsx}',
+      '**/*.spec.{js,jsx,ts,tsx}',
+      '**/__tests__/**',
+      '**/__test__/**',
+      '**/tests/**',
+      '**/test/**',
+      '**/cypress/**',
+      '**/e2e/**',
+      '**/*.e2e.{js,jsx,ts,tsx}',
+      '**/*.integration.{js,jsx,ts,tsx}',
+      // Exclure les fichiers Markdown
+      '**/*.md',
+      '**/*.mdx',
+      // Exclure le répertoire examples
+      '**/examples/**',
     ],
   },
   js.configs.recommended,
@@ -160,13 +176,6 @@ export default [
         cy: 'readonly',
         Cypress: 'readonly',
       },
-    },
-  },
-  {
-    // Fichiers d'exemples
-    files: ['**/examples/**/*.ts', '**/examples/**/*.tsx'],
-    rules: {
-      'no-irregular-whitespace': 'off',
     },
   },
 ];

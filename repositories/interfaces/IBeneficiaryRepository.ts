@@ -2,7 +2,7 @@
  * Interface du repository pour les bénéficiaires
  */
 
-import type { Beneficiary, BeneficiaryFilters } from '@/types/beneficiaries';
+import type { Beneficiary, BeneficiaryFilters } from '@/lib/types';
 import {
   IPaginatedRepository,
   PaginatedResult,

@@ -12,14 +12,14 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import Message from '@/models/Message';
-import { Message as MessageType } from '@/types/messaging';
+import { Message as MessageType } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { ObjectId } from 'mongodb';
 import { IMessageRepository } from '../interfaces/IMessagingRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoMessageRepository implements IMessageRepository {
   private readonly log = childLogger({
@@ -53,7 +53,7 @@ export class MongoMessageRepository implements IMessageRepository {
   async findByConversation(
     conversationId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<MessageType>> {
+  ): Promise<PaginatedFindResult<MessageType>> {
     try {
       const page = options?.page || 1;
       const limit = options?.limit || 50;
@@ -79,10 +79,15 @@ export class MongoMessageRepository implements IMessageRepository {
       return {
         data: messages.map((m: any) => this.mapToMessage(m)).reverse(),
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error(
@@ -227,8 +232,12 @@ export class MongoMessageRepository implements IMessageRepository {
   }
 
   private mapToMessage(doc: any): MessageType {
+    const docId = doc._id?.toString() || doc.id || '';
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
     return {
-      _id: doc._id,
+      _id: docId,
+      id: docId,
       conversationId: doc.conversationId,
       senderId: doc.senderId,
       text: doc.text,
@@ -237,8 +246,8 @@ export class MongoMessageRepository implements IMessageRepository {
       ),
       read: doc.read,
       readAt: doc.readAt,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
+      createdAt,
+      updatedAt,
     };
   }
 }

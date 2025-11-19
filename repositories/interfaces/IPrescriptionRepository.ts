@@ -7,27 +7,10 @@ import {
   PaginatedResult,
   PaginationOptions,
 } from './IRepository';
+import type { Prescription, Medication } from '@/lib/types';
 
-export interface Prescription {
-  id: string;
-  _id?: string;
-  appointmentId: string;
-  medications: Medication[];
-  instructions: string;
-  validUntil: Date;
-  issuedAt: Date;
-  issuedBy: string;
-  createdAt: Date;
-  updatedAt: Date;
-  [key: string]: any;
-}
-
-export interface Medication {
-  name: string;
-  dosage: string;
-  frequency: string;
-  duration: string;
-}
+// Re-export pour compatibilité
+export type { Prescription, Medication };
 
 export interface PrescriptionFilters {
   appointmentId?: string;

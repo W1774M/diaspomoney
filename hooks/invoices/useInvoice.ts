@@ -1,6 +1,6 @@
 'use client';
 
-import { IInvoice } from '@/types';
+import { IInvoice } from '@/lib/types';
 import { useCallback, useEffect, useState } from 'react';
 
 interface UseInvoiceReturn {
@@ -73,7 +73,7 @@ export function useInvoice(invoiceId: string | null): UseInvoiceReturn {
       } else {
         setError('Format de réponse invalide');
       }
-    } catch (err) {
+    } catch (_error) {
       // Le logging est fait côté serveur via InvoiceService avec @Log decorator
       setError('Erreur lors du chargement de la facture');
     } finally {

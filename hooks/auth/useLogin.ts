@@ -236,9 +236,9 @@ export const useLogin = () => {
           const correctedPath = urlObj.pathname + urlObj.search;
           logger.debug({ correctedPath }, 'Chemin corrigé');
           // Ne pas utiliser cette URL, on utilisera router.push avec le chemin relatif
-        } catch (e: unknown) {
+        } catch (error: unknown) {
           const errorMessage =
-            e instanceof Error ? e.message : 'Erreur inconnue';
+            error instanceof Error ? error.message : 'Erreur inconnue';
 
           logger.warn(
             {
@@ -266,9 +266,9 @@ export const useLogin = () => {
             { errorCode: errorParam },
             "Code d'erreur extrait de l'URL",
           );
-        } catch (e: unknown) {
+        } catch (error: unknown) {
           const errorMessage =
-            e instanceof Error ? e.message : 'Erreur inconnue';
+            error instanceof Error ? error.message : 'Erreur inconnue';
 
           logger.warn(
             {

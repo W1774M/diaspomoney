@@ -20,9 +20,9 @@ import type {
   IHealthProviderRepository,
 } from '../interfaces/IHealthProviderRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoHealthProviderRepository
   implements IHealthProviderRepository
@@ -234,7 +234,7 @@ export class MongoHealthProviderRepository
   async findWithPagination(
     filters?: Record<string, any>,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<HealthProvider>> {
+  ): Promise<PaginatedFindResult<HealthProvider>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit || 50;
@@ -257,13 +257,19 @@ export class MongoHealthProviderRepository
       const data = await cursor.toArray();
       const providers = data.map(doc => this.mapToHealthProvider(doc));
 
+      const pages = Math.ceil(total / limit);
       const result = {
         data: providers,
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
 
       this.log.debug(
@@ -294,7 +300,7 @@ export class MongoHealthProviderRepository
   async findByType(
     type: 'DOCTOR' | 'HOSPITAL' | 'PHARMACY' | 'CLINIC',
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<HealthProvider>> {
+  ): Promise<PaginatedFindResult<HealthProvider>> {
     try {
       const result = await this.findWithPagination({ type }, options);
       this.log.debug(
@@ -314,7 +320,7 @@ export class MongoHealthProviderRepository
   async findBySpecialty(
     specialty: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<HealthProvider>> {
+  ): Promise<PaginatedFindResult<HealthProvider>> {
     try {
       const result = await this.findWithPagination(
         { specialties: { $in: [specialty] } },
@@ -337,7 +343,7 @@ export class MongoHealthProviderRepository
   async findByCity(
     city: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<HealthProvider>> {
+  ): Promise<PaginatedFindResult<HealthProvider>> {
     try {
       const result = await this.findWithPagination(
         { 'address.city': city },
@@ -359,7 +365,7 @@ export class MongoHealthProviderRepository
   @Cacheable(300, { prefix: 'HealthProviderRepository:findActive' }) // Cache 5 minutes
   async findActive(
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<HealthProvider>> {
+  ): Promise<PaginatedFindResult<HealthProvider>> {
     try {
       const result = await this.findWithPagination({ isActive: true }, options);
       this.log.debug(
@@ -379,7 +385,7 @@ export class MongoHealthProviderRepository
   async findByMinRating(
     minRating: number,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<HealthProvider>> {
+  ): Promise<PaginatedFindResult<HealthProvider>> {
     try {
       const result = await this.findWithPagination(
         { rating: { $gte: minRating } },
@@ -404,7 +410,7 @@ export class MongoHealthProviderRepository
   async findProvidersWithFilters(
     filters: HealthProviderFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<HealthProvider>> {
+  ): Promise<PaginatedFindResult<HealthProvider>> {
     try {
       const query: Record<string, any> = {};
 
@@ -448,9 +454,12 @@ export class MongoHealthProviderRepository
   }
 
   private mapToHealthProvider(doc: any): HealthProvider {
+    const docId = doc._id?.toString() || doc.id || '';
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
     return {
-      id: doc._id?.toString() || doc.id,
-      _id: doc._id?.toString(),
+      id: docId,
+      _id: docId,
       name: doc.name,
       type: doc.type,
       specialties: doc.specialties || [],
@@ -470,8 +479,8 @@ export class MongoHealthProviderRepository
       isActive: doc.isActive !== undefined ? doc.isActive : true,
       availability: doc.availability || {},
       services: doc.services || [],
-      createdAt: doc.createdAt || new Date(),
-      updatedAt: doc.updatedAt || new Date(),
+      createdAt,
+      updatedAt,
     };
   }
 }

@@ -15,7 +15,7 @@
 import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import { authService } from '@/services/auth/auth.service';
-import type { RegisterData } from '@/types/auth';
+import type { RegisterData } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 

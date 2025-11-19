@@ -1,6 +1,6 @@
 "use client";
 
-import { UsersTableProps } from "@/types/users";
+import type { UsersTableProps } from "@/lib/types";
 import React from "react";
 import UserCard from "./UserCard";
 
@@ -68,7 +68,7 @@ const UsersTable = React.memo<UsersTableProps>(function UsersTable({
 
   return (
     <div className="space-y-4">
-      {users.map(user => (
+      {users.map((user: any) => (
         <UserCard
           key={user._id}
           user={user}

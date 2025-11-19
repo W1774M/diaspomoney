@@ -186,7 +186,7 @@ export class SecurityManager {
 
     if (
       config.requireSpecialChars &&
-      !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+      !/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)
     ) {
       errors.push(
         'Le mot de passe doit contenir au moins un caractère spécial',
@@ -263,7 +263,7 @@ export class SecurityManager {
       }
 
       return decoded;
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Token invalide');
     }
   }
@@ -310,7 +310,7 @@ export class SecurityManager {
 
       const decoded = await this.verifyToken(token);
       return { user: decoded };
-    } catch (error) {
+    } catch (_error) {
       return { user: null, error: 'Token invalide' };
     }
   };

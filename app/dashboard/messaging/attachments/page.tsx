@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/hooks';
 import imageLoader from '@/lib/image-loader';
-import { UIAttachment } from '@/types/messaging';
+import { UIAttachment } from '@/lib/types';
 import {
   Download,
   File,

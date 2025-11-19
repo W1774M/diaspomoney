@@ -1,6 +1,6 @@
 'use client';
 
-import type { PaymentReceiptFiltersProps } from '@/types/payments';
+import type { PaymentReceiptFiltersProps } from '@/lib/types';
 import { Search, SortAsc, SortDesc } from 'lucide-react';
 
 export function PaymentReceiptFilters({

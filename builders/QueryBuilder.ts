@@ -3,22 +3,12 @@
  * Permet la construction fluide et lisible de requêtes complexes
  */
 
-export type SortDirection = 1 | -1 | 'asc' | 'desc';
-
-export interface QueryOptions {
-  filters: Record<string, any>;
-  sort: Record<string, 1 | -1>;
-  pagination: {
-    limit?: number;
-    offset?: number;
-    page?: number;
-  };
-}
+import type { IQueryBuilder, QueryOptions, SortDirection } from '@/lib/types';
 
 /**
  * Builder pour construire des requêtes MongoDB de manière fluide
  */
-export class QueryBuilder {
+export class QueryBuilder implements IQueryBuilder {
   private filters: Record<string, any> = {};
   private sort: Record<string, 1 | -1> = {};
   private pagination: {

@@ -3,6 +3,7 @@
  * Étend QueryBuilder avec des méthodes spécifiques aux utilisateurs
  */
 
+import { USER_STATUSES } from '@/lib/constants';
 import { QueryBuilder } from './QueryBuilder';
 
 export class UserQueryBuilder extends QueryBuilder {
@@ -31,14 +32,14 @@ export class UserQueryBuilder extends QueryBuilder {
    * Filtrer les utilisateurs actifs
    */
   active(): this {
-    return this.where('status', 'ACTIVE');
+    return this.where('status', USER_STATUSES.ACTIVE);
   }
 
   /**
    * Filtrer les utilisateurs inactifs
    */
   inactive(): this {
-    return this.whereNotEqual('status', 'ACTIVE');
+    return this.whereNotEqual('status', USER_STATUSES.ACTIVE);
   }
 
   /**
@@ -124,6 +125,13 @@ export class UserQueryBuilder extends QueryBuilder {
    */
   orderByReviewCount(direction: 'asc' | 'desc' = 'desc'): this {
     return this.orderBy('providerInfo.reviewCount', direction);
+  }
+
+  /**
+   * Filtrer par note minimale
+   */
+  minRating(rating: number): this {
+    return this.whereGreaterThanOrEqual('providerInfo.rating', rating);
   }
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { BookingsSearchProps } from "@/types/bookings";
+import type { BookingsSearchProps } from "@/lib/types";
 import { Search } from "lucide-react";
 import React, { useCallback } from "react";
 

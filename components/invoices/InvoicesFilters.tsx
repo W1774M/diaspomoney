@@ -1,8 +1,10 @@
 "use client";
 
-import { InvoicesFiltersProps } from "@/types/invoices";
+import { InvoicesFiltersProps } from "@/lib/types";
 import { Search } from "lucide-react";
 import React, { useCallback } from "react";
+
+
 
 const InvoicesFilters = React.memo<InvoicesFiltersProps>(
   function InvoicesFilters({
@@ -12,7 +14,7 @@ const InvoicesFilters = React.memo<InvoicesFiltersProps>(
     setStatusFilter,
     dateFilter,
     setDateFilter,
-  }) {
+  }: InvoicesFiltersProps) {
     const handleSearchChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
@@ -58,6 +60,7 @@ const InvoicesFilters = React.memo<InvoicesFiltersProps>(
               Statut
             </label>
             <select
+              title="Statut"
               value={statusFilter}
               onChange={handleStatusChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -75,6 +78,7 @@ const InvoicesFilters = React.memo<InvoicesFiltersProps>(
               Date d&apos;émission
             </label>
             <input
+              title="Date d'émission"
               type="date"
               value={dateFilter}
               onChange={handleDateChange}

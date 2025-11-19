@@ -5,7 +5,7 @@
  */
 
 import { useNotificationManager } from '@/components/ui/Notification';
-import { UIMessage } from '@/types/messaging';
+import type { UIMessage } from '@/lib/types';
 import { useCallback, useRef, useState } from 'react';
 
 export const useSupportChat = () => {

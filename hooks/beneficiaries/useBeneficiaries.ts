@@ -1,198 +1,184 @@
-import { useEffect, useState } from "react";
+'use client';
 
-export interface Beneficiary {
-  _id: string;
-  id?: string; // Pour compatibilité
-  name: string;
-  email: string;
-  phone: string;
-  relationship: string;
-  hasAccount: boolean;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
+/**
+ * Custom Hook pour les bénéficiaires
+ * Implémente le Custom Hooks Pattern
+ * Utilise les API routes au lieu d'importer directement les services
+ */
 
-interface UseBeneficiariesReturn {
-  beneficiaries: Beneficiary[];
-  loading: boolean;
-  error: string | null;
-  createBeneficiary: (
-    beneficiaryData: CreateBeneficiaryData
-  ) => Promise<Beneficiary | null>;
-  updateBeneficiary: (
-    beneficiaryId: string,
-    beneficiaryData: UpdateBeneficiaryData
-  ) => Promise<Beneficiary | null>;
-  deleteBeneficiary: (beneficiaryId: string) => Promise<boolean>;
-  refreshBeneficiaries: () => Promise<void>;
-}
+import { logger } from '@/lib/logger';
+import type { Beneficiary } from '@/lib/types';
+import type {
+  UseBeneficiariesReturn,
+  CreateBeneficiaryData,
+  UpdateBeneficiaryData,
+} from '@/lib/types/hooks.types';
+import { useCallback, useEffect, useState } from 'react';
 
-interface CreateBeneficiaryData {
-  name: string;
-  email?: string;
-  phone?: string;
-  relationship: string;
-}
-
-interface UpdateBeneficiaryData {
-  name: string;
-  email?: string;
-  phone?: string;
-  relationship: string;
-}
-
+/**
+ * Custom Hook pour gérer les bénéficiaires
+ * Implémente le Custom Hooks Pattern
+ */
 export function useBeneficiaries(): UseBeneficiariesReturn {
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Récupérer tous les bénéficiaires
-  const fetchBeneficiaries = async () => {
+  const fetchBeneficiaries = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/beneficiaries");
+      const response = await fetch('/api/beneficiaries');
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(
-          errorData.error || "Erreur lors de la récupération des bénéficiaires",
+          errorData.error || 'Erreur lors de la récupération des bénéficiaires',
         );
       }
 
       const data = await response.json();
       setBeneficiaries(data.beneficiaries || []);
-    } catch (err) {
-      console.error("Erreur fetchBeneficiaries:", err);
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
+    } catch (error) {
+      logger.error({ error }, 'Erreur fetchBeneficiaries:');
+      setError(error instanceof Error ? error.message : 'Erreur inconnue');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Créer un nouveau bénéficiaire
-  const createBeneficiary = async (
-    beneficiaryData: CreateBeneficiaryData,
-  ): Promise<Beneficiary | null> => {
-    try {
-      setError(null);
+  const createBeneficiary = useCallback(
+    async (
+      beneficiaryData: CreateBeneficiaryData,
+    ): Promise<Beneficiary | null> => {
+      try {
+        setError(null);
 
-      const response = await fetch("/api/beneficiaries", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(beneficiaryData),
-      });
+        const response = await fetch('/api/beneficiaries', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(beneficiaryData),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || "Erreur lors de la création du bénéficiaire",
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error || 'Erreur lors de la création du bénéficiaire',
+          );
+        }
+
+        const result = await response.json();
+        const newBeneficiary = result.beneficiary;
+
+        // Ajouter à la liste locale
+        setBeneficiaries(prev => [newBeneficiary, ...prev]);
+
+        return newBeneficiary;
+      } catch (error) {
+        logger.error({ error }, 'Erreur createBeneficiary:');
+        setError(
+          error instanceof Error ? error.message : 'Erreur lors de la création',
         );
+        return null;
       }
-
-      const result = await response.json();
-      const newBeneficiary = result.beneficiary;
-
-      // Ajouter à la liste locale
-      setBeneficiaries(prev => [newBeneficiary, ...prev]);
-
-      return newBeneficiary;
-    } catch (err) {
-      console.error("Erreur createBeneficiary:", err);
-      setError(
-        err instanceof Error ? err.message : "Erreur lors de la création",
-      );
-      return null;
-    }
-  };
+    },
+    [],
+  );
 
   // Mettre à jour un bénéficiaire
-  const updateBeneficiary = async (
-    beneficiaryId: string,
-    beneficiaryData: UpdateBeneficiaryData,
-  ): Promise<Beneficiary | null> => {
-    try {
-      setError(null);
+  const updateBeneficiary = useCallback(
+    async (
+      beneficiaryId: string,
+      beneficiaryData: UpdateBeneficiaryData,
+    ): Promise<Beneficiary | null> => {
+      try {
+        setError(null);
 
-      const response = await fetch(`/api/beneficiaries/${beneficiaryId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(beneficiaryData),
-      });
+        const response = await fetch(`/api/beneficiaries/${beneficiaryId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(beneficiaryData),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || "Erreur lors de la mise à jour du bénéficiaire",
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error || 'Erreur lors de la mise à jour du bénéficiaire',
+          );
+        }
+
+        const result = await response.json();
+        const updatedBeneficiary = result.beneficiary;
+
+        // Mettre à jour dans la liste locale
+        setBeneficiaries(prev =>
+          prev.map(beneficiary =>
+            beneficiary._id === beneficiaryId ? updatedBeneficiary : beneficiary,
+          ),
         );
+
+        return updatedBeneficiary;
+      } catch (error) {
+        logger.error({ error }, 'Erreur updateBeneficiary:');
+        setError(
+          error instanceof Error ? error.message : 'Erreur lors de la mise à jour',
+        );
+        return null;
       }
-
-      const result = await response.json();
-      const updatedBeneficiary = result.beneficiary;
-
-      // Mettre à jour dans la liste locale
-      setBeneficiaries(prev =>
-        prev.map(beneficiary =>
-          beneficiary._id === beneficiaryId ? updatedBeneficiary : beneficiary,
-        ),
-      );
-
-      return updatedBeneficiary;
-    } catch (err) {
-      console.error("Erreur updateBeneficiary:", err);
-      setError(
-        err instanceof Error ? err.message : "Erreur lors de la mise à jour",
-      );
-      return null;
-    }
-  };
+    },
+    [],
+  );
 
   // Supprimer un bénéficiaire
-  const deleteBeneficiary = async (beneficiaryId: string): Promise<boolean> => {
-    try {
-      setError(null);
+  const deleteBeneficiary = useCallback(
+    async (beneficiaryId: string): Promise<boolean> => {
+      try {
+        setError(null);
 
-      const response = await fetch(`/api/beneficiaries/${beneficiaryId}`, {
-        method: "DELETE",
-      });
+        const response = await fetch(`/api/beneficiaries/${beneficiaryId}`, {
+          method: 'DELETE',
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || "Erreur lors de la suppression du bénéficiaire",
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error || 'Erreur lors de la suppression du bénéficiaire',
+          );
+        }
+
+        // Supprimer de la liste locale
+        setBeneficiaries(prev =>
+          prev.filter(beneficiary => beneficiary._id !== beneficiaryId),
         );
+
+        return true;
+      } catch (error) {
+        logger.error({ error }, 'Erreur deleteBeneficiary:');
+        setError(
+          error instanceof Error ? error.message : 'Erreur lors de la suppression',
+        );
+        return false;
       }
-
-      // Supprimer de la liste locale
-      setBeneficiaries(prev =>
-        prev.filter(beneficiary => beneficiary._id !== beneficiaryId),
-      );
-
-      return true;
-    } catch (err) {
-      console.error("Erreur deleteBeneficiary:", err);
-      setError(
-        err instanceof Error ? err.message : "Erreur lors de la suppression",
-      );
-      return false;
-    }
-  };
+    },
+    [],
+  );
 
   // Rafraîchir la liste
-  const refreshBeneficiaries = async () => {
+  const refreshBeneficiaries = useCallback(async () => {
     await fetchBeneficiaries();
-  };
+  }, [fetchBeneficiaries]);
 
   // Charger les bénéficiaires au montage du composant
   useEffect(() => {
     fetchBeneficiaries();
-  }, []);
+  }, [fetchBeneficiaries]);
 
   return {
     beneficiaries,

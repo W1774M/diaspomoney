@@ -3,6 +3,7 @@
  * Étend QueryBuilder avec des méthodes spécifiques aux réservations
  */
 
+import { BOOKING_STATUSES } from '@/lib/constants';
 import { QueryBuilder } from './QueryBuilder';
 
 export class BookingQueryBuilder extends QueryBuilder {
@@ -45,28 +46,28 @@ export class BookingQueryBuilder extends QueryBuilder {
    * Filtrer les réservations en attente
    */
   pending(): this {
-    return this.where('status', 'PENDING');
+    return this.where('status', BOOKING_STATUSES.PENDING);
   }
 
   /**
    * Filtrer les réservations confirmées
    */
   confirmed(): this {
-    return this.where('status', 'CONFIRMED');
+    return this.where('status', BOOKING_STATUSES.CONFIRMED);
   }
 
   /**
    * Filtrer les réservations complétées
    */
   completed(): this {
-    return this.where('status', 'COMPLETED');
+    return this.where('status', BOOKING_STATUSES.COMPLETED);
   }
 
   /**
    * Filtrer les réservations annulées
    */
   cancelled(): this {
-    return this.where('status', 'CANCELLED');
+    return this.where('status', BOOKING_STATUSES.CANCELLED);
   }
 
   /**
@@ -82,7 +83,7 @@ export class BookingQueryBuilder extends QueryBuilder {
   upcoming(): this {
     const now = new Date();
     return this.whereGreaterThanOrEqual('appointmentDate', now)
-      .whereIn('status', ['PENDING', 'CONFIRMED']);
+      .whereIn('status', [BOOKING_STATUSES.PENDING, BOOKING_STATUSES.CONFIRMED]);
   }
 
   /**

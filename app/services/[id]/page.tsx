@@ -15,7 +15,7 @@ import { useNotificationManager } from '@/components/ui/Notification';
 import { useProviderDetail } from '@/hooks/providers';
 import imageLoader from '@/lib/image-loader';
 import type { BookingFormData } from '@/lib/validations';
-import { UserRole } from '@/types';
+import { UserRole } from '@/lib/types';
 import { Building, Calendar, MapPin, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
@@ -107,7 +107,7 @@ export default function ProviderDetailPage() {
       // Fermer le formulaire et afficher un message de succès
       handleCloseModal();
       addSuccess('Rendez-vous confirmé avec succès !');
-    } catch (error) {
+    } catch (_error) {
       addError('Erreur lors de la prise de rendez-vous. Veuillez réessayer.');
       // Les erreurs sont déjà gérées par le hook et Sentry
     }
@@ -215,7 +215,7 @@ export default function ProviderDetailPage() {
         <MapPin className='w-5 h-5 mr-2' />
         <span>
           {provider.apiGeo
-            .map(geo => geo?.name)
+            .map(geo => geo?.display_name)
             .filter(Boolean)
             .join(', ')}
         </span>

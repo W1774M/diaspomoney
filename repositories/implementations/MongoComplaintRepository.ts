@@ -21,9 +21,9 @@ import type {
   IComplaintRepository,
 } from '../interfaces/IComplaintRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoComplaintRepository implements IComplaintRepository {
   private readonly collectionName = 'complaints';
@@ -208,7 +208,7 @@ export class MongoComplaintRepository implements IComplaintRepository {
   async findWithPagination(
     filters?: Record<string, any>,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Complaint>> {
+  ): Promise<PaginatedFindResult<Complaint>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit || 50;
@@ -231,13 +231,19 @@ export class MongoComplaintRepository implements IComplaintRepository {
       const data = await cursor.toArray();
       const complaints = data.map(doc => this.mapToComplaint(doc));
 
+      const pages = Math.ceil(total / limit);
       return {
         data: complaints,
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error(
@@ -258,21 +264,21 @@ export class MongoComplaintRepository implements IComplaintRepository {
   async findByUser(
     userId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Complaint>> {
+  ): Promise<PaginatedFindResult<Complaint>> {
     return this.findWithPagination({ userId }, options);
   }
 
   async findByProvider(
     provider: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Complaint>> {
+  ): Promise<PaginatedFindResult<Complaint>> {
     return this.findWithPagination({ provider }, options);
   }
 
   async findByStatus(
     status: ComplaintStatus,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Complaint>> {
+  ): Promise<PaginatedFindResult<Complaint>> {
     return this.findWithPagination({ status }, options);
   }
 
@@ -281,7 +287,7 @@ export class MongoComplaintRepository implements IComplaintRepository {
   async findComplaintsWithFilters(
     filters: ComplaintFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Complaint>> {
+  ): Promise<PaginatedFindResult<Complaint>> {
     try {
       const query: Record<string, any> = {};
 
@@ -362,16 +368,19 @@ export class MongoComplaintRepository implements IComplaintRepository {
   }
 
   private mapToComplaint(doc: any): Complaint {
+    const docId = doc._id?.toString() || doc.id || '';
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
     return {
-      id: doc._id?.toString() || doc.id,
-      _id: doc._id?.toString(),
+      id: docId,
+      _id: docId,
       number: doc.number,
       title: doc.title,
       type: doc.type || 'QUALITY',
       priority: doc.priority || 'MEDIUM',
       status: this.mapStatus(doc.status),
-      createdAt: doc.createdAt || new Date(),
-      updatedAt: doc.updatedAt || new Date(),
+      createdAt,
+      updatedAt,
       description: doc.description || '',
       provider: doc.provider || '',
       appointmentId: doc.appointmentId || '',

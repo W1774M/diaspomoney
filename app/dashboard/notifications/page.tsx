@@ -14,8 +14,8 @@ import {
   useNotificationPreferences,
   useNotifications,
 } from '@/hooks/notifications';
-import { UINotification } from '@/types/notifications';
-import { PreferencesData } from '@/types/settings';
+import { UINotification } from '@/lib/types';
+import { PreferencesData } from '@/lib/types';
 import {
   Bell,
   Check,
@@ -93,7 +93,7 @@ export default function NotificationsPage() {
         setHistoryNotifications(data.notifications || []);
         setHistoryTotalPages(data.pagination?.pages || 1);
       }
-    } catch (error) {
+    } catch (_error) {
       // Le logging est fait côté serveur
     } finally {
       setHistoryLoading(false);
@@ -404,13 +404,10 @@ export default function NotificationsPage() {
               ) : (
                 <NotificationSettings
                   data={preferences}
-                  setData={newData => {
-                    // NotificationSettings met à jour localement via setData
-                    // On met à jour les préférences localement pour l'UI immédiate
-                    setPreferences(newData as PreferencesData);
+                  setData={(newData: PreferencesData) => {
+                    setPreferences(newData);
                   }}
                   onSave={async () => {
-                    // La sauvegarde réelle se fait via updatePreferences
                     await updatePreferences(preferences);
                   }}
                   saving={preferencesSaving}

@@ -1,58 +1,160 @@
-import { auth } from '@/auth';
-import { DATABASE } from '@/lib/constants';
-import { getMongoClient } from '@/lib/database/mongodb';
-import { UINotification } from '@/types/notifications';
-import { ObjectId } from 'mongodb';
-import { NextRequest, NextResponse } from 'next/server';
-
 /**
  * API Route - Notifications
- * Endpoint pour récupérer les notifications de l'utilisateur
+ * Endpoint pour gérer les notifications de l'utilisateur
+ * Implémente les design patterns :
+ * - Error Handling Pattern (via handleApiRoute)
+ * - Validation Pattern (via NotificationFiltersSchema, MarkNotificationReadSchema)
  */
 
-export async function GET(request: NextRequest) {
+import { auth } from '@/auth';
+import { DATABASE } from '@/lib/constants';
+import { handleApiRoute, ApiErrors, validateBody, validateQuery } from '@/lib/api/error-handler';
+import { getMongoClient } from '@/lib/database/mongodb';
+import { NotificationFiltersSchema, MarkNotificationReadSchema, MarkAllNotificationsReadSchema } from '@/lib/validations/notification.schema';
+import { UINotification } from '@/lib/types';
+import { ObjectId } from 'mongodb';
+import { NextRequest } from 'next/server';
+import { NotificationChannel } from '@/lib/types/notifications.types';
+import { API } from '@/lib/constants';
+
+/**
+ * Interface pour une notification MongoDB
+ */
+interface MongoNotification {
+  _id?: ObjectId;
+  id?: string;
+  type?: string;
+  subject?: string;
+  content?: string;
+  status?: string;
+  channels?: string[];
+  read?: boolean;
+  createdAt?: Date | string;
+  sentAt?: Date | string;
+  deliveredAt?: Date | string;
+  failedAt?: Date | string;
+  failureReason?: string;
+  metadata?: Record<string, unknown>;
+  recipient?: string;
+  userId?: string | ObjectId;
+}
+
+/**
+ * Fonction helper pour convertir une date en ISO string
+ * 
+ * @param date - Date à convertir (peut être Date, string, ou autre)
+ * @returns ISO string de la date
+ */
+function toISOString(date: unknown): string {
+  if (!date) return new Date().toISOString();
+  if (typeof date === 'string') return date;
+  if (date instanceof Date) return date.toISOString();
+  if (typeof date === 'object' && date !== null && 'toISOString' in date && typeof (date as { toISOString: () => string }).toISOString === 'function') {
+    return (date as { toISOString: () => string }).toISOString();
+  }
   try {
+    return new Date(date as string | number | Date).toISOString();
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
+/**
+ * Mappe une notification MongoDB vers UINotification
+ * 
+ * @param notif - Notification MongoDB
+ * @returns Notification UI
+ */
+function mapNotificationToUI(notif: MongoNotification): UINotification {
+  const mapped: UINotification = {
+    id: notif._id?.toString() || notif.id || '',
+    type: notif.type || '',
+    subject: notif.subject || '',
+    content: notif.content || '',
+    status: (notif.status || 'PENDING') as UINotification['status'],
+    channels: Array.isArray(notif.channels) ? notif.channels.map(channel => channel as unknown as NotificationChannel) : [],
+    read: notif.read === true,
+    createdAt: toISOString(notif.createdAt),
+    metadata: (notif.metadata && typeof notif.metadata === 'object') ? notif.metadata as Record<string, unknown> : {},
+  };
+
+  // Ajouter les propriétés optionnelles seulement si elles existent
+  if (notif.sentAt) {
+    mapped.sentAt = toISOString(notif.sentAt);
+  }
+  if (notif.deliveredAt) {
+    mapped.deliveredAt = toISOString(notif.deliveredAt);
+  }
+  if (notif.failedAt) {
+    mapped.failedAt = toISOString(notif.failedAt);
+  }
+  if (notif.failureReason && typeof notif.failureReason === 'string') {
+    mapped.failureReason = notif.failureReason;
+  }
+
+  return mapped;
+}
+
+/**
+ * Construit le filtre utilisateur pour les notifications
+ * 
+ * @param userId - ID de l'utilisateur
+ * @returns Filtre MongoDB
+ */
+function buildUserFilter(userId: string): { $or: Array<{ recipient?: string; userId?: string | ObjectId }> } {
+  return {
+    $or: [
+      { recipient: userId },
+      { userId: userId },
+      { userId: new ObjectId(userId) },
+    ],
+  };
+}
+
+/**
+ * GET /api/notifications - Récupérer les notifications de l'utilisateur
+ * 
+ * @param request - La requête HTTP
+ * @returns Liste paginée des notifications
+ */
+export async function GET(request: NextRequest) {
+  return handleApiRoute(request, async () => {
     // Vérifier l'authentification
     const session = await auth();
     if (!session?.user?.email || !session.user.id) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+      throw ApiErrors.UNAUTHORIZED;
     }
 
-    // Récupérer les paramètres de requête
+    // Récupérer et valider les paramètres de requête
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const status = searchParams.get('status'); // 'all', 'unread', 'read'
-    const type = searchParams.get('type'); // Type de notification
+    const filters = validateQuery(searchParams, NotificationFiltersSchema);
+
+    const page = filters.page ?? API.PAGINATION.DEFAULT_LIMIT;
+    const limit = filters.limit ?? API.PAGINATION.DEFAULT_LIMIT;
+    const status = filters.status; // 'all', 'unread', 'read'
+    const type = filters.type; // Type de notification
 
     // Connexion à la base de données
     const client = await getMongoClient();
     const db = client.db();
-    const notificationsCollection = db.collection(
+    const notificationsCollection = db.collection<MongoNotification>(
       DATABASE.COLLECTIONS.NOTIFICATIONS,
     );
 
     // Construire le filtre pour l'utilisateur
-    // Les notifications peuvent avoir 'recipient' (string) ou 'userId' (ObjectId)
     const userId = session.user.id;
-    const userFilter: any = {
-      $or: [
-        { recipient: userId },
-        { userId: userId },
-        { userId: new ObjectId(userId) },
-      ],
-    };
+    const userFilter = buildUserFilter(userId);
 
     // Ajouter le filtre pour le statut read/unread
     if (status === 'unread') {
-      userFilter.read = { $ne: true };
+      (userFilter as { read?: { $ne: boolean } }).read = { $ne: true };
     } else if (status === 'read') {
-      userFilter.read = true;
+      (userFilter as { read?: boolean }).read = true;
     }
 
     // Filtrer par type si fourni
     if (type) {
-      userFilter.type = type;
+      (userFilter as { type?: string }).type = type;
     }
 
     // Pagination
@@ -69,66 +171,15 @@ export async function GET(request: NextRequest) {
     // Compter le total pour la pagination
     const total = await notificationsCollection.countDocuments(userFilter);
 
-    // Compter les notifications non lues (pour tous les filtres sauf 'read')
-    const unreadFilter: any = {
-      $or: [
-        { recipient: userId },
-        { userId: userId },
-        { userId: new ObjectId(userId) },
-      ],
-      read: { $ne: true },
-    };
-    const unreadCount = await notificationsCollection.countDocuments(
-      unreadFilter,
-    );
-
-    // Fonction helper pour convertir une date en ISO string
-    const toISOString = (date: any): string => {
-      if (!date) return new Date().toISOString();
-      if (typeof date === 'string') return date;
-      if (date instanceof Date) return date.toISOString();
-      if (typeof date.toISOString === 'function') return date.toISOString();
-      try {
-        return new Date(date).toISOString();
-      } catch {
-        return new Date().toISOString();
-      }
-    };
+    // Compter les notifications non lues
+    const unreadFilter = buildUserFilter(userId);
+    (unreadFilter as { read?: { $ne: boolean } }).read = { $ne: true };
+    const unreadCount = await notificationsCollection.countDocuments(unreadFilter);
 
     // Mapper les notifications MongoDB vers UINotification
-    const mappedNotifications: UINotification[] = notifications.map(
-      (notif: any) => {
-        const mapped: UINotification = {
-          id: notif._id?.toString() || notif.id || '',
-          type: notif.type || '',
-          subject: notif.subject || '',
-          content: notif.content || '',
-          status: (notif.status || 'PENDING') as UINotification['status'],
-          channels: notif.channels || [],
-          read: notif.read === true,
-          createdAt: toISOString(notif.createdAt),
-          metadata: notif.metadata || {},
-        };
+    const mappedNotifications = notifications.map(mapNotificationToUI);
 
-        // Ajouter les propriétés optionnelles seulement si elles existent
-        if (notif.sentAt) {
-          mapped.sentAt = toISOString(notif.sentAt);
-        }
-        if (notif.deliveredAt) {
-          mapped.deliveredAt = toISOString(notif.deliveredAt);
-        }
-        if (notif.failedAt) {
-          mapped.failedAt = toISOString(notif.failedAt);
-        }
-        if (notif.failureReason) {
-          mapped.failureReason = notif.failureReason;
-        }
-
-        return mapped;
-      },
-    );
-
-    return NextResponse.json({
+    return {
       success: true,
       notifications: mappedNotifications,
       pagination: {
@@ -138,40 +189,31 @@ export async function GET(request: NextRequest) {
         pages: Math.ceil(total / limit),
       },
       unreadCount,
-    });
-  } catch (error) {
-    console.error('[API][notifications] Erreur:', error);
-    return NextResponse.json(
-      { error: 'Erreur lors de la récupération des notifications' },
-      { status: 500 },
-    );
-  }
+    };
+  }, 'api/notifications');
 }
 
 /**
- * Marquer une notification comme lue
+ * PATCH /api/notifications - Marquer une notification comme lue
+ * 
+ * @param request - La requête HTTP
+ * @returns Confirmation de mise à jour
  */
 export async function PATCH(request: NextRequest) {
-  try {
+  return handleApiRoute(request, async () => {
     const session = await auth();
     if (!session?.user?.email || !session.user.id) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+      throw ApiErrors.UNAUTHORIZED;
     }
 
     const body = await request.json();
-    const { notificationId } = body;
-
-    if (!notificationId) {
-      return NextResponse.json(
-        { error: 'ID de notification requis' },
-        { status: 400 },
-      );
-    }
+    const data = validateBody(body, MarkNotificationReadSchema);
+    const { notificationId } = data;
 
     // Connexion à la base de données
     const client = await getMongoClient();
     const db = client.db();
-    const notificationsCollection = db.collection(
+    const notificationsCollection = db.collection<MongoNotification>(
       DATABASE.COLLECTIONS.NOTIFICATIONS,
     );
 
@@ -183,26 +225,16 @@ export async function PATCH(request: NextRequest) {
     try {
       notificationObjectId = new ObjectId(notificationId);
     } catch {
-      return NextResponse.json(
-        { error: 'ID de notification invalide' },
-        { status: 400 },
-      );
+      throw ApiErrors.VALIDATION_ERROR('ID de notification invalide');
     }
 
     const notification = await notificationsCollection.findOne({
       _id: notificationObjectId,
-      $or: [
-        { recipient: userId },
-        { userId: userId },
-        { userId: new ObjectId(userId) },
-      ],
+      ...buildUserFilter(userId),
     });
 
     if (!notification) {
-      return NextResponse.json(
-        { error: 'Notification non trouvée ou accès non autorisé' },
-        { status: 404 },
-      );
+      throw ApiErrors.NOT_FOUND;
     }
 
     // Mettre à jour la notification comme lue
@@ -211,72 +243,54 @@ export async function PATCH(request: NextRequest) {
       { $set: { read: true, updatedAt: new Date() } },
     );
 
-    return NextResponse.json({
+    return {
       success: true,
       message: 'Notification mise à jour',
-    });
-  } catch (error) {
-    console.error('[API][notifications] Erreur PATCH:', error);
-    return NextResponse.json(
-      { error: 'Erreur lors de la mise à jour de la notification' },
-      { status: 500 },
-    );
-  }
+    };
+  }, 'api/notifications');
 }
 
 /**
- * Marquer toutes les notifications comme lues
+ * PUT /api/notifications - Marquer toutes les notifications comme lues
+ * 
+ * @param request - La requête HTTP
+ * @returns Confirmation de mise à jour
  */
 export async function PUT(request: NextRequest) {
-  try {
+  return handleApiRoute(request, async () => {
     const session = await auth();
     if (!session?.user?.email || !session.user.id) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+      throw ApiErrors.UNAUTHORIZED;
     }
 
     const body = await request.json();
-    const { markAllAsRead } = body;
+    const data = validateBody(body, MarkAllNotificationsReadSchema);
 
-    if (!markAllAsRead) {
-      return NextResponse.json(
-        { error: 'Paramètre markAllAsRead requis' },
-        { status: 400 },
-      );
+    if (!data.markAllAsRead) {
+      throw ApiErrors.VALIDATION_ERROR('Paramètre markAllAsRead requis');
     }
 
     // Connexion à la base de données
     const client = await getMongoClient();
     const db = client.db();
-    const notificationsCollection = db.collection(
+    const notificationsCollection = db.collection<MongoNotification>(
       DATABASE.COLLECTIONS.NOTIFICATIONS,
     );
 
     // Construire le filtre pour l'utilisateur
     const userId = session.user.id;
-    const userFilter: any = {
-      $or: [
-        { recipient: userId },
-        { userId: userId },
-        { userId: new ObjectId(userId) },
-      ],
-      read: { $ne: true }, // Seulement les non lues
-    };
+    const userFilter = buildUserFilter(userId);
+    (userFilter as { read?: { $ne: boolean } }).read = { $ne: true }; // Seulement les non lues
 
     // Marquer toutes les notifications non lues comme lues
     const result = await notificationsCollection.updateMany(userFilter, {
       $set: { read: true, updatedAt: new Date() },
     });
 
-    return NextResponse.json({
+    return {
       success: true,
       message: 'Toutes les notifications ont été marquées comme lues',
       updatedCount: result.modifiedCount,
-    });
-  } catch (error) {
-    console.error('[API][notifications] Erreur PUT:', error);
-    return NextResponse.json(
-      { error: 'Erreur lors de la mise à jour des notifications' },
-      { status: 500 },
-    );
-  }
+    };
+  }, 'api/notifications');
 }

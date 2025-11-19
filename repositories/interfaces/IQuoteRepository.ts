@@ -3,56 +3,10 @@
  */
 
 import { IRepository } from './IRepository';
+import type { Quote } from '@/lib/types';
 
-export interface Quote {
-  _id?: string;
-  id: string;
-  type: 'BTP' | 'EDUCATION';
-  projectType?: string; // Pour BTP
-  area?: number; // Pour BTP
-  features?: string[]; // Pour BTP
-  budget?: number;
-  timeline?: string;
-  location?: {
-    city: string;
-    country: string;
-  };
-  contact: {
-    name: string;
-    email: string;
-    phone?: string;
-  };
-  description?: string;
-  urgency?: 'LOW' | 'MEDIUM' | 'HIGH';
-  costEstimate?: number;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
-  providerId?: string; // Pour BTP
-  schoolId?: string; // Pour EDUCATION
-  // Champs spécifiques EDUCATION
-  studentType?: 'SELF' | 'CHILD' | 'DEPENDENT';
-  studentInfo?: {
-    firstName: string;
-    lastName: string;
-    dateOfBirth?: string;
-    gender?: 'MALE' | 'FEMALE' | 'OTHER';
-    nationality?: string;
-  };
-  academicInfo?: {
-    currentLevel?: string;
-    desiredProgram?: string;
-    academicYear?: string;
-    previousEducation?: string;
-  };
-  preferences?: {
-    language?: string;
-    schedule?: string;
-    budget?: number;
-    urgency?: 'LOW' | 'MEDIUM' | 'HIGH';
-  };
-  questions?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// Re-export pour compatibilité
+export type { Quote };
 
 export interface QuoteFilters {
   type?: 'BTP' | 'EDUCATION';

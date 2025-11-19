@@ -12,12 +12,10 @@
  * - Logger Pattern (structured logging avec childLogger)
  */
 
+import { LOCALE } from '@/lib/constants';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
-import {
-  createValidationRule,
-  Validate,
-} from '@/lib/decorators/validate.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
 import { sendPasswordResetEmail, sendWelcomeEmail } from '@/lib/email/resend';
 import { childLogger } from '@/lib/logger';
 import dbConnect from '@/lib/mongodb';
@@ -31,7 +29,7 @@ import type {
   LoginCredentials,
   RegisterData,
   TwoFactorData,
-} from '@/types/auth';
+} from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -62,16 +60,14 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le mot de passe
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z
-          .object({
-            email: z.string().email('Email invalide'),
-            password: z.string().min(1, 'Le mot de passe est requis'),
-          })
-          .passthrough(),
-        'credentials',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.object({
+          email: z.string().email('Email invalide'),
+          password: z.string().min(1, 'Le mot de passe est requis'),
+        }).passthrough(),
+        paramName: 'credentials',
+      },
     ],
   })
   @InvalidateCache('AuthService:*') // Invalider le cache après connexion
@@ -202,7 +198,7 @@ class AuthService {
           id: user.id,
           email: user.email,
           role: user.roles?.[0] || 'CUSTOMER',
-          isVerified: user.isEmailVerified || false,
+          isVerified: (user as any)['isEmailVerified'] || false,
           kycStatus: 'PENDING',
         },
         accessToken: tokens.accessToken,
@@ -222,22 +218,20 @@ class AuthService {
    */
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le mot de passe
   @Validate({
-    rules: [
-      createValidationRule(
-        0,
-        z
-          .object({
-            email: z.string().email('Email invalide'),
-            firstName: z.string().min(1, 'Le prénom est requis'),
-            lastName: z.string().min(1, 'Le nom est requis'),
-            country: z.string().min(1, 'Le pays est requis'),
-            termsAccepted: z.boolean().refine(val => val === true, {
-              message: 'Vous devez accepter les conditions',
-            }),
-          })
-          .passthrough(),
-        'data',
-      ),
+      rules: [
+      {
+        paramIndex: 0,
+        schema: z.object({
+          email: z.string().email('Email invalide'),
+          firstName: z.string().min(1, 'Le prénom est requis'),
+          lastName: z.string().min(1, 'Le nom est requis'),
+          country: z.string().min(1, 'Le pays est requis'),
+          termsAccepted: z.boolean().refine(val => val === true, {
+            message: 'Vous devez accepter les conditions',
+          }),
+        }).passthrough(),
+        paramName: 'data',
+      },
     ],
   })
   @InvalidateCache('AuthService:*') // Invalider le cache après inscription
@@ -346,7 +340,7 @@ class AuthService {
         await notificationService.sendWelcomeNotification(
           user.email,
           `${user.firstName} ${user.lastName}`,
-          'fr',
+          LOCALE.DEFAULT,
         );
       }
 
@@ -363,7 +357,7 @@ class AuthService {
         'AUTH_SYSTEM',
         {
           email: user.email,
-          country: user.country,
+          country: (user as any)['country'],
         },
         {
           userId: user._id?.toString() || user.id,
@@ -409,11 +403,11 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'Le refresh token est requis'),
-        'refreshToken',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Le refresh token est requis'),
+        paramName: 'refreshToken',
+      },
     ],
   })
   @InvalidateCache('AuthService:*') // Invalider le cache après rafraîchissement
@@ -454,7 +448,7 @@ class AuthService {
           id: user.id,
           email: user.email,
           role: user.roles?.[0] || 'CUSTOMER',
-          isVerified: user.isEmailVerified || false,
+          isVerified: (user as any)['isEmailVerified'] || false,
           kycStatus: 'PENDING',
         },
         accessToken: tokens.accessToken,
@@ -477,11 +471,11 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'Le token est requis'),
-        'accessToken',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Le token est requis'),
+        paramName: 'accessToken',
+      },
     ],
   })
   @InvalidateCache('AuthService:*') // Invalider le cache après déconnexion
@@ -493,7 +487,7 @@ class AuthService {
       try {
         const decoded = await securityManager.verifyToken(accessToken);
         userId = decoded.userId;
-      } catch (error) {
+      } catch (_error) {
         // Si le token est invalide, on continue quand même pour blacklister
         log.warn({
           msg: 'Invalid token during logout, continuing with blacklist',
@@ -531,11 +525,11 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'Le token est requis'),
-        'token',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Le token est requis'),
+        paramName: 'token',
+      },
     ],
   })
   @Cacheable(300, { prefix: 'AuthService:verifyToken' }) // Cache 5 minutes
@@ -564,7 +558,7 @@ class AuthService {
         id: user.id,
         email: user.email,
         role: user.roles?.[0] || 'CUSTOMER',
-        isVerified: user.isEmailVerified || false,
+        isVerified: (user as any)['isEmailVerified'] || false,
         kycStatus: 'PENDING',
       };
     } catch (error) {
@@ -583,11 +577,11 @@ class AuthService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'User ID is required'),
-        'userId',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'User ID is required'),
+        paramName: 'userId',
+      },
     ],
   })
   @InvalidateCache('AuthService:*') // Invalider le cache après configuration 2FA
@@ -647,12 +641,16 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'User ID is required'),
-        'userId',
-      ),
-      createValidationRule(1, z.string().min(1, 'Token is required'), 'token'),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'User ID is required'),
+        paramName: 'userId',
+      },
+      {
+        paramIndex: 1,
+        schema: z.string().min(1, 'Token is required'),
+        paramName: 'token',
+      },
     ],
   })
   @InvalidateCache('AuthService:*') // Invalider le cache après activation 2FA
@@ -698,12 +696,16 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'User ID is required'),
-        'userId',
-      ),
-      createValidationRule(1, z.string().min(1, 'Token is required'), 'token'),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'User ID is required'),
+        paramName: 'userId',
+      },
+      {
+        paramIndex: 1,
+        schema: z.string().min(1, 'Token is required'),
+        paramName: 'token',
+      },
     ],
   })
   async verify2FA(userId: string, token: string): Promise<boolean> {
@@ -774,7 +776,11 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger l'email
   @Validate({
     rules: [
-      createValidationRule(0, z.string().email('Email invalide'), 'email'),
+      {
+        paramIndex: 0,
+        schema: z.string().email('Email invalide'),
+        paramName: 'email',
+      },
     ],
   })
   async requestPasswordReset(email: string): Promise<boolean> {
@@ -859,14 +865,16 @@ class AuthService {
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token ni le mot de passe
   @Validate({
     rules: [
-      createValidationRule(0, z.string().min(1, 'Token is required'), 'token'),
-      createValidationRule(
-        1,
-        z
-          .string()
-          .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
-        'newPassword',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Token is required'),
+        paramName: 'token',
+      },
+      {
+        paramIndex: 1,
+        schema: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+        paramName: 'newPassword',
+      },
     ],
   })
   @InvalidateCache('AuthService:*') // Invalider le cache après réinitialisation

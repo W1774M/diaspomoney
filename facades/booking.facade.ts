@@ -8,62 +8,20 @@
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
-import { Booking } from '@/repositories';
+import { LANGUAGES, BOOKING_STATUSES } from '@/lib/constants';
 import {
-  BookingData,
   bookingService,
 } from '@/services/booking/booking.service';
 import { notificationService } from '@/services/notification/notification.service';
+import type { BookingData, BookingFacadeData, BookingFacadeResult, IFacade, FacadeOptions, PaymentFacadeData, PaymentFacadeResult } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
-import { z } from 'zod';
-import {
-  paymentFacade,
-  PaymentFacadeData,
-  PaymentFacadeResult,
-} from './payment.facade';
-
-export interface BookingFacadeData {
-  requesterId: string;
-  providerId: string;
-  serviceId: string;
-  serviceType: 'HEALTH' | 'BTP' | 'EDUCATION';
-  appointmentDate: Date;
-  timeslot?: string;
-  consultationMode?: 'IN_PERSON' | 'TELEMEDICINE' | 'HYBRID';
-  recipient?: string;
-
-  // Données de paiement
-  payment?: {
-    amount: number;
-    currency: string;
-    paymentMethodId: string;
-    createInvoice?: boolean;
-  };
-
-  metadata?: Record<string, string>;
-}
-
-export interface BookingFacadeResult {
-  success: boolean;
-  booking?: Booking;
-  paymentResult?: {
-    success: boolean;
-    paymentIntentId?: string;
-    transactionId?: string;
-    invoiceId?: string;
-    requiresAction?: boolean;
-    nextAction?: {
-      type: string;
-      url: string;
-    };
-  };
-  error?: string;
-}
+import { paymentFacade } from './payment.facade';
+import { CreateBookingSchema } from '@/lib/validations/booking.schema';
 
 /**
  * BookingFacade - Facade pour le processus de réservation complet
  */
-export class BookingFacade {
+export class BookingFacade implements IFacade<BookingFacadeData, BookingFacadeResult> {
   private static instance: BookingFacade;
 
   private constructor() {}
@@ -86,21 +44,23 @@ export class BookingFacade {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      createcreateValidationRule(
-        0,
-        z
-          .object({
-            requesterId: z.string().min(1, 'Requester ID is required'),
-            providerId: z.string().min(1, 'Provider ID is required'),
-            serviceId: z.string().min(1, 'Service ID is required'),
-            serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']),
-            appointmentDate: z.date(),
-          })
-          .passthrough(),
-        'data',
-      ),
+      {
+        paramIndex: 0,
+        schema: CreateBookingSchema,
+        paramName: 'data',
+      },
     ],
   })
+  /**
+   * Exécuter la facade (implémentation de IFacade)
+   */
+  async execute(
+    data: BookingFacadeData,
+    _options?: FacadeOptions,
+  ): Promise<BookingFacadeResult> {
+    return this.createBookingWithPayment(data);
+  }
+
   async createBookingWithPayment(
     data: BookingFacadeData,
   ): Promise<BookingFacadeResult> {
@@ -117,20 +77,30 @@ export class BookingFacade {
       );
 
       // Étape 1: Créer la réservation
-      const booking = await bookingService.createBooking({
+      // Mapper BookingFacadeData vers BookingData
+      const consultationModeMap: Record<'IN_PERSON' | 'TELEMEDICINE' | 'HYBRID', 'video' | 'cabinet'> = {
+        'IN_PERSON': 'cabinet',
+        'TELEMEDICINE': 'video',
+        'HYBRID': 'video', // HYBRID mappe vers video par défaut
+      };
+
+      const bookingData: BookingData = {
         requesterId: data.requesterId,
         providerId: data.providerId,
         serviceId: data.serviceId,
         serviceType: data.serviceType,
         appointmentDate: data.appointmentDate,
-        timeslot: data.timeslot as string | undefined,
-        consultationMode: data.consultationMode as
-          | 'video'
-          | 'cabinet'
-          | undefined,
-        recipient: data.recipient as Booking['recipient'] | undefined,
-        metadata: data.metadata as Record<string, string> | undefined,
-      } as BookingData);
+        ...(data.timeslot && { timeslot: data.timeslot }),
+        ...(data.consultationMode && {
+          consultationMode: consultationModeMap[data.consultationMode],
+        }),
+        ...(data.recipient && typeof data.recipient !== 'string' && {
+          recipient: data.recipient,
+        }),
+        ...(data.metadata && { metadata: data.metadata }),
+      };
+
+      const booking = await bookingService.createBooking(bookingData);
 
       let paymentResult;
 
@@ -157,14 +127,14 @@ export class BookingFacade {
             sendNotification: false, // On enverra une notification combinée après
           };
 
-          paymentResult = await paymentFacade.processPayment(paymentData);
+          paymentResult = await paymentFacade.execute(paymentData);
 
           // Si le paiement nécessite une action (3D Secure, etc.)
           if (paymentResult.requiresAction) {
             // Mettre à jour le statut de la réservation
             await bookingService.updateBookingStatus(
               booking.id || booking._id?.toString() || '',
-              'PENDING',
+              BOOKING_STATUSES.PENDING,
             );
 
             return {
@@ -222,7 +192,7 @@ export class BookingFacade {
             { type: 'EMAIL', enabled: true, priority: 'HIGH' },
             { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
           ],
-          locale: 'fr',
+          locale: LANGUAGES.FR.code,
           priority: 'HIGH',
           data: {
             booking: {
@@ -251,7 +221,7 @@ export class BookingFacade {
             { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
             { type: 'IN_APP', enabled: true, priority: 'HIGH' },
           ],
-          locale: 'fr',
+          locale: LANGUAGES.FR.code,
           priority: 'MEDIUM',
           data: {
             booking: {

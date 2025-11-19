@@ -1,4 +1,4 @@
-import { BookingExtended } from '@/types';
+import { BookingExtended } from '@/lib/types';
 import mongoose, { Schema } from 'mongoose';
 
 const BookingSchema = new Schema<BookingExtended>(

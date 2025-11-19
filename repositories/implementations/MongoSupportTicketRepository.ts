@@ -12,14 +12,14 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import SupportTicket from '@/models/SupportTicket';
-import { SupportTicket as SupportTicketType } from '@/types/messaging';
+import { SupportTicket as SupportTicketType } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { ObjectId } from 'mongodb';
 import { ISupportTicketRepository } from '../interfaces/IMessagingRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoSupportTicketRepository implements ISupportTicketRepository {
   private readonly log = childLogger({
@@ -52,7 +52,7 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
   async findByUser(
     userId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<SupportTicketType>> {
+  ): Promise<PaginatedFindResult<SupportTicketType>> {
     try {
       const page = options?.page || 1;
       const limit = options?.limit || 20;
@@ -78,10 +78,15 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
       return {
         data: tickets.map((t: any) => this.mapToTicket(t)),
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error({ error, userId, options }, 'Error in findByUser');
@@ -101,7 +106,7 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
   async findByStatus(
     status: 'open' | 'in_progress' | 'closed' | 'resolved',
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<SupportTicketType>> {
+  ): Promise<PaginatedFindResult<SupportTicketType>> {
     try {
       const page = options?.page || 1;
       const limit = options?.limit || 20;
@@ -123,10 +128,15 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
       return {
         data: tickets.map((t: any) => this.mapToTicket(t)),
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error({ error, status, options }, 'Error in findByStatus');
@@ -233,16 +243,53 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
   }
 
   private mapToTicket(doc: any): SupportTicketType {
+    const docId = doc._id?.toString() || doc.id || '';
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
     return {
-      _id: doc._id,
+      _id: docId,
+      id: docId,
       userId: doc.userId,
-      status: doc.status,
-      priority: doc.priority,
       subject: doc.subject,
-      messages: doc.messages?.map((m: any) => (m.toString ? m.toString() : m)),
+      description: doc.description || '',
+      type: doc.type || 'GENERAL',
+      status: this.mapStatus(doc.status),
+      priority: this.mapPriority(doc.priority),
       assignedTo: doc.assignedTo,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
+      messages: doc.messages?.map((m: any) => (m.toString ? m.toString() : m)) || [],
+      attachments: doc.attachments || [],
+      createdAt,
+      updatedAt,
+      resolvedAt: doc.resolvedAt,
+      closedAt: doc.closedAt,
     };
+  }
+
+  private mapStatus(status: string): SupportTicketType['status'] {
+    const statusMap: Record<string, SupportTicketType['status']> = {
+      open: 'open',
+      in_progress: 'in_progress',
+      resolved: 'resolved',
+      closed: 'closed',
+      OPEN: 'open',
+      IN_PROGRESS: 'in_progress',
+      RESOLVED: 'resolved',
+      CLOSED: 'closed',
+    };
+    return statusMap[status] || statusMap[status.toLowerCase()] || 'open';
+  }
+
+  private mapPriority(priority: string): SupportTicketType['priority'] {
+    const priorityMap: Record<string, SupportTicketType['priority']> = {
+      low: 'low',
+      medium: 'medium',
+      high: 'high',
+      urgent: 'urgent',
+      LOW: 'low',
+      MEDIUM: 'medium',
+      HIGH: 'high',
+      URGENT: 'urgent',
+    };
+    return priorityMap[priority] || priorityMap[priority.toLowerCase()] || 'medium';
   }
 }

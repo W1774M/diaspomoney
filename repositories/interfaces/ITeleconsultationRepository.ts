@@ -7,21 +7,10 @@ import {
   PaginatedResult,
   PaginationOptions,
 } from './IRepository';
+import type { Teleconsultation } from '@/lib/types';
 
-export interface Teleconsultation {
-  id: string;
-  _id?: string;
-  appointmentId: string;
-  roomUrl: string;
-  accessToken: string;
-  status: TeleconsultationStatus;
-  startedAt?: Date;
-  endedAt?: Date;
-  duration?: number; // minutes
-  createdAt: Date;
-  updatedAt: Date;
-  [key: string]: any;
-}
+// Re-export pour compatibilité
+export type { Teleconsultation };
 
 export type TeleconsultationStatus = 'WAITING' | 'ACTIVE' | 'ENDED';
 

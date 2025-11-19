@@ -5,7 +5,7 @@
  */
 
 import { useNotificationManager } from '@/components/ui/Notification';
-import { UIAttachment } from '@/types/messaging';
+import type { UIAttachment } from '@/lib/types';
 import { useCallback, useState } from 'react';
 
 export const useAttachments = () => {

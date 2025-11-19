@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardServicesContentProps } from "@/types/dashboard-services";
+import type { DashboardServicesContentProps } from "@/lib/types";
 import React from "react";
 
 const DashboardServicesContent = React.memo<DashboardServicesContentProps>(

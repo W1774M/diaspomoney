@@ -44,7 +44,10 @@ export default function BeneficiarySelector({
 
       if (result) {
         // Ajouter automatiquement à la sélection
-        onSelectionChange([...selectedBeneficiaries, result._id]);
+        const beneficiaryId = result._id || result.id;
+        if (beneficiaryId) {
+          onSelectionChange([...selectedBeneficiaries, beneficiaryId]);
+        }
         if (onAddNew) onAddNew(result);
         setShowAddForm(false);
         // Reset form
@@ -95,12 +98,13 @@ export default function BeneficiarySelector({
       {!loading && (
         <div className="space-y-2">
           {beneficiaries.map(beneficiary => {
-            const isSelected = selectedBeneficiaries.includes(beneficiary._id);
+            const beneficiaryId = beneficiary._id || beneficiary.id || '';
+            const isSelected = beneficiaryId && selectedBeneficiaries.includes(beneficiaryId);
 
             return (
               <div
-                key={beneficiary._id}
-                onClick={() => handleBeneficiaryToggle(beneficiary._id)}
+                key={beneficiaryId}
+                onClick={() => beneficiaryId && handleBeneficiaryToggle(beneficiaryId)}
                 className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                   isSelected
                     ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,53%)]/5"

@@ -1,6 +1,6 @@
 "use client";
 
-import { QuotesTableProps } from "@/types/quotes";
+import type { QuotesTableProps } from "@/lib/types";
 import React from "react";
 import QuoteCard from "./QuoteCard";
 
@@ -84,7 +84,7 @@ const QuotesTable = React.memo<QuotesTableProps>(function QuotesTable({
 
   return (
     <div className="space-y-4">
-      {quotes.map(quote => (
+      {quotes.map((quote: any) => (
         <QuoteCard
           key={quote.id}
           quote={quote}

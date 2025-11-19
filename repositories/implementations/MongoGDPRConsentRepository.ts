@@ -13,7 +13,7 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
-import type { GDPRConsent } from '@/types/gdpr';
+import type { GDPRConsent } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { ObjectId } from 'mongodb';
 import type {
@@ -21,9 +21,9 @@ import type {
   IGDPRConsentRepository,
 } from '../interfaces/IGDPRConsentRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
   private readonly collectionName = 'gdpr_consents';
@@ -62,17 +62,21 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
 
       await collection.insertOne(document);
 
+      const consentId = document.id || document._id?.toString() || '';
       const createdConsent: GDPRConsent = {
-        id: document.id,
+        _id: consentId,
+        id: consentId,
         userId: document.userId,
         purpose: document.purpose,
         granted: document.granted,
-        grantedAt: document.grantedAt,
-        withdrawnAt: document.withdrawnAt || new Date(),
+        grantedAt: document.grantedAt ? new Date(document.grantedAt) : now,
+        withdrawnAt: document.withdrawnAt ? new Date(document.withdrawnAt) : undefined,
         legalBasis: document.legalBasis as GDPRConsent['legalBasis'],
         dataCategories: document.dataCategories,
         retentionPeriod: document.retentionPeriod,
         isActive: document.isActive,
+        createdAt: document.createdAt ? new Date(document.createdAt) : now,
+        updatedAt: document.updatedAt ? new Date(document.updatedAt) : now,
       };
 
       this.log.debug(
@@ -269,8 +273,8 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
   @Cacheable(300, { prefix: 'GDPRConsentRepository:findWithPagination' })
   async findWithPagination(
     filter: Record<string, any> = {},
-    options: PaginationOptions = {},
-  ): Promise<PaginatedResult<GDPRConsent>> {
+    options: PaginationOptions = { limit: 50, page: 1 },
+  ): Promise<PaginatedFindResult<GDPRConsent>> {
     try {
       const collection = await this.getCollection();
       const limit = options.limit || 50;
@@ -292,10 +296,15 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
       return {
         data,
         total,
-        limit,
-        offset,
-        page,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error(
@@ -318,7 +327,7 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
   async searchConsents(
     query: GDPRConsentQuery,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<GDPRConsent>> {
+  ): Promise<PaginatedFindResult<GDPRConsent>> {
     try {
       const mongoQuery: Record<string, any> = {};
 
@@ -354,6 +363,7 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
 
       const paginationOptions: PaginationOptions = {
         limit: (query as any)['limit'] || options?.limit || 50,
+        page: options?.page || 1,
         offset: (query as any)['offset'] || options?.offset || 0,
         sort: options?.sort || { grantedAt: -1 },
       };
@@ -377,11 +387,16 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
   async findActiveByUserId(
     userId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<GDPRConsent>> {
+  ): Promise<PaginatedFindResult<GDPRConsent>> {
     try {
+      const paginationOptions: PaginationOptions = options || {
+        limit: 50,
+        page: 1,
+        sort: { grantedAt: -1 },
+      };
       return this.findWithPagination(
         { userId, isActive: true },
-        options || { sort: { grantedAt: -1 } },
+        paginationOptions,
       );
     } catch (error) {
       this.log.error(
@@ -458,17 +473,23 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
    * Mapper un document MongoDB vers un objet GDPRConsent
    */
   private mapToGDPRConsent(doc: any): GDPRConsent {
+    const docId = doc.id || doc._id?.toString() || '';
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
     return {
-      id: doc.id || doc._id?.toString() || '',
+      _id: docId,
+      id: docId,
       userId: doc.userId || '',
       purpose: doc.purpose || '',
       granted: doc.granted ?? true,
       grantedAt: doc.grantedAt ? new Date(doc.grantedAt) : new Date(),
-      withdrawnAt: doc.withdrawnAt ? new Date(doc.withdrawnAt) : new Date(),
+      withdrawnAt: doc.withdrawnAt ? new Date(doc.withdrawnAt) : undefined,
       legalBasis: doc.legalBasis || 'CONSENT',
       dataCategories: doc.dataCategories || [],
       retentionPeriod: doc.retentionPeriod || 365,
       isActive: doc.isActive ?? true,
+      createdAt,
+      updatedAt,
     };
   }
 }

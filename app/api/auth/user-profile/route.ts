@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { LANGUAGES, TIMEZONES, USER_STATUSES, ROLES, HTTP_STATUS_CODES } from '@/lib/constants';
 
 // Cache simple pour éviter les appels répétés
 let lastCall = 0;
@@ -25,8 +26,8 @@ export async function GET() {
       phone: '+33123456789',
       company: 'DiaspoMoney Test',
       address: '123 Test Street, Paris, France',
-      status: 'ACTIVE',
-      roles: ['CUSTOMER'],
+      status: USER_STATUSES.ACTIVE,
+      roles: [ROLES.CUSTOMER],
       specialty: 'Test Specialty',
       recommended: true,
       providerInfo: {
@@ -48,14 +49,14 @@ export async function GET() {
           sms: true,
           push: true,
         },
-        language: 'fr',
-        timezone: 'Europe/Paris',
+        language: LANGUAGES.FR.code,
+        timezone: TIMEZONES.PARIS,
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Erreur récupération profil:', error);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR });
   }
 }

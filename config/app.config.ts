@@ -2,7 +2,7 @@
  * Configuration centralisée - DiaspoMoney
  */
 
-import type { Environment, EnvironmentConfig } from '@/types';
+import type { Environment, EnvironmentConfig } from '@/lib/types';
 
 // === CONFIGURATION PAR ENVIRONNEMENT ===
 const environments: Record<Environment, EnvironmentConfig> = {

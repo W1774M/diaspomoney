@@ -20,9 +20,9 @@ import type {
   PrescriptionFilters,
 } from '../interfaces/IPrescriptionRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoPrescriptionRepository implements IPrescriptionRepository {
   private readonly collectionName = 'prescriptions';
@@ -228,7 +228,7 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   async findWithPagination(
     filters?: Record<string, any>,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Prescription>> {
+  ): Promise<PaginatedFindResult<Prescription>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit || 50;
@@ -251,13 +251,19 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
       const data = await cursor.toArray();
       const prescriptions = data.map(doc => this.mapToPrescription(doc));
 
+      const pages = Math.ceil(total / limit);
       const result = {
         data: prescriptions,
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
 
       this.log.debug(
@@ -288,7 +294,7 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   async findByAppointment(
     appointmentId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Prescription>> {
+  ): Promise<PaginatedFindResult<Prescription>> {
     try {
       const result = await this.findWithPagination({ appointmentId }, options);
       this.log.debug(
@@ -308,7 +314,7 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   async findByIssuer(
     issuedBy: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Prescription>> {
+  ): Promise<PaginatedFindResult<Prescription>> {
     try {
       const result = await this.findWithPagination({ issuedBy }, options);
       this.log.debug(
@@ -327,7 +333,7 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   @Cacheable(300, { prefix: 'PrescriptionRepository:findValid' }) // Cache 5 minutes
   async findValid(
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Prescription>> {
+  ): Promise<PaginatedFindResult<Prescription>> {
     try {
       const now = new Date();
       const result = await this.findWithPagination(
@@ -350,7 +356,7 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   @Cacheable(300, { prefix: 'PrescriptionRepository:findExpired' }) // Cache 5 minutes
   async findExpired(
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Prescription>> {
+  ): Promise<PaginatedFindResult<Prescription>> {
     try {
       const now = new Date();
       const result = await this.findWithPagination(
@@ -376,7 +382,7 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   async findPrescriptionsWithFilters(
     filters: PrescriptionFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Prescription>> {
+  ): Promise<PaginatedFindResult<Prescription>> {
     try {
       const query: Record<string, any> = {};
 
@@ -426,17 +432,20 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
   }
 
   private mapToPrescription(doc: any): Prescription {
+    const docId = doc._id?.toString() || doc.id || '';
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
     return {
-      id: doc._id?.toString() || doc.id,
-      _id: doc._id?.toString(),
+      id: docId,
+      _id: docId,
       appointmentId: doc.appointmentId,
       medications: doc.medications || [],
       instructions: doc.instructions,
       validUntil: doc.validUntil,
       issuedAt: doc.issuedAt,
       issuedBy: doc.issuedBy,
-      createdAt: doc.createdAt || new Date(),
-      updatedAt: doc.updatedAt || new Date(),
+      createdAt,
+      updatedAt,
     };
   }
 }

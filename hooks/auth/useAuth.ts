@@ -217,7 +217,7 @@ export function useAuth() {
         address: me.address || '',
       });
       setIsAuthenticated((me.status || 'ACTIVE') === 'ACTIVE');
-    } catch (e) {
+    } catch (_error) {
       // Logging silencieux côté client - les erreurs sont gérées par le state
       setUser(null);
       setIsAuthenticated(false);

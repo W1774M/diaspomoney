@@ -20,6 +20,7 @@ export * from './interfaces/ISpecialityRepository';
 export * from './interfaces/ITeleconsultationRepository';
 export * from './interfaces/ITransactionRepository';
 export * from './interfaces/IUserRepository';
+export * from './interfaces/IAvailabilityRuleRepository';
 
 // Implémentations
 export { MongoAuditLogRepository } from './implementations/MongoAuditLogRepository';
@@ -41,6 +42,7 @@ export { MongoSpecialityRepository } from './implementations/MongoSpecialityRepo
 export { MongoTeleconsultationRepository } from './implementations/MongoTeleconsultationRepository';
 export { MongoTransactionRepository } from './implementations/MongoTransactionRepository';
 export { MongoUserRepository } from './implementations/MongoUserRepository';
+export { MongoAvailabilityRuleRepository } from './implementations/MongoAvailabilityRuleRepository';
 
 // Container
 export {
@@ -67,5 +69,6 @@ export {
   getTeleconsultationRepository,
   getTransactionRepository,
   getUserRepository,
+  getAvailabilityRuleRepository,
   repositoryContainer,
 } from './container/RepositoryContainer';

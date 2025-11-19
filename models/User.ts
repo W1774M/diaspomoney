@@ -1,4 +1,5 @@
-import { User, UserRole } from '@/types/user';
+import { User, UserRole } from '@/lib/types';
+import { ROLES, USER_STATUSES } from '@/lib/constants';
 import bcrypt from 'bcryptjs';
 import mongoose, { Schema } from 'mongoose';
 
@@ -29,13 +30,13 @@ const userDefinition = {
   },
   roles: {
     type: [String],
-    enum: ['SUPERADMIN', 'ADMIN', 'PROVIDER', 'CUSTOMER', 'BENEFICIARY', 'CSM'],
-    default: ['CUSTOMER'],
+    enum: Object.values(ROLES),
+    default: [ROLES.CUSTOMER],
   },
   status: {
     type: String,
-    enum: ['ACTIVE', 'INACTIVE', 'PENDING', 'SUSPENDED'],
-    default: 'PENDING',
+    enum: Object.values(USER_STATUSES),
+    default: USER_STATUSES.PENDING,
   },
   // Champs spécifiques aux prestataires
   specialty: {

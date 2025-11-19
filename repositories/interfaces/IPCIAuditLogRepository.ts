@@ -2,7 +2,7 @@
  * Interface du repository pour les logs d'audit PCI-DSS
  */
 
-import type { PCIAuditLog } from '@/types/pci';
+import type { PCIAuditLog } from '@/lib/types';
 import {
   IPaginatedRepository,
   PaginatedResult,

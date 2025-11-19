@@ -1,7 +1,7 @@
 'use client';
 
 import { useNotificationManager } from '@/components/ui/Notification';
-import { IInvoice } from '@/types';
+import { IInvoice } from '@/lib/types';
 import { useCallback, useState } from 'react';
 
 interface UseInvoiceCreateReturn {
@@ -78,12 +78,12 @@ export function useInvoiceCreate(): UseInvoiceCreateReturn {
         } else {
           throw new Error(result.error || 'Format de réponse invalide');
         }
-      } catch (err) {
+      } catch (error) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Erreur inconnue';
+          error instanceof Error ? error.message : 'Erreur inconnue';
         setError(errorMessage);
         addError(errorMessage);
-        throw err;
+        throw error;
       } finally {
         setCreating(false);
       }

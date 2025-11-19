@@ -10,7 +10,7 @@
  */
 
 import { childLogger } from '@/lib/logger';
-import type { AuthenticatedUser } from '@/types/auth';
+import type { AuthenticatedUser } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import jwt from 'jsonwebtoken';
 import { decode } from 'next-auth/jwt';

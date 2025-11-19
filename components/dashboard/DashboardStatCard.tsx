@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardStatCardProps } from "@/types/dashboard";
+import type { DashboardStatCardProps } from "@/lib/types";
 import React from "react";
 
 const DashboardStatCard = React.memo<DashboardStatCardProps>(

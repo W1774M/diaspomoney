@@ -12,7 +12,8 @@
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "lint:next": "next lint || echo 'Warning: next lint has a known issue with pnpm. Use pnpm lint instead.'",
     "test": "cypress run",
-    "test:ci": "cypress run --browser chrome --headless"
+    "test:ci": "cypress run --browser chrome --headless",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -75,5 +76,6 @@
     "overrides": {
       "import-in-the-middle": "1.15.0"
     }
-  }
+  },
+  "ignore-workspace-root-check": true
 }

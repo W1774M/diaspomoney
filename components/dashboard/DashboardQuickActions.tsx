@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardQuickActionsProps } from "@/types/dashboard";
+import type { DashboardQuickActionsProps } from "@/lib/types";
 import { Calendar, FileText, Users } from "lucide-react";
 import React from "react";
 import DashboardActionCard from "./DashboardActionCard";

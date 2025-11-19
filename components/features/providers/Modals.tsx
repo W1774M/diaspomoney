@@ -14,7 +14,7 @@ import {
   IUser as Provider,
   ProviderService,
   Service,
-} from '@/types';
+} from '@/lib/types';
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 interface ModalSelectServiceProps {
@@ -310,14 +310,20 @@ export const ModalSelectService = ({
                       <button
                         key={index}
                         onClick={() =>
-                          handleTimeslotSelect(time.monday[0]?.startTime || '')
+                          handleTimeslotSelect(
+                            (time.monday?.[0] as any)?.startTime ||
+                              (time.monday?.[0] as any)?.start ||
+                              '',
+                          )
                         }
                         className='w-full text-left p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 hover:scale-[1.02] cursor-pointer'
                       >
                         <div className='flex items-center justify-between'>
                           <span className='font-medium text-gray-700'>
                             {new Date(
-                              time.monday[0]?.startTime || '',
+                              (time.monday?.[0] as any)?.startTime ||
+                                (time.monday?.[0] as any)?.start ||
+                                '',
                             ).toLocaleDateString('fr-FR', {
                               weekday: 'long',
                               day: 'numeric',

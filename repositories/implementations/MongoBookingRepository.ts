@@ -21,9 +21,9 @@ import type {
   IBookingRepository,
 } from '../interfaces/IBookingRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoBookingRepository implements IBookingRepository {
   private readonly collectionName = 'bookings';
@@ -208,7 +208,7 @@ export class MongoBookingRepository implements IBookingRepository {
   async findWithPagination(
     filters?: Record<string, any>,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Booking>> {
+  ): Promise<PaginatedFindResult<Booking>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit ?? 50;
@@ -225,13 +225,19 @@ export class MongoBookingRepository implements IBookingRepository {
         .limit(limit)
         .toArray();
 
+      const pages = Math.ceil(total / limit);
       return {
         data: bookings.map(b => this.mapToBooking(b)),
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error(
@@ -252,21 +258,21 @@ export class MongoBookingRepository implements IBookingRepository {
   async findByRequester(
     requesterId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Booking>> {
+  ): Promise<PaginatedFindResult<Booking>> {
     return this.findWithPagination({ requesterId }, options);
   }
 
   async findByProvider(
     providerId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Booking>> {
+  ): Promise<PaginatedFindResult<Booking>> {
     return this.findWithPagination({ providerId }, options);
   }
 
   async findByStatus(
     status: Booking['status'],
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Booking>> {
+  ): Promise<PaginatedFindResult<Booking>> {
     return this.findWithPagination({ status }, options);
   }
 
@@ -274,7 +280,7 @@ export class MongoBookingRepository implements IBookingRepository {
   @Cacheable(300, { prefix: 'BookingRepository:findUpcoming' }) // Cache 5 minutes
   async findUpcoming(
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Booking>> {
+  ): Promise<PaginatedFindResult<Booking>> {
     try {
       const now = new Date();
       return this.findWithPagination(
@@ -319,13 +325,19 @@ export class MongoBookingRepository implements IBookingRepository {
   async findBookingsWithFilters(
     filters: BookingFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Booking>> {
+  ): Promise<PaginatedFindResult<Booking>> {
     try {
       // Utiliser BookingQueryBuilder pour construire la requête
       const queryBuilder = this.buildBookingQuery(filters, options);
       const query = queryBuilder.build();
 
-      return this.findWithPagination(query.filters, query.pagination);
+      const pagination: PaginationOptions = {
+        limit: query.pagination.limit ?? 50,
+        page: query.pagination.page ?? 1,
+        ...(query.pagination.offset !== undefined && { offset: query.pagination.offset }),
+        ...(query.sort && { sort: query.sort }),
+      };
+      return this.findWithPagination(query.filters, pagination);
     } catch (error) {
       this.log.error(
         { error, filters, options },
@@ -409,9 +421,12 @@ export class MongoBookingRepository implements IBookingRepository {
    * Mapper un document MongoDB vers un objet Booking
    */
   private mapToBooking(doc: any): Booking {
+    const docId = doc._id?.toString() || doc.id || '';
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
     return {
-      id: doc._id?.toString() || doc.id,
-      _id: doc._id?.toString(),
+      id: docId,
+      _id: docId,
       requesterId: doc.requesterId || doc.userId,
       providerId: doc.providerId,
       serviceId: doc.serviceId,
@@ -422,8 +437,8 @@ export class MongoBookingRepository implements IBookingRepository {
       consultationMode: doc.consultationMode,
       recipient: doc.recipient || doc.beneficiary,
       metadata: doc.metadata,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
+      createdAt,
+      updatedAt,
     };
   }
 

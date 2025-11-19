@@ -4,7 +4,7 @@ import Logo from '@/components/ui/Logo';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useSignOut } from '@/hooks/auth/useSignOut';
 import imageLoader from '@/lib/image-loader';
-import { UINotification } from '@/types/notifications';
+import type { UINotification } from '@/lib/types';
 import { Bell, ChevronDown, Mail, MessageSquare } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';

@@ -48,7 +48,7 @@ export class PaymentProcessorFactory {
   /**
    * Obtenir le meilleur processeur selon la devise et le pays
    */
-  static getBestProcessor(currency: string, country?: string): PaymentProcessor {
+  static getBestProcessor(currency: string, _country?: string): PaymentProcessor {
     const currencyUpper = currency.toUpperCase();
 
     // Logique de sélection du meilleur provider
@@ -78,13 +78,13 @@ export class PaymentProcessorFactory {
 
     try {
       processors.push(this.createProcessor('STRIPE'));
-    } catch (error) {
+    } catch (_error) {
       logger.debug('Stripe processor not available');
     }
 
     try {
       processors.push(this.createProcessor('PAYPAL'));
-    } catch (error) {
+    } catch (_error) {
       logger.debug('PayPal processor not available');
     }
 

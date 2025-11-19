@@ -6,7 +6,7 @@
  */
 
 import imageLoader from '@/lib/image-loader';
-import { HistoricalOrderCardProps } from '@/types/orders';
+import type { HistoricalOrderCardProps } from '@/lib/types';
 import { ChevronRight, Download, RefreshCw, Star } from 'lucide-react';
 import Image from 'next/image';
 // Format date helper

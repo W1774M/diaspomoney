@@ -2,7 +2,7 @@
 
 import { useBeneficiaryFilters } from "@/hooks/beneficiaries";
 import { useBeneficiaries } from "@/hooks/beneficiaries/useBeneficiaries";
-import { Beneficiary, BeneficiaryFormData } from "@/types/beneficiaries";
+import { Beneficiary, BeneficiaryFormData, CreateBeneficiaryData } from "@/lib/types";
 import React, { useCallback, useState } from "react";
 import BeneficiariesFilters from "./BeneficiariesFilters";
 import BeneficiariesHeader from "./BeneficiariesHeader";
@@ -60,15 +60,35 @@ const BeneficiariesPage = React.memo(function BeneficiariesPage() {
       setIsSubmitting(true);
       try {
         if (editingBeneficiary) {
+          const beneficiaryId = editingBeneficiary._id || editingBeneficiary.id;
+          if (!beneficiaryId) {
+            console.error("ID de bénéficiaire manquant");
+            return;
+          }
           const result = await updateBeneficiary(
-            editingBeneficiary._id,
+            beneficiaryId,
             formData,
           );
           if (result) {
             setEditingBeneficiary(null);
           }
         } else {
-          const result = await createBeneficiary(formData);
+          const { firstName, lastName, country, relationship, email, phone } = formData;
+          const beneficiaryData: CreateBeneficiaryData = {
+            name: `${firstName || ''} ${lastName || ''}`.trim() || 'Bénéficiaire',
+            firstName: firstName ?? "",
+            lastName: lastName ?? "",
+            country: country ?? "",
+            relationship: relationship ?? "OTHER",
+          };
+          // Ajouter email et phone seulement s'ils sont définis
+          if (email) {
+            beneficiaryData.email = email;
+          }
+          if (phone) {
+            beneficiaryData.phone = phone;
+          }
+          const result = await createBeneficiary(beneficiaryData);
           if (result) {
             setShowAddForm(false);
           }
@@ -115,7 +135,7 @@ const BeneficiariesPage = React.memo(function BeneficiariesPage() {
 
       {/* Search */}
       <BeneficiariesSearch
-        searchTerm={filters.searchTerm}
+        searchTerm={filters.searchTerm ?? ""}
         setSearchTerm={handleSearchChange}
       />
 

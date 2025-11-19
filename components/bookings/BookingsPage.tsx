@@ -2,7 +2,7 @@
 
 import { useBookings } from '@/hooks';
 import { useBookingCancel, useBookingFilters } from '@/hooks/bookings';
-import { Booking } from '@/types/bookings';
+import type { Booking } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import React, { useCallback } from 'react';
 import BookingsHeader from './BookingsHeader';

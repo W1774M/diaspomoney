@@ -5,7 +5,7 @@
  * Implémente le Custom Hooks Pattern
  */
 
-import { IUser, UserRole } from '@/types';
+import { IUser, UserRole } from '@/lib/types';
 import { useCallback, useMemo, useState } from 'react';
 
 export interface UserFilters {

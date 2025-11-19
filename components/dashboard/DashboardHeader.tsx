@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardHeaderProps } from "@/types/dashboard";
+import type { DashboardHeaderProps } from "@/lib/types";
 import React from "react";
 
 const DashboardHeader = React.memo<DashboardHeaderProps>(

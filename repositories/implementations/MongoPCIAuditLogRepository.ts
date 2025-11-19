@@ -13,7 +13,7 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
-import type { PCIAuditLog } from '@/types/pci';
+import type { PCIAuditLog } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { ObjectId } from 'mongodb';
 import type {
@@ -21,9 +21,9 @@ import type {
   PCIAuditLogQuery,
 } from '../interfaces/IPCIAuditLogRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
   private readonly collectionName = 'pci_audit_logs';
@@ -63,6 +63,7 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
       await collection.insertOne(document);
 
       const createdLog: PCIAuditLog = {
+        _id: document.id,
         id: document.id,
         timestamp: document.timestamp,
         event: document.event,
@@ -73,6 +74,8 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
         severity: document.severity,
         details: document.details,
         complianceStatus: document.complianceStatus,
+        createdAt: document.createdAt || document.timestamp,
+        updatedAt: document.updatedAt || document.timestamp,
       };
 
       this.log.debug(
@@ -270,8 +273,8 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
   @Cacheable(300, { prefix: 'PCIAuditLogRepository:findWithPagination' }) // Cache 5 minutes
   async findWithPagination(
     filter: Record<string, any> = {},
-    options: PaginationOptions = {},
-  ): Promise<PaginatedResult<PCIAuditLog>> {
+    options: PaginationOptions = { limit: 50, page: 1 },
+  ): Promise<PaginatedFindResult<PCIAuditLog>> {
     try {
       const collection = await this.getCollection();
       const limit = options.limit || 50;
@@ -295,10 +298,15 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
       return {
         data,
         total,
-        limit,
-        offset,
-        page,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error(
@@ -321,7 +329,7 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
   async searchPCIAuditLogs(
     query: PCIAuditLogQuery,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<PCIAuditLog>> {
+  ): Promise<PaginatedFindResult<PCIAuditLog>> {
     try {
       const mongoQuery: Record<string, any> = {};
 
@@ -356,9 +364,13 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
         }
       }
 
+      const limit = query.limit || options?.limit || 50;
+      const offset = query.offset || options?.offset || 0;
+      const page = options?.page || Math.floor(offset / limit) + 1;
       const paginationOptions: PaginationOptions = {
-        limit: query.limit || options?.limit || 50,
-        offset: query.offset || options?.offset || 0,
+        limit,
+        page,
+        offset,
         sort: options?.sort || { timestamp: -1 },
       };
 
@@ -572,9 +584,14 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
    * Mapper un document MongoDB vers un objet PCIAuditLog
    */
   private mapToPCIAuditLog(doc: any): PCIAuditLog {
+    const docId = doc.id || doc._id?.toString() || '';
+    const timestamp = doc.timestamp ? new Date(doc.timestamp) : new Date();
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : timestamp;
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : timestamp;
     return {
-      id: doc.id || doc._id?.toString() || '',
-      timestamp: doc.timestamp ? new Date(doc.timestamp) : new Date(),
+      _id: docId,
+      id: docId,
+      timestamp,
       event: doc.event || '',
       userId: doc.userId || undefined,
       transactionId: doc.transactionId || undefined,
@@ -583,6 +600,8 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
       severity: doc.severity || 'LOW',
       details: doc.details || {},
       complianceStatus: doc.complianceStatus || 'REVIEW_REQUIRED',
+      createdAt,
+      updatedAt,
     };
   }
 }

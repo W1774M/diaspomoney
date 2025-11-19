@@ -96,9 +96,8 @@ export default function TutorialsPage() {
     tutorial => !selectedCategory || tutorial.category === selectedCategory,
   );
 
-  const handlePlay = (tutorial: Tutorial) => {
+  const handlePlay = (_tutorial: Tutorial) => {
     // Ici, vous pouvez ouvrir une modal vidéo ou rediriger vers la page de lecture
-    console.log('Lecture du tutoriel:', tutorial.title);
     // window.open(tutorial.videoUrl, '_blank');
   };
 

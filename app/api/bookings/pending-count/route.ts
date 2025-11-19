@@ -10,6 +10,9 @@
 import { auth } from '@/auth';
 import { childLogger } from '@/lib/logger';
 import { getBookingRepository } from '@/repositories';
+import { BOOKING_STATUSES, HTTP_STATUS_CODES } from '@/lib/constants';
+import type { BookingServiceFilters } from '@/lib/types';
+import type { BookingFilters } from '@/repositories/interfaces/IBookingRepository';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -23,7 +26,7 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
       log.warn({ msg: 'Unauthorized access attempt' });
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      return NextResponse.json({ error: 'Non autorisé' }, { status: HTTP_STATUS_CODES.UNAUTHORIZED });
     }
 
     const userId = session.user.id;
@@ -35,25 +38,44 @@ export async function GET(request: NextRequest) {
     // Utiliser le repository (Repository Pattern)
     const bookingRepository = getBookingRepository();
 
-    const filters: any = {};
+    const filters: BookingServiceFilters = {};
 
     // Filtrer selon le rôle
     if (role === 'admin' || role === 'csm') {
       // Admin et CSM voient toutes les commandes en attente
-      filters.status = 'PENDING';
+      filters.status = BOOKING_STATUSES.PENDING;
     } else if (role === 'provider') {
       // Provider voit ses propres commandes en attente
       filters.providerId = userId;
-      filters.status = 'PENDING';
+      filters.status = BOOKING_STATUSES.PENDING;
     } else {
       // Par défaut, l'utilisateur voit ses propres commandes
-      filters.requesterId = userId;
-      filters.status = 'PENDING';
+      filters.userId = userId;
+      filters.status = BOOKING_STATUSES.PENDING;
+    }
+
+    // Convertir BookingServiceFilters en BookingFilters pour le repository
+    const bookingFilters: BookingFilters = {} as BookingFilters;
+    if (filters.userId) {
+      bookingFilters.requesterId = filters.userId;
+    }
+    if (filters.providerId) {
+      bookingFilters.providerId = filters.providerId;
+    }
+    if (filters.status) {
+      bookingFilters.status = filters.status as NonNullable<BookingFilters['status']>;
+    }
+    if (filters.dateFrom) {
+      bookingFilters.dateFrom = filters.dateFrom;
+    }
+    if (filters.dateTo) {
+      bookingFilters.dateTo = filters.dateTo;
     }
 
     // Récupérer le nombre de commandes en attente
-    const result = await bookingRepository.findBookingsWithFilters(filters, {
+    const result = await bookingRepository.findBookingsWithFilters(bookingFilters, {
       limit: 1,
+      page: 1,
       offset: 0,
     });
 
@@ -82,7 +104,7 @@ export async function GET(request: NextRequest) {
         error:
           'Erreur lors de la récupération du nombre de commandes en attente',
       },
-      { status: 500 },
+      { status: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR },
     );
   }
 }

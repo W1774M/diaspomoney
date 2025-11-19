@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/auth/useAuth";
-import { ISpeciality } from "@/types";
+import { ISpeciality } from "@/lib/types";
 import { Building, Edit, Eye, Plus, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -162,6 +162,7 @@ export default function SpecialitiesPage() {
             />
           </div>
           <select
+            title="Type de spécialité"
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"

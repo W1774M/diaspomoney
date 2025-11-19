@@ -13,262 +13,20 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
+import { BTP_CONSTANTS, LOCALE, SPECIALITY_TYPES, CURRENCIES } from '@/lib/constants';
 import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import { getQuoteRepository, IQuoteRepository } from '@/repositories';
 import { notificationService } from '@/services/notification/notification.service';
+import type {
+  CreateQuoteData,
+  Property,
+  Contractor,
+  Material,
+  ConstructionProject,
+  BTPFilters,
+} from '@/lib/types/btp.types';
 import * as Sentry from '@sentry/nextjs';
-
-export interface Property {
-  id: string;
-  title: string;
-  description: string;
-  type: 'LAND' | 'HOUSE' | 'APARTMENT' | 'COMMERCIAL' | 'INDUSTRIAL';
-  status: 'FOR_SALE' | 'FOR_RENT' | 'SOLD' | 'RENTED' | 'UNDER_CONSTRUCTION';
-  price: number;
-  currency: string;
-  pricePerSqm?: number;
-  area: number; // m²
-  rooms?: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  floors?: number;
-  yearBuilt?: number;
-  location: {
-    address: string;
-    city: string;
-    country: string;
-    postalCode: string;
-    coordinates: {
-      latitude: number;
-      longitude: number;
-    };
-    neighborhood?: string;
-  };
-  features: PropertyFeature[];
-  images: PropertyImage[];
-  documents: PropertyDocument[];
-  owner: {
-    id: string;
-    name: string;
-    type: 'INDIVIDUAL' | 'COMPANY';
-    contact: {
-      phone: string;
-      email: string;
-    };
-  };
-  agent?: {
-    id: string;
-    name: string;
-    company: string;
-    phone: string;
-    email: string;
-  };
-  isActive: boolean;
-  isFeatured: boolean;
-  views: number;
-  favorites: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface PropertyFeature {
-  category: 'GENERAL' | 'EXTERIOR' | 'INTERIOR' | 'UTILITIES' | 'SECURITY';
-  name: string;
-  value: string;
-  icon?: string;
-}
-
-export interface PropertyImage {
-  id: string;
-  url: string;
-  alt: string;
-  type: 'MAIN' | 'GALLERY' | 'FLOOR_PLAN' | 'VIRTUAL_TOUR';
-  order: number;
-  isActive: boolean;
-}
-
-export interface PropertyDocument {
-  id: string;
-  name: string;
-  type: 'TITLE_DEED' | 'SURVEY' | 'PERMIT' | 'CONTRACT' | 'OTHER';
-  url: string;
-  size: number;
-  uploadedAt: Date;
-}
-
-export interface Contractor {
-  id: string;
-  name: string;
-  type: 'GENERAL_CONTRACTOR' | 'SPECIALIST' | 'SUPPLIER';
-  specialties: string[];
-  description: string;
-  experience: number; // years
-  rating: number;
-  reviewCount: number;
-  location: {
-    city: string;
-    country: string;
-    serviceRadius: number; // km
-  };
-  contact: {
-    phone: string;
-    email: string;
-    website?: string;
-  };
-  portfolio: Project[];
-  certifications: Certification[];
-  isActive: boolean;
-  isVerified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Project {
-  id: string;
-  title: string;
-  description: string;
-  type: 'RESIDENTIAL' | 'COMMERCIAL' | 'INDUSTRIAL' | 'RENOVATION';
-  status: 'PLANNING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD';
-  budget: number;
-  currency: string;
-  duration: number; // months
-  startDate: Date;
-  endDate?: Date;
-  images: string[];
-  client: {
-    name: string;
-    type: 'INDIVIDUAL' | 'COMPANY';
-  };
-  location: {
-    city: string;
-    country: string;
-  };
-}
-
-export interface Certification {
-  name: string;
-  issuer: string;
-  issuedAt: Date;
-  expiresAt?: Date;
-  documentUrl?: string;
-}
-
-export interface Material {
-  id: string;
-  name: string;
-  category:
-    | 'CONSTRUCTION'
-    | 'FINISHING'
-    | 'ELECTRICAL'
-    | 'PLUMBING'
-    | 'ROOFING';
-  description: string;
-  specifications: Record<string, string>;
-  price: number;
-  currency: string;
-  unit: 'PIECE' | 'SQM' | 'METER' | 'TON' | 'KG';
-  supplier: {
-    id: string;
-    name: string;
-    contact: {
-      phone: string;
-      email: string;
-    };
-  };
-  availability: {
-    inStock: boolean;
-    quantity?: number;
-    leadTime?: number; // days
-  };
-  images: string[];
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface ConstructionProject {
-  id: string;
-  name: string;
-  description: string;
-  type: 'NEW_CONSTRUCTION' | 'RENOVATION' | 'EXTENSION' | 'REPAIR';
-  status: 'PLANNING' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
-  budget: number;
-  currency: string;
-  actualCost?: number;
-  startDate: Date;
-  expectedEndDate: Date;
-  actualEndDate?: Date;
-  clientId: string;
-  contractorId?: string;
-  location: {
-    address: string;
-    city: string;
-    country: string;
-    coordinates?: {
-      latitude: number;
-      longitude: number;
-    };
-  };
-  milestones: ProjectMilestone[];
-  materials: ProjectMaterial[];
-  documents: ProjectDocument[];
-  progress: number; // percentage
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface ProjectMilestone {
-  id: string;
-  name: string;
-  description: string;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'DELAYED';
-  dueDate: Date;
-  completedDate?: Date;
-  paymentAmount?: number;
-  paymentStatus: 'PENDING' | 'PAID' | 'OVERDUE';
-  dependencies?: string[]; // Other milestone IDs
-}
-
-export interface ProjectMaterial {
-  id: string;
-  materialId: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  supplier: string;
-  status: 'ORDERED' | 'DELIVERED' | 'USED' | 'RETURNED';
-  orderDate?: Date;
-  deliveryDate?: Date;
-}
-
-export interface ProjectDocument {
-  id: string;
-  name: string;
-  type: 'PLAN' | 'PERMIT' | 'INVOICE' | 'RECEIPT' | 'PHOTO' | 'REPORT';
-  url: string;
-  uploadedBy: string;
-  uploadedAt: Date;
-}
-
-export interface BTPFilters {
-  query?: string;
-  type?: string;
-  status?: string;
-  city?: string;
-  country?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  minArea?: number;
-  maxArea?: number;
-  rooms?: number;
-  features?: string[];
-  coordinates?: {
-    latitude: number;
-    longitude: number;
-    radius: number; // km
-  };
-}
 
 /**
  * BTPService utilisant le Service Layer Pattern
@@ -313,7 +71,7 @@ export class BTPService {
           type: 'HOUSE',
           status: 'FOR_SALE',
           price: 150000000,
-          currency: 'XOF',
+          currency: CURRENCIES.XOF.code,
           pricePerSqm: 750000,
           area: 200,
           rooms: 6,
@@ -387,30 +145,18 @@ export class BTPService {
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'BTPService:getProperty' }) // Cache 5 minutes
   async getProperty(_propertyId: string): Promise<Property | null> {
-    try {
-      // TODO: Récupérer depuis la base de données
-      // const property = await Property.findById(propertyId)
-      //   .populate('owner')
-      //   .populate('agent');
+    // TODO: Récupérer depuis la base de données
+    // const property = await Property.findById(propertyId)
+    //   .populate('owner')
+    //   .populate('agent');
 
-      // Incrémenter le compteur de vues
-      // await Property.updateOne(
-      //   { _id: propertyId },
-      //   { $inc: { views: 1 } }
-      // );
+    // Incrémenter le compteur de vues
+    // await Property.updateOne(
+    //   { _id: propertyId },
+    //   { $inc: { views: 1 } }
+    // );
 
-      return null;
-    } catch (error) {
-      this.log.error(
-        { error, propertyId: _propertyId },
-        'Error in getProperty',
-      );
-      Sentry.captureException(error as Error, {
-        tags: { component: 'BTPService', action: 'getProperty' },
-        extra: { propertyId: _propertyId },
-      });
-      throw error;
-    }
+    return null;
   }
 
   /**
@@ -538,7 +284,7 @@ export class BTPService {
             Poids: '50 kg',
           },
           price: 8500,
-          currency: 'XOF',
+          currency: CURRENCIES.XOF.code,
           unit: 'PIECE',
           supplier: {
             id: 'supplier_1',
@@ -601,13 +347,13 @@ export class BTPService {
         data: {
           projectName: project.name,
           projectType: project.type,
-          expectedEndDate: project.expectedEndDate.toLocaleDateString('fr'),
+          expectedEndDate: project.expectedEndDate.toLocaleDateString(LOCALE.DEFAULT),
         },
         channels: [
           { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
           { type: 'PUSH', enabled: true, priority: 'MEDIUM' },
         ],
-        locale: 'fr',
+        locale: LOCALE.DEFAULT,
         priority: 'MEDIUM',
       });
 
@@ -723,24 +469,19 @@ export class BTPService {
   }> {
     try {
       // TODO: Implémenter le calcul de coût basé sur des données réelles
-      const baseCostPerSqm = 150000; // XOF par m²
-      const featureMultipliers: Record<string, number> = {
-        piscine: 1.2,
-        jardin: 1.1,
-        garage: 1.15,
-        terrasse: 1.05,
-      };
+      const baseCostPerSqm = BTP_CONSTANTS.BASE_COST_PER_SQM;
+      const featureMultipliers = BTP_CONSTANTS.FEATURE_MULTIPLIERS;
 
       let multiplier = 1;
       for (const feature of features) {
-        multiplier *= featureMultipliers[feature] || 1;
+        multiplier *= featureMultipliers[feature as keyof typeof featureMultipliers] || 1;
       }
 
       const estimatedCost = area * baseCostPerSqm * multiplier;
 
       return {
         estimatedCost,
-        currency: 'XOF',
+        currency: BTP_CONSTANTS.CURRENCY,
         breakdown: {
           'Construction de base': area * baseCostPerSqm,
           Fonctionnalités: estimatedCost - area * baseCostPerSqm,
@@ -793,8 +534,8 @@ export class BTPService {
 
       // Créer la demande de devis via le repository
       // Construire l'objet de manière conditionnelle pour éviter les erreurs TypeScript avec exactOptionalPropertyTypes
-      const quoteData: any = {
-        type: 'BTP',
+      const quoteData: CreateQuoteData = {
+        type: SPECIALITY_TYPES.BTP,
         projectType: data.projectType,
         area: data.area,
         features: data.features,
@@ -803,21 +544,11 @@ export class BTPService {
         urgency: data.urgency || 'MEDIUM',
         costEstimate: costEstimate.estimatedCost,
         status: 'PENDING',
+        ...(data.budget !== undefined && { budget: data.budget }),
+        ...(data.timeline && { timeline: data.timeline }),
+        ...(data.description && { description: data.description }),
+        ...(data.providerId && { providerId: data.providerId }),
       };
-
-      // Ajouter les champs optionnels seulement s'ils sont définis
-      if (data.budget !== undefined) {
-        quoteData.budget = data.budget;
-      }
-      if (data.timeline) {
-        quoteData.timeline = data.timeline;
-      }
-      if (data.description) {
-        quoteData.description = data.description;
-      }
-      if (data.providerId) {
-        quoteData.providerId = data.providerId;
-      }
 
       const quote = await this.quoteRepository.create(quoteData);
 
@@ -836,7 +567,7 @@ export class BTPService {
             { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
             { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
           ],
-          locale: 'fr',
+          locale: LOCALE.DEFAULT,
           priority: 'MEDIUM',
         });
       }

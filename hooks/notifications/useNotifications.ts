@@ -6,8 +6,8 @@
  * Utilise les API routes au lieu d'importer directement les services
  */
 
-import { UseNotificationsReturn } from '@/types/hooks';
-import { UINotification } from '@/types/notifications';
+import { UseNotificationsReturn } from '@/lib/types';
+import { UINotification } from '@/lib/types';
 import { useCallback, useState } from 'react';
 
 /**
@@ -46,9 +46,9 @@ export function useNotifications(): UseNotificationsReturn {
         } else {
           throw new Error(data.error || 'Erreur inconnue');
         }
-      } catch (err) {
+      } catch (error) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Erreur inconnue';
+          error instanceof Error ? error.message : 'Erreur inconnue';
         setError(errorMessage);
         // Le logging est fait côté serveur via NotificationService avec @Log decorator
       } finally {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Complaint, ComplaintFilters } from "@/types/complaints";
+import type { Complaint, ComplaintFilters } from "@/lib/types";
 import { useCallback, useMemo, useState } from "react";
 
 export function useComplaintFilters(complaints: Complaint[]) {

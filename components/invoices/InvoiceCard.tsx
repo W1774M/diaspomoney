@@ -6,7 +6,7 @@ import {
   getInvoiceStatusColor,
   getInvoiceStatusText,
 } from "@/lib/invoices/utils";
-import { InvoiceCardProps } from "@/types/invoices";
+import type { InvoiceCardProps } from "@/lib/types";
 import { Calendar, FileText } from "lucide-react";
 import React from "react";
 import InvoiceActions from "./InvoiceActions";

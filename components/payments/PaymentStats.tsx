@@ -1,6 +1,6 @@
 'use client';
 
-import type { PaymentStatsProps } from '@/types/payments';
+import type { PaymentStatsProps } from '@/lib/types';
 import { Calendar, Download, FileText } from 'lucide-react';
 
 export function PaymentStats({

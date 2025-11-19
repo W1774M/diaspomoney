@@ -1,6 +1,6 @@
 'use client';
 
-import { BillingSettingsProps } from '@/types/settings';
+import type { BillingSettingsProps } from '@/lib/types';
 import { CreditCard, Save } from 'lucide-react';
 import React, { useCallback } from 'react';
 

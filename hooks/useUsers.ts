@@ -49,8 +49,8 @@ export const useUsers = (options: UseUsersOptions = {}) => {
       } else {
         throw new Error(data.error || 'Failed to fetch users');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Erreur inconnue");
     } finally {
       setLoading(false);
     }

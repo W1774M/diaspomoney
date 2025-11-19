@@ -6,29 +6,14 @@
  * - Service Layer Pattern (abstraction de l'API)
  */
 
-import type { ProviderInfo } from '@/types';
+import type { ProviderInfo } from '@/lib/types';
+import type {
+  ProviderRatingStats,
+  UseProviderDetailReturn,
+} from '@/lib/types/hooks.types';
 import * as Sentry from '@sentry/nextjs';
+import { USER_STATUSES, ROLES } from '@/lib/constants';
 import { useCallback, useEffect, useState } from 'react';
-
-export interface ProviderRatingStats {
-  averageRating: number;
-  totalReviews: number;
-  ratingDistribution: {
-    5: number;
-    4: number;
-    3: number;
-    2: number;
-    1: number;
-  };
-}
-
-export interface UseProviderDetailReturn {
-  provider: ProviderInfo | null;
-  ratingStats: ProviderRatingStats | null;
-  loading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-}
 
 /**
  * Hook pour charger les détails d'un provider avec transformation des données
@@ -106,8 +91,8 @@ export function useProviderDetail(
       if (
         !foundProvider ||
         !Array.isArray(foundProvider.roles) ||
-        !foundProvider.roles.includes('PROVIDER') ||
-        foundProvider.status !== 'ACTIVE'
+        !foundProvider.roles.includes(ROLES.PROVIDER) ||
+        foundProvider.status !== USER_STATUSES.ACTIVE
       ) {
         setError('Prestataire invalide ou inactif');
         setProvider(null);
@@ -156,16 +141,16 @@ export function useProviderDetail(
       };
 
       setRatingStats(stats);
-    } catch (err) {
+    } catch (error) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Erreur inconnue';
+        error instanceof Error ? error.message : 'Erreur inconnue';
       setError(errorMessage);
       setProvider(null);
       setRatingStats(null);
 
       // Capturer l'erreur avec Sentry
       Sentry.captureException(
-        err instanceof Error ? err : new Error(errorMessage),
+        error instanceof Error ? error : new Error(errorMessage),
         {
           tags: {
             component: 'useProviderDetail',

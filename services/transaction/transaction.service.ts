@@ -11,6 +11,7 @@
  * - Error Handling Pattern (Sentry)
  */
 
+import { SPECIALITY_TYPES, PAYMENT_METHODS } from '@/lib/constants';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
@@ -22,19 +23,14 @@ import {
   type TransactionFilters as RepositoryTransactionFilters,
 } from '@/repositories';
 import type {
-  TransactionData,
   TransactionFilters,
+  TransactionData,
   TransactionStats,
-} from '@/types/transaction';
+} from '@/lib/types';
+import { TransactionStatus } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { userService } from '../user/user.service';
 
-// Ré-exporter les types pour faciliter l'utilisation
-export type {
-  TransactionData,
-  TransactionFilters,
-  TransactionStats,
-} from '@/types/transaction';
 
 /**
  * TransactionService refactoré utilisant le Repository Pattern
@@ -89,7 +85,7 @@ export class TransactionService {
       const fees = this.calculateFees(
         data.amount,
         data.currency,
-        data.serviceType,
+        data.serviceType as unknown as Transaction['serviceType'],
       );
       const totalAmount = data.amount + fees;
 
@@ -102,14 +98,14 @@ export class TransactionService {
         exchangeRate: 1,
         fees,
         totalAmount,
-        serviceType: data.serviceType,
+        serviceType: data.serviceType as unknown as Transaction['serviceType'],
         serviceId: data.serviceId,
         description: data.description,
-        status: 'PENDING',
-        paymentMethod: 'CARD',
-        paymentProvider: 'STRIPE',
+        status: TransactionStatus.PENDING,
+        paymentMethod: PAYMENT_METHODS.CARD,
+        paymentProvider: PAYMENT_METHODS.STRIPE,
         metadata: data.metadata || {},
-      } as Partial<Transaction>);
+      });
 
       // Détection d'anomalies
       await securityManager.detectAnomalies(
@@ -124,7 +120,7 @@ export class TransactionService {
         value: 1,
         timestamp: new Date(),
         labels: {
-          service_type: data.serviceType,
+          service_type: data.serviceType as unknown as Transaction['serviceType'],
           currency: data.currency,
         },
         type: 'counter',
@@ -216,8 +212,9 @@ export class TransactionService {
         await this.transactionRepository.findTransactionsWithFilters(
           repositoryFilters,
           {
-            limit: Number(limit) || 50,
-            offset: Number(offset) || 0,
+            limit: 50,
+            page: 1,
+            offset: 0,
           },
         );
 
@@ -337,7 +334,7 @@ export class TransactionService {
 
       const refundedTransaction = await this.updateTransactionStatus(
         transactionId,
-        'REFUNDED',
+        TransactionStatus.REFUNDED,
         { refundReason: reason },
       );
 
@@ -375,14 +372,6 @@ export class TransactionService {
         (sum, t) => sum + t.amount,
         0,
       );
-      const successRate =
-        transactions.length > 0
-          ? (completedTransactions.length / transactions.length) * 100
-          : 0;
-      const averageAmount =
-        completedTransactions.length > 0
-          ? totalAmount / completedTransactions.length
-          : 0;
 
       const currencyBreakdown: Record<
         string,
@@ -411,10 +400,11 @@ export class TransactionService {
       return {
         totalTransactions: transactions.length,
         totalAmount,
-        successRate,
-        averageAmount,
-        currencyBreakdown,
-        serviceTypeBreakdown,
+        totalSuccessTransactions: completedTransactions.length,
+        totalFailedTransactions: transactions.length - completedTransactions.length,
+        totalRefundedTransactions: completedTransactions.filter(t => t.status === 'REFUNDED').length,
+        totalCancelledTransactions: completedTransactions.filter(t => t.status === 'CANCELLED').length,
+        totalFees: completedTransactions.reduce((sum, t) => sum + t.fees, 0),
       };
     } catch (error) {
       this.log.error(
@@ -433,12 +423,43 @@ export class TransactionService {
   }
 
   /**
+   * Récupérer l'ID de l'utilisateur depuis une transaction
+   */
+  @Log({ level: 'info', logArgs: true })
+  @Cacheable(300, { prefix: 'TransactionService:getUserIdFromTransaction' })
+  async getUserIdFromTransaction(transactionId: string): Promise<string | null> {
+    try {
+      const transaction = await this.transactionRepository.findById(transactionId);
+      if (!transaction) {
+        return null;
+      }
+      return transaction.payerId || null;
+    } catch (error) {
+      this.log.error(
+        { error, transactionId },
+        'Error in getUserIdFromTransaction',
+      );
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'TransactionService',
+          action: 'getUserIdFromTransaction',
+        },
+        extra: { transactionId },
+      });
+      return null;
+    }
+  }
+
+  /**
    * Calculer les frais de transaction
    */
   private calculateFees(
     amount: number,
     _currency: string,
-    serviceType: 'HEALTH' | 'BTP' | 'EDUCATION',
+    serviceType:
+      | typeof SPECIALITY_TYPES.HEALTH
+      | typeof SPECIALITY_TYPES.BTP
+      | typeof SPECIALITY_TYPES.EDUCATION,
   ): number {
     // Frais de base : 2.5% + 0.30€
     const baseFee = amount * 0.025 + 0.3;

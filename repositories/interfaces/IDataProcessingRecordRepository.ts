@@ -2,7 +2,7 @@
  * Interface du repository pour les enregistrements de traitement de données GDPR
  */
 
-import type { DataProcessingRecord } from '@/types/gdpr';
+import type { DataProcessingRecord } from '@/lib/types';
 import {
   IPaginatedRepository,
   PaginatedResult,

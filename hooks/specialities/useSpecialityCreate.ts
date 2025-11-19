@@ -7,7 +7,7 @@
  */
 
 import { useNotificationManager } from '@/components/ui/Notification';
-import type { ISpeciality } from '@/types';
+import type { ISpeciality } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { useCallback, useState } from 'react';
 
@@ -93,15 +93,15 @@ export function useSpecialityCreate(): UseSpecialityCreateReturn {
 
         addSuccess('Spécialité créée avec succès !');
         return specialityData;
-      } catch (err) {
+      } catch (error) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Erreur inconnue';
+          error instanceof Error ? error.message : 'Erreur inconnue';
         setError(errorMessage);
         addError("Erreur lors de la création de la spécialité");
 
         // Capturer l'erreur avec Sentry
         Sentry.captureException(
-          err instanceof Error ? err : new Error(errorMessage),
+          error instanceof Error ? error : new Error(errorMessage),
           {
             tags: {
               component: 'useSpecialityCreate',

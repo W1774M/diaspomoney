@@ -1,6 +1,6 @@
 "use client";
 
-import { BookingsHeaderProps } from "@/types/bookings";
+import type { BookingsHeaderProps } from "@/lib/types";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import React from "react";

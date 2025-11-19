@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardServiceTab } from "@/types/dashboard-services";
+import type { DashboardServiceTab } from "@/lib/types";
 import { Calendar, Clock, History } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";

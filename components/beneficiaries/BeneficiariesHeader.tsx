@@ -1,11 +1,11 @@
 "use client";
 
-import { BeneficiariesHeaderProps } from "@/types/beneficiaries";
+import { BeneficiariesHeaderProps } from "@/lib/types";
 import { UserPlus } from "lucide-react";
 import React from "react";
 
 const BeneficiariesHeader = React.memo<BeneficiariesHeaderProps>(
-  function BeneficiariesHeader({ onAddBeneficiary }) {
+  function BeneficiariesHeader({ onAddBeneficiary }: BeneficiariesHeaderProps) {
     return (
       <div className="flex items-center justify-between">
         <div>

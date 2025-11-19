@@ -7,50 +7,24 @@
 
 import { Log } from '@/lib/decorators/log.decorator';
 import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
-import {
-  Validate,
-  createValidationRule,
-} from '@/lib/decorators/validate.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
+import { LANGUAGES } from '@/lib/constants';
 import { invoiceService } from '@/services/invoice/invoice.service';
 import { notificationService } from '@/services/notification/notification.service';
 import { PaymentService } from '@/services/payment/payment.service';
 import { transactionService } from '@/services/transaction/transaction.service';
 import * as Sentry from '@sentry/nextjs';
-import { z } from 'zod';
+import type { PaymentFacadeData, PaymentFacadeResult, IFacade, FacadeOptions } from '@/lib/types';
+import { CreatePaymentSchema } from '@/lib/validations/payment.schema';
 
-export interface PaymentFacadeData {
-  amount: number;
-  currency: string;
-  customerId: string;
-  paymentMethodId: string;
-  payerId: string;
-  beneficiaryId: string;
-  serviceType: 'HEALTH' | 'BTP' | 'EDUCATION';
-  serviceId: string;
-  description: string;
-  metadata?: Record<string, string>;
-  createInvoice?: boolean; // Créer une facture automatiquement
-  sendNotification?: boolean; // Envoyer une notification automatiquement
-}
-
-export interface PaymentFacadeResult {
-  success: boolean;
-  paymentIntentId?: string;
-  transactionId?: string;
-  invoiceId?: string;
-  error?: string;
-  requiresAction?: boolean;
-  nextAction?: {
-    type: string;
-    url: string;
-  };
-}
+// Réexporter pour compatibilité avec les autres facades
+export type { PaymentFacadeData, PaymentFacadeResult };
 
 /**
  * PaymentFacade - Facade pour le processus de paiement complet
  */
-export class PaymentFacade {
+export class PaymentFacade implements IFacade<PaymentFacadeData, PaymentFacadeResult> {
   private static instance: PaymentFacade;
   private paymentService: PaymentService;
 
@@ -78,25 +52,23 @@ export class PaymentFacade {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z
-          .object({
-            amount: z.number().positive('Amount must be positive'),
-            currency: z.string().length(3, 'Currency must be 3 characters'),
-            customerId: z.string().min(1, 'Customer ID is required'),
-            paymentMethodId: z.string().min(1, 'Payment method ID is required'),
-            payerId: z.string().min(1, 'Payer ID is required'),
-            beneficiaryId: z.string().min(1, 'Beneficiary ID is required'),
-            serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']),
-            serviceId: z.string().min(1, 'Service ID is required'),
-            description: z.string().min(1, 'Description is required'),
-          })
-          .passthrough(),
-        'data',
-      ),
+      {
+        paramIndex: 0,
+        schema: CreatePaymentSchema,
+        paramName: 'data',
+      },
     ],
   })
+  /**
+   * Exécuter la facade (implémentation de IFacade)
+   */
+  async execute(
+    data: PaymentFacadeData,
+    _options?: FacadeOptions,
+  ): Promise<PaymentFacadeResult> {
+    return this.processPayment(data);
+  }
+
   @Retry({
     maxAttempts: 2,
     delay: 1000,
@@ -234,7 +206,7 @@ export class PaymentFacade {
             data.amount,
             data.currency,
             data.description,
-            'fr',
+            LANGUAGES.FR.code,
           );
         } catch (notificationError) {
           // Ne pas faire échouer le paiement si la notification échoue

@@ -1,4 +1,4 @@
-import { BookingListItem, UseBookingsReturn } from '@/types';
+import { BookingListItem, UseBookingsReturn } from '@/lib/types';
 import { useEffect, useState } from 'react';
 
 export function useBookings(): UseBookingsReturn {
@@ -18,8 +18,8 @@ export function useBookings(): UseBookingsReturn {
 
       const data = await response.json();
       setBookings(data.bookings || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Erreur inconnue');
     } finally {
       setLoading(false);
     }

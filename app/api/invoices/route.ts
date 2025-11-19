@@ -1,8 +1,16 @@
 import { auth } from '@/auth';
+import { InvoiceQueryBuilder } from '@/builders';
+import { invoiceFacade, type InvoiceFacadeData } from '@/facades';
+import { handleApiRoute, ApiErrors, ApiError, validateBody } from '@/lib/api/error-handler';
+import { CreateInvoiceSchema } from '@/lib/validations/invoice.schema';
 import { childLogger } from '@/lib/logger';
+import { getInvoiceRepository } from '@/repositories';
 import { invoiceService } from '@/services/invoice/invoice.service';
 import * as Sentry from '@sentry/nextjs';
 import { NextRequest, NextResponse } from 'next/server';
+
+// Constante locale pour éviter le problème d'import
+const DEFAULT_CURRENCY = 'EUR';
 
 /**
  * API Route pour créer et lister les factures
@@ -12,6 +20,8 @@ import { NextRequest, NextResponse } from 'next/server';
  * - Logger Pattern (structured logging avec childLogger)
  * - Error Handling Pattern (Sentry)
  * - Decorator Pattern (@Log, @Cacheable, @Validate, @InvalidateCache dans le service)
+ * - Builder Pattern (via InvoiceQueryBuilder)
+ * - Facade Pattern (via InvoiceFacade pour orchestrer la création complète)
  */
 
 /**
@@ -39,11 +49,8 @@ export async function GET(request: NextRequest) {
 
     log.debug({ userId, page, limit, status }, 'Fetching invoices');
 
-    // Utiliser le service pour récupérer les factures
-    const filters: any = {};
-    if (status) {
-      filters.status = status;
-    }
+    // Utiliser InvoiceQueryBuilder pour construire la requête (Builder Pattern)
+    const queryBuilder = new InvoiceQueryBuilder();
 
     // Vérifier si l'utilisateur est admin
     const isAdmin =
@@ -52,14 +59,43 @@ export async function GET(request: NextRequest) {
 
     // Si l'utilisateur n'est pas admin, filtrer par userId
     if (!isAdmin) {
-      filters.userId = userId;
+      queryBuilder.byUser(userId);
     }
 
-    const invoices = await invoiceService.getUserInvoices(userId, {
+    // Appliquer les filtres
+    if (status) {
+      queryBuilder.byStatus(status as any);
+    }
+
+    // Pagination
+    queryBuilder.page(page, limit);
+
+    // Construire la requête
+    const query = queryBuilder.build();
+
+    // Utiliser le repository avec les filtres du builder
+    const invoiceRepository = getInvoiceRepository();
+    const pageNumber = query.pagination?.page || 1;
+    const pageLimit = query.pagination?.limit || 20;
+    const offset = (pageNumber - 1) * pageLimit;
+
+    const result = await invoiceRepository.findInvoicesWithFilters(
+      query.filters,
+      {
+        limit: pageLimit,
+        page: page,
+        offset: offset,
+        sort: query.sort || { createdAt: -1 },
+      },
+    );
+
+    // Adapter le résultat au format attendu
+    const invoices = {
+      data: result.data,
+      total: result.total,
+      page,
       limit,
-      offset: (page - 1) * limit,
-      ...filters,
-    });
+    };
 
     log.info(
       {
@@ -100,19 +136,19 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/invoices - Créer une nouvelle facture
+ * 
+ * Implémente les design patterns :
+ * - Service Layer Pattern (via invoiceService)
+ * - Repository Pattern (via invoiceService qui utilise les repositories)
+ * - Error Handling Pattern (via handleApiRoute)
+ * - Validation Pattern (via CreateInvoiceSchema)
+ * - Facade Pattern (via InvoiceFacade pour orchestrer la création complète)
  */
 export async function POST(request: NextRequest) {
-  const reqId = request.headers.get('x-request-id') || undefined;
-  const log = childLogger({
-    requestId: reqId,
-    route: 'api/invoices',
-  });
-
-  try {
+  return handleApiRoute(request, async () => {
     const session = await auth();
     if (!session?.user?.id) {
-      log.warn({ msg: 'Unauthorized access attempt' });
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      throw ApiErrors.UNAUTHORIZED;
     }
 
     const userId = session.user.id;
@@ -123,104 +159,69 @@ export async function POST(request: NextRequest) {
       session.user.roles?.includes('SUPERADMIN');
 
     if (!isAdmin) {
-      log.warn({
-        userId,
-        msg: 'Unauthorized invoice creation attempt (non-admin)',
-      });
-      return NextResponse.json(
-        { error: 'Accès non autorisé - Admin uniquement' },
-        { status: 403 },
-      );
+      throw ApiErrors.FORBIDDEN;
     }
 
+    // Validation avec Zod
     const body = await request.json();
-
-    log.debug({ userId, body }, 'Creating invoice');
-
-    // Validation des données requises
-    if (!body.customerId || !body.items || body.items.length === 0) {
-      log.warn({ userId, body }, 'Invalid invoice data');
-      return NextResponse.json(
-        { error: 'Données de facture incomplètes' },
-        { status: 400 },
-      );
-    }
+    const data = validateBody(body, CreateInvoiceSchema);
 
     // Calculer le montant total depuis les items
-    const amount = body.items.reduce(
-      (sum: number, item: any) =>
-        sum + (item.total || item.quantity * item.unitPrice),
+    const amount = data.items.reduce(
+      (sum, item) => sum + (item.total || item.quantity * item.unitPrice),
       0,
     );
 
-    // Préparer les données pour le service
-    const invoiceData: any = {
-      userId: body.customerId, // Le customerId devient le userId dans le service
-      transactionId: body.transactionId,
-      bookingId: body.bookingId,
+    // Préparer les données pour la facade avec types stricts
+    const invoiceData: InvoiceFacadeData = {
+      userId: data.customerId, // Le customerId devient le userId dans le service
       amount,
-      currency: body.currency || 'EUR',
-      tax: body.tax || 0,
-      items: body.items.map((item: any) => ({
+      currency: data.currency || DEFAULT_CURRENCY,
+      tax: data.tax ?? 0,
+      items: data.items.map(item => ({
         description: item.description,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         total: item.total || item.quantity * item.unitPrice,
       })),
-      dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
-      billingAddress: body.billingAddress,
+      ...(data.transactionId && { transactionId: data.transactionId }),
+      ...(data.bookingId && { bookingId: data.bookingId }),
+      ...(data.dueDate && {
+        dueDate: typeof data.dueDate === 'string' ? new Date(data.dueDate) : data.dueDate,
+      }),
+      ...(data.billingAddress && { billingAddress: data.billingAddress }),
       metadata: {
-        ...body.metadata,
-        providerId: body.providerId,
-        issueDate: body.issueDate ? new Date(body.issueDate) : new Date(),
-        notes: body.notes,
+        ...(data.metadata || {}),
+        ...(data.providerId && { providerId: data.providerId }),
+        issueDate: data.issueDate ? new Date(data.issueDate as string) : new Date(),
+        ...(data.notes && { notes: data.notes }),
         createdBy: userId, // L'admin qui crée la facture
       },
+      // Options de la facade
+      sendEmail: data.sendEmail ?? true, // Par défaut, envoyer l'email
+      sendNotification: data.sendNotification ?? true, // Par défaut, envoyer la notification
+      ...(data.recipientEmail && { recipientEmail: data.recipientEmail }),
     };
 
-    // Utiliser le Service Layer Pattern (InvoiceService utilise déjà Repository Pattern)
-    // Le service a déjà les decorators @Log, @InvalidateCache, @Validate
-    const invoice = await invoiceService.createInvoice(
-      invoiceData as unknown as any,
-    );
-    log.info(
-      {
-        invoiceId: invoice.id,
-        invoiceNumber: invoice.invoiceNumber,
-        userId,
-        customerId: body.customerId,
-      },
-      'Invoice created successfully',
-    );
+    // Utiliser InvoiceFacade pour orchestrer la création complète (Facade Pattern)
+    // La facade gère : création de facture + envoi email + notifications
+    const result = await invoiceFacade.createInvoice(invoiceData);
 
-    return NextResponse.json({
-      success: true,
-      invoice: invoice,
-    });
-  } catch (error) {
-    log.error(
-      { error, msg: 'Error creating invoice' },
-      'Error creating invoice',
-    );
-    Sentry.captureException(error, {
-      tags: {
-        component: 'InvoiceAPI',
-        action: 'POST',
-      },
-    });
-
-    if (error instanceof Error) {
-      if (error.message.includes('incomplet')) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
-      }
-      if (error.message.includes('positif')) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
-      }
+    if (!result.success || !result.invoiceId) {
+      throw new ApiError(400, result.error || 'Erreur lors de la création de la facture');
     }
 
-    return NextResponse.json(
-      { error: 'Erreur lors de la création de la facture' },
-      { status: 500 },
-    );
-  }
+    // Récupérer la facture complète pour la réponse
+    const invoice = await invoiceService.getInvoiceById(result.invoiceId);
+    if (!invoice) {
+      throw ApiErrors.NOT_FOUND;
+    }
+
+    return {
+      success: true,
+      invoice,
+      emailSent: result.emailSent ?? false,
+      notificationSent: result.notificationSent ?? false,
+    };
+  }, 'api/invoices');
 }

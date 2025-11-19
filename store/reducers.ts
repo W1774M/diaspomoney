@@ -122,13 +122,14 @@ export const notificationReducer = (
   action: AppAction,
 ) => {
   switch (action.type) {
-    case NOTIFICATION_ACTIONS.ADD_NOTIFICATION:
+    case NOTIFICATION_ACTIONS.ADD_NOTIFICATION: {
       const id = Math.random().toString(36).substring(7);
       const newNotification = { ...action.payload, id };
       return {
         ...state,
         notifications: [...state.notifications, newNotification],
       };
+    }
 
     case NOTIFICATION_ACTIONS.REMOVE_NOTIFICATION:
       return {
@@ -156,12 +157,13 @@ export const themeReducer = (state = initialThemeState, action: AppAction) => {
         theme: action.payload,
       };
 
-    case THEME_ACTIONS.TOGGLE_THEME:
+    case THEME_ACTIONS.TOGGLE_THEME: {
       const newTheme = state.theme === "light" ? "dark" : "light";
       return {
         ...state,
         theme: newTheme,
       };
+    }
 
     default:
       return state;

@@ -71,11 +71,13 @@ export async function GET(
     );
 
     // Retourner le PDF avec les headers appropriés
-    return new NextResponse(pdfBuffer, {
+    // Convertir Buffer en Uint8Array pour NextResponse
+    const pdfArray = new Uint8Array(pdfBuffer);
+    return new NextResponse(pdfArray, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="facture-${invoice.invoiceNumber}.pdf"`,
-        'Content-Length': pdfBuffer.length.toString(),
+        'Content-Length': pdfArray.length.toString(),
       },
     });
   } catch (error) {

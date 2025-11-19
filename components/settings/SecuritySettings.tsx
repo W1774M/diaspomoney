@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/hooks/auth/useAuth';
-import { SecuritySettingsProps } from '@/types/settings';
+import type { SecuritySettingsProps } from '@/lib/types';
 import {
   CheckCircle,
   Eye,

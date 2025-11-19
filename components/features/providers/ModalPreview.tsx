@@ -1,5 +1,19 @@
 'use client';
-import { ModalPreviewProps } from '@/types';
+
+/**
+ * ModalPreview Component
+ * Composant de prévisualisation et confirmation de réservation
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (useBookingPayment)
+ * - Facade Pattern (via API routes qui utilisent BookingFacade, PaymentFacade)
+ * - Service Layer Pattern (via API routes qui utilisent EmailService)
+ * - Error Handling Pattern (logger structuré)
+ * - Type Safety (types stricts)
+ */
+
+import { ModalPreviewProps, PaymentData, AppointmentData } from '@/lib/types';
+import { useBookingPayment } from '@/hooks/bookings/useBookingPayment';
+import { useNotificationManager } from '@/components/ui/Notification';
 import { CheckCircle, Clock, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -8,7 +22,7 @@ import { useAppointment } from './AppointmentContext';
 export interface ModalPreviewPropsExtended
   extends Omit<ModalPreviewProps, 'setModalOpen'> {
   onFinalValidation?: () => void;
-  paymentData?: any;
+  paymentData?: PaymentData;
   setSteps?: (step: string) => void;
 }
 
@@ -20,6 +34,14 @@ export const ModalPreview = ({
 }: ModalPreviewPropsExtended) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Utiliser le hook personnalisé pour la gestion du paiement
+  const { confirming, error: paymentError, confirmPayment, sendPaymentError } =
+    useBookingPayment();
+
+  // Utiliser le gestionnaire de notifications toast
+  const { addSuccess, addError } = useNotificationManager();
 
   // Formatage de la date optimisé avec useMemo
   const formattedDate = useMemo(() => {
@@ -52,14 +74,12 @@ export const ModalPreview = ({
       appointment.recipient?.firstName &&
       appointment.recipient?.lastName &&
       appointment.recipient?.phone &&
-      paymentData.cardNumber &&
-      paymentData.expiryDate &&
-      paymentData.cvv &&
-      paymentData.cardholderName
+      paymentData?.cardNumber &&
+      paymentData?.expiryDate &&
+      paymentData?.cvv &&
+      paymentData?.cardholderName
     );
   }, [appointment, paymentData]);
-
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const { setData } = useAppointment();
   const router = useRouter();
@@ -69,6 +89,13 @@ export const ModalPreview = ({
     const timer = setTimeout(() => setIsVisible(true), 10);
     return () => clearTimeout(timer);
   }, []);
+
+  // Afficher les erreurs du hook
+  useEffect(() => {
+    if (paymentError) {
+      setErrorMsg(paymentError);
+    }
+  }, [paymentError]);
 
   // Gestionnaires optimisés avec useCallback
   const handleClose = useCallback(() => {
@@ -90,33 +117,40 @@ export const ModalPreview = ({
       );
       return;
     }
+
+    if (!paymentData) {
+      setErrorMsg('Les données de paiement sont manquantes.');
+      return;
+    }
+
     setErrorMsg(null);
+
     try {
       // Simulation d'un problème de paiement (à remplacer par votre logique réelle)
+      // TODO: Remplacer par un vrai appel à PaymentFacade via l'API
       const paymentSuccess = Math.random() > 0.3; // 70% de succès pour tester
 
       if (!paymentSuccess) {
-        // En cas d'erreur de paiement, envoyer l'email d'erreur
-        const errorResponse = await fetch('/api/send-payment-error', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            appointment,
-            paymentData,
-            errorMessage:
-              'Erreur lors du traitement du paiement - Problème technique temporaire',
-          }),
-        });
+        // Préparer les données d'appointment pour l'API
+        const appointmentData: AppointmentData = {
+          ...appointment,
+          id: (appointment as any)._id as string || (appointment as any).id || '',
+        } as AppointmentData;
 
-        if (errorResponse.ok) {
-          // const errorResult = await errorResponse.json();
-          alert(
-            '❌ Erreur de paiement détectée. Un email a été envoyé à contact@diaspomoney.fr et à votre adresse email avec un lien pour réessayer le paiement. Le lien est valide 15 minutes.',
+        // En cas d'erreur de paiement, envoyer l'email d'erreur via le hook
+        const errorSent = await sendPaymentError(
+          appointmentData,
+          paymentData,
+          'Erreur lors du traitement du paiement - Problème technique temporaire',
+        );
+
+        if (errorSent) {
+          addError(
+            'Erreur de paiement détectée. Un email a été envoyé avec un lien pour réessayer (valide 15 minutes).',
+            10000,
           );
         } else {
-          alert('❌ Erreur de paiement. Veuillez réessayer plus tard.');
+          addError('Erreur de paiement. Veuillez réessayer plus tard.', 8000);
         }
 
         setIsClosing(true);
@@ -124,59 +158,76 @@ export const ModalPreview = ({
         return;
       }
 
-      // Envoi de l'email de confirmation (paiement réussi)
-      const response = await fetch('/api/send-confirmation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          appointment,
-          paymentData,
-        }),
-      });
+      // Préparer les données d'appointment pour l'API
+      const appointmentData: AppointmentData = {
+        ...appointment,
+        id: (appointment as any)._id as string || (appointment as any).id || '',
+      } as AppointmentData;
 
-      if (!response.ok) {
-        throw new Error("Erreur lors de l'envoi de l'email");
-      }
-
-      const result = await response.json();
-
-      console.log('Paiement confirmé', { appointment, paymentData });
-      alert(
-        `✅ Paiement effectué avec succès ! Un email de confirmation a été envoyé à contact@diaspomoney.fr et à votre adresse email. Numéro de réservation : ${result.reservationNumber}`,
+      // Confirmer le paiement via le hook (qui utilise les facades via API)
+      const result = await confirmPayment(
+        appointmentData,
+        paymentData,
       );
-      setIsClosing(true);
-      setTimeout(() => onFinalValidation?.(), 300);
-      setData({ ...appointment, id: appointment._id as string });
-      router.push('/login');
-    } catch (err) {
-      console.error('Erreur lors de la confirmation:', err);
 
-      // En cas d'erreur, envoyer l'email d'erreur
-      try {
-        await fetch('/api/send-payment-error', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            appointment,
-            paymentData,
-            errorMessage: 'Erreur lors de la confirmation du paiement',
-          }),
-        });
-
-        alert(
-          "❌ Erreur lors de la confirmation du paiement. Un email d'erreur a été envoyé à contact@diaspomoney.fr et à votre adresse email avec un lien pour réessayer.",
+      if (result.success) {
+        addSuccess(
+          `Paiement effectué avec succès ! Email de confirmation envoyé. Numéro de réservation : ${result.reservationNumber}`,
+          8000,
         );
-      } catch {
-        alert(
-          '❌ Erreur lors de la confirmation du paiement. Veuillez réessayer plus tard.',
+
+        setIsClosing(true);
+        setTimeout(() => onFinalValidation?.(), 300);
+        setData({ ...appointment, id: (appointment as any)._id as string || (appointment as any).id || '' });
+        router.push('/login');
+      } else {
+        // Préparer les données d'appointment pour l'API
+        const appointmentData: AppointmentData = {
+          ...appointment,
+          id: (appointment as any)._id as string || (appointment as any).id || '',
+        } as AppointmentData;
+
+        // En cas d'erreur, envoyer l'email d'erreur
+        await sendPaymentError(
+          appointmentData,
+          paymentData,
+          result.error || 'Erreur lors de la confirmation du paiement',
+        );
+
+        addError(
+          "Erreur lors de la confirmation du paiement. Un email d'erreur a été envoyé avec un lien pour réessayer.",
+          10000,
         );
       }
+    } catch (_error) {
+      // Préparer les données d'appointment pour l'API
+      const appointmentData: AppointmentData = {
+        ...appointment,
+        id: (appointment as any)._id as string || (appointment as any).id || '',
+      } as AppointmentData;
+
+      // En cas d'erreur inattendue, envoyer l'email d'erreur
+      await sendPaymentError(
+        appointmentData,
+        paymentData,
+        'Erreur lors de la confirmation du paiement',
+      );
+
+      addError(
+        'Erreur lors de la confirmation du paiement. Veuillez réessayer plus tard.',
+        8000,
+      );
     }
-  }, [appointment, paymentData, onFinalValidation, router, setData, isValid]);
+  }, [
+    appointment,
+    paymentData,
+    onFinalValidation,
+    router,
+    setData,
+    isValid,
+    confirmPayment,
+    sendPaymentError,
+  ]);
 
   return (
     <div
@@ -372,19 +423,24 @@ export const ModalPreview = ({
           <button
             className='px-6 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer'
             onClick={handleBack}
+            disabled={confirming}
           >
             Retour
           </button>
           <button
             className='px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-medium shadow-sm transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
             onClick={handleConfirmPayment}
-            disabled={!isValid}
+            disabled={!isValid || confirming}
           >
-            Confirmer le paiement
+            {confirming ? 'Traitement...' : 'Confirmer le paiement'}
           </button>
         </div>
         {errorMsg && (
-          <div className='text-red-600 text-sm mt-2'>{errorMsg}</div>
+          <div className='px-6 pb-4'>
+            <div className='text-red-600 text-sm bg-red-50 p-3 rounded-lg border border-red-200'>
+              {errorMsg}
+            </div>
+          </div>
         )}
       </div>
     </div>

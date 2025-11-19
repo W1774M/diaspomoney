@@ -3,7 +3,28 @@
  * Définit les opérations CRUD standard
  */
 
-export interface IRepository<T, TId = string> {
+import type {
+  FindOptions,
+  CreateOptions,
+  UpdateOptions,
+  DeleteOptions,
+  FindResult,
+  CreateResult,
+  UpdateResult,
+  DeleteResult,
+  CountOptions,
+  AggregateOptions,
+  AggregateResult,
+  PaginationOptions,
+  PaginatedFindResult,
+} from '@/lib/types';
+import type { BaseEntity } from '@/lib/types';
+
+/**
+ * Interface de base pour tous les repositories
+ * Compatible avec IGenericRepository mais avec des signatures simplifiées
+ */
+export interface IRepository<T extends BaseEntity, TId = string> {
   /**
    * Trouver une entité par son ID
    */
@@ -43,42 +64,62 @@ export interface IRepository<T, TId = string> {
    * Vérifier si une entité existe
    */
   exists(id: TId): Promise<boolean>;
+
+  /**
+   * Trouver plusieurs documents (optionnel, requis par IGenericRepository)
+   */
+  findMany?(options?: FindOptions): Promise<FindResult<T>>;
+
+  /**
+   * Créer plusieurs documents (optionnel, requis par IGenericRepository)
+   */
+  createMany?(data: Partial<T>[], options?: CreateOptions): Promise<CreateResult<T>[]>;
+
+  /**
+   * Mettre à jour plusieurs documents (optionnel, requis par IGenericRepository)
+   */
+  updateMany?(
+    filters: Record<string, any>,
+    data: Partial<T>,
+    options?: UpdateOptions,
+  ): Promise<UpdateResult<T>>;
+
+  /**
+   * Supprimer plusieurs documents (optionnel, requis par IGenericRepository)
+   */
+  deleteMany?(filters: Record<string, any>, options?: DeleteOptions): Promise<DeleteResult>;
+
+  /**
+   * Agrégation (optionnel, requis par IGenericRepository)
+   */
+  aggregate?<TResult = any>(options: AggregateOptions): Promise<AggregateResult<TResult>>;
 }
 
 /**
  * Interface pour les repositories avec pagination
  */
-export interface IPaginatedRepository<T, TId = string>
+export interface IPaginatedRepository<T extends BaseEntity, TId = string>
   extends IRepository<T, TId> {
   /**
    * Trouver des entités avec pagination
    */
   findWithPagination(
     filters?: Record<string, any>,
-    options?: PaginationOptions
-  ): Promise<PaginatedResult<T>>;
+    options?: PaginationOptions,
+  ): Promise<PaginatedFindResult<T>>;
 }
 
-/**
- * Options de pagination
- * Utilisé pour contrôler la pagination des résultats de requêtes
- */
-export interface PaginationOptions {
-  page?: number;
-  limit?: number;
-  offset?: number;
-  sort?: Record<string, 1 | -1>;
-}
-
-/**
- * Résultat paginé
- * Contient les données paginées ainsi que les métadonnées de pagination
- */
-export interface PaginatedResult<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  offset: number;
-  hasMore: boolean;
-}
+// Réexporter les types depuis lib/types pour compatibilité
+export type {
+  FindOptions,
+  CreateOptions,
+  UpdateOptions,
+  DeleteOptions,
+  FindResult,
+  CreateResult,
+  UpdateResult,
+  DeleteResult,
+  CountOptions,
+  PaginationOptions,
+  PaginatedFindResult as PaginatedResult,
+};

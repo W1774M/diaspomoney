@@ -1,5 +1,8 @@
 import { auth } from '@/auth';
 import { childLogger } from '@/lib/logger';
+import { UserRole } from '@/lib/types';
+import { HTTP_STATUS_CODES } from '@/lib/constants';
+import type { BookingDocument } from '@/lib/types';
 import {
   getBookingRepository,
   getConversationRepository,
@@ -24,7 +27,7 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
       log.warn({ msg: 'Unauthorized access attempt' });
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      return NextResponse.json({ error: 'Non autorisé' }, { status: HTTP_STATUS_CODES.UNAUTHORIZED });
     }
 
     const userId = session.user.id;
@@ -43,14 +46,16 @@ export async function GET(request: NextRequest) {
         },
         {
           limit: 100,
+          page: 1,
           offset: 0,
           sort: { createdAt: -1 },
         },
       );
 
+    const { BOOKING_STATUSES } = await import('@/lib/constants');
     // Filtrer pour avoir seulement les statuts actifs (PENDING, CONFIRMED)
     const activeBookings = activeBookingsResult.data.filter(
-      b => b.status === 'PENDING' || b.status === 'CONFIRMED',
+      b => b.status === BOOKING_STATUSES.PENDING || b.status === BOOKING_STATUSES.CONFIRMED,
     );
 
     // Récupérer les données brutes depuis MongoDB pour avoir selectedService, beneficiary, etc.
@@ -58,16 +63,16 @@ export async function GET(request: NextRequest) {
     // On utilise donc directement le modèle pour les données complètes
     const Booking = (await import('@/models/Booking')).default;
     const bookingIds = activeBookings.map(b => b.id || b._id);
-    const bookingDocs = await (Booking as any)
+    const bookingDocs = (await (Booking as any)
       .find({
         _id: {
-          $in: bookingIds.map((id: any) => new mongoose.Types.ObjectId(id)),
+          $in: bookingIds.map((id: string) => new mongoose.Types.ObjectId(id)),
         },
       })
-      .lean();
+      .lean()) as BookingDocument[];
 
-    const bookingDocMap = new Map(
-      bookingDocs.map((doc: any) => [doc._id.toString(), doc]),
+    const bookingDocMap = new Map<string, BookingDocument>(
+      bookingDocs.map((doc: BookingDocument) => [doc._id.toString(), doc]),
     );
 
     // Récupérer les informations des prestataires séparément via Repository Pattern
@@ -75,8 +80,8 @@ export async function GET(request: NextRequest) {
     const providerIds = Array.from(
       new Set(
         activeBookings
-          .map((b: any) => b.providerId as string)
-          .filter((id: any): id is string => Boolean(id)),
+          .map((b) => b.providerId as string)
+          .filter((id: string | undefined): id is string => Boolean(id)),
       ),
     ) as string[];
 
@@ -95,7 +100,7 @@ export async function GET(request: NextRequest) {
       providerIds.map(async (id: string) => {
         try {
           const user = await userRepository.findById(id);
-          if (user && user.roles?.includes('PROVIDER')) {
+          if (user && user.roles?.includes(UserRole.PROVIDER)) {
             return {
               _id: new mongoose.Types.ObjectId(id),
               name: user.name,
@@ -136,8 +141,8 @@ export async function GET(request: NextRequest) {
           if (conversation?._id) {
             // Trouver tous les bookings entre userId et providerId
             activeBookings
-              .filter((b: any) => b.providerId === providerId)
-              .forEach((booking: any) => {
+              .filter((b) => b.providerId === providerId)
+              .forEach((booking) => {
                 const bookingId = booking.id || booking._id;
                 if (bookingId) {
                   conversationMap.set(bookingId, conversation._id!.toString());
@@ -159,11 +164,11 @@ export async function GET(request: NextRequest) {
     const orders = await Promise.all(
       activeBookings.map(async booking => {
         // Récupérer les données complètes depuis MongoDB
-        const bookingDoc: any = bookingDocMap.get(
+        const bookingDoc: BookingDocument | undefined = bookingDocMap.get(
           booking.id || booking._id || '',
         );
-        const bookingStatus = booking.status.toLowerCase();
-        const docStatus = bookingDoc?.status?.toLowerCase() || bookingStatus;
+        const bookingStatus = booking.status?.toLowerCase() || '';
+        const docStatus = bookingDoc?.['status']?.toLowerCase() || bookingStatus;
 
         const provider = providerMap.get(booking.providerId);
         const providerName = provider
@@ -218,12 +223,12 @@ export async function GET(request: NextRequest) {
         return {
           _id: booking.id || booking._id || '',
           orderNumber:
-            bookingDoc?.reservationNumber ||
+            bookingDoc?.['reservationNumber'] ||
             `CMD-${(booking.id || booking._id || '').slice(-6)}`,
           bookingId: booking.id || booking._id || '',
           serviceType: 'health' as const, // Focus sur la santé
-          serviceName: bookingDoc?.selectedService?.name || 'Service de santé',
-          serviceDescription: bookingDoc?.selectedService?.description,
+          serviceName: bookingDoc?.['selectedService']?.['name'] || 'Service de santé',
+          serviceDescription: bookingDoc?.['selectedService']?.['description'],
           providerId: booking.providerId,
           providerName,
           providerAvatar: provider?.avatar,
@@ -249,23 +254,23 @@ export async function GET(request: NextRequest) {
           ],
           estimatedDeliveryDate: estimatedDeliveryDate,
           beneficiary:
-            bookingDoc?.beneficiary || booking.recipient
+            bookingDoc?.['beneficiary'] || booking.recipient
               ? {
                   firstName:
-                    bookingDoc?.beneficiary?.firstName ||
+                    bookingDoc?.['beneficiary']?.['firstName'] ||
                     booking.recipient?.firstName ||
                     '',
                   lastName:
-                    bookingDoc?.beneficiary?.lastName ||
+                    bookingDoc?.['beneficiary']?.['lastName'] ||
                     booking.recipient?.lastName ||
                     '',
                   phone:
-                    bookingDoc?.beneficiary?.phone ||
+                    bookingDoc?.['beneficiary']?.['phone'] ||
                     booking.recipient?.phone ||
                     '',
                 }
               : undefined,
-          amount: bookingDoc?.selectedService?.price || 0,
+          amount: bookingDoc?.['selectedService']?.['price'] || 0,
           currency: 'EUR',
           paymentStatus: 'pending',
           chatEnabled: true,
@@ -294,7 +299,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { error: 'Erreur lors de la récupération des commandes actives' },
-      { status: 500 },
+      { status: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR },
     );
   }
 }

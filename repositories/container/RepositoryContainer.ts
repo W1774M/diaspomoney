@@ -22,6 +22,7 @@ import { MongoSupportTicketRepository } from '../implementations/MongoSupportTic
 import { MongoTeleconsultationRepository } from '../implementations/MongoTeleconsultationRepository';
 import { MongoTransactionRepository } from '../implementations/MongoTransactionRepository';
 import { MongoUserRepository } from '../implementations/MongoUserRepository';
+import { MongoAvailabilityRuleRepository } from '../implementations/MongoAvailabilityRuleRepository';
 import { IAuditLogRepository } from '../interfaces/IAuditLogRepository';
 import { IBeneficiaryRepository } from '../interfaces/IBeneficiaryRepository';
 import { IBookingRepository } from '../interfaces/IBookingRepository';
@@ -47,6 +48,7 @@ import { ISpecialityRepository } from '../interfaces/ISpecialityRepository';
 import { ITeleconsultationRepository } from '../interfaces/ITeleconsultationRepository';
 import { ITransactionRepository } from '../interfaces/ITransactionRepository';
 import { IUserRepository } from '../interfaces/IUserRepository';
+import { IAvailabilityRuleRepository } from '../interfaces/IAvailabilityRuleRepository';
 
 /**
  * Container singleton pour gérer les instances de repositories
@@ -99,6 +101,7 @@ class RepositoryContainer {
     // Repositories utilisateur
     this.repositories.set('beneficiary', new MongoBeneficiaryRepository());
     this.repositories.set('kyc', new MongoKYCRepository());
+    this.repositories.set('availabilityRule', new MongoAvailabilityRuleRepository());
     // Repository audit
     this.repositories.set('auditLog', new MongoAuditLogRepository());
   }
@@ -248,6 +251,13 @@ class RepositoryContainer {
   }
 
   /**
+   * Obtenir le repository availability rule
+   */
+  getAvailabilityRuleRepository(): IAvailabilityRuleRepository {
+    return this.get<IAvailabilityRuleRepository>('availabilityRule');
+  }
+
+  /**
    * Obtenir le repository audit log
    */
   getAuditLogRepository(): IAuditLogRepository {
@@ -323,3 +333,6 @@ export const getDataProcessingRecordRepository = () =>
 
 export const getDataSubjectRequestRepository = () =>
   repositoryContainer.getDataSubjectRequestRepository();
+
+export const getAvailabilityRuleRepository = () =>
+  repositoryContainer.getAvailabilityRuleRepository();

@@ -1,6 +1,6 @@
 "use client";
 
-import { SettingsHeaderProps } from "@/types/settings";
+import type { SettingsHeaderProps } from "@/lib/types";
 import { User } from "lucide-react";
 import React from "react";
 

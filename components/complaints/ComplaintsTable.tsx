@@ -1,6 +1,6 @@
 "use client";
 
-import { ComplaintsTableProps } from "@/types/complaints";
+import type { ComplaintsTableProps } from "@/lib/types";
 import { AlertTriangle, Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -78,7 +78,7 @@ const ComplaintsTable = React.memo<ComplaintsTableProps>(
       <div className="space-y-4">
         {complaints.map(complaint => (
           <ComplaintCard
-            key={complaint.id}
+            key={complaint._id || (complaint as any).id}
             complaint={complaint}
             onView={onView}
             onComment={onComment}

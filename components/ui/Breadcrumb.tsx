@@ -79,6 +79,7 @@ function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
     let currentPath = '/dashboard';
     for (let i = 1; i < segments.length; i++) {
       const segment = segments[i];
+      if (!segment) continue;
       currentPath += `/${segment}`;
 
       // Ignorer les IDs (ObjectId MongoDB ou UUID)
@@ -87,11 +88,13 @@ function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
         // Pour les IDs, utiliser le segment précédent comme label
         if (i > 0) {
           const prevSegment = segments[i - 1];
-          const label = routeLabels[prevSegment] || prevSegment;
-          breadcrumbs.push({
-            label: `${label} #${segment.slice(-6)}`,
-            href: currentPath,
-          });
+          if (prevSegment) {
+            const label = routeLabels[prevSegment] || prevSegment;
+            breadcrumbs.push({
+              label: `${label} #${segment.slice(-6)}`,
+              href: currentPath,
+            });
+          }
         }
         continue;
       }

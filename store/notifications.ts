@@ -1,4 +1,4 @@
-import { NotificationState } from "@/types";
+import { NotificationState } from "@/lib/types";
 import { create } from "zustand";
 
 export const useNotificationStore = create<NotificationState>(set => ({

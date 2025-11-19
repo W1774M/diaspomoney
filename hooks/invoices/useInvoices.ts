@@ -1,7 +1,7 @@
 'use client';
 
 import { MOCK_INVOICES } from '@/mocks';
-import { IInvoice } from '@/types';
+import { IInvoice } from '@/lib/types';
 import { useEffect, useMemo, useState } from 'react';
 
 interface UseInvoicesProps {

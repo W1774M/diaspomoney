@@ -7,38 +7,10 @@ import {
   PaginatedResult,
   PaginationOptions,
 } from './IRepository';
+import type { HealthProvider } from '@/lib/types';
 
-export interface HealthProvider {
-  id: string;
-  _id?: string;
-  name: string;
-  type: 'DOCTOR' | 'HOSPITAL' | 'PHARMACY' | 'CLINIC';
-  specialties: string[];
-  address: {
-    street: string;
-    city: string;
-    country: string;
-    postalCode: string;
-    coordinates?: {
-      latitude: number;
-      longitude: number;
-    };
-  };
-  contact: {
-    phone: string;
-    email: string;
-    website?: string;
-  };
-  languages: string[];
-  rating: number;
-  reviewCount: number;
-  isActive: boolean;
-  availability: any; // ProviderAvailability
-  services: any[];
-  createdAt: Date;
-  updatedAt: Date;
-  [key: string]: any;
-}
+// Re-export pour compatibilité
+export type { HealthProvider };
 
 export interface HealthProviderFilters {
   type?: 'DOCTOR' | 'HOSPITAL' | 'PHARMACY' | 'CLINIC';

@@ -1,4 +1,4 @@
-import { InvoiceExtended } from '@/types';
+import { InvoiceExtended } from '@/lib/types';
 import mongoose, { Schema } from 'mongoose';
 
 const InvoiceItemSchema = new Schema({
