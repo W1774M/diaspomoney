@@ -30,7 +30,8 @@ export type BookingStatus =
   | 'CONFIRMED'
   | 'COMPLETED'
   | 'CANCELLED'
-  | 'NO_SHOW';
+  | 'NO_SHOW'
+  | 'FAILED';
 
 export interface BookingFilters {
   requesterId?: string;

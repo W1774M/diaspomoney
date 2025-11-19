@@ -1,5 +1,13 @@
 'use client';
+/**
+ * InvoicesPage Component
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (useInvoiceFilters, useAuth, usePermissions)
+ * - Error Handling Pattern (via useNotificationManager)
+ * - Notification Pattern (via useNotificationManager)
+ */
 
+import { useNotificationManager } from '@/components/ui/Notification';
 import { useAuth } from '@/hooks';
 import { useInvoiceFilters } from '@/hooks/invoices';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -13,6 +21,7 @@ import InvoicesTabs from './InvoicesTabs';
 const InvoicesPage = React.memo(function InvoicesPage() {
   const { user, isAdmin, isProvider, isCustomer } = useAuth();
   const { canCreateInvoices } = usePermissions();
+  const { addSuccess, addError } = useNotificationManager();
   const router = useRouter();
 
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -63,38 +72,46 @@ const InvoicesPage = React.memo(function InvoicesPage() {
     (id: string) => {
       router.push(`/dashboard/invoices/${id}`);
     },
-    [router]
+    [router],
   );
 
   const handleEdit = useCallback(
     (id: string) => {
       router.push(`/dashboard/invoices/${id}/edit`);
     },
-    [router]
+    [router],
   );
 
   // Optionnel: Ici on peut appeler une API pour supprimer réellement la facture
-  const handleDelete = useCallback(async (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/invoices/${id}`, {
-          method: 'DELETE',
-        });
-        if (response.ok) {
-          setInvoices(prev => prev.filter(invoice => invoice._id !== id));
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (
+        window.confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')
+      ) {
+        try {
+          setLoading(true);
+          const response = await fetch(`/api/invoices/${id}`, {
+            method: 'DELETE',
+          });
+          if (response.ok) {
+            setInvoices(prev => prev.filter(invoice => invoice._id !== id));
+            addSuccess('Facture supprimée avec succès');
+          } else {
+            addError('Erreur lors de la suppression de la facture');
+          }
+        } catch (e) {
+          addError('Erreur lors de la suppression de la facture');
+        } finally {
+          setLoading(false);
         }
-      } catch (e) {
-        // Gérer l'erreur si besoin
-      } finally {
-        setLoading(false);
       }
-    }
-  }, []);
+    },
+    [addSuccess, addError],
+  );
 
   const handleDownload = useCallback((id: string) => {
     // Implémenter le téléchargement de la facture
-    console.log('Télécharger la facture:', id);
+    window.open(`/api/invoices/${id}/download`, '_blank');
   }, []);
 
   const handleAddInvoice = useCallback(() => {
@@ -106,7 +123,7 @@ const InvoicesPage = React.memo(function InvoicesPage() {
       setSearchTerm(value);
       updateFilter('searchTerm', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handleStatusChange = useCallback(
@@ -114,7 +131,7 @@ const InvoicesPage = React.memo(function InvoicesPage() {
       setStatusFilter(value);
       updateFilter('statusFilter', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handleDateChange = useCallback(
@@ -122,7 +139,7 @@ const InvoicesPage = React.memo(function InvoicesPage() {
       setDateFilter(value);
       updateFilter('dateFilter', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   // Les clients peuvent voir les factures mais ne peuvent pas en créer

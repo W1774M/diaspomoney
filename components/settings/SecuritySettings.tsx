@@ -47,14 +47,14 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
     });
     const [linkingProvider, setLinkingProvider] = useState<string | null>(null);
     const [unlinkingProvider, setUnlinkingProvider] = useState<string | null>(
-      null
+      null,
     );
 
     const handleChange = useCallback(
       (field: keyof typeof data, value: string | boolean) => {
         setData({ ...data, [field]: value });
       },
-      [data, setData]
+      [data, setData],
     );
 
     const handleSubmit = useCallback(
@@ -62,14 +62,14 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
         e.preventDefault();
         onSave();
       },
-      [onSave]
+      [onSave],
     );
 
     const togglePasswordVisibility = useCallback(
       (field: keyof typeof showPasswords) => {
         setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
       },
-      []
+      [],
     );
 
     // Fonctions OAuth
@@ -107,7 +107,7 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
         user && (user as any).password && (user as any).password.length > 0;
       const linkedAccounts = user ? getLinkedAccounts() : [];
       const willHaveLinkedAccounts = linkedAccounts.filter(
-        acc => acc.id !== providerId
+        acc => acc.id !== providerId,
       );
 
       if (!hasPassword && willHaveLinkedAccounts.length === 0) {
@@ -116,14 +116,14 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
             'Vous devez avoir au moins un mot de passe actif ou un autre compte social lié ' +
             "pour pouvoir vous connecter. Veuillez d'abord :\n" +
             '• Définir un mot de passe dans la section "Mot de passe" ci-dessus, ou\n' +
-            '• Lier un autre compte social'
+            '• Lier un autre compte social',
         );
         return;
       }
 
       if (
         !confirm(
-          `Êtes-vous sûr de vouloir dissocier votre compte ${provider?.name} ?`
+          `Êtes-vous sûr de vouloir dissocier votre compte ${provider?.name} ?`,
         )
       ) {
         return;
@@ -414,7 +414,7 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 SecuritySettings.displayName = 'SecuritySettings';

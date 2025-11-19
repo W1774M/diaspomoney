@@ -2,7 +2,11 @@
  * Interface du repository pour les utilisateurs
  */
 
-import { IPaginatedRepository, PaginatedResult, PaginationOptions } from './IRepository';
+import {
+  IPaginatedRepository,
+  PaginatedResult,
+  PaginationOptions,
+} from './IRepository';
 
 export interface User {
   _id?: string;
@@ -55,9 +59,29 @@ export interface IUserRepository extends IPaginatedRepository<User, string> {
   findByStatus(status: string): Promise<User[]>;
 
   /**
-   * Mettre à jour le mot de passe
+   * Créer un utilisateur avec hashage automatique du mot de passe
+   * Utilise le modèle User Mongoose pour bénéficier du hook pre('save')
    */
-  updatePassword(userId: string, hashedPassword: string): Promise<boolean>;
+  createWithPassword(
+    data: Partial<User> & { password?: string }
+  ): Promise<User>;
+
+  /**
+   * Mettre à jour le mot de passe
+   * @param userId - ID de l'utilisateur
+   * @param hashedPassword - Mot de passe déjà hashé
+   * @param updatePasswordChangedAt - Si true, met à jour le champ passwordChangedAt (défaut: true)
+   */
+  updatePassword(
+    userId: string,
+    hashedPassword: string,
+    updatePasswordChangedAt?: boolean
+  ): Promise<boolean>;
+
+  /**
+   * Vérifier le mot de passe d'un utilisateur
+   */
+  verifyPassword(userId: string, password: string): Promise<boolean>;
 
   /**
    * Vérifier l'email
@@ -70,6 +94,39 @@ export interface IUserRepository extends IPaginatedRepository<User, string> {
   updateKYCStatus(userId: string, status: string): Promise<boolean>;
 
   /**
+   * Configurer la 2FA pour un utilisateur
+   */
+  setup2FA(
+    userId: string,
+    secret: string,
+    backupCodes: string[]
+  ): Promise<boolean>;
+
+  /**
+   * Activer la 2FA pour un utilisateur
+   */
+  enable2FA(userId: string): Promise<boolean>;
+
+  /**
+   * Désactiver la 2FA pour un utilisateur
+   */
+  disable2FA(userId: string): Promise<boolean>;
+
+  /**
+   * Mettre à jour les codes de backup 2FA
+   */
+  update2FABackupCodes(userId: string, backupCodes: string[]): Promise<boolean>;
+
+  /**
+   * Récupérer les informations 2FA d'un utilisateur
+   */
+  get2FAInfo(userId: string): Promise<{
+    twoFactorSecret?: string;
+    twoFactorBackupCodes?: string[];
+    twoFactorEnabled?: boolean;
+  } | null>;
+
+  /**
    * Trouver des utilisateurs avec pagination et filtres avancés
    */
   findUsersWithFilters(
@@ -77,4 +134,3 @@ export interface IUserRepository extends IPaginatedRepository<User, string> {
     options?: PaginationOptions
   ): Promise<PaginatedResult<User>>;
 }
-

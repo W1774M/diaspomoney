@@ -34,7 +34,7 @@ const DashboardServicesTabs = React.memo<DashboardServicesTabsProps>(
         </nav>
       </div>
     );
-  }
+  },
 );
 
 DashboardServicesTabs.displayName = "DashboardServicesTabs";

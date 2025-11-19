@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     console.log('API Provider [id] - ID:', params.id); // Debug
@@ -14,7 +14,7 @@ export async function GET(
       console.log('ID invalide:', params.id); // Debug
       return NextResponse.json(
         { error: 'ID de prestataire invalide' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -37,7 +37,7 @@ export async function GET(
       console.log('Provider non trouvé - roles:', provider.roles); // Debug
       return NextResponse.json(
         { error: 'Prestataire non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -46,7 +46,7 @@ export async function GET(
       console.log('Provider inactif - status:', provider.status); // Debug
       return NextResponse.json(
         { error: 'Prestataire non disponible' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -61,13 +61,13 @@ export async function GET(
     if (error instanceof Error && error.message === 'Utilisateur non trouvé') {
       return NextResponse.json(
         { error: 'Prestataire non trouvé' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

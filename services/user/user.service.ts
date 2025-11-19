@@ -2,11 +2,40 @@
  * User Service - DiaspoMoney
  * Service de gestion des utilisateurs Company-Grade
  * Basé sur la charte de développement
+ *
+ * Implémente les design patterns :
+ * - Service Layer Pattern
+ * - Repository Pattern (via IUserRepository)
+ * - Dependency Injection (injection du repository via constructor)
+ * - Singleton Pattern (getInstance)
+ * - Decorator Pattern (@Log, @Cacheable, @Validate)
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import {
+  Validate,
+  createValidationRule,
+} from '@/lib/decorators/validate.decorator';
+import { logger } from '@/lib/logger';
 import { securityManager } from '@/lib/security/advanced-security';
 import User from '@/models/User';
+import {
+  getBeneficiaryRepository,
+  getKYCRepository,
+  getNotificationRepository,
+  getTransactionRepository,
+  getUserRepository,
+  type IBeneficiaryRepository,
+  type IKYCRepository,
+  type INotificationRepository,
+  type ITransactionRepository,
+  type IUserRepository,
+} from '@/repositories';
+import type { Beneficiary, BeneficiaryData } from '@/types/beneficiaries';
+import type { KYCData, KYCDocument } from '@/types/kyc';
 import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
 
 export interface UserProfile {
   _id?: string;
@@ -44,48 +73,22 @@ export interface UpdateProfileData {
   passwordResetExpires?: Date;
 }
 
-export interface BeneficiaryData {
-  firstName: string;
-  lastName: string;
-  email?: string;
-  phone?: string;
-  relationship: 'PARENT' | 'CHILD' | 'SPOUSE' | 'SIBLING' | 'FRIEND' | 'OTHER';
-  country: string;
-  address?: string;
-}
-
-export interface Beneficiary extends BeneficiaryData {
-  id: string;
-  payerId: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface KYCDocument {
-  type:
-    | 'ID_CARD'
-    | 'PASSPORT'
-    | 'DRIVER_LICENSE'
-    | 'UTILITY_BILL'
-    | 'BANK_STATEMENT';
-  fileUrl: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  uploadedAt: Date;
-  reviewedAt?: Date;
-  rejectionReason?: string;
-}
-
-export interface KYCData {
-  documents: KYCDocument[];
-  status: 'PENDING' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
-  submittedAt: Date;
-  reviewedAt?: Date;
-  rejectionReason?: string;
-}
-
 export class UserService {
   private static instance: UserService;
+  private userRepository: IUserRepository;
+  private beneficiaryRepository: IBeneficiaryRepository;
+  private kycRepository: IKYCRepository;
+  private notificationRepository: INotificationRepository;
+  private transactionRepository: ITransactionRepository;
+
+  private constructor() {
+    // Dependency Injection : injecter les repositories
+    this.userRepository = getUserRepository();
+    this.beneficiaryRepository = getBeneficiaryRepository();
+    this.kycRepository = getKYCRepository();
+    this.notificationRepository = getNotificationRepository();
+    this.transactionRepository = getTransactionRepository();
+  }
 
   static getInstance(): UserService {
     if (!UserService.instance) {
@@ -97,6 +100,8 @@ export class UserService {
   /**
    * Récupérer tous les utilisateurs avec filtres
    */
+  @Log({ level: 'info', logArgs: true })
+  @Cacheable(300, { prefix: 'UserService:getUsers' }) // Cache 5 minutes
   async getUsers(filters: any = {}): Promise<{
     data: UserProfile[];
     total: number;
@@ -104,51 +109,51 @@ export class UserService {
     offset: number;
   }> {
     try {
-      const query: any = {};
-
-      // Corriger la requête pour utiliser 'roles' (array) au lieu de 'role' (string)
+      // Construire les filtres pour le repository
+      const repositoryFilters: any = {};
       if (filters.role) {
-        query.roles = filters.role; // Utiliser 'roles' qui est un array dans le modèle
+        repositoryFilters.roles = filters.role;
       }
-
       if (filters.status) {
-        query.status = filters.status; // Utiliser 'status' au lieu de 'isActive'
+        repositoryFilters.status = filters.status;
       }
 
-      console.log('Query filters:', query); // Debug
+      // Utiliser le repository (Repository Pattern)
+      const result = await this.userRepository.findUsersWithFilters(
+        repositoryFilters,
+        {
+          limit: filters.limit || 50,
+          offset: filters.offset || 0,
+        },
+      );
 
-      const users = await (User as any)
-        .find(query)
-        .limit(filters.limit || 50)
-        .skip(filters.offset || 0)
-        .exec();
-
-      const total = await (User as any).countDocuments(query);
-
-      console.log('Found users:', users.length); // Debug
+      logger.debug({ count: result.data.length }, 'Found users');
 
       return {
-        data: users.map((user: any) => ({
-          _id: user._id?.toString(),
+        data: result.data.map((user: any) => ({
+          _id: user._id?.toString() || user.id,
+          id: user._id?.toString() || user.id,
           email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          name: user.name,
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          name:
+            user.name ||
+            `${user.firstName || ''} ${user.lastName || ''}`.trim(),
           phone: user.phone,
-          country: user.countryOfResidence,
-          roles: user.roles,
+          country: user.country || user.countryOfResidence,
+          roles: user.roles || [],
           status: user.status,
-          isActive: user.status === 'ACTIVE',
-          isEmailVerified: user.emailVerified,
+          isActive: user.status === 'ACTIVE' || user.isActive,
+          isEmailVerified: user.isEmailVerified || user.emailVerified,
           kycStatus: user.kycStatus || 'PENDING',
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
           // Ajouter les champs spécifiques aux providers
           specialty: user.specialty,
           providerInfo: user.providerInfo,
-          rating: user.providerInfo?.rating || 0,
-          reviewCount: user.providerInfo?.reviewCount || 0,
-          city: user.targetCity,
+          rating: user.providerInfo?.rating || user.rating || 0,
+          reviewCount: user.providerInfo?.reviewCount || user.reviewCount || 0,
+          city: user.city || user.targetCity,
           specialties: user.providerInfo?.specialties || user.specialties || [],
           services: user.providerInfo?.services || user.services || [],
           selectedServices: Array.isArray(user.selectedServices)
@@ -157,12 +162,12 @@ export class UserService {
             ? user.selectedServices.split(',').map((s: string) => s.trim())
             : [],
         })),
-        total,
+        total: result.total,
         limit: filters.limit || 50,
         offset: filters.offset || 0,
       };
     } catch (error) {
-      console.error('Erreur getUsers:', error);
+      logger.error({ error }, 'Erreur getUsers');
       Sentry.captureException(error);
       throw error;
     }
@@ -171,55 +176,90 @@ export class UserService {
   /**
    * Récupérer le profil utilisateur
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      createValidationRule(
+        0,
+        z.string().min(1, 'User ID is required'),
+        'userId',
+      ),
+    ],
+  })
+  @Cacheable(600, { prefix: 'UserService:getUserProfile' }) // Cache 10 minutes
   async getUserProfile(userId: string): Promise<UserProfile> {
     try {
-      console.log('getUserProfile - ID:', userId); // Debug
+      logger.debug({ userId }, 'getUserProfile - ID');
 
-      const user = await (User as any).findById(userId).exec();
+      // Utiliser le repository (Repository Pattern)
+      const user = await this.userRepository.findById(userId);
       if (!user) {
-        console.log('Utilisateur non trouvé pour ID:', userId); // Debug
+        logger.warn({ userId }, 'Utilisateur non trouvé pour ID');
         throw new Error('Utilisateur non trouvé');
       }
 
-      console.log('User trouvé:', {
-        _id: user._id,
-        email: user.email,
-        roles: user.roles,
-        status: user.status,
-      }); // Debug
+      logger.debug(
+        {
+          _id: user._id || user.id,
+          email: user.email,
+          roles: user.roles,
+          status: user.status,
+        },
+        'User trouvé',
+      );
 
-      return {
-        _id: user._id?.toString(),
-        id: user._id?.toString(),
+      // Construire l'objet UserProfile de manière conditionnelle pour éviter les erreurs TypeScript
+      const userProfile: UserProfile = {
+        _id: user._id?.toString() || user.id,
+        id: user._id?.toString() || user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        name: user.name,
-        phone: user.phone,
-        country: user.countryOfResidence,
-        roles: user.roles,
-        status: user.status,
-        isActive: user.status === 'ACTIVE',
-        isEmailVerified: user.emailVerified,
-        kycStatus: user.kycStatus || 'PENDING',
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        name:
+          user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        roles: user.roles || [],
+        status: user.status || 'PENDING',
+        isActive: user.status === 'ACTIVE' || user.isActive || false,
+        isEmailVerified:
+          user.isEmailVerified || (user as any).emailVerified || false,
+        kycStatus: (user as any).kycStatus || 'PENDING',
+        createdAt: user.createdAt || new Date(),
+        updatedAt: user.updatedAt || new Date(),
         // Champs spécifiques aux providers
-        specialty: user.specialty,
-        providerInfo: user.providerInfo,
-        rating: user.providerInfo?.rating || 0,
-        reviewCount: user.providerInfo?.reviewCount || 0,
-        city: user.targetCity,
-        specialties: user.providerInfo?.specialties || user.specialties || [],
-        services: user.providerInfo?.services || user.services || [],
-        selectedServices: Array.isArray(user.selectedServices)
-          ? user.selectedServices
-          : typeof user.selectedServices === 'string'
-          ? user.selectedServices.split(',').map((s: string) => s.trim())
+        specialty: (user as any).specialty,
+        providerInfo: (user as any).providerInfo,
+        rating: (user as any).providerInfo?.rating || (user as any).rating || 0,
+        reviewCount:
+          (user as any).providerInfo?.reviewCount ||
+          (user as any).reviewCount ||
+          0,
+        city: (user as any).city || (user as any).targetCity,
+        specialties:
+          (user as any).providerInfo?.specialties ||
+          (user as any).specialties ||
+          [],
+        services:
+          (user as any).providerInfo?.services || (user as any).services || [],
+        selectedServices: Array.isArray((user as any).selectedServices)
+          ? (user as any).selectedServices
+          : typeof (user as any).selectedServices === 'string'
+          ? (user as any).selectedServices
+              .split(',')
+              .map((s: string) => s.trim())
           : [],
       };
+
+      // Ajouter les champs optionnels seulement s'ils sont définis
+      if (user.phone) {
+        userProfile.phone = user.phone;
+      }
+      if (user.country || (user as any).countryOfResidence) {
+        userProfile.country = user.country || (user as any).countryOfResidence;
+      }
+
+      return userProfile;
     } catch (error) {
-      console.error('Erreur getUserProfile:', error);
+      logger.error({ error, userId }, 'Erreur getUserProfile');
       Sentry.captureException(error);
       throw error;
     }
@@ -228,9 +268,55 @@ export class UserService {
   /**
    * Mettre à jour le profil utilisateur
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('UserService:*') // Invalider le cache après mise à jour
+  @Validate({
+    rules: [
+      createValidationRule(
+        0,
+        z.string().min(1, 'User ID is required'),
+        'userId',
+      ),
+      createValidationRule(
+        1,
+        z
+          .object({
+            firstName: z.string().optional(),
+            lastName: z.string().optional(),
+            phone: z.string().optional(),
+            country: z.string().optional(),
+            roles: z.array(z.string()).optional(),
+            status: z.string().optional(),
+            specialty: z.string().optional(),
+            recommended: z.boolean().optional(),
+            clientNotes: z.string().optional(),
+            preferences: z
+              .object({
+                language: z.string().optional(),
+                timezone: z.string().optional(),
+                notifications: z.boolean().optional(),
+              })
+              .optional(),
+          })
+          .passthrough(),
+        'data',
+      ),
+    ],
+  })
   async updateUserProfile(
     userId: string,
-    data: UpdateProfileData
+    data: UpdateProfileData & {
+      roles?: string[];
+      status?: string;
+      specialty?: string;
+      recommended?: boolean;
+      clientNotes?: string;
+      preferences?: {
+        language?: string;
+        timezone?: string;
+        notifications?: boolean;
+      };
+    },
   ): Promise<UserProfile> {
     try {
       // Validation des données
@@ -242,15 +328,32 @@ export class UserService {
         throw new Error('Pays invalide');
       }
 
-      // Mise à jour de l'utilisateur
-      const updatedUser = await (User as any).findByIdAndUpdate(
-        userId,
-        {
-          ...data,
-          updatedAt: new Date(),
-        },
-        { new: true }
-      );
+      // Construire l'objet de mise à jour
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      if (data.firstName !== undefined) updateData.firstName = data.firstName;
+      if (data.lastName !== undefined) updateData.lastName = data.lastName;
+      if (data.phone !== undefined) updateData.phone = data.phone;
+      if (data.country !== undefined)
+        updateData.countryOfResidence = data.country;
+      if (data.roles !== undefined) updateData.roles = data.roles;
+      if (data.status !== undefined) updateData.status = data.status;
+      if (data.specialty !== undefined) updateData.specialty = data.specialty;
+      if (data.recommended !== undefined)
+        updateData.recommended = data.recommended;
+      if (data.clientNotes !== undefined)
+        updateData.clientNotes = data.clientNotes;
+      if (data.preferences !== undefined) {
+        updateData.preferences = {
+          ...updateData.preferences,
+          ...data.preferences,
+        };
+      }
+
+      // Utiliser le repository (Repository Pattern)
+      const updatedUser = await this.userRepository.update(userId, updateData);
 
       if (!updatedUser) {
         throw new Error('Utilisateur non trouvé');
@@ -259,22 +362,51 @@ export class UserService {
       // Enregistrer l'événement
       await securityManager.detectAnomalies(userId, 'PROFILE_UPDATED', data);
 
-      return {
-        id: updatedUser.id,
+      // Construire l'objet UserProfile de manière conditionnelle pour éviter les erreurs TypeScript
+      const userProfile: UserProfile = {
+        _id: updatedUser._id?.toString() || updatedUser.id,
+        id: updatedUser._id?.toString() || updatedUser.id,
         email: updatedUser.email,
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
-        phone: updatedUser.phone,
-        country: updatedUser.country,
-        roles: updatedUser.roles,
-        status: updatedUser.status,
-        isEmailVerified: updatedUser.isEmailVerified,
-        kycStatus: updatedUser.kycStatus || 'PENDING',
-        createdAt: updatedUser.createdAt,
-        updatedAt: updatedUser.updatedAt,
+        firstName: updatedUser.firstName || '',
+        lastName: updatedUser.lastName || '',
+        name:
+          updatedUser.name ||
+          `${updatedUser.firstName || ''} ${updatedUser.lastName || ''}`.trim(),
+        roles: updatedUser.roles || [],
+        status: updatedUser.status || 'PENDING',
+        isActive:
+          updatedUser.status === 'ACTIVE' || updatedUser.isActive || false,
+        isEmailVerified:
+          updatedUser.isEmailVerified ||
+          (updatedUser as any).emailVerified ||
+          false,
+        kycStatus: (updatedUser as any).kycStatus || 'PENDING',
+        createdAt: updatedUser.createdAt || new Date(),
+        updatedAt: updatedUser.updatedAt || new Date(),
+        specialty: (updatedUser as any).specialty,
+        providerInfo: (updatedUser as any).providerInfo,
+        rating:
+          (updatedUser as any).providerInfo?.rating ||
+          (updatedUser as any).rating ||
+          0,
+        reviewCount:
+          (updatedUser as any).providerInfo?.reviewCount ||
+          (updatedUser as any).reviewCount ||
+          0,
       };
+
+      // Ajouter les champs optionnels seulement s'ils sont définis
+      if (updatedUser.phone) {
+        userProfile.phone = updatedUser.phone;
+      }
+      if (updatedUser.country || (updatedUser as any).countryOfResidence) {
+        userProfile.country =
+          updatedUser.country || (updatedUser as any).countryOfResidence;
+      }
+
+      return userProfile;
     } catch (error) {
-      console.error('Erreur updateUserProfile:', error);
+      logger.error({ error, userId }, 'Erreur updateUserProfile');
       Sentry.captureException(error);
       throw error;
     }
@@ -283,6 +415,8 @@ export class UserService {
   /**
    * Supprimer le compte utilisateur (GDPR)
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('UserService:*') // Invalider le cache après suppression
   async deleteUserAccount(userId: string): Promise<void> {
     try {
       // Anonymiser au lieu de supprimer (pour les enregistrements légaux/financiers)
@@ -297,12 +431,49 @@ export class UserService {
       });
 
       // Supprimer les données non essentielles
-      // TODO: Supprimer les documents, notifications, etc.
+      try {
+        // Supprimer les notifications de l'utilisateur
+        const notifications = await this.notificationRepository.findAll({
+          recipientId: userId,
+        });
+        for (const notification of notifications) {
+          await this.notificationRepository.delete(notification.id);
+        }
+        logger.info(
+          { userId, count: notifications.length },
+          'Notifications deleted',
+        );
+
+        // Désactiver les bénéficiaires de l'utilisateur
+        const beneficiaries =
+          await this.beneficiaryRepository.findActiveByPayer(userId);
+        for (const beneficiary of beneficiaries.data) {
+          await this.beneficiaryRepository.deactivate(beneficiary.id, userId);
+        }
+        logger.info(
+          { userId, count: beneficiaries.data.length },
+          'Beneficiaries deactivated',
+        );
+
+        // Supprimer les données KYC (documents sensibles)
+        const kyc = await this.kycRepository.findByUserId(userId);
+        if (kyc) {
+          await this.kycRepository.delete(kyc._id);
+          logger.info({ userId, kycId: kyc._id }, 'KYC data deleted');
+        }
+      } catch (cleanupError) {
+        logger.error(
+          { error: cleanupError, userId },
+          'Error during data cleanup, continuing with account deletion',
+        );
+        // Ne pas bloquer la suppression si le nettoyage échoue
+      }
 
       // Enregistrer l'événement de suppression
       await securityManager.detectAnomalies(userId, 'USER_DELETED');
+      logger.info({ userId }, 'User account deleted successfully');
     } catch (error) {
-      console.error('Erreur deleteUserAccount:', error);
+      logger.error({ error, userId }, 'Erreur deleteUserAccount');
       Sentry.captureException(error);
       throw error;
     }
@@ -311,9 +482,11 @@ export class UserService {
   /**
    * Ajouter un bénéficiaire
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('BeneficiaryRepository:*') // Invalider le cache après création
   async addBeneficiary(
     userId: string,
-    data: BeneficiaryData
+    data: BeneficiaryData,
   ): Promise<Beneficiary> {
     try {
       // Validation des données
@@ -330,29 +503,40 @@ export class UserService {
       }
 
       // Vérifier la limite de bénéficiaires
-      const existingBeneficiaries = await this.getBeneficiaries(userId);
-      if (existingBeneficiaries.length >= 10) {
+      const count = await this.beneficiaryRepository.countByPayer(userId);
+      if (count >= 10) {
         throw new Error('Limite de bénéficiaires atteinte (10 max)');
       }
 
-      // Créer le bénéficiaire
-      const beneficiary = {
-        id: `beneficiary_${Date.now()}_${Math.random()
-          .toString(36)
-          .substr(2, 9)}`,
+      // Créer le bénéficiaire via le repository
+      const beneficiaryData: Partial<Beneficiary> = {
         payerId: userId,
-        ...data,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        relationship: data.relationship,
+        country: data.country,
         isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       };
+      if (data.email) {
+        beneficiaryData.email = data.email;
+      }
+      if (data.phone) {
+        beneficiaryData.phone = data.phone;
+      }
+      if (data.address) {
+        beneficiaryData.address = data.address;
+      }
+      const beneficiary = await this.beneficiaryRepository.create(
+        beneficiaryData,
+      );
 
-      // TODO: Sauvegarder en base de données
-      // await Beneficiary.create(beneficiary);
-
+      logger.info(
+        { userId, beneficiaryId: beneficiary.id },
+        'Beneficiary added successfully',
+      );
       return beneficiary;
     } catch (error) {
-      console.error('Erreur addBeneficiary:', error);
+      logger.error({ error, userId }, 'Erreur addBeneficiary');
       Sentry.captureException(error);
       throw error;
     }
@@ -361,15 +545,19 @@ export class UserService {
   /**
    * Récupérer les bénéficiaires
    */
-  async getBeneficiaries(_userId: string): Promise<Beneficiary[]> {
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'UserService:getBeneficiaries' }) // Cache 5 minutes
+  async getBeneficiaries(userId: string): Promise<Beneficiary[]> {
     try {
-      // TODO: Récupérer depuis la base de données
-      // const beneficiaries = await Beneficiary.find({ payerId: userId, isActive: true });
-
-      // Simulation pour l'instant
-      return [];
+      // Récupérer depuis la base de données via le repository
+      const result = await this.beneficiaryRepository.findActiveByPayer(userId);
+      logger.debug(
+        { userId, count: result.data.length },
+        'Beneficiaries retrieved successfully',
+      );
+      return result.data;
     } catch (error) {
-      console.error('Erreur getBeneficiaries:', error);
+      logger.error({ error, userId }, 'Erreur getBeneficiaries');
       Sentry.captureException(error);
       throw error;
     }
@@ -378,19 +566,32 @@ export class UserService {
   /**
    * Supprimer un bénéficiaire
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('BeneficiaryRepository:*') // Invalider le cache après désactivation
   async removeBeneficiary(
-    _userId: string,
-    _beneficiaryId: string
+    userId: string,
+    beneficiaryId: string,
   ): Promise<void> {
     try {
-      // TODO: Vérifier que le bénéficiaire appartient à l'utilisateur
-      // TODO: Désactiver le bénéficiaire
-      // await Beneficiary.updateOne(
-      //   { id: beneficiaryId, payerId: userId },
-      //   { isActive: false, updatedAt: new Date() }
-      // );
+      // Vérifier que le bénéficiaire appartient à l'utilisateur et le désactiver
+      const deactivated = await this.beneficiaryRepository.deactivate(
+        beneficiaryId,
+        userId,
+      );
+      if (!deactivated) {
+        throw new Error(
+          "Bénéficiaire non trouvé ou n'appartient pas à cet utilisateur",
+        );
+      }
+      logger.info(
+        { userId, beneficiaryId },
+        'Beneficiary removed successfully',
+      );
     } catch (error) {
-      console.error('Erreur removeBeneficiary:', error);
+      logger.error(
+        { error, userId, beneficiaryId },
+        'Erreur removeBeneficiary',
+      );
       Sentry.captureException(error);
       throw error;
     }
@@ -399,9 +600,11 @@ export class UserService {
   /**
    * Soumettre les documents KYC
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('KYCRepository:*') // Invalider le cache après création
   async submitKYCDocuments(
     userId: string,
-    documents: KYCDocument[]
+    documents: KYCDocument[],
   ): Promise<KYCData> {
     try {
       // Validation des documents
@@ -413,34 +616,36 @@ export class UserService {
       const requiredTypes = ['ID_CARD', 'PASSPORT'];
       const submittedTypes = documents.map(doc => doc.type);
       const hasRequiredType = requiredTypes.some(type =>
-        submittedTypes.includes(type as any)
+        submittedTypes.includes(type as any),
       );
 
       if (!hasRequiredType) {
         throw new Error(
-          "Au moins une pièce d'identité requise (carte d'identité ou passeport)"
+          "Au moins une pièce d'identité requise (carte d'identité ou passeport)",
         );
       }
 
-      // Créer les données KYC
-      const kycData: KYCData = {
+      // Créer les données KYC via le repository
+      const kycData = await this.kycRepository.create({
+        userId,
         documents,
         status: 'PENDING',
         submittedAt: new Date(),
-      };
-
-      // TODO: Sauvegarder en base de données
-      // await KYC.create({ userId, ...kycData });
-
-      // Mettre à jour le statut KYC de l'utilisateur
-      await (User as any).findByIdAndUpdate(userId, {
-        kycStatus: 'IN_REVIEW',
-        kycSubmittedAt: new Date(),
       });
 
+      // Mettre à jour le statut KYC de l'utilisateur
+      await this.userRepository.update(userId, {
+        kycStatus: 'IN_REVIEW',
+        kycSubmittedAt: new Date(),
+      } as any);
+
+      logger.info(
+        { userId, kycId: kycData._id },
+        'KYC documents submitted successfully',
+      );
       return kycData;
     } catch (error) {
-      console.error('Erreur submitKYCDocuments:', error);
+      logger.error({ error, userId }, 'Erreur submitKYCDocuments');
       Sentry.captureException(error);
       throw error;
     }
@@ -449,15 +654,16 @@ export class UserService {
   /**
    * Récupérer le statut KYC
    */
-  async getKYCStatus(_userId: string): Promise<KYCData | null> {
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'UserService:getKYCStatus' }) // Cache 5 minutes
+  async getKYCStatus(userId: string): Promise<KYCData | null> {
     try {
-      // TODO: Récupérer depuis la base de données
-      // const kyc = await KYC.findOne({ userId });
-      // return kyc;
-
-      return null;
+      // Récupérer depuis la base de données via le repository
+      const kyc = await this.kycRepository.findByUserId(userId);
+      logger.debug({ userId, found: !!kyc }, 'KYC status retrieved');
+      return kyc;
     } catch (error) {
-      console.error('Erreur getKYCStatus:', error);
+      logger.error({ error, userId }, 'Erreur getKYCStatus');
       Sentry.captureException(error);
       throw error;
     }
@@ -466,39 +672,69 @@ export class UserService {
   /**
    * Exporter les données utilisateur (GDPR)
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   async exportUserData(userId: string): Promise<any> {
     try {
-      const user = await (User as any).findById(userId).exec();
+      const user = await this.userRepository.findById(userId);
       if (!user) {
         throw new Error('Utilisateur non trouvé');
       }
 
-      // TODO: Récupérer toutes les données associées
-      // const transactions = await Transaction.find({ userId });
-      // const beneficiaries = await Beneficiary.find({ payerId: userId });
-      // const kyc = await KYC.findOne({ userId });
+      // Récupérer toutes les données associées via les repositories
+      const [transactions, beneficiaries, kyc] = await Promise.all([
+        this.transactionRepository.findWithPagination({
+          $or: [{ payerId: userId }, { beneficiaryId: userId }],
+        }),
+        this.beneficiaryRepository.findByPayer(userId),
+        this.kycRepository.findByUserId(userId),
+      ]);
 
       const exportData = {
         personal_info: {
-          id: user.id,
+          id: user.id || user._id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
           phone: user.phone,
-          country: user.country,
-          role: user.role,
+          country: user.country || (user as any).countryOfResidence,
+          roles: user.roles,
+          status: user.status,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         },
-        // transactions: transactions.map(t => t.toJSON()),
-        // beneficiaries: beneficiaries.map(b => b.toJSON()),
-        // kyc: kyc?.toJSON(),
+        transactions: transactions.data.map(t => ({
+          id: t.id,
+          amount: t.amount,
+          currency: t.currency,
+          status: t.status,
+          createdAt: t.createdAt,
+        })),
+        beneficiaries: beneficiaries.data.map(b => ({
+          id: b.id,
+          firstName: b.firstName,
+          lastName: b.lastName,
+          email: b.email,
+          relationship: b.relationship,
+          createdAt: b.createdAt,
+        })),
+        kyc: kyc
+          ? {
+              status: kyc.status,
+              submittedAt: kyc.submittedAt,
+              documents: kyc.documents.map(doc => ({
+                type: doc.type,
+                status: doc.status,
+                uploadedAt: doc.uploadedAt,
+              })),
+            }
+          : null,
         exported_at: new Date().toISOString(),
       };
 
+      logger.info({ userId }, 'User data exported successfully');
       return exportData;
     } catch (error) {
-      console.error('Erreur exportUserData:', error);
+      logger.error({ error, userId }, 'Erreur exportUserData');
       Sentry.captureException(error);
       throw error;
     }

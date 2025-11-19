@@ -1,10 +1,23 @@
+/**
+ * Implémente les design patterns :
+ * - Service Layer Pattern
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Error Handling Pattern (Sentry)
+ * - Retry Pattern (via @Retry decorator)
+ */
+
+import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
+import { childLogger } from '@/lib/logger';
 import type { EmailOptions, EmailTemplate } from '@/types/email';
+import * as Sentry from '@sentry/nextjs';
 import { Resend } from 'resend';
 
-// Configuration Resend (conditionnelle)
-const resend = process.env['RESEND_API_KEY'] ? new Resend(process.env['RESEND_API_KEY']) : null;
+const log = childLogger({ component: 'EmailService' });
 
-// Types importés depuis types/email.ts
+// Configuration Resend (conditionnelle)
+const resend = process.env['RESEND_API_KEY']
+  ? new Resend(process.env['RESEND_API_KEY'])
+  : null;
 
 // Templates d'emails
 export const emailTemplates = {
@@ -132,7 +145,7 @@ export const emailTemplates = {
     name: string,
     amount: number,
     currency: string,
-    service: string
+    service: string,
   ): EmailTemplate => ({
     subject: `Confirmation de paiement - ${service}`,
     html: `
@@ -164,7 +177,7 @@ export const emailTemplates = {
                 <p><strong>Service :</strong> ${service}</p>
                 <p><strong>Montant :</strong> <span class="amount">${amount} ${currency}</span></p>
                 <p><strong>Date :</strong> ${new Date().toLocaleDateString(
-                  'fr-FR'
+                  'fr-FR',
                 )}</p>
                 <p><strong>Statut :</strong> ✅ Confirmé</p>
               </div>
@@ -204,7 +217,7 @@ export const emailTemplates = {
     provider: string,
     date: string,
     time: string,
-    type: 'confirmation' | 'reminder'
+    type: 'confirmation' | 'reminder',
   ): EmailTemplate => ({
     subject:
       type === 'confirmation'
@@ -301,14 +314,37 @@ function sanitizeTagValue(value: string): string {
     .substring(0, 50); // Limiter la longueur
 }
 
-// Fonction principale d'envoi d'email
+// Classe wrapper pour utiliser le decorator
+class EmailSender {
+  @Retry({
+    maxAttempts: 3,
+    delay: 2000,
+    backoff: 'exponential',
+    shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
+  })
+  async send(options: EmailOptions): Promise<boolean> {
+    return await sendEmailInternal(options);
+  }
+}
+
+const emailSender = new EmailSender();
+
+// Fonction principale d'envoi d'email avec retry
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  return await emailSender.send(options);
+}
+
+// Fonction interne sans decorator pour éviter la récursion
+async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
   try {
-    console.log('📧 sendEmail appelée avec options:', {
-      to: options.to,
-      subject: options.subject,
-      from: options.from || 'DiaspoMoney <onboarding@resend.dev>',
-    });
+    log.debug(
+      {
+        to: options.to,
+        subject: options.subject,
+        from: options.from || 'DiaspoMoney <onboarding@resend.dev>',
+      },
+      '📧 sendEmail appelée avec options',
+    );
 
     // Nettoyer les tags pour s'assurer qu'ils sont compatibles avec Resend
     const sanitizedTags = (
@@ -321,21 +357,25 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
       value: sanitizeTagValue(tag.value),
     }));
 
-    console.log('🏷️ Tags nettoyés:', sanitizedTags);
+    log.debug({ tags: sanitizedTags }, 'Tags sanitized');
 
     // Validation finale des tags
     const isValidTags = sanitizedTags.every(
       tag =>
-        /^[a-zA-Z0-9_-]+$/.test(tag.name) && /^[a-zA-Z0-9_-]+$/.test(tag.value)
+        /^[a-zA-Z0-9_-]+$/.test(tag.name) && /^[a-zA-Z0-9_-]+$/.test(tag.value),
     );
 
     if (!isValidTags) {
-      console.error('❌ Tags invalides détectés:', sanitizedTags);
+      log.error({ tags: sanitizedTags }, 'Invalid tags detected');
+      Sentry.captureMessage('Invalid email tags detected', {
+        level: 'error',
+        extra: { tags: sanitizedTags },
+      });
       return false;
     }
 
     if (!resend) {
-      console.warn('⚠️ Resend not configured - email not sent');
+      log.warn('Resend not configured - email not sent');
       return false;
     }
 
@@ -354,14 +394,31 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     });
 
     if (error) {
-      console.error('❌ Erreur Resend:', error);
+      log.error(
+        { error, to: options.to, subject: options.subject },
+        'Resend error',
+      );
+      Sentry.captureException(error, {
+        tags: { component: 'EmailService', action: 'sendEmail' },
+        extra: { to: options.to, subject: options.subject },
+      });
       return false;
     }
 
-    console.log('✅ Email envoyé avec succès:', data);
+    log.info(
+      { emailId: data?.id, to: options.to, subject: options.subject },
+      'Email sent successfully',
+    );
     return true;
   } catch (error) {
-    console.error("❌ Erreur lors de l'envoi d'email:", error);
+    log.error(
+      { error, to: options.to, subject: options.subject },
+      'Error sending email',
+    );
+    Sentry.captureException(error, {
+      tags: { component: 'EmailService', action: 'sendEmail' },
+      extra: { to: options.to, subject: options.subject },
+    });
     return false;
   }
 }
@@ -370,7 +427,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 export async function sendWelcomeEmail(
   email: string,
   name: string,
-  verificationUrl: string
+  verificationUrl: string,
 ): Promise<boolean> {
   // En développement, utiliser l'email autorisé par Resend
   // En production, utiliser l'email original
@@ -379,8 +436,7 @@ export async function sendWelcomeEmail(
       ? 'malarbillaudrey@gmail.com'
       : email;
 
-  console.log('📧 Envoi email de bienvenue à:', targetEmail);
-  console.log('📧 Email original:', email);
+  log.debug({ targetEmail, originalEmail: email }, 'Sending welcome email');
 
   // Test avec un template simple
   const simpleTemplate = {
@@ -404,7 +460,7 @@ export async function sendWelcomeEmail(
 export async function sendPasswordResetEmail(
   email: string,
   name: string,
-  resetUrl: string
+  resetUrl: string,
 ): Promise<boolean> {
   const template = emailTemplates.passwordReset(name, resetUrl);
 
@@ -425,13 +481,13 @@ export async function sendPaymentConfirmationEmail(
   name: string,
   amount: number,
   currency: string,
-  service: string
+  service: string,
 ): Promise<boolean> {
   const template = emailTemplates.paymentConfirmation(
     name,
     amount,
     currency,
-    service
+    service,
   );
 
   return await sendEmail({
@@ -453,14 +509,14 @@ export async function sendAppointmentNotificationEmail(
   provider: string,
   date: string,
   time: string,
-  type: 'confirmation' | 'reminder'
+  type: 'confirmation' | 'reminder',
 ): Promise<boolean> {
   const template = emailTemplates.appointmentNotification(
     name,
     provider,
     date,
     time,
-    type
+    type,
   );
 
   return await sendEmail({
@@ -480,10 +536,11 @@ export async function sendAppointmentNotificationEmail(
 export async function testEmailConnection(): Promise<boolean> {
   try {
     if (!resend) {
-      console.warn('⚠️ Resend not configured - email not sent');
+      log.warn('Resend not configured - email not sent');
       return false;
     }
 
+    log.debug('Testing Resend connection');
     const { data, error } = await resend.emails.send({
       from: 'DiaspoMoney <noreply@diaspomoney.fr>',
       to: 'test@diaspomoney.fr',
@@ -493,14 +550,20 @@ export async function testEmailConnection(): Promise<boolean> {
     });
 
     if (error) {
-      console.error('❌ Test Resend échoué:', error);
+      log.error({ error }, 'Resend connection test failed');
+      Sentry.captureException(error, {
+        tags: { component: 'EmailService', action: 'testConnection' },
+      });
       return false;
     }
 
-    console.log('✅ Test Resend réussi:', data);
+    log.info({ emailId: data?.id }, 'Resend connection test successful');
     return true;
   } catch (error) {
-    console.error('❌ Erreur test Resend:', error);
+    log.error({ error }, 'Resend connection test error');
+    Sentry.captureException(error, {
+      tags: { component: 'EmailService', action: 'testConnection' },
+    });
     return false;
   }
 }

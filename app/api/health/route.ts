@@ -1,9 +1,16 @@
 /**
  * Endpoint de santé avancé - DiaspoMoney
  * Monitoring de santé Company-Grade
+ *
+ * Implémente les design patterns :
+ * - Service Layer Pattern (via monitoringManager)
+ * - Dependency Injection (via getRedisClient)
+ * - Logger Pattern (structured logging avec childLogger)
  */
 
+import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import { getRedisClient } from '@/lib/redis/redis-client';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -43,7 +50,10 @@ interface HealthStatus {
   }>;
 }
 
-// Fonction pour tester la connexion MongoDB
+/**
+ * Fonction pour tester la connexion MongoDB
+ * Utilise le Repository Pattern via mongoose
+ */
 async function testDatabaseConnection(): Promise<{
   status: 'connected' | 'disconnected' | 'error';
   responseTime?: number;
@@ -81,7 +91,11 @@ async function testDatabaseConnection(): Promise<{
   }
 }
 
-// Fonction pour tester Redis (si configuré)
+/**
+ * Fonction pour tester Redis
+ * Utilise le Dependency Injection Pattern via getRedisClient()
+ * et le Singleton Pattern (le client Redis est un singleton)
+ */
 async function testRedisConnection(): Promise<{
   status: 'connected' | 'disconnected' | 'error';
   responseTime?: number;
@@ -90,16 +104,35 @@ async function testRedisConnection(): Promise<{
   const startTime = Date.now();
 
   try {
-    // TODO: Implémenter le test Redis
-    // const redis = require('ioredis');
-    // const client = new redis(process.env.REDIS_URL);
-    // await client.ping();
-    // client.disconnect();
+    // Vérifier si Redis est configuré
+    const redisHost = process.env['REDIS_HOST'];
+    const redisPort = process.env['REDIS_PORT'];
 
-    return {
-      status: 'disconnected',
-      error: 'Redis not configured',
-    };
+    if (!redisHost || !redisPort) {
+      return {
+        status: 'disconnected',
+        error: 'Redis not configured (missing REDIS_HOST or REDIS_PORT)',
+      };
+    }
+
+    // Utiliser le client Redis via Dependency Injection (Singleton Pattern)
+    const redisClient = getRedisClient();
+
+    // Tester la connexion avec ping
+    const isConnected = await redisClient.ping();
+
+    if (isConnected) {
+      return {
+        status: 'connected',
+        responseTime: Date.now() - startTime,
+      };
+    } else {
+      return {
+        status: 'disconnected',
+        responseTime: Date.now() - startTime,
+        error: 'Redis ping failed',
+      };
+    }
   } catch (error) {
     return {
       status: 'error',
@@ -109,7 +142,10 @@ async function testRedisConnection(): Promise<{
   }
 }
 
-// Fonction pour tester le CDN
+/**
+ * Fonction pour tester le CDN
+ * Utilise le Service Layer Pattern (test externe)
+ */
 async function testCDNConnection(): Promise<{
   status: 'available' | 'unavailable' | 'error';
   responseTime?: number;
@@ -122,6 +158,7 @@ async function testCDNConnection(): Promise<{
     const cdnUrl = process.env['CDN_BASE_URL'] || 'https://cdn.diaspomoney.fr';
     const response = await fetch(`${cdnUrl}/health`, {
       method: 'HEAD',
+      signal: AbortSignal.timeout(5000), // Timeout de 5 secondes
     });
 
     if (response.ok) {
@@ -145,27 +182,40 @@ async function testCDNConnection(): Promise<{
   }
 }
 
-// Fonction pour calculer les métriques de performance
+/**
+ * Fonction pour calculer les métriques de performance
+ * Utilise le Service Layer Pattern via monitoringManager
+ */
 function calculatePerformanceMetrics() {
   const metrics = monitoringManager.getMetrics();
   const stats = monitoringManager.getStats();
 
   // Calculer le taux d'erreur
-  const errorMetrics = (metrics || []).filter(m => m.name.includes('http_errors'));
-  const totalErrors = errorMetrics.reduce((sum, m) => sum + m.value, 0);
+  const errorMetrics = (metrics || []).filter((m: any) =>
+    m.name.includes('http_errors'),
+  );
+  const totalErrors = errorMetrics.reduce(
+    (sum: number, m: any) => sum + m.value,
+    0,
+  );
 
-  const requestMetrics = (metrics || []).filter(m => m.name.includes('http_requests'));
-  const totalRequests = requestMetrics.reduce((sum, m) => sum + m.value, 0);
+  const requestMetrics = (metrics || []).filter((m: any) =>
+    m.name.includes('http_requests'),
+  );
+  const totalRequests = requestMetrics.reduce(
+    (sum: number, m: any) => sum + m.value,
+    0,
+  );
 
   const errorRate = totalRequests > 0 ? totalErrors / totalRequests : 0;
 
   // Calculer le temps de réponse moyen
-  const responseTimeMetrics = (metrics || []).filter(m =>
-    m.name.includes('http_request_duration')
+  const responseTimeMetrics = (metrics || []).filter((m: any) =>
+    m.name.includes('http_request_duration'),
   );
   const averageResponseTime =
     responseTimeMetrics.length > 0
-      ? responseTimeMetrics.reduce((sum, m) => sum + m.value, 0) /
+      ? responseTimeMetrics.reduce((sum: number, m: any) => sum + m.value, 0) /
         responseTimeMetrics.length
       : 0;
 
@@ -177,12 +227,21 @@ function calculatePerformanceMetrics() {
   };
 }
 
-// Handler principal
-export async function GET(_request: NextRequest) {
+/**
+ * Handler principal pour l'endpoint de santé
+ * Implémente le Service Layer Pattern via monitoringManager
+ * Utilise le Logger Pattern pour le logging structuré
+ */
+export async function GET(request: NextRequest) {
+  const reqId = request.headers.get('x-request-id') || undefined;
+  const log = childLogger({ requestId: reqId, route: 'api/health' });
+
   try {
     const startTime = Date.now();
 
-    // Tester les services
+    log.debug({ msg: 'Health check started' });
+
+    // Tester les services en parallèle
     const [databaseStatus, redisStatus, cdnStatus] = await Promise.all([
       testDatabaseConnection(),
       testRedisConnection(),
@@ -200,13 +259,27 @@ export async function GET(_request: NextRequest) {
 
     if (databaseStatus.status !== 'connected') {
       globalStatus = 'unhealthy';
-    } else if (alerts.some(a => a.severity === 'critical')) {
+      log.warn({
+        msg: 'Database connection failed',
+        status: databaseStatus.status,
+        error: databaseStatus.error,
+      });
+    } else if (alerts.some((a: any) => a.severity === 'critical')) {
       globalStatus = 'unhealthy';
+      log.warn({
+        msg: 'Critical alerts detected',
+        alertCount: alerts.filter((a: any) => a.severity === 'critical').length,
+      });
     } else if (
-      alerts.some(a => a.severity === 'high') ||
+      alerts.some((a: any) => a.severity === 'high') ||
       metrics.errorRate > 0.05
     ) {
       globalStatus = 'degraded';
+      log.info({
+        msg: 'System degraded',
+        errorRate: metrics.errorRate,
+        highAlerts: alerts.filter((a: any) => a.severity === 'high').length,
+      });
     }
 
     // Construire la réponse
@@ -227,7 +300,7 @@ export async function GET(_request: NextRequest) {
             : { status: 'unavailable' },
       },
       metrics,
-      alerts: (alerts || []).map(alert => ({
+      alerts: (alerts || []).map((alert: any) => ({
         id: alert.id,
         severity: alert.severity,
         message: alert.message,
@@ -240,8 +313,19 @@ export async function GET(_request: NextRequest) {
       globalStatus === 'healthy'
         ? 200
         : globalStatus === 'degraded'
-          ? 200
-          : 503;
+        ? 200
+        : 503;
+
+    const responseTime = Date.now() - startTime;
+
+    log.info({
+      msg: 'Health check completed',
+      status: globalStatus,
+      responseTime,
+      database: databaseStatus.status,
+      redis: redisStatus.status,
+      cdn: cdnStatus.status,
+    });
 
     // Ajouter les headers de monitoring
     const response = new NextResponse(JSON.stringify(healthStatus, null, 2), {
@@ -249,14 +333,17 @@ export async function GET(_request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'X-Health-Check': 'true',
-        'X-Response-Time': (Date.now() - startTime).toString(),
+        'X-Response-Time': responseTime.toString(),
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
     });
 
     return response;
   } catch (error) {
-    console.error('Erreur health check:', error);
+    log.error({
+      error,
+      msg: 'Health check failed',
+    });
 
     return new NextResponse(
       JSON.stringify({
@@ -269,7 +356,7 @@ export async function GET(_request: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 }

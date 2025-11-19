@@ -1,121 +1,54 @@
 'use client';
 
-import { IUser, User, UserRole, UserStatus } from '@/types';
+/**
+ * Page de détail d'un utilisateur
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (useUser, useAuth)
+ * - Service Layer Pattern (via les API routes)
+ * - Logger Pattern (logging structuré côté serveur)
+ * - Middleware Pattern (authentification via useAuth)
+ */
+
+import { useAuth, useUser } from '@/hooks';
 import {
-  ArrowLeft,
-  Building2,
-  Edit,
-  Mail,
-  Phone,
-  Star,
-  Users,
-} from 'lucide-react';
+  formatUserDate,
+  getRoleColor,
+  getRoleIcon,
+  getStatusColor,
+} from '@/lib/utils/user-utils';
+import { UserRole } from '@/types';
+import { ArrowLeft, Edit, Mail, Phone, Star } from 'lucide-react';
 import Link from 'next/link';
-// import { useParams } from "next/navigation";
-import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function UserDetailPage() {
-  // const params = useParams();
-  const userId = 'temp-user-id'; // TODO: Get from URL params
-  const [user, setUser] = useState<IUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const params = useParams();
+  const userId = params.id as string;
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, loading, error, fetchUser } = useUser();
 
-  // Simuler des données pour l'exemple
   useEffect(() => {
-    const mockUser: User = {
-      _id: userId as string,
-      email: 'jean.dupont@email.com',
-      name: 'Jean Dupont',
-      phone: '+33 1 23 45 67 89',
-      company: 'Entreprise ABC',
-      address: '123 Rue de la Paix, 75001 Paris, France',
-      roles: [UserRole.CUSTOMER],
-      status: UserStatus.ACTIVE,
-      clientNotes: 'Client fidèle depuis 2020',
-      preferences: {
-        language: 'fr',
-        timezone: 'Europe/Paris',
-        notifications: true,
-      },
-      createdAt: new Date('2024-01-15'),
-      updatedAt: new Date('2024-01-15'),
-      avatar: undefined,
-      recommended: false,
-    };
-    setUser(mockUser);
-    setLoading(false);
-  }, [userId]);
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'ADMIN':
-        return 'bg-red-100 text-red-800';
-      case 'CSM':
-        return 'bg-purple-100 text-purple-800';
-      case 'PROVIDER':
-        return 'bg-[hsl(25,100%,53%)]/10 text-[hsl(25,100%,53%)]';
-      case 'CUSTOMER':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+    if (isAuthenticated && userId) {
+      fetchUser(userId);
     }
-  };
+  }, [isAuthenticated, userId, fetchUser]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'bg-green-100 text-green-800';
-      case 'INACTIVE':
-        return 'bg-red-100 text-red-800';
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'SUSPENDED':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'SUPERADMIN':
-        return <Users className='h-4 w-4' />;
-      case 'ADMIN':
-        return <Users className='h-4 w-4' />;
-      case 'CSM':
-        return <Users className='h-4 w-4' />;
-      case 'PROVIDER':
-        return <Building2 className='h-4 w-4' />;
-      case 'CUSTOMER':
-        return <Users className='h-4 w-4' />;
-      default:
-        return <Users className='h-4 w-4' />;
-    }
-  };
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date);
-  };
-
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className='text-center py-12'>
         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
-        <p className='mt-4 text-gray-600'>Chargement de l'utilisateur...</p>
+        <p className='mt-4 text-gray-600'>
+          Chargement de l&apos;utilisateur...
+        </p>
       </div>
     );
   }
 
-  if (!user) {
+  if (error || !user) {
     return (
       <div className='text-center py-12'>
-        <p className='text-gray-600'>Utilisateur non trouvé</p>
+        <p className='text-gray-600'>{error || 'Utilisateur non trouvé'}</p>
         <Link
           href='/dashboard/users'
           className='mt-4 inline-flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
@@ -151,12 +84,12 @@ export default function UserDetailPage() {
           <div>
             <h1 className='text-3xl font-bold text-gray-900'>{user.name}</h1>
             <p className='text-gray-600 mt-2'>
-              Membre depuis le {formatDate(user.createdAt)}
+              Membre depuis le {formatUserDate(user.createdAt)}
             </p>
           </div>
           <span
             className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(
-              user.status
+              user.status,
             )}`}
           >
             {user.status}
@@ -227,7 +160,7 @@ export default function UserDetailPage() {
                     <span
                       key={role}
                       className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(
-                        role
+                        role,
                       )}`}
                     >
                       {getRoleIcon(role)}
@@ -242,7 +175,7 @@ export default function UserDetailPage() {
                 </label>
                 <span
                   className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                    user.status
+                    user.status,
                   )}`}
                 >
                   {user.status}
@@ -316,8 +249,8 @@ export default function UserDetailPage() {
                   {user.preferences?.language === 'fr'
                     ? 'Français'
                     : user.preferences?.language === 'en'
-                      ? 'English'
-                      : 'Español'}
+                    ? 'English'
+                    : 'Español'}
                 </p>
               </div>
               <div>
@@ -391,7 +324,7 @@ export default function UserDetailPage() {
                   Créé le
                 </label>
                 <p className='text-sm text-gray-500'>
-                  {formatDate(user.createdAt)}
+                  {formatUserDate(user.createdAt)}
                 </p>
               </div>
               <div>
@@ -399,7 +332,7 @@ export default function UserDetailPage() {
                   Modifié le
                 </label>
                 <p className='text-sm text-gray-500'>
-                  {formatDate(user.updatedAt)}
+                  {formatUserDate(user.updatedAt)}
                 </p>
               </div>
             </div>

@@ -57,14 +57,14 @@ export class PaymentStrategyFactory {
    */
   static getBestStrategy(
     currency: string,
-    country?: string
+    country?: string,
   ): IPaymentStrategy | null {
     const strategies = this.getAllStrategies();
 
     // Filtrer les stratégies qui peuvent traiter ce paiement
     const availableStrategies = strategies.filter(strategy => {
       const canProcessCurrency = strategy.supportedCurrencies.includes(
-        currency.toUpperCase()
+        currency.toUpperCase(),
       );
       const canProcessCountry = !country || strategy.supportedCountries.includes(country);
       return canProcessCurrency && canProcessCountry;

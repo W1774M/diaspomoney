@@ -151,7 +151,7 @@ const ComplaintsSettings = React.memo<ComplaintsSettingsProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 ComplaintsSettings.displayName = 'ComplaintsSettings';

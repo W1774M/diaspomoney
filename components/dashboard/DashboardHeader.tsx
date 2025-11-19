@@ -16,7 +16,7 @@ const DashboardHeader = React.memo<DashboardHeaderProps>(
         <p className="text-gray-600 mt-2">{subtitle}</p>
       </div>
     );
-  }
+  },
 );
 
 DashboardHeader.displayName = "DashboardHeader";

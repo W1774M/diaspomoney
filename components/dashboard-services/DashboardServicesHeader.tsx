@@ -11,7 +11,7 @@ const DashboardServicesHeader = React.memo<DashboardServicesHeaderProps>(
         <p className="text-gray-600 mt-2">{description}</p>
       </div>
     );
-  }
+  },
 );
 
 DashboardServicesHeader.displayName = "DashboardServicesHeader";

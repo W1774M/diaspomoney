@@ -10,7 +10,7 @@ const DashboardServicesContent = React.memo<DashboardServicesContentProps>(
         {children}
       </div>
     );
-  }
+  },
 );
 
 DashboardServicesContent.displayName = "DashboardServicesContent";

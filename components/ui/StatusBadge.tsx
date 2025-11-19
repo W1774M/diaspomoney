@@ -9,7 +9,7 @@ interface StatusBadgeProps {
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ 
   status, 
   size = "md", 
-  showIcon = true 
+  showIcon = true, 
 }) => {
   const getStatusConfig = (status: string) => {
     switch (status.toUpperCase()) {
@@ -18,35 +18,35 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
           bgColor: "bg-green-100",
           textColor: "text-green-800",
           iconColor: "bg-green-400",
-          label: "Actif"
+          label: "Actif",
         };
       case "INACTIVE":
         return {
           bgColor: "bg-gray-100",
           textColor: "text-gray-800",
           iconColor: "bg-gray-400",
-          label: "Inactif"
+          label: "Inactif",
         };
       case "PENDING":
         return {
           bgColor: "bg-yellow-100",
           textColor: "text-yellow-800",
           iconColor: "bg-yellow-400",
-          label: "En attente"
+          label: "En attente",
         };
       case "SUSPENDED":
         return {
           bgColor: "bg-red-100",
           textColor: "text-red-800",
           iconColor: "bg-red-400",
-          label: "Suspendu"
+          label: "Suspendu",
         };
       default:
         return {
           bgColor: "bg-gray-100",
           textColor: "text-gray-800",
           iconColor: "bg-gray-400",
-          label: status
+          label: status,
         };
     }
   };
@@ -56,13 +56,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   const sizeClasses = {
     sm: "px-2 py-1 text-xs",
     md: "px-3 py-1 text-sm",
-    lg: "px-4 py-2 text-base"
+    lg: "px-4 py-2 text-base",
   };
 
   const iconSizeClasses = {
     sm: "w-1.5 h-1.5",
     md: "w-2 h-2",
-    lg: "w-2.5 h-2.5"
+    lg: "w-2.5 h-2.5",
   };
 
   return (

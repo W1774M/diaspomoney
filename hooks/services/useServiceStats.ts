@@ -14,13 +14,13 @@ export function useServiceStats(providers: IUser[]): ServiceStats {
       ...new Set(
         safeProviders
           .map(p => p.specialty)
-          .filter((specialty): specialty is string => Boolean(specialty))
+          .filter((specialty): specialty is string => Boolean(specialty)),
       ),
     ].sort();
 
     const services = safeProviders
       .flatMap(p =>
-        p.selectedServices ? p.selectedServices.map(s => s.trim()) : []
+        p.selectedServices ? p.selectedServices.map(s => s.trim()) : [],
       )
       .filter((service, idx, arr) => arr.indexOf(service) === idx)
       .sort();

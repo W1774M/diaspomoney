@@ -39,7 +39,7 @@ export function proxy(request: NextRequest) {
   // Check if this is a protected path
   const protectedPaths = ["/dashboard"];
   const isProtectedPath = protectedPaths.some(path =>
-    pathname.startsWith(path)
+    pathname.startsWith(path),
   );
 
   // If protected path, check for session token

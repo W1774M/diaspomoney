@@ -1,326 +1,481 @@
-import { authEvents } from "@/lib/events";
-import { mongoClient } from "@/lib/mongodb";
-import bcrypt from "bcryptjs";
-import type { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import FacebookProvider from "next-auth/providers/facebook";
-import GoogleProvider from "next-auth/providers/google";
+/**
+ * NextAuth Configuration - DiaspoMoney
+ * Configuration d'authentification NextAuth avec support OAuth et Credentials
+ *
+ * Implémente les design patterns :
+ * - Repository Pattern (via getUserRepository)
+ * - Dependency Injection (via getUserRepository)
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Error Handling Pattern (Sentry)
+ * - Middleware Pattern (NextAuth callbacks)
+ */
+
+import { authEvents } from '@/lib/events';
+import { childLogger } from '@/lib/logger';
+import { getUserRepository } from '@/repositories';
+import * as Sentry from '@sentry/nextjs';
+import bcrypt from 'bcryptjs';
+import type { NextAuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import FacebookProvider from 'next-auth/providers/facebook';
+import GoogleProvider from 'next-auth/providers/google';
 
 export const authConfig: NextAuthOptions = {
-  
   providers: [
     GoogleProvider({
-      clientId: process.env["GOOGLE_CLIENT_ID"] ?? "",
-      clientSecret: process.env["GOOGLE_CLIENT_SECRET"] ?? "",
+      clientId: process.env['GOOGLE_CLIENT_ID'] ?? '',
+      clientSecret: process.env['GOOGLE_CLIENT_SECRET'] ?? '',
       allowDangerousEmailAccountLinking: true,
     }),
     FacebookProvider({
-      clientId: process.env["FACEBOOK_CLIENT_ID"] ?? "",
-      clientSecret: process.env["FACEBOOK_CLIENT_SECRET"] ?? "",
+      clientId: process.env['FACEBOOK_CLIENT_ID'] ?? '',
+      clientSecret: process.env['FACEBOOK_CLIENT_SECRET'] ?? '',
       allowDangerousEmailAccountLinking: true,
     }),
     CredentialsProvider({
-      name: "Credentials",
+      name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials?: Record<"email" | "password", string>): Promise<{ id: string; email: string; name: string; image: string | null } | null> {
+      async authorize(
+        credentials?: Record<'email' | 'password', string>,
+      ): Promise<{
+        id: string;
+        email: string;
+        name: string;
+        image: string | null;
+      } | null> {
+        const log = childLogger({
+          component: 'NextAuth',
+          action: 'authorize',
+          provider: 'credentials',
+        });
+
         try {
-          console.log("[AUTH][credentials][authorize] ========== START ==========");
-          
+          log.debug('Starting credentials authorization');
+
           if (!credentials?.email || !credentials?.password) {
-            console.log("[AUTH][credentials][authorize] Missing email or password");
+            log.warn('Missing email or password');
             return null;
           }
-          
+
           const email = String(credentials.email).toLowerCase();
           const password = String(credentials.password);
 
-          console.log("[AUTH][credentials][authorize] Attempting login for:", email);
-          const client = await mongoClient;
-          const db = client.db();
-          const users = db.collection("users");
-          const user = await users.findOne({ email });
-          
+          log.debug({ email }, 'Attempting login');
+
+          // Utiliser le repository (Repository Pattern)
+          const userRepository = getUserRepository();
+          const user = await userRepository.findByEmail(email);
+
           if (!user) {
-            console.log("[AUTH][credentials][authorize] User not found:", email);
+            log.warn({ email }, 'User not found');
             return null;
           }
 
-          console.log("[AUTH][credentials][authorize] User found, checking password...");
-          
+          log.debug(
+            { userId: user.id, email },
+            'User found, checking password',
+          );
+
           // Vérifier que le mot de passe existe et est hashé
-          const storedPassword = user["password"];
+          const storedPassword = (user as any).password;
           if (!storedPassword) {
-            console.log("[AUTH][credentials][authorize] No password set for user (OAuth only):", email);
+            log.warn({ email }, 'No password set for user (OAuth only)');
             return null;
           }
-          
+
           // Vérifier que storedPassword n'est pas le mot de passe en clair (sécurité)
           if (storedPassword.length < 20) {
-            console.error("[AUTH][credentials][authorize] Password appears to be stored in plain text!");
+            log.error(
+              { email },
+              'Password appears to be stored in plain text!',
+            );
+            Sentry.captureMessage('Password stored in plain text', {
+              level: 'error',
+              extra: { email, userId: user.id },
+            });
             return null;
           }
-          
+
           const valid = await bcrypt.compare(password, storedPassword);
           if (!valid) {
-            console.log("[AUTH][credentials][authorize] Invalid password for:", email);
+            log.warn({ email }, 'Invalid password');
             return null;
           }
 
-          const status = user["status"] ?? "ACTIVE";
-          if (status !== "ACTIVE") {
-            console.log("[AUTH][credentials][authorize] User account is not active. Status:", status);
+          const status = user.status ?? 'ACTIVE';
+          if (status !== 'ACTIVE') {
+            log.warn({ email, status }, 'User account is not active');
             return null;
           }
 
-          console.log("[AUTH][credentials][authorize] Authentication successful for:", email);
-          
+          log.info({ email, userId: user.id }, 'Authentication successful');
+
           // Émettre l'événement de connexion réussie
-          authEvents.emitUserLoggedIn({
-            userId: String(user._id),
-            email: user["email"],
-            timestamp: new Date(),
-          }).catch(error => {
-            console.error("[AUTH] Error emitting user logged in event:", error);
-          });
-          
+          authEvents
+            .emitUserLoggedIn({
+              userId: user.id,
+              email: user.email,
+              timestamp: new Date(),
+            })
+            .catch(error => {
+              log.error(
+                { error, email, userId: user.id },
+                'Error emitting user logged in event',
+              );
+              Sentry.captureException(error, {
+                tags: {
+                  component: 'NextAuth',
+                  action: 'emitUserLoggedIn',
+                },
+                extra: { email, userId: user.id },
+              });
+            });
+
           // Retourner l'objet user avec toutes les informations nécessaires
           const userObject = {
-            id: String(user._id),
-            email: user["email"],
-            name: user["name"] || `${user["firstName"] ?? ""} ${user["lastName"] ?? ""}`.trim(),
-            image: user["image"] || null,
+            id: user.id,
+            email: user.email,
+            name:
+              user.name ||
+              `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() ||
+              'User',
+            image: (user as any)['image'] || null,
           };
-          
-          console.log("[AUTH][credentials][authorize] Returning user object:", {
-            id: userObject.id,
-            email: userObject.email,
-            name: userObject.name,
-          });
-          
+
+          log.debug(
+            {
+              userId: userObject.id,
+              email: userObject.email,
+              name: userObject.name,
+            },
+            'Returning user object',
+          );
+
           return userObject;
-        } catch (e) {
-          console.error("[AUTH][credentials][authorize] error:", e);
+        } catch (error) {
+          log.error({ error }, 'Authorization error');
+          Sentry.captureException(error, {
+            tags: {
+              component: 'NextAuth',
+              action: 'authorize',
+              provider: 'credentials',
+            },
+          });
           return null;
         }
       },
     }),
   ],
-  
+
   pages: {
-    signIn: "/login",
+    signIn: '/login',
   },
-  
+
   callbacks: {
-    async signIn({ user, account }: { user: any, account: any, profile?: any }) {
-      console.log("[AUTH][signIn] ========== START SIGNIN CALLBACK ==========");
-      console.log("[AUTH][signIn] Provider:", account?.provider);
-      console.log("[AUTH][signIn] User object:", {
-        id: user?.id,
-        email: user?.email,
-        name: user?.name,
-        hasId: !!user?.id,
-        hasEmail: !!user?.email,
+    async signIn({
+      user,
+      account,
+    }: {
+      user: any;
+      account: any;
+      profile?: any;
+    }) {
+      const log = childLogger({
+        component: 'NextAuth',
+        action: 'signIn',
+        provider: account?.provider,
       });
 
       try {
-        const client = await mongoClient;
-        const db = client.db();
-        const users = db.collection("users");
+        log.debug({
+          userId: user?.id,
+          email: user?.email,
+          name: user?.name,
+          provider: account?.provider,
+        });
+
+        // Utiliser le repository (Repository Pattern)
+        const userRepository = getUserRepository();
 
         // Pour les connexions OAuth (Google, Facebook)
-        if (account?.provider === "google" || account?.provider === "facebook") {
-          console.log("[AUTH][signIn] OAuth login detected - checking/creating user");
-          
+        if (
+          account?.provider === 'google' ||
+          account?.provider === 'facebook'
+        ) {
+          log.debug('OAuth login detected - checking/creating user');
+
           const email = user.email?.toLowerCase();
           if (!email) {
-            console.error("[AUTH][signIn] No email provided by OAuth provider");
+            log.error('No email provided by OAuth provider');
+            Sentry.captureMessage('OAuth provider did not provide email', {
+              level: 'error',
+              extra: { provider: account?.provider },
+            });
             return false;
           }
 
-          const existingUser = await users.findOne({ email });
-          
+          const existingUser = await userRepository.findByEmail(email);
+
           if (!existingUser) {
-            console.log("[AUTH][signIn] Creating new OAuth user");
-            const result = await users.insertOne({
+            log.info(
+              { email, provider: account.provider },
+              'Creating new OAuth user',
+            );
+
+            // Créer un nouvel utilisateur via le repository
+            const newUser = await userRepository.create({
               email,
-              name: user.name || "",
-              image: user.image || "",
+              name: user.name || '',
+              image: user.image || '',
               emailVerified: new Date(),
-              roles: ["CUSTOMER"],
-              status: "ACTIVE",
-              createdAt: new Date(),
-              updatedAt: new Date(),
+              roles: ['CUSTOMER'],
+              status: 'ACTIVE',
               oauth: {
                 [account.provider]: {
                   linked: true,
                   providerAccountId: account.providerAccountId,
-                }
-              }
-            });
-            user.id = String(result.insertedId);
-            console.log("[AUTH][signIn] New OAuth user created with ID:", user.id);
+                },
+              },
+            } as any);
+
+            user.id = newUser.id;
+            log.info({ userId: user.id, email }, 'New OAuth user created');
           } else {
-            console.log("[AUTH][signIn] Existing user found with ID:", String(existingUser._id));
-            await users.updateOne(
-              { email },
-              { 
-                $set: {
-                  [`oauth.${account.provider}.linked`]: true,
-                  [`oauth.${account.provider}.providerAccountId`]: account.providerAccountId,
-                  updatedAt: new Date(),
-                  ...(user.image && { image: user.image }),
-                  ...(user.name && { name: user.name }),
-                }
-              }
+            log.debug(
+              { userId: existingUser.id, email },
+              'Existing user found, updating OAuth info',
             );
-            user.id = String(existingUser._id);
+
+            // Mettre à jour les informations OAuth via le repository
+            await userRepository.update(existingUser.id, {
+              [`oauth.${account.provider}.linked`]: true,
+              [`oauth.${account.provider}.providerAccountId`]:
+                account.providerAccountId,
+              ...(user.image && { image: user.image }),
+              ...(user.name && { name: user.name }),
+            } as any);
+
+            user.id = existingUser.id;
           }
-          
+
           // Émettre l'événement de connexion réussie pour OAuth
-          authEvents.emitUserLoggedIn({
-            userId: user.id,
-            email: user.email!,
-            timestamp: new Date(),
-          }).catch(error => {
-            console.error("[AUTH] Error emitting user logged in event:", error);
-          });
-          
-          console.log("[AUTH][signIn] OAuth sign in authorized with user.id:", user.id);
+          authEvents
+            .emitUserLoggedIn({
+              userId: user.id,
+              email: user.email!,
+              timestamp: new Date(),
+            })
+            .catch(error => {
+              log.error(
+                { error, userId: user.id, email: user.email },
+                'Error emitting user logged in event',
+              );
+              Sentry.captureException(error, {
+                tags: {
+                  component: 'NextAuth',
+                  action: 'emitUserLoggedIn',
+                  provider: 'oauth',
+                },
+                extra: { userId: user.id, email: user.email },
+              });
+            });
+
+          log.info(
+            { userId: user.id, provider: account.provider },
+            'OAuth sign in authorized',
+          );
           return true;
         }
 
         // Pour les connexions par credentials
         // Le statut a déjà été vérifié dans authorize(), donc on accepte directement
-        if (account?.provider === "credentials") {
-          console.log("[AUTH][signIn] Credentials login - user already validated in authorize()");
-          
+        if (account?.provider === 'credentials') {
+          log.debug(
+            'Credentials login - user already validated in authorize()',
+          );
+
           // Vérifier que l'utilisateur a bien un email et un id
           if (!user.email) {
-            console.error("[AUTH][signIn] No email found in user object for credentials");
+            log.error('No email found in user object for credentials');
+            Sentry.captureMessage('No email in user object for credentials', {
+              level: 'error',
+            });
             return false;
           }
-          
+
           if (!user.id) {
-            console.error("[AUTH][signIn] No id found in user object for credentials");
+            log.error('No id found in user object for credentials');
+            Sentry.captureMessage('No id in user object for credentials', {
+              level: 'error',
+            });
             return false;
           }
-          
-          console.log("[AUTH][signIn] Credentials sign in authorized for user:", user.email);
+
+          log.info(
+            { email: user.email, userId: user.id },
+            'Credentials sign in authorized',
+          );
           return true;
         }
 
         return true;
       } catch (error) {
-        console.error("[AUTH][signIn] Error:", error);
+        log.error({ error }, 'Sign in error');
+        Sentry.captureException(error, {
+          tags: {
+            component: 'NextAuth',
+            action: 'signIn',
+            provider: account?.provider,
+          },
+        });
         return false;
       }
     },
-    
-    async jwt({ token, user, account }: { token: any, user: any, account: any }) {
-      console.log("[AUTH][jwt] ========== START JWT CALLBACK ==========");
-      console.log("[AUTH][jwt] Token initial:", {
-        hasToken: !!token,
-        hasUserId: !!token?.userId,
-        hasEmail: !!token?.email,
+
+    async jwt({
+      token,
+      user,
+      account,
+    }: {
+      token: any;
+      user: any;
+      account: any;
+    }) {
+      const log = childLogger({
+        component: 'NextAuth',
+        action: 'jwt',
       });
-      console.log("[AUTH][jwt] User:", {
-        hasUser: !!user,
-        userId: user?.id,
-        email: user?.email,
-      });
-      console.log("[AUTH][jwt] Account:", {
-        hasAccount: !!account,
-        provider: account?.provider,
-      });
-      
+
       try {
+        log.debug({
+          hasToken: !!token,
+          hasUserId: !!token?.userId,
+          hasEmail: !!token?.email,
+          hasUser: !!user,
+          provider: account?.provider,
+        });
+
         // Initialiser token s'il n'existe pas
         if (!token) {
-          console.warn("[AUTH][jwt] Token est null ou undefined, initialisation...");
+          log.warn('Token is null or undefined, initializing');
           token = {};
         }
-        
+
         // Premier appel (connexion) - l'objet user est présent
         if (user) {
-          console.log("[AUTH][jwt] First call - setting token from user");
+          log.debug(
+            { userId: user.id, email: user.email },
+            'First call - setting token from user',
+          );
           token.provider = account?.provider;
           token.providerAccountId = account?.providerAccountId;
           token.userId = user.id;
           token.email = user.email;
           token.name = user.name;
-          token.picture = user.image;
-          console.log("[AUTH][jwt] Token userId set to:", token.userId);
+          token.picture = (user as any)['image'];
         }
 
         // Si userId n'est toujours pas défini (fallback pour sécurité)
         if (token && !token.userId && token.email) {
-          console.log("[AUTH][jwt] UserId missing, fetching from DB by email");
+          log.debug(
+            { email: token.email },
+            'UserId missing, fetching from repository by email',
+          );
           try {
-            const client = await mongoClient;
-            const db = client.db();
-            const users = db.collection("users");
-            const dbUser = await users.findOne({
-              email: token.email?.toLowerCase(),
-            });
+            // Utiliser le repository (Repository Pattern)
+            const userRepository = getUserRepository();
+            const dbUser = await userRepository.findByEmail(
+              token.email.toLowerCase(),
+            );
+
             if (dbUser) {
-              console.log("[AUTH][jwt] User found in DB:", String(dbUser._id));
-              token.userId = String(dbUser._id);
-              token.email = dbUser["email"];
-              token.name = dbUser["name"];
-              token.picture = dbUser["image"];
+              log.debug({ userId: dbUser.id }, 'User found in repository');
+              token.userId = dbUser.id;
+              token.email = dbUser.email;
+              token.name = dbUser.name;
+              token.picture = (dbUser as any)['image'];
             }
           } catch (error) {
-            console.error("[AUTH][jwt] error fetching user:", error);
+            log.error(
+              { error, email: token.email },
+              'Error fetching user from repository',
+            );
+            Sentry.captureException(error, {
+              tags: {
+                component: 'NextAuth',
+                action: 'jwt',
+                step: 'fetchUserByEmail',
+              },
+              extra: { email: token.email },
+            });
           }
         }
 
-        console.log("[AUTH][jwt] Token final:", {
-          userId: token?.userId,
-          email: token?.email,
-          name: token?.name,
-        });
-        console.log("[AUTH][jwt] ========== END JWT CALLBACK ==========");
-        
+        log.debug(
+          {
+            userId: token?.userId,
+            email: token?.email,
+            name: token?.name,
+          },
+          'Token finalized',
+        );
+
         return token;
       } catch (error) {
-        console.error("[AUTH][jwt] Erreur dans le callback jwt:", error);
-        console.error("[AUTH][jwt] Stack:", error instanceof Error ? error.stack : 'No stack');
+        log.error({ error }, 'JWT callback error');
+        Sentry.captureException(error, {
+          tags: {
+            component: 'NextAuth',
+            action: 'jwt',
+          },
+        });
         // Retourner le token même en cas d'erreur pour éviter de casser la session
         return token || {};
       }
     },
-    
-    async session({ session, token }: { session: any, token: any }) {
+
+    async session({ session, token }: { session: any; token: any }) {
+      const log = childLogger({
+        component: 'NextAuth',
+        action: 'session',
+      });
+
       try {
-        console.log("[AUTH][session] ========== START SESSION CALLBACK ==========");
-        console.log("[AUTH][session] Session:", !!session, "Token:", !!token);
-        
+        log.debug({
+          hasSession: !!session,
+          hasToken: !!token,
+          hasEmail: !!token?.email,
+          hasUserId: !!token?.userId,
+        });
+
         // Si pas de session, retourner null (pas de session active)
         // Dans NextAuth v5, retourner null est valide pour indiquer aucune session
         if (!session) {
-          console.log("[AUTH][session] Pas de session, retour null");
+          log.debug('No session, returning null');
           return null;
         }
-        
+
         // S'assurer que session.user existe
         if (!session.user) {
           session.user = {};
         }
-        
+
         // Si pas de token ou token vide, retourner session vide mais valide
         if (!token || (!token.email && !token.userId)) {
-          console.log("[AUTH][session] Pas de token ou token vide, retour session vide");
+          log.debug('No token or empty token, returning empty session');
           // Retourner une session vide mais valide avec user: null
           return {
             ...session,
             user: null,
-            expires: session.expires || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            expires:
+              session.expires ||
+              new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           };
         }
-        
+
         // Enrichir la session avec les données du token
         if (token.email) {
           session.user.email = token.email;
@@ -334,7 +489,7 @@ export const authConfig: NextAuthOptions = {
         if (token.picture) {
           session.user.image = token.picture;
         }
-        
+
         // Ajouter les informations du provider
         if (token.provider) {
           (session as any).provider = token.provider;
@@ -342,14 +497,21 @@ export const authConfig: NextAuthOptions = {
         if (token.providerAccountId) {
           (session as any).providerAccountId = token.providerAccountId;
         }
-        
-        console.log("[AUTH][session] Session enrichie avec succès");
-        console.log("[AUTH][session] ========== END SESSION CALLBACK ==========");
-        
+
+        log.debug(
+          { userId: token.userId, email: token.email },
+          'Session enriched successfully',
+        );
+
         return session;
       } catch (error) {
-        console.error("[AUTH][session] Erreur dans le callback session:", error);
-        console.error("[AUTH][session] Stack:", error instanceof Error ? error.stack : 'No stack');
+        log.error({ error }, 'Session callback error');
+        Sentry.captureException(error, {
+          tags: {
+            component: 'NextAuth',
+            action: 'session',
+          },
+        });
         // Retourner une session vide pour éviter une erreur 500
         try {
           return { user: {} };
@@ -359,52 +521,68 @@ export const authConfig: NextAuthOptions = {
         }
       }
     },
-    
-    async redirect({ url, baseUrl }: { url: string, baseUrl: string }) {
-      console.log("[AUTH][redirect] URL demandée:", url);
-      console.log("[AUTH][redirect] Base URL:", baseUrl);
-      
+
+    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
+      const log = childLogger({
+        component: 'NextAuth',
+        action: 'redirect',
+      });
+
+      log.debug({ url, baseUrl }, 'Processing redirect');
+
       // Si l'URL est relative, retourner une URL relative
-      if (url && url.startsWith("/")) {
-        if (url.startsWith("/dashboard")) {
-          console.log("[AUTH][redirect] Redirection relative vers:", url);
+      if (url && url.startsWith('/')) {
+        if (url.startsWith('/dashboard')) {
+          log.debug({ url }, 'Relative redirect to dashboard');
           return url;
         }
-        console.log("[AUTH][redirect] Redirection par défaut vers /dashboard");
-        return "/dashboard";
+        log.debug('Default redirect to /dashboard');
+        return '/dashboard';
       }
-      
+
       // Si l'URL est absolue, vérifier qu'elle est sur le bon domaine
       try {
         // Vérifier que url est valide avant de créer l'URL
-        if (!url || url.trim() === "") {
-          console.warn("[AUTH][redirect] URL vide, redirection vers /dashboard");
-          return "/dashboard";
+        if (!url || url.trim() === '') {
+          log.warn('Empty URL, redirecting to /dashboard');
+          return '/dashboard';
         }
-        
+
         const urlObj = new URL(url);
-        
+
         // Vérifier que baseUrl est valide avant de créer l'URL
-        if (!baseUrl || baseUrl.trim() === "") {
+        if (!baseUrl || baseUrl.trim() === '') {
           // Si baseUrl est invalide, extraire juste le chemin de l'URL
-          console.warn("[AUTH][redirect] Base URL invalide, extraction du chemin:", urlObj.pathname);
-          return urlObj.pathname + urlObj.search || "/dashboard";
+          log.warn(
+            { pathname: urlObj.pathname },
+            'Invalid base URL, extracting path',
+          );
+          return urlObj.pathname + urlObj.search || '/dashboard';
         }
-        
+
         const baseUrlObj = new URL(baseUrl);
-        
+
         if (urlObj.origin === baseUrlObj.origin) {
-          console.log("[AUTH][redirect] Redirection vers URL autorisée:", url);
+          log.debug({ url }, 'Redirecting to authorized URL');
           return url;
         }
-        
-        console.log("[AUTH][redirect] URL externe détectée, extraction du chemin:", urlObj.pathname);
+
+        log.debug(
+          { pathname: urlObj.pathname },
+          'External URL detected, extracting path',
+        );
         return urlObj.pathname + urlObj.search;
-      } catch (e) {
-        console.warn("[AUTH][redirect] URL invalide, redirection vers /dashboard:", e);
-        return "/dashboard";
+      } catch (error) {
+        log.warn({ error, url }, 'Invalid URL, redirecting to /dashboard');
+        Sentry.captureException(error, {
+          tags: {
+            component: 'NextAuth',
+            action: 'redirect',
+          },
+          extra: { url, baseUrl },
+        });
+        return '/dashboard';
       }
     },
   },
 };
-

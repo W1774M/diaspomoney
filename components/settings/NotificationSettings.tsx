@@ -10,7 +10,7 @@ const NotificationSettings = React.memo<NotificationSettingsProps>(
       (field: keyof typeof data, value: string | boolean) => {
         setData({ ...data, [field]: value });
       },
-      [data, setData]
+      [data, setData],
     );
 
     const handleSubmit = useCallback(
@@ -18,7 +18,7 @@ const NotificationSettings = React.memo<NotificationSettingsProps>(
         e.preventDefault();
         onSave();
       },
-      [onSave]
+      [onSave],
     );
 
     return (
@@ -170,7 +170,7 @@ const NotificationSettings = React.memo<NotificationSettingsProps>(
         </form>
       </div>
     );
-  }
+  },
 );
 
 NotificationSettings.displayName = "NotificationSettings";

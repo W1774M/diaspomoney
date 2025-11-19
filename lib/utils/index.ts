@@ -27,7 +27,7 @@ export function isValidUUID(uuid: string): boolean {
 // === UTILITAIRES DE FORMATAGE ===
 export function formatCurrency(
   amount: number,
-  currency: string = 'EUR'
+  currency: string = 'EUR',
 ): string {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
@@ -55,7 +55,7 @@ export function formatDateTime(date: Date, locale: string = 'fr-FR'): string {
 
 export function formatRelativeTime(
   date: Date,
-  locale: string = 'fr-FR'
+  locale: string = 'fr-FR',
 ): string {
   const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
   const diff = date.getTime() - Date.now();
@@ -188,7 +188,7 @@ export function unique<T>(array: T[]): T[] {
 
 export function groupBy<T, K extends keyof T>(
   array: T[],
-  key: K
+  key: K,
 ): Record<string, T[]> {
   return array.reduce(
     (groups, item) => {
@@ -197,14 +197,14 @@ export function groupBy<T, K extends keyof T>(
       groups[group].push(item);
       return groups;
     },
-    {} as Record<string, T[]>
+    {} as Record<string, T[]>,
   );
 }
 
 export function sortBy<T>(
   array: T[],
   key: keyof T,
-  order: 'asc' | 'desc' = 'asc'
+  order: 'asc' | 'desc' = 'asc',
 ): T[] {
   return [...array].sort((a, b) => {
     const aVal = a[key];
@@ -227,7 +227,7 @@ export function chunk<T>(array: T[], size: number): T[][] {
 export function paginate<T>(
   array: T[],
   page: number,
-  limit: number
+  limit: number,
 ): {
   data: T[];
   pagination: {
@@ -298,7 +298,7 @@ export function logLevel(level: string): number {
 export function formatLogMessage(
   level: string,
   message: string,
-  metadata?: any
+  metadata?: any,
 ): string {
   const timestamp = new Date().toISOString();
   const meta = metadata ? ` ${JSON.stringify(metadata)}` : '';

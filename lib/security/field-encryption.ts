@@ -61,7 +61,7 @@ export class FieldEncryption {
       salt,
       100000,
       this.config.keyLength,
-      'sha256'
+      'sha256',
     );
   }
 
@@ -100,7 +100,7 @@ export class FieldEncryption {
   decrypt(
     fieldName: string,
     encryptedField: EncryptedField,
-    userId?: string
+    userId?: string,
   ): string {
     try {
       if (!encryptedField || !encryptedField.encrypted) return '';
@@ -130,7 +130,7 @@ export class FieldEncryption {
   encryptObject(
     obj: Record<string, any>,
     fieldsToEncrypt: string[],
-    userId?: string
+    userId?: string,
   ): Record<string, any> {
     const encrypted = { ...obj };
 
@@ -149,7 +149,7 @@ export class FieldEncryption {
   decryptObject(
     obj: Record<string, any>,
     fieldsToDecrypt: string[],
-    userId?: string
+    userId?: string,
   ): Record<string, any> {
     const decrypted = { ...obj };
 
@@ -195,7 +195,7 @@ export class FieldEncryption {
   verifyIntegrity(
     fieldName: string,
     encryptedField: EncryptedField,
-    userId?: string
+    userId?: string,
   ): boolean {
     try {
       const decrypted = this.decrypt(fieldName, encryptedField, userId);

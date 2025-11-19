@@ -3,6 +3,7 @@
  * À appeler au démarrage de l'application
  */
 
+import { logger } from '@/lib/logger';
 import { setupAllEventListeners } from './listeners';
 
 let isInitialized = false;
@@ -13,17 +14,17 @@ let isInitialized = false;
  */
 export function initializeEventSystem() {
   if (isInitialized) {
-    console.warn('[EventSystem] Already initialized, skipping...');
+    logger.warn('[EventSystem] Already initialized, skipping...');
     return;
   }
 
-  console.log('[EventSystem] Initializing event system...');
+  logger.info('[EventSystem] Initializing event system...');
   
   // Initialiser tous les listeners
   setupAllEventListeners();
   
   isInitialized = true;
-  console.log('[EventSystem] Event system initialized successfully');
+  logger.info('[EventSystem] Event system initialized successfully');
 }
 
 /**

@@ -9,7 +9,7 @@ export function getUniqueSpecialties(providers: Provider[]): string[] {
     ...new Set(
       providers
         .flatMap(p => p.specialties || [])
-        .filter((specialty): specialty is string => Boolean(specialty))
+        .filter((specialty): specialty is string => Boolean(specialty)),
     ),
   ].sort();
 }
@@ -22,7 +22,7 @@ export function getAvailableServices(providers: Provider[]): string[] {
     .flatMap(p =>
       p['selectedServices']
         ? p['selectedServices'].split(',').map((s: string) => s.trim())
-        : []
+        : [],
     )
     .filter((service, idx, arr) => arr.indexOf(service) === idx)
     .sort();
@@ -36,7 +36,7 @@ export function getAvailableCities(providers: Provider[]): string[] {
     ...new Set(
       providers
         .map(p => p.address)
-        .filter((address): address is string => Boolean(address))
+        .filter((address): address is string => Boolean(address)),
     ),
   ].sort();
 }
@@ -83,7 +83,7 @@ export function getPrimaryService(provider: Provider): string {
  * Get provider's availability status
  */
 export function getAvailabilityStatus(
-  provider: Provider
+  provider: Provider,
 ): 'available' | 'busy' | 'offline' {
   if (provider.status !== 'ACTIVE') return 'offline';
   if (!provider['availabilities'] || provider['availabilities'].length === 0)
@@ -96,7 +96,7 @@ export function getAvailabilityStatus(
  */
 export function calculatePriceWithCommission(
   basePrice: number,
-  commissionRate: number = 0.2
+  commissionRate: number = 0.2,
 ): number {
   return Math.round(basePrice * (1 + commissionRate));
 }
@@ -106,7 +106,7 @@ export function calculatePriceWithCommission(
  */
 export function getCommissionAmount(
   basePrice: number,
-  commissionRate: number = 0.2
+  commissionRate: number = 0.2,
 ): number {
   return Math.round(basePrice * commissionRate);
 }
@@ -116,7 +116,7 @@ export function getCommissionAmount(
  */
 export function getServicePrice(
   provider: Provider,
-  serviceName: string
+  serviceName: string,
 ): number {
   if (!provider['services'] || !Array.isArray(provider['services'])) {
     return (provider as any).price || 0; // Fallback to provider base price
@@ -125,7 +125,7 @@ export function getServicePrice(
   const service = provider['services'].find(
     s =>
       s.name.toLowerCase().includes(serviceName.toLowerCase()) ||
-      serviceName.toLowerCase().includes(s.name.toLowerCase())
+      serviceName.toLowerCase().includes(s.name.toLowerCase()),
   );
 
   return service?.price || (provider as any).price || 0;

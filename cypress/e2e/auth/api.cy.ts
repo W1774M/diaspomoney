@@ -48,7 +48,7 @@ describe('API Authentication', () => {
       expect(response.body.success).to.be.true;
       expect(response.body.user).to.exist;
       expect(response.body.user.email).to.eq(
-        `api.test.${timestamp}@example.com`
+        `api.test.${timestamp}@example.com`,
       );
       expect(response.body.message).to.contain('Compte créé avec succès');
     });
@@ -106,7 +106,7 @@ describe('API Authentication', () => {
         expect(response.status).to.eq(400);
         expect(response.body.success).to.be.false;
         expect(response.body.error).to.contain(
-          'Un compte avec cet email existe déjà'
+          'Un compte avec cet email existe déjà',
         );
       });
     });
@@ -125,7 +125,7 @@ describe('API Authentication', () => {
       expect(response.status).to.eq(400);
       expect(response.body.success).to.be.false;
       expect(response.body.error).to.contain(
-        'Tous les champs obligatoires doivent être remplis'
+        'Tous les champs obligatoires doivent être remplis',
       );
     });
   });
@@ -156,7 +156,7 @@ describe('API Authentication', () => {
       expect(response.status).to.eq(400);
       expect(response.body.success).to.be.false;
       expect(response.body.error).to.contain(
-        'Le mot de passe doit contenir au moins 8 caractères'
+        'Le mot de passe doit contenir au moins 8 caractères',
       );
     });
   });
@@ -187,7 +187,7 @@ describe('API Authentication', () => {
       expect(response.status).to.eq(400);
       expect(response.body.success).to.be.false;
       expect(response.body.error).to.contain(
-        "Vous devez accepter les conditions d'utilisation"
+        "Vous devez accepter les conditions d'utilisation",
       );
     });
   });

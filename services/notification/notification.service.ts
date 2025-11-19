@@ -1,68 +1,51 @@
 /**
  * Notification Service - DiaspoMoney
  * Service de notifications multi-canaux Company-Grade
- * Basé sur la charte de développement
+ *
+ * Implémente les design patterns :
+ * - Singleton Pattern
+ * - Repository Pattern
+ * - Service Layer Pattern
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Decorator Pattern (@Log)
+ * - Error Handling Pattern (Sentry)
+ * - Dependency Injection
  */
 
+import { Cacheable } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { sendEmail } from '@/lib/email/resend';
+import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import type {
+  INotificationRepository,
+  INotificationTemplateRepository,
+} from '@/repositories';
+import {
+  getNotificationRepository,
+  getNotificationTemplateRepository,
+} from '@/repositories';
+import type {
+  Notification,
+  NotificationData,
+  NotificationStats,
+  NotificationTemplate,
+} from '@/types/notifications';
 import * as Sentry from '@sentry/nextjs';
-
-export interface NotificationTemplate {
-  id: string;
-  name: string;
-  subject: string;
-  content: string;
-  variables: string[];
-  channels: NotificationChannel[];
-  locale: string;
-}
-
-export interface NotificationChannel {
-  type: 'EMAIL' | 'SMS' | 'PUSH' | 'WHATSAPP' | 'IN_APP';
-  enabled: boolean;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-}
-
-export interface NotificationData {
-  recipient: string;
-  type: string;
-  template: string;
-  data: Record<string, any>;
-  channels: NotificationChannel[];
-  locale: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  scheduledAt?: Date;
-  expiresAt?: Date;
-}
-
-export interface Notification {
-  id: string;
-  recipient: string;
-  type: string;
-  subject: string;
-  content: string;
-  channels: NotificationChannel[];
-  status: 'PENDING' | 'SENT' | 'DELIVERED' | 'FAILED' | 'EXPIRED';
-  sentAt?: Date;
-  deliveredAt?: Date;
-  failedAt?: Date;
-  failureReason?: string;
-  metadata: Record<string, any>;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface NotificationStats {
-  totalSent: number;
-  deliveryRate: number;
-  failureRate: number;
-  averageDeliveryTime: number;
-  channelBreakdown: Record<string, { sent: number; delivered: number; failed: number }>;
-}
 
 export class NotificationService {
   private static instance: NotificationService;
-  
+  private notificationRepository: INotificationRepository;
+  private templateRepository: INotificationTemplateRepository;
+  private readonly log = childLogger({
+    component: 'NotificationService',
+  });
+
+  private constructor() {
+    this.notificationRepository = getNotificationRepository();
+    this.templateRepository = getNotificationTemplateRepository();
+  }
+
   static getInstance(): NotificationService {
     if (!NotificationService.instance) {
       NotificationService.instance = new NotificationService();
@@ -73,22 +56,46 @@ export class NotificationService {
   /**
    * Envoyer une notification
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   async sendNotification(data: NotificationData): Promise<Notification> {
     try {
       // Validation des données
       if (!data.recipient || !data.type || !data.template) {
-        throw new Error('Données de notification incomplètes');
+        const error = new Error('Données de notification incomplètes');
+        this.log.error(
+          {
+            recipient: data.recipient,
+            type: data.type,
+            template: data.template,
+          },
+          'Invalid notification data',
+        );
+        throw error;
       }
 
-      // Récupérer le template
+      // Récupérer le template depuis le repository
       const template = await this.getTemplate(data.template, data.locale);
       if (!template) {
-        throw new Error(`Template non trouvé: ${data.template}`);
+        const errorMessage = `Template non trouvé: ${data.template} (locale: ${
+          data.locale || 'default'
+        })`;
+        // Enregistrer la métrique d'erreur
+        monitoringManager.recordMetric({
+          name: 'notification_template_not_found',
+          value: 1,
+          timestamp: new Date(),
+          labels: { template: data.template, locale: data.locale || 'default' },
+          type: 'counter',
+        });
+        Sentry.captureException(new Error(errorMessage), {
+          tags: { template: data.template, locale: data.locale },
+        });
+        throw new Error(errorMessage);
       }
 
       // Remplacer les variables dans le template
       const processedContent = this.processTemplate(template, data.data);
-      
+
       // Créer la notification
       const notification: Notification = {
         id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -102,17 +109,19 @@ export class NotificationService {
           template: data.template,
           locale: data.locale,
           priority: data.priority,
-          originalData: data.data
+          originalData: data.data,
         },
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
-      // TODO: Sauvegarder en base de données
-      // await Notification.create(notification);
+      // Sauvegarder en base de données via le repository
+      const savedNotification = await this.notificationRepository.create(
+        notification,
+      );
 
       // Envoyer via les canaux activés
-      await this.sendToChannels(notification);
+      await this.sendToChannels(savedNotification);
 
       // Enregistrer les métriques
       monitoringManager.recordMetric({
@@ -122,15 +131,31 @@ export class NotificationService {
         labels: {
           type: data.type,
           priority: data.priority,
-          locale: data.locale
+          locale: data.locale,
         },
-        type: 'counter'
+        type: 'counter',
       });
 
-      return notification;
+      this.log.info(
+        {
+          notificationId: savedNotification.id,
+          recipient: savedNotification.recipient,
+          type: savedNotification.type,
+        },
+        'Notification sent successfully',
+      );
 
+      return savedNotification;
     } catch (error) {
-      console.error('Erreur sendNotification:', error);
+      this.log.error(
+        {
+          error,
+          recipient: data.recipient,
+          type: data.type,
+          template: data.template,
+        },
+        'Error sending notification',
+      );
       Sentry.captureException(error);
       throw error;
     }
@@ -139,7 +164,12 @@ export class NotificationService {
   /**
    * Envoyer une notification de bienvenue
    */
-  async sendWelcomeNotification(userEmail: string, userName: string, locale: string = 'fr'): Promise<void> {
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  async sendWelcomeNotification(
+    userEmail: string,
+    userName: string,
+    locale: string = 'fr',
+  ): Promise<void> {
     try {
       await this.sendNotification({
         recipient: userEmail,
@@ -148,15 +178,18 @@ export class NotificationService {
         data: {
           userName,
           appName: 'DiaspoMoney',
-          supportEmail: 'support@diaspomoney.fr'
+          supportEmail: 'support@diaspomoney.fr',
         },
         channels: [{ type: 'EMAIL', enabled: true, priority: 'MEDIUM' }],
         locale,
-        priority: 'MEDIUM'
+        priority: 'MEDIUM',
       });
-
     } catch (error) {
-      console.error('Erreur sendWelcomeNotification:', error);
+      this.log.error(
+        { error, userEmail, userName },
+        'Error sending welcome notification',
+      );
+      Sentry.captureException(error);
       throw error;
     }
   }
@@ -164,12 +197,13 @@ export class NotificationService {
   /**
    * Envoyer une notification de succès de paiement
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   async sendPaymentSuccessNotification(
     userEmail: string,
     amount: number,
     currency: string,
     serviceName: string,
-    locale: string = 'fr'
+    locale: string = 'fr',
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -180,18 +214,21 @@ export class NotificationService {
           amount,
           currency,
           serviceName,
-          transactionDate: new Date().toLocaleDateString(locale)
+          transactionDate: new Date().toLocaleDateString(locale),
         },
         channels: [
           { type: 'EMAIL', enabled: true, priority: 'HIGH' },
-          { type: 'PUSH', enabled: true, priority: 'HIGH' }
+          { type: 'PUSH', enabled: true, priority: 'HIGH' },
         ],
         locale,
-        priority: 'HIGH'
+        priority: 'HIGH',
       });
-
     } catch (error) {
-      console.error('Erreur sendPaymentSuccessNotification:', error);
+      this.log.error(
+        { error, userEmail, amount, currency },
+        'Error sending payment success notification',
+      );
+      Sentry.captureException(error);
       throw error;
     }
   }
@@ -199,12 +236,13 @@ export class NotificationService {
   /**
    * Envoyer une notification d'échec de paiement
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   async sendPaymentFailedNotification(
     userEmail: string,
     amount: number,
     currency: string,
     reason: string,
-    locale: string = 'fr'
+    locale: string = 'fr',
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -215,18 +253,21 @@ export class NotificationService {
           amount,
           currency,
           reason,
-          supportEmail: 'support@diaspomoney.fr'
+          supportEmail: 'support@diaspomoney.fr',
         },
         channels: [
           { type: 'EMAIL', enabled: true, priority: 'HIGH' },
-          { type: 'SMS', enabled: true, priority: 'URGENT' }
+          { type: 'SMS', enabled: true, priority: 'URGENT' },
         ],
         locale,
-        priority: 'HIGH'
+        priority: 'HIGH',
       });
-
     } catch (error) {
-      console.error('Erreur sendPaymentFailedNotification:', error);
+      this.log.error(
+        { error, userEmail, amount, reason },
+        'Error sending payment failed notification',
+      );
+      Sentry.captureException(error);
       throw error;
     }
   }
@@ -234,10 +275,11 @@ export class NotificationService {
   /**
    * Envoyer une notification KYC approuvé
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   async sendKYCApprovedNotification(
     userEmail: string,
     userName: string,
-    locale: string = 'fr'
+    locale: string = 'fr',
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -246,18 +288,21 @@ export class NotificationService {
         template: 'kyc_approved',
         data: {
           userName,
-          appName: 'DiaspoMoney'
+          appName: 'DiaspoMoney',
         },
         channels: [
           { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
-          { type: 'PUSH', enabled: true, priority: 'MEDIUM' }
+          { type: 'PUSH', enabled: true, priority: 'MEDIUM' },
         ],
         locale,
-        priority: 'MEDIUM'
+        priority: 'MEDIUM',
       });
-
     } catch (error) {
-      console.error('Erreur sendKYCApprovedNotification:', error);
+      this.log.error(
+        { error, userEmail, userName },
+        'Error sending KYC approved notification',
+      );
+      Sentry.captureException(error);
       throw error;
     }
   }
@@ -265,10 +310,11 @@ export class NotificationService {
   /**
    * Envoyer un code 2FA
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   async send2FACode(
     userPhone: string,
     code: string,
-    locale: string = 'fr'
+    locale: string = 'fr',
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -278,18 +324,16 @@ export class NotificationService {
         data: {
           code,
           appName: 'DiaspoMoney',
-          expiresIn: '5 minutes'
+          expiresIn: '5 minutes',
         },
-        channels: [
-          { type: 'SMS', enabled: true, priority: 'URGENT' }
-        ],
+        channels: [{ type: 'SMS', enabled: true, priority: 'URGENT' }],
         locale,
         priority: 'URGENT',
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
       });
-
     } catch (error) {
-      console.error('Erreur send2FACode:', error);
+      this.log.error({ error, userPhone }, 'Error sending 2FA code');
+      Sentry.captureException(error);
       throw error;
     }
   }
@@ -297,12 +341,13 @@ export class NotificationService {
   /**
    * Envoyer un rappel de rendez-vous
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   async sendAppointmentReminder(
     userEmail: string,
     appointmentDate: Date,
     serviceName: string,
     providerName: string,
-    locale: string = 'fr'
+    locale: string = 'fr',
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -313,96 +358,145 @@ export class NotificationService {
           appointmentDate: appointmentDate.toLocaleDateString(locale),
           appointmentTime: appointmentDate.toLocaleTimeString(locale),
           serviceName,
-          providerName
+          providerName,
         },
         channels: [
           { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
-          { type: 'PUSH', enabled: true, priority: 'MEDIUM' }
+          { type: 'PUSH', enabled: true, priority: 'MEDIUM' },
         ],
         locale,
         priority: 'MEDIUM',
-        scheduledAt: new Date(appointmentDate.getTime() - 24 * 60 * 60 * 1000) // 24h avant
+        scheduledAt: new Date(appointmentDate.getTime() - 24 * 60 * 60 * 1000), // 24h avant
       });
-
     } catch (error) {
-      console.error('Erreur sendAppointmentReminder:', error);
+      this.log.error(
+        { error, userEmail, appointmentDate, serviceName },
+        'Error sending appointment reminder',
+      );
+      Sentry.captureException(error);
       throw error;
     }
   }
 
   /**
-   * Récupérer un template
+   * Récupérer un template depuis le repository ou utiliser les templates par défaut
    */
-  private async getTemplate(templateName: string, locale: string): Promise<NotificationTemplate | null> {
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'NotificationService:getTemplate' }) // Cache 5 minutes
+  private async getTemplate(
+    templateName: string,
+    locale: string,
+  ): Promise<NotificationTemplate | null> {
     try {
-      // TODO: Récupérer depuis la base de données
-      // const template = await NotificationTemplate.findOne({ 
-      //   name: templateName, 
-      //   locale 
-      // });
+      // Essayer de récupérer depuis la base de données
+      const dbTemplate = await this.templateRepository.findByNameAndLocale(
+        templateName,
+        locale,
+      );
+      if (dbTemplate) {
+        this.log.debug({ templateName, locale }, 'Template found in database');
+        return dbTemplate;
+      }
 
-      // Templates par défaut
+      // Fallback sur les templates par défaut
       const defaultTemplates: Record<string, NotificationTemplate> = {
-        'welcome': {
+        welcome: {
           id: 'welcome',
           name: 'welcome',
           subject: 'Bienvenue sur DiaspoMoney',
-          content: 'Bonjour {{userName}}, bienvenue sur {{appName}} ! Votre compte a été créé avec succès.',
+          content:
+            'Bonjour {{userName}}, bienvenue sur {{appName}} ! Votre compte a été créé avec succès.',
           variables: ['userName', 'appName'],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'MEDIUM' }],
-          locale
+          locale,
         },
-        'payment_success': {
+        payment_success: {
           id: 'payment_success',
           name: 'payment_success',
           subject: 'Paiement confirmé - {{serviceName}}',
-          content: 'Votre paiement de {{amount}} {{currency}} pour {{serviceName}} a été confirmé le {{transactionDate}}.',
+          content:
+            'Votre paiement de {{amount}} {{currency}} pour {{serviceName}} a été confirmé le {{transactionDate}}.',
           variables: ['amount', 'currency', 'serviceName', 'transactionDate'],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'HIGH' }],
-          locale
+          locale,
         },
-        'payment_failed': {
+        payment_failed: {
           id: 'payment_failed',
           name: 'payment_failed',
           subject: 'Échec du paiement',
-          content: 'Votre paiement de {{amount}} {{currency}} a échoué. Raison: {{reason}}. Contactez {{supportEmail}} pour assistance.',
+          content:
+            'Votre paiement de {{amount}} {{currency}} a échoué. Raison: {{reason}}. Contactez {{supportEmail}} pour assistance.',
           variables: ['amount', 'currency', 'reason', 'supportEmail'],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'HIGH' }],
-          locale
+          locale,
         },
-        'kyc_approved': {
+        kyc_approved: {
           id: 'kyc_approved',
           name: 'kyc_approved',
-          subject: 'Vérification d\'identité approuvée',
-          content: 'Bonjour {{userName}}, votre vérification d\'identité a été approuvée. Vous pouvez maintenant utiliser tous les services de {{appName}}.',
+          subject: "Vérification d'identité approuvée",
+          content:
+            "Bonjour {{userName}}, votre vérification d'identité a été approuvée. Vous pouvez maintenant utiliser tous les services de {{appName}}.",
           variables: ['userName', 'appName'],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'MEDIUM' }],
-          locale
+          locale,
         },
         '2fa_code': {
           id: '2fa_code',
           name: '2fa_code',
           subject: 'Code de vérification',
-          content: 'Votre code de vérification {{appName}} est: {{code}}. Valide {{expiresIn}}.',
+          content:
+            'Votre code de vérification {{appName}} est: {{code}}. Valide {{expiresIn}}.',
           variables: ['code', 'appName', 'expiresIn'],
           channels: [{ type: 'SMS', enabled: true, priority: 'URGENT' }],
-          locale
+          locale,
         },
-        'appointment_reminder': {
+        appointment_reminder: {
           id: 'appointment_reminder',
           name: 'appointment_reminder',
           subject: 'Rappel de rendez-vous',
-          content: 'Rappel: Vous avez un rendez-vous le {{appointmentDate}} à {{appointmentTime}} avec {{providerName}} pour {{serviceName}}.',
-          variables: ['appointmentDate', 'appointmentTime', 'providerName', 'serviceName'],
+          content:
+            'Rappel: Vous avez un rendez-vous le {{appointmentDate}} à {{appointmentTime}} avec {{providerName}} pour {{serviceName}}.',
+          variables: [
+            'appointmentDate',
+            'appointmentTime',
+            'providerName',
+            'serviceName',
+          ],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'MEDIUM' }],
-          locale
-        }
+          locale,
+        },
+        dispute_created: {
+          id: 'dispute_created',
+          name: 'dispute_created',
+          subject: 'Dispute créée - Transaction {{transactionId}}',
+          content:
+            'Une dispute a été créée pour la transaction {{transactionId}}. Montant: {{amount}} {{currency}}. Raison: {{reason}}. Client: {{customerId}}.',
+          variables: [
+            'disputeId',
+            'transactionId',
+            'amount',
+            'currency',
+            'reason',
+            'customerId',
+          ],
+          channels: [{ type: 'EMAIL', enabled: true, priority: 'URGENT' }],
+          locale,
+        },
       };
 
-      return defaultTemplates[templateName] || null;
-
+      const template = defaultTemplates[templateName] || null;
+      if (template) {
+        this.log.debug({ templateName, locale }, 'Using default template');
+      } else {
+        this.log.warn(
+          { templateName, locale },
+          'Template not found in database or defaults',
+        );
+      }
+      return template;
     } catch (error) {
-      console.error('Erreur getTemplate:', error);
+      this.log.error({ error, templateName, locale }, 'Error getting template');
+      Sentry.captureException(error);
       return null;
     }
   }
@@ -410,7 +504,10 @@ export class NotificationService {
   /**
    * Traiter un template avec les variables
    */
-  private processTemplate(template: NotificationTemplate, data: Record<string, any>): { subject: string; content: string } {
+  private processTemplate(
+    template: NotificationTemplate,
+    data: Record<string, any>,
+  ): { subject: string; content: string } {
     let subject = template.subject;
     let content = template.content;
 
@@ -450,113 +547,221 @@ export class NotificationService {
             break;
         }
       } catch (error) {
-        console.error(`Erreur envoi ${channel.type}:`, error);
+        this.log.error(
+          { error, channel: channel.type, notificationId: notification.id },
+          `Error sending notification via ${channel.type}`,
+        );
+        // Mettre à jour le statut de la notification en cas d'erreur
+        await this.notificationRepository.updateStatus(
+          notification.id,
+          'FAILED',
+          {
+            failedAt: new Date(),
+            failureReason: `Erreur lors de l'envoi via ${channel.type}: ${
+              error instanceof Error ? error.message : 'Unknown error'
+            }`,
+          },
+        );
         // Continuer avec les autres canaux
       }
     }
   }
 
   /**
-   * Envoyer un email
+   * Envoyer un email via Resend
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   private async sendEmail(notification: Notification): Promise<void> {
     try {
-      // TODO: Intégrer avec SendGrid ou Resend
-      console.log(`Email envoyé à ${notification.recipient}: ${notification.subject}`);
-      
-      // Simulation d'envoi
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const emailSent = await sendEmail({
+        to: notification.recipient,
+        subject: notification.subject,
+        html: notification.content.replace(/\n/g, '<br>'),
+        text: notification.content,
+        tags: [
+          { name: 'notification_type', value: notification.type },
+          { name: 'notification_id', value: notification.id },
+        ],
+      });
 
+      if (emailSent) {
+        // Mettre à jour le statut de la notification
+        await this.notificationRepository.updateStatus(
+          notification.id,
+          'SENT',
+          { sentAt: new Date() },
+        );
+        this.log.info(
+          {
+            notificationId: notification.id,
+            recipient: notification.recipient,
+          },
+          'Email sent successfully',
+        );
+      } else {
+        throw new Error('Failed to send email via Resend');
+      }
     } catch (error) {
-      console.error('Erreur sendEmail:', error);
+      this.log.error(
+        {
+          error,
+          notificationId: notification.id,
+          recipient: notification.recipient,
+        },
+        'Error sending email',
+      );
+      Sentry.captureException(error);
       throw error;
     }
   }
 
   /**
    * Envoyer un SMS
+   * TODO: Intégrer avec Twilio ou un autre service SMS
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   private async sendSMS(notification: Notification): Promise<void> {
     try {
       // TODO: Intégrer avec Twilio
-      console.log(`SMS envoyé à ${notification.recipient}: ${notification.content}`);
-      
-      // Simulation d'envoi
+      this.log.info(
+        {
+          notificationId: notification.id,
+          recipient: notification.recipient,
+          content: notification.content,
+        },
+        'SMS sending (not implemented yet)',
+      );
+
+      // Simulation d'envoi pour le moment
       await new Promise(resolve => setTimeout(resolve, 50));
 
+      // Mettre à jour le statut de la notification
+      await this.notificationRepository.updateStatus(notification.id, 'SENT', {
+        sentAt: new Date(),
+      });
     } catch (error) {
-      console.error('Erreur sendSMS:', error);
+      this.log.error(
+        { error, notificationId: notification.id },
+        'Error sending SMS',
+      );
+      Sentry.captureException(error);
       throw error;
     }
   }
 
   /**
    * Envoyer une notification push
+   * TODO: Intégrer avec Firebase Cloud Messaging
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   private async sendPush(notification: Notification): Promise<void> {
     try {
-      // TODO: Intégrer avec Firebase
-      console.log(`Push envoyé à ${notification.recipient}: ${notification.subject}`);
-      
-      // Simulation d'envoi
+      // TODO: Intégrer avec Firebase Cloud Messaging
+      this.log.info(
+        {
+          notificationId: notification.id,
+          recipient: notification.recipient,
+          subject: notification.subject,
+        },
+        'Push notification sending (not implemented yet)',
+      );
+
+      // Simulation d'envoi pour le moment
       await new Promise(resolve => setTimeout(resolve, 30));
 
+      // Mettre à jour le statut de la notification
+      await this.notificationRepository.updateStatus(notification.id, 'SENT', {
+        sentAt: new Date(),
+      });
     } catch (error) {
-      console.error('Erreur sendPush:', error);
+      this.log.error(
+        { error, notificationId: notification.id },
+        'Error sending push notification',
+      );
+      Sentry.captureException(error);
       throw error;
     }
   }
 
   /**
    * Envoyer un WhatsApp
+   * TODO: Intégrer avec WhatsApp Business API
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   private async sendWhatsApp(notification: Notification): Promise<void> {
     try {
       // TODO: Intégrer avec WhatsApp Business API
-      console.log(`WhatsApp envoyé à ${notification.recipient}: ${notification.content}`);
-      
-      // Simulation d'envoi
+      this.log.info(
+        {
+          notificationId: notification.id,
+          recipient: notification.recipient,
+          content: notification.content,
+        },
+        'WhatsApp sending (not implemented yet)',
+      );
+
+      // Simulation d'envoi pour le moment
       await new Promise(resolve => setTimeout(resolve, 200));
 
+      // Mettre à jour le statut de la notification
+      await this.notificationRepository.updateStatus(notification.id, 'SENT', {
+        sentAt: new Date(),
+      });
     } catch (error) {
-      console.error('Erreur sendWhatsApp:', error);
+      this.log.error(
+        { error, notificationId: notification.id },
+        'Error sending WhatsApp',
+      );
+      Sentry.captureException(error);
       throw error;
     }
   }
 
   /**
    * Envoyer une notification in-app
+   * La notification est déjà sauvegardée en base de données
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   private async sendInApp(notification: Notification): Promise<void> {
     try {
-      // TODO: Sauvegarder en base de données pour affichage in-app
-      console.log(`Notification in-app pour ${notification.recipient}: ${notification.subject}`);
-      
-      // Simulation d'envoi
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // La notification est déjà sauvegardée en base de données via sendNotification
+      // On marque simplement comme envoyée
+      await this.notificationRepository.updateStatus(notification.id, 'SENT', {
+        sentAt: new Date(),
+      });
 
+      this.log.info(
+        {
+          notificationId: notification.id,
+          recipient: notification.recipient,
+        },
+        'In-app notification saved',
+      );
     } catch (error) {
-      console.error('Erreur sendInApp:', error);
+      this.log.error(
+        { error, notificationId: notification.id },
+        'Error saving in-app notification',
+      );
+      Sentry.captureException(error);
       throw error;
     }
   }
 
   /**
-   * Obtenir les statistiques des notifications
+   * Obtenir les statistiques des notifications depuis le repository
    */
-  async getNotificationStats(_period: 'day' | 'week' | 'month' = 'day'): Promise<NotificationStats> {
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'NotificationService:getNotificationStats' }) // Cache 5 minutes
+  async getNotificationStats(
+    period: 'day' | 'week' | 'month' = 'day',
+  ): Promise<NotificationStats> {
     try {
-      // TODO: Calculer les statistiques depuis la base de données
-      return {
-        totalSent: 0,
-        deliveryRate: 0,
-        failureRate: 0,
-        averageDeliveryTime: 0,
-        channelBreakdown: {}
-      };
-
+      const stats = await this.notificationRepository.getStats(period);
+      this.log.debug({ period, stats }, 'Notification stats retrieved');
+      return stats;
     } catch (error) {
-      console.error('Erreur getNotificationStats:', error);
+      this.log.error({ error, period }, 'Error getting notification stats');
+      Sentry.captureException(error);
       throw error;
     }
   }
@@ -564,4 +769,3 @@ export class NotificationService {
 
 // Export de l'instance singleton
 export const notificationService = NotificationService.getInstance();
-

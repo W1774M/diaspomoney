@@ -16,7 +16,7 @@ function getFileType(pathname: string): string | null {
 
   if (
     ['jpg', 'jpeg', 'png', 'webp', 'svg', 'gif', 'avif'].includes(
-      extension || ''
+      extension || '',
     )
   ) {
     return 'images';
@@ -32,7 +32,7 @@ function getFileType(pathname: string): string | null {
 // Fonction pour appliquer les règles de cache
 function applyCacheHeaders(
   response: NextResponse,
-  _fileType: string
+  _fileType: string,
 ): NextResponse {
   const rule = CACHE_RULES.find(r => {
     const extensions = r.pattern
@@ -44,7 +44,7 @@ function applyCacheHeaders(
   if (rule) {
     response.headers.set(
       'Cache-Control',
-      `public, max-age=${rule.ttl}, immutable`
+      `public, max-age=${rule.ttl}, immutable`,
     );
     response.headers.set('CDN-Cache-Control', `max-age=${rule.ttl}`);
     response.headers.set('Vary', 'Accept-Encoding');
@@ -107,7 +107,7 @@ function applyCacheHeaders(
 // Fonction pour gérer la compression
 function handleCompression(
   request: NextRequest,
-  response: NextResponse
+  response: NextResponse,
 ): NextResponse {
   // Note: Normally, compression is handled by Next.js or the CDN,
   // not at the middleware level in Next.js 13+

@@ -1,14 +1,25 @@
 'use client';
 
+import { useInvoiceCreate, useInvoiceUsers } from '@/hooks/invoices';
+import { formatCurrency } from '@/lib/invoices/utils';
 import { IInvoice, INVOICE_STATUSES, InvoiceStatus } from '@/types';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+/**
+ * Page de création d'une nouvelle facture
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (via useInvoiceCreate, useInvoiceUsers, useAuth)
+ * - Service Layer Pattern (via les hooks qui appellent les API)
+ * - Logger Pattern (structured logging côté serveur via les API routes)
+ * - Error Handling Pattern (gestion d'erreurs via les hooks et notifications)
+ */
 export default function NewInvoicePage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const { createInvoice, creating } = useInvoiceCreate();
+  const { customers, providers, loading: usersLoading } = useInvoiceUsers();
   const [formData, setFormData] = useState({
     invoiceNumber: '',
     customerId: '',
@@ -94,34 +105,32 @@ export default function NewInvoicePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
-    try {
-      // Simuler un appel API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    // Valider que tous les items
+    const validItems = formData.items.filter(
+      item => item.description && item.quantity > 0 && item.unitPrice > 0,
+    );
 
-      const newInvoice: Partial<IInvoice> = {
-        invoiceNumber: formData.invoiceNumber,
-        customerId: formData.customerId,
-        providerId: formData.providerId,
-        currency: formData.currency,
-        status: formData.status,
-        notes: formData.notes,
-        items: formData.items,
-        amount: calculateTotal(),
-        userId: 'user1', // À remplacer par l'ID de l'utilisateur connecté
-        ...(formData.issueDate && { issueDate: new Date(formData.issueDate) }),
-        ...(formData.dueDate && { dueDate: new Date(formData.dueDate) }),
-      };
+    if (validItems.length === 0) {
+      return;
+    }
 
-      console.log('Nouvelle facture:', newInvoice);
-      alert('Facture créée avec succès !');
-      router.push('/invoices');
-    } catch (error) {
-      console.error('Erreur lors de la création:', error);
-      alert('Erreur lors de la création de la facture');
-    } finally {
-      setLoading(false);
+    const newInvoice: Partial<IInvoice> = {
+      ...(formData.invoiceNumber && { invoiceNumber: formData.invoiceNumber }), // Le service génère automatiquement si vide
+      customerId: formData.customerId,
+      ...(formData.providerId && { providerId: formData.providerId }),
+      currency: formData.currency,
+      status: formData.status,
+      ...(formData.notes && { notes: formData.notes }),
+      items: validItems,
+      ...(formData.issueDate && { issueDate: new Date(formData.issueDate) }),
+      ...(formData.dueDate && { dueDate: new Date(formData.dueDate) }),
+    };
+
+    const createdInvoice = await createInvoice(newInvoice);
+
+    if (createdInvoice) {
+      router.push(`/dashboard/invoices/${createdInvoice._id}`);
     }
   };
 
@@ -177,11 +186,16 @@ export default function NewInvoicePage() {
                 onChange={e => handleInputChange('customerId', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
                 required
+                disabled={usersLoading}
               >
-                <option value=''>Sélectionner un client</option>
-                <option value='1'>Jean Dupont - Entreprise ABC</option>
-                <option value='2'>Marie Martin - Société XYZ</option>
-                <option value='3'>Pierre Durand - Startup Innov</option>
+                <option value=''>
+                  {usersLoading ? 'Chargement...' : 'Sélectionner un client'}
+                </option>
+                {customers.map(customer => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -194,9 +208,18 @@ export default function NewInvoicePage() {
                 value={formData.providerId}
                 onChange={e => handleInputChange('providerId', e.target.value)}
                 className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                disabled={usersLoading}
               >
-                <option value=''>Sélectionner un prestataire</option>
-                <option value='4'>Dr. Sarah Smith - Cardiologie</option>
+                <option value=''>
+                  {usersLoading
+                    ? 'Chargement...'
+                    : 'Sélectionner un prestataire'}
+                </option>
+                {providers.map(provider => (
+                  <option key={provider.id} value={provider.id}>
+                    {provider.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -329,7 +352,7 @@ export default function NewInvoicePage() {
                         handleItemChange(
                           index,
                           'quantity',
-                          parseInt(e.target.value)
+                          parseInt(e.target.value),
                         )
                       }
                       className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -351,7 +374,7 @@ export default function NewInvoicePage() {
                         handleItemChange(
                           index,
                           'unitPrice',
-                          parseFloat(e.target.value)
+                          parseFloat(e.target.value),
                         )
                       }
                       className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
@@ -365,10 +388,7 @@ export default function NewInvoicePage() {
                         Total
                       </label>
                       <div className='px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900'>
-                        {new Intl.NumberFormat('fr-FR', {
-                          style: 'currency',
-                          currency: formData.currency,
-                        }).format(item.total)}
+                        {formatCurrency(item.total, formData.currency)}
                       </div>
                     </div>
                     {formData.items.length > 1 && (
@@ -392,11 +412,7 @@ export default function NewInvoicePage() {
             <div className='flex justify-end'>
               <div className='text-right'>
                 <div className='text-lg font-semibold text-gray-900'>
-                  Total:{' '}
-                  {new Intl.NumberFormat('fr-FR', {
-                    style: 'currency',
-                    currency: formData.currency,
-                  }).format(calculateTotal())}
+                  Total: {formatCurrency(calculateTotal(), formData.currency)}
                 </div>
               </div>
             </div>
@@ -413,10 +429,10 @@ export default function NewInvoicePage() {
           </Link>
           <button
             type='submit'
-            disabled={loading}
+            disabled={creating || usersLoading}
             className='px-6 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
           >
-            {loading ? 'Création...' : 'Créer la facture'}
+            {creating ? 'Création...' : 'Créer la facture'}
           </button>
         </div>
       </form>

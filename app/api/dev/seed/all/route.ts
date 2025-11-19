@@ -23,13 +23,27 @@ function normalizeUserRoles(roles: string[] | undefined): string[] {
   return Array.from(out);
 }
 
+/**
+ * Route de développement pour seed la base de données
+ * ⚠️ DÉSACTIVÉE EN PRODUCTION
+ * Utilise les données mock pour peupler la base de données de développement
+ * 
+ * Seed les collections suivantes :
+ * - users
+ * - partners
+ * - specialities
+ * - bookings
+ * - invoices
+ */
 export async function POST(request: NextRequest) {
   const reqId = request.headers.get("x-request-id") || undefined;
   const log = childLogger({ requestId: reqId, route: "dev/seed/all" });
+  
+  // Protection : Désactiver en production
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json(
       { error: "Forbidden in production" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -73,7 +87,7 @@ export async function POST(request: NextRequest) {
       const res = await usersCol.updateOne(
         { email: u.email },
         { $set: doc },
-        { upsert: true }
+        { upsert: true },
       );
       if (res.upsertedCount || res.modifiedCount) usersUpserted += 1;
     }
@@ -95,7 +109,7 @@ export async function POST(request: NextRequest) {
       const res = await partnersCol.updateOne(
         { website: p.website },
         { $set: doc },
-        { upsert: true }
+        { upsert: true },
       );
       if (res.upsertedCount || res.modifiedCount) partnersUpserted += 1;
     }
@@ -111,7 +125,7 @@ export async function POST(request: NextRequest) {
       const res = await specsCol.updateOne(
         { name: s.name },
         { $set: doc },
-        { upsert: true }
+        { upsert: true },
       );
       if (res.upsertedCount || res.modifiedCount) specsUpserted += 1;
     }
@@ -138,7 +152,7 @@ export async function POST(request: NextRequest) {
       const res = await bookingsCol.updateOne(
         { reservationNumber: b.reservationNumber },
         { $set: doc },
-        { upsert: true }
+        { upsert: true },
       );
       if (res.upsertedCount || res.modifiedCount) bookingsUpserted += 1;
     }
@@ -164,7 +178,7 @@ export async function POST(request: NextRequest) {
       const res = await invoicesCol.updateOne(
         { invoiceNumber: inv.invoiceNumber },
         { $set: doc },
-        { upsert: true }
+        { upsert: true },
       );
       if (res.upsertedCount || res.modifiedCount) invoicesUpserted += 1;
     }

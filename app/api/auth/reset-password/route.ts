@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     if (!token || !password) {
       return NextResponse.json(
         { error: "Token et nouveau mot de passe requis" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     if (password.length < 8) {
       return NextResponse.json(
         { error: "Le mot de passe doit contenir au moins 8 caractères" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
           error: "Token de réinitialisation invalide",
           reason: "invalid_token",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
           error: "Le lien de réinitialisation a expiré",
           reason: "expired_token",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -68,13 +68,13 @@ export async function POST(request: NextRequest) {
           passwordResetToken: "",
           passwordResetExpires: "",
         },
-      }
+      },
     );
 
     if (updateResult.modifiedCount === 0) {
       return NextResponse.json(
         { error: "Erreur lors de la mise à jour du mot de passe" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -85,13 +85,13 @@ export async function POST(request: NextRequest) {
         success: true,
         message: "Mot de passe réinitialisé avec succès",
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Erreur lors de la réinitialisation du mot de passe:", error);
     return NextResponse.json(
       { error: "Erreur interne du serveur" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

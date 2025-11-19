@@ -32,7 +32,7 @@ const EmailVerificationTokenSchema = new Schema<EmailVerificationToken>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index pour améliorer les performances
@@ -43,5 +43,5 @@ const EmailVerificationTokenSchema = new Schema<EmailVerificationToken>(
 export default mongoose.models["EmailVerificationToken"] ||
   mongoose.model<EmailVerificationToken>(
     "EmailVerificationToken",
-    EmailVerificationTokenSchema
+    EmailVerificationTokenSchema,
   );

@@ -29,7 +29,7 @@ const userDefinition = {
   },
   roles: {
     type: [String],
-    enum: ['ADMIN', 'PROVIDER', 'CUSTOMER', 'BENEFICIARY', 'CSM'],
+    enum: ['SUPERADMIN', 'ADMIN', 'PROVIDER', 'CUSTOMER', 'BENEFICIARY', 'CSM'],
     default: ['CUSTOMER'],
   },
   status: {
@@ -300,8 +300,14 @@ const userDefinition = {
     trim: true,
   },
   monthlyBudget: {
-    type: String,
-    trim: true,
+    type: Number,
+    default: 1000,
+    min: 0,
+  },
+  annualBudget: {
+    type: Number,
+    default: 12000,
+    min: 0,
   },
   securityQuestion: {
     type: String,
@@ -354,7 +360,7 @@ UserSchema.pre('save', async function (next) {
 
 // Méthode pour comparer les mots de passe
 UserSchema.methods['comparePassword'] = async function (
-  candidatePassword: string
+  candidatePassword: string,
 ): Promise<boolean> {
   if (!this['password']) return false;
   return bcrypt.compare(candidatePassword, this['password']);

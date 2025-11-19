@@ -217,9 +217,32 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
     setIsSubmitting(true);
 
     try {
-      // TODO: Envoyer la demande de devis (simulate)
-      // console.log('Demande de devis BTP:', formData);
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Envoyer la demande de devis via l'API
+      const response = await fetch('/api/btp/quote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          area:
+            typeof formData.area === 'string'
+              ? parseInt(formData.area)
+              : formData.area,
+          budget:
+            typeof formData.budget === 'string'
+              ? parseInt(formData.budget)
+              : formData.budget,
+          providerId: provider?.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Erreur lors de l'envoi de la demande");
+      }
+
       alert('Votre demande de devis a été envoyée avec succès !');
       setFormData({
         projectType: '',
@@ -242,9 +265,13 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
       setEstimatedCost(null);
       setFormErrors({});
     } catch (error) {
-      // eslint-disable-next-line no-console
+       
       console.error('Erreur envoi devis:', error);
-      alert("Erreur lors de l'envoi de la demande");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de l'envoi de la demande",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -386,12 +413,12 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                               : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
                           }`}
                           aria-pressed={formData.features.includes(
-                            feature.value
+                            feature.value,
                           )}
                         >
                           {feature.label}
                         </Button>
-                      )
+                      ),
                     )}
                   </div>
                 </div>

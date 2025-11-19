@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { error: 'Utilisateur introuvable' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (user['oauth']?.facebook?.linked) linkedOAuthAccounts.push('facebook');
 
     const willHaveLinkedAccounts = linkedOAuthAccounts.filter(
-      acc => acc !== provider
+      acc => acc !== provider,
     );
 
     if (!hasPassword && willHaveLinkedAccounts.length === 0) {
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
           error:
             'Impossible de dissocier ce compte. Vous devez avoir au moins un mot de passe actif ou un autre compte social lié pour pouvoir vous connecter.',
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     if (result.matchedCount === 0) {
       return NextResponse.json(
         { error: 'Utilisateur introuvable' },
-        { status: 404 }
+        { status: 404 },
       );
     }
 

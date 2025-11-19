@@ -32,7 +32,7 @@ const PasswordResetTokenSchema = new Schema<PasswordResetToken>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index pour améliorer les performances
@@ -43,5 +43,5 @@ const PasswordResetTokenSchema = new Schema<PasswordResetToken>(
 export default mongoose.models["PasswordResetToken"] ||
   mongoose.model<PasswordResetToken>(
     "PasswordResetToken",
-    PasswordResetTokenSchema
+    PasswordResetTokenSchema,
   );

@@ -1,56 +1,34 @@
 /**
  * PCI-DSS Compliance - DiaspoMoney
  * Conformité PCI-DSS pour la sécurité des paiements
+ *
+ * Implémente les design patterns :
+ * - Repository Pattern (via IPCIAuditLogRepository)
+ * - Dependency Injection (via getPCIAuditLogRepository)
+ * - Logger Pattern (structured logging avec childLogger)
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache dans le repository)
+ * - Singleton Pattern (PCIDSSCompliance)
+ * - Error Handling Pattern (Sentry)
  */
 
+import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import { getPCIAuditLogRepository } from '@/repositories';
+import type {
+  PCIAuditLog,
+  PCIDataFlow,
+  PCIFinding,
+  PCISecurityScan,
+} from '@/types/pci';
 import * as Sentry from '@sentry/nextjs';
 import { fieldEncryption } from './field-encryption';
 
-export interface PCIAuditLog {
-  id: string;
-  timestamp: Date;
-  event: string;
-  userId?: string | undefined;
-  transactionId?: string | undefined;
-  ipAddress: string;
-  userAgent: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  details: Record<string, any>;
-  complianceStatus: 'COMPLIANT' | 'NON_COMPLIANT' | 'REVIEW_REQUIRED';
-}
-
-export interface PCISecurityScan {
-  id: string;
-  timestamp: Date;
-  scanType: 'VULNERABILITY' | 'PENETRATION' | 'COMPLIANCE' | 'NETWORK';
-  status: 'PASSED' | 'FAILED' | 'WARNING';
-  findings: PCIFinding[];
-  remediationSteps: string[];
-}
-
-export interface PCIFinding {
-  id: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  category: 'NETWORK' | 'APPLICATION' | 'DATA' | 'ACCESS' | 'ENCRYPTION';
-  description: string;
-  recommendation: string;
-  cveId?: string;
-  cvssScore?: number;
-}
-
-export interface PCIDataFlow {
-  id: string;
-  source: string;
-  destination: string;
-  dataType: 'CARD_DATA' | 'AUTH_DATA' | 'PERSONAL_DATA';
-  encryptionStatus: 'ENCRYPTED' | 'UNENCRYPTED' | 'PARTIALLY_ENCRYPTED';
-  transmissionMethod: 'HTTPS' | 'TLS' | 'SFTP' | 'API';
-  complianceStatus: 'COMPLIANT' | 'NON_COMPLIANT';
-}
-
 export class PCIDSSCompliance {
   private static instance: PCIDSSCompliance;
+  private readonly pciAuditLogRepository = getPCIAuditLogRepository();
+  private readonly log = childLogger({
+    component: 'PCIDSSCompliance',
+  });
 
   static getInstance(): PCIDSSCompliance {
     if (!PCIDSSCompliance.instance) {
@@ -67,14 +45,16 @@ export class PCIDSSCompliance {
     userId?: string,
     transactionId?: string,
     details: Record<string, any> = {},
-    severity: PCIAuditLog['severity'] = 'LOW'
+    severity: PCIAuditLog['severity'] = 'LOW',
   ): Promise<void> {
     try {
       const auditLog: Omit<PCIAuditLog, 'userId' | 'transactionId'> & {
         userId?: string | undefined;
         transactionId?: string | undefined;
       } = {
-        id: `pci_audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `pci_audit_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`,
         timestamp: new Date(),
         event,
         userId: userId ?? undefined,
@@ -86,8 +66,18 @@ export class PCIDSSCompliance {
         complianceStatus: this.assessComplianceStatus(event, details),
       };
 
-      // TODO: Sauvegarder en base de données
-      // await PCIAuditLog.create(auditLog);
+      // Sauvegarder en base de données via le repository
+      await this.pciAuditLogRepository.create(auditLog);
+
+      this.log.debug(
+        {
+          auditLogId: auditLog.id,
+          event: auditLog.event,
+          severity: auditLog.severity,
+          complianceStatus: auditLog.complianceStatus,
+        },
+        'PCI audit log saved to database',
+      );
 
       // Envoyer à Sentry si critique
       if (severity === 'CRITICAL') {
@@ -110,8 +100,17 @@ export class PCIDSSCompliance {
         type: 'counter',
       });
     } catch (error) {
-      console.error('❌ PCI audit logging error:', error);
-      Sentry.captureException(error);
+      this.log.error(
+        { error, event, userId, transactionId },
+        'PCI audit logging error',
+      );
+      Sentry.captureException(error, {
+        tags: {
+          component: 'PCIDSSCompliance',
+          action: 'logPCIAudit',
+        },
+        extra: { event, userId, transactionId, details },
+      });
     }
   }
 
@@ -126,7 +125,7 @@ export class PCIDSSCompliance {
       cvv: string;
       holderName: string;
     },
-    userId: string
+    userId: string,
   ): Promise<{
     encryptedNumber: string;
     encryptedCVV: string;
@@ -138,7 +137,7 @@ export class PCIDSSCompliance {
       const encryptedNumber = fieldEncryption.encrypt(
         'cardNumber',
         cardData.number,
-        userId
+        userId,
       );
 
       // Chiffrer le CVV
@@ -148,7 +147,7 @@ export class PCIDSSCompliance {
       const encryptedHolderName = fieldEncryption.encrypt(
         'cardHolderName',
         cardData.holderName,
-        userId
+        userId,
       );
 
       // Générer un token de référence
@@ -164,7 +163,7 @@ export class PCIDSSCompliance {
           token,
           encryptionMethod: 'AES-256-GCM',
         },
-        'MEDIUM'
+        'MEDIUM',
       );
 
       return {
@@ -174,13 +173,13 @@ export class PCIDSSCompliance {
         token,
       };
     } catch (error) {
-      console.error('❌ Card data encryption error:', error);
+      this.log.error({ error, userId }, 'Card data encryption error');
       await this.logPCIAudit(
         'CARD_DATA_ENCRYPTION_FAILED',
         userId,
         undefined,
         { error: (error as Error).message },
-        'HIGH'
+        'HIGH',
       );
       throw error;
     }
@@ -195,7 +194,7 @@ export class PCIDSSCompliance {
       encryptedCVV: string;
       encryptedHolderName: string;
     },
-    userId: string
+    userId: string,
   ): Promise<{
     number: string;
     cvv: string;
@@ -206,21 +205,21 @@ export class PCIDSSCompliance {
       const decryptedNumber = fieldEncryption.decrypt(
         'cardNumber',
         JSON.parse(encryptedData.encryptedNumber),
-        userId
+        userId,
       );
 
       // Déchiffrer le CVV
       const decryptedCVV = fieldEncryption.decrypt(
         'cvv',
         JSON.parse(encryptedData.encryptedCVV),
-        userId
+        userId,
       );
 
       // Déchiffrer le nom du titulaire
       const decryptedHolderName = fieldEncryption.decrypt(
         'cardHolderName',
         JSON.parse(encryptedData.encryptedHolderName),
-        userId
+        userId,
       );
 
       // Enregistrer l'audit
@@ -232,7 +231,7 @@ export class PCIDSSCompliance {
           cardLast4: decryptedNumber.slice(-4),
           decryptionMethod: 'AES-256-GCM',
         },
-        'MEDIUM'
+        'MEDIUM',
       );
 
       return {
@@ -241,13 +240,13 @@ export class PCIDSSCompliance {
         holderName: decryptedHolderName,
       };
     } catch (error) {
-      console.error('❌ Card data decryption error:', error);
+      this.log.error({ error, userId }, 'Card data decryption error');
       await this.logPCIAudit(
         'CARD_DATA_DECRYPTION_FAILED',
         userId,
         undefined,
         { error: (error as Error).message },
-        'HIGH'
+        'HIGH',
       );
       throw error;
     }
@@ -257,7 +256,7 @@ export class PCIDSSCompliance {
    * Effectuer un scan de sécurité PCI
    */
   async performSecurityScan(
-    scanType: PCISecurityScan['scanType']
+    scanType: PCISecurityScan['scanType'],
   ): Promise<PCISecurityScan> {
     try {
       const scan: PCISecurityScan = {
@@ -297,12 +296,12 @@ export class PCIDSSCompliance {
           findingsCount: findings.length,
           criticalCount: criticalFindings.length,
         },
-        scan.status === 'FAILED' ? 'HIGH' : 'LOW'
+        scan.status === 'FAILED' ? 'HIGH' : 'LOW',
       );
 
       return scan;
     } catch (error) {
-      console.error('❌ Security scan error:', error);
+      this.log.error({ error, scanType }, 'Security scan error');
       throw error;
     }
   }
@@ -397,7 +396,7 @@ export class PCIDSSCompliance {
       ];
 
       const compliantCount = requirements.filter(
-        r => r.status === 'COMPLIANT'
+        r => r.status === 'COMPLIANT',
       ).length;
       const score = Math.round((compliantCount / requirements.length) * 100);
       const isCompliant = score >= 100;
@@ -408,7 +407,7 @@ export class PCIDSSCompliance {
         requirements,
       };
     } catch (error) {
-      console.error('❌ PCI compliance check error:', error);
+      this.log.error({ error }, 'PCI compliance check error');
       throw error;
     }
   }
@@ -463,7 +462,7 @@ export class PCIDSSCompliance {
    */
   private assessComplianceStatus(
     event: string,
-    _details: Record<string, any>
+    _details: Record<string, any>,
   ): PCIAuditLog['complianceStatus'] {
     // Logique d'évaluation basée sur l'événement et les détails
     if (event.includes('FAILED') || event.includes('ERROR')) {
@@ -514,7 +513,7 @@ export class PCIDSSCompliance {
 
       return dataFlows;
     } catch (error) {
-      console.error('❌ Monitor data flows error:', error);
+      this.log.error({ error }, 'Monitor data flows error');
       throw error;
     }
   }
@@ -522,4 +521,3 @@ export class PCIDSSCompliance {
 
 // Instance singleton
 export const pciDSSCompliance = PCIDSSCompliance.getInstance();
-

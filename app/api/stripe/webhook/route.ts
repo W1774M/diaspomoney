@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     if (!webhookSecret) {
       return NextResponse.json(
         { error: "Missing STRIPE_WEBHOOK_SECRET" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         // Émettre un événement via EventBus
         await paymentEvents.emitPaymentFailed(
           pi.id || 'unknown',
-          pi?.last_payment_error?.message || 'Payment failed'
+          pi?.last_payment_error?.message || 'Payment failed',
         ).catch(error => {
           log.error({ err: error, msg: "Error emitting payment failed event" });
         });
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     log.error({ err: error, msg: "Webhook handling error" });
     return NextResponse.json(
       { error: error?.message || "Webhook handling error" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

@@ -18,7 +18,7 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
         };
         onSubmit(data);
       },
-      [onSubmit]
+      [onSubmit],
     );
 
     return (
@@ -118,7 +118,7 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 BeneficiaryForm.displayName = "BeneficiaryForm";

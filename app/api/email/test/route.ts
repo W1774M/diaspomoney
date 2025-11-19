@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     if (!email) {
       return NextResponse.json(
         { error: 'Email requis' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
         result = await emailService.sendWelcomeEmail(
           email,
           data.name || 'Test User',
-          data.verificationUrl || 'https://app.diaspomoney.fr/verify?token=test'
+          data.verificationUrl || 'https://app.diaspomoney.fr/verify?token=test',
         );
         break;
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         result = await emailService.sendPasswordResetEmail(
           email,
           data.name || 'Test User',
-          data.resetUrl || 'https://app.diaspomoney.fr/reset?token=test'
+          data.resetUrl || 'https://app.diaspomoney.fr/reset?token=test',
         );
         break;
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
           data.name || 'Test User',
           data.amount || 100,
           data.currency || 'EUR',
-          data.service || 'Service Test'
+          data.service || 'Service Test',
         );
         break;
 
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
           data.provider || 'Dr. Test',
           data.date || new Date().toLocaleDateString('fr-FR'),
           data.time || '14:00',
-          data.appointmentType || 'confirmation'
+          data.appointmentType || 'confirmation',
         );
         break;
 
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
           email,
           data.subject || 'Test Email',
           data.html || '<p>Test email personnalisé</p>',
-          data.text || 'Test email personnalisé'
+          data.text || 'Test email personnalisé',
         );
         break;
 
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { error: 'Type d\'email non supporté' },
-          { status: 400 }
+          { status: 400 },
         );
     }
 
@@ -77,19 +77,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: `Email ${type} envoyé avec succès`,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } else {
       return NextResponse.json(
         { error: `Échec envoi email ${type}` },
-        { status: 500 }
+        { status: 500 },
       );
     }
   } catch (error) {
     console.error('❌ Erreur API email test:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -107,13 +107,13 @@ export async function GET() {
       status: 'active',
       connection: connectionTest ? 'connected' : 'disconnected',
       queue: stats,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('❌ Erreur API email status:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

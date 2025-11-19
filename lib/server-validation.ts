@@ -35,7 +35,7 @@ export function sanitizeInput(input: unknown): unknown {
 // Fonction de validation avec sanitisation
 export async function validateAndSanitize<T extends z.ZodTypeAny>(
   schema: T,
-  data: unknown
+  data: unknown,
 ): Promise<
   { success: true; data: z.infer<T> } | { success: false; errors: string[] }
 > {

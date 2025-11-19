@@ -60,7 +60,7 @@ const ServicesPage = React.memo(function ServicesPage() {
   }, []);
 
   const hasActiveFilters = Object.values(filters).some(
-    value => value !== '' && value !== 0
+    value => value !== '' && value !== 0,
   );
 
   // Extraire les services et spécialités disponibles
@@ -70,7 +70,7 @@ const ServicesPage = React.memo(function ServicesPage() {
     safeProviders.forEach(provider => {
       if (provider['services']) {
         provider['services'].forEach((service: string) =>
-          services.add(service)
+          services.add(service),
         );
       }
     });
@@ -83,7 +83,7 @@ const ServicesPage = React.memo(function ServicesPage() {
     safeProviders.forEach(provider => {
       if (provider.specialties) {
         provider.specialties.forEach((specialty: string) =>
-          specialties.add(specialty)
+          specialties.add(specialty),
         );
       }
     });
@@ -136,35 +136,35 @@ const ServicesPage = React.memo(function ServicesPage() {
     (provider: Provider) => {
       router.push(`/services/${provider._id}`);
     },
-    [router]
+    [router],
   );
 
   const handleServiceChange = useCallback(
     (value: string) => {
       updateFilter('service', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handleCityChange = useCallback(
     (value: string) => {
       updateFilter('city', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handleSpecialtyChange = useCallback(
     (value: string) => {
       updateFilter('specialty', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handleRatingChange = useCallback(
     (value: number) => {
       updateFilter('rating', value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   // Logique de pagination

@@ -1,13 +1,31 @@
 /**
  * API Route - Register
  * Endpoint d'inscription
+ *
+ * Implémente les design patterns :
+ * - Service Layer Pattern (via authService)
+ * - Repository Pattern (via authService qui utilise les repositories)
+ * - Dependency Injection (via authService singleton)
+ * - Logger Pattern (structured logging avec childLogger + @Log decorator dans le service)
+ * - Error Handling Pattern (Sentry)
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache dans authService)
+ * - Singleton Pattern (authService)
  */
 
+import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
-import { authService, RegisterData } from '@/services/auth/auth.service';
+import { authService } from '@/services/auth/auth.service';
+import type { RegisterData } from '@/types/auth';
+import * as Sentry from '@sentry/nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
+  const reqId = request.headers.get('x-request-id') || undefined;
+  const log = childLogger({
+    requestId: reqId,
+    route: 'api/auth/register',
+  });
+
   try {
     const body = await request.json();
     const {
@@ -31,34 +49,51 @@ export async function POST(request: NextRequest) {
 
     // Validation des entrées obligatoires
     if (!email || !firstName || !lastName || !countryOfResidence) {
+      log.warn(
+        {
+          hasEmail: !!email,
+          hasFirstName: !!firstName,
+          hasLastName: !!lastName,
+          hasCountry: !!countryOfResidence,
+        },
+        'Registration validation failed: missing required fields',
+      );
       return NextResponse.json(
         {
           error: 'Tous les champs obligatoires doivent être remplis',
           success: false,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validation du mot de passe (sauf pour OAuth)
     if (!oauth && !password) {
+      log.warn(
+        { email: email.trim().toLowerCase(), hasOAuth: !!oauth },
+        'Registration validation failed: password required',
+      );
       return NextResponse.json(
         {
           error: 'Le mot de passe est obligatoire',
           success: false,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Validation des conditions d'utilisation
     if (!termsAccepted) {
+      log.warn(
+        { email: email.trim().toLowerCase() },
+        'Registration validation failed: terms not accepted',
+      );
       return NextResponse.json(
         {
           error: "Vous devez accepter les conditions d'utilisation",
           success: false,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -69,13 +104,26 @@ export async function POST(request: NextRequest) {
       sanitizedPhone = phone.trim();
       // S'assurer qu'on a bien un téléphone et pas un mot de passe par erreur
       if (sanitizedPhone && sanitizedPhone.length > 20) {
-        console.error('[REGISTER] Phone field seems to contain a password!');
+        log.error(
+          {
+            email: email.trim().toLowerCase(),
+            phoneLength: sanitizedPhone.length,
+          },
+          'Registration validation failed: phone field seems to contain a password',
+        );
+        Sentry.captureMessage('Suspicious phone field in registration', {
+          level: 'warning',
+          extra: {
+            email: email.trim().toLowerCase(),
+            phoneLength: sanitizedPhone.length,
+          },
+        });
         return NextResponse.json(
           {
             error: 'Format de téléphone invalide',
             success: false,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -100,8 +148,29 @@ export async function POST(request: NextRequest) {
       oauth: oauth,
     };
 
+    // Extraire IP et User-Agent pour l'audit
+    const ipAddress =
+      request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+
+    log.debug(
+      {
+        email: sanitizedData.email,
+        country: sanitizedData.country,
+        hasPhone: !!sanitizedData.phone,
+        hasOAuth: !!sanitizedData.oauth,
+        ipAddress,
+      },
+      'Attempting user registration',
+    );
+
     // Tentative d'inscription
-    const result = await authService.register(sanitizedData as RegisterData);
+    const result = await authService.register(sanitizedData as RegisterData, {
+      ipAddress,
+      userAgent,
+    });
 
     // Enregistrer les métriques
     monitoringManager.recordMetric({
@@ -115,6 +184,16 @@ export async function POST(request: NextRequest) {
       type: 'counter',
     });
 
+    log.info(
+      {
+        userId: result.user.id,
+        email: result.user.email,
+        country: sanitizedData.country,
+        ipAddress,
+      },
+      'User registration successful',
+    );
+
     // Retourner la réponse
     return NextResponse.json(
       {
@@ -126,10 +205,17 @@ export async function POST(request: NextRequest) {
         message:
           'Compte créé avec succès. Vérifiez votre email pour activer votre compte.',
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
-    console.error('Erreur register API:', error);
+    log.error(
+      {
+        error,
+        msg: 'Error during user registration',
+        email: (error as any)?.email || 'unknown',
+      },
+      'Registration failed',
+    );
 
     // Enregistrer les métriques d'échec
     monitoringManager.recordMetric({
@@ -139,12 +225,23 @@ export async function POST(request: NextRequest) {
       type: 'counter',
     });
 
+    // Envoyer à Sentry pour monitoring
+    Sentry.captureException(error, {
+      tags: {
+        route: 'api/auth/register',
+        action: 'registration',
+      },
+      extra: {
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
+
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Erreur d'inscription",
         success: false,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 }

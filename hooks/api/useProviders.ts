@@ -13,7 +13,7 @@ export function useProviders(
     country: undefined,
     city: undefined,
     priceMax: undefined,
-  }
+  },
 ): any {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -65,14 +65,12 @@ export function useProviders(
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
       if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
         console.error('Erreur useProviders:', err);
       }
     } finally {
       setLoading(false);
     }
     // it's ok to not include providersCache or setProviders as dependencies
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     options.type,
     options.group,

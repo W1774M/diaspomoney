@@ -45,14 +45,14 @@ const UsersPage = React.memo(function UsersPage() {
     (id: string) => {
       router.push(`/dashboard/users/${id}/edit`);
     },
-    [router]
+    [router],
   );
 
   const handleView = useCallback(
     (id: string) => {
       router.push(`/dashboard/users/${id}`);
     },
-    [router]
+    [router],
   );
 
   const handleSendEmail = useCallback((user: any) => {
@@ -76,7 +76,7 @@ const UsersPage = React.memo(function UsersPage() {
       setSearchTerm(value);
       updateFilter("searchTerm", value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handleRoleChange = useCallback(
@@ -84,7 +84,7 @@ const UsersPage = React.memo(function UsersPage() {
       setRoleFilter(value);
       updateFilter("roleFilter", value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   const handleStatusChange = useCallback(
@@ -92,7 +92,7 @@ const UsersPage = React.memo(function UsersPage() {
       setStatusFilter(value);
       updateFilter("statusFilter", value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   if (!isAdmin()) {

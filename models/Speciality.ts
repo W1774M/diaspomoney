@@ -10,7 +10,7 @@ const SpecialitySchema = new Schema<SpecialityExtended>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export default mongoose.models['SpecialityType'] ||

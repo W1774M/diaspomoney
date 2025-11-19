@@ -179,7 +179,7 @@ export function slugify(str: string): string {
  */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   return (...args: Parameters<T>) => {
@@ -207,7 +207,7 @@ export function deepClone<T>(obj: T): T {
         try {
           // Use type assertion to avoid 'any' and lint errors
           (clonedObj as Record<string, unknown>)[key] = deepClone(
-            (obj as Record<string, unknown>)[key]
+            (obj as Record<string, unknown>)[key],
           );
         } catch {
           // Handle circular references by setting to undefined

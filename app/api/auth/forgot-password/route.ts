@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       // L'utilisateur n'existe pas, mais on ne révèle pas cette information
       console.log(
-        `Tentative de récupération pour un email inexistant: ${email}`
+        `Tentative de récupération pour un email inexistant: ${email}`,
       );
     }
 
@@ -51,13 +51,13 @@ export async function POST(request: NextRequest) {
         success: true,
         message: 'Si cet email existe, vous recevrez un lien de récupération',
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error('Erreur récupération mot de passe:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

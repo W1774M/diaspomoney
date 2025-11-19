@@ -4,6 +4,7 @@
  */
 
 import { ErrorOccurredEvent, systemEvents } from '@/lib/events';
+import { logger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import * as Sentry from '@sentry/nextjs';
 
@@ -13,7 +14,7 @@ import * as Sentry from '@sentry/nextjs';
 export function setupSystemEventListeners() {
   // Listener pour les erreurs
   systemEvents.onError(async (data: ErrorOccurredEvent) => {
-    console.error('[SystemEventListeners] Error occurred:', data.error);
+    logger.error({ error: data.error }, '[SystemEventListeners] Error occurred');
 
     try {
       // 1. Envoyer à Sentry
@@ -38,16 +39,16 @@ export function setupSystemEventListeners() {
       });
 
       // 3. Logger pour debugging
-      console.error('[SystemEventListeners] Error details:', {
+      logger.error({
         name: data.error.name,
         message: data.error.message,
         stack: data.error.stack,
         context: data.context,
         timestamp: data.timestamp,
-      });
+      }, '[SystemEventListeners] Error details');
 
       // 4. Envoyer une alerte pour les erreurs critiques
-      if (data.context && 'critical' in data.context && data.context['critical']) {  // eslint-disable-line no-unused-expressions
+      if (data.context && 'critical' in data.context && data.context['critical']) {   
         // await alertService.sendCriticalAlert({
         //   error: data.error.message,
         //   context: data.context,
@@ -56,7 +57,7 @@ export function setupSystemEventListeners() {
       }
     } catch (error) {
       // Ne pas laisser les erreurs dans les listeners bloquer l'exécution
-      console.error('[SystemEventListeners] Error in error handler:', error);
+      logger.error({ error }, '[SystemEventListeners] Error in error handler');
     }
   });
 }

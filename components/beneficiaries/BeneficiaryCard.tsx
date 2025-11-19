@@ -4,7 +4,7 @@ import {
   formatCreationDate,
   getAccountStatusColor,
   getAccountStatusDisplay,
-  isRecentlyAdded
+  isRecentlyAdded,
 } from "@/lib/beneficiaries/utils";
 import { BeneficiaryCardProps } from "@/types/beneficiaries";
 import { Edit, Mail, Phone, Trash2, User } from "lucide-react";

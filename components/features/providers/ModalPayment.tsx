@@ -1,4 +1,13 @@
 'use client';
+/**
+ * ModalPayment Component
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (useCallback, useMemo, useState)
+ * - Error Handling Pattern (via useNotificationManager)
+ * - Notification Pattern (via useNotificationManager)
+ */
+
+import { useNotificationManager } from '@/components/ui/Notification';
 import { ModalPaymentProps, PaymentData } from '@/types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -16,6 +25,7 @@ export const ModalPayment = ({
   setModalOpen,
   setSteps,
 }: ModalPaymentPropsExtended) => {
+  const { addError } = useNotificationManager();
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -112,7 +122,7 @@ export const ModalPayment = ({
       validateExpiryDate,
       validateCVV,
       validateCardholderName,
-    ]
+    ],
   );
 
   // Formatage de la date optimisé
@@ -163,7 +173,7 @@ export const ModalPayment = ({
         [name]: processedValue,
       }));
     },
-    [formatCardNumber, formatExpiryDate, setPaymentData]
+    [formatCardNumber, formatExpiryDate, setPaymentData],
   );
 
   const handleSubmit = useCallback(() => {
@@ -171,30 +181,31 @@ export const ModalPayment = ({
     const isExpiryDateValid = validateExpiryDate(paymentData.expiryDate || '');
     const isCVVValid = validateCVV(paymentData.cvv || '');
     const isCardholderNameValid = validateCardholderName(
-      paymentData.cardholderName || ''
+      paymentData.cardholderName || '',
     );
 
     if (!isCardNumberValid) {
-      alert('Veuillez saisir un numéro de carte valide');
+      addError('Veuillez saisir un numéro de carte valide');
       return;
     }
 
     if (!isExpiryDateValid) {
-      alert('Veuillez saisir une date d&apos;expiration valide (format MM/AA)');
+      addError(
+        'Veuillez saisir une date d&apos;expiration valide (format MM/AA)',
+      );
       return;
     }
 
     if (!isCVVValid) {
-      alert('Veuillez saisir un code CVV valide (3 ou 4 chiffres)');
+      addError('Veuillez saisir un code CVV valide (3 ou 4 chiffres)');
       return;
     }
 
     if (!isCardholderNameValid) {
-      alert('Veuillez saisir le nom du titulaire de la carte');
+      addError('Veuillez saisir le nom du titulaire de la carte');
       return;
     }
 
-    console.log('Paiement effectué', { appointment, paymentData });
     setIsClosing(true);
     setTimeout(() => setSteps?.(2), 300);
   }, [
@@ -205,11 +216,11 @@ export const ModalPayment = ({
     validateCVV,
     validateCardholderName,
     setSteps,
+    addError,
   ]);
 
   const handleBack = useCallback(() => {
     setIsClosing(true);
-    console.log(setSteps);
     setTimeout(() => {
       if (setSteps) setSteps(0); // Retour à l'étape 0 (étape précédente)
     }, 300);
@@ -225,7 +236,7 @@ export const ModalPayment = ({
         ? 'border-green-300 focus:ring-green-400 focus:border-green-400'
         : 'border-red-300 focus:ring-red-400 focus:border-red-400';
     },
-    [fieldValidations]
+    [fieldValidations],
   );
 
   // Fonction pour afficher l'icône de validation
@@ -240,7 +251,7 @@ export const ModalPayment = ({
         <span className='text-red-500 text-lg'>✗</span>
       );
     },
-    [fieldValidations]
+    [fieldValidations],
   );
 
   return (
@@ -320,7 +331,7 @@ export const ModalPayment = ({
                   value={paymentData.cardNumber}
                   onChange={handleInputChange}
                   className={`w-full border rounded-lg px-2.5 py-2 pr-10 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 hover:border-blue-300 ${getFieldClassName(
-                    'cardNumber'
+                    'cardNumber',
                   )}`}
                   placeholder='1234 5678 9012 3456'
                   pattern='[0-9\s]{13,19}'
@@ -352,7 +363,7 @@ export const ModalPayment = ({
                     value={paymentData.expiryDate}
                     onChange={handleInputChange}
                     className={`w-full border rounded-lg px-2.5 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 hover:border-blue-300 ${getFieldClassName(
-                      'expiryDate'
+                      'expiryDate',
                     )}`}
                     placeholder='MM/AA'
                     pattern='(0[1-9]|1[0-2])\/([0-9]{2})'
@@ -380,7 +391,7 @@ export const ModalPayment = ({
                     value={paymentData.cvv}
                     onChange={handleInputChange}
                     className={`w-full border rounded-lg px-2.5 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 hover:border-blue-300 ${getFieldClassName(
-                      'cvv'
+                      'cvv',
                     )}`}
                     placeholder='123'
                     pattern='[0-9]{3,4}'
@@ -411,7 +422,7 @@ export const ModalPayment = ({
                   value={paymentData.cardholderName}
                   onChange={handleInputChange}
                   className={`w-full border rounded-lg px-2.5 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 hover:border-blue-300 ${getFieldClassName(
-                    'cardholderName'
+                    'cardholderName',
                   )}`}
                   placeholder='NOM PRENOM'
                   pattern="[a-zA-ZÀ-ÿ\s'-]{2,}"

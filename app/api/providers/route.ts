@@ -53,8 +53,8 @@ export async function GET(request: NextRequest) {
           const categorySpecialties = categoryMapping[category] || [];
           return provider.specialties.some((spec: string) =>
             categorySpecialties.some(catSpec =>
-              spec.toLowerCase().includes(catSpec.toLowerCase())
-            )
+              spec.toLowerCase().includes(catSpec.toLowerCase()),
+            ),
           );
         }
         return true;
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
         (provider: any) =>
           provider &&
           provider.city &&
-          provider.city.toLowerCase().includes(city.toLowerCase())
+          provider.city.toLowerCase().includes(city.toLowerCase()),
       );
     }
 
@@ -79,8 +79,8 @@ export async function GET(request: NextRequest) {
           provider.specialties &&
           Array.isArray(provider.specialties) &&
           provider.specialties.some((spec: string) =>
-            spec.toLowerCase().includes(specialty.toLowerCase())
-          )
+            spec.toLowerCase().includes(specialty.toLowerCase()),
+          ),
       );
     }
 
@@ -92,8 +92,8 @@ export async function GET(request: NextRequest) {
           provider.services &&
           Array.isArray(provider.services) &&
           provider.services.some((serv: string) =>
-            serv.toLowerCase().includes(service.toLowerCase())
-          )
+            serv.toLowerCase().includes(service.toLowerCase()),
+          ),
       );
     }
 
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
       const rating = parseFloat(minRating);
       filteredProviders = filteredProviders.filter(
         (provider: any) =>
-          provider && provider.rating && provider.rating >= rating
+          provider && provider.rating && provider.rating >= rating,
       );
     }
 
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
     console.error('Erreur lors de la récupération des prestataires:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     if (!providerData.userId || !providerData.specialities) {
       return NextResponse.json(
         { error: 'Données de prestataire incomplètes' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -152,13 +152,13 @@ export async function POST(request: NextRequest) {
         provider: newProvider,
         message: 'Prestataire créé avec succès',
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error('Erreur lors de la création du prestataire:', error);
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

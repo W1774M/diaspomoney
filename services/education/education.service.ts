@@ -2,10 +2,21 @@
  * Education Service - DiaspoMoney
  * Service d'éducation (Écoles & Institutions) Company-Grade
  * Basé sur la charte de développement
+ * Implémente les design patterns :
+ * - Service Layer Pattern
+ * - Repository Pattern
+ * - Dependency Injection
+ * - Singleton Pattern
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache)
+ * - Error Handling Pattern (Sentry)
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import { random } from '@/lib/utils';
+import { getQuoteRepository, IQuoteRepository } from '@/repositories';
 import { notificationService } from '@/services/notification/notification.service';
 import * as Sentry from '@sentry/nextjs';
 
@@ -270,8 +281,21 @@ export interface EducationFilters {
   };
 }
 
+/**
+ * EducationService utilisant le Service Layer Pattern
+ * Utilise le Repository Pattern pour l'accès aux données (Dependency Injection)
+ */
 export class EducationService {
   private static instance: EducationService;
+  private quoteRepository: IQuoteRepository;
+  private readonly log = childLogger({
+    component: 'EducationService',
+  });
+
+  private constructor() {
+    // Dependency Injection : injecter le repository
+    this.quoteRepository = getQuoteRepository();
+  }
 
   static getInstance(): EducationService {
     if (!EducationService.instance) {
@@ -283,6 +307,8 @@ export class EducationService {
   /**
    * Rechercher des écoles
    */
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'EducationService:searchSchools' }) // Cache 5 minutes
   async searchSchools(filters: EducationFilters): Promise<School[]> {
     try {
       // TODO: Implémenter la recherche avec Elasticsearch
@@ -349,10 +375,15 @@ export class EducationService {
         type: 'counter',
       });
 
-      return mockSchools;
+      const result = mockSchools;
+      this.log.debug({ count: result.length, filters }, 'Schools searched');
+      return result;
     } catch (error) {
-      console.error('Erreur searchSchools:', error);
-      Sentry.captureException(error);
+      this.log.error({ error, filters }, 'Error in searchSchools');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'EducationService', action: 'searchSchools' },
+        extra: { filters },
+      });
       throw error;
     }
   }
@@ -360,13 +391,18 @@ export class EducationService {
   /**
    * Récupérer une école par ID
    */
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'EducationService:getSchool' }) // Cache 5 minutes
   async getSchool(_schoolId: string): Promise<School | null> {
     try {
       // TODO: Récupérer depuis la base de données
       return null;
     } catch (error) {
-      console.error('Erreur getSchool:', error);
-      Sentry.captureException(error);
+      this.log.error({ error, schoolId: _schoolId }, 'Error in getSchool');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'EducationService', action: 'getSchool' },
+        extra: { schoolId: _schoolId },
+      });
       throw error;
     }
   }
@@ -374,11 +410,13 @@ export class EducationService {
   /**
    * Inscrire un étudiant
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('EducationService:*') // Invalider le cache après inscription
   async enrollStudent(
     studentData: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>,
     schoolId: string,
     programId: string,
-    academicYear: string
+    academicYear: string,
   ): Promise<Enrollment> {
     try {
       // Créer l'étudiant
@@ -446,10 +484,17 @@ export class EducationService {
         type: 'counter',
       });
 
+      this.log.info(
+        { enrollmentId: enrollment.id, studentId: student.id, schoolId },
+        'Student enrolled successfully',
+      );
       return enrollment;
     } catch (error) {
-      console.error('Erreur enrollStudent:', error);
-      Sentry.captureException(error);
+      this.log.error({ error, schoolId, programId }, 'Error in enrollStudent');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'EducationService', action: 'enrollStudent' },
+        extra: { schoolId, programId },
+      });
       throw error;
     }
   }
@@ -457,11 +502,13 @@ export class EducationService {
   /**
    * Effectuer un paiement de frais de scolarité
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('EducationService:*') // Invalider le cache après paiement
   async payTuition(
     _enrollmentId: string,
     amount: number,
     currency: string,
-    paymentMethod: string
+    paymentMethod: string,
   ): Promise<{
     success: boolean;
     transactionId?: string;
@@ -507,8 +554,14 @@ export class EducationService {
         remainingAmount: 0, // TODO: Calculer le montant restant
       };
     } catch (error) {
-      console.error('Erreur payTuition:', error);
-      Sentry.captureException(error);
+      this.log.error(
+        { error, enrollmentId: _enrollmentId, amount },
+        'Error in payTuition',
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'EducationService', action: 'payTuition' },
+        extra: { enrollmentId: _enrollmentId, amount },
+      });
       throw error;
     }
   }
@@ -516,6 +569,8 @@ export class EducationService {
   /**
    * Enregistrer une note
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('EducationService:*') // Invalider le cache après enregistrement de note
   async recordGrade(
     studentId: string,
     courseId: string,
@@ -524,7 +579,7 @@ export class EducationService {
     grade: number,
     maxGrade: number,
     instructorId: string,
-    comments?: string
+    comments?: string,
   ): Promise<any> {
     try {
       const gradeRecord = {
@@ -545,10 +600,17 @@ export class EducationService {
 
       // TODO: Persist gradeRecord in database if needed
 
+      this.log.info(
+        { gradeId: gradeRecord.id, studentId, courseId, grade },
+        'Grade recorded successfully',
+      );
       return gradeRecord;
     } catch (error) {
-      console.error('Erreur recordGrade:', error);
-      Sentry.captureException(error);
+      this.log.error({ error, studentId, courseId }, 'Error in recordGrade');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'EducationService', action: 'recordGrade' },
+        extra: { studentId, courseId },
+      });
       throw error;
     }
   }
@@ -556,13 +618,15 @@ export class EducationService {
   /**
    * Enregistrer la présence
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('EducationService:*') // Invalider le cache après enregistrement de présence
   async recordAttendance(
     studentId: string,
     courseId: string,
     date: Date,
     status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED',
     recordedBy: string,
-    notes?: string
+    notes?: string,
   ): Promise<Attendance> {
     try {
       const attendance: Attendance = {
@@ -590,10 +654,20 @@ export class EducationService {
         type: 'counter',
       });
 
+      this.log.info(
+        { attendanceId: attendance.id, studentId, courseId, status },
+        'Attendance recorded successfully',
+      );
       return attendance;
     } catch (error) {
-      console.error('Erreur recordAttendance:', error);
-      Sentry.captureException(error);
+      this.log.error(
+        { error, studentId, courseId },
+        'Error in recordAttendance',
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'EducationService', action: 'recordAttendance' },
+        extra: { studentId, courseId },
+      });
       throw error;
     }
   }
@@ -601,9 +675,11 @@ export class EducationService {
   /**
    * Récupérer le bulletin de notes d'un étudiant
    */
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'EducationService:getStudentTranscript' }) // Cache 5 minutes
   async getStudentTranscript(
     _studentId: string,
-    _academicYear?: string
+    _academicYear?: string,
   ): Promise<{
     student: Student;
     grades: any[];
@@ -619,8 +695,14 @@ export class EducationService {
         credits: 0,
       };
     } catch (error) {
-      console.error('Erreur getStudentTranscript:', error);
-      Sentry.captureException(error);
+      this.log.error(
+        { error, studentId: _studentId },
+        'Error in getStudentTranscript',
+      );
+      Sentry.captureException(error as Error, {
+        tags: { component: 'EducationService', action: 'getStudentTranscript' },
+        extra: { studentId: _studentId },
+      });
       throw error;
     }
   }
@@ -671,8 +753,119 @@ export class EducationService {
 
   //   return round(totalPoints / grades.length, 2);
   // }
+
+  /**
+   * Créer une demande de renseignements éducation
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('quote:*')
+  async createEducationInquiry(data: {
+    studentType: 'SELF' | 'CHILD' | 'DEPENDENT';
+    studentInfo: {
+      firstName: string;
+      lastName: string;
+      dateOfBirth?: string;
+      gender?: 'MALE' | 'FEMALE' | 'OTHER';
+      nationality?: string;
+    };
+    academicInfo: {
+      currentLevel?: string;
+      desiredProgram?: string;
+      academicYear?: string;
+      previousEducation?: string;
+    };
+    contact: {
+      name: string;
+      email: string;
+      phone?: string;
+      relationship?: string;
+    };
+    preferences?: {
+      language?: string;
+      schedule?: string;
+      budget?: number;
+      urgency?: 'LOW' | 'MEDIUM' | 'HIGH';
+    };
+    questions?: string;
+    schoolId: string;
+  }): Promise<any> {
+    try {
+      // Créer la demande de renseignements via le repository
+      const quoteData: any = {
+        type: 'EDUCATION',
+        studentType: data.studentType,
+        studentInfo: data.studentInfo,
+        academicInfo: data.academicInfo,
+        contact: data.contact,
+        questions: data.questions,
+        status: 'PENDING',
+      };
+
+      // Ajouter les champs optionnels seulement s'ils sont définis
+      if (data.preferences) {
+        quoteData.preferences = data.preferences;
+      }
+      if (data.schoolId) {
+        quoteData.schoolId = data.schoolId;
+      }
+
+      const quote = await this.quoteRepository.create(quoteData);
+
+      // Envoyer une notification
+      if (data.contact.email) {
+        await notificationService.sendNotification({
+          recipient: data.contact.email,
+          type: 'EDUCATION_INQUIRY',
+          template: 'education_inquiry',
+          data: {
+            quoteId: quote.id,
+            studentName: `${data.studentInfo.firstName} ${data.studentInfo.lastName}`,
+            program: data.academicInfo.desiredProgram,
+          },
+          channels: [
+            { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
+            { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
+          ],
+          locale: 'fr',
+          priority: 'MEDIUM',
+        });
+      }
+
+      // Enregistrer les métriques
+      monitoringManager.recordMetric({
+        name: 'education_inquiry_requests',
+        value: 1,
+        timestamp: new Date(),
+        labels: {
+          student_type: data.studentType,
+          academic_level: data.academicInfo.currentLevel || 'unknown',
+          has_school: data.schoolId ? 'true' : 'false',
+        },
+        type: 'counter',
+      });
+
+      this.log.info(
+        {
+          quoteId: quote.id,
+          studentType: data.studentType,
+          schoolId: data.schoolId,
+        },
+        'Education inquiry created successfully',
+      );
+      return quote;
+    } catch (error) {
+      this.log.error({ error, data }, 'Error in createEducationInquiry');
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'EducationService',
+          action: 'createEducationInquiry',
+        },
+        extra: { studentType: data.studentType },
+      });
+      throw error;
+    }
+  }
 }
 
 // Export de l'instance singleton
 export const educationService = EducationService.getInstance();
-

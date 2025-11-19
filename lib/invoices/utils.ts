@@ -39,7 +39,7 @@ export function getInvoiceStatusText(status: string): string {
  */
 export function formatCurrency(
   amount: number,
-  currency: string = "EUR"
+  currency: string = "EUR",
 ): string {
   return new Intl.NumberFormat("fr-FR", {
     style: "currency",
@@ -83,7 +83,7 @@ export function getInvoicePriority(invoice: any): "low" | "medium" | "high" {
   const dueDate = new Date(invoice.dueDate);
   const today = new Date();
   const daysUntilDue = Math.ceil(
-    (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
   );
 
   if (daysUntilDue <= 3) {

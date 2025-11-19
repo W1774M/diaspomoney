@@ -1,6 +1,19 @@
 'use client';
+/**
+ * useAuth Hook
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern
+ * - Cache Pattern (via auth-cache)
+ * - Error Handling Pattern (structured logging côté client)
+ */
 
-import { clearAuthCache, getAuthPromise, getCachedAuth, setAuthPromise, setCachedAuth } from '@/lib/auth/auth-cache';
+import {
+  clearAuthCache,
+  getAuthPromise,
+  getCachedAuth,
+  setAuthPromise,
+  setCachedAuth,
+} from '@/lib/auth/auth-cache';
 import { useEffect, useRef, useState } from 'react';
 import { useSignOut } from './useSignOut';
 
@@ -41,12 +54,9 @@ export function useAuth() {
     if (!isClient || didFetchRef.current) return;
     didFetchRef.current = true;
 
-    console.log("[useAuth] Vérification de l'authentification...");
-
     // Vérifier le cache partagé
     const cached = getCachedAuth();
     if (cached && cached.user) {
-      console.log('[useAuth] Utilisation du cache pour l\'utilisateur');
       const me = cached.user;
       setUser({
         id: me.id,
@@ -68,7 +78,6 @@ export function useAuth() {
     // Vérifier si une requête est déjà en cours
     const existingPromise = getAuthPromise();
     if (existingPromise) {
-      console.log('[useAuth] Réutilisation de la promesse existante');
       existingPromise
         .then(data => {
           const me = data.user;
@@ -98,7 +107,10 @@ export function useAuth() {
 
     // Créer une nouvelle requête
     const controller = new AbortController();
-    let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => controller.abort(), 5000);
+    let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(
+      () => controller.abort(),
+      5000,
+    );
 
     const cleanup = () => {
       if (timeoutId) {
@@ -107,23 +119,21 @@ export function useAuth() {
       }
     };
 
-    const fetchPromise = fetch('/api/users/me', { 
+    const fetchPromise = fetch('/api/users/me', {
       cache: 'no-store',
       signal: controller.signal,
     })
       .then(res => {
         cleanup();
-        console.log('[useAuth] /api/users/me response:', res.status);
         if (res.ok) {
           return res.json();
         }
         if (res.status === 401) {
           throw new Error('Not authenticated');
         }
-        throw new Error('API error');
+        throw new Error(`API error: ${res.status} ${res.statusText}`);
       })
       .then(data => {
-        console.log('[useAuth] User data received:', data.user);
         // Mettre en cache
         setCachedAuth(data.user);
         const me = data.user;
@@ -140,16 +150,11 @@ export function useAuth() {
           address: me.address || '',
         });
         setIsAuthenticated((me.status || 'ACTIVE') === 'ACTIVE');
-        console.log('[useAuth] Utilisateur authentifié:', me.name);
         return data;
       })
       .catch(error => {
         cleanup();
-        if (error.name === 'AbortError') {
-          console.log('[useAuth] Timeout lors de la vérification de l\'authentification');
-        } else {
-          console.log('[useAuth] Utilisateur non authentifié:', error.message);
-        }
+        // Logging silencieux côté client - les erreurs sont gérées par le state
         setUser(null);
         setIsAuthenticated(false);
         throw error;
@@ -213,7 +218,7 @@ export function useAuth() {
       });
       setIsAuthenticated((me.status || 'ACTIVE') === 'ACTIVE');
     } catch (e) {
-      console.error('useAuth refresh error:', e);
+      // Logging silencieux côté client - les erreurs sont gérées par le state
       setUser(null);
       setIsAuthenticated(false);
       clearAuthCache();

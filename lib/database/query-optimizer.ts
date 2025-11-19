@@ -33,7 +33,7 @@ export class QueryOptimizer {
               status: 1,
               createdAt: 1,
             },
-          }
+          },
         )
         .sort({ createdAt: -1 })
         .toArray();
@@ -113,7 +113,7 @@ export class QueryOptimizer {
   static async getServicesList(
     filters: any = {},
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
   ) {
     const cacheKey = `list:${JSON.stringify(filters)}:${page}:${limit}`;
 
@@ -154,7 +154,7 @@ export class QueryOptimizer {
                 rating: 1,
                 avatar: 1,
               },
-            }
+            },
           )
           .skip(skip)
           .limit(limit)
@@ -219,7 +219,7 @@ export class QueryOptimizer {
               provider: 1,
               requester: 1,
             },
-          }
+          },
         )
         .sort({ date: -1 })
         .toArray();

@@ -75,7 +75,7 @@ export function useComplaintFilters(complaints: Complaint[]) {
     (key: keyof ComplaintFilters, value: string) => {
       setFilters(prev => ({ ...prev, [key]: value }));
     },
-    []
+    [],
   );
 
   const clearFilters = useCallback(() => {

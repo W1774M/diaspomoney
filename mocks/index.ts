@@ -1278,7 +1278,7 @@ export const getMockAvailabilityById = (id: string) =>
 
 // Fonction pour obtenir les disponibilités par type
 export const getMockAvailabilitiesByType = (
-  type: 'weekly' | 'monthly' | 'custom'
+  type: 'weekly' | 'monthly' | 'custom',
 ) => MOCK_AVAILABILITIES.filter(availability => availability.type === type);
 
 // Fonction pour obtenir les disponibilités actives
@@ -1288,7 +1288,7 @@ export const getMockActiveAvailabilities = () =>
 // Fonction pour obtenir les créneaux horaires d'un jour spécifique
 export const getMockTimeSlotsByDay = (
   availabilityId: string,
-  dayOfWeek: number
+  dayOfWeek: number,
 ) => {
   const availability = getMockAvailabilityById(availabilityId);
   if (!availability) return [];
@@ -1301,7 +1301,7 @@ export const generateMockTimeSlots = (
   dayOfWeek: number,
   startTime: string,
   endTime: string,
-  maxBookings: number = 8
+  maxBookings: number = 8,
 ) => ({
   id: `slot-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
   dayOfWeek,
@@ -1359,7 +1359,7 @@ export const getUserTimeSlotsForDay = (userId: string, dayOfWeek: number) => {
 
   availabilities.forEach((availability: any) => {
     const daySlots = availability?.timeSlots?.filter(
-      (slot: any) => slot?.dayOfWeek === dayOfWeek
+      (slot: any) => slot?.dayOfWeek === dayOfWeek,
     );
     if (Array.isArray(daySlots)) {
       timeSlots.push(...daySlots);
@@ -1387,7 +1387,7 @@ export const getAllUserTimeSlots = (userId: string) => {
 export const isUserAvailableAtTime = (
   userId: string,
   dayOfWeek: number,
-  time: string
+  time: string,
 ) => {
   const timeSlots = getUserTimeSlotsForDay(userId, dayOfWeek);
 
@@ -1406,7 +1406,7 @@ export const getUsersWithAvailability = (availabilityId: string) => {
   return MOCK_USERS.filter(
     (user: any) =>
       user.availabilities &&
-      user.availabilities.includes(availabilityId as never)
+      user.availabilities.includes(availabilityId as never),
   );
 };
 
@@ -1421,7 +1421,7 @@ export const getAvailableUsersForDay = (dayOfWeek: number) => {
 
       return (availability as any)?.timeSlots?.some(
         (slot: any) =>
-          slot.dayOfWeek === dayOfWeek && slot.isActive && slot.isAvailable
+          slot.dayOfWeek === dayOfWeek && slot.isActive && slot.isAvailable,
       );
     });
   });
@@ -1486,24 +1486,24 @@ export const getUserAvailabilitySummary = (userId: string) => {
 export const getAvailabilityStats = () => {
   const totalUsers = MOCK_USERS.length;
   const usersWithAvailabilities = MOCK_USERS.filter(
-    (user: any) => user?.availabilities && user?.availabilities?.length > 0
+    (user: any) => user?.availabilities && user?.availabilities?.length > 0,
   ).length;
 
   const totalAvailabilities = MOCK_AVAILABILITIES.length;
   const activeAvailabilities = MOCK_AVAILABILITIES.filter(
-    av => av.isActive
+    av => av.isActive,
   ).length;
 
   const totalTimeSlots = MOCK_AVAILABILITIES.reduce(
     (total, av) => total + (av.timeSlots?.length || 0),
-    0
+    0,
   );
 
   return {
     totalUsers,
     usersWithAvailabilities,
     percentageWithAvailabilities: Math.round(
-      (usersWithAvailabilities / totalUsers) * 100
+      (usersWithAvailabilities / totalUsers) * 100,
     ),
     totalAvailabilities,
     activeAvailabilities,

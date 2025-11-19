@@ -1,4 +1,13 @@
 'use client';
+/**
+ * ModalSelectService Component
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (useCallback, useMemo, useState)
+ * - Error Handling Pattern (via useNotificationManager)
+ * - Notification Pattern (via useNotificationManager)
+ */
+
+import { useNotificationManager } from '@/components/ui/Notification';
 import {
   AppointmentData,
   Availability,
@@ -23,8 +32,7 @@ export const ModalSelectService = ({
   setSteps,
   provider,
 }: ModalSelectServiceProps) => {
-  // Debug: afficher les données du demandeur
-  console.log('Modal - Données du demandeur:', appointment.requester);
+  const { addError } = useNotificationManager();
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [currentStep, setCurrentStep] = useState<
@@ -57,17 +65,17 @@ export const ModalSelectService = ({
     if (cleaned.startsWith('0') && cleaned.length === 10) {
       return cleaned.replace(
         /(\d{1})(\d{2})(\d{2})(\d{2})(\d{2})/,
-        '$1 $2 $3 $4 $5'
+        '$1 $2 $3 $4 $5',
       );
     } else if (cleaned.startsWith('33') && cleaned.length === 11) {
       return `+${cleaned.replace(
         /(\d{2})(\d{1})(\d{2})(\d{2})(\d{2})/,
-        '$1 $2 $3 $4 $5'
+        '$1 $2 $3 $4 $5',
       )}`;
     } else if (cleaned.startsWith('+33') && cleaned.length === 12) {
       return cleaned.replace(
         /(\+\d{2})(\d{1})(\d{2})(\d{2})(\d{2})/,
-        '$1 $2 $3 $4 $5'
+        '$1 $2 $3 $4 $5',
       );
     }
 
@@ -109,7 +117,7 @@ export const ModalSelectService = ({
       validateName,
       validatePhoneNumber,
       validateEmail,
-    ]
+    ],
   );
 
   // Vérification si le formulaire est valide
@@ -168,7 +176,7 @@ export const ModalSelectService = ({
         });
       }
     },
-    [appointment, setAppointment, formatPhoneNumber]
+    [appointment, setAppointment, formatPhoneNumber],
   );
 
   // Gestionnaire pour la sélection d'un créneau
@@ -177,7 +185,7 @@ export const ModalSelectService = ({
       setAppointment({ ...appointment, timeslot });
       setCurrentStep('service');
     },
-    [appointment, setAppointment]
+    [appointment, setAppointment],
   );
 
   // Gestionnaire pour la sélection d'un service
@@ -198,7 +206,7 @@ export const ModalSelectService = ({
       });
       setCurrentStep('details');
     },
-    [appointment, setAppointment]
+    [appointment, setAppointment],
   );
 
   // Gestionnaire pour retourner à l'étape précédente
@@ -212,16 +220,15 @@ export const ModalSelectService = ({
 
   const handleSubmit = useCallback(() => {
     if (!isFormValid) {
-      alert('Veuillez remplir tous les champs obligatoires correctement');
+      addError('Veuillez remplir tous les champs obligatoires correctement');
       return;
     }
 
-    console.log('Réservation soumise', appointment);
     setIsClosing(true);
     setTimeout(() => {
       setSteps(1);
     }, 300);
-  }, [isFormValid, appointment, setSteps]);
+  }, [isFormValid, appointment, setSteps, addError]);
 
   // Fonction pour obtenir la classe CSS d'un champ
   const getFieldClassName = useCallback(
@@ -235,7 +242,7 @@ export const ModalSelectService = ({
         ? 'border-green-300 focus:ring-green-400 focus:border-green-400'
         : 'border-red-300 focus:ring-red-400 focus:border-red-400';
     },
-    [fieldValidations]
+    [fieldValidations],
   );
 
   // Fonction pour afficher l'icône de validation
@@ -252,7 +259,7 @@ export const ModalSelectService = ({
         <span className='text-red-500 text-lg'>✗</span>
       );
     },
-    [fieldValidations]
+    [fieldValidations],
   );
 
   return (
@@ -310,7 +317,7 @@ export const ModalSelectService = ({
                         <div className='flex items-center justify-between'>
                           <span className='font-medium text-gray-700'>
                             {new Date(
-                              time.monday[0]?.startTime || ''
+                              time.monday[0]?.startTime || '',
                             ).toLocaleDateString('fr-FR', {
                               weekday: 'long',
                               day: 'numeric',
@@ -322,7 +329,7 @@ export const ModalSelectService = ({
                           <div className='w-2 h-2 bg-green-500 rounded-full'></div>
                         </div>
                       </button>
-                    )
+                    ),
                   )
                 ) : (
                   <div className='text-center py-8'>
@@ -348,7 +355,7 @@ export const ModalSelectService = ({
                           key={index}
                           onClick={() =>
                             handleServiceSelect(
-                              service as unknown as ProviderService
+                              service as unknown as ProviderService,
                             )
                           }
                           className='w-full text-left p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 hover:scale-[1.02] cursor-pointer'
@@ -363,7 +370,7 @@ export const ModalSelectService = ({
                             </div>
                           </div>
                         </button>
-                      )
+                      ),
                     )
                   : null}
               </div>
@@ -390,7 +397,7 @@ export const ModalSelectService = ({
                           month: 'long',
                           hour: '2-digit',
                           minute: '2-digit',
-                        }
+                        },
                       )}
                     </span>
                   </div>
@@ -448,7 +455,7 @@ export const ModalSelectService = ({
                         onChange={handleChange}
                         className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
                           'requester',
-                          'lastName'
+                          'lastName',
                         )}`}
                         placeholder='Dupont'
                         pattern="[a-zA-ZÀ-ÿ\s'-]{2,}"
@@ -475,7 +482,7 @@ export const ModalSelectService = ({
                         onChange={handleChange}
                         className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
                           'requester',
-                          'firstName'
+                          'firstName',
                         )}`}
                         placeholder='Jean'
                         pattern="[a-zA-ZÀ-ÿ\s'-]{2,}"
@@ -502,7 +509,7 @@ export const ModalSelectService = ({
                         onChange={handleChange}
                         className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
                           'requester',
-                          'phone'
+                          'phone',
                         )}`}
                         placeholder='01 23 45 67 89'
                         pattern='[0-9\s\+\-\(\)]{10,}'
@@ -531,7 +538,7 @@ export const ModalSelectService = ({
                         onChange={handleChange}
                         className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
                           'requester',
-                          'email'
+                          'email',
                         )}`}
                         placeholder='jean.dupont@email.com'
                         pattern='[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
@@ -567,7 +574,7 @@ export const ModalSelectService = ({
                         onChange={handleChange}
                         className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
                           'recipient',
-                          'lastName'
+                          'lastName',
                         )}`}
                         placeholder='Martin'
                         pattern="[a-zA-ZÀ-ÿ\s'-]{2,}"
@@ -594,7 +601,7 @@ export const ModalSelectService = ({
                         onChange={handleChange}
                         className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
                           'recipient',
-                          'firstName'
+                          'firstName',
                         )}`}
                         placeholder='Marie'
                         pattern="[a-zA-ZÀ-ÿ\s'-]{2,}"
@@ -621,7 +628,7 @@ export const ModalSelectService = ({
                         onChange={handleChange}
                         className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
                           'recipient',
-                          'phone'
+                          'phone',
                         )}`}
                         placeholder='01 23 45 67 89'
                         pattern='[0-9\s\+\-\(\)]{10,}'

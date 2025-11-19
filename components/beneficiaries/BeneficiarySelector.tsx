@@ -25,7 +25,7 @@ export default function BeneficiarySelector({
     const isSelected = selectedBeneficiaries.includes(beneficiaryId);
     if (isSelected) {
       onSelectionChange(
-        selectedBeneficiaries.filter(id => id !== beneficiaryId)
+        selectedBeneficiaries.filter(id => id !== beneficiaryId),
       );
     } else {
       onSelectionChange([...selectedBeneficiaries, beneficiaryId]);

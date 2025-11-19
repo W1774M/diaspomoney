@@ -1,37 +1,20 @@
 /**
  * Booking Service - DiaspoMoney (Version Refactorée avec Repository Pattern)
- * 
+ *
  * Service refactoré utilisant le Repository Pattern
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import {
+  createValidationRule,
+  Validate,
+} from '@/lib/decorators/validate.decorator';
+import { logger } from '@/lib/logger';
 import { Booking, getBookingRepository, PaginatedResult } from '@/repositories';
+import type { BookingData, BookingServiceFilters } from '@/types/bookings';
 import * as Sentry from '@sentry/nextjs';
-
-export interface BookingData {
-  requesterId: string;
-  providerId: string;
-  serviceId: string;
-  serviceType: 'HEALTH' | 'BTP' | 'EDUCATION';
-  appointmentDate?: Date;
-  timeslot?: string;
-  consultationMode?: 'video' | 'cabinet';
-  recipient?: {
-    firstName: string;
-    lastName: string;
-    phone: string;
-  };
-  metadata?: Record<string, any>;
-}
-
-export interface BookingServiceFilters {
-  userId?: string;
-  providerId?: string;
-  status?: string;
-  dateFrom?: Date;
-  dateTo?: Date;
-  limit?: number;
-  offset?: number;
-}
+import { z } from 'zod';
 
 /**
  * BookingService refactoré utilisant le Repository Pattern
@@ -49,9 +32,9 @@ export class BookingService {
 
   /**
    * Récupérer tous les rendez-vous avec filtres
-   * AVANT: Accès direct à MongoDB via getDatabase()
-   * APRÈS: Utilisation du repository
+   * Utilisation du repository
    */
+  @Cacheable(900, { prefix: 'BookingService:getBookings' }) // Cache 15 minutes
   async getBookings(filters: BookingServiceFilters = {}): Promise<{
     data: Booking[];
     total: number;
@@ -74,7 +57,7 @@ export class BookingService {
         {
           limit: filters['limit'] || 50,
           offset: filters['offset'] || 0,
-        }
+        },
       );
 
       return {
@@ -84,7 +67,7 @@ export class BookingService {
         offset: result.offset,
       };
     } catch (error) {
-      console.error('Erreur getBookings:', error);
+      logger.error({ error, filters }, 'Erreur getBookings');
       Sentry.captureException(error);
       throw error;
     }
@@ -92,20 +75,30 @@ export class BookingService {
 
   /**
    * Récupérer un rendez-vous par son ID
-   * AVANT: Accès direct à MongoDB
-   * APRÈS: Utilisation du repository
+   * Utilisation du repository
    */
+  @Log({ level: 'info', logArgs: true })
+  @Validate({
+    rules: [
+      createValidationRule(
+        0,
+        z.string().min(1, 'Booking ID is required'),
+        'id',
+      ),
+    ],
+  })
+  @Cacheable(600, { prefix: 'BookingService:getBookingById' }) // Cache 10 minutes
   async getBookingById(id: string): Promise<Booking> {
     try {
       const booking = await this.bookingRepository.findById(id);
-      
+
       if (!booking) {
         throw new Error('Réservation non trouvée');
       }
 
       return booking;
     } catch (error) {
-      console.error('Erreur getBookingById:', error);
+      logger.error({ error, id }, 'Erreur getBookingById');
       Sentry.captureException(error);
       throw error;
     }
@@ -113,9 +106,26 @@ export class BookingService {
 
   /**
    * Créer un nouveau rendez-vous
-   * AVANT: Accès direct à MongoDB
-   * APRÈS: Utilisation du repository
+   * Utilisation du repository
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      createValidationRule(
+        0,
+        z
+          .object({
+            requesterId: z.string().min(1, 'Requester ID is required'),
+            providerId: z.string().min(1, 'Provider ID is required'),
+            serviceId: z.string().min(1, 'Service ID is required'),
+            serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']),
+          })
+          .passthrough(),
+        'data',
+      ),
+    ],
+  })
+  @InvalidateCache('BookingService:*')
   async createBooking(data: BookingData): Promise<Booking> {
     try {
       // Validation
@@ -139,7 +149,7 @@ export class BookingService {
 
       return booking;
     } catch (error) {
-      console.error('Erreur createBooking:', error);
+      logger.error({ error, data }, 'Erreur createBooking');
       Sentry.captureException(error);
       throw error;
     }
@@ -148,14 +158,15 @@ export class BookingService {
   /**
    * Mettre à jour un rendez-vous
    */
+  @InvalidateCache('BookingService:*')
   async updateBooking(
     id: string,
-    data: Partial<BookingData>
+    data: Partial<BookingData>,
   ): Promise<Booking> {
     try {
       const updatedBooking = await this.bookingRepository.update(
         id,
-        data as Partial<Booking>
+        data as Partial<Booking>,
       );
 
       if (!updatedBooking) {
@@ -164,7 +175,7 @@ export class BookingService {
 
       return updatedBooking;
     } catch (error) {
-      console.error('Erreur updateBooking:', error);
+      logger.error({ error, id }, 'Erreur updateBooking');
       Sentry.captureException(error);
       throw error;
     }
@@ -173,14 +184,70 @@ export class BookingService {
   /**
    * Mettre à jour le statut d'une réservation
    */
+  @Log({ level: 'info', logArgs: true })
+  @InvalidateCache('BookingService:*')
   async updateBookingStatus(
     id: string,
-    status: Booking['status']
+    status: Booking['status'],
   ): Promise<boolean> {
     try {
       return await this.bookingRepository.updateStatus(id, status);
     } catch (error) {
-      console.error('Erreur updateBookingStatus:', error);
+      logger.error({ error, id, status }, 'Erreur updateBookingStatus');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Annuler une réservation
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      createValidationRule(
+        0,
+        z.string().min(1, 'Booking ID is required'),
+        'id',
+      ),
+    ],
+  })
+  @InvalidateCache('BookingService:*')
+  async cancelBooking(id: string): Promise<Booking> {
+    try {
+      // Vérifier que la réservation existe
+      const booking = await this.bookingRepository.findById(id);
+      if (!booking) {
+        throw new Error('Réservation non trouvée');
+      }
+
+      // Vérifier que la réservation peut être annulée
+      if (booking.status === 'CANCELLED') {
+        throw new Error('Cette réservation est déjà annulée');
+      }
+
+      if (booking.status === 'COMPLETED') {
+        throw new Error("Impossible d'annuler une réservation terminée");
+      }
+
+      // Mettre à jour le statut
+      const updated = await this.bookingRepository.updateStatus(
+        id,
+        'CANCELLED',
+      );
+      if (!updated) {
+        throw new Error("Erreur lors de l'annulation de la réservation");
+      }
+
+      // Récupérer la réservation mise à jour
+      const cancelledBooking = await this.bookingRepository.findById(id);
+      if (!cancelledBooking) {
+        throw new Error('Réservation non trouvée après annulation');
+      }
+
+      return cancelledBooking;
+    } catch (error) {
+      logger.error({ error, id }, 'Erreur cancelBooking');
       Sentry.captureException(error);
       throw error;
     }
@@ -193,7 +260,7 @@ export class BookingService {
     try {
       return await this.bookingRepository.delete(id);
     } catch (error) {
-      console.error('Erreur deleteBooking:', error);
+      logger.error({ error, id }, 'Erreur deleteBooking');
       Sentry.captureException(error);
       throw error;
     }
@@ -202,14 +269,15 @@ export class BookingService {
   /**
    * Récupérer les réservations d'un utilisateur
    */
+  @Cacheable(900, { prefix: 'BookingService:getUserBookings' }) // Cache 15 minutes
   async getUserBookings(
     userId: string,
-    options?: { limit?: number; offset?: number }
+    options?: { limit?: number; offset?: number },
   ): Promise<PaginatedResult<Booking>> {
     try {
       return await this.bookingRepository.findByRequester(userId, options);
     } catch (error) {
-      console.error('Erreur getUserBookings:', error);
+      logger.error({ error, userId }, 'Erreur getUserBookings');
       Sentry.captureException(error);
       throw error;
     }
@@ -218,14 +286,15 @@ export class BookingService {
   /**
    * Récupérer les réservations d'un provider
    */
+  @Cacheable(900, { prefix: 'BookingService:getProviderBookings' }) // Cache 15 minutes
   async getProviderBookings(
     providerId: string,
-    options?: { limit?: number; offset?: number }
+    options?: { limit?: number; offset?: number },
   ): Promise<PaginatedResult<Booking>> {
     try {
       return await this.bookingRepository.findByProvider(providerId, options);
     } catch (error) {
-      console.error('Erreur getProviderBookings:', error);
+      logger.error({ error, providerId }, 'Erreur getProviderBookings');
       Sentry.captureException(error);
       throw error;
     }
@@ -234,13 +303,14 @@ export class BookingService {
   /**
    * Récupérer les réservations à venir
    */
-  async getUpcomingBookings(
-    options?: { limit?: number; offset?: number }
-  ): Promise<PaginatedResult<Booking>> {
+  async getUpcomingBookings(options?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<PaginatedResult<Booking>> {
     try {
       return await this.bookingRepository.findUpcoming(options);
     } catch (error) {
-      console.error('Erreur getUpcomingBookings:', error);
+      logger.error({ error }, 'Erreur getUpcomingBookings');
       Sentry.captureException(error);
       throw error;
     }
@@ -249,4 +319,3 @@ export class BookingService {
 
 // Export singleton
 export const bookingService = BookingService.getInstance();
-

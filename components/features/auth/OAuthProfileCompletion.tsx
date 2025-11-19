@@ -94,7 +94,7 @@ export function OAuthProfileCompletion({
 
   const handleSkip = () => {
     addSuccess(
-      "Connexion réussie ! Vous pourrez compléter votre profil plus tard."
+      "Connexion réussie ! Vous pourrez compléter votre profil plus tard.",
     );
     onComplete();
   };
@@ -204,7 +204,7 @@ export function OAuthProfileCompletion({
                         <option key={city} value={city}>
                           {city}
                         </option>
-                      )
+                      ),
                     )}
                   </select>
                 </div>

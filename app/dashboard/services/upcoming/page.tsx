@@ -6,7 +6,7 @@ import { Calendar, MapPin, User } from 'lucide-react';
 export default function UpcomingServicesPage() {
   // Filter providers from mock data for upcoming services
   const mockServices = MOCK_USERS.filter(
-    user => user.roles.includes('PROVIDER') && user.status === 'ACTIVE'
+    user => user.roles.includes('PROVIDER') && user.status === 'ACTIVE',
   )
     .slice(0, 3)
     .map((provider, index) => ({
@@ -81,7 +81,7 @@ export default function UpcomingServicesPage() {
                   </h3>
                   <span
                     className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                      service.status
+                      service.status,
                     )}`}
                   >
                     {getStatusText(service.status)}

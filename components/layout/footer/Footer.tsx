@@ -1,3 +1,4 @@
+import { getAssetURL } from '@/config/cdn';
 import Image from 'next/image';
 import Link from 'next/link';
 // import CarouselFooter from "./carousel-footer";
@@ -44,6 +45,9 @@ const FooterComponent = () => {
               src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
               alt='DiaspoMoney logo'
               className=''
+              loader={({ src, width, quality }) =>
+                getAssetURL(src, { width, quality: quality ?? 85 })
+              }
             />
             <p className='text-gray-400 mt-2'>
               Transférez des services, pas de largent, pour une économie
@@ -145,6 +149,9 @@ const FooterComponent = () => {
               height={50}
               src='/img/diaspo/map_of_france_1-Converti-1536x1087.png'
               alt='DiaspoMoney logo'
+              loader={({ src, width, quality }) =>
+                getAssetURL(src, { width, quality: quality ?? 85 })
+              }
             />
             <p className='text-sm font-bold'>Seine Innopolis,</p>
             <p className='text-sm'>

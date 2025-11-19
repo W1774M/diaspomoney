@@ -1,19 +1,17 @@
 'use client';
 
 /**
- * Provider pour initialiser le système d'événements côté client
- * S'assure que les listeners sont configurés au démarrage de l'application
+ * Provider pour le système d'événements côté client
+ * Note: Les listeners sont initialisés côté serveur uniquement
+ * (voir lib/events/setup.ts pour l'initialisation serveur)
  */
 
-import { initializeEventSystem } from '@/lib/events/setup';
-import { useEffect } from 'react';
-
-export function EventSystemProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    // Initialiser le système d'événements au montage du composant
-    initializeEventSystem();
-  }, []);
-
+export function EventSystemProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // Les listeners sont initialisés côté serveur uniquement
+  // car ils utilisent MongoDB et d'autres modules Node.js
   return <>{children}</>;
 }
-

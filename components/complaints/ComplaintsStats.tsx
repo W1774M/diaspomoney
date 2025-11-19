@@ -71,7 +71,7 @@ const ComplaintsStats = React.memo<ComplaintsStatsProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 ComplaintsStats.displayName = "ComplaintsStats";

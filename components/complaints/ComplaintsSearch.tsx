@@ -10,7 +10,7 @@ const ComplaintsSearch = React.memo<ComplaintsSearchProps>(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
       },
-      [setSearchTerm]
+      [setSearchTerm],
     );
 
     return (
@@ -27,7 +27,7 @@ const ComplaintsSearch = React.memo<ComplaintsSearchProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 ComplaintsSearch.displayName = "ComplaintsSearch";

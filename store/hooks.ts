@@ -20,28 +20,28 @@ export const useAuthActions = () => {
   return {
     loginStart: useCallback(
       () => dispatch(authActions.loginStart()),
-      [dispatch]
+      [dispatch],
     ),
     loginSuccess: useCallback(
       (user: any) => dispatch(authActions.loginSuccess(user)),
-      [dispatch]
+      [dispatch],
     ),
     loginFailure: useCallback(
       (error: string) => dispatch(authActions.loginFailure(error)),
-      [dispatch]
+      [dispatch],
     ),
     logout: useCallback(() => dispatch(authActions.logout()), [dispatch]),
     setError: useCallback(
       (error: string) => dispatch(authActions.setError(error)),
-      [dispatch]
+      [dispatch],
     ),
     clearError: useCallback(
       () => dispatch(authActions.clearError()),
-      [dispatch]
+      [dispatch],
     ),
     setLoading: useCallback(
       (loading: boolean) => dispatch(authActions.setLoading(loading)),
-      [dispatch]
+      [dispatch],
     ),
   };
 };
@@ -57,15 +57,15 @@ export const useNotificationActions = () => {
     add: useCallback(
       (notification: Omit<any, "id">) =>
         dispatch(notificationActions.add(notification)),
-      [dispatch]
+      [dispatch],
     ),
     remove: useCallback(
       (id: string) => dispatch(notificationActions.remove(id)),
-      [dispatch]
+      [dispatch],
     ),
     clearAll: useCallback(
       () => dispatch(notificationActions.clearAll()),
-      [dispatch]
+      [dispatch],
     ),
   };
 };
@@ -80,7 +80,7 @@ export const useThemeActions = () => {
   return {
     set: useCallback(
       (theme: "light" | "dark" | "system") => dispatch(themeActions.set(theme)),
-      [dispatch]
+      [dispatch],
     ),
     toggle: useCallback(() => dispatch(themeActions.toggle()), [dispatch]),
   };
@@ -96,11 +96,11 @@ export const useUserActions = () => {
   return {
     set: useCallback(
       (user: any) => dispatch(userActions.set(user)),
-      [dispatch]
+      [dispatch],
     ),
     update: useCallback(
       (updates: Partial<any>) => dispatch(userActions.update(updates)),
-      [dispatch]
+      [dispatch],
     ),
     clear: useCallback(() => dispatch(userActions.clear()), [dispatch]),
   };
@@ -117,28 +117,28 @@ export const useAppointmentActions = () => {
     setAll: useCallback(
       (appointments: any[]) =>
         dispatch(appointmentActions.setAll(appointments)),
-      [dispatch]
+      [dispatch],
     ),
     add: useCallback(
       (appointment: any) => dispatch(appointmentActions.add(appointment)),
-      [dispatch]
+      [dispatch],
     ),
     update: useCallback(
       (id: string, updates: Partial<any>) =>
         dispatch(appointmentActions.update(id, updates)),
-      [dispatch]
+      [dispatch],
     ),
     delete: useCallback(
       (id: string) => dispatch(appointmentActions.delete(id)),
-      [dispatch]
+      [dispatch],
     ),
     setLoading: useCallback(
       (loading: boolean) => dispatch(appointmentActions.setLoading(loading)),
-      [dispatch]
+      [dispatch],
     ),
     setError: useCallback(
       (error: string | null) => dispatch(appointmentActions.setError(error)),
-      [dispatch]
+      [dispatch],
     ),
   };
 };
@@ -153,28 +153,28 @@ export const useProviderActions = () => {
   return {
     setAll: useCallback(
       (providers: any[]) => dispatch(providerActions.setAll(providers)),
-      [dispatch]
+      [dispatch],
     ),
     add: useCallback(
       (provider: any) => dispatch(providerActions.add(provider)),
-      [dispatch]
+      [dispatch],
     ),
     update: useCallback(
       (id: string, updates: Partial<any>) =>
         dispatch(providerActions.update(id, updates)),
-      [dispatch]
+      [dispatch],
     ),
     delete: useCallback(
       (id: string) => dispatch(providerActions.delete(id)),
-      [dispatch]
+      [dispatch],
     ),
     setLoading: useCallback(
       (loading: boolean) => dispatch(providerActions.setLoading(loading)),
-      [dispatch]
+      [dispatch],
     ),
     setError: useCallback(
       (error: string | null) => dispatch(providerActions.setError(error)),
-      [dispatch]
+      [dispatch],
     ),
   };
 };
@@ -189,28 +189,28 @@ export const useInvoiceActions = () => {
   return {
     setAll: useCallback(
       (invoices: any[]) => dispatch(invoiceActions.setAll(invoices)),
-      [dispatch]
+      [dispatch],
     ),
     add: useCallback(
       (invoice: any) => dispatch(invoiceActions.add(invoice)),
-      [dispatch]
+      [dispatch],
     ),
     update: useCallback(
       (id: string, updates: Partial<any>) =>
         dispatch(invoiceActions.update(id, updates)),
-      [dispatch]
+      [dispatch],
     ),
     delete: useCallback(
       (id: string) => dispatch(invoiceActions.delete(id)),
-      [dispatch]
+      [dispatch],
     ),
     setLoading: useCallback(
       (loading: boolean) => dispatch(providerActions.setLoading(loading)),
-      [dispatch]
+      [dispatch],
     ),
     setError: useCallback(
       (error: string | null) => dispatch(providerActions.setError(error)),
-      [dispatch]
+      [dispatch],
     ),
   };
 };
@@ -244,7 +244,7 @@ export const useAllActions = () => {
 export const useAsyncOperation = <T extends any[], R>(
   operation: (...args: T) => Promise<R>,
   setLoading: (loading: boolean) => void,
-  setError: (error: string | null) => void
+  setError: (error: string | null) => void,
 ) => {
   return useCallback(
     async (...args: T): Promise<R | null> => {
@@ -262,7 +262,7 @@ export const useAsyncOperation = <T extends any[], R>(
         return null;
       }
     },
-    [operation, setLoading, setError]
+    [operation, setLoading, setError],
   );
 };
 
@@ -282,7 +282,7 @@ export const useFormActions = () => {
         dispatch(authActions.setError(error));
         dispatch(authActions.setLoading(false));
       },
-      [dispatch]
+      [dispatch],
     ),
 
     handleFormSuccess: useCallback(() => {

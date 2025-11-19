@@ -6,7 +6,7 @@ import { AlertCircle, CheckCircle, Clock, MapPin, User } from 'lucide-react';
 export default function TrackingServicesPage() {
   // Filter providers from mock data for tracking services
   const mockServices = MOCK_USERS.filter(
-    user => user.roles.includes('PROVIDER') && user.status === 'ACTIVE'
+    user => user.roles.includes('PROVIDER') && user.status === 'ACTIVE',
   )
     .slice(0, 2)
     .map((provider, index) => ({
@@ -89,7 +89,7 @@ export default function TrackingServicesPage() {
                   </h3>
                   <span
                     className={`ml-3 px-2 py-1 rounded-full text-xs font-medium flex items-center ${getStatusColor(
-                      service.status
+                      service.status,
                     )}`}
                   >
                     {getStatusIcon(service.status)}

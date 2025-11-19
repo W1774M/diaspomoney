@@ -52,7 +52,7 @@ const BeneficiariesPage = React.memo(function BeneficiariesPage() {
         await deleteBeneficiary(id);
       }
     },
-    [deleteBeneficiary]
+    [deleteBeneficiary],
   );
 
   const handleFormSubmit = useCallback(
@@ -62,7 +62,7 @@ const BeneficiariesPage = React.memo(function BeneficiariesPage() {
         if (editingBeneficiary) {
           const result = await updateBeneficiary(
             editingBeneficiary._id,
-            formData
+            formData,
           );
           if (result) {
             setEditingBeneficiary(null);
@@ -79,7 +79,7 @@ const BeneficiariesPage = React.memo(function BeneficiariesPage() {
         setIsSubmitting(false);
       }
     },
-    [editingBeneficiary, createBeneficiary, updateBeneficiary]
+    [editingBeneficiary, createBeneficiary, updateBeneficiary],
   );
 
   const handleFormCancel = useCallback(() => {
@@ -91,7 +91,7 @@ const BeneficiariesPage = React.memo(function BeneficiariesPage() {
     (value: string) => {
       updateFilter("searchTerm", value);
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   // const handleRelationshipChange = useCallback(

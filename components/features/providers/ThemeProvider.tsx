@@ -20,13 +20,13 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     root.classList.remove('light', 'dark');
 
     if (theme === 'light' || theme === 'dark') {
+      root.classList.add(theme);
+    } else {
       const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
         .matches
         ? 'dark'
         : 'light';
       root.classList.add(systemTheme);
-    } else if (theme === 'light' || theme === 'dark') {
-      root.classList.add(theme);
     }
   }, [theme]);
 

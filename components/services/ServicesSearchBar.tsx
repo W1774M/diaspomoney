@@ -15,14 +15,14 @@ const ServicesSearchBar = React.memo<ServiceSearchBarProps>(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         setSelectedService(e.target.value);
       },
-      [setSelectedService]
+      [setSelectedService],
     );
 
     const handleCityChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         setSelectedCity(e.target.value);
       },
-      [setSelectedCity]
+      [setSelectedCity],
     );
 
     return (
@@ -61,7 +61,7 @@ const ServicesSearchBar = React.memo<ServiceSearchBarProps>(
         </div>
       </div>
     );
-  }
+  },
 );
 
 ServicesSearchBar.displayName = "ServicesSearchBar";

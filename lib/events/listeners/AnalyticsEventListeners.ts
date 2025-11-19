@@ -4,6 +4,7 @@
  */
 
 import { authEvents, BookingCreatedEvent, bookingEvents, paymentEvents, PaymentSucceededEvent, UserLoggedInEvent } from '@/lib/events';
+import { logger } from '@/lib/logger';
 
 /**
  * Service d'analytics (mock - à remplacer par votre service réel)
@@ -11,7 +12,7 @@ import { authEvents, BookingCreatedEvent, bookingEvents, paymentEvents, PaymentS
 class AnalyticsService {
   track(event: string, properties: Record<string, any>) {
     // Implémentation réelle avec Google Analytics, Mixpanel, etc.
-    console.log('[Analytics] Track:', event, properties);
+    logger.debug({ event, properties }, '[Analytics] Track');
     
     // Exemple avec Google Analytics (si disponible)
     // if (typeof window !== 'undefined' && window.gtag) {
@@ -20,7 +21,7 @@ class AnalyticsService {
   }
 
   identify(userId: string, traits: Record<string, any>) {
-    console.log('[Analytics] Identify:', userId, traits);
+    logger.debug({ userId, traits }, '[Analytics] Identify');
   }
 }
 

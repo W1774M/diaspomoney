@@ -11,14 +11,14 @@ export const APP_DESCRIPTION = 'Plateforme Internationale de Services Multi-Sect
 export const ENVIRONMENTS = {
   DEVELOPMENT: 'development',
   RECETTE: 'recette',
-  PRODUCTION: 'production'
+  PRODUCTION: 'production',
 } as const;
 
 // === CONSTANTES D'URLS ===
 export const URLS = {
   DEV: 'https://dev.diaspomoney.fr',
   RCT: 'https://rct.diaspomoney.fr',
-  PROD: 'https://app.diaspomoney.fr'
+  PROD: 'https://app.diaspomoney.fr',
 } as const;
 
 // === CONSTANTES DE BASE DE DONNÉES ===
@@ -29,7 +29,7 @@ export const DATABASE = {
     PAYMENTS: 'payments',
     APPOINTMENTS: 'appointments',
     NOTIFICATIONS: 'notifications',
-    AUDIT_LOGS: 'audit_logs'
+    AUDIT_LOGS: 'audit_logs',
   },
   INDEXES: {
     USER_EMAIL: 'email_1',
@@ -37,8 +37,8 @@ export const DATABASE = {
     TRANSACTION_USER: 'userId_1',
     TRANSACTION_STATUS: 'status_1',
     APPOINTMENT_USER: 'userId_1',
-    APPOINTMENT_PROVIDER: 'providerId_1'
-  }
+    APPOINTMENT_PROVIDER: 'providerId_1',
+  },
 } as const;
 
 // === CONSTANTES DE SÉCURITÉ ===
@@ -51,7 +51,7 @@ export const SECURITY = {
   LOCKOUT_TIME: 15 * 60 * 1000, // 15 minutes
   SESSION_TIMEOUT: 24 * 60 * 60 * 1000, // 24 heures
   ENCRYPTION_ALGORITHM: 'aes-256-gcm',
-  HASH_ROUNDS: 12
+  HASH_ROUNDS: 12,
 } as const;
 
 // === CONSTANTES DE PAIEMENT ===
@@ -63,7 +63,7 @@ export const PAYMENT = {
   FEE_RATE: 0.029, // 2.9%
   FEE_MIN: 0.30,
   FEE_MAX: 10.00,
-  REFUND_DAYS: 30
+  REFUND_DAYS: 30,
 } as const;
 
 // === CONSTANTES D'EMAIL ===
@@ -78,8 +78,8 @@ export const EMAIL = {
     PASSWORD_RESET: 'password_reset',
     PAYMENT_CONFIRMATION: 'payment_confirmation',
     APPOINTMENT_NOTIFICATION: 'appointment_notification',
-    CUSTOM: 'custom'
-  }
+    CUSTOM: 'custom',
+  },
 } as const;
 
 // === CONSTANTES DE MONITORING ===
@@ -90,14 +90,14 @@ export const MONITORING = {
     ERROR_RATE: 0.05, // 5%
     RESPONSE_TIME: 2000, // 2 seconds
     MEMORY_USAGE: 0.8, // 80%
-    CPU_USAGE: 0.8 // 80%
+    CPU_USAGE: 0.8, // 80%
   },
   LOG_LEVELS: {
     ERROR: 'error',
     WARN: 'warn',
     INFO: 'info',
-    DEBUG: 'debug'
-  }
+    DEBUG: 'debug',
+  },
 } as const;
 
 // === CONSTANTES D'API ===
@@ -105,17 +105,17 @@ export const API = {
   VERSION: 'v1',
   RATE_LIMIT: {
     WINDOW_MS: 15 * 60 * 1000, // 15 minutes
-    MAX_REQUESTS: 100
+    MAX_REQUESTS: 100,
   },
   TIMEOUT: {
     REQUEST: 30000, // 30 seconds
     DATABASE: 10000, // 10 seconds
-    EXTERNAL: 15000 // 15 seconds
+    EXTERNAL: 15000, // 15 seconds
   },
   PAGINATION: {
     DEFAULT_LIMIT: 20,
-    MAX_LIMIT: 100
-  }
+    MAX_LIMIT: 100,
+  },
 } as const;
 
 // === CONSTANTES DE CACHE ===
@@ -124,15 +124,15 @@ export const CACHE = {
     USER: 15 * 60 * 1000, // 15 minutes
     TRANSACTION: 5 * 60 * 1000, // 5 minutes
     APPOINTMENT: 10 * 60 * 1000, // 10 minutes
-    EMAIL: 30 * 60 * 1000 // 30 minutes
+    EMAIL: 30 * 60 * 1000, // 30 minutes
   },
   KEYS: {
     USER: 'user',
     TRANSACTION: 'transaction',
     APPOINTMENT: 'appointment',
     EMAIL: 'email',
-    SESSION: 'session'
-  }
+    SESSION: 'session',
+  },
 } as const;
 
 // === CONSTANTES DE VALIDATION ===
@@ -140,7 +140,7 @@ export const VALIDATION = {
   EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   PHONE_REGEX: /^\+?[1-9]\d{1,14}$/,
   PASSWORD_REGEX: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
-  UUID_REGEX: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  UUID_REGEX: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
 } as const;
 
 // === CONSTANTES DE FICHIERS ===
@@ -148,7 +148,7 @@ export const FILES = {
   MAX_SIZE: 10 * 1024 * 1024, // 10MB
   ALLOWED_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'],
   UPLOAD_PATH: '/uploads',
-  TEMP_PATH: '/tmp'
+  TEMP_PATH: '/tmp',
 } as const;
 
 // === CONSTANTES DE NOTIFICATION ===
@@ -157,19 +157,19 @@ export const NOTIFICATION = {
     EMAIL: 'email',
     SMS: 'sms',
     PUSH: 'push',
-    WHATSAPP: 'whatsapp'
+    WHATSAPP: 'whatsapp',
   },
   PRIORITIES: {
     LOW: 'low',
     NORMAL: 'normal',
     HIGH: 'high',
-    URGENT: 'urgent'
+    URGENT: 'urgent',
   },
   CHANNELS: {
     SLACK: 'slack',
     EMAIL: 'email',
-    WEBHOOK: 'webhook'
-  }
+    WEBHOOK: 'webhook',
+  },
 } as const;
 
 // === CONSTANTES DE WORKFLOW ===
@@ -179,19 +179,19 @@ export const WORKFLOW = {
     RUNNING: 'running',
     COMPLETED: 'completed',
     FAILED: 'failed',
-    CANCELLED: 'cancelled'
+    CANCELLED: 'cancelled',
   },
   TRIGGERS: {
     MANUAL: 'manual',
     SCHEDULED: 'scheduled',
     EVENT: 'event',
-    WEBHOOK: 'webhook'
-  }
+    WEBHOOK: 'webhook',
+  },
 } as const;
 
 // === CONSTANTES D'EXPORT ===
 export const EXPORTS = {
   FORMATS: ['csv', 'xlsx', 'pdf', 'json'],
   MAX_RECORDS: 10000,
-  CHUNK_SIZE: 1000
+  CHUNK_SIZE: 1000,
 } as const;

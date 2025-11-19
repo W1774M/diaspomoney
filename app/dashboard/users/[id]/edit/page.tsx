@@ -1,32 +1,37 @@
 'use client';
 
-import {
-  IUser,
-  User,
-  USER_ROLES,
-  USER_STATUSES,
-  UserRole,
-  UserStatus,
-} from '@/types';
+/**
+ * Page d'édition d'un utilisateur
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (useUser, useUserEdit, useAuth)
+ * - Service Layer Pattern (via les API routes)
+ * - Logger Pattern (logging structuré côté serveur)
+ * - Middleware Pattern (authentification via useAuth)
+ */
+
+import { useAuth, useUser, useUserEdit } from '@/hooks';
+import { USER_ROLES, USER_STATUSES } from '@/types';
+import { UserEditFormData } from '@/types/user';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function EditUserPage() {
-  // const params = useParams();
-  const userId = 'temp-user-id'; // TODO: Get from URL params
+  const params = useParams();
+  const userId = params.id as string;
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, loading, error, fetchUser } = useUser();
+  const { updateUser, loading: saving, error: updateError } = useUserEdit();
+  const [formData, setFormData] = useState<UserEditFormData>({
     email: '',
     name: '',
     phone: '',
     company: '',
     address: '',
-    roles: [] as string[],
-    status: 'ACTIVE' as string,
+    roles: [],
+    status: 'ACTIVE',
     specialty: '',
     recommended: false,
     clientNotes: '',
@@ -38,56 +43,44 @@ export default function EditUserPage() {
     },
   });
 
-  // Simuler des données pour l'exemple
+  // Charger les données de l'utilisateur
   useEffect(() => {
-    const mockUser: IUser = {
-      _id: userId as string,
-      email: 'jean.dupont@email.com',
-      name: 'Jean Dupont',
-      phone: '+33 1 23 45 67 89',
-      company: 'Entreprise ABC',
-      address: '123 Rue de la Paix, 75001 Paris, France',
-      roles: [UserRole.CUSTOMER],
-      status: UserStatus.ACTIVE,
-      clientNotes: 'Client fidèle depuis 2020',
-      avatar: {
-        image: '',
-        name: '',
-      },
-      preferences: {
-        language: 'fr',
-        timezone: 'Europe/Paris',
-        notifications: true,
-      },
-      createdAt: new Date('2024-01-15'),
-      updatedAt: new Date('2024-01-15'),
-      recommended: false,
-    };
+    if (isAuthenticated && userId) {
+      fetchUser(userId);
+    }
+  }, [isAuthenticated, userId, fetchUser]);
 
-    // Remplir le formulaire avec les données existantes
-    setFormData({
-      email: mockUser.email,
-      name: mockUser.name,
-      phone: mockUser.phone || '',
-      company: mockUser.company || '',
-      address: mockUser.address || '',
-      roles: (mockUser.roles || []).map(String),
-      status: String(mockUser.status),
-      specialty: mockUser.specialty || '',
-      recommended: mockUser.recommended || false,
-      clientNotes: mockUser.clientNotes || '',
-      avatar:
-        typeof mockUser.avatar === 'string'
-          ? mockUser.avatar
-          : mockUser.avatar?.image || '',
-      preferences: mockUser.preferences || {
-        language: 'fr',
-        timezone: 'Europe/Paris',
-        notifications: true,
-      },
-    });
-    setLoading(false);
-  }, [userId]);
+  // Remplir le formulaire avec les données de l'utilisateur
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        email: user.email || '',
+        name:
+          user.name ||
+          `${(user as any).firstName || ''} ${
+            (user as any).lastName || ''
+          }`.trim() ||
+          '',
+        phone: user.phone || '',
+        company: user.company || '',
+        address: user.address || '',
+        roles: (user.roles || []).map(String),
+        status: String(user.status || 'ACTIVE'),
+        specialty: user.specialty || '',
+        recommended: user.recommended || false,
+        clientNotes: user.clientNotes || '',
+        avatar:
+          typeof user.avatar === 'string'
+            ? user.avatar
+            : (user.avatar as any)?.image || '',
+        preferences: user.preferences || {
+          language: 'fr',
+          timezone: 'Europe/Paris',
+          notifications: true,
+        },
+      });
+    }
+  }, [user]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -117,43 +110,41 @@ export default function EditUserPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+
+    if (!userId) return;
 
     try {
-      // Simuler un appel API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Le hook gère déjà les erreurs via setError
+      await updateUser(userId, formData);
 
-      const updatedUser: Partial<User> = {
-        ...formData,
-        roles: formData.roles as UserRole[], // Cast to correct type
-        status: formData.status as UserStatus, // Ensure status is correct enum/type
-        updatedAt: new Date(),
-        preferences: {
-          ...formData.preferences,
-          notifications: true,
-        },
-        clientNotes: formData.clientNotes || '',
-        avatar: formData.avatar || '',
-        specialty: formData.specialty || '',
-        recommended: formData.recommended || false,
-      };
-
-      console.log('Utilisateur mis à jour:', updatedUser);
-      alert('Utilisateur mis à jour avec succès !');
-      userId && router.push(`/dashboard/users/${userId}`);
+      // Rediriger vers la page de détail seulement en cas de succès
+      router.push(`/dashboard/users/${userId}`);
     } catch (error) {
-      console.error('Erreur lors de la mise à jour:', error);
-      alert("Erreur lors de la mise à jour de l'utilisateur");
-    } finally {
-      setSaving(false);
+      // Le hook gère déjà les erreurs et le logging est fait côté serveur
+      // via userService avec @Log decorator
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className='text-center py-12'>
         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
         <p className='mt-4 text-gray-600'>Chargement de l'utilisateur...</p>
+      </div>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <div className='text-center py-12'>
+        <p className='text-gray-600'>{error || 'Utilisateur non trouvé'}</p>
+        <Link
+          href='/dashboard/users'
+          className='mt-4 inline-flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+        >
+          <ArrowLeft className='h-4 w-4 mr-2' />
+          Retour aux utilisateurs
+        </Link>
       </div>
     );
   }
@@ -433,6 +424,9 @@ export default function EditUserPage() {
           >
             {saving ? 'Sauvegarde...' : 'Sauvegarder'}
           </button>
+          {updateError && (
+            <p className='text-red-600 text-sm mt-2'>{updateError}</p>
+          )}
         </div>
       </form>
     </>

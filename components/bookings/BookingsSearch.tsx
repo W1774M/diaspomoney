@@ -12,7 +12,7 @@ const BookingsSearch = React.memo<BookingsSearchProps>(function BookingsSearch({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchTerm(e.target.value);
     },
-    [setSearchTerm]
+    [setSearchTerm],
   );
 
   return (

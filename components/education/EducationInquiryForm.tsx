@@ -136,17 +136,64 @@ export default function EducationInquiryForm({
     setIsSubmitting(true);
 
     try {
-      // TODO: Envoyer la demande de renseignements
-      console.log('Demande de renseignements éducation:', formData);
+      // Envoyer la demande de renseignements via l'API
+      const response = await fetch('/api/education/inquiry', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          schoolId: school?.id,
+        }),
+      });
 
-      // Simulation d'envoi
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Erreur lors de l'envoi de la demande");
+      }
 
       // Afficher un message de succès
       alert('Votre demande de renseignements a été envoyée avec succès !');
+
+      // Réinitialiser le formulaire
+      setFormData({
+        studentType: 'SELF',
+        studentInfo: {
+          firstName: '',
+          lastName: '',
+          dateOfBirth: '',
+          gender: 'MALE',
+          nationality: '',
+        },
+        academicInfo: {
+          currentLevel: '',
+          desiredProgram: '',
+          academicYear: '',
+          previousEducation: '',
+        },
+        contact: {
+          name: '',
+          email: '',
+          phone: '',
+          relationship: '',
+        },
+        preferences: {
+          language: 'fr',
+          schedule: 'FULL_TIME',
+          budget: 0,
+          urgency: 'MEDIUM',
+        },
+        questions: '',
+      });
     } catch (error) {
       console.error('Erreur envoi demande:', error);
-      alert("Erreur lors de l'envoi de la demande");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de l'envoi de la demande",
+      );
     } finally {
       setIsSubmitting(false);
     }

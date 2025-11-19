@@ -23,7 +23,7 @@ export function GoogleLoginButton({
       // NextAuth redirigera automatiquement vers Google OAuth, puis après validation,
       // redirigera vers /dashboard grâce au callbackUrl
       await signIn("google", { 
-        callbackUrl: "/dashboard"
+        callbackUrl: "/dashboard",
       });
       
       // Note: Avec redirect: true (par défaut), NextAuth gère automatiquement la redirection

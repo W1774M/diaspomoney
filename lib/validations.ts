@@ -108,7 +108,7 @@ export const registerSchema = z
       .boolean()
       .refine(
         val => val === true,
-        "Vous devez accepter les conditions générales"
+        "Vous devez accepter les conditions générales",
       ),
     marketingConsent: z.boolean().optional(),
     kycConsent: z

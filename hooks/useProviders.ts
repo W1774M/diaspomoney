@@ -53,7 +53,7 @@ export const useProviders = (filters: ProviderFilters = {}) => {
         });
 
         const response = await fetch(
-          `/api/providers?${searchParams.toString()}`
+          `/api/providers?${searchParams.toString()}`,
         );
 
         if (!response.ok) {
@@ -73,7 +73,7 @@ export const useProviders = (filters: ProviderFilters = {}) => {
         setLoading(false);
       }
     },
-    [filters]
+    [filters],
   );
 
   useEffect(() => {

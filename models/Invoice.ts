@@ -78,7 +78,7 @@ const InvoiceSchema = new Schema<InvoiceExtended>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index pour améliorer les performances

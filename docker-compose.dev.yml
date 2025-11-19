@@ -1,0 +1,136 @@
+# Docker Compose pour l'environnement de développement
+# Utilise le réseau diaspomoney-dev et le domaine dev.diaspomoney.fr
+
+networks:
+  diaspomoney-dev:
+    driver: bridge
+    name: diaspomoney-dev
+  traefik:
+    external: true # Réseau Traefik partagé (créé par docker-compose.traefik.yml)
+    name: traefik
+
+volumes:
+  mongodb_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+
+services:
+  # === APPLICATION DEV ===
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: diaspomoney-app-dev
+    restart: unless-stopped
+    env_file:
+      - .env.dev
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=https://dev.diaspomoney.fr
+      - NEXTAUTH_URL=https://dev.diaspomoney.fr
+      - APP_URL=https://dev.diaspomoney.fr
+    depends_on:
+      mongodb-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_healthy
+    networks:
+      - traefik
+      - diaspomoney-dev
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "512M"
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=diaspomoney-dev
+      # Route HTTPS principale
+      - traefik.http.routers.app-dev.rule=Host(`dev.diaspomoney.fr`)
+      - traefik.http.routers.app-dev.entrypoints=websecure
+      - traefik.http.routers.app-dev.tls=true
+      - traefik.http.routers.app-dev.tls.certresolver=le
+      - traefik.http.routers.app-dev.service=app-dev-service
+      - traefik.http.services.app-dev-service.loadbalancer.server.port=3000
+      # Redirection HTTP vers HTTPS
+      - traefik.http.routers.app-dev-http.rule=Host(`dev.diaspomoney.fr`)
+      - traefik.http.routers.app-dev-http.entrypoints=web
+      - traefik.http.routers.app-dev-http.middlewares=redirect-to-https-dev
+      - traefik.http.middlewares.redirect-to-https-dev.redirectscheme.scheme=https
+      - traefik.http.middlewares.redirect-to-https-dev.redirectscheme.permanent=true
+
+  # === DATABASE DEV ===
+  mongodb-dev:
+    image: mongo:7.0
+    container_name: diaspomoney-mongodb-dev
+    restart: unless-stopped
+    env_file:
+      - .env.dev
+    volumes:
+      - mongodb_dev_data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - diaspomoney-dev
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --host 127.0.0.1 --username admin --password ${MONGO_PASSWORD:-password123} --authenticationDatabase admin --quiet --eval 'db.adminCommand({ ping: 1 }).ok ? 0 : 1'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  # === CACHE DEV ===
+  redis-dev:
+    image: redis:7.2-alpine
+    container_name: diaspomoney-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - diaspomoney-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # === ADMIN TOOLS DEV ===
+  mongo-express-dev:
+    image: mongo-express:latest
+    container_name: diaspomoney-mongo-express-dev
+    restart: unless-stopped
+    env_file:
+      - .env.dev
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb-dev
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD:-password123}
+      ME_CONFIG_MONGODB_AUTH_DATABASE: admin
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+    depends_on:
+      mongodb-dev:
+        condition: service_healthy
+    networks:
+      - diaspomoney-dev
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=diaspomoney-dev
+      - traefik.http.routers.mongo-express-dev.rule=Host(`mongo.diaspomoney.fr`)
+      - traefik.http.routers.mongo-express-dev.entrypoints=websecure
+      - traefik.http.routers.mongo-express-dev.tls=true
+      - traefik.http.routers.mongo-express-dev.tls.certresolver=le
+      - traefik.http.services.mongo-express-dev.loadbalancer.server.port=8081

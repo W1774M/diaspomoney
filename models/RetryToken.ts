@@ -29,7 +29,7 @@ const RetryTokenSchema = new Schema<RetryToken>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index TTL pour supprimer automatiquement les tokens expirés

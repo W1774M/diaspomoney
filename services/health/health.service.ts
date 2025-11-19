@@ -2,126 +2,62 @@
  * Health Service - DiaspoMoney
  * Service de santé Type Doctolib Company-Grade
  * Basé sur la charte de développement
+ *
+ * Implémente les design patterns :
+ * - Service Layer Pattern
+ * - Repository Pattern (via IBookingRepository)
+ * - Dependency Injection (via constructor injection)
+ * - Singleton Pattern
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache, @Validate)
+ * - Logger Pattern (structured logging avec childLogger)
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import {
+  Validate,
+  createValidationRule,
+} from '@/lib/decorators/validate.decorator';
+import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import type {
+  IBookingRepository,
+  IHealthProviderRepository,
+  IPrescriptionRepository,
+  ITeleconsultationRepository,
+} from '@/repositories';
+import {
+  getBookingRepository,
+  getHealthProviderRepository,
+  getPrescriptionRepository,
+  getTeleconsultationRepository,
+} from '@/repositories';
 import { notificationService } from '@/services/notification/notification.service';
+import type { HealthProviderFilters } from '@/types/health';
+import {
+  Appointment,
+  HealthProvider,
+  Medication,
+  Prescription,
+  Teleconsultation,
+} from '@/types/health';
 import * as Sentry from '@sentry/nextjs';
-
-/**
- * Types et Interfaces complémentaires
- */
-export interface ProviderAvailability {
-  [weekday: string]: TimeSlot[] | string; // pour timezone
-}
-
-export interface TimeSlot {
-  start: string; // "09:00"
-  end: string; // "12:00"
-  isAvailable: boolean;
-  maxBookings: number;
-  currentBookings: number;
-}
-
-export interface Medication {
-  name: string;
-  dosage: string;
-  frequency: string;
-  duration: string;
-}
-
-export interface Prescription {
-  id: string;
-  appointmentId: string;
-  medications: Medication[];
-  instructions: string;
-  validUntil: Date;
-  issuedAt: Date;
-  issuedBy: string;
-}
-
-export interface HealthProvider {
-  id: string;
-  name: string;
-  type: 'DOCTOR' | 'HOSPITAL' | 'PHARMACY' | 'CLINIC';
-  specialties: string[];
-  address: {
-    street: string;
-    city: string;
-    country: string;
-    postalCode: string;
-    coordinates?: {
-      latitude: number;
-      longitude: number;
-    };
-  };
-  contact: {
-    phone: string;
-    email: string;
-    website?: string;
-  };
-  languages: string[];
-  rating: number;
-  reviewCount: number;
-  isActive: boolean;
-  availability: ProviderAvailability;
-  services: any[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Appointment {
-  id: string;
-  patientId: string;
-  providerId: string;
-  serviceId: string;
-  date: Date;
-  time: string; // HH:MM format
-  duration: number; // minutes
-  status:
-    | 'SCHEDULED'
-    | 'CONFIRMED'
-    | 'IN_PROGRESS'
-    | 'COMPLETED'
-    | 'CANCELLED'
-    | 'NO_SHOW';
-  type: 'IN_PERSON' | 'TELEMEDICINE';
-  notes?: string;
-  symptoms?: string[];
-  diagnosis?: string;
-  prescription?: any;
-  paymentStatus: 'PENDING' | 'PAID' | 'REFUNDED';
-  paymentAmount?: number;
-  paymentCurrency?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Teleconsultation {
-  id: string;
-  appointmentId: string;
-  roomUrl: string;
-  accessToken: string;
-  status: 'WAITING' | 'ACTIVE' | 'ENDED';
-  startedAt?: Date;
-  endedAt?: Date;
-  duration?: number; // minutes
-}
-
-// interface NotificationData {
-//   recipient: string;
-//   type: string;
-//   data?: any;
-//   template?: string;
-//   channels?: string[];
-//   locale?: string;
-//   priority?: string;
-// }
+import { z } from 'zod';
 
 class HealthService {
   private static instance: HealthService;
+  private bookingRepository: IBookingRepository;
+  private teleconsultationRepository: ITeleconsultationRepository;
+  private prescriptionRepository: IPrescriptionRepository;
+  private healthProviderRepository: IHealthProviderRepository;
 
-  private constructor() {}
+  private constructor() {
+    // Dependency Injection : injecter les repositories
+    this.bookingRepository = getBookingRepository();
+    this.teleconsultationRepository = getTeleconsultationRepository();
+    this.prescriptionRepository = getPrescriptionRepository();
+    this.healthProviderRepository = getHealthProviderRepository();
+  }
 
   /**
    * Accès Singleton à l'instance du service
@@ -136,13 +72,28 @@ class HealthService {
   /**
    * Rechercher des prestataires de santé
    */
-  async searchProviders(_filters: any): Promise<HealthProvider[]> {
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Cacheable(600, { prefix: 'HealthService:searchProviders' }) // Cache 10 minutes
+  async searchProviders(
+    filters: HealthProviderFilters = {},
+  ): Promise<HealthProvider[]> {
+    const log = childLogger({ route: 'HealthService:searchProviders' });
     try {
-      // TODO: intégrer filtre & base de données
-      // Par défaut retourne []
-      return [];
+      // Rechercher les providers via le repository
+      const result =
+        await this.healthProviderRepository.findProvidersWithFilters(
+          filters,
+          { limit: 100 }, // Limite par défaut pour la recherche
+        );
+
+      log.info(
+        { count: result.data.length, total: result.total, filters },
+        'Health providers found',
+      );
+
+      return result.data;
     } catch (error) {
-      console.error('Erreur searchProviders:', error);
+      log.error({ error, filters }, 'Error searching providers');
       Sentry.captureException(error);
       throw error;
     }
@@ -151,6 +102,41 @@ class HealthService {
   /**
    * Prendre un rendez-vous avec un prestataire de santé
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      createValidationRule(
+        0,
+        z.string().min(1, 'Patient ID is required'),
+        'patientId',
+      ),
+      createValidationRule(
+        1,
+        z.string().min(1, 'Provider ID is required'),
+        'providerId',
+      ),
+      createValidationRule(
+        2,
+        z.string().min(1, 'Service ID is required'),
+        'serviceId',
+      ),
+      createValidationRule(3, z.date(), 'date'),
+      createValidationRule(
+        4,
+        z
+          .string()
+          .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format'),
+        'time',
+      ),
+      createValidationRule(
+        5,
+        z.number().positive('Duration must be positive'),
+        'duration',
+      ),
+      createValidationRule(6, z.enum(['IN_PERSON', 'TELEMEDICINE']), 'type'),
+    ],
+  })
+  @InvalidateCache('HealthService:*')
   async bookAppointment(
     patientId: string,
     providerId: string,
@@ -158,38 +144,43 @@ class HealthService {
     date: Date,
     time: string,
     duration: number,
-    type: 'IN_PERSON' | 'TELEMEDICINE'
+    type: 'IN_PERSON' | 'TELEMEDICINE',
   ): Promise<Appointment> {
+    const log = childLogger({ route: 'HealthService:bookAppointment' });
     try {
-      // TODO: Ajouter vérification & logique de database
-      const appointment: Appointment = {
-        id: `appt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        patientId,
+      // Créer un booking via le repository
+      const booking = await this.bookingRepository.create({
+        requesterId: patientId,
         providerId,
         serviceId,
-        date,
-        time,
+        serviceType: 'HEALTH',
+        status: 'PENDING',
+        appointmentDate: date,
+        timeslot: time,
+        consultationMode: type === 'TELEMEDICINE' ? 'video' : 'cabinet',
+        metadata: {
+          duration,
+          type,
+        },
+      });
+
+      // Mapper le booking vers un Appointment
+      const appointment: Appointment = {
+        id: booking.id,
+        patientId: booking.requesterId,
+        providerId: booking.providerId,
+        serviceId: booking.serviceId,
+        date: booking.appointmentDate || date,
+        time: booking.timeslot || time,
         duration,
-        status: 'SCHEDULED',
+        status: this.mapBookingStatusToAppointmentStatus(booking.status),
         type,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: booking.createdAt,
+        updatedAt: booking.updatedAt,
         paymentStatus: 'PENDING',
       };
 
       // Envoyer une notification de confirmation
-      // const _notificationPayload: NotificationData = {
-      //   recipient: patientId,
-      //   type: 'appointment_confirmation',
-      //   template: 'appointment_confirmation',
-      //   channels: ['email'],
-      //   locale: 'fr',
-      //   priority: 'normal',
-      //   data: {
-      //     appointment: appointment,
-      //   },
-      // };
-
       await notificationService.sendNotification({
         recipient: patientId,
         type: 'appointment_confirmation',
@@ -202,32 +193,74 @@ class HealthService {
         },
       });
 
+      log.info(
+        { appointmentId: appointment.id, patientId, providerId },
+        'Appointment booked successfully',
+      );
+
       return appointment;
     } catch (error) {
-      console.error('Erreur bookAppointment:', error);
+      log.error(
+        { error, patientId, providerId, serviceId },
+        'Error booking appointment',
+      );
       Sentry.captureException(error);
       throw error;
     }
   }
 
   /**
+   * Mapper le statut Booking vers Appointment
+   */
+  private mapBookingStatusToAppointmentStatus(
+    bookingStatus: string,
+  ): Appointment['status'] {
+    const statusMap: Record<string, Appointment['status']> = {
+      PENDING: 'SCHEDULED',
+      CONFIRMED: 'CONFIRMED',
+      COMPLETED: 'COMPLETED',
+      CANCELLED: 'CANCELLED',
+      NO_SHOW: 'NO_SHOW',
+    };
+    return statusMap[bookingStatus] || 'SCHEDULED';
+  }
+
+  /**
    * Démarre une nouvelle téléconsultation
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      createValidationRule(
+        0,
+        z.string().min(1, 'Appointment ID is required'),
+        'appointmentId',
+      ),
+    ],
+  })
+  @InvalidateCache('HealthService:*')
   async startTeleconsultation(
-    appointmentId: string
+    appointmentId: string,
   ): Promise<Teleconsultation> {
+    const log = childLogger({ route: 'HealthService:startTeleconsultation' });
     try {
-      const teleconsultation: Teleconsultation = {
-        id: `tele_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      // Vérifier que le rendez-vous existe
+      const booking = await this.bookingRepository.findById(appointmentId);
+      if (!booking) {
+        throw new Error('Appointment not found');
+      }
+
+      // Créer la téléconsultation via le repository
+      const teleconsultation = await this.teleconsultationRepository.create({
         appointmentId,
         roomUrl: `https://video.diaspomoney.fr/room/${appointmentId}`,
         accessToken: `token_${Date.now()}`,
         status: 'WAITING',
         startedAt: new Date(),
-      };
+      });
 
-      // TODO: Sauvegarder en base de données
-      // await Teleconsultation.create(teleconsultation);
+      // Mettre à jour le statut du booking
+      await this.bookingRepository.updateStatus(appointmentId, 'CONFIRMED');
 
       // Enregistrer les métriques
       monitoringManager.recordMetric({
@@ -237,9 +270,14 @@ class HealthService {
         type: 'counter',
       });
 
+      log.info(
+        { teleconsultationId: teleconsultation.id, appointmentId },
+        'Teleconsultation started',
+      );
+
       return teleconsultation;
     } catch (error) {
-      console.error('Erreur startTeleconsultation:', error);
+      log.error({ error, appointmentId }, 'Error starting teleconsultation');
       Sentry.captureException(error);
       throw error;
     }
@@ -248,17 +286,31 @@ class HealthService {
   /**
    * Terminer une téléconsultation
    */
-  async endTeleconsultation(_teleconsultationId: string): Promise<void> {
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      createValidationRule(
+        0,
+        z.string().min(1, 'Teleconsultation ID is required'),
+        'teleconsultationId',
+      ),
+    ],
+  })
+  @InvalidateCache('HealthService:*')
+  async endTeleconsultation(teleconsultationId: string): Promise<void> {
+    const log = childLogger({ route: 'HealthService:endTeleconsultation' });
     try {
-      // TODO: Mettre à jour la téléconsultation (status, endedAt, duration)
-      // await Teleconsultation.updateOne(
-      //   { _id: teleconsultationId },
-      //   {
-      //     status: 'ENDED',
-      //     endedAt: new Date(),
-      //     duration: ... // calcul à partir de startedAt
-      //   }
-      // );
+      // Terminer la téléconsultation via le repository
+      // Le repository calcule automatiquement la durée à partir de startedAt
+      const endedTeleconsultation =
+        await this.teleconsultationRepository.endTeleconsultation(
+          teleconsultationId,
+        );
+
+      if (!endedTeleconsultation) {
+        log.warn({ teleconsultationId }, 'Teleconsultation not found');
+        throw new Error('Teleconsultation not found');
+      }
 
       // Enregistrer les métriques
       monitoringManager.recordMetric({
@@ -267,8 +319,10 @@ class HealthService {
         timestamp: new Date(),
         type: 'counter',
       });
+
+      log.info({ teleconsultationId }, 'Teleconsultation ended');
     } catch (error) {
-      console.error('Erreur endTeleconsultation:', error);
+      log.error({ error, teleconsultationId }, 'Error ending teleconsultation');
       Sentry.captureException(error);
       throw error;
     }
@@ -277,33 +331,86 @@ class HealthService {
   /**
    * Créer une ordonnance
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      createValidationRule(
+        0,
+        z.string().min(1, 'Appointment ID is required'),
+        'appointmentId',
+      ),
+      createValidationRule(
+        1,
+        z.array(
+          z.object({
+            name: z.string().min(1),
+            dosage: z.string().min(1),
+            frequency: z.string().min(1),
+            duration: z.string().min(1),
+          }),
+        ),
+        'medications',
+      ),
+      createValidationRule(
+        2,
+        z.string().min(1, 'Instructions are required'),
+        'instructions',
+      ),
+      createValidationRule(3, z.date(), 'validUntil'),
+      createValidationRule(
+        4,
+        z.string().min(1, 'Issued by is required'),
+        'issuedBy',
+      ),
+    ],
+  })
+  @InvalidateCache('HealthService:*')
   async createPrescription(
     appointmentId: string,
     medications: Medication[],
     instructions: string,
     validUntil: Date,
-    issuedBy: string
+    issuedBy: string,
   ): Promise<Prescription> {
+    const log = childLogger({ route: 'HealthService:createPrescription' });
     try {
-      const prescription: Prescription = {
-        id: `presc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      // Vérifier que le rendez-vous existe
+      const booking = await this.bookingRepository.findById(appointmentId);
+      if (!booking) {
+        throw new Error('Appointment not found');
+      }
+
+      // Créer l'ordonnance via le repository
+      const prescription = await this.prescriptionRepository.create({
         appointmentId,
         medications,
         instructions,
         validUntil,
         issuedAt: new Date(),
         issuedBy,
-      };
-
-      // TODO: Sauvegarder en base de données
-      // await Prescription.create(prescription);
+      });
 
       // Envoyer une notification avec l'ordonnance
-      // await notificationService.sendPrescriptionNotification(prescription);
+      await notificationService.sendNotification({
+        recipient: booking.requesterId,
+        type: 'prescription_created',
+        template: 'prescription_created',
+        channels: [{ type: 'EMAIL', enabled: true, priority: 'MEDIUM' }],
+        locale: 'fr',
+        priority: 'MEDIUM',
+        data: {
+          prescription: prescription,
+        },
+      });
+
+      log.info(
+        { prescriptionId: prescription.id, appointmentId },
+        'Prescription created successfully',
+      );
 
       return prescription;
     } catch (error) {
-      console.error('Erreur createPrescription:', error);
+      log.error({ error, appointmentId }, 'Error creating prescription');
       Sentry.captureException(error);
       throw error;
     }
@@ -312,31 +419,87 @@ class HealthService {
   /**
    * Récupérer les rendez-vous d'un patient
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'HealthService:getPatientAppointments' }) // Cache 5 minutes
   async getPatientAppointments(
-    _patientId: string,
-    _status?: string,
-    _dateFrom?: Date,
-    _dateTo?: Date
+    patientId: string,
+    status?: string,
+    dateFrom?: Date,
+    dateTo?: Date,
   ): Promise<Appointment[]> {
+    const log = childLogger({ route: 'HealthService:getPatientAppointments' });
     try {
-      // TODO: Récupérer depuis la base de données avec filtres
-      // const query: any = { patientId };
-      // if (status) query.status = status;
-      // if (dateFrom) query.date = { $gte: dateFrom };
-      // if (dateTo) query.date = { $lte: dateTo };
+      // Construire les filtres pour le repository
+      const filters: Record<string, any> = {
+        requesterId: patientId,
+        serviceType: 'HEALTH',
+      };
 
-      // const appointments = await Appointment.find(query)
-      //   .populate('providerId')
-      //   .populate('serviceId')
-      //   .sort({ date: 1 });
+      if (status) {
+        filters['status'] = this.mapAppointmentStatusToBookingStatus(
+          status as Appointment['status'],
+        );
+      }
 
-      // Simulation pour l'instant
-      return [];
+      if (dateFrom) {
+        filters['dateFrom'] = dateFrom;
+      }
+
+      if (dateTo) {
+        filters['dateTo'] = dateTo;
+      }
+
+      // Récupérer les bookings via le repository
+      const result = await this.bookingRepository.findBookingsWithFilters(
+        filters,
+        { limit: 1000 }, // Limite élevée pour récupérer tous les rendez-vous
+      );
+
+      // Mapper les bookings vers des appointments
+      const appointments: Appointment[] = result.data.map(booking => ({
+        id: booking.id,
+        patientId: booking.requesterId,
+        providerId: booking.providerId,
+        serviceId: booking.serviceId,
+        date: booking.appointmentDate || new Date(),
+        time: booking.timeslot || '',
+        duration: booking.metadata?.['duration'] || 30,
+        status: this.mapBookingStatusToAppointmentStatus(booking.status),
+        type:
+          booking.consultationMode === 'video' ? 'TELEMEDICINE' : 'IN_PERSON',
+        createdAt: booking.createdAt,
+        updatedAt: booking.updatedAt,
+        paymentStatus: 'PENDING',
+      }));
+
+      log.info(
+        { patientId, count: appointments.length },
+        'Patient appointments retrieved successfully',
+      );
+
+      return appointments;
     } catch (error) {
-      console.error('Erreur getPatientAppointments:', error);
+      log.error({ error, patientId }, 'Error getting patient appointments');
       Sentry.captureException(error);
       throw error;
     }
+  }
+
+  /**
+   * Mapper le statut Appointment vers Booking
+   */
+  private mapAppointmentStatusToBookingStatus(
+    appointmentStatus: Appointment['status'],
+  ): string {
+    const statusMap: Record<Appointment['status'], string> = {
+      SCHEDULED: 'PENDING',
+      CONFIRMED: 'CONFIRMED',
+      IN_PROGRESS: 'CONFIRMED',
+      COMPLETED: 'COMPLETED',
+      CANCELLED: 'CANCELLED',
+      NO_SHOW: 'NO_SHOW',
+    };
+    return statusMap[appointmentStatus] || 'PENDING';
   }
 
   /**
@@ -383,4 +546,3 @@ class HealthService {
 
 // Export de l'instance singleton
 export const healthService = HealthService.getInstance();
-
