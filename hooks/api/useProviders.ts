@@ -1,4 +1,4 @@
-import type { IUser as Provider } from '@/types';
+import type { IUser as Provider } from '@/lib/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // Simple in-memory cache (key = JSON.stringify(options))

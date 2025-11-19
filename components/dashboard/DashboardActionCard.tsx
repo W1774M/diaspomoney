@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardActionCardProps } from "@/types/dashboard";
+import type { DashboardActionCardProps } from "@/lib/types";
 import Link from "next/link";
 import React from "react";
 
@@ -12,7 +12,7 @@ const DashboardActionCard = React.memo<DashboardActionCardProps>(
     icon: Icon,
     color,
   }) {
-    const colorClasses = {
+    const colorClasses: Record<"blue" | "orange" | "green" | "purple" | "red", string> = {
       blue: "bg-blue-100 text-blue-600",
       orange: "bg-orange-100 text-orange-600",
       green: "bg-green-100 text-green-600",

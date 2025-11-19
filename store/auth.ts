@@ -1,4 +1,4 @@
-import { AuthState } from '@/types';
+import { AuthState } from '@/lib/types';
 import { create } from 'zustand';
 
 export const useAuthStore = create<AuthState>(set => ({

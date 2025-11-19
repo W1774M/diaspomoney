@@ -7,15 +7,7 @@
 
 import { logger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
-
-interface LogOptions {
-  level?: 'debug' | 'info' | 'warn' | 'error';
-  logArgs?: boolean; // Logger les arguments (défaut: true)
-  logResult?: boolean; // Logger le résultat (défaut: false pour éviter les données sensibles)
-  logExecutionTime?: boolean; // Logger le temps d'exécution (défaut: true)
-  maskSensitiveFields?: string[]; // Champs à masquer dans les logs
-  sendToSentry?: boolean; // Envoyer les erreurs à Sentry (défaut: true)
-}
+import type { LogDecoratorOptions } from '@/lib/types';
 
 /**
  * Masquer les champs sensibles dans les données
@@ -52,7 +44,7 @@ function maskSensitiveData(data: any, fieldsToMask: string[]): any {
  *   }
  * }
  */
-export function Log(options: LogOptions = {}) {
+export function Log(options: LogDecoratorOptions = {}) {
   return function (
     target: any,
     propertyKey: string,

@@ -3,7 +3,7 @@
  * Fonctions helper pour les composants UI
  */
 
-import { RoleColor, StatusColor } from '@/types/user';
+import { RoleColor, StatusColor } from '@/lib/types';
 import { Building2, Users } from 'lucide-react';
 import React, { ReactElement } from 'react';
 

@@ -22,7 +22,10 @@ export function exampleBasicUsage() {
   const paymentService = getService<PaymentService>(ServiceKeys.PaymentService);
   const bookingService = getService<BookingService>(ServiceKeys.BookingService);
 
-  // Utiliser les services
+  // Utiliser les services (exemples commentés)
+  void userService; // Variable d'exemple - sera utilisée dans l'implémentation
+  void paymentService; // Variable d'exemple - sera utilisée dans l'implémentation
+  void bookingService; // Variable d'exemple - sera utilisée dans l'implémentation
   // userService.getUserProfile(...)
   // paymentService.createPaymentIntent(...)
   // bookingService.getBookings(...)
@@ -43,6 +46,7 @@ export class ExampleService {
 
   async processUserPayment(userId: string, amount: number) {
     const user = await this.userService.getUserProfile(userId);
+    void user; // Variable d'exemple - sera utilisée dans l'implémentation complète
     // ... logique métier
     const payment = await this.paymentService.createPaymentIntent(
       amount,
@@ -56,13 +60,18 @@ export class ExampleService {
 
 /**
  * Exemple 3: Utilisation dans les tests avec mock
+ * 
+ * Note: Cette fonction nécessite jest pour être utilisée dans un environnement de test
  */
-export function exampleTestUsage() {
-  import { serviceContainer } from '@/containers';
+export async function exampleTestUsage() {
+  const { serviceContainer } = await import('@/containers');
 
   // Enregistrer un mock pour les tests
+  // Note: jest doit être disponible dans l'environnement de test
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const jestFn = (globalThis as any).jest?.fn || (() => Promise.resolve(null));
   const mockUserService = {
-    getUserProfile: jest.fn(),
+    getUserProfile: jestFn(),
     // ... autres méthodes mockées
   };
 
@@ -70,6 +79,7 @@ export function exampleTestUsage() {
 
   // Utiliser le service mocké
   const userService = getService<UserService>(ServiceKeys.UserService);
+  void userService; // Variable d'exemple - sera utilisée dans les tests
   // userService.getUserProfile(...) utilisera le mock
 
   // Réinitialiser après les tests
@@ -79,8 +89,8 @@ export function exampleTestUsage() {
 /**
  * Exemple 4: Création d'un service avec dépendances
  */
-export function exampleServiceWithDependencies() {
-  import { createService, ServiceKeys } from '@/containers';
+export async function exampleServiceWithDependencies() {
+  const { createService, ServiceKeys } = await import('@/containers');
 
   // Créer un service avec injection automatique de dépendances
   // Note: Cette approche nécessite que les dépendances soient déjà enregistrées
@@ -88,5 +98,6 @@ export function exampleServiceWithDependencies() {
     BookingService,
     [ServiceKeys.BookingRepository], // Dépendances requises
   );
+  void bookingService; // Variable d'exemple - sera utilisée dans l'implémentation
 }
 

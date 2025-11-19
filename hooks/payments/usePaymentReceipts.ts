@@ -1,8 +1,8 @@
 'use client';
 
 import { useNotificationManager } from '@/components/ui/Notification';
-import type { UsePaymentReceiptsReturn } from '@/types/hooks';
-import type { PaymentReceipt } from '@/types/payments';
+import type { UsePaymentReceiptsReturn } from '@/lib/types';
+import type { PaymentReceipt } from '@/lib/types';
 import { useCallback, useEffect, useState } from 'react';
 
 /**
@@ -35,9 +35,9 @@ export function usePaymentReceipts(): UsePaymentReceiptsReturn {
       } else {
         throw new Error(data.error || 'Format de réponse invalide');
       }
-    } catch (err) {
+    } catch (error) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Erreur inconnue';
+        error instanceof Error ? error.message : 'Erreur inconnue';
       setError(errorMessage);
       addError(errorMessage);
       setReceipts([]);

@@ -63,7 +63,7 @@ export function useInvoiceActions(): UseInvoiceActionsReturn {
         window.URL.revokeObjectURL(url);
 
         addSuccess('Facture téléchargée avec succès');
-      } catch (error) {
+      } catch (_error) {
         addError('Erreur lors du téléchargement de la facture');
       } finally {
         setIsDownloading(false);
@@ -109,7 +109,7 @@ export function useInvoiceActions(): UseInvoiceActionsReturn {
         } else {
           addError(data.error || "Erreur lors de l'envoi de la facture");
         }
-      } catch (error) {
+      } catch (_error) {
         addError("Erreur lors de l'envoi de la facture par email");
       } finally {
         setIsSending(false);

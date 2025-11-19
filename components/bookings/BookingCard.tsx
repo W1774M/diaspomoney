@@ -12,7 +12,7 @@ import {
   getStatusColor,
   getStatusDisplay,
 } from "@/lib/bookings/utils";
-import { BookingCardProps } from "@/types/bookings";
+import type { BookingCardProps } from "@/lib/types";
 import { Eye } from "lucide-react";
 import Link from "next/link";
 import React from "react";

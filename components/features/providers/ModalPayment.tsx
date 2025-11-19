@@ -8,7 +8,7 @@
  */
 
 import { useNotificationManager } from '@/components/ui/Notification';
-import { ModalPaymentProps, PaymentData } from '@/types';
+import { ModalPaymentProps, PaymentData } from '@/lib/types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface ModalPaymentPropsExtended extends ModalPaymentProps {

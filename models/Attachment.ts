@@ -1,4 +1,4 @@
-import { Attachment } from '@/types/messaging';
+import { Attachment } from '@/lib/types';
 import mongoose, { Schema } from 'mongoose';
 
 const AttachmentSchema = new Schema<Attachment>(

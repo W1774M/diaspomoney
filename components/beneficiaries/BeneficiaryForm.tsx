@@ -1,21 +1,61 @@
 "use client";
 
-import { BeneficiaryFormProps } from "@/types/beneficiaries";
+import { Beneficiary, BeneficiaryFormData, BeneficiaryRelationship } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import React, { useCallback } from "react";
 
+interface BeneficiaryFormProps {
+  beneficiary?: Beneficiary | null;
+  onSubmit: (data: BeneficiaryFormData) => void;
+  onCancel: () => void;
+  isSubmitting: boolean;
+}
+
 const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
-  function BeneficiaryForm({ beneficiary, onSubmit, onCancel, isSubmitting }) {
+  function BeneficiaryForm({ beneficiary, onSubmit, onCancel, isSubmitting }: BeneficiaryFormProps) {
     const handleSubmit = useCallback(
       (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
-        const data = {
-          name: formData.get("name") as string,
-          email: formData.get("email") as string,
-          phone: formData.get("phone") as string,
-          relationship: formData.get("relationship") as string,
+        
+        // Mapper les valeurs de relation aux valeurs de BeneficiaryRelationship
+        const relationshipMap: Record<string, BeneficiaryRelationship> = {
+          'Époux/Épouse': 'SPOUSE',
+          'Enfant': 'CHILD',
+          'Parent': 'PARENT',
+          'Frère/Sœur': 'SIBLING',
+          'Ami(e)': 'FRIEND',
+          'Autre': 'OTHER',
         };
+        
+        const relationshipValue = formData.get("relationship") as string;
+        const relationship = relationshipMap[relationshipValue] || 'OTHER';
+        
+        // Construire l'objet en n'incluant les propriétés optionnelles que si elles sont définies
+        // (exactOptionalPropertyTypes: true)
+        const data: BeneficiaryFormData = {
+          firstName: (formData.get("firstName") as string) || "",
+          lastName: (formData.get("lastName") as string) || "",
+          country: (formData.get("country") as string) || "",
+          relationship: relationship as BeneficiaryRelationship,
+        };
+        
+        // Ajouter les propriétés optionnelles seulement si elles sont définies
+        const email = (formData.get("email") as string)?.trim();
+        if (email) {
+          data.email = email;
+        }
+        
+        const phone = (formData.get("phone") as string)?.trim();
+        if (phone) {
+          data.phone = phone;
+        }
+        
+        const address = (formData.get("address") as string)?.trim();
+        if (address) {
+          data.address = address;
+        }
+        
         onSubmit(data);
       },
       [onSubmit],
@@ -32,17 +72,33 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
 
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nom complet *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  defaultValue={beneficiary?.name || ""}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Prénom *
+                  </label>
+                  <input
+                    title="Prénom"
+                    type="text"
+                    name="firstName"
+                    required
+                    defaultValue={beneficiary?.firstName || ""}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nom *
+                  </label>
+                  <input
+                    title="Nom"
+                    type="text"
+                    name="lastName"
+                    required
+                    defaultValue={beneficiary?.lastName || ""}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  />
+                </div>
               </div>
 
               <div>
@@ -50,6 +106,7 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
                   Email
                 </label>
                 <input
+                  title="Email"
                   type="email"
                   name="email"
                   defaultValue={beneficiary?.email || ""}
@@ -62,6 +119,7 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
                   Téléphone
                 </label>
                 <input
+                  title="Téléphone"
                   type="tel"
                   name="phone"
                   defaultValue={beneficiary?.phone || ""}
@@ -71,10 +129,39 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Relation
+                  Pays *
+                </label>
+                <input
+                  title="Pays"
+                  type="text"
+                  name="country"
+                  required
+                  defaultValue={beneficiary?.country || ""}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Adresse
+                </label>
+                <input
+                  title="Adresse"
+                  type="text"
+                  name="address"
+                  defaultValue={beneficiary?.address || ""}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Relation *
                 </label>
                 <select
+                  title="Relation"
                   name="relationship"
+                  required
                   defaultValue={beneficiary?.relationship || ""}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
                 >

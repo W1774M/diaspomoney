@@ -6,13 +6,10 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
-import {
-  createValidationRule,
-  Validate,
-} from '@/lib/decorators/validate.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
 import { getSpecialityRepository, ISpecialityRepository } from '@/repositories';
-import { ISpeciality } from '@/types';
+import { ISpeciality } from '@/lib/types';
 import { z } from 'zod';
 
 export interface CreateSpecialityData {
@@ -56,11 +53,11 @@ export class SpecialityService {
   @Cacheable(300, { prefix: 'speciality' }) // Cache 5 minutes
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'Speciality ID is required'),
-        'id',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Speciality ID is required'),
+        paramName: 'id',
+      },
     ],
   })
   async getSpecialityById(id: string): Promise<ISpeciality | null> {
@@ -82,16 +79,16 @@ export class SpecialityService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.object({
+      {
+        paramIndex: 0,
+        schema: z.object({
           name: z.string().min(1, 'Name is required'),
           description: z.string().min(1, 'Description is required'),
           group: z.string().min(1, 'Group is required'),
           isActive: z.boolean().optional(),
         }),
-        'data',
-      ),
+        paramName: 'data',
+      },
     ],
   })
   @InvalidateCache('speciality:*')
@@ -125,21 +122,21 @@ export class SpecialityService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'Speciality ID is required'),
-        'id',
-      ),
-      createValidationRule(
-        1,
-        z.object({
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Speciality ID is required'),
+        paramName: 'id',
+      },
+      {
+        paramIndex: 1,
+        schema: z.object({
           name: z.string().min(1).optional(),
           description: z.string().min(1).optional(),
           group: z.string().min(1).optional(),
           isActive: z.boolean().optional(),
         }),
-        'data',
-      ),
+        paramName: 'data',
+      },
     ],
   })
   @InvalidateCache('speciality:*')
@@ -185,11 +182,11 @@ export class SpecialityService {
   @InvalidateCache('speciality:*')
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'Speciality ID is required'),
-        'id',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Speciality ID is required'),
+        paramName: 'id',
+      },
     ],
   })
   async deleteSpeciality(id: string): Promise<boolean> {

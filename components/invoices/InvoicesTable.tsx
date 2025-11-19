@@ -1,6 +1,6 @@
 "use client";
 
-import { InvoicesTableProps } from "@/types/invoices";
+import type { InvoicesTableProps } from "@/lib/types";
 import React from "react";
 import InvoiceCard from "./InvoiceCard";
 

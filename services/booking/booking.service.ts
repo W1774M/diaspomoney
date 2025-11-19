@@ -7,12 +7,13 @@
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import {
-  createValidationRule,
   Validate,
 } from '@/lib/decorators/validate.decorator';
+import { BOOKING_STATUSES, SPECIALITY_TYPES } from '@/lib/constants';
 import { logger } from '@/lib/logger';
-import { Booking, getBookingRepository, PaginatedResult } from '@/repositories';
-import type { BookingData, BookingServiceFilters } from '@/types/bookings';
+import { Booking, getBookingRepository } from '@/repositories';
+import type { PaginatedFindResult } from '@/lib/types';
+import type { BookingData, BookingServiceFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
@@ -52,19 +53,23 @@ export class BookingService {
       };
 
       // Utiliser le repository avec pagination
+      const limit = filters['limit'] || 50;
+      const offset = filters['offset'] || 0;
+      const page = Math.floor(offset / limit) + 1;
       const result = await this.bookingRepository.findBookingsWithFilters(
         repositoryFilters,
         {
-          limit: filters['limit'] || 50,
-          offset: filters['offset'] || 0,
+          limit,
+          page,
+          offset,
         },
       );
 
       return {
         data: result.data,
         total: result.total,
-        limit: result.limit,
-        offset: result.offset,
+        limit: result.pagination.limit,
+        offset: result.pagination.offset,
       };
     } catch (error) {
       logger.error({ error, filters }, 'Erreur getBookings');
@@ -80,11 +85,11 @@ export class BookingService {
   @Log({ level: 'info', logArgs: true })
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'Booking ID is required'),
-        'id',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Booking ID is required'),
+        paramName: 'id',
+      },
     ],
   })
   @Cacheable(600, { prefix: 'BookingService:getBookingById' }) // Cache 10 minutes
@@ -111,18 +116,22 @@ export class BookingService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z
+      {
+        paramIndex: 0,
+        schema: z
           .object({
             requesterId: z.string().min(1, 'Requester ID is required'),
             providerId: z.string().min(1, 'Provider ID is required'),
             serviceId: z.string().min(1, 'Service ID is required'),
-            serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']),
+            serviceType: z.enum([
+              SPECIALITY_TYPES.HEALTH,
+              SPECIALITY_TYPES.BTP,
+              SPECIALITY_TYPES.EDUCATION,
+            ]),
           })
           .passthrough(),
-        'data',
-      ),
+        paramName: 'data',
+      },
     ],
   })
   @InvalidateCache('BookingService:*')
@@ -139,7 +148,7 @@ export class BookingService {
         providerId: data.providerId,
         serviceId: data.serviceId,
         serviceType: data.serviceType,
-        status: 'PENDING',
+        status: BOOKING_STATUSES.PENDING,
         appointmentDate: data.appointmentDate,
         timeslot: data.timeslot,
         consultationMode: data.consultationMode,
@@ -205,11 +214,11 @@ export class BookingService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'Booking ID is required'),
-        'id',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Booking ID is required'),
+        paramName: 'id',
+      },
     ],
   })
   @InvalidateCache('BookingService:*')
@@ -222,18 +231,18 @@ export class BookingService {
       }
 
       // Vérifier que la réservation peut être annulée
-      if (booking.status === 'CANCELLED') {
+      if (booking.status === BOOKING_STATUSES.CANCELLED) {
         throw new Error('Cette réservation est déjà annulée');
       }
 
-      if (booking.status === 'COMPLETED') {
+      if (booking.status === BOOKING_STATUSES.COMPLETED) {
         throw new Error("Impossible d'annuler une réservation terminée");
       }
 
       // Mettre à jour le statut
       const updated = await this.bookingRepository.updateStatus(
         id,
-        'CANCELLED',
+        BOOKING_STATUSES.CANCELLED,
       );
       if (!updated) {
         throw new Error("Erreur lors de l'annulation de la réservation");
@@ -273,9 +282,16 @@ export class BookingService {
   async getUserBookings(
     userId: string,
     options?: { limit?: number; offset?: number },
-  ): Promise<PaginatedResult<Booking>> {
+  ): Promise<PaginatedFindResult<Booking>> {
     try {
-      return await this.bookingRepository.findByRequester(userId, options);
+      const limit = options?.limit || 50;
+      const offset = options?.offset || 0;
+      const page = Math.floor(offset / limit) + 1;
+      return await this.bookingRepository.findByRequester(userId, {
+        limit,
+        page,
+        offset,
+      });
     } catch (error) {
       logger.error({ error, userId }, 'Erreur getUserBookings');
       Sentry.captureException(error);
@@ -290,9 +306,16 @@ export class BookingService {
   async getProviderBookings(
     providerId: string,
     options?: { limit?: number; offset?: number },
-  ): Promise<PaginatedResult<Booking>> {
+  ): Promise<PaginatedFindResult<Booking>> {
     try {
-      return await this.bookingRepository.findByProvider(providerId, options);
+      const limit = options?.limit || 50;
+      const offset = options?.offset || 0;
+      const page = Math.floor(offset / limit) + 1;
+      return await this.bookingRepository.findByProvider(providerId, {
+        limit,
+        page,
+        offset,
+      });
     } catch (error) {
       logger.error({ error, providerId }, 'Erreur getProviderBookings');
       Sentry.captureException(error);
@@ -306,9 +329,16 @@ export class BookingService {
   async getUpcomingBookings(options?: {
     limit?: number;
     offset?: number;
-  }): Promise<PaginatedResult<Booking>> {
+  }): Promise<PaginatedFindResult<Booking>> {
     try {
-      return await this.bookingRepository.findUpcoming(options);
+      const limit = options?.limit || 50;
+      const offset = options?.offset || 0;
+      const page = Math.floor(offset / limit) + 1;
+      return await this.bookingRepository.findUpcoming({
+        limit,
+        page,
+        offset,
+      });
     } catch (error) {
       logger.error({ error }, 'Erreur getUpcomingBookings');
       Sentry.captureException(error);

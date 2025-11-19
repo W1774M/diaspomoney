@@ -1,11 +1,10 @@
 "use client";
 
-import { NotificationSettingsProps } from "@/types/settings";
+import { NotificationSettingsProps } from "@/lib/types"; 
 import { Bell, Globe, Save } from "lucide-react";
 import React, { useCallback } from "react";
 
-const NotificationSettings = React.memo<NotificationSettingsProps>(
-  function NotificationSettings({ data, setData, onSave, saving }) {
+function NotificationSettingsComponent({ data, setData, onSave, saving }: NotificationSettingsProps) {
     const handleChange = useCallback(
       (field: keyof typeof data, value: string | boolean) => {
         setData({ ...data, [field]: value });
@@ -42,6 +41,7 @@ const NotificationSettings = React.memo<NotificationSettingsProps>(
               <div className="relative">
                 <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <select
+                  title="Langue"
                   value={data.language}
                   onChange={e => handleChange("language", e.target.value)}
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -59,6 +59,7 @@ const NotificationSettings = React.memo<NotificationSettingsProps>(
                 Fuseau horaire
               </label>
               <select
+                title="Fuseau horaire"
                 value={data.timezone}
                 onChange={e => handleChange("timezone", e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -94,6 +95,7 @@ const NotificationSettings = React.memo<NotificationSettingsProps>(
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
+                    title="Notifications générales"
                     type="checkbox"
                     checked={data.notifications}
                     onChange={e =>
@@ -119,6 +121,7 @@ const NotificationSettings = React.memo<NotificationSettingsProps>(
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
+                    title="Notifications par email"
                     type="checkbox"
                     checked={data.emailNotifications}
                     onChange={e =>
@@ -144,6 +147,7 @@ const NotificationSettings = React.memo<NotificationSettingsProps>(
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
+                    title="Notifications SMS"
                     type="checkbox"
                     checked={data.smsNotifications}
                     onChange={e =>
@@ -170,9 +174,9 @@ const NotificationSettings = React.memo<NotificationSettingsProps>(
         </form>
       </div>
     );
-  },
-);
+}
 
+const NotificationSettings = React.memo(NotificationSettingsComponent);
 NotificationSettings.displayName = "NotificationSettings";
 
 export default NotificationSettings;

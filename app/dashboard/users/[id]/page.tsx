@@ -16,7 +16,7 @@ import {
   getRoleIcon,
   getStatusColor,
 } from '@/lib/utils/user-utils';
-import { UserRole } from '@/types';
+import { UserRole } from '@/lib/types';
 import { ArrowLeft, Edit, Mail, Phone, Star } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -156,7 +156,7 @@ export default function UserDetailPage() {
                   Rôles
                 </label>
                 <div className='flex flex-wrap gap-2'>
-                  {user.roles.map(role => (
+                  {user.roles.map((role: UserRole) => (
                     <span
                       key={role}
                       className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(

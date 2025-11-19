@@ -8,7 +8,7 @@ import {
   getStatusText,
   getUserInitials,
 } from "@/lib/users/utils";
-import { UserCardProps } from "@/types/users";
+import type { UserCardProps } from "@/lib/types";
 import { Mail, Phone } from "lucide-react";
 import Image from "next/image";
 import React from "react";
@@ -64,7 +64,7 @@ const UserCard = React.memo<UserCardProps>(function UserCard({
 
               {/* Roles and Status */}
               <div className="flex flex-wrap gap-2 mt-3">
-                {user.roles?.map((role, index) => (
+                {user.roles?.map((role: string, index: number) => (
                   <span
                     key={index}
                     className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(role as any)}`}

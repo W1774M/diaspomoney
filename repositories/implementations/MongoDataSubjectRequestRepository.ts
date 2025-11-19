@@ -13,7 +13,7 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
-import type { DataSubjectRequest } from '@/types/gdpr';
+import type { DataSubjectRequest } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { ObjectId } from 'mongodb';
 import type {
@@ -21,9 +21,9 @@ import type {
   IDataSubjectRequestRepository,
 } from '../interfaces/IDataSubjectRequestRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoDataSubjectRequestRepository
   implements IDataSubjectRequestRepository
@@ -62,17 +62,21 @@ export class MongoDataSubjectRequestRepository
 
       await collection.insertOne(document);
 
+      const requestId = document.id || document._id?.toString() || '';
       const createdRequest: DataSubjectRequest = {
-        id: document.id,
+        _id: requestId,
+        id: requestId,
         userId: document.userId,
         type: document.type as DataSubjectRequest['type'],
         status: document.status as DataSubjectRequest['status'],
-        requestedAt: document.requestedAt,
+        requestedAt: document.requestedAt ? new Date(document.requestedAt) : now,
         completedAt: document.completedAt
           ? new Date(document.completedAt)
           : undefined,
         reason: document.reason || undefined,
         data: document.data,
+        createdAt: document.createdAt ? new Date(document.createdAt) : now,
+        updatedAt: document.updatedAt ? new Date(document.updatedAt) : now,
       };
 
       this.log.debug(
@@ -279,8 +283,8 @@ export class MongoDataSubjectRequestRepository
   @Cacheable(300, { prefix: 'DataSubjectRequestRepository:findWithPagination' })
   async findWithPagination(
     filter: Record<string, any> = {},
-    options: PaginationOptions = {},
-  ): Promise<PaginatedResult<DataSubjectRequest>> {
+    options: PaginationOptions = { limit: 50, page: 1 },
+  ): Promise<PaginatedFindResult<DataSubjectRequest>> {
     try {
       const collection = await this.getCollection();
       const limit = options.limit || 50;
@@ -302,10 +306,15 @@ export class MongoDataSubjectRequestRepository
       return {
         data,
         total,
-        limit,
-        offset,
-        page,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error(
@@ -328,7 +337,7 @@ export class MongoDataSubjectRequestRepository
   async searchRequests(
     query: DataSubjectRequestQuery,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<DataSubjectRequest>> {
+  ): Promise<PaginatedFindResult<DataSubjectRequest>> {
     try {
       const mongoQuery: Record<string, any> = {};
 
@@ -356,6 +365,7 @@ export class MongoDataSubjectRequestRepository
 
       const paginationOptions: PaginationOptions = {
         limit: options?.limit || 50,
+        page: options?.page || 1,
         offset: options?.offset || 0,
         sort: options?.sort || { requestedAt: -1 },
       };
@@ -379,12 +389,14 @@ export class MongoDataSubjectRequestRepository
   async findByUserId(
     userId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<DataSubjectRequest>> {
+  ): Promise<PaginatedFindResult<DataSubjectRequest>> {
     try {
-      return this.findWithPagination(
-        { userId },
-        options || { sort: { requestedAt: -1 } },
-      );
+      const paginationOptions: PaginationOptions = options || {
+        limit: 50,
+        page: 1,
+        sort: { requestedAt: -1 },
+      };
+      return this.findWithPagination({ userId }, paginationOptions);
     } catch (error) {
       this.log.error({ error, userId }, 'Error finding requests by userId');
       Sentry.captureException(error, {
@@ -452,8 +464,12 @@ export class MongoDataSubjectRequestRepository
    * Mapper un document MongoDB vers un objet DataSubjectRequest
    */
   private mapToDataSubjectRequest(doc: any): DataSubjectRequest {
+    const docId = doc.id || doc._id?.toString() || '';
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
     return {
-      id: doc.id || doc._id?.toString() || '',
+      _id: docId,
+      id: docId,
       userId: doc.userId || '',
       type: doc.type || 'ACCESS',
       status: doc.status || 'PENDING',
@@ -461,6 +477,8 @@ export class MongoDataSubjectRequestRepository
       completedAt: doc.completedAt ? new Date(doc.completedAt) : undefined,
       reason: doc.reason || undefined,
       data: doc.data,
+      createdAt,
+      updatedAt,
     };
   }
 }

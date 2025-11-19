@@ -82,9 +82,10 @@ const themeReducer = (state: any, action: AppAction) => {
   switch (action.type) {
     case THEME_ACTIONS.SET_THEME:
       return { ...state, theme: action.payload };
-    case THEME_ACTIONS.TOGGLE_THEME:
+    case THEME_ACTIONS.TOGGLE_THEME: {
       const newTheme = state.theme === "light" ? "dark" : "light";
       return { ...state, theme: newTheme };
+    }
     default:
       return state;
   }
@@ -92,7 +93,7 @@ const themeReducer = (state: any, action: AppAction) => {
 
 const notificationReducer = (state: any, action: AppAction) => {
   switch (action.type) {
-    case NOTIFICATION_ACTIONS.ADD:
+    case NOTIFICATION_ACTIONS.ADD: {
       // Use a more stable ID generation to prevent hydration mismatches
       const id = `notification-${Date.now()}-${Math.floor(
         Math.random() * 1000,
@@ -102,6 +103,7 @@ const notificationReducer = (state: any, action: AppAction) => {
         ...state,
         notifications: [...state.notifications, newNotification],
       };
+    }
     case NOTIFICATION_ACTIONS.REMOVE:
       return {
         ...state,

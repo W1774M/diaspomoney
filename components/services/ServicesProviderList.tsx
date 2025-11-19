@@ -1,6 +1,6 @@
 "use client";
 
-import { ServiceProviderListProps } from "@/types/services";
+import type { ServiceProviderListProps } from "@/lib/types";
 import React from "react";
 import ServicesProviderCard from "./ServicesProviderCard";
 
@@ -95,7 +95,7 @@ const ServicesProviderList = React.memo<ServiceProviderListProps>(
 
     return (
       <div className="space-y-4">
-        {providers.map(provider => (
+        {providers.map((provider: any) => (
           <ServicesProviderCard
             key={provider._id}
             provider={provider}

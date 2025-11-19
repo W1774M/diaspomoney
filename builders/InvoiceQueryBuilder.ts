@@ -3,6 +3,7 @@
  * Étend QueryBuilder avec des méthodes spécifiques aux factures
  */
 
+import { InvoiceStatus } from '@/lib/types';
 import { QueryBuilder } from './QueryBuilder';
 
 export class InvoiceQueryBuilder extends QueryBuilder {
@@ -38,21 +39,21 @@ export class InvoiceQueryBuilder extends QueryBuilder {
    * Filtrer les factures en brouillon
    */
   draft(): this {
-    return this.where('status', 'DRAFT');
+    return this.where('status', InvoiceStatus.DRAFT);
   }
 
   /**
    * Filtrer les factures en attente
    */
   pending(): this {
-    return this.where('status', 'PENDING');
+    return this.where('status', InvoiceStatus.PENDING);
   }
 
   /**
    * Filtrer les factures payées
    */
   paid(): this {
-    return this.where('status', 'PAID');
+    return this.where('status', InvoiceStatus.PAID);
   }
 
   /**
@@ -60,7 +61,7 @@ export class InvoiceQueryBuilder extends QueryBuilder {
    */
   overdue(): this {
     const now = new Date();
-    return this.whereIn('status', ['PENDING', 'SENT'])
+    return this.whereIn('status', [InvoiceStatus.PENDING])
       .whereLessThan('dueDate', now);
   }
 

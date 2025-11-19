@@ -1,6 +1,6 @@
 'use client';
 
-import { InvoicesHeaderProps } from '@/types/invoices';
+import type { InvoicesHeaderProps } from '@/lib/types';
 import { Plus } from 'lucide-react';
 import React from 'react';
 

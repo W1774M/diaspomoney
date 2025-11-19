@@ -1,4 +1,4 @@
-import { Complaint } from "@/types/complaints";
+import type { Complaint } from "@/lib/types";
 
 /**
  * Get complaint status color

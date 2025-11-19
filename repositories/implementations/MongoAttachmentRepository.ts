@@ -12,14 +12,15 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import Attachment from '@/models/Attachment';
-import { Attachment as AttachmentType } from '@/types/messaging';
 import * as Sentry from '@sentry/nextjs';
 import { ObjectId } from 'mongodb';
 import { IAttachmentRepository } from '../interfaces/IMessagingRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+  Attachment as IAttachment,
+  Attachment as AttachmentType,
+} from '@/lib/types';
 
 export class MongoAttachmentRepository implements IAttachmentRepository {
   private readonly log = childLogger({
@@ -58,7 +59,7 @@ export class MongoAttachmentRepository implements IAttachmentRepository {
       search?: string;
     },
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<AttachmentType>> {
+  ): Promise<PaginatedFindResult<IAttachment>> {
     try {
       const page = options?.page || 1;
       const limit = options?.limit || 20;
@@ -86,24 +87,24 @@ export class MongoAttachmentRepository implements IAttachmentRepository {
 
       const query = (Attachment as any).find(queryFilters);
 
-      if (options?.sort) {
-        query.sort(options.sort);
-      } else {
-        query.sort({ createdAt: -1 });
-      }
-
       const [attachments, total] = await Promise.all([
         query.skip(offset).limit(limit).lean(),
         (Attachment as any).countDocuments(queryFilters),
       ]);
 
+      const pages = Math.ceil(total / limit);
       return {
         data: attachments.map((a: any) => this.mapToAttachment(a)),
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error(

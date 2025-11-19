@@ -2,7 +2,7 @@
  * Interface du repository pour les spécialités
  */
 
-import { ISpeciality } from '@/types';
+import { ISpeciality } from '@/lib/types';
 import { IRepository } from './IRepository';
 
 export interface ISpecialityRepository

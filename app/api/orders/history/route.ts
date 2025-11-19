@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
         },
         {
           limit: 100,
+          page: 1,
           offset: 0,
           sort: { createdAt: -1 },
         },

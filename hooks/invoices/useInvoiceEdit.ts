@@ -1,6 +1,6 @@
 'use client';
 
-import { IInvoice } from '@/types';
+import { IInvoice } from '@/lib/types';
 import { useCallback, useState } from 'react';
 
 interface UseInvoiceEditReturn {
@@ -80,11 +80,11 @@ export function useInvoiceEdit(): UseInvoiceEditReturn {
         } else {
           throw new Error(result.error || 'Format de réponse invalide');
         }
-      } catch (err) {
+      } catch (error) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Erreur inconnue';
+          error instanceof Error ? error.message : 'Erreur inconnue';
         setError(errorMessage);
-        throw err;
+        throw error;
       } finally {
         setSaving(false);
       }

@@ -11,7 +11,7 @@ import {
   NavigationSection,
   NavigationSubItem,
   UserSectionProps,
-} from '@/types/layout';
+} from '@/lib/types';
 import {
   BarChart3,
   Bell,
@@ -937,8 +937,8 @@ export default function Sidebar() {
             {/* Items de la section */}
             <div className='space-y-1'>
               {section.items
-                .filter(item => item.show)
-                .map(item => {
+                .filter((item: NavigationItem) => item.show)
+                .map((item: NavigationItem) => {
                   // Lien simple
                   if (item.href) {
                     return (

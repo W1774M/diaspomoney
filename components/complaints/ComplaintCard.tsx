@@ -8,7 +8,7 @@ import {
   getStatusText,
   getTypeText,
 } from "@/lib/complaints/utils";
-import { ComplaintCardProps } from "@/types/complaints";
+import type { ComplaintCardProps } from "@/lib/types";
 import {
   AlertTriangle,
   Calendar,
@@ -30,8 +30,8 @@ const ComplaintCard = React.memo<ComplaintCardProps>(function ComplaintCard({
   const priorityText = getPriorityText(complaint.priority);
   const priorityColor = getPriorityColor(complaint.priority);
   const typeText = getTypeText(complaint.type);
-  const createdDate = formatComplaintDate(complaint.createdAt);
-  const updatedDate = formatComplaintDate(complaint.updatedAt);
+  const createdDate = formatComplaintDate(complaint.createdAt.toISOString());
+  const updatedDate = formatComplaintDate(complaint.updatedAt.toISOString());
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">

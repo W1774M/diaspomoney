@@ -12,7 +12,7 @@
 
 import { useAuth } from '@/hooks';
 import { useSpeciality, useSpecialityEdit } from '@/hooks/specialities';
-import { ISpeciality } from '@/types';
+import { ISpeciality } from '@/lib/types';
 import { ArrowLeft, Building, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -70,7 +70,7 @@ export default function EditSpecialityPage() {
         // Rediriger vers la page de détail seulement en cas de succès
         router.push(`/dashboard/specialities/${specialityId}`);
       });
-    } catch (err) {
+    } catch (_err) {
       // Le hook gère déjà les erreurs et le logging est fait côté serveur
       // via SpecialityService avec @Log decorator
     }
@@ -80,7 +80,7 @@ export default function EditSpecialityPage() {
     field: keyof ISpeciality,
     value: string | number,
   ) => {
-    setFormData(prev => ({
+    setFormData((prev: any) => ({
       ...prev,
       [field]: value,
     }));

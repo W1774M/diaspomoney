@@ -1,6 +1,6 @@
 "use client";
 
-import { UsersHeaderProps } from "@/types/users";
+import type { UsersHeaderProps } from "@/lib/types";
 import { Plus } from "lucide-react";
 import React from "react";
 

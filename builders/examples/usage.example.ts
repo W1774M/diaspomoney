@@ -11,6 +11,7 @@ import {
   TransactionQueryBuilder,
   UserQueryBuilder,
 } from '@/builders';
+import type { PaginationOptions } from '@/lib/types';
 import {
   getBookingRepository,
   getInvoiceRepository,
@@ -56,9 +57,16 @@ export async function exampleUserQueryBuilder() {
     .limit(20)
     .build();
 
+  // Normaliser pagination pour garantir limit et page
+  const pagination: PaginationOptions = {
+    limit: query.pagination.limit ?? 20,
+    page: query.pagination.page ?? 1,
+    ...(query.pagination.offset !== undefined && { offset: query.pagination.offset }),
+    ...(query.sort && { sort: query.sort }),
+  };
   const result = await userRepository.findUsersWithFilters(
     query.filters,
-    query.pagination,
+    pagination,
   );
 
   console.log(`Found ${result.total} providers`);
@@ -86,9 +94,16 @@ export async function exampleTransactionQueryBuilder(userId: string) {
     .page(1, 20)
     .build();
 
+  // Normaliser pagination pour garantir limit et page
+  const pagination: PaginationOptions = {
+    limit: query.pagination.limit ?? 20,
+    page: query.pagination.page ?? 1,
+    ...(query.pagination.offset !== undefined && { offset: query.pagination.offset }),
+    ...(query.sort && { sort: query.sort }),
+  };
   const result = await transactionRepository.findTransactionsWithFilters(
     query.filters,
-    query.pagination,
+    pagination,
   );
 
   console.log(`Found ${result.total} transactions`);
@@ -111,9 +126,16 @@ export async function exampleBookingQueryBuilder(providerId: string) {
     .limit(10)
     .build();
 
+  // Normaliser pagination pour garantir limit et page
+  const pagination: PaginationOptions = {
+    limit: query.pagination.limit ?? 10,
+    page: query.pagination.page ?? 1,
+    ...(query.pagination.offset !== undefined ? { offset: query.pagination.offset } : {}),
+    ...(query.sort ? { sort: query.sort } : {}),
+  };
   const result = await bookingRepository.findBookingsWithFilters(
     query.filters,
-    query.pagination,
+    pagination,
   );
 
   console.log(`Found ${result.total} upcoming bookings`);
@@ -134,9 +156,16 @@ export async function exampleInvoiceQueryBuilder(userId: string) {
     .orderByDueDate('asc')
     .build();
 
+  // Normaliser pagination pour garantir limit et page
+  const pagination: PaginationOptions = {
+    limit: query.pagination.limit ?? 50,
+    page: query.pagination.page ?? 1,
+    ...(query.pagination.offset !== undefined ? { offset: query.pagination.offset } : {}),
+    ...(query.sort ? { sort: query.sort } : {}),
+  };
   const result = await invoiceRepository.findInvoicesWithFilters(
     query.filters,
-    query.pagination,
+    pagination,
   );
 
   console.log(`Found ${result.total} overdue invoices`);
@@ -161,9 +190,16 @@ export async function exampleComplexQuery() {
     .limit(50)
     .build();
 
+  // Normaliser pagination pour garantir limit et page
+  const pagination: PaginationOptions = {
+    limit: query.pagination.limit ?? 20,
+    page: query.pagination.page ?? 1,
+    ...(query.pagination.offset !== undefined && { offset: query.pagination.offset }),
+    ...(query.sort && { sort: query.sort }),
+  };
   const result = await userRepository.findUsersWithFilters(
     query.filters,
-    query.pagination,
+    pagination,
   );
 
   return result.data;
@@ -206,9 +242,21 @@ export async function exampleCloneBuilder() {
 
   // Utiliser les deux queries
   const userRepository = getUserRepository();
+  const healthPagination: PaginationOptions = {
+    limit: healthProviders.pagination.limit ?? 50,
+    page: healthProviders.pagination.page ?? 1,
+    ...(healthProviders.pagination.offset !== undefined && { offset: healthProviders.pagination.offset }),
+    ...(healthProviders.sort && { sort: healthProviders.sort }),
+  };
+  const btpPagination: PaginationOptions = {
+    limit: btpProviders.pagination.limit ?? 50,
+    page: btpProviders.pagination.page ?? 1,
+    ...(btpProviders.pagination.offset !== undefined && { offset: btpProviders.pagination.offset }),
+    ...(btpProviders.sort && { sort: btpProviders.sort }),
+  };
   const [healthResult, btpResult] = await Promise.all([
-    userRepository.findUsersWithFilters(healthProviders.filters, healthProviders.pagination),
-    userRepository.findUsersWithFilters(btpProviders.filters, btpProviders.pagination),
+    userRepository.findUsersWithFilters(healthProviders.filters, healthPagination),
+    userRepository.findUsersWithFilters(btpProviders.filters, btpPagination),
   ]);
 
   return {
@@ -252,18 +300,25 @@ export async function exampleAPIRoute(request: Request) {
 
   query.page(page, limit);
 
+  const queryBuilt = query.build();
+  const pagination: PaginationOptions = {
+    limit: queryBuilt.pagination.limit ?? limit,
+    page: queryBuilt.pagination.page ?? page,
+    ...(queryBuilt.pagination.offset !== undefined ? { offset: queryBuilt.pagination.offset } : {}),
+    ...(queryBuilt.sort ? { sort: queryBuilt.sort } : {}),
+  };
   const result = await transactionRepository.findTransactionsWithFilters(
-    query.getFilters(),
-    query.getPagination(),
+    queryBuilt.filters,
+    pagination,
   );
 
   return {
     data: result.data,
     pagination: {
-      page,
-      limit,
+      page: result.pagination.page,
+      limit: result.pagination.limit,
       total: result.total,
-      hasMore: result.hasMore,
+      hasMore: result.pagination.hasNext,
     },
   };
 }
@@ -280,9 +335,16 @@ export async function exampleResetBuilder() {
 
   // Utiliser la query
   const userRepository = getUserRepository();
+  const query1 = query.build();
+  const pagination1: PaginationOptions = {
+    limit: query1.pagination.limit ?? 10,
+    page: query1.pagination.page ?? 1,
+    ...(query1.pagination.offset !== undefined && { offset: query1.pagination.offset }),
+    ...(query1.sort && { sort: query1.sort }),
+  };
   const result1 = await userRepository.findUsersWithFilters(
-    query.getFilters(),
-    query.getPagination(),
+    query1.filters,
+    pagination1,
   );
 
   // Réinitialiser et créer une nouvelle query
@@ -291,9 +353,16 @@ export async function exampleResetBuilder() {
     .active()
     .limit(20);
 
+  const query2 = query.build();
+  const pagination2: PaginationOptions = {
+    limit: query2.pagination.limit ?? 20,
+    page: query2.pagination.page ?? 1,
+    ...(query2.pagination.offset !== undefined && { offset: query2.pagination.offset }),
+    ...(query2.sort && { sort: query2.sort }),
+  };
   const result2 = await userRepository.findUsersWithFilters(
-    query.getFilters(),
-    query.getPagination(),
+    query2.filters,
+    pagination2,
   );
 
   return {

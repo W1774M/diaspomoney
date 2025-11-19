@@ -5,8 +5,8 @@
  */
 
 import { logger } from '@/lib/logger';
-import type { Transaction } from '@/services/transaction/transaction.service';
-import { TransactionData, transactionService } from '@/services/transaction/transaction.service';
+import type { Transaction, TransactionData } from '@/lib/types';
+import { transactionService } from '@/services/transaction/transaction.service';
 import { BaseCommand } from './base.command';
 
 /**
@@ -24,8 +24,13 @@ export class CreateTransactionCommand extends BaseCommand<Transaction> {
 
   async execute(): Promise<Transaction> {
     const result = await transactionService.createTransaction(this.commandData);
-    this.executedResult = result;
-    return result;
+    // Convertir le résultat du repository vers le type Transaction de lib/types
+    this.executedResult = {
+      ...result,
+      _id: result._id || result.id,
+      type: (result as any).type || 'PAYMENT' as any,
+    } as Transaction;
+    return this.executedResult;
   }
 
   async undo(): Promise<void> {
@@ -37,8 +42,8 @@ export class CreateTransactionCommand extends BaseCommand<Transaction> {
     }
 
     try {
-      const transactionId = this.executedResult.id || 
-                           (this.executedResult as any)._id?.toString() || '';
+      const transactionId = this.executedResult._id || 
+                           (this.executedResult as any).id?.toString() || '';
 
       if (!transactionId) {
         throw new Error('Transaction ID not found');
@@ -47,9 +52,7 @@ export class CreateTransactionCommand extends BaseCommand<Transaction> {
       // Rembourser la transaction
       await transactionService.refundTransaction(
         transactionId,
-        0,
         'Command undo',
-        '', // userId
       );
 
       logger.info({
@@ -60,7 +63,7 @@ export class CreateTransactionCommand extends BaseCommand<Transaction> {
       logger.error({
         command: this.commandName,
         error: error.message,
-        transactionId: this.executedResult?.id,
+        transactionId: this.executedResult?._id || (this.executedResult as any)?.id,
       }, 'Failed to undo transaction');
       throw error;
     }
@@ -116,7 +119,12 @@ export class UpdateTransactionStatusCommand extends BaseCommand<Transaction> {
         throw new Error('Updated transaction not found');
       }
 
-      return updatedTransaction;
+      // Convertir le résultat du repository vers le type Transaction de lib/types
+      return {
+        ...updatedTransaction,
+        _id: updatedTransaction._id || (updatedTransaction as any).id,
+        type: (updatedTransaction as any).type || 'PAYMENT' as any,
+      } as Transaction;
     } catch (error: any) {
       logger.error({
         command: this.commandName,
@@ -193,12 +201,15 @@ export class RefundTransactionCommand extends BaseCommand<Transaction> {
       // Rembourser la transaction
       const result = await transactionService.refundTransaction(
         this.commandData.transactionId,
-        0,
         this.commandData.reason || 'Refund requested',
-        '', // userId
       );
 
-      return result;
+      // Convertir le résultat du repository vers le type Transaction de lib/types
+      return {
+        ...result,
+        _id: result._id || (result as any).id,
+        type: (result as any).type || 'REFUND' as any,
+      } as Transaction;
     } catch (error: any) {
       logger.error({
         command: this.commandName,

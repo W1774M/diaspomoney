@@ -7,19 +7,8 @@
 
 import { logger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
-import { z } from 'zod';
-
-interface ValidationRule {
-  paramIndex: number; // Index du paramètre à valider (0-based)
-  schema: z.ZodTypeAny; // Schéma Zod pour la validation
-  paramName?: string; // Nom du paramètre (pour les messages d'erreur)
-}
-
-interface ValidateOptions {
-  rules: ValidationRule[]; // Règles de validation
-  throwOnError?: boolean; // Lancer une exception en cas d'erreur (défaut: true)
-  logErrors?: boolean; // Logger les erreurs de validation (défaut: true)
-}
+import { z, type ZodIssue } from 'zod';
+import type { ValidateDecoratorOptions } from '@/lib/types';
 
 /**
  * Decorator Validate pour ajouter de la validation aux méthodes
@@ -38,7 +27,7 @@ interface ValidateOptions {
  *   }
  * }
  */
-export function Validate(options: ValidateOptions) {
+export function Validate(options: ValidateDecoratorOptions) {
   return function (
     target: any,
     propertyKey: string,
@@ -72,7 +61,7 @@ export function Validate(options: ValidateOptions) {
         const result = await schema.safeParseAsync(paramValue);
 
         if (!result.success) {
-          const errors = result.error.issues.map(issue => issue.message);
+          const errors = result.error.issues.map((issue: ZodIssue) => issue.message);
           validationErrors.push({
             paramIndex,
             paramName: paramName || `param${paramIndex}`,
@@ -142,9 +131,9 @@ export function Validate(options: ValidateOptions) {
  */
 
 export function createValidationRule(
-  paramIndex: number,
+  _paramIndex: number,
   schema: z.ZodType<any>,
-  paramName?: string,
+  _paramName?: string,
 ): z.ZodTypeAny {
   return schema;
 }

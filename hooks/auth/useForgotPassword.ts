@@ -34,7 +34,7 @@ export const useForgotPassword = () => {
       } else {
         setError(data.error || "Erreur lors de l'envoi de l'email");
       }
-    } catch (err) {
+    } catch (_error) {
       setError("Erreur réseau. Veuillez réessayer.");
     } finally {
       setIsLoading(false);

@@ -4,7 +4,8 @@
  * Commandes pour les opérations de réservation
  */
 
-import { bookingFacade, BookingFacadeData, BookingFacadeResult } from '@/facades/booking.facade';
+import { bookingFacade } from '@/facades/booking.facade';
+import type { BookingFacadeData, BookingFacadeResult } from '@/lib/types';
 import { logger } from '@/lib/logger';
 import { bookingService } from '@/services/booking/booking.service';
 import { BaseCommand } from './base.command';
@@ -53,9 +54,7 @@ export class CreateBookingCommand extends BaseCommand<BookingFacadeResult> {
         const { transactionService } = await import('@/services/transaction/transaction.service');
         await transactionService.refundTransaction(
           this.executedResult.paymentResult.transactionId,
-          undefined as any,
           'Booking cancelled',
-          undefined as any,
         );
       }
 

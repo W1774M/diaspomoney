@@ -1,6 +1,6 @@
 "use client";
 
-import { ComplaintsSearchProps } from "@/types/complaints";
+import type { ComplaintsSearchProps } from "@/lib/types";
 import { Search } from "lucide-react";
 import React, { useCallback } from "react";
 

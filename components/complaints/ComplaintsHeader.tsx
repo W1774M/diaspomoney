@@ -1,6 +1,6 @@
 "use client";
 
-import { ComplaintsHeaderProps } from "@/types/complaints";
+import type { ComplaintsHeaderProps } from "@/lib/types";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React from "react";

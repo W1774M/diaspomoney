@@ -13,7 +13,7 @@ if (typeof window === 'undefined') {
   initializeDI();
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   try {
     logger.info('Undo command requested');
 
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 /**
  * GET - Obtenir l'historique des commandes
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const history = commandHandler.getHistory();
     const historySize = commandHandler.getHistorySize();

@@ -7,7 +7,7 @@
 
 import ActiveOrderCard from '@/components/orders/ActiveOrderCard';
 import { useAuth } from '@/hooks';
-import { ActiveOrder } from '@/types/orders';
+import { ActiveOrder } from '@/lib/types';
 import { Calendar, Clock, Package, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';

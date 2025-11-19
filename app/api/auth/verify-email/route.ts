@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     let decoded;
     try {
       decoded = jwt.verify(token, process.env['JWT_SECRET']!) as any;
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json(
         { error: 'Token invalide ou expiré', reason: 'expired' },
         { status: 400 },

@@ -12,14 +12,14 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
-import type { Beneficiary, BeneficiaryFilters } from '@/types/beneficiaries';
+import type { Beneficiary, BeneficiaryFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import type { IBeneficiaryRepository } from '../interfaces/IBeneficiaryRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
   private readonly collectionName = 'beneficiaries';
@@ -225,7 +225,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
   async findWithPagination(
     filters?: Record<string, any>,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Beneficiary>> {
+  ): Promise<PaginatedFindResult<Beneficiary>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit ?? 50;
@@ -242,13 +242,19 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
         .limit(limit)
         .toArray();
 
+      const pages = Math.ceil(total / limit);
       const result = {
         data: beneficiaries.map(b => this.mapToBeneficiary(b)),
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
       this.log.debug(
         { count: result.data.length, total, page, limit, filters },
@@ -270,7 +276,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
   async findByPayer(
     payerId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Beneficiary>> {
+  ): Promise<PaginatedFindResult<Beneficiary>> {
     try {
       const query = {
         $or: [
@@ -291,7 +297,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
   async findActiveByPayer(
     payerId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Beneficiary>> {
+  ): Promise<PaginatedFindResult<Beneficiary>> {
     try {
       const query = {
         $or: [
@@ -315,7 +321,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
   async findBeneficiariesWithFilters(
     filters: BeneficiaryFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Beneficiary>> {
+  ): Promise<PaginatedFindResult<Beneficiary>> {
     try {
       const query: Record<string, any> = {};
 

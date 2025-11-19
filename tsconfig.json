@@ -55,7 +55,7 @@
         "./services/*"
       ],
       "@/types/*": [
-        "./types/*"
+        "./lib/types/*"
       ],
       "@/config/*": [
         "./config/*"

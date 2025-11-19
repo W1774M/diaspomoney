@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/hooks/auth/useAuth';
-import { CreateUserInput, UserRole, UserStatus } from '@/types';
+import { CreateUserInput, UserRole, UserStatus } from '@/lib/types';
 import { ArrowLeft, Building, MapPin, Plus, User } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';

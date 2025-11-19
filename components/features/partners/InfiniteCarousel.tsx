@@ -132,7 +132,9 @@ export function InfiniteCarousel() {
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled) setPartners((data?.partners as Partner[]) || []);
-      } catch {}
+      } catch {
+        // Ignorer les erreurs de fetch
+      }
     })();
     return () => {
       cancelled = true;

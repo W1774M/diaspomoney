@@ -79,8 +79,8 @@ export const useBookings = (options: UseBookingsOptions = {}) => {
       const data = await response.json();
       setBookings(data.bookings);
       setTotal(data.total);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Erreur inconnue");
     } finally {
       setLoading(false);
     }

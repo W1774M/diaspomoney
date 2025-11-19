@@ -241,7 +241,9 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           setValue('requester.email', user.email);
         if (!requester.phone && user.phone)
           setValue('requester.phone', user.phone);
-      } catch {}
+      } catch {
+        // Ignorer les erreurs de récupération de l'utilisateur
+      }
     })();
     return () => {
       cancelled = true;

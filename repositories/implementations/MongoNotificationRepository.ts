@@ -12,7 +12,7 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
-import type { Notification, NotificationStatus } from '@/types/notifications';
+import type { Notification, NotificationStatus } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import type {
@@ -20,9 +20,9 @@ import type {
   NotificationFilters,
 } from '../interfaces/INotificationRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoNotificationRepository implements INotificationRepository {
   private readonly collectionName = 'notifications';
@@ -232,7 +232,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   async findWithPagination(
     filters?: Record<string, any>,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Notification>> {
+  ): Promise<PaginatedFindResult<Notification>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit || 50;
@@ -255,13 +255,19 @@ export class MongoNotificationRepository implements INotificationRepository {
       const data = await cursor.toArray();
       const notifications = data.map(doc => this.mapToNotification(doc));
 
+      const pages = Math.ceil(total / limit);
       const result = {
         data: notifications,
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
 
       this.log.debug(
@@ -292,7 +298,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   async findByRecipient(
     recipient: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Notification>> {
+  ): Promise<PaginatedFindResult<Notification>> {
     try {
       const result = await this.findWithPagination({ recipient }, options);
       this.log.debug(
@@ -312,7 +318,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   async findByStatus(
     status: NotificationStatus,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Notification>> {
+  ): Promise<PaginatedFindResult<Notification>> {
     try {
       const result = await this.findWithPagination({ status }, options);
       this.log.debug(
@@ -332,7 +338,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   async findByType(
     type: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Notification>> {
+  ): Promise<PaginatedFindResult<Notification>> {
     try {
       const result = await this.findWithPagination({ type }, options);
       this.log.debug(
@@ -351,7 +357,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   @Cacheable(300, { prefix: 'NotificationRepository:findPending' }) // Cache 5 minutes
   async findPending(
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Notification>> {
+  ): Promise<PaginatedFindResult<Notification>> {
     try {
       const result = await this.findWithPagination(
         { status: 'PENDING' },
@@ -376,7 +382,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   async findNotificationsWithFilters(
     filters: NotificationFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Notification>> {
+  ): Promise<PaginatedFindResult<Notification>> {
     try {
       const query: Record<string, any> = {};
 
@@ -597,6 +603,8 @@ export class MongoNotificationRepository implements INotificationRepository {
       id: doc._id?.toString() || doc.id,
       _id: doc._id?.toString(),
       recipient: doc.recipient,
+      userId: doc.userId || doc.recipientId || doc.recipient,
+      recipientId: doc.recipientId,
       type: doc.type,
       subject: doc.subject,
       content: doc.content,

@@ -7,7 +7,7 @@ import {
   formatDate,
   getInvoiceStatusColor,
 } from '@/lib/invoices/utils';
-import { INVOICE_STATUSES } from '@/types';
+import { INVOICE_STATUSES } from '@/lib/types';
 import { ArrowLeft, Download, Edit, Mail, Printer } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';

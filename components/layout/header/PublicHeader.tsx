@@ -2,6 +2,7 @@
 
 import Logo from '@/components/ui/Logo';
 import { useAuth } from '@/hooks/auth/useAuth';
+import { logger } from '@/lib/logger';
 import { Menu, User } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -19,10 +20,7 @@ export default function PublicHeader() {
 
   // Forcer la mise à jour du composant quand l'état d'authentification change
   useEffect(() => {
-    console.log('PublicHeader - Auth state changed:', {
-      user,
-      isAuthenticated: _isAuthenticated,
-    });
+    logger.debug({ _isAuthenticated, user }, 'PublicHeader useEffect');
     setForceUpdate(prev => prev + 1);
   }, [_isAuthenticated, user]);
 

@@ -8,12 +8,7 @@
 import { memoryCache } from '@/lib/cache/memory-fallback';
 import { cache } from '@/lib/cache/redis';
 import { logger } from '@/lib/logger';
-
-interface CacheOptions {
-  ttl?: number; // Time to live en secondes
-  prefix?: string; // Préfixe pour la clé de cache
-  useMemoryFallback?: boolean; // Utiliser le cache mémoire si Redis échoue
-}
+import type { CacheableDecoratorOptions, InvalidateCacheDecoratorOptions } from '@/lib/types';
 
 /**
  * Decorator Cacheable pour ajouter du caching aux méthodes
@@ -29,7 +24,7 @@ interface CacheOptions {
  *   }
  * }
  */
-export function Cacheable(ttl: number = 300, options: CacheOptions = {}) {
+export function Cacheable(ttl: number = 300, options: CacheableDecoratorOptions = {}) {
   return function (
     target: any,
     propertyKey: string,
@@ -100,6 +95,7 @@ export function Cacheable(ttl: number = 300, options: CacheOptions = {}) {
  * Decorator pour invalider le cache après une opération de modification
  * 
  * @param pattern - Pattern de clés à invalider (ex: "UserService:getUserById:*")
+ * @param options - Options supplémentaires
  * 
  * @example
  * class UserService {
@@ -109,7 +105,7 @@ export function Cacheable(ttl: number = 300, options: CacheOptions = {}) {
  *   }
  * }
  */
-export function InvalidateCache(pattern: string) {
+export function InvalidateCache(pattern: string, _options?: InvalidateCacheDecoratorOptions) {
   return function (
     _target: any,
     _propertyKey: string,

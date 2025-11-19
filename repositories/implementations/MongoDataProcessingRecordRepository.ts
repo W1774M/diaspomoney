@@ -13,7 +13,7 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
-import type { DataProcessingRecord } from '@/types/gdpr';
+import type { DataProcessingRecord } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { ObjectId } from 'mongodb';
 import type {
@@ -21,9 +21,9 @@ import type {
   IDataProcessingRecordRepository,
 } from '../interfaces/IDataProcessingRecordRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoDataProcessingRecordRepository
   implements IDataProcessingRecordRepository
@@ -65,16 +65,20 @@ export class MongoDataProcessingRecordRepository
 
       await collection.insertOne(document);
 
+      const recordId = document.id || document._id?.toString() || '';
       const createdRecord: DataProcessingRecord = {
-        id: document.id,
+        _id: recordId,
+        id: recordId,
         userId: document.userId,
         purpose: document.purpose,
         dataCategories: document.dataCategories,
         legalBasis: document.legalBasis,
-        processedAt: document.processedAt,
+        processedAt: document.processedAt ? new Date(document.processedAt) : now,
         processor: document.processor,
         retentionPeriod: document.retentionPeriod,
         isAnonymized: document.isAnonymized,
+        createdAt: document.createdAt ? new Date(document.createdAt) : now,
+        updatedAt: document.updatedAt ? new Date(document.updatedAt) : now,
       };
 
       this.log.debug(
@@ -292,8 +296,8 @@ export class MongoDataProcessingRecordRepository
   })
   async findWithPagination(
     filter: Record<string, any> = {},
-    options: PaginationOptions = {},
-  ): Promise<PaginatedResult<DataProcessingRecord>> {
+    options: PaginationOptions = { limit: 50, page: 1 },
+  ): Promise<PaginatedFindResult<DataProcessingRecord>> {
     try {
       const collection = await this.getCollection();
       const limit = options.limit || 50;
@@ -312,13 +316,19 @@ export class MongoDataProcessingRecordRepository
 
       const data = documents.map(doc => this.mapToDataProcessingRecord(doc));
 
+      const pages = Math.ceil(total / limit);
       return {
         data,
         total,
-        limit,
-        offset,
-        page,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error(
@@ -341,7 +351,7 @@ export class MongoDataProcessingRecordRepository
   async searchRecords(
     query: DataProcessingRecordQuery,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<DataProcessingRecord>> {
+  ): Promise<PaginatedFindResult<DataProcessingRecord>> {
     try {
       const mongoQuery: Record<string, any> = {};
 
@@ -376,9 +386,10 @@ export class MongoDataProcessingRecordRepository
       }
 
       const paginationOptions: PaginationOptions = {
-        limit: options?.limit || 50,
-        offset: options?.offset || 0,
-        sort: options?.sort || { processedAt: -1 },
+        limit: options?.limit ?? 50,
+        page: options?.page ?? 1,
+        ...(options?.offset !== undefined && { offset: options.offset }),
+        ...(options?.sort && { sort: options.sort }),
       };
 
       return this.findWithPagination(mongoQuery, paginationOptions);
@@ -403,12 +414,21 @@ export class MongoDataProcessingRecordRepository
   async findByUserId(
     userId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<DataProcessingRecord>> {
+  ): Promise<PaginatedFindResult<DataProcessingRecord>> {
     try {
-      return this.findWithPagination(
-        { userId },
-        options || { sort: { processedAt: -1 } },
-      );
+      const paginationOptions: PaginationOptions = options
+        ? {
+            limit: options.limit ?? 50,
+            page: options.page ?? 1,
+            ...(options.offset !== undefined && { offset: options.offset }),
+            ...(options.sort && { sort: options.sort }),
+          }
+        : {
+            limit: 50,
+            page: 1,
+            sort: { processedAt: -1 },
+          };
+      return this.findWithPagination({ userId }, paginationOptions);
     } catch (error) {
       this.log.error({ error, userId }, 'Error finding records by userId');
       Sentry.captureException(error, {
@@ -426,8 +446,12 @@ export class MongoDataProcessingRecordRepository
    * Mapper un document MongoDB vers un objet DataProcessingRecord
    */
   private mapToDataProcessingRecord(doc: any): DataProcessingRecord {
+    const docId = doc.id || doc._id?.toString() || '';
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
     return {
-      id: doc.id || doc._id?.toString() || '',
+      _id: docId,
+      id: docId,
       userId: doc.userId || '',
       purpose: doc.purpose || '',
       dataCategories: doc.dataCategories || [],
@@ -436,6 +460,8 @@ export class MongoDataProcessingRecordRepository
       processor: doc.processor || 'diaspomoney-system',
       retentionPeriod: doc.retentionPeriod || 365,
       isAnonymized: doc.isAnonymized ?? false,
+      createdAt,
+      updatedAt,
     };
   }
 }

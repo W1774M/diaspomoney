@@ -7,8 +7,8 @@
  */
 
 import { getProviderRatingStats } from '@/mocks';
-import { IUser } from '@/types';
-import { ServiceFilters } from '@/types/services';
+import { IUser } from '@/lib/types';
+import type { ServiceFilters } from '@/lib/types';
 import { useCallback, useMemo, useState } from 'react';
 
 export function useServiceFilters(providers: IUser[]) {

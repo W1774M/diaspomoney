@@ -68,9 +68,9 @@ export function useInvoiceUsers(): UseInvoiceUsersReturn {
 
       setCustomers(customersList);
       setProviders(providersList);
-    } catch (err) {
+    } catch (error) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Erreur inconnue';
+        error instanceof Error ? error.message : 'Erreur inconnue';
       setError(errorMessage);
     } finally {
       setLoading(false);

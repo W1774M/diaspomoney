@@ -6,12 +6,13 @@
  * Utilise les API routes au lieu d'importer directement les services
  */
 
-import { UsePaymentsReturn } from '@/types/hooks';
+import { UsePaymentsReturn } from '@/lib/types';
 import {
   UIAccountBalance,
   UIBillingAddress,
   UIPaymentMethod,
-} from '@/types/payments';
+} from '@/lib/types';
+import { CURRENCIES } from '@/lib/constants';
 import { useCallback, useState } from 'react';
 
 /**
@@ -47,9 +48,9 @@ export function usePayments(): UsePaymentsReturn {
       } else {
         throw new Error(data.error || 'Erreur inconnue');
       }
-    } catch (err) {
+    } catch (error) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Erreur inconnue';
+        error instanceof Error ? error.message : 'Erreur inconnue';
       setError(errorMessage);
       // Le logging est fait côté serveur via PaymentService avec @Log decorator
     } finally {
@@ -75,9 +76,9 @@ export function usePayments(): UsePaymentsReturn {
       } else {
         throw new Error(data.error || 'Erreur inconnue');
       }
-    } catch (err) {
+    } catch (error) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Erreur inconnue';
+        error instanceof Error ? error.message : 'Erreur inconnue';
       setError(errorMessage);
       // Le logging est fait côté serveur via PaymentService avec @Log decorator
     } finally {
@@ -101,15 +102,15 @@ export function usePayments(): UsePaymentsReturn {
       if (data.success) {
         setBalance({
           available: data.balance?.available || 0,
-          currency: data.balance?.currency || 'EUR',
+          currency: data.balance?.currency || CURRENCIES.EUR.code,
           lastUpdated: new Date(data.balance?.lastUpdated || Date.now()),
         });
       } else {
         throw new Error(data.error || 'Erreur inconnue');
       }
-    } catch (err) {
+    } catch (error) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Erreur inconnue';
+        error instanceof Error ? error.message : 'Erreur inconnue';
       setError(errorMessage);
       // Le logging est fait côté serveur via PaymentService avec @Log decorator
     } finally {
@@ -166,9 +167,9 @@ export function usePayments(): UsePaymentsReturn {
           isDefault: address.id === id,
         })),
       );
-    } catch (err) {
+    } catch (error) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Erreur inconnue';
+        error instanceof Error ? error.message : 'Erreur inconnue';
       setError(errorMessage);
       // Le logging est fait côté serveur via PaymentService avec @Log decorator
     }
@@ -212,12 +213,12 @@ export function usePayments(): UsePaymentsReturn {
 
       // Mettre à jour l'état local
       setBillingAddresses(prev => prev.filter(address => address.id !== id));
-    } catch (err) {
+    } catch (error) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Erreur inconnue';
+        error instanceof Error ? error.message : 'Erreur inconnue';
       setError(errorMessage);
       // Le logging est fait côté serveur via PaymentService avec @Log decorator
-      throw err;
+      throw error;
     }
   }, []);
 

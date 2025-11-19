@@ -12,6 +12,8 @@ import { InvoiceQueryBuilder } from '@/builders';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
+import { InvoiceStatus } from '@/lib/types';
+import { CURRENCIES } from '@/lib/constants';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
@@ -20,10 +22,11 @@ import type {
   Invoice,
   InvoiceFilters,
 } from '../interfaces/IInvoiceRepository';
+import type { MongoDocument } from '@/lib/types/mongodb.types';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoInvoiceRepository implements IInvoiceRepository {
   private readonly collectionName = 'invoices';
@@ -62,7 +65,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'InvoiceRepository:findAll' }) // Cache 5 minutes
-  async findAll(filters?: Record<string, any>): Promise<Invoice[]> {
+  async findAll(filters?: InvoiceFilters): Promise<Invoice[]> {
     try {
       const collection = await this.getCollection();
       const invoices = await collection.find(filters || {}).toArray();
@@ -81,7 +84,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'InvoiceRepository:findOne' }) // Cache 5 minutes
-  async findOne(filters: Record<string, any>): Promise<Invoice | null> {
+  async findOne(filters: InvoiceFilters): Promise<Invoice | null> {
     try {
       const collection = await this.getCollection();
       const invoice = await collection.findOne(filters);
@@ -181,7 +184,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
     }
   }
 
-  async count(filters?: Record<string, any>): Promise<number> {
+  async count(filters?: InvoiceFilters): Promise<number> {
     try {
       const collection = await this.getCollection();
       return collection.countDocuments(filters || {});
@@ -211,9 +214,9 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
   }
 
   async findWithPagination(
-    filters?: Record<string, any>,
+    filters?: InvoiceFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Invoice>> {
+  ): Promise<PaginatedFindResult<Invoice>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit ?? 50;
@@ -230,13 +233,19 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
         .limit(limit)
         .toArray();
 
+      const pages = Math.ceil(total / limit);
       return {
         data: invoices.map(i => this.mapToInvoice(i)),
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error(
@@ -257,29 +266,29 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
   async findByUser(
     userId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Invoice>> {
+  ): Promise<PaginatedFindResult<Invoice>> {
     return this.findWithPagination({ userId }, options);
   }
 
   async findByStatus(
     status: Invoice['status'],
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Invoice>> {
-    return this.findWithPagination({ status }, options);
+  ): Promise<PaginatedFindResult<Invoice>> {
+    return this.findWithPagination({ status: status as NonNullable<InvoiceStatus> }, options);
   }
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'InvoiceRepository:findOverdue' }) // Cache 5 minutes
   async findOverdue(
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Invoice>> {
+  ): Promise<PaginatedFindResult<Invoice>> {
     try {
       const now = new Date();
       return this.findWithPagination(
         {
-          status: { $in: ['PENDING', 'SENT'] },
-          dueDate: { $lt: now },
-        },
+          status: InvoiceStatus.PENDING,
+          dueDate: { $lt: now } as any,
+        } as any,
         options,
       );
     } catch (error) {
@@ -372,13 +381,21 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
   async findInvoicesWithFilters(
     filters: InvoiceFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Invoice>> {
+  ): Promise<PaginatedFindResult<Invoice>> {
     try {
       // Utiliser InvoiceQueryBuilder pour construire la requête
       const queryBuilder = this.buildInvoiceQuery(filters, options);
       const query = queryBuilder.build();
 
-      return this.findWithPagination(query.filters, query.pagination);
+      // Normaliser pagination pour garantir limit et page
+      const pagination: PaginationOptions = {
+        limit: query.pagination.limit ?? 50,
+        page: query.pagination.page ?? 1,
+        ...(query.pagination.offset !== undefined && { offset: query.pagination.offset }),
+        ...(query.sort && Object.keys(query.sort).length > 0 && { sort: query.sort }),
+      };
+
+      return this.findWithPagination(query.filters, pagination);
     } catch (error) {
       this.log.error(
         { error, filters, options },
@@ -460,37 +477,44 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
   /**
    * Mapper un document MongoDB vers un objet Invoice
    */
-  private mapToInvoice(doc: any): Invoice {
+  private mapToInvoice(doc: MongoDocument<Invoice>): Invoice {
+    const docId = doc._id?.toString() || doc['id'] || '';
+    const createdAt = doc['createdAt'] ? new Date(doc['createdAt']) : new Date();
+    const updatedAt = doc['updatedAt'] ? new Date(doc['updatedAt']) : createdAt;
     return {
-      id: doc._id?.toString() || doc.id,
-      _id: doc._id?.toString(),
-      invoiceNumber: doc.invoiceNumber,
-      userId: doc.userId || doc.customerId,
-      transactionId: doc.transactionId,
-      bookingId: doc.bookingId,
-      amount: doc.amount,
-      currency: doc.currency || 'EUR',
-      tax: doc.tax || 0,
-      totalAmount: doc.totalAmount || doc.amount + (doc.tax || 0),
-      status: this.mapStatus(doc.status),
-      dueDate: doc.dueDate,
-      paidAt: doc.paidAt || doc.paymentDate,
-      items: doc.items || [],
-      billingAddress: doc.billingAddress,
-      metadata: doc.metadata,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
+      id: docId,
+      _id: docId,
+      invoiceNumber: doc['invoiceNumber'],
+      customerId: doc['customerId'] || doc['userId'] || '',
+      providerId: doc['providerId'] || '',
+      userId: doc['userId'] || doc['customerId'] || '',
+      transactionId: doc['transactionId'],
+      bookingId: doc['bookingId'],
+      amount: doc['amount'],
+      currency: doc['currency'] || CURRENCIES.EUR.code,
+      tax: doc['tax'] || 0,
+      totalAmount: doc['totalAmount'] || doc['amount'] + (doc['tax'] || 0),
+      status: this.mapStatus(doc['status']),
+      issueDate: doc['issueDate'] ? new Date(doc['issueDate']) : createdAt,
+      dueDate: doc['dueDate'] ? new Date(doc['dueDate']) : createdAt,
+      paidAt: doc['paidAt'] || doc['paymentDate'],
+      items: doc['items'] || [],
+      billingAddress: doc['billingAddress'],
+      metadata: doc['metadata'],
+      createdAt,
+      updatedAt,
     };
   }
 
   /**
    * Mapper le statut depuis le format MongoDB vers le format Invoice
    */
-  private mapStatus(status: string): Invoice['status'] {
+  private mapStatus(status: string | undefined): Invoice['status'] {
+    if (!status) return 'DRAFT';
     const statusMap: Record<string, Invoice['status']> = {
       draft: 'DRAFT',
-      sent: 'PENDING',
-      pending: 'PENDING',
+      sent: InvoiceStatus.PENDING,
+      pending: InvoiceStatus.PENDING,
       paid: 'PAID',
       overdue: 'OVERDUE',
       cancelled: 'CANCELLED',

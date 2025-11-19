@@ -1,4 +1,4 @@
-import { ServicesButtonProps } from "@/types";
+import { ServicesButtonProps } from "@/lib/types";
 
 export function ServicesButton({
   icon,

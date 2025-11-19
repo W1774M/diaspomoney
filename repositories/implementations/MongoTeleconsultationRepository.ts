@@ -15,9 +15,9 @@ import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 import type {
   ITeleconsultationRepository,
   Teleconsultation,
@@ -249,7 +249,7 @@ export class MongoTeleconsultationRepository
   async findWithPagination(
     filters?: Record<string, any>,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Teleconsultation>> {
+  ): Promise<PaginatedFindResult<Teleconsultation>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit || 50;
@@ -274,13 +274,19 @@ export class MongoTeleconsultationRepository
         this.mapToTeleconsultation(doc),
       );
 
+      const pages = Math.ceil(total / limit);
       const result = {
         data: teleconsultations,
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
 
       this.log.debug(
@@ -311,7 +317,7 @@ export class MongoTeleconsultationRepository
   async findByAppointment(
     appointmentId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Teleconsultation>> {
+  ): Promise<PaginatedFindResult<Teleconsultation>> {
     try {
       const result = await this.findWithPagination({ appointmentId }, options);
       this.log.debug(
@@ -331,7 +337,7 @@ export class MongoTeleconsultationRepository
   async findByStatus(
     status: TeleconsultationStatus,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Teleconsultation>> {
+  ): Promise<PaginatedFindResult<Teleconsultation>> {
     try {
       const result = await this.findWithPagination({ status }, options);
       this.log.debug(
@@ -350,7 +356,7 @@ export class MongoTeleconsultationRepository
   @Cacheable(300, { prefix: 'TeleconsultationRepository:findActive' }) // Cache 5 minutes
   async findActive(
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Teleconsultation>> {
+  ): Promise<PaginatedFindResult<Teleconsultation>> {
     try {
       const result = await this.findWithPagination(
         { status: { $in: ['WAITING', 'ACTIVE'] } },
@@ -459,7 +465,7 @@ export class MongoTeleconsultationRepository
   async findTeleconsultationsWithFilters(
     filters: TeleconsultationFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Teleconsultation>> {
+  ): Promise<PaginatedFindResult<Teleconsultation>> {
     try {
       const query: Record<string, any> = {};
 
@@ -500,9 +506,12 @@ export class MongoTeleconsultationRepository
   }
 
   private mapToTeleconsultation(doc: any): Teleconsultation {
+    const docId = doc._id?.toString() || doc.id || '';
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
     return {
-      id: doc._id?.toString() || doc.id,
-      _id: doc._id?.toString(),
+      id: docId,
+      _id: docId,
       appointmentId: doc.appointmentId,
       roomUrl: doc.roomUrl,
       accessToken: doc.accessToken,
@@ -510,8 +519,8 @@ export class MongoTeleconsultationRepository
       startedAt: doc.startedAt,
       endedAt: doc.endedAt,
       duration: doc.duration,
-      createdAt: doc.createdAt || new Date(),
-      updatedAt: doc.updatedAt || new Date(),
+      createdAt,
+      updatedAt,
     };
   }
 

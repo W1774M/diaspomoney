@@ -3,6 +3,10 @@
  */
 
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import type {
+  StripePaymentIntentCreateParams,
+  StripeRefundCreateParams,
+} from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import Stripe from 'stripe';
 import {
@@ -48,11 +52,10 @@ export class StripePaymentStrategy implements IPaymentStrategy {
       }
 
       // Créer un Payment Intent
-      const paymentIntentParams: any = {
+      const paymentIntentParams: StripePaymentIntentCreateParams = {
         amount: Math.round(data.amount * 100), // Convertir en centimes
         currency: data.currency.toLowerCase(),
         customer: data.customerId,
-        payment_method: data.paymentMethodId,
         confirmation_method: 'automatic',
         capture_method: 'automatic',
         metadata: {
@@ -64,6 +67,9 @@ export class StripePaymentStrategy implements IPaymentStrategy {
           enabled: true,
         },
       };
+      if (data.paymentMethodId) {
+        paymentIntentParams.payment_method = data.paymentMethodId;
+      }
 
       // Ajouter description seulement si défini
       if (data.description) {
@@ -123,7 +129,7 @@ export class StripePaymentStrategy implements IPaymentStrategy {
         };
       }
 
-      const paymentIntent = await this.stripe.paymentIntents.create({
+      const paymentIntentParams: StripePaymentIntentCreateParams = {
         amount: Math.round(data.amount * 100),
         currency: data.currency.toLowerCase(),
         customer: data.customerId,
@@ -137,7 +143,8 @@ export class StripePaymentStrategy implements IPaymentStrategy {
         },
         confirmation_method: 'manual',
         capture_method: 'automatic',
-      });
+      };
+      const paymentIntent = await this.stripe.paymentIntents.create(paymentIntentParams);
 
       monitoringManager.recordMetric({
         name: 'payment_intents_created',
@@ -215,12 +222,15 @@ export class StripePaymentStrategy implements IPaymentStrategy {
         ? Math.round(data.amount * 100)
         : 0;
 
-      const refund = await this.stripe.refunds.create({
+      const refundParams: StripeRefundCreateParams = {
         payment_intent: data.transactionId,
         amount: refundAmount,
-        reason: data.reason as any,
         metadata: data.metadata || { source: 'diaspomoney' },
-      });
+      };
+      if (data.reason) {
+        refundParams.reason = data.reason as NonNullable<StripeRefundCreateParams['reason']>;
+      }
+      const refund = await this.stripe.refunds.create(refundParams);
 
       monitoringManager.recordMetric({
         name: 'payment_refunded',

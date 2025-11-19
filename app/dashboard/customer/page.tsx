@@ -1,7 +1,6 @@
 'use client';
 
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import DashboardQuickActions from '@/components/dashboard/DashboardQuickActions';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import { useAuth } from '@/hooks';
 import { useDashboardStats } from '@/hooks/dashboard';

@@ -19,7 +19,7 @@ import type {
   PCIDataFlow,
   PCIFinding,
   PCISecurityScan,
-} from '@/types/pci';
+} from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { fieldEncryption } from './field-encryption';
 
@@ -48,14 +48,17 @@ export class PCIDSSCompliance {
     severity: PCIAuditLog['severity'] = 'LOW',
   ): Promise<void> {
     try {
+      const now = new Date();
+      const auditLogId = `pci_audit_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
       const auditLog: Omit<PCIAuditLog, 'userId' | 'transactionId'> & {
         userId?: string | undefined;
         transactionId?: string | undefined;
       } = {
-        id: `pci_audit_${Date.now()}_${Math.random()
-          .toString(36)
-          .substr(2, 9)}`,
-        timestamp: new Date(),
+        _id: auditLogId,
+        id: auditLogId,
+        timestamp: now,
         event,
         userId: userId ?? undefined,
         transactionId: transactionId ?? undefined,
@@ -64,6 +67,8 @@ export class PCIDSSCompliance {
         severity,
         details,
         complianceStatus: this.assessComplianceStatus(event, details),
+        createdAt: now,
+        updatedAt: now,
       };
 
       // Sauvegarder en base de données via le repository

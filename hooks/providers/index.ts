@@ -6,5 +6,5 @@ export { useProviderDetail } from './useProviderDetail';
 export type {
   ProviderRatingStats,
   UseProviderDetailReturn,
-} from './useProviderDetail';
+} from '@/lib/types/hooks.types';
 

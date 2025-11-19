@@ -5,7 +5,7 @@
  * Implémente le Component Pattern
  */
 
-import { OrderProgressBarProps } from '@/types/orders';
+import type { OrderProgressBarProps } from '@/lib/types';
 import { CheckCircle2, Circle } from 'lucide-react';
 
 export default function OrderProgressBar({

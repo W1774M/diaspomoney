@@ -19,15 +19,20 @@ import {
  * Pour une implémentation complète, il faudrait intégrer le SDK PayPal.
  */
 export class PayPalPaymentProcessor extends PaymentProcessor {
-  private apiKey: string;
-  private apiSecret: string;
-  private isSandbox: boolean;
+  // Ces propriétés seront utilisées dans une implémentation complète
+  private _apiKey: string;
+  private _apiSecret: string;
+  private _isSandbox: boolean;
 
   constructor(apiKey: string, apiSecret: string, isSandbox: boolean = false) {
     super();
-    this.apiKey = apiKey;
-    this.apiSecret = apiSecret;
-    this.isSandbox = isSandbox;
+    this._apiKey = apiKey;
+    this._apiSecret = apiSecret;
+    this._isSandbox = isSandbox;
+    // Ces propriétés seront utilisées dans l'implémentation complète du SDK PayPal
+    void this._apiKey;
+    void this._apiSecret;
+    void this._isSandbox;
   }
 
   /**
@@ -65,7 +70,7 @@ export class PayPalPaymentProcessor extends PaymentProcessor {
    */
   protected async confirmPayment(
     paymentIntent: PaymentIntent,
-    data: PaymentData,
+    _data: PaymentData,
   ): Promise<PaymentResult> {
     try {
       logger.debug({ paymentIntentId: paymentIntent.id }, 'Confirming PayPal payment');

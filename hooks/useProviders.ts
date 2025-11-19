@@ -64,8 +64,8 @@ export const useProviders = (filters: ProviderFilters = {}) => {
         setProviders(data.providers || []);
         setTotal(data.total || 0);
         setHasInitialized(true);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Erreur inconnue");
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "Erreur inconnue");
         setProviders([]);
         setTotal(0);
         setHasInitialized(true);

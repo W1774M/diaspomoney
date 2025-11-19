@@ -10,7 +10,7 @@ import {
 
 export interface Complaint {
   id: string;
-  _id?: string;
+  _id: string; // Requis pour BaseEntity
   number: string;
   title: string;
   type: ComplaintType;

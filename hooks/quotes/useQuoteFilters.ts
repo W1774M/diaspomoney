@@ -1,6 +1,6 @@
 "use client";
 
-import { QuoteFilters } from "@/types/quotes";
+import type { QuoteFilters } from "@/lib/types";
 import { useCallback, useMemo, useState } from "react";
 
 export function useQuoteFilters(quotes: any[]) {

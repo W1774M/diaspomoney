@@ -6,7 +6,7 @@ import { IPaginatedRepository, PaginatedResult, PaginationOptions } from './IRep
 
 export interface Booking {
   id: string;
-  _id?: string;
+  _id: string; // Requis pour BaseEntity
   requesterId: string;
   providerId: string;
   serviceId: string;

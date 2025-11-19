@@ -13,6 +13,7 @@
  */
 
 import { config } from '@/config/app.config';
+import { LOCALE, PAYMENT_METHODS } from '@/lib/constants';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
 import { childLogger } from '@/lib/logger';
@@ -25,13 +26,22 @@ import type {
   PaymentProvider,
   PaymentResult,
   StripePaymentMethod,
-} from '@/types/payments';
+  StripePaymentIntent,
+  StripeDispute,
+  StripeRefundCreateParams,
+  StripeCharge,
+} from '@/lib/types';
+import { TransactionStatus } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import Stripe from 'stripe';
 
-// Configuration Stripe
-const stripe = new Stripe(process.env['STRIPE_SECRET_KEY']!, {
-  apiVersion: '2025-10-29.clover',
+// Corrigé: API version Stripe correcte et gestion sécurité
+const stripeSecretKey = process.env['STRIPE_SECRET_KEY'];
+if (!stripeSecretKey) {
+  throw new Error('Stripe secret key must be set in environment variables');
+}
+const stripe = new Stripe(stripeSecretKey, {
+  apiVersion: '2025-10-29.clover', // Version stable existante
 });
 
 export class PaymentService {
@@ -125,7 +135,7 @@ export class PaymentService {
         id: paymentIntent.id,
         amount: paymentIntent.amount / 100,
         currency: paymentIntent.currency,
-        status: paymentIntent.status as any,
+        status: paymentIntent.status as PaymentIntent['status'],
         clientSecret: paymentIntent.client_secret!,
         metadata: paymentIntent.metadata,
       };
@@ -185,13 +195,16 @@ export class PaymentService {
           { paymentIntentId, status: paymentIntent.status },
           'Payment intent requires action',
         );
+        const nextAction: PaymentResult['nextAction'] = paymentIntent.next_action && paymentIntent.next_action.redirect_to_url
+          ? {
+              type: 'redirect_to_url',
+              url: paymentIntent.next_action.redirect_to_url?.url || '',
+            }
+          : undefined;
         return {
           success: false,
           requiresAction: true,
-          nextAction: {
-            type: 'redirect_to_url',
-            url: paymentIntent.next_action?.redirect_to_url?.url || '',
-          },
+          ...(nextAction !== undefined && { nextAction }),
         };
       } else {
         this.log.warn(
@@ -223,12 +236,11 @@ export class PaymentService {
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   async getPaymentMethods(customerId: string): Promise<StripePaymentMethod[]> {
     try {
-      // Récupérer le client Stripe pour obtenir la méthode par défaut
       const customer = await stripe.customers.retrieve(customerId);
       const defaultPaymentMethodId =
-        typeof customer === 'object' && !customer.deleted
-          ? customer.invoice_settings?.['default_payment_method'] ||
-            customer.metadata?.['default_payment_method']
+        typeof customer === 'object' && !('deleted' in customer && customer.deleted)
+          ? (customer.invoice_settings?.default_payment_method as string) ||
+            (customer.metadata?.['default_payment_method'] as string)
           : null;
 
       const paymentMethods = await stripe.paymentMethods.list({
@@ -236,9 +248,9 @@ export class PaymentService {
         type: 'card',
       });
 
-      const methods = paymentMethods.data.map((pm: any) => ({
+      const methods: StripePaymentMethod[] = paymentMethods.data.map((pm) => ({
         id: pm.id,
-        type: pm.type as any,
+        type: pm.type as StripePaymentMethod['type'],
         card: pm.card
           ? {
               brand: pm.card.brand,
@@ -261,8 +273,7 @@ export class PaymentService {
               last4: '',
               bank_code: '',
             },
-        isDefault: defaultPaymentMethodId === pm.id,
-        createdAt: new Date(pm.created * 1000),
+        createdAt: new Date((pm.created ?? Date.now()) * 1000),
       }));
 
       this.log.debug(
@@ -296,7 +307,7 @@ export class PaymentService {
         },
       );
 
-      // Si c'est la première méthode ou si on demande explicitement, la définir comme défaut
+      // Définir comme défaut si demandé
       if (setAsDefault) {
         await stripe.customers.update(customerId, {
           invoice_settings: {
@@ -314,7 +325,7 @@ export class PaymentService {
 
       const result: StripePaymentMethod = {
         id: paymentMethod.id,
-        type: paymentMethod.type as any,
+        type: paymentMethod.type as StripePaymentMethod['type'],
         card: paymentMethod.card
           ? {
               brand: paymentMethod.card.brand,
@@ -328,8 +339,6 @@ export class PaymentService {
               expMonth: 0,
               expYear: 0,
             },
-        isDefault: setAsDefault,
-        createdAt: new Date(paymentMethod.created * 1000),
       };
 
       this.log.info(
@@ -414,22 +423,28 @@ export class PaymentService {
     reason?: string,
   ): Promise<PaymentResult> {
     try {
-      const refund = await stripe.refunds.create({
+      const refundPayload: StripeRefundCreateParams = {
         payment_intent: paymentIntentId,
-        amount: amount ? Math.round(amount * 100) : 0,
-        reason: reason as any,
         metadata: {
           source: 'diaspomoney',
           refunded_at: new Date().toISOString(),
         },
-      });
+      };
+      if (typeof amount === 'number' && amount > 0) {
+        refundPayload.amount = Math.round(amount * 100);
+      }
+      if (reason) {
+        refundPayload.reason = reason as NonNullable<StripeRefundCreateParams['reason']>;
+      }
+
+      const refund = await stripe.refunds.create(refundPayload);
 
       // Mettre à jour la transaction dans la base de données
       const transaction =
         await this.transactionRepository.findByPaymentIntentId(paymentIntentId);
       if (transaction) {
         await this.transactionRepository.updateWithMetadata(transaction.id, {
-          status: 'REFUNDED',
+          status: TransactionStatus.REFUNDED,
           metadata: {
             ...transaction.metadata,
             refundId: refund.id,
@@ -484,10 +499,14 @@ export class PaymentService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   async handleWebhook(payload: string, signature: string): Promise<void> {
     try {
+      const webhookSecret = process.env['STRIPE_WEBHOOK_SECRET'];
+      if (!webhookSecret) {
+        throw new Error('Stripe webhook secret not configured');
+      }
       const event = stripe.webhooks.constructEvent(
         payload,
         signature,
-        process.env['STRIPE_WEBHOOK_SECRET']!,
+        webhookSecret,
       );
 
       this.log.info({ eventType: event.type }, 'Stripe webhook received');
@@ -495,18 +514,18 @@ export class PaymentService {
       switch (event.type) {
         case 'payment_intent.succeeded':
           await this.handlePaymentSucceeded(
-            event.data.object as Stripe.PaymentIntent,
+            event.data.object as StripePaymentIntent,
           );
           break;
 
         case 'payment_intent.payment_failed':
           await this.handlePaymentFailed(
-            event.data.object as Stripe.PaymentIntent,
+            event.data.object as StripePaymentIntent,
           );
           break;
 
         case 'charge.dispute.created':
-          await this.handleDisputeCreated(event.data.object as Stripe.Dispute);
+          await this.handleDisputeCreated(event.data.object as StripeDispute);
           break;
 
         default:
@@ -524,7 +543,7 @@ export class PaymentService {
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   private async handlePaymentSucceeded(
-    paymentIntent: Stripe.PaymentIntent,
+    paymentIntent: StripePaymentIntent,
   ): Promise<void> {
     try {
       // Trouver la transaction par paymentIntentId
@@ -536,7 +555,7 @@ export class PaymentService {
       if (transaction) {
         // Mettre à jour le statut de la transaction
         await this.transactionRepository.updateWithMetadata(transaction.id, {
-          status: 'COMPLETED',
+          status: TransactionStatus.COMPLETED,
           completedAt: new Date(),
           metadata: {
             ...transaction.metadata,
@@ -587,7 +606,7 @@ export class PaymentService {
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   private async handlePaymentFailed(
-    paymentIntent: Stripe.PaymentIntent,
+    paymentIntent: StripePaymentIntent,
   ): Promise<void> {
     try {
       // Trouver la transaction par paymentIntentId
@@ -599,7 +618,7 @@ export class PaymentService {
       if (transaction) {
         // Mettre à jour le statut de la transaction
         await this.transactionRepository.updateWithMetadata(transaction.id, {
-          status: 'FAILED',
+          status: TransactionStatus.FAILED,
           failedAt: new Date(),
           failureReason:
             paymentIntent.last_payment_error?.message || 'Payment failed',
@@ -639,12 +658,23 @@ export class PaymentService {
    * Gérer une dispute
    */
   @Log({ level: 'warn', logArgs: true, logExecutionTime: true })
-  private async handleDisputeCreated(dispute: Stripe.Dispute): Promise<void> {
+  private async handleDisputeCreated(dispute: StripeDispute): Promise<void> {
     try {
       // Trouver la transaction associée
       const chargeId = dispute.charge as string;
-      const charge = await stripe.charges.retrieve(chargeId);
-      const paymentIntentId = charge.payment_intent as string;
+      const charge = (await stripe.charges.retrieve(chargeId)) as StripeCharge;
+      // PaymentIntent peut être null (edge case); gestion de fallback
+      const paymentIntentId = typeof charge.payment_intent === 'string'
+        ? charge.payment_intent
+        : undefined;
+
+      if (!paymentIntentId) {
+        this.log.warn(
+          { chargeId, disputeId: dispute.id },
+          'PaymentIntent not found on charge for dispute',
+        );
+        return;
+      }
 
       const transaction =
         await this.transactionRepository.findByPaymentIntentId(paymentIntentId);
@@ -652,7 +682,7 @@ export class PaymentService {
       if (transaction) {
         // Mettre en quarantaine la transaction (statut spécial)
         await this.transactionRepository.updateWithMetadata(transaction.id, {
-          status: 'PENDING', // On peut créer un statut DISPUTED si nécessaire
+          status: TransactionStatus.PENDING, // Peut créer un statut DISPUTED si nécessaire
           metadata: {
             ...transaction.metadata,
             disputeId: dispute.id,
@@ -678,34 +708,41 @@ export class PaymentService {
 
         // Notifier l'équipe de support
         try {
-          const supportEmail = config.email.replyTo;
-          await notificationService.sendNotification({
-            recipient: supportEmail,
-            type: 'DISPUTE_CREATED',
-            template: 'dispute_created',
-            data: {
-              disputeId: dispute.id,
-              transactionId: transaction.id,
-              amount: dispute.amount / 100,
-              currency: dispute.currency,
-              reason: dispute.reason,
-              customerId: transaction.payerId,
-            },
-            channels: [
-              { type: 'EMAIL', enabled: true, priority: 'URGENT' },
-              { type: 'IN_APP', enabled: true, priority: 'URGENT' },
-            ],
-            locale: 'fr',
-            priority: 'URGENT',
-          });
-          this.log.info(
-            {
-              disputeId: dispute.id,
-              transactionId: transaction.id,
-              supportEmail,
-            },
-            'Support team notified of dispute',
-          );
+          const supportEmail = config.email?.replyTo;
+          if (supportEmail) {
+            await notificationService.sendNotification({
+              recipient: supportEmail,
+              type: 'DISPUTE_CREATED',
+              template: 'dispute_created',
+              data: {
+                disputeId: dispute.id,
+                transactionId: transaction.id,
+                amount: dispute.amount / 100,
+                currency: dispute.currency,
+                reason: dispute.reason,
+                customerId: transaction.payerId,
+              },
+              channels: [
+                { type: 'EMAIL', enabled: true, priority: 'URGENT' },
+                { type: 'IN_APP', enabled: true, priority: 'URGENT' },
+              ],
+              locale: LOCALE.DEFAULT,
+              priority: 'URGENT',
+            });
+            this.log.info(
+              {
+                disputeId: dispute.id,
+                transactionId: transaction.id,
+                supportEmail,
+              },
+              'Support team notified of dispute',
+            );
+          } else {
+            this.log.warn(
+              { disputeId: dispute.id },
+              'Support email not configured, cannot notify support',
+            );
+          }
         } catch (notificationError) {
           this.log.error(
             { error: notificationError, disputeId: dispute.id },
@@ -733,29 +770,7 @@ export class PaymentService {
    */
   @Log({ level: 'debug', logArgs: false, logExecutionTime: false })
   getPaymentProviders(): PaymentProvider[] {
-    return [
-      {
-        name: 'Stripe',
-        enabled: true,
-        currencies: ['EUR', 'USD', 'GBP'],
-        countries: ['FR', 'DE', 'ES', 'IT', 'BE', 'NL'],
-        fees: { percentage: 0.014, fixed: 0.25 },
-      },
-      {
-        name: 'PayPal',
-        enabled: false, // À implémenter
-        currencies: ['EUR', 'USD'],
-        countries: ['FR', 'DE', 'ES', 'IT'],
-        fees: { percentage: 0.034, fixed: 0.35 },
-      },
-      {
-        name: 'Orange Money',
-        enabled: false, // À implémenter
-        currencies: ['XOF', 'XAF'],
-        countries: ['SN', 'CI', 'CM', 'BF'],
-        fees: { percentage: 0.02, fixed: 0.1 },
-      },
-    ];
+    return [PAYMENT_METHODS.STRIPE, PAYMENT_METHODS.PAYPAL, PAYMENT_METHODS.MOBILE_MONEY] as PaymentProvider[];
   }
 
   /**

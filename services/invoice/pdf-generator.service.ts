@@ -12,10 +12,23 @@
 
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
+import { CURRENCIES } from '@/lib/constants';
 import { getUserRepository } from '@/repositories';
 import type { Invoice } from '@/repositories/interfaces/IInvoiceRepository';
+import type { User } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import PDFDocument from 'pdfkit';
+
+/**
+ * Type pour les informations d'adresse d'un utilisateur
+ */
+interface UserAddress {
+  address?: string;
+  city?: string;
+  country?: string;
+  postalCode?: string;
+  countryOfResidence?: string;
+}
 
 export class PDFGeneratorService {
   private static instance: PDFGeneratorService;
@@ -41,6 +54,7 @@ export class PDFGeneratorService {
 
       // Récupérer les informations du client
       const customer = await this.userRepository.findById(invoice.userId);
+      const customerRecord = customer as User & UserAddress;
       const customerData = customer
         ? {
             name:
@@ -48,30 +62,31 @@ export class PDFGeneratorService {
               `${customer.firstName || ''} ${customer.lastName || ''}`.trim() ||
               'Client',
             email: customer.email,
-            address: (customer as any).address,
-            city: (customer as any).city,
-            country: customer.country || (customer as any).countryOfResidence,
-            postalCode: (customer as any).postalCode,
+            address: customerRecord.address,
+            city: customerRecord.city,
+            country: customerRecord['country'] || customerRecord.countryOfResidence,
+            postalCode: customerRecord.postalCode,
           }
         : undefined;
 
       // Récupérer les informations du prestataire si disponible
-      let providerData;
+      let providerData: typeof customerData;
       if (invoice.metadata?.['providerId']) {
         const provider = await this.userRepository.findById(
           invoice.metadata['providerId'],
         );
         if (provider) {
+          const providerRecord = provider as User & UserAddress;
           providerData = {
             name:
               provider.name ||
               `${provider.firstName || ''} ${provider.lastName || ''}`.trim() ||
               'Prestataire',
             email: provider.email,
-            address: (provider as any).address,
-            city: (provider as any).city,
-            country: provider.country || (provider as any).countryOfResidence,
-            postalCode: (provider as any).postalCode,
+            address: providerRecord.address,
+            city: providerRecord.city,
+            country: providerRecord['country'] || providerRecord.countryOfResidence,
+            postalCode: providerRecord.postalCode,
           };
         }
       }
@@ -396,7 +411,7 @@ export class PDFGeneratorService {
   /**
    * Formater une devise
    */
-  private formatCurrency(amount: number, currency: string = 'EUR'): string {
+  private formatCurrency(amount: number, currency: string = CURRENCIES.EUR.code): string {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: currency,

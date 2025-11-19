@@ -9,7 +9,7 @@
 'use client';
 
 import { useSpecialityCreate } from '@/hooks/specialities/useSpecialityCreate';
-import type { ISpeciality } from '@/types';
+import type { ISpeciality } from '@/lib/types';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

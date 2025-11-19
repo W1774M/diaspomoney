@@ -1,4 +1,4 @@
-import { SupportTicket } from '@/types/messaging';
+import { SupportTicket } from '@/lib/types';
 import mongoose, { Schema } from 'mongoose';
 
 const SupportTicketSchema = new Schema<SupportTicket>(

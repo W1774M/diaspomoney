@@ -1,11 +1,19 @@
 /**
  * Messaging Service - DiaspoMoney
- * Service de gestion de la messagerie Company-Grade
- * Basé sur la charte de développement et les design patterns
+ *
+ * Implémente les design patterns :
+ * - Service Layer Pattern
+ * - Repository Pattern (via IConversationRepository, IMessageRepository, ISupportTicketRepository, IAttachmentRepository)
+ * - Dependency Injection (injection des repositories via constructor)
+ * - Singleton Pattern (getInstance)
+ * - Decorator Pattern (@Log, @Cacheable, @Validate, @InvalidateCache)
  */
 
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
 import {
   getAttachmentRepository,
   getConversationRepository,
@@ -18,7 +26,7 @@ import {
   IMessageRepository,
   ISupportTicketRepository,
 } from '@/repositories/interfaces/IMessagingRepository';
-import { UIAttachment, UIConversation, UIMessage } from '@/types/messaging';
+import { UIAttachment, UIConversation, UIMessage } from '@/lib/types';
 
 export interface CreateConversationData {
   participants: string[];
@@ -62,7 +70,13 @@ export class MessagingService {
 
   // ==================== CONVERSATIONS ====================
 
-  @Log({ level: 'info', logArgs: true })
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'MessagingService:getConversations' }) // Cache 5 minutes
+  @Validate({
+    rules: [
+      { paramIndex: 0, schema: z.string().min(1), paramName: 'userId' },
+    ],
+  })
   async getConversations(
     userId: string,
     options?: { page?: number; limit?: number },
@@ -77,13 +91,15 @@ export class MessagingService {
         },
       );
 
-      // Transformer pour l'UI
+      // Fix: Only take conversations that include the user and non-empty other participant
       const uiConversations: UIConversation[] = await Promise.all(
         conversations.data.map(async conv => {
-          // Trouver l'autre participant
-          const otherParticipantId = conv.participants?.find(
-            (p: any) => p.toString() !== userId,
-          );
+          // Identify all participants except the user
+          const otherParticipants = (conv.participants || [])
+            .filter((p: any) => p.toString() !== userId);
+
+          // Support 1:1 and group conversations, but keep "participant" as first other participant for UI
+          const otherParticipantId = otherParticipants[0];
 
           if (!otherParticipantId) {
             return null as any;
@@ -99,18 +115,20 @@ export class MessagingService {
           // Récupérer le dernier message
           const messages = await this.messageRepository.findByConversation(
             conv._id!.toString(),
-            { page: 1, limit: 1 },
+            { page: 1, limit: 1, sort: { createdAt: -1 } }, // Fix: Make sure getting latest message
           );
           const lastMessage = messages.data[0];
 
           // Compter les messages non lus
           const unreadCountMap = conv.unreadCount || {};
-          const unreadCount =
-            unreadCountMap[userId] ||
-            (await this.messageRepository.countUnread(
+          let unreadCount = unreadCountMap[userId];
+
+          if (typeof unreadCount !== 'number') {
+            unreadCount = await this.messageRepository.countUnread(
               conv._id!.toString(),
               userId,
-            ));
+            );
+          }
 
           return {
             id: conv._id!.toString(),
@@ -128,7 +146,12 @@ export class MessagingService {
         }),
       );
 
-      return uiConversations.filter(c => c !== null);
+      // Fix: filter nulls, sort by lastMessageTime descending for consistency
+      return uiConversations
+        .filter(c => c !== null)
+        .sort((a, b) =>
+          new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime(),
+        );
     } catch (error) {
       logger.error(
         { error, userId },
@@ -138,7 +161,20 @@ export class MessagingService {
     }
   }
 
-  @Log({ level: 'info', logArgs: true })
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('MessagingService:getConversations:*') // Invalider le cache après création
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.object({
+          participants: z.array(z.string().min(1)).min(2),
+          type: z.enum(['user', 'support']).optional(),
+        }),
+        paramName: 'data',
+      },
+    ],
+  })
   async createConversation(
     data: CreateConversationData,
   ): Promise<UIConversation> {
@@ -153,10 +189,16 @@ export class MessagingService {
         // Transformer en UIConversation
         const userId = data.participants[0];
         const conversations = await this.getConversations(userId || '');
-        return (
-          conversations.find(c => c.id === existing._id!.toString()) ||
-          ({} as UIConversation)
-        );
+        const found = conversations.find(c => c.id === existing._id!.toString());
+        if (found) return found;
+        // Fallback for missing
+        return {
+          id: existing._id!.toString(),
+          participant: { id: '', name: '', avatar: '', role: '' },
+          lastMessage: '',
+          lastMessageTime: new Date(),
+          unreadCount: 0,
+        };
       }
 
       // Créer une nouvelle conversation
@@ -170,10 +212,16 @@ export class MessagingService {
       const conversations = await this.getConversations(
         data.participants[0] || '',
       );
-      return (
-        conversations.find(c => c.id === conversation._id!.toString()) ||
-        ({} as UIConversation)
-      );
+      const found = conversations.find(c => c.id === conversation._id!.toString());
+      if (found) return found;
+      // Fallback
+      return {
+        id: conversation._id!.toString(),
+        participant: { id: '', name: '', avatar: '', role: '' },
+        lastMessage: '',
+        lastMessageTime: new Date(),
+        unreadCount: 0,
+      };
     } catch (error) {
       logger.error(
         { error, data },
@@ -185,7 +233,14 @@ export class MessagingService {
 
   // ==================== MESSAGES ====================
 
-  @Log({ level: 'info', logArgs: true })
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Cacheable(180, { prefix: 'MessagingService:getMessages' }) // Cache 3 minutes
+  @Validate({
+    rules: [
+      { paramIndex: 0, schema: z.string().min(1), paramName: 'conversationId' },
+      { paramIndex: 1, schema: z.string().min(1), paramName: 'userId' },
+    ],
+  })
   async getMessages(
     conversationId: string,
     userId: string,
@@ -200,8 +255,9 @@ export class MessagingService {
         throw new Error('Conversation non trouvée');
       }
 
-      const isParticipant = conversation.participants?.some(
-        (p: any) => p.toString() === userId,
+      // Fix: Robust participant comparison
+      const isParticipant = (conversation.participants || []).some(
+        (p: any) => p?.toString() === userId,
       );
       if (!isParticipant) {
         throw new Error('Accès non autorisé');
@@ -218,14 +274,16 @@ export class MessagingService {
       );
 
       // Marquer comme lus
-      await this.messageRepository.markConversationAsRead(
-        conversationId,
-        userId,
-      );
-      await this.conversationRepository.resetUnreadCount(
-        conversationId,
-        userId,
-      );
+      if (result.data.length > 0) {
+        await this.messageRepository.markConversationAsRead(
+          conversationId,
+          userId,
+        );
+        await this.conversationRepository.resetUnreadCount(
+          conversationId,
+          userId,
+        );
+      }
 
       // Transformer pour l'UI
       const uiMessages: UIMessage[] = result.data.map(msg => ({
@@ -233,8 +291,10 @@ export class MessagingService {
         text: msg.text,
         senderId: msg.senderId.toString(),
         timestamp: msg.createdAt || new Date(),
-        attachments: msg.attachments?.map((a: any) => a.toString()) || [],
-        read: msg.read,
+        attachments: Array.isArray(msg.attachments)
+          ? msg.attachments.map((a: any) => a.toString())
+          : [],
+        read: Boolean(msg.read),
       }));
 
       return {
@@ -250,7 +310,22 @@ export class MessagingService {
     }
   }
 
-  @Log({ level: 'info', logArgs: true })
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('MessagingService:*') // Invalider le cache après envoi
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.object({
+          conversationId: z.string().min(1),
+          text: z.string().min(1),
+          attachments: z.array(z.string()).optional(),
+        }),
+        paramName: 'data',
+      },
+      { paramIndex: 1, schema: z.string().min(1), paramName: 'userId' },
+    ],
+  })
   async sendMessage(data: SendMessageData, userId: string): Promise<UIMessage> {
     try {
       // Vérifier que l'utilisateur est participant
@@ -261,8 +336,8 @@ export class MessagingService {
         throw new Error('Conversation non trouvée');
       }
 
-      const isParticipant = conversation.participants?.some(
-        (p: any) => p.toString() === userId,
+      const isParticipant = (conversation.participants || []).some(
+        (p: any) => p?.toString() === userId,
       );
       if (!isParticipant) {
         throw new Error('Accès non autorisé');
@@ -277,22 +352,22 @@ export class MessagingService {
         read: false,
       });
 
-      // Mettre à jour la conversation
+      // Mettre à jour la conversation (push real lastMessageAt)
       await this.conversationRepository.updateLastMessage(
         data.conversationId,
         data.text,
-        new Date(),
+        message.createdAt || new Date(),
       );
 
-      // Incrémenter le compteur de messages non lus pour l'autre participant
-      const otherParticipant = conversation.participants?.find(
-        (p: any) => p.toString() !== userId,
-      );
-      if (otherParticipant) {
-        await this.conversationRepository.incrementUnreadCount(
-          data.conversationId,
-          otherParticipant.toString(),
-        );
+      // Incrémenter le compteur de messages non lus pour les autres participants sauf sender
+      for (const participant of conversation.participants || []) {
+        const pid = participant?.toString();
+        if (pid && pid !== userId) {
+          await this.conversationRepository.incrementUnreadCount(
+            data.conversationId,
+            pid,
+          );
+        }
       }
 
       // Transformer pour l'UI
@@ -301,8 +376,10 @@ export class MessagingService {
         text: message.text,
         senderId: message.senderId.toString(),
         timestamp: message.createdAt || new Date(),
-        attachments: message.attachments?.map((a: any) => a.toString()) || [],
-        read: message.read,
+        attachments: Array.isArray(message.attachments)
+          ? message.attachments.map((a: any) => a.toString())
+          : [],
+        read: Boolean(message.read),
       };
     } catch (error) {
       logger.error(
@@ -315,7 +392,13 @@ export class MessagingService {
 
   // ==================== SUPPORT TICKETS ====================
 
-  @Log({ level: 'info', logArgs: true })
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Cacheable(180, { prefix: 'MessagingService:getSupportTicket' }) // Cache 3 minutes
+  @Validate({
+    rules: [
+      { paramIndex: 0, schema: z.string().min(1), paramName: 'userId' },
+    ],
+  })
   async getSupportTicket(userId: string): Promise<{
     ticket: { id: string; status: string; priority: string };
     messages: UIMessage[];
@@ -324,10 +407,10 @@ export class MessagingService {
       // Récupérer ou créer un ticket
       const tickets = await this.supportTicketRepository.findByUser(userId, {
         page: 1,
-        limit: 1,
+        limit: 2, // Fix: Make sure fetch possible multiple
       });
 
-      let ticket = tickets.data.find(
+      let ticket = (tickets.data || []).find(
         t => t.status === 'open' || t.status === 'in_progress',
       );
 
@@ -343,17 +426,19 @@ export class MessagingService {
       // Récupérer les messages
       const messages = await this.messageRepository.findByConversation(
         ticket._id!.toString(),
-        { page: 1, limit: 100 },
+        { page: 1, limit: 100, sort: { createdAt: 1 } }, // Fix: oldest to newest
       );
 
-      // Transformer pour l'UI
-      const uiMessages: UIMessage[] = messages.data.map(msg => ({
+      // Transformer pour l'UI - fix senderId identification
+      const uiMessages: UIMessage[] = (messages.data || []).map(msg => ({
         id: msg._id!.toString(),
         text: msg.text,
-        senderId: msg.senderId.toString() === userId ? 'user' : 'support',
+        senderId: msg.senderId?.toString() === userId ? 'user' : 'support',
         timestamp: msg.createdAt || new Date(),
-        attachments: msg.attachments?.map((a: any) => a.toString()) || [],
-        read: msg.read,
+        attachments: Array.isArray(msg.attachments)
+          ? msg.attachments.map((a: any) => a.toString())
+          : [],
+        read: Boolean(msg.read),
       }));
 
       return {
@@ -373,7 +458,15 @@ export class MessagingService {
     }
   }
 
-  @Log({ level: 'info', logArgs: true })
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('MessagingService:getSupportTicket:*') // Invalider le cache après envoi
+  @Validate({
+    rules: [
+      { paramIndex: 0, schema: z.string().min(1), paramName: 'userId' },
+      { paramIndex: 1, schema: z.string().optional(), paramName: 'text' },
+      { paramIndex: 2, schema: z.array(z.string()).optional(), paramName: 'attachments' },
+    ],
+  })
   async sendSupportMessage(
     userId: string,
     text: string,
@@ -384,7 +477,11 @@ export class MessagingService {
       const { ticket } = await this.getSupportTicket(userId);
 
       // Utiliser un texte par défaut si seulement des attachments sont envoyés
-      const messageText = text || 'Pièce(s) jointe(s)';
+      const messageText = text && text.trim() ? text : (attachments?.length ? 'Pièce(s) jointe(s)' : '');
+
+      if (!messageText && (!attachments || !attachments.length)) {
+        throw new Error('Le message ne peut pas être vide.');
+      }
 
       // Créer le message
       const message = await this.messageRepository.create({
@@ -414,8 +511,10 @@ export class MessagingService {
         text: message.text,
         senderId: 'user',
         timestamp: message.createdAt || new Date(),
-        attachments: message.attachments?.map((a: any) => a.toString()) || [],
-        read: message.read,
+        attachments: Array.isArray(message.attachments)
+          ? message.attachments.map((a: any) => a.toString())
+          : [],
+        read: Boolean(message.read),
       };
     } catch (error) {
       logger.error(
@@ -428,7 +527,13 @@ export class MessagingService {
 
   // ==================== ATTACHMENTS ====================
 
-  @Log({ level: 'info', logArgs: true })
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'MessagingService:getAttachments' }) // Cache 5 minutes
+  @Validate({
+    rules: [
+      { paramIndex: 0, schema: z.string().min(1), paramName: 'userId' },
+    ],
+  })
   async getAttachments(
     userId: string,
     filters?: {
@@ -455,13 +560,13 @@ export class MessagingService {
       const userRepo = getUserRepository();
 
       const uiAttachments: UIAttachment[] = await Promise.all(
-        result.data.map(async att => {
-          const uploader = await userRepo.findById(att.uploadedBy.toString());
+        (result.data || []).map(async att => {
+          const uploader = await userRepo.findById(att.uploadedBy?.toString?.() ?? att.uploadedBy);
           return {
             id: att._id!.toString(),
             name: att.name,
             type: att.type,
-            size: att.size,
+            size: Number(att.size) || 0,
             url: att.url,
             uploadedBy: uploader?.name || 'Utilisateur',
             uploadedAt: (att as any).uploadedAt || att.createdAt || new Date(),
@@ -475,7 +580,7 @@ export class MessagingService {
 
       return {
         attachments: uiAttachments,
-        total: result.total,
+        total: Number(result.total) || 0,
       };
     } catch (error) {
       logger.error(
@@ -486,7 +591,25 @@ export class MessagingService {
     }
   }
 
-  @Log({ level: 'info', logArgs: true })
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('MessagingService:getAttachments:*') // Invalider le cache après upload
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.object({
+          name: z.string().min(1),
+          type: z.string().min(1),
+          size: z.number().positive(),
+          url: z.string().url(),
+          uploadedBy: z.string().min(1),
+          conversationId: z.string().optional(),
+          messageId: z.string().optional(),
+        }),
+        paramName: 'data',
+      },
+    ],
+  })
   async uploadAttachment(data: UploadAttachmentData): Promise<UIAttachment> {
     try {
       const attachment = await this.attachmentRepository.create(data);
@@ -500,7 +623,7 @@ export class MessagingService {
         id: attachment._id!.toString(),
         name: attachment.name,
         type: attachment.type,
-        size: attachment.size,
+        size: Number(attachment.size) || 0,
         url: attachment.url,
         uploadedBy: uploader?.name || 'Utilisateur',
         uploadedAt:
@@ -518,7 +641,14 @@ export class MessagingService {
     }
   }
 
-  @Log({ level: 'info', logArgs: true })
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('MessagingService:getAttachments:*') // Invalider le cache après suppression
+  @Validate({
+    rules: [
+      { paramIndex: 0, schema: z.string().min(1), paramName: 'attachmentId' },
+      { paramIndex: 1, schema: z.string().min(1), paramName: 'userId' },
+    ],
+  })
   async deleteAttachment(
     attachmentId: string,
     userId: string,
@@ -529,7 +659,7 @@ export class MessagingService {
         throw new Error('Attachment non trouvé');
       }
 
-      if (attachment.uploadedBy.toString() !== userId) {
+      if (attachment.uploadedBy?.toString?.() !== userId) {
         throw new Error('Accès non autorisé');
       }
 

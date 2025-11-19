@@ -6,16 +6,7 @@
  */
 
 import { logger } from '@/lib/logger';
-
-interface RetryOptions {
-  maxAttempts?: number; // Nombre maximum de tentatives (défaut: 3)
-  delay?: number; // Délai en ms entre les tentatives (défaut: 1000)
-  backoff?: 'fixed' | 'exponential' | 'linear'; // Type de backoff (défaut: 'fixed')
-  backoffMultiplier?: number; // Multiplicateur pour le backoff exponentiel/linéaire (défaut: 2)
-  shouldRetry?: (error: any) => boolean; // Fonction pour déterminer si on doit retry (défaut: toujours retry)
-  onRetry?: (attempt: number, error: any) => void; // Callback appelé à chaque retry
-  logRetries?: boolean; // Logger les tentatives (défaut: true)
-}
+import type { RetryDecoratorOptions } from '@/lib/types';
 
 /**
  * Decorator pour ajouter une logique de retry à une méthode
@@ -28,7 +19,7 @@ interface RetryOptions {
  * }
  * ```
  */
-export function Retry(options: RetryOptions = {}) {
+export function Retry(options: RetryDecoratorOptions = {}) {
   return function (
     target: any,
     propertyKey: string,

@@ -12,7 +12,7 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
-import { ISpeciality } from '@/types';
+import { ISpeciality } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import { ISpecialityRepository } from '../interfaces/ISpecialityRepository';

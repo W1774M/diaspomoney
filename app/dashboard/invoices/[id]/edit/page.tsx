@@ -10,7 +10,7 @@
 
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useInvoice, useInvoiceEdit, useInvoiceUsers } from '@/hooks/invoices';
-import { IInvoice, INVOICE_STATUSES, InvoiceStatus } from '@/types';
+import { IInvoice, INVOICE_STATUSES, InvoiceStatus } from '@/lib/types';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -200,7 +200,7 @@ export default function EditInvoicePage() {
 
       // Rediriger vers la page de détail
       router.push(`/dashboard/invoices/${invoiceId}`);
-    } catch (error) {
+    } catch (_error) {
       // L'erreur est déjà gérée par le hook useInvoiceEdit
       // On peut afficher un message d'erreur si nécessaire
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { ComplaintsFiltersProps } from "@/types/complaints";
+import { ComplaintsFiltersProps } from "@/lib/types";
 import { Filter } from "lucide-react";
 import React, { useCallback } from "react";
 
@@ -11,7 +11,7 @@ const ComplaintsFilters = React.memo<ComplaintsFiltersProps>(
     availableStatuses,
     availableTypes,
     availablePriorities,
-  }) {
+  }: ComplaintsFiltersProps) {
     const handleStatusChange = useCallback(
       (e: React.ChangeEvent<HTMLSelectElement>) => {
         onFilterChange("status", e.target.value);
@@ -35,7 +35,8 @@ const ComplaintsFilters = React.memo<ComplaintsFiltersProps>(
 
     return (
       <div className="flex gap-2">
-        <select
+        <select 
+          title="Statut"
           value={filters.status}
           onChange={handleStatusChange}
           className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
@@ -55,6 +56,7 @@ const ComplaintsFilters = React.memo<ComplaintsFiltersProps>(
         </select>
 
         <select
+          title="Type"
           value={filters.type}
           onChange={handleTypeChange}
           className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
@@ -74,6 +76,7 @@ const ComplaintsFilters = React.memo<ComplaintsFiltersProps>(
         </select>
 
         <select
+          title="Priorité"
           value={filters.priority}
           onChange={handlePriorityChange}
           className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"

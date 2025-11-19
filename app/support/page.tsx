@@ -45,7 +45,7 @@ export default function SupportPage() {
       });
 
       e.currentTarget.reset();
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: "error",
         message: "Erreur lors de l'envoi. Veuillez réessayer.",
@@ -305,6 +305,7 @@ export default function SupportPage() {
                     Niveau d'urgence
                   </label>
                   <select
+                    title="Niveau d'urgence"
                     name="urgency"
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-[hsl(25,100%,53%)] focus:ring-2 focus:ring-[hsl(25,100%,53%)]/20 transition-all"
                     required
@@ -321,6 +322,7 @@ export default function SupportPage() {
                     Catégorie
                   </label>
                   <select
+                    title="Catégorie"
                     name="category"
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-[hsl(25,100%,53%)] focus:ring-2 focus:ring-[hsl(25,100%,53%)]/20 transition-all"
                     required

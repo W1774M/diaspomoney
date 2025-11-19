@@ -16,9 +16,9 @@ import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 import type {
   ITransactionRepository,
   Transaction,
@@ -224,7 +224,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
   async findWithPagination(
     filters?: Record<string, any>,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Transaction>> {
+  ): Promise<PaginatedFindResult<Transaction>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit ?? 50;
@@ -241,13 +241,19 @@ export class MongoTransactionRepository implements ITransactionRepository {
         .limit(limit)
         .toArray();
 
+      const pages = Math.ceil(total / limit);
       const result = {
         data: transactions.map(t => this.mapToTransaction(t)),
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
       this.log.debug(
         { count: result.data.length, total, page, limit, filters },
@@ -269,7 +275,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
   async findByPayer(
     payerId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Transaction>> {
+  ): Promise<PaginatedFindResult<Transaction>> {
     return this.findWithPagination({ payerId }, options);
   }
 
@@ -278,7 +284,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
   async findByBeneficiary(
     beneficiaryId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Transaction>> {
+  ): Promise<PaginatedFindResult<Transaction>> {
     return this.findWithPagination({ beneficiaryId }, options);
   }
 
@@ -287,7 +293,7 @@ export class MongoTransactionRepository implements ITransactionRepository {
   async findByStatus(
     status: Transaction['status'],
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Transaction>> {
+  ): Promise<PaginatedFindResult<Transaction>> {
     return this.findWithPagination({ status }, options);
   }
 
@@ -394,15 +400,23 @@ export class MongoTransactionRepository implements ITransactionRepository {
   async findTransactionsWithFilters(
     filters: TransactionFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<Transaction>> {
+  ): Promise<PaginatedFindResult<Transaction>> {
     try {
       // Utiliser TransactionQueryBuilder pour construire la requête
       const queryBuilder = this.buildTransactionQuery(filters, options);
       const query = queryBuilder.build();
 
+      // Normaliser PaginationOptions pour exactOptionalPropertyTypes
+      const pagination: PaginationOptions = {
+        limit: query.pagination.limit ?? options?.limit ?? 50,
+        page: query.pagination.page ?? options?.page ?? 1,
+        ...(query.pagination.offset !== undefined && { offset: query.pagination.offset }),
+        ...(query.sort && Object.keys(query.sort).length > 0 && { sort: query.sort }),
+      };
+
       const result = await this.findWithPagination(
         query.filters,
-        query.pagination,
+        pagination,
       );
       this.log.debug(
         { count: result.data.length, total: result.total, filters },
@@ -439,7 +453,12 @@ export class MongoTransactionRepository implements ITransactionRepository {
       builder.byStatus(filters.status);
     }
     if (filters.paymentMethod) {
-      builder.byPaymentMethod(filters.paymentMethod);
+      // Convertir PaymentMethod enum en string literal
+      const methodValue = typeof filters.paymentMethod === 'string' 
+        ? filters.paymentMethod
+        : filters.paymentMethod.toString();
+      const method = methodValue as 'CARD' | 'BANK_TRANSFER' | 'MOBILE_MONEY' | 'PAYPAL';
+      builder.byPaymentMethod(method);
     }
     if (filters.paymentProvider) {
       builder.byPaymentProvider(filters.paymentProvider);
@@ -546,9 +565,12 @@ export class MongoTransactionRepository implements ITransactionRepository {
    * Mapper un document MongoDB vers un objet Transaction
    */
   private mapToTransaction(doc: any): Transaction {
+    const docId = doc._id?.toString() || doc.id || '';
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
     return {
-      id: doc._id?.toString() || doc.id,
-      _id: doc._id?.toString(),
+      id: docId,
+      _id: docId,
       payerId: doc.payerId,
       beneficiaryId: doc.beneficiaryId,
       amount: doc.amount,
@@ -560,12 +582,13 @@ export class MongoTransactionRepository implements ITransactionRepository {
       serviceId: doc.serviceId,
       description: doc.description,
       status: doc.status,
+      type: doc.type || 'PAYMENT',
       paymentMethod: doc.paymentMethod,
       paymentProvider: doc.paymentProvider,
       paymentIntentId: doc.paymentIntentId,
       metadata: doc.metadata,
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
+      createdAt,
+      updatedAt,
       completedAt: doc.completedAt,
       failedAt: doc.failedAt,
       failureReason: doc.failureReason,

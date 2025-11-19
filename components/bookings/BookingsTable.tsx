@@ -1,6 +1,6 @@
 "use client";
 
-import { BookingsTableProps } from "@/types/bookings";
+import type { BookingsTableProps } from "@/lib/types";
 import { Calendar, Loader2 } from "lucide-react";
 import React from "react";
 import BookingCard from "./BookingCard";

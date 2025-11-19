@@ -1,6 +1,6 @@
 "use client";
 
-import { ServiceSearchBarProps } from "@/types/services";
+import type { ServiceSearchBarProps } from "@/lib/types";
 import React, { useCallback } from "react";
 
 const ServicesSearchBar = React.memo<ServiceSearchBarProps>(
@@ -41,7 +41,7 @@ const ServicesSearchBar = React.memo<ServiceSearchBarProps>(
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <datalist id="services-list">
-              {availableServices.map((service, idx) => (
+              {availableServices.map((service: string, idx: number) => (
                 <option key={idx} value={service} />
               ))}
             </datalist>

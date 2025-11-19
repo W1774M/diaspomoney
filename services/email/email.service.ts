@@ -11,8 +11,11 @@
  * - Queue Pattern (pour le traitement asynchrone des emails)
  */
 
+import { Cacheable } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
+import { z } from 'zod';
 import {
   sendAppointmentNotificationEmail,
   sendEmail,
@@ -26,7 +29,7 @@ import type {
   EmailOptions,
   EmailQueueItem,
   EmailServiceConfig,
-} from '@/types/email';
+} from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 
 export class EmailService {
@@ -52,6 +55,7 @@ export class EmailService {
    * Test de connexion Resend
    */
   @Log({ level: 'info', logArgs: false, logExecutionTime: true })
+  @Cacheable(60, { prefix: 'EmailService:testConnection' }) // Cache 1 minute
   async testConnection(): Promise<boolean> {
     try {
       this.log.debug('Testing Resend connection');
@@ -85,6 +89,13 @@ export class EmailService {
     delay: 2000,
     backoff: 'exponential',
     shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
+  })
+  @Validate({
+    rules: [
+      { paramIndex: 0, schema: z.string().email(), paramName: 'email' },
+      { paramIndex: 1, schema: z.string().min(1), paramName: 'name' },
+      { paramIndex: 2, schema: z.string().url(), paramName: 'verificationUrl' },
+    ],
   })
   async sendWelcomeEmail(
     email: string,
@@ -129,6 +140,13 @@ export class EmailService {
     delay: 2000,
     backoff: 'exponential',
     shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
+  })
+  @Validate({
+    rules: [
+      { paramIndex: 0, schema: z.string().email(), paramName: 'email' },
+      { paramIndex: 1, schema: z.string().min(1), paramName: 'name' },
+      { paramIndex: 2, schema: z.string().url(), paramName: 'resetUrl' },
+    ],
   })
   async sendPasswordResetEmail(
     email: string,
@@ -179,6 +197,15 @@ export class EmailService {
     delay: 2000,
     backoff: 'exponential',
     shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
+  })
+  @Validate({
+    rules: [
+      { paramIndex: 0, schema: z.string().email(), paramName: 'email' },
+      { paramIndex: 1, schema: z.string().min(1), paramName: 'name' },
+      { paramIndex: 2, schema: z.number().positive(), paramName: 'amount' },
+      { paramIndex: 3, schema: z.string().min(1), paramName: 'currency' },
+      { paramIndex: 4, schema: z.string().min(1), paramName: 'service' },
+    ],
   })
   async sendPaymentConfirmationEmail(
     email: string,
@@ -238,6 +265,16 @@ export class EmailService {
    * Envoi d'email de notification de rendez-vous
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      { paramIndex: 0, schema: z.string().email(), paramName: 'email' },
+      { paramIndex: 1, schema: z.string().min(1), paramName: 'name' },
+      { paramIndex: 2, schema: z.string().min(1), paramName: 'provider' },
+      { paramIndex: 3, schema: z.string().min(1), paramName: 'date' },
+      { paramIndex: 4, schema: z.string().min(1), paramName: 'time' },
+      { paramIndex: 5, schema: z.enum(['confirmation', 'reminder']), paramName: 'type' },
+    ],
+  })
   async sendAppointmentNotificationEmail(
     email: string,
     name: string,
@@ -298,6 +335,13 @@ export class EmailService {
    * Envoi d'email personnalisé
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      { paramIndex: 0, schema: z.union([z.string().email(), z.array(z.string().email())]), paramName: 'to' },
+      { paramIndex: 1, schema: z.string().min(1), paramName: 'subject' },
+      { paramIndex: 2, schema: z.string().min(1), paramName: 'html' },
+    ],
+  })
   async sendCustomEmail(
     to: string | string[],
     subject: string,
@@ -529,6 +573,7 @@ export class EmailService {
    * Obtenir les statistiques de la queue
    */
   @Log({ level: 'debug', logArgs: false, logExecutionTime: false })
+  @Cacheable(30, { prefix: 'EmailService:getQueueStats' }) // Cache 30 secondes
   getQueueStats(): {
     total: number;
     pending: number;

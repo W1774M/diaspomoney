@@ -1,4 +1,5 @@
 import { defineConfig } from 'cypress';
+import { logger } from '@/lib/logger';
 
 export default defineConfig({
   e2e: {
@@ -14,7 +15,7 @@ export default defineConfig({
       // Configuration des plugins
       on('task', {
         log(message) {
-          console.log(message);
+          logger.info(message);
           return null;
         },
       });

@@ -1,6 +1,6 @@
 "use client";
 
-import { InvoiceFilters } from "@/types/invoices";
+import type { InvoiceFilters } from "@/lib/types";
 import { useCallback, useMemo, useState } from "react";
 
 export function useInvoiceFilters(invoices: any[]) {

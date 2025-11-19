@@ -5,12 +5,15 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
-import {
-  createValidationRule,
-  Validate,
-} from '@/lib/decorators/validate.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
-import { getInvoiceRepository, Invoice, PaginatedResult } from '@/repositories';
+import type { PaginationOptions } from '@/lib/types';
+import { InvoiceStatus } from '@/lib/types';
+import {
+  getInvoiceRepository,
+  Invoice,
+  PaginatedResult,
+} from '@/repositories';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
@@ -57,17 +60,15 @@ export class InvoiceService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z
-          .object({
-            userId: z.string().min(1, 'User ID is required'),
-            amount: z.number().positive('Amount must be positive'),
-            currency: z.string().length(3, 'Currency must be 3 characters'),
-          })
-          .passthrough(),
-        'data',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.object({
+          userId: z.string().min(1, 'User ID is required'),
+          amount: z.number().positive('Amount must be positive'),
+          currency: z.string().length(3, 'Currency must be 3 characters'),
+        }).passthrough(),
+        paramName: 'data',
+      },
     ],
   })
   @InvalidateCache('InvoiceService:*')
@@ -121,11 +122,11 @@ export class InvoiceService {
   @Log({ level: 'info', logArgs: true })
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'Invoice ID is required'),
-        'id',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Invoice ID is required'),
+        paramName: 'id',
+      },
     ],
   })
   @Cacheable(600, { prefix: 'InvoiceService:getInvoiceById' }) // Cache 10 minutes
@@ -151,10 +152,17 @@ export class InvoiceService {
   @Cacheable(900, { prefix: 'InvoiceService:getUserInvoices' }) // Cache 15 minutes
   async getUserInvoices(
     userId: string,
-    options?: { limit?: number; offset?: number },
+    options?: { limit?: number; offset?: number; page?: number },
   ): Promise<PaginatedResult<Invoice>> {
     try {
-      return await this.invoiceRepository.findByUser(userId, options);
+      const pagination: PaginationOptions | undefined = options
+        ? {
+            limit: options.limit || 50,
+            page: options.page || 1,
+            ...(options.offset !== undefined && { offset: options.offset }),
+          }
+        : undefined;
+      return await this.invoiceRepository.findByUser(userId, pagination);
     } catch (error) {
       logger.error({ error, userId }, 'Erreur getUserInvoices');
       Sentry.captureException(error);
@@ -168,12 +176,19 @@ export class InvoiceService {
   @Cacheable(900, { prefix: 'InvoiceService:getInvoices' }) // Cache 15 minutes
   async getInvoices(
     filters: Record<string, any>,
-    options?: { limit?: number; offset?: number },
+    options?: { limit?: number; offset?: number; page?: number },
   ): Promise<PaginatedResult<Invoice>> {
     try {
+      const pagination: PaginationOptions | undefined = options
+        ? {
+            limit: options.limit || 50,
+            page: options.page || 1,
+            ...(options.offset !== undefined && { offset: options.offset }),
+          }
+        : undefined;
       return await this.invoiceRepository.findInvoicesWithFilters(
         filters,
-        options,
+        pagination,
       );
     } catch (error) {
       logger.error({ error, filters }, 'Erreur getInvoices');
@@ -230,10 +245,10 @@ export class InvoiceService {
    */
   async updateInvoiceStatus(
     id: string,
-    status: Invoice['status'],
+    status: InvoiceStatus,
   ): Promise<boolean> {
     try {
-      return await this.invoiceRepository.updateStatus(id, status);
+      return await this.invoiceRepository.updateStatus(id, status as any);
     } catch (error) {
       logger.error({ error, id, status }, 'Erreur updateInvoiceStatus');
       Sentry.captureException(error);
@@ -260,9 +275,17 @@ export class InvoiceService {
   async getOverdueInvoices(options?: {
     limit?: number;
     offset?: number;
+    page?: number;
   }): Promise<PaginatedResult<Invoice>> {
     try {
-      return await this.invoiceRepository.findOverdue(options);
+      const pagination: PaginationOptions | undefined = options
+        ? {
+            limit: options.limit || 50,
+            page: options.page || 1,
+            ...(options.offset !== undefined && { offset: options.offset }),
+          }
+        : undefined;
+      return await this.invoiceRepository.findOverdue(pagination);
     } catch (error) {
       logger.error({ error }, 'Erreur getOverdueInvoices');
       Sentry.captureException(error);

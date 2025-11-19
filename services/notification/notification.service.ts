@@ -12,6 +12,7 @@
  * - Dependency Injection
  */
 
+import { LOCALE } from '@/lib/constants';
 import { Cacheable } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { sendEmail } from '@/lib/email/resend';
@@ -25,12 +26,14 @@ import {
   getNotificationRepository,
   getNotificationTemplateRepository,
 } from '@/repositories';
+
 import type {
-  Notification,
   NotificationData,
   NotificationStats,
   NotificationTemplate,
-} from '@/types/notifications';
+  NotificationType,
+} from '@/lib/types';
+import type { Notification } from '@/lib/types/notifications.types';
 import * as Sentry from '@sentry/nextjs';
 
 export class NotificationService {
@@ -100,7 +103,7 @@ export class NotificationService {
       const notification: Notification = {
         id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         recipient: data.recipient,
-        type: data.type,
+        type: data.type as keyof typeof NotificationType,
         subject: processedContent.subject,
         content: processedContent.content,
         channels: data.channels,
@@ -111,8 +114,10 @@ export class NotificationService {
           priority: data.priority,
           originalData: data.data,
         },
-        createdAt: new Date(),
+        createdAt: new Date(),  
         updatedAt: new Date(),
+        userId: (data as any as NotificationData & { userId: string }).userId,
+        _id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       };
 
       // Sauvegarder en base de données via le repository
@@ -168,7 +173,7 @@ export class NotificationService {
   async sendWelcomeNotification(
     userEmail: string,
     userName: string,
-    locale: string = 'fr',
+    locale: string = LOCALE.DEFAULT,
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -203,7 +208,7 @@ export class NotificationService {
     amount: number,
     currency: string,
     serviceName: string,
-    locale: string = 'fr',
+    locale: string = LOCALE.DEFAULT,
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -242,7 +247,7 @@ export class NotificationService {
     amount: number,
     currency: string,
     reason: string,
-    locale: string = 'fr',
+    locale: string = LOCALE.DEFAULT,
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -279,7 +284,7 @@ export class NotificationService {
   async sendKYCApprovedNotification(
     userEmail: string,
     userName: string,
-    locale: string = 'fr',
+    locale: string = LOCALE.DEFAULT,
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -314,7 +319,7 @@ export class NotificationService {
   async send2FACode(
     userPhone: string,
     code: string,
-    locale: string = 'fr',
+    locale: string = LOCALE.DEFAULT,
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -347,7 +352,7 @@ export class NotificationService {
     appointmentDate: Date,
     serviceName: string,
     providerName: string,
-    locale: string = 'fr',
+    locale: string = LOCALE.DEFAULT,
   ): Promise<void> {
     try {
       await this.sendNotification({
@@ -401,6 +406,7 @@ export class NotificationService {
       // Fallback sur les templates par défaut
       const defaultTemplates: Record<string, NotificationTemplate> = {
         welcome: {
+          _id: 'welcome',
           id: 'welcome',
           name: 'welcome',
           subject: 'Bienvenue sur DiaspoMoney',
@@ -409,8 +415,11 @@ export class NotificationService {
           variables: ['userName', 'appName'],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'MEDIUM' }],
           locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
         payment_success: {
+          _id: 'payment_success',
           id: 'payment_success',
           name: 'payment_success',
           subject: 'Paiement confirmé - {{serviceName}}',
@@ -419,8 +428,11 @@ export class NotificationService {
           variables: ['amount', 'currency', 'serviceName', 'transactionDate'],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'HIGH' }],
           locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
         payment_failed: {
+          _id: 'payment_failed',
           id: 'payment_failed',
           name: 'payment_failed',
           subject: 'Échec du paiement',
@@ -429,8 +441,11 @@ export class NotificationService {
           variables: ['amount', 'currency', 'reason', 'supportEmail'],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'HIGH' }],
           locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
         kyc_approved: {
+          _id: 'kyc_approved',
           id: 'kyc_approved',
           name: 'kyc_approved',
           subject: "Vérification d'identité approuvée",
@@ -439,8 +454,11 @@ export class NotificationService {
           variables: ['userName', 'appName'],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'MEDIUM' }],
           locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
         '2fa_code': {
+          _id: '2fa_code',
           id: '2fa_code',
           name: '2fa_code',
           subject: 'Code de vérification',
@@ -449,8 +467,11 @@ export class NotificationService {
           variables: ['code', 'appName', 'expiresIn'],
           channels: [{ type: 'SMS', enabled: true, priority: 'URGENT' }],
           locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
         appointment_reminder: {
+          _id: 'appointment_reminder',
           id: 'appointment_reminder',
           name: 'appointment_reminder',
           subject: 'Rappel de rendez-vous',
@@ -464,8 +485,11 @@ export class NotificationService {
           ],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'MEDIUM' }],
           locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
         dispute_created: {
+          _id: 'dispute_created',
           id: 'dispute_created',
           name: 'dispute_created',
           subject: 'Dispute créée - Transaction {{transactionId}}',
@@ -481,6 +505,8 @@ export class NotificationService {
           ],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'URGENT' }],
           locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
       };
 
@@ -553,7 +579,7 @@ export class NotificationService {
         );
         // Mettre à jour le statut de la notification en cas d'erreur
         await this.notificationRepository.updateStatus(
-          notification.id,
+          String(notification.id),
           'FAILED',
           {
             failedAt: new Date(),
@@ -587,7 +613,7 @@ export class NotificationService {
       if (emailSent) {
         // Mettre à jour le statut de la notification
         await this.notificationRepository.updateStatus(
-          notification.id,
+          String(notification.id),
           'SENT',
           { sentAt: new Date() },
         );
@@ -636,7 +662,7 @@ export class NotificationService {
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Mettre à jour le statut de la notification
-      await this.notificationRepository.updateStatus(notification.id, 'SENT', {
+      await this.notificationRepository.updateStatus(String(notification.id), 'SENT', {
         sentAt: new Date(),
       });
     } catch (error) {
@@ -670,7 +696,7 @@ export class NotificationService {
       await new Promise(resolve => setTimeout(resolve, 30));
 
       // Mettre à jour le statut de la notification
-      await this.notificationRepository.updateStatus(notification.id, 'SENT', {
+      await this.notificationRepository.updateStatus(String(notification.id), 'SENT', {
         sentAt: new Date(),
       });
     } catch (error) {
@@ -704,7 +730,7 @@ export class NotificationService {
       await new Promise(resolve => setTimeout(resolve, 200));
 
       // Mettre à jour le statut de la notification
-      await this.notificationRepository.updateStatus(notification.id, 'SENT', {
+      await this.notificationRepository.updateStatus(String(notification.id), 'SENT', {
         sentAt: new Date(),
       });
     } catch (error) {
@@ -726,7 +752,7 @@ export class NotificationService {
     try {
       // La notification est déjà sauvegardée en base de données via sendNotification
       // On marque simplement comme envoyée
-      await this.notificationRepository.updateStatus(notification.id, 'SENT', {
+      await this.notificationRepository.updateStatus(String(notification.id), 'SENT', {
         sentAt: new Date(),
       });
 

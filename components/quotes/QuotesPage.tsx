@@ -42,7 +42,7 @@ const QuotesPage = React.memo(function QuotesPage() {
         }
         const data = await response.json();
         setQuotes(Array.isArray(data.quotes) ? data.quotes : []);
-      } catch (err) {
+      } catch (_error) {
         setQuotes([]);
       } finally {
         setLoading(false);
@@ -86,7 +86,7 @@ const QuotesPage = React.memo(function QuotesPage() {
           } else {
             addError('Erreur lors de la suppression du devis');
           }
-        } catch (e) {
+        } catch (_error) {
           addError('Erreur lors de la suppression du devis');
         } finally {
           setLoading(false);
@@ -133,7 +133,7 @@ const QuotesPage = React.memo(function QuotesPage() {
         window.URL.revokeObjectURL(url);
 
         addSuccess('Devis téléchargé avec succès');
-      } catch (error) {
+      } catch (_error) {
         addError('Erreur lors du téléchargement du devis');
       }
     },
@@ -161,7 +161,7 @@ const QuotesPage = React.memo(function QuotesPage() {
           } else {
             addError("Erreur lors de l'approbation du devis");
           }
-        } catch (e) {
+        } catch (_error) {
           addError("Erreur lors de l'approbation du devis");
         } finally {
           setLoading(false);
@@ -191,7 +191,7 @@ const QuotesPage = React.memo(function QuotesPage() {
           } else {
             addError('Erreur lors du rejet du devis');
           }
-        } catch (e) {
+        } catch (_error) {
           addError('Erreur lors du rejet du devis');
         } finally {
           setLoading(false);

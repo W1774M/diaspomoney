@@ -1,10 +1,12 @@
 'use client';
 
 import { useAuth } from '@/hooks/auth/useAuth';
-import type { Availability, TimeSlot } from '@/types';
+import { useAvailabilities } from '@/hooks/availabilities';
+import { useNotificationManager } from '@/components/ui/Notification';
+import type { AvailabilityRule, AvailabilityTimeSlot } from '@/lib/types/availability.types';
 import { Calendar, Plus, Save, Settings, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 // Utility: forces a unique string ID
 const uniqueId = (() => {
@@ -15,12 +17,26 @@ const uniqueId = (() => {
 export default function AvailabilitiesPage() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const [availabilities, setAvailabilities] = useState<Availability[]>([]);
   const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'custom'>(
     'weekly',
   );
   const [showForm, setShowForm] = useState(false);
-  const [editingRule, setEditingRule] = useState<Availability | null>(null);
+  const [editingRule, setEditingRule] = useState<AvailabilityRule | null>(null);
+
+  // Utiliser le hook personnalisé (Custom Hooks Pattern)
+  const {
+    availabilities,
+    loading: availabilitiesLoading,
+    error: availabilitiesError,
+    createAvailabilityRule,
+    updateAvailabilityRule,
+    deleteAvailabilityRule,
+    toggleAvailabilityRuleStatus,
+    refreshAvailabilities,
+  } = useAvailabilities(activeTab);
+
+  // Utiliser le gestionnaire de notifications toast (Toast Pattern)
+  const { addSuccess, addError } = useNotificationManager();
 
   // Ensure authentication
   useEffect(() => {
@@ -29,131 +45,12 @@ export default function AvailabilitiesPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  // Mock data for demonstration
+  // Afficher les erreurs de chargement
   useEffect(() => {
-    if (isAuthenticated) {
-      // Fixed mockAvailabilities to use correct types and field structures
-
-      const mockAvailabilities: Availability[] = [
-        {
-          id: '1',
-          name: 'Planning hebdomadaire standard',
-          type: 'weekly',
-          isActive: true,
-          startDate: undefined,
-          endDate: undefined,
-          timeSlots: [],
-          monday: [],
-          tuesday: [],
-          wednesday: [],
-          thursday: [],
-          friday: [],
-          saturday: [],
-          sunday: [],
-        },
-        {
-          id: '2',
-          name: 'Planning du weekend',
-          type: 'weekly',
-          isActive: true,
-          startDate: undefined,
-          endDate: undefined,
-          timeSlots: [
-            {
-              id: '11',
-              dayOfWeek: 6,
-              startTime: '10:00',
-              endTime: '16:00',
-              isActive: true,
-            },
-            {
-              id: '12',
-              dayOfWeek: 0,
-              startTime: '10:00',
-              endTime: '16:00',
-              isActive: true,
-            },
-          ],
-          monday: [],
-          tuesday: [],
-          wednesday: [],
-          thursday: [],
-          friday: [],
-          saturday: [],
-          sunday: [],
-        },
-        {
-          id: '3',
-          name: 'Planning mensuel - Janvier',
-          type: 'monthly',
-          isActive: true,
-          startDate: '2024-01-01',
-          endDate: '2024-01-31',
-          timeSlots: [
-            {
-              id: '13',
-              dayOfWeek: 1,
-              startTime: '08:00',
-              endTime: '17:00',
-              isActive: true,
-            },
-            {
-              id: '14',
-              dayOfWeek: 2,
-              startTime: '08:00',
-              endTime: '17:00',
-              isActive: true,
-            },
-            {
-              id: '15',
-              dayOfWeek: 3,
-              startTime: '08:00',
-              endTime: '17:00',
-              isActive: true,
-            },
-            {
-              id: '16',
-              dayOfWeek: 4,
-              startTime: '08:00',
-              endTime: '17:00',
-              isActive: true,
-            },
-            {
-              id: '17',
-              dayOfWeek: 5,
-              startTime: '08:00',
-              endTime: '17:00',
-              isActive: true,
-            },
-          ],
-          monday: [],
-          tuesday: [],
-          wednesday: [],
-          thursday: [],
-          friday: [],
-          saturday: [],
-          sunday: [],
-        },
-        {
-          id: '4',
-          name: 'Planning personnalisé - Congés',
-          type: 'custom',
-          isActive: true,
-          startDate: '2024-02-15',
-          endDate: '2024-02-20',
-          timeSlots: [],
-          monday: [],
-          tuesday: [],
-          wednesday: [],
-          thursday: [],
-          friday: [],
-          saturday: [],
-          sunday: [],
-        },
-      ];
-      setAvailabilities(mockAvailabilities);
+    if (availabilitiesError) {
+      addError(availabilitiesError, 8000);
     }
-  }, [isAuthenticated]);
+  }, [availabilitiesError, addError]);
 
   const daysOfWeek = [
     'Dimanche',
@@ -165,59 +62,109 @@ export default function AvailabilitiesPage() {
     'Samedi',
   ];
 
-  // Filter availabilities by active tab
-  const filteredAvailabilities = (availabilities || []).filter(
-    (rule: Availability) => rule.type === activeTab,
-  );
+  // Filter availabilities by active tab (déjà fait par le hook, mais on garde pour compatibilité)
+  const filteredAvailabilities = availabilities || [];
 
-  // Save new or edited rule
-  const handleSaveRule = (rule: Availability) => {
-    if (editingRule) {
-      setAvailabilities(prev =>
-        prev.map(r =>
-          r.id === rule.id ? { ...r, ...rule, updatedAt: new Date() } : r,
-        ),
-      );
-    } else {
-      setAvailabilities(prev => [
-        ...prev,
-        {
-          ...rule,
-          id: uniqueId(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ]);
-    }
-    setShowForm(false);
-    setEditingRule(null);
-  };
+  // Save new or edited rule (useCallback Pattern)
+  const handleSaveRule = useCallback(
+    async (rule: AvailabilityRule) => {
+      try {
+        if (editingRule) {
+          // Mettre à jour une règle existante
+          const updateData: any = {
+            name: rule.name,
+            type: rule.type,
+            isActive: rule.isActive,
+            timeSlots: rule.timeSlots,
+          };
+          if (rule.startDate) updateData.startDate = rule.startDate;
+          if (rule.endDate) updateData.endDate = rule.endDate;
+          if (rule.timezone) updateData.timezone = rule.timezone;
+          
+          const updated = await updateAvailabilityRule(editingRule.id, updateData);
 
-  // Delete a rule
-  const handleDeleteRule = (id: string) => {
-    if (
-      window.confirm(
-        'Êtes-vous sûr de vouloir supprimer cette règle de disponibilité ?',
-      )
-    ) {
-      setAvailabilities(prev => (prev || []).filter(r => r.id !== id));
-      if (editingRule && editingRule.id === id) {
+          if (updated) {
+            addSuccess('Règle de disponibilité mise à jour avec succès', 6000);
+          } else {
+            addError('Erreur lors de la mise à jour de la règle', 8000);
+          }
+        } else {
+          // Créer une nouvelle règle
+          const createData: any = {
+            name: rule.name,
+            type: rule.type,
+            isActive: rule.isActive ?? true,
+            timeSlots: rule.timeSlots,
+            timezone: rule.timezone || 'UTC',
+          };
+          if (rule.startDate) createData.startDate = rule.startDate;
+          if (rule.endDate) createData.endDate = rule.endDate;
+          
+          const created = await createAvailabilityRule(createData);
+
+          if (created) {
+            addSuccess('Règle de disponibilité créée avec succès', 6000);
+          } else {
+            addError('Erreur lors de la création de la règle', 8000);
+          }
+        }
         setShowForm(false);
         setEditingRule(null);
+      } catch (_error) {
+        addError('Erreur lors de la sauvegarde de la règle', 8000);
       }
-    }
-  };
+    },
+    [editingRule, createAvailabilityRule, updateAvailabilityRule, addSuccess, addError],
+  );
 
-  // Toggle a rule's isActive status
-  const toggleRuleStatus = (id: string) => {
-    setAvailabilities(prev =>
-      prev.map(r =>
-        r.id === id ? { ...r, isActive: !r.isActive, updatedAt: new Date() } : r,
-      ),
-    );
-  };
+  // Delete a rule (useCallback Pattern)
+  const handleDeleteRule = useCallback(
+    async (id: string) => {
+      // Utiliser une confirmation via toast warning (Toast Pattern)
+      // Note: Pour une vraie confirmation, on pourrait utiliser un composant modal
+      const confirmed = window.confirm(
+        'Êtes-vous sûr de vouloir supprimer cette règle de disponibilité ?',
+      );
 
-  if (isLoading) {
+      if (confirmed) {
+        const deleted = await deleteAvailabilityRule(id);
+        if (deleted) {
+          addSuccess('Règle de disponibilité supprimée avec succès', 6000);
+          if (editingRule && editingRule.id === id) {
+            setShowForm(false);
+            setEditingRule(null);
+          }
+        } else {
+          addError('Erreur lors de la suppression de la règle', 8000);
+        }
+      }
+    },
+    [deleteAvailabilityRule, editingRule, addSuccess, addError],
+  );
+
+  // Toggle a rule's isActive status (useCallback Pattern)
+  const toggleRuleStatus = useCallback(
+    async (id: string) => {
+      const toggled = await toggleAvailabilityRuleStatus(id);
+      if (toggled) {
+        const rule = availabilities.find(r => r.id === id);
+        addSuccess(
+          `Règle ${rule?.isActive ? 'activée' : 'désactivée'} avec succès`,
+          5000,
+        );
+      } else {
+        addError('Erreur lors du changement de statut de la règle', 8000);
+      }
+    },
+    [availabilities, toggleAvailabilityRuleStatus, addSuccess, addError],
+  );
+
+  // Rafraîchir les disponibilités quand l'onglet change
+  useEffect(() => {
+    refreshAvailabilities(activeTab);
+  }, [activeTab, refreshAvailabilities]);
+
+  if (isLoading || availabilitiesLoading) {
     return (
       <div className='text-center py-12'>
         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
@@ -352,7 +299,7 @@ export default function AvailabilitiesPage() {
                 {daysOfWeek
                   .map((day, index) => {
                     const slots = (rule.timeSlots || []).filter(
-                      (slot: TimeSlot) => slot.dayOfWeek === index,
+                      (slot: AvailabilityTimeSlot) => slot.dayOfWeek === index,
                     );
                     if (slots.length === 0) return null;
                     return (
@@ -361,7 +308,7 @@ export default function AvailabilitiesPage() {
                           {day}:
                         </span>
                         <div className='ml-4 space-y-1'>
-                          {slots.map((slot: TimeSlot) => (
+                          {slots.map((slot: AvailabilityTimeSlot) => (
                             <div key={slot.id} className='text-gray-600'>
                               {slot.startTime} - {slot.endTime}
                             </div>
@@ -447,8 +394,8 @@ export default function AvailabilitiesPage() {
 
 // Form for create/edit a rule
 interface AvailabilityFormProps {
-  rule?: Availability | null;
-  onSave: (rule: Availability) => void;
+  rule?: AvailabilityRule | null;
+  onSave: (rule: AvailabilityRule) => void;
   onCancel: () => void;
   daysOfWeek: string[];
   activeTab?: 'weekly' | 'monthly' | 'custom';
@@ -467,7 +414,7 @@ function AvailabilityForm({
     startDate: rule?.startDate || '',
     endDate: rule?.endDate || '',
     timeSlots: rule?.timeSlots
-      ? rule.timeSlots.map((slot: TimeSlot) => ({ ...slot }))
+      ? rule.timeSlots.map((slot: AvailabilityTimeSlot) => ({ ...slot }))
       : [],
     isActive: rule?.isActive ?? true,
   }));
@@ -497,10 +444,10 @@ function AvailabilityForm({
     }));
   };
 
-  const updateTimeSlot = (id: string, updates: Partial<TimeSlot>) => {
+  const updateTimeSlot = (id: string, updates: Partial<AvailabilityTimeSlot>) => {
     setFormData(prev => ({
       ...prev,
-      timeSlots: prev.timeSlots.map((slot: TimeSlot) =>
+      timeSlots: prev.timeSlots.map((slot: AvailabilityTimeSlot) =>
         slot.id === id ? { ...slot, ...updates } : slot,
       ),
     }));
@@ -509,15 +456,18 @@ function AvailabilityForm({
   const removeTimeSlot = (id: string) => {
     setFormData(prev => ({
       ...prev,
-      timeSlots: (prev.timeSlots || []).filter((slot: TimeSlot) => slot.id !== id),
+      timeSlots: (prev.timeSlots || []).filter((slot: AvailabilityTimeSlot) => slot.id !== id),
     }));
   };
+
+  // Utiliser le gestionnaire de notifications toast (Toast Pattern)
+  const { addError: addFormError } = useNotificationManager();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      alert('Le nom de la règle est obligatoire.');
+      addFormError('Le nom de la règle est obligatoire.', 6000);
       return;
     }
 
@@ -525,14 +475,15 @@ function AvailabilityForm({
       (formData.type === 'monthly' || formData.type === 'custom') &&
       (!formData.startDate || !formData.endDate)
     ) {
-      alert('Début et fin du planning requises pour ce type.');
+      addFormError('Début et fin du planning requises pour ce type.', 6000);
       return;
     }
 
     for (const slot of formData.timeSlots) {
       if (slot.startTime >= slot.endTime) {
-        alert(
+        addFormError(
           "L'heure de début doit précéder celle de fin pour tous les créneaux.",
+          6000,
         );
         return;
       }
@@ -542,46 +493,54 @@ function AvailabilityForm({
         slot.endTime.trim() === '' ||
         typeof slot.dayOfWeek !== 'number'
       ) {
-        alert('Merci de remplir tous les champs pour chaque créneau.');
+        addFormError('Merci de remplir tous les champs pour chaque créneau.', 6000);
         return;
       }
     }
 
-    onSave({
-      id: rule?.id || '', // will be overwritten if creating
+    const ruleData: AvailabilityRule = {
+      id: rule?.id || '',
+      _id: rule?._id || rule?.id || '',
+      userId: rule?.userId || '',
       name: formData.name,
       type: formData.type as 'weekly' | 'monthly' | 'custom',
-      startDate:
-        formData.type === 'weekly'
-          ? undefined
-          : formData.startDate || undefined,
-      endDate:
-        formData.type === 'weekly' ? undefined : formData.endDate || undefined,
       timeSlots: formData.timeSlots,
       isActive: formData.isActive,
       monday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 0,
+        (slot: AvailabilityTimeSlot) => slot.dayOfWeek === 1,
       ),
       tuesday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 1,
+        (slot: AvailabilityTimeSlot) => slot.dayOfWeek === 2,
       ),
       wednesday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 2,
+        (slot: AvailabilityTimeSlot) => slot.dayOfWeek === 3,
       ),
       thursday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 3,
+        (slot: AvailabilityTimeSlot) => slot.dayOfWeek === 4,
       ),
       friday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 4,
+        (slot: AvailabilityTimeSlot) => slot.dayOfWeek === 5,
       ),
       saturday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 5,
+        (slot: AvailabilityTimeSlot) => slot.dayOfWeek === 6,
       ),
       sunday: formData.timeSlots.filter(
-        (slot: TimeSlot) => slot.dayOfWeek === 6,
+        (slot: AvailabilityTimeSlot) => slot.dayOfWeek === 0,
       ),
       timezone: 'UTC',
-    });
+      createdAt: rule?.createdAt || new Date(),
+      updatedAt: new Date(),
+    };
+    
+    // Ajouter les propriétés optionnelles seulement si elles sont définies
+    if (formData.type !== 'weekly' && formData.startDate) {
+      ruleData.startDate = formData.startDate;
+    }
+    if (formData.type !== 'weekly' && formData.endDate) {
+      ruleData.endDate = formData.endDate;
+    }
+    
+    onSave(ruleData);
   };
 
   // Only allow to edit timeSlots for days which exist
@@ -680,7 +639,7 @@ function AvailabilityForm({
               <div className='space-y-4'>
                 {daysOfWeek.map((day, dayIndex) => {
                   const daySlots = (formData.timeSlots || []).filter( 
-                    (slot: TimeSlot) => slot.dayOfWeek === dayIndex,
+                    (slot: AvailabilityTimeSlot) => slot.dayOfWeek === dayIndex,
                   );
                   return (
                     <div
@@ -705,7 +664,7 @@ function AvailabilityForm({
                         </p>
                       ) : (
                         <div className='space-y-2'>
-                          {daySlots.map((slot: TimeSlot) => (
+                          {daySlots.map((slot: AvailabilityTimeSlot) => (
                             <div
                               key={slot.id}
                               className='flex items-center space-x-2'

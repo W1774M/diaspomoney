@@ -2,7 +2,7 @@
  * Interface pour le repository de templates de notifications
  */
 
-import type { NotificationTemplate } from '@/types/notifications';
+import type { NotificationTemplate } from '@/lib/types';
 import type { IRepository } from './IRepository';
 
 export interface INotificationTemplateRepository

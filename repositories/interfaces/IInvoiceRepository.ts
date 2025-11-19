@@ -7,32 +7,10 @@ import {
   PaginatedResult,
   PaginationOptions,
 } from './IRepository';
+import type { Invoice } from '@/lib/types';
 
-export interface Invoice {
-  id: string;
-  _id?: string;
-  invoiceNumber: string;
-  userId: string;
-  transactionId?: string;
-  bookingId?: string;
-  amount: number;
-  currency: string;
-  tax?: number;
-  totalAmount: number;
-  status: InvoiceStatus;
-  dueDate?: Date;
-  paidAt?: Date;
-  items: InvoiceItem[];
-  billingAddress?: {
-    street: string;
-    city: string;
-    country: string;
-    postalCode: string;
-  };
-  metadata?: Record<string, any>;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// Re-export pour compatibilité
+export type { Invoice };
 
 export type InvoiceStatus =
   | 'DRAFT'

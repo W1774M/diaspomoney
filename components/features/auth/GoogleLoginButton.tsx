@@ -17,7 +17,6 @@ export function GoogleLoginButton({
   const handleGoogleLogin = async () => {
     try {
       addInfo("Redirection vers Google...");
-      console.log("[GoogleLoginButton] Démarrage de la connexion OAuth Google");
       
       // Appeler signIn avec callbackUrl pour rediriger vers /dashboard après authentification
       // NextAuth redirigera automatiquement vers Google OAuth, puis après validation,

@@ -2,7 +2,7 @@
  * Interface du repository pour les demandes de sujet de données GDPR
  */
 
-import type { DataSubjectRequest } from '@/types/gdpr';
+import type { DataSubjectRequest } from '@/lib/types';
 import {
   IPaginatedRepository,
   PaginatedResult,

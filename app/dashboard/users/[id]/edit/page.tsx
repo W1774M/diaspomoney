@@ -10,8 +10,9 @@
  */
 
 import { useAuth, useUser, useUserEdit } from '@/hooks';
-import { USER_ROLES, USER_STATUSES } from '@/types';
-import { UserEditFormData } from '@/types/user';
+import { USER_ROLES, USER_STATUSES } from '@/lib/types';
+import { UserEditFormData } from '@/lib/types';
+import { LANGUAGES, TIMEZONES, USER_STATUSES as CONST_USER_STATUSES } from '@/lib/constants';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -31,14 +32,14 @@ export default function EditUserPage() {
     company: '',
     address: '',
     roles: [],
-    status: 'ACTIVE',
+    status: CONST_USER_STATUSES.ACTIVE,
     specialty: '',
     recommended: false,
     clientNotes: '',
     avatar: '',
     preferences: {
-      language: 'fr',
-      timezone: 'Europe/Paris',
+      language: LANGUAGES.FR.code,
+      timezone: TIMEZONES.PARIS,
       notifications: true,
     },
   });
@@ -65,7 +66,7 @@ export default function EditUserPage() {
         company: user.company || '',
         address: user.address || '',
         roles: (user.roles || []).map(String),
-        status: String(user.status || 'ACTIVE'),
+        status: String(user.status || CONST_USER_STATUSES.ACTIVE),
         specialty: user.specialty || '',
         recommended: user.recommended || false,
         clientNotes: user.clientNotes || '',
@@ -73,10 +74,10 @@ export default function EditUserPage() {
           typeof user.avatar === 'string'
             ? user.avatar
             : (user.avatar as any)?.image || '',
-        preferences: user.preferences || {
-          language: 'fr',
-          timezone: 'Europe/Paris',
-          notifications: true,
+        preferences: {
+          language: user.preferences?.language || LANGUAGES.FR.code,
+          timezone: user.preferences?.timezone || TIMEZONES.PARIS,
+          notifications: user.preferences?.notifications ?? true,
         },
       });
     }
@@ -119,7 +120,7 @@ export default function EditUserPage() {
 
       // Rediriger vers la page de détail seulement en cas de succès
       router.push(`/dashboard/users/${userId}`);
-    } catch (error) {
+    } catch (_error) {
       // Le hook gère déjà les erreurs et le logging est fait côté serveur
       // via userService avec @Log decorator
     }

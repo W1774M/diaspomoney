@@ -1,6 +1,6 @@
 'use client';
 
-import { SettingsTabsProps } from '@/types/settings';
+import type { SettingsTabsProps } from '@/lib/types';
 import {
   AlertTriangle,
   Bell,
@@ -61,7 +61,7 @@ const SettingsTabs = React.memo<SettingsTabsProps>(function SettingsTabs({
     <div className='mb-8'>
       <div className='border-b border-gray-200'>
         <nav className='-mb-px flex space-x-8'>
-          {tabsToShow.map(tab => {
+          {tabsToShow.map((tab) => {
             const Icon = tab.icon;
             return (
               <button

@@ -16,6 +16,7 @@ import { Cacheable } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { paymentEvents } from '@/lib/events';
 import { childLogger } from '@/lib/logger';
+import { PAYMENT_METHODS, CURRENCIES } from '@/lib/constants';
 import type {
   IPaymentStrategy,
   PaymentData,
@@ -49,7 +50,7 @@ export interface PaymentIntent {
 export class PaymentService {
   private static instance: PaymentService;
   private currentStrategy: IPaymentStrategy | null = null;
-  private defaultProvider: PaymentProvider = 'STRIPE';
+  private defaultProvider: PaymentProvider = PAYMENT_METHODS.STRIPE;
   private readonly log = childLogger({
     component: 'PaymentService',
   });
@@ -216,7 +217,7 @@ export class PaymentService {
           .emitPaymentSucceeded({
             transactionId: result.transactionId || paymentIntentId,
             amount: result.metadata?.['amount'] || 0,
-            currency: result.metadata?.['currency'] || 'EUR',
+            currency: result.metadata?.['currency'] || CURRENCIES.EUR.code,
             userId: result.metadata?.['userId'] || 'unknown',
             provider: provider || this.defaultProvider,
             timestamp: new Date(),
@@ -457,7 +458,7 @@ export class PaymentService {
   @Log({ level: 'debug', logArgs: false, logExecutionTime: false })
   @Cacheable(3600, { prefix: 'PaymentService:getAvailableProviders' }) // Cache 1 heure (rarement changé)
   getAvailableProviders(): PaymentProvider[] {
-    const providers: PaymentProvider[] = ['STRIPE', 'PAYPAL'];
+    const providers: PaymentProvider[] = [PAYMENT_METHODS.STRIPE, PAYMENT_METHODS.PAYPAL];
     this.log.debug({ providers }, 'Available providers retrieved');
     return providers;
   }

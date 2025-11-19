@@ -31,7 +31,7 @@ import type {
   DataProcessingRecord,
   DataSubjectRequest,
   GDPRConsent,
-} from '@/types/gdpr';
+} from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { fieldEncryption, SENSITIVE_FIELDS } from './field-encryption';
 
@@ -71,16 +71,22 @@ export class GDPRCompliance {
     retentionPeriod: number = 365,
   ): Promise<GDPRConsent> {
     try {
+      const now = new Date();
+      const consentId = `consent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const consent: GDPRConsent = {
-        id: `consent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        _id: consentId,
+        id: consentId,
         userId,
         purpose,
         granted: true,
-        grantedAt: new Date(),
+        grantedAt: now,
+        withdrawnAt: undefined,
         legalBasis,
         dataCategories,
         retentionPeriod,
         isActive: true,
+        createdAt: now,
+        updatedAt: now,
       };
 
       // Sauvegarder en base de données via le repository
@@ -210,12 +216,20 @@ export class GDPRCompliance {
    */
   async handleDataAccessRequest(userId: string): Promise<DataSubjectRequest> {
     try {
+      const now = new Date();
+      const requestId = `dsr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const request: DataSubjectRequest = {
-        id: `dsr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        _id: requestId,
+        id: requestId,
         userId,
         type: 'ACCESS',
         status: 'PENDING',
-        requestedAt: new Date(),
+        requestedAt: now,
+        completedAt: undefined,
+        reason: undefined,
+        data: undefined,
+        createdAt: now,
+        updatedAt: now,
       };
 
       // Sauvegarder la demande via le repository
@@ -362,12 +376,20 @@ export class GDPRCompliance {
     userId: string,
   ): Promise<DataSubjectRequest> {
     try {
+      const now = new Date();
+      const requestId = `dsr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const request: DataSubjectRequest = {
-        id: `dsr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        _id: requestId,
+        id: requestId,
         userId,
         type: 'PORTABILITY',
         status: 'PENDING',
-        requestedAt: new Date(),
+        requestedAt: now,
+        completedAt: undefined,
+        reason: undefined,
+        data: undefined,
+        createdAt: now,
+        updatedAt: now,
       };
 
       // Collecter les données exportables
@@ -457,6 +479,7 @@ export class GDPRCompliance {
           },
           {
             limit: 10000, // Limite élevée pour récupérer toutes les transactions
+            page: 1,
             offset: 0,
             sort: { createdAt: -1 },
           },
@@ -469,6 +492,7 @@ export class GDPRCompliance {
           },
           {
             limit: 10000,
+            page: 1,
             offset: 0,
             sort: { createdAt: -1 },
           },
@@ -477,6 +501,7 @@ export class GDPRCompliance {
         // Notifications (recipient)
         this.notificationRepository.findByRecipient(userId, {
           limit: 10000,
+          page: 1,
           offset: 0,
         }),
 
@@ -487,6 +512,7 @@ export class GDPRCompliance {
           },
           {
             limit: 10000,
+            page: 1,
             offset: 0,
             sort: { timestamp: -1 },
           },
@@ -495,18 +521,21 @@ export class GDPRCompliance {
         // Consentements GDPR
         this.gdprConsentRepository.findActiveByUserId(userId, {
           limit: 10000,
+          page: 1,
           offset: 0,
         }),
 
         // Enregistrements de traitement de données
         this.dataProcessingRecordRepository.findByUserId(userId, {
           limit: 10000,
+          page: 1,
           offset: 0,
         }),
 
         // Demandes de sujet de données
         this.dataSubjectRequestRepository.findByUserId(userId, {
           limit: 10000,
+          page: 1,
           offset: 0,
         }),
       ]);
@@ -522,7 +551,7 @@ export class GDPRCompliance {
           firstName: user.firstName,
           lastName: user.lastName,
           phone: user.phone,
-          country: user.country || (user as any).countryOfResidence,
+          country: (user as any)['country'] || (user as any)['countryOfResidence'],
           roles: user.roles,
           status: user.status,
           avatar: (user as any)['avatar'],
@@ -771,6 +800,7 @@ export class GDPRCompliance {
           userId,
           {
             limit: 10000,
+            page: 1,
             offset: 0,
           },
         );
@@ -796,6 +826,7 @@ export class GDPRCompliance {
         const beneficiaries =
           await this.beneficiaryRepository.findActiveByPayer(userId, {
             limit: 10000,
+            page: 1,
             offset: 0,
           });
 
@@ -930,16 +961,21 @@ export class GDPRCompliance {
     retentionPeriod: number,
   ): Promise<void> {
     try {
+      const now = new Date();
+      const recordId = `dpr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const record: DataProcessingRecord = {
-        id: `dpr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        _id: recordId,
+        id: recordId,
         userId,
         purpose,
         dataCategories,
         legalBasis,
-        processedAt: new Date(),
+        processedAt: now,
         processor: 'diaspomoney-system',
         retentionPeriod,
         isAnonymized: false,
+        createdAt: now,
+        updatedAt: now,
       };
 
       // Sauvegarder l'enregistrement via le repository

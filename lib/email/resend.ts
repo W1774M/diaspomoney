@@ -8,7 +8,7 @@
 
 import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
 import { childLogger } from '@/lib/logger';
-import type { EmailOptions, EmailTemplate } from '@/types/email';
+import type { EmailOptions, EmailTemplate } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Resend } from 'resend';
 

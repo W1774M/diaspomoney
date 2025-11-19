@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
       },
       {
         limit,
+        page,
         offset: (page - 1) * limit,
         sort: { paidAt: -1, createdAt: -1 },
       },

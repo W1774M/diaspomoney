@@ -1,13 +1,14 @@
 'use client';
 
 import { useAuth } from '@/hooks';
+import { LANGUAGES, TIMEZONES } from '@/lib/constants';
 import {
   BillingData,
   PreferencesData,
   PrivacyData,
   ProfileData,
   SecurityData,
-} from '@/types/settings';
+} from '@/lib/types';
 import { useCallback, useEffect, useState } from 'react';
 
 export function useSettings() {
@@ -34,8 +35,8 @@ export function useSettings() {
   });
 
   const [preferencesData, setPreferencesData] = useState<PreferencesData>({
-    language: 'fr',
-    timezone: 'Europe/Paris',
+    language: LANGUAGES.FR.code,
+    timezone: TIMEZONES.PARIS,
     notifications: true,
     emailNotifications: true,
     smsNotifications: false,
@@ -92,8 +93,8 @@ export function useSettings() {
       // Initialiser les préférences
       const prefs = (user as any).preferences || {};
       setPreferencesData({
-        language: prefs.language || 'fr',
-        timezone: prefs.timezone || 'Europe/Paris',
+        language: prefs.language || LANGUAGES.FR.code,
+        timezone: prefs.timezone || TIMEZONES.PARIS,
         notifications: prefs.notifications !== false,
         emailNotifications: prefs.emailNotifications !== false,
         smsNotifications: prefs.smsNotifications === true,

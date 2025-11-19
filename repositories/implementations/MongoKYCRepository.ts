@@ -12,14 +12,14 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
-import type { KYCData, KYCFilters } from '@/types/kyc';
+import type { KYCData, KYCFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import type { IKYCRepository } from '../interfaces/IKYCRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoKYCRepository implements IKYCRepository {
   private readonly collectionName = 'kyc';
@@ -200,7 +200,7 @@ export class MongoKYCRepository implements IKYCRepository {
   async findWithPagination(
     filters?: Record<string, any>,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<KYCData>> {
+  ): Promise<PaginatedFindResult<KYCData>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit ?? 50;
@@ -217,13 +217,19 @@ export class MongoKYCRepository implements IKYCRepository {
         .limit(limit)
         .toArray();
 
+      const pages = Math.ceil(total / limit);
       const result = {
         data: kycs.map(k => this.mapToKYC(k)),
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages,
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
       this.log.debug(
         { count: result.data.length, total, page, limit, filters },
@@ -261,7 +267,7 @@ export class MongoKYCRepository implements IKYCRepository {
   async findKYCWithFilters(
     filters: KYCFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<KYCData>> {
+  ): Promise<PaginatedFindResult<KYCData>> {
     try {
       const query: Record<string, any> = {};
 

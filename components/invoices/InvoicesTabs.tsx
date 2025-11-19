@@ -1,6 +1,6 @@
 "use client";
 
-import { InvoicesTabsProps } from "@/types/invoices";
+import type { InvoicesTabsProps } from "@/lib/types";
 import React from "react";
 
 const InvoicesTabs = React.memo<InvoicesTabsProps>(function InvoicesTabs({

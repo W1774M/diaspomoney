@@ -7,7 +7,7 @@
 
 import HistoricalOrderCard from '@/components/orders/HistoricalOrderCard';
 import { useAuth } from '@/hooks';
-import { HistoricalOrder } from '@/types/orders';
+import { HistoricalOrder } from '@/lib/types';
 import { FileText, Package, Search, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';

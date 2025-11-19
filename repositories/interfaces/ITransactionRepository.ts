@@ -7,45 +7,10 @@ import {
   PaginatedResult,
   PaginationOptions,
 } from './IRepository';
+import type { Transaction, TransactionStatus, PaymentMethod } from '@/lib/types';
 
-export interface Transaction {
-  id: string;
-  _id?: string;
-  payerId: string;
-  beneficiaryId: string;
-  amount: number;
-  currency: string;
-  exchangeRate?: number;
-  fees: number;
-  totalAmount: number;
-  serviceType: 'HEALTH' | 'BTP' | 'EDUCATION';
-  serviceId: string;
-  description: string;
-  status: TransactionStatus;
-  paymentMethod: PaymentMethod;
-  paymentProvider: PaymentProvider;
-  paymentIntentId?: string;
-  metadata?: Record<string, any>;
-  createdAt: Date;
-  updatedAt: Date;
-  completedAt?: Date;
-  failedAt?: Date;
-  failureReason?: string;
-}
-
-export type TransactionStatus =
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'CANCELLED'
-  | 'REFUNDED';
-
-export type PaymentMethod =
-  | 'CARD'
-  | 'BANK_TRANSFER'
-  | 'MOBILE_MONEY'
-  | 'PAYPAL';
+// Re-export pour compatibilité
+export type { Transaction, TransactionStatus, PaymentMethod };
 
 export type PaymentProvider = 'STRIPE' | 'PAYPAL' | 'MOBILE_MONEY';
 

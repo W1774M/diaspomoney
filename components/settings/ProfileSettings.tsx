@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/hooks';
 import imageLoader from '@/lib/image-loader';
-import { ProfileSettingsProps } from '@/types/settings';
+import type { ProfileSettingsProps } from '@/lib/types';
 import {
   Building,
   Calendar,

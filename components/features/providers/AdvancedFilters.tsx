@@ -1,5 +1,6 @@
 import React from "react";
 import { Filter, X } from "lucide-react";
+import { USER_STATUSES } from "@/lib/constants";
 
 interface AdvancedFiltersProps {
   showAdvancedFilters: boolean;
@@ -23,10 +24,10 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   setSelectedPriceRange,
 }) => {
   const statusOptions = [
-    { value: "ACTIVE", label: "Actif", color: "text-green-600" },
-    { value: "INACTIVE", label: "Inactif", color: "text-gray-600" },
-    { value: "PENDING", label: "En attente", color: "text-yellow-600" },
-    { value: "SUSPENDED", label: "Suspendu", color: "text-red-600" },
+    { value: USER_STATUSES.ACTIVE, label: "Actif", color: "text-green-600" },
+    { value: USER_STATUSES.INACTIVE, label: "Inactif", color: "text-gray-600" },
+    { value: USER_STATUSES.PENDING, label: "En attente", color: "text-yellow-600" },
+    { value: USER_STATUSES.SUSPENDED, label: "Suspendu", color: "text-red-600" },
   ];
 
   const ratingOptions = [

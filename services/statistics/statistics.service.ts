@@ -14,7 +14,15 @@ import {
   ITransactionRepository,
   IUserRepository,
 } from '@/repositories';
-import { PersonalStatistics } from '@/types/statistics';
+import type {
+  PersonalStatistics,
+  StatisticsTransaction,
+  StatisticsBooking,
+  StatisticsProvider,
+  UserWithBudgets,
+} from '@/lib/types/statistics.types';
+import { TransactionStatus } from '@/lib/types/transaction.types';
+import { CURRENCIES } from '@/lib/constants';
 import { ObjectId } from 'mongodb';
 
 /**
@@ -40,50 +48,79 @@ export class StatisticsService {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-      // Récupérer tous les bookings pour calculer les statistiques
-      const allBookingsResult =
-        await this.bookingRepository.findBookingsWithFilters(
-          {
-            requesterId: userId,
-          },
-          {
-            limit: 1000,
-            offset: 0,
-          },
-        );
-      const allBookings = allBookingsResult.data;
+      // Fix: handle pagination for allBookings and allTransactions
+      const fetchAllBookings = async () => {
+        const bookings: StatisticsBooking[] = [];
+        let offset = 0;
+        const limit = 1000;
+        let hasMore = true;
 
-      // Récupérer les transactions pour le budget (payerId = userId)
-      const monthlyTransactionsResult =
-        await this.transactionRepository.findTransactionsWithFilters(
-          {
-            payerId: userId,
-            status: 'COMPLETED',
-            dateFrom: startOfMonth,
-          },
-          {
-            limit: 1000,
-            offset: 0,
-          },
-        );
-      const monthlyTransactions = monthlyTransactionsResult.data.filter(
-        (t: any) => new Date(t.createdAt) >= startOfMonth,
+        while (hasMore) {
+          const result = await this.bookingRepository.findBookingsWithFilters(
+            { requesterId: userId },
+            { limit, page: 1, offset },
+          );
+          bookings.push(...result.data.map(b => ({
+            ...b,
+            createdAt: new Date(b.createdAt),
+          })));
+          if (result.data.length < limit) {
+            hasMore = false;
+          } else {
+            offset += limit;
+          }
+        }
+        return bookings;
+      };
+
+      const fetchAllTransactions = async (filters: any) => {
+        const transactions: StatisticsTransaction[] = [];
+        let offset = 0;
+        const limit = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+          const result =
+            await this.transactionRepository.findTransactionsWithFilters(
+              filters,
+              { limit, page: 1, offset },
+            );
+          transactions.push(...result.data.map(t => ({
+            ...t,
+            type: (t as any).type || 'PAYMENT' as const,
+            status: t.status as TransactionStatus,
+            createdAt: new Date(t.createdAt),
+          } as StatisticsTransaction)));
+          if (result.data.length < limit) {
+            hasMore = false;
+          } else {
+            offset += limit;
+          }
+        }
+        return transactions;
+      };
+
+      // RECOVER all bookings and transactions without missing results due to pagination
+      const [allBookings, monthlyTransactions, annualTransactions] = await Promise.all([
+        fetchAllBookings(),
+        fetchAllTransactions({
+          payerId: userId,
+          status: 'COMPLETED',
+          dateFrom: startOfMonth,
+        }),
+        fetchAllTransactions({
+          payerId: userId,
+          status: 'COMPLETED',
+          dateFrom: startOfYear,
+        }),
+      ]);
+
+      // Filter to ensure only records after the wanted period
+      const monthlyTransFiltered = monthlyTransactions.filter(
+        (t: StatisticsTransaction) => new Date(t.createdAt) >= startOfMonth,
       );
-
-      const annualTransactionsResult =
-        await this.transactionRepository.findTransactionsWithFilters(
-          {
-            payerId: userId,
-            status: 'COMPLETED',
-            dateFrom: startOfYear,
-          },
-          {
-            limit: 1000,
-            offset: 0,
-          },
-        );
-      const annualTransactions = annualTransactionsResult.data.filter(
-        (t: any) => new Date(t.createdAt) >= startOfYear,
+      const annualTransFiltered = annualTransactions.filter(
+        (t: StatisticsTransaction) => new Date(t.createdAt) >= startOfYear,
       );
 
       // Récupérer les budgets depuis l'utilisateur (Repository Pattern)
@@ -93,47 +130,45 @@ export class StatisticsService {
       }
 
       // Récupérer les budgets depuis la BDD avec valeurs par défaut
-      // Le modèle User a maintenant monthlyBudget et annualBudget en Number avec defaults
-      const monthlyBudget =
-        typeof (user as any)['monthlyBudget'] === 'number' &&
-        (user as any)['monthlyBudget'] > 0
-          ? (user as any)['monthlyBudget']
-          : typeof (user as any)['monthlyBudget'] === 'string'
-          ? parseFloat((user as any)['monthlyBudget']) || 1000
-          : 1000;
+      const userWithBudgets = user as unknown as UserWithBudgets;
+      let monthlyBudget = 1000;
+      if (typeof userWithBudgets.monthlyBudget === 'number' && userWithBudgets.monthlyBudget > 0)
+        monthlyBudget = userWithBudgets.monthlyBudget;
+      else if (typeof userWithBudgets.monthlyBudget === 'string') {
+        const parsed = parseFloat(userWithBudgets.monthlyBudget);
+        monthlyBudget = isNaN(parsed) || parsed <= 0 ? 1000 : parsed;
+      }
+      let annualBudget = monthlyBudget * 12;
+      if (typeof userWithBudgets.annualBudget === 'number' && userWithBudgets.annualBudget > 0)
+        annualBudget = userWithBudgets.annualBudget;
+      else if (typeof userWithBudgets.annualBudget === 'string') {
+        const parsed = parseFloat(userWithBudgets.annualBudget);
+        annualBudget = isNaN(parsed) || parsed <= 0 ? monthlyBudget * 12 : parsed;
+      }
 
-      const annualBudget =
-        typeof (user as any)['annualBudget'] === 'number' &&
-        (user as any)['annualBudget'] > 0
-          ? (user as any)['annualBudget']
-          : typeof (user as any)['annualBudget'] === 'string'
-          ? parseFloat((user as any)['annualBudget']) || monthlyBudget * 12
-          : monthlyBudget * 12;
-
-      const monthlySpent = monthlyTransactions.reduce(
-        (sum: number, t: any) => sum + (t.amount || 0),
+      const monthlySpent = monthlyTransFiltered.reduce(
+        (sum: number, t: StatisticsTransaction) => sum + (t.amount || 0),
         0,
       );
-      const annualSpent = annualTransactions.reduce(
-        (sum: number, t: any) => sum + (t.amount || 0),
+      const annualSpent = annualTransFiltered.reduce(
+        (sum: number, t: StatisticsTransaction) => sum + (t.amount || 0),
         0,
       );
 
       // Services les plus utilisés
-      const serviceCounts: Record<
-        string,
-        { count: number; totalAmount: number }
-      > = {};
-      allBookings.forEach((booking: any) => {
+      const serviceCounts: Record<string, { count: number; totalAmount: number }> = {};
+      allBookings.forEach((booking: StatisticsBooking) => {
         const serviceName = booking.selectedService?.name || 'Service';
         if (!serviceCounts[serviceName]) {
           serviceCounts[serviceName] = { count: 0, totalAmount: 0 };
         }
         serviceCounts[serviceName].count++;
         serviceCounts[serviceName].totalAmount +=
-          booking.selectedService?.price || booking.price || 0;
+          (booking.selectedService as any)?.['price'] ||
+          booking.amount ||
+          (typeof (booking as any)['price'] === 'number' ? (booking as any)['price'] : 0) ||
+          0;
       });
-
       const mostUsed = Object.entries(serviceCounts)
         .map(([serviceName, data]) => ({
           serviceName,
@@ -143,9 +178,9 @@ export class StatisticsService {
           averageAmount: data.totalAmount / data.count,
           lastUsed:
             allBookings
-              .filter((b: any) => b.selectedService?.name === serviceName)
+              .filter((b: StatisticsBooking) => b.selectedService?.name === serviceName)
               .sort(
-                (a: any, b: any) =>
+                (a: StatisticsBooking, b: StatisticsBooking) =>
                   new Date(b.createdAt).getTime() -
                   new Date(a.createdAt).getTime(),
               )[0]?.createdAt || new Date(),
@@ -154,41 +189,38 @@ export class StatisticsService {
         .slice(0, 10);
 
       // Prestataires préférés
-      const providerCounts: Record<
-        string,
-        { count: number; totalAmount: number; lastOrder: Date }
-      > = {};
-      allBookings.forEach((booking: any) => {
+      const providerCounts: Record<string, { count: number; totalAmount: number; lastOrder: Date }> = {};
+      allBookings.forEach((booking: StatisticsBooking) => {
         const providerId = booking.providerId;
+        if (!providerId) return; // fix: skip if providerId missing
         if (!providerCounts[providerId]) {
           providerCounts[providerId] = {
             count: 0,
             totalAmount: 0,
-            lastOrder: booking.createdAt,
+            lastOrder: new Date(booking.createdAt),
           };
         }
         providerCounts[providerId].count++;
-        const bookingDoc = allBookings.find(
-          (doc: any) =>
-            (doc._id?.toString() || doc.id) === (booking.id || booking._id),
-        );
-        providerCounts[providerId].totalAmount +=
-          (bookingDoc as any)?.selectedService?.price || 0;
+        // fix: more robustly get booking price
+        const bookingPrice = (booking.selectedService as any)?.['price'] ||
+          booking.amount ||
+          (typeof (booking as any)['price'] === 'number' ? (booking as any)['price'] : 0) || 0;
+        providerCounts[providerId].totalAmount += bookingPrice;
         if (
           new Date(booking.createdAt) >
           new Date(providerCounts[providerId].lastOrder)
         ) {
-          providerCounts[providerId].lastOrder = booking.createdAt;
+          providerCounts[providerId].lastOrder = new Date(booking.createdAt);
         }
+        providerCounts[providerId] = providerCounts[providerId] as { count: number; totalAmount: number; lastOrder: Date };
       });
 
       // Récupérer les informations des providers (Repository Pattern)
-      const providerIds = Object.keys(providerCounts);
-      let providers: any[] = [];
+      const providerIds = Object.keys(providerCounts).filter((id) => !!id && id !== 'undefined');
+      let providers: StatisticsProvider[] = [];
 
       if (providerIds.length > 0) {
-        // Optimisation: utiliser findAll avec filtre _id: { $in: [...] } (Repository Pattern)
-        // Plus efficace qu'un appel findById pour chaque provider
+        // Fix: if ObjectId fails, skip
         try {
           const objectIds = providerIds
             .map(id => {
@@ -205,9 +237,34 @@ export class StatisticsService {
               _id: { $in: objectIds },
               roles: 'PROVIDER',
             });
-            providers = allProviders.filter(
-              (p: any): p is any => p.roles?.includes('PROVIDER') ?? false,
-            );
+            providers = allProviders
+              .map((p: any) => ({
+                id: p.id || p._id?.toString() || '',
+                email: p.email || '',
+                name: p.name || '',
+                firstName: p.firstName,
+                lastName: p.lastName,
+                phone: p.phone,
+                company: p.company,
+                address: p.address,
+                roles: Array.isArray(p.roles) ? p.roles : [p.roles].filter(Boolean),
+                status: p.status || 'ACTIVE',
+                specialty: p.specialty,
+                recommended: p.recommended ?? false,
+                providerInfo: p.providerInfo || {},
+                avatar: p.avatar,
+                rating: p.rating || (p.providerInfo as any)?.['rating'],
+                reviewCount: p.reviewCount || (p.providerInfo as any)?.['reviewCount'],
+                specialties: p.specialties || (p.providerInfo as any)?.['specialties'],
+                services: p.services || (p.providerInfo as any)?.['services'],
+                isActive: p.isActive ?? true,
+                city: p.city || (p.providerInfo as any)?.['city'],
+              } as StatisticsProvider))
+              .filter(
+                (p: StatisticsProvider): p is StatisticsProvider => Array.isArray(p.roles)
+                  ? p.roles.includes('PROVIDER')
+                  : p.roles === 'PROVIDER',
+              );
           }
         } catch (error) {
           logger.warn(
@@ -223,16 +280,42 @@ export class StatisticsService {
             this.userRepository.findById(id).catch(() => null),
           );
           const providerResults = await Promise.all(providerPromises);
-          providers = providerResults.filter(
-            (p: any): p is any =>
-              p !== null && (p.roles?.includes('PROVIDER') ?? false),
-          );
+          providers = providerResults
+            .filter((p): p is NonNullable<typeof p> => p !== null)
+            .map((p: any) => ({
+              id: p.id || p._id?.toString() || '',
+              email: p.email || '',
+              name: p.name || `${p.firstName || ''} ${p.lastName || ''}`.trim() || '',
+              firstName: p.firstName,
+              lastName: p.lastName,
+              phone: p.phone,
+              company: p.company,
+              address: p.address,
+              roles: Array.isArray(p.roles) ? p.roles : [p.roles].filter(Boolean),
+              status: p.status || 'ACTIVE',
+              specialty: p.specialty,
+              recommended: p['recommended'] ?? false,
+              providerInfo: p.providerInfo || {},
+              avatar: p.avatar,
+              rating: p.rating || (p.providerInfo as any)?.['rating'],
+              reviewCount: p.reviewCount || (p.providerInfo as any)?.['reviewCount'],
+              specialties: p.specialties || (p.providerInfo as any)?.['specialties'],
+              services: p.services || (p.providerInfo as any)?.['services'],
+              isActive: p.isActive ?? true,
+              city: p.city || (p.providerInfo as any)?.['city'],
+            } as StatisticsProvider))
+            .filter(
+              (p: StatisticsProvider): p is StatisticsProvider =>
+                Array.isArray(p.roles)
+                  ? p.roles.includes('PROVIDER')
+                  : p.roles === 'PROVIDER',
+            );
         }
       }
 
-      const providerMap = new Map(
-        providers.map((p: any) => [
-          (p.id || p._id?.toString() || '').toString(),
+      const providerMap = new Map<string, StatisticsProvider>(
+        providers.map((p: StatisticsProvider) => [
+          (p.id || (p as any)['_id']?.toString() || '').toString(),
           p,
         ]),
       );
@@ -240,20 +323,20 @@ export class StatisticsService {
       const favorites = Object.entries(providerCounts)
         .map(([providerId, data]) => {
           const provider = providerMap.get(providerId);
-          // Récupérer le rating depuis providerInfo.rating ou rating direct
+          // Fix: prefer "provider?.fullName" if available?
           const providerRating =
-            (provider as any)?.providerInfo?.rating ??
-            (provider as any)?.rating ??
+            (provider?.providerInfo as any)?.['rating'] ??
+            (provider as any)?.['rating'] ??
             0;
           return {
             providerId,
             providerName:
-              (provider as any)?.name ||
-              `${(provider as any)?.firstName || ''} ${
-                (provider as any)?.lastName || ''
+              provider?.name ||
+              `${provider?.firstName || ''} ${
+                provider?.lastName || ''
               }`.trim() ||
               'Prestataire',
-            avatar: (provider as any)?.avatar,
+            avatar: provider?.avatar,
             rating: providerRating > 0 ? providerRating : 0,
             orderCount: data.count,
             totalAmount: data.totalAmount,
@@ -275,26 +358,20 @@ export class StatisticsService {
       twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
       twelveMonthsAgo.setDate(1); // Premier jour du mois
 
-      const trendsTransactionsResult =
-        await this.transactionRepository.findTransactionsWithFilters(
-          {
-            payerId: userId,
-            status: 'COMPLETED',
-            dateFrom: twelveMonthsAgo,
-          },
-          {
-            limit: 10000, // Limite élevée pour récupérer toutes les transactions
-            offset: 0,
-          },
-        );
-      const trendsTransactions = trendsTransactionsResult.data.filter(
-        (t: any) => new Date(t.createdAt) >= twelveMonthsAgo,
+      // Fix: get all transactions for trends (pagination)
+      const trendTransactionsAll = await fetchAllTransactions({
+        payerId: userId,
+        status: 'COMPLETED',
+        dateFrom: twelveMonthsAgo,
+      });
+      const trendsTransactions = trendTransactionsAll.filter(
+        (t: StatisticsTransaction) => new Date(t.createdAt) >= twelveMonthsAgo,
       );
 
       // Grouper les transactions par mois
       const transactionsByMonth: Record<string, { spent: number }> = {};
 
-      trendsTransactions.forEach((transaction: any) => {
+      trendsTransactions.forEach((transaction: StatisticsTransaction) => {
         const transactionDate = new Date(transaction.createdAt);
         const monthKey = `${transactionDate.getFullYear()}-${String(
           transactionDate.getMonth() + 1,
@@ -320,8 +397,8 @@ export class StatisticsService {
 
         trends.push({
           period: periodKey,
-          budget: monthlyBudget, // Utiliser le budget mensuel actuel pour tous les mois
-          spent: Math.round(monthData.spent * 100) / 100, // Arrondir à 2 décimales
+          budget: monthlyBudget,
+          spent: Math.round(monthData.spent * 100) / 100,
         });
       }
 
@@ -335,7 +412,7 @@ export class StatisticsService {
             budget: monthlyBudget,
             spent: monthlySpent,
             remaining: monthlyBudget - monthlySpent,
-            percentage: Math.round((monthlySpent / monthlyBudget) * 100),
+            percentage: monthlyBudget > 0 ? Math.round((monthlySpent / monthlyBudget) * 100) : 0,
             period: {
               start: startOfMonth,
               end: now,
@@ -345,7 +422,7 @@ export class StatisticsService {
             budget: annualBudget,
             spent: annualSpent,
             remaining: annualBudget - annualSpent,
-            percentage: Math.round((annualSpent / annualBudget) * 100),
+            percentage: annualBudget > 0 ? Math.round((annualSpent / annualBudget) * 100) : 0,
             period: {
               start: startOfYear,
               end: now,
@@ -354,13 +431,16 @@ export class StatisticsService {
           trends,
         },
         services: {
-          mostUsed,
+          mostUsed: mostUsed.map(m => ({
+            ...m,
+            lastUsed: new Date(m.lastUsed),
+          })),
           byCategory: [],
           byMonth: [],
         },
         savings: {
           total: estimatedSavings,
-          currency: 'EUR',
+          currency: CURRENCIES.EUR.code,
           breakdown: [
             {
               type: 'discount' as const,
@@ -376,7 +456,10 @@ export class StatisticsService {
           },
         },
         providers: {
-          favorites,
+          favorites: favorites.map(f => ({
+            ...f,
+            lastOrderDate: new Date(f.lastOrderDate),
+          })) as { providerId: string; providerName: string; avatar: string; rating: number; orderCount: number; totalAmount: number; lastOrderDate: Date }[],
           mostUsed: favorites.map(fav => ({
             providerId: fav.providerId,
             providerName: fav.providerName,

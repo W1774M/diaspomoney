@@ -7,26 +7,10 @@ import {
   PaginatedResult,
   PaginationOptions,
 } from './IRepository';
+import type { User } from '@/lib/types';
 
-export interface User {
-  _id?: string;
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  name?: string;
-  phone?: string;
-  country?: string;
-  roles?: string[];
-  status?: string;
-  isActive?: boolean;
-  isEmailVerified?: boolean;
-  kycStatus?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-  password?: string;
-  [key: string]: any;
-}
+// Re-export pour compatibilité
+export type { User };
 
 export interface UserFilters {
   role?: string;

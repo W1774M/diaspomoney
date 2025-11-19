@@ -1,4 +1,5 @@
 import { userService } from '@/services/user/user.service';
+import { USER_STATUSES, HTTP_STATUS_CODES } from '@/lib/constants';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -14,7 +15,7 @@ export async function GET(
       console.log('ID invalide:', params.id); // Debug
       return NextResponse.json(
         { error: 'ID de prestataire invalide' },
-        { status: 400 },
+        { status: HTTP_STATUS_CODES.BAD_REQUEST },
       );
     }
 
@@ -37,16 +38,16 @@ export async function GET(
       console.log('Provider non trouvé - roles:', provider.roles); // Debug
       return NextResponse.json(
         { error: 'Prestataire non trouvé' },
-        { status: 404 },
+        { status: HTTP_STATUS_CODES.NOT_FOUND },
       );
     }
 
     // Vérifier que le provider est actif
-    if (provider.status !== 'ACTIVE') {
+    if (provider.status !== USER_STATUSES.ACTIVE) {
       console.log('Provider inactif - status:', provider.status); // Debug
       return NextResponse.json(
         { error: 'Prestataire non disponible' },
-        { status: 404 },
+        { status: HTTP_STATUS_CODES.NOT_FOUND },
       );
     }
 
@@ -61,13 +62,13 @@ export async function GET(
     if (error instanceof Error && error.message === 'Utilisateur non trouvé') {
       return NextResponse.json(
         { error: 'Prestataire non trouvé' },
-        { status: 404 },
+        { status: HTTP_STATUS_CODES.NOT_FOUND },
       );
     }
 
     return NextResponse.json(
       { error: 'Erreur interne du serveur' },
-      { status: 500 },
+      { status: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR },
     );
   }
 }

@@ -4,7 +4,7 @@ import {
   useDispatch,
   useNotifications,
 } from '@/store/simple-store';
-import { NotificationType } from '@/types';
+import type { INotificationUIType } from '@/lib/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 
@@ -14,11 +14,11 @@ const notificationVariants = {
   exit: { opacity: 0, scale: 0.5, transition: { duration: 0.2 } },
 };
 
-const notificationStyles: { [key in NotificationType]: string } = {
-  EMAIL: 'bg-green-500 text-white',
-  SMS: 'bg-red-500 text-white',
-  PUSH: 'bg-yellow-500 text-white',
-  WHATSAPP: 'bg-blue-500 text-white',
+const notificationStyles: { [key in INotificationUIType]: string } = {
+  info: 'bg-blue-500 text-white',
+  success: 'bg-green-500 text-white',
+  warning: 'bg-yellow-500 text-white',
+  error: 'bg-red-500 text-white',
 };
 
 export default function NotificationContainer() {
@@ -54,12 +54,12 @@ export default function NotificationContainer() {
         {notifications.map(notification => {
           // Correction: on s'assure que notification.type est bien un NotificationType
           // Si ce n'est pas le cas, on utilise une valeur par défaut
-          const type: NotificationType =
+          const type: INotificationUIType =
+            (notification.type === 'info' ||
             notification.type === 'success' ||
-            notification.type === 'error' ||
             notification.type === 'warning' ||
-            notification.type === 'info'
-              ? notification.type
+            notification.type === 'error')
+              ? (notification.type as INotificationUIType)
               : 'info';
           return (
             <motion.div

@@ -1,4 +1,4 @@
-import { SpecialityExtended } from '@/types';
+import { SpecialityExtended } from '@/lib/types';
 import mongoose, { Schema } from 'mongoose';
 
 const SpecialitySchema = new Schema<SpecialityExtended>(

@@ -1,6 +1,6 @@
 "use client";
 
-import { QuotesFiltersProps } from "@/types/quotes";
+import { QuotesFiltersProps } from "@/lib/types";
 import { Search } from "lucide-react";
 import React, { useCallback } from "react";
 
@@ -11,7 +11,7 @@ const QuotesFilters = React.memo<QuotesFiltersProps>(function QuotesFilters({
   setStatusFilter,
   dateFilter,
   setDateFilter,
-}) {
+}: QuotesFiltersProps) {
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchTerm(e.target.value);
@@ -57,6 +57,7 @@ const QuotesFilters = React.memo<QuotesFiltersProps>(function QuotesFilters({
             Statut
           </label>
           <select
+            title="Statut"
             value={statusFilter}
             onChange={handleStatusChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -74,6 +75,7 @@ const QuotesFilters = React.memo<QuotesFiltersProps>(function QuotesFilters({
             Date de création
           </label>
           <input
+            title="Date de création"
             type="date"
             value={dateFilter}
             onChange={handleDateChange}

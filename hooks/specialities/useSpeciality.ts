@@ -6,8 +6,8 @@
  * Utilise les API routes au lieu d'importer directement les services
  */
 
-import { ISpeciality } from '@/types';
-import { UseSpecialityReturn } from '@/types/hooks';
+import { ISpeciality } from '@/lib/types';
+import { UseSpecialityReturn } from '@/lib/types';
 import { useCallback, useState } from 'react';
 
 /**
@@ -50,9 +50,9 @@ export function useSpeciality(): UseSpecialityReturn {
       } else {
         throw new Error(data.error || 'Erreur inconnue');
       }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Erreur inconnue';
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Erreur inconnue';
       setError(errorMessage);
       // Le logging est fait côté serveur via SpecialityService avec @Log decorator
     } finally {
@@ -81,12 +81,12 @@ export function useSpeciality(): UseSpecialityReturn {
       if (!data.success) {
         throw new Error(data.error || 'Erreur inconnue');
       }
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Erreur inconnue';
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Erreur inconnue';
       setError(errorMessage);
       // Le logging est fait côté serveur via SpecialityService avec @Log decorator
-      throw err;
+      throw error;
     } finally {
       setLoading(false);
     }

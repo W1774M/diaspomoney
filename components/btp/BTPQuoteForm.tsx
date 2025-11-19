@@ -12,7 +12,10 @@ import {
   CardTitle,
 } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { ProviderType } from '@/types';
+import type {
+  BTPQuoteFormProps,
+  QuoteFormData,
+} from '@/lib/types/components.types';
 import { Badge, Building2, Calculator, Mail, Phone } from 'lucide-react';
 import React, { useState } from 'react';
 import {
@@ -24,47 +27,14 @@ import {
 } from '../ui/Select';
 import { Separator } from '../ui/Separator';
 import { Textarea } from '../ui/Textarea';
-
-interface BTPQuoteFormProps {
-  provider?: {
-    id: string;
-    name: string;
-    type: ProviderType;
-    specialties: string[];
-    rating: number;
-    reviewCount: number;
-    contact: {
-      phone: string;
-      email: string;
-    };
-  };
-}
-
-interface QuoteFormData {
-  projectType: string;
-  area: number | string;
-  features: string[];
-  budget: number | string;
-  timeline: string;
-  location: {
-    city: string;
-    country: string;
-  };
-  contact: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-  description: string;
-  urgency: 'LOW' | 'MEDIUM' | 'HIGH';
-}
+import { ProviderType } from '@/lib/types';
 
 // Utility: validate email (simple regex)
 const isValidEmail = (email: string) => /^\S+@\S+\.\S+$/.test(email);
 
 // Utility: validate French-style phone (very basic, just checks digits and optional +)
 const isValidPhone = (phone: string) =>
-  phone.trim() === '' || /^[+]?[0-9\s\-]+$/.test(phone.trim());
+  phone.trim() === '' || /^[+]?[0-9\s-]+$/.test(phone.trim());
 
 export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
   const [formData, setFormData] = useState<QuoteFormData>({

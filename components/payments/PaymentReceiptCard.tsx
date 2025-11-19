@@ -1,6 +1,6 @@
 'use client';
 
-import type { PaymentReceiptCardProps } from '@/types/payments';
+import type { PaymentReceiptCardProps } from '@/lib/types';
 import { Calendar, Download, Eye, FileText } from 'lucide-react';
 import { useState } from 'react';
 

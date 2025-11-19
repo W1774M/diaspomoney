@@ -1,4 +1,4 @@
-import { Conversation } from '@/types/messaging';
+import { Conversation } from '@/lib/types';
 import mongoose, { Schema } from 'mongoose';
 
 const ConversationSchema = new Schema<Conversation>(

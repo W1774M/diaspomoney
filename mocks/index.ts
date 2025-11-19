@@ -1375,8 +1375,8 @@ export const getAllUserTimeSlots = (userId: string) => {
   const timeSlots: any[] = [];
 
   availabilities.forEach((availability: any) => {
-    if (Array.isArray(availability?.timeSlots)) {
-      timeSlots.push(...availability?.timeSlots);
+    if (availability && Array.isArray(availability.timeSlots)) {
+      timeSlots.push(...availability.timeSlots);
     }
   });
 

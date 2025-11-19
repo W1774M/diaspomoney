@@ -55,7 +55,7 @@ const InvoicesPage = React.memo(function InvoicesPage() {
         const data = await response.json();
         // Optionnel: filtrer par utilisateur côté client si l'API retourne trop large
         setInvoices(Array.isArray(data.invoices) ? data.invoices : []);
-      } catch (err) {
+      } catch (_error) {
         setInvoices([]);
       } finally {
         setLoading(false);
@@ -99,7 +99,7 @@ const InvoicesPage = React.memo(function InvoicesPage() {
           } else {
             addError('Erreur lors de la suppression de la facture');
           }
-        } catch (e) {
+        } catch (_error) {
           addError('Erreur lors de la suppression de la facture');
         } finally {
           setLoading(false);

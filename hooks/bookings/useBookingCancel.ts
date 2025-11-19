@@ -6,7 +6,7 @@
  * Utilise les API routes au lieu d'importer directement les services (évite les imports MongoDB côté client)
  */
 
-import { UseBookingCancelReturn } from '@/types/hooks';
+import type { UseBookingCancelReturn } from '@/lib/types';
 import { useCallback, useState } from 'react';
 
 /**

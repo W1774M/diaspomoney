@@ -7,7 +7,7 @@
  */
 
 import { useNotificationManager } from '@/components/ui/Notification';
-import type { UIPaymentMethod } from '@/types/payments';
+import type { UIPaymentMethod } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { useCallback, useState } from 'react';
 
@@ -103,15 +103,15 @@ export function usePaymentMethodCreate(): UsePaymentMethodCreateReturn {
 
         addSuccess('Carte bancaire ajoutée avec succès !');
         return result.method as UIPaymentMethod;
-      } catch (err) {
+      } catch (error) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Erreur inconnue';
+          error instanceof Error ? error.message : 'Erreur inconnue';
         setError(errorMessage);
         addError("Erreur lors de l'ajout de la carte");
 
         // Capturer l'erreur avec Sentry
         Sentry.captureException(
-          err instanceof Error ? err : new Error(errorMessage),
+          error instanceof Error ? error : new Error(errorMessage),
           {
             tags: {
               component: 'usePaymentMethodCreate',
@@ -187,15 +187,15 @@ export function usePaymentMethodCreate(): UsePaymentMethodCreateReturn {
 
         addSuccess('Compte PayPal ajouté avec succès !');
         return result.method as UIPaymentMethod;
-      } catch (err) {
+      } catch (error) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Erreur inconnue';
+          error instanceof Error ? error.message : 'Erreur inconnue';
         setError(errorMessage);
         addError("Erreur lors de l'ajout du compte PayPal");
 
         // Capturer l'erreur avec Sentry
         Sentry.captureException(
-          err instanceof Error ? err : new Error(errorMessage),
+          error instanceof Error ? error : new Error(errorMessage),
           {
             tags: {
               component: 'usePaymentMethodCreate',

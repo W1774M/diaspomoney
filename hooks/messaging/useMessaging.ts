@@ -5,7 +5,7 @@
  */
 
 import { useNotificationManager } from '@/components/ui/Notification';
-import { UIConversation, UIMessage } from '@/types/messaging';
+import type { UIConversation, UIMessage } from '@/lib/types';
 import { useCallback, useRef, useState } from 'react';
 
 export const useMessaging = () => {

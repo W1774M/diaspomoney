@@ -1,7 +1,7 @@
 import { auth } from '@/auth';
 import { childLogger } from '@/lib/logger';
 import { paymentService } from '@/services/payment/payment.service.strategy';
-import { UserRole } from '@/types/user';
+import { UserRole } from '@/lib/types';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     let body: any;
     try {
       body = await req.json();
-    } catch (e) {
+    } catch (_error) {
       return NextResponse.json(
         { error: 'Le corps de la requête doit être au format JSON valide.' },
         { status: 400 },

@@ -13,10 +13,7 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
-import {
-  createValidationRule,
-  Validate,
-} from '@/lib/decorators/validate.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
 import {
   Complaint,
@@ -24,11 +21,12 @@ import {
   getComplaintRepository,
   IComplaintRepository,
 } from '@/repositories';
-import {
+import type {
   ComplaintServiceFilters,
   CreateComplaintData,
   UpdateComplaintData,
-} from '@/types/complaints';
+  PaginationOptions,
+} from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
@@ -59,11 +57,11 @@ export class ComplaintService {
   @Cacheable(300, { prefix: 'ComplaintService:getComplaintById' }) // Cache 5 minutes
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z.string().min(1, 'Complaint ID is required'),
-        'id',
-      ),
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Complaint ID is required'),
+        paramName: 'id',
+      },
     ],
   })
   async getComplaintById(id: string): Promise<Complaint | null> {
@@ -102,19 +100,22 @@ export class ComplaintService {
         dateTo: filters.dateTo || undefined,
       } as ComplaintFilters;
 
+      const pagination: PaginationOptions = {
+        limit: filters.limit || 50,
+        page: filters.page || 1,
+        ...(filters.offset !== undefined && { offset: filters.offset }),
+      };
+
       const result = await this.complaintRepository.findComplaintsWithFilters(
         repositoryFilters,
-        {
-          limit: filters.limit || 50,
-          offset: filters.offset || 0,
-        },
+        pagination,
       );
 
       return {
         data: result.data,
         total: result.total,
-        limit: result.limit,
-        offset: result.offset,
+        limit: result.pagination.limit,
+        offset: result.pagination.offset || 0,
       };
     } catch (error) {
       logger.error({ error, filters }, 'Erreur getComplaints');
@@ -129,9 +130,9 @@ export class ComplaintService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
-      createValidationRule(
-        0,
-        z
+      {
+        paramIndex: 0,
+        schema: z
           .object({
             title: z.string().min(1, 'Title is required'),
             type: z.enum(['QUALITY', 'DELAY', 'BILLING', 'COMMUNICATION']),
@@ -141,8 +142,8 @@ export class ComplaintService {
             appointmentId: z.string().min(1, 'Appointment ID is required'),
           })
           .passthrough(),
-        'data',
-      ),
+        paramName: 'data',
+      },
     ],
   })
   @InvalidateCache('ComplaintService:*')

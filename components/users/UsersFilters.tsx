@@ -1,6 +1,6 @@
 "use client";
 
-import { UsersFiltersProps } from "@/types/users";
+import { UsersFiltersProps } from "@/lib/types";
 import { Search } from "lucide-react";
 import React, { useCallback } from "react";
 
@@ -11,7 +11,7 @@ const UsersFilters = React.memo<UsersFiltersProps>(function UsersFilters({
   setRoleFilter,
   statusFilter,
   setStatusFilter,
-}) {
+}: UsersFiltersProps) {
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearchTerm(e.target.value);
@@ -57,7 +57,8 @@ const UsersFilters = React.memo<UsersFiltersProps>(function UsersFilters({
             Rôle
           </label>
           <select
-            value={roleFilter}
+            title="Rôle"
+            value={roleFilter as string}
             onChange={handleRoleChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
@@ -74,7 +75,8 @@ const UsersFilters = React.memo<UsersFiltersProps>(function UsersFilters({
             Statut
           </label>
           <select
-            value={statusFilter}
+            title="Statut"
+            value={statusFilter as string}
             onChange={handleStatusChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >

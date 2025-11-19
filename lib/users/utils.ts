@@ -1,4 +1,4 @@
-import { UserRole, UserStatus } from "@/types";
+import { UserRole, UserStatus } from "@/lib/types";
 
 /**
  * Get role color classes

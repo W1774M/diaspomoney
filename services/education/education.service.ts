@@ -11,6 +11,7 @@
  * - Error Handling Pattern (Sentry)
  */
 
+import { LOCALE, SPECIALITY_TYPES, CURRENCIES } from '@/lib/constants';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
@@ -348,7 +349,7 @@ export class EducationService {
           ],
           fees: {
             tuition: 50000,
-            currency: 'XOF',
+            currency: CURRENCIES.XOF.code,
             additionalFees: [],
             paymentPlans: [],
             scholarships: [],
@@ -394,17 +395,8 @@ export class EducationService {
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'EducationService:getSchool' }) // Cache 5 minutes
   async getSchool(_schoolId: string): Promise<School | null> {
-    try {
-      // TODO: Récupérer depuis la base de données
-      return null;
-    } catch (error) {
-      this.log.error({ error, schoolId: _schoolId }, 'Error in getSchool');
-      Sentry.captureException(error as Error, {
-        tags: { component: 'EducationService', action: 'getSchool' },
-        extra: { schoolId: _schoolId },
-      });
-      throw error;
-    }
+    // TODO: Récupérer depuis la base de données
+    return null;
   }
 
   /**
@@ -467,7 +459,7 @@ export class EducationService {
           { type: 'EMAIL', enabled: true, priority: 'HIGH' },
           { type: 'SMS', enabled: true, priority: 'MEDIUM' },
         ],
-        locale: 'fr',
+        locale: LOCALE.DEFAULT,
         priority: 'HIGH',
       });
 
@@ -792,7 +784,7 @@ export class EducationService {
     try {
       // Créer la demande de renseignements via le repository
       const quoteData: any = {
-        type: 'EDUCATION',
+        type: SPECIALITY_TYPES.EDUCATION,
         studentType: data.studentType,
         studentInfo: data.studentInfo,
         academicInfo: data.academicInfo,
@@ -826,7 +818,7 @@ export class EducationService {
             { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
             { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
           ],
-          locale: 'fr',
+          locale: LOCALE.DEFAULT,
           priority: 'MEDIUM',
         });
       }

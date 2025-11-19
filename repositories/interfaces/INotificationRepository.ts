@@ -10,7 +10,7 @@ import type {
 import type {
   Notification,
   NotificationStatus,
-} from '@/types/notifications';
+} from '@/lib/types';
 
 export interface NotificationFilters {
   recipient?: string;

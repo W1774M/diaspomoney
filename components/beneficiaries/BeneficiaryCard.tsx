@@ -6,7 +6,7 @@ import {
   getAccountStatusDisplay,
   isRecentlyAdded,
 } from "@/lib/beneficiaries/utils";
-import { BeneficiaryCardProps } from "@/types/beneficiaries";
+import { BeneficiaryCardProps } from "@/lib/types";
 import { Edit, Mail, Phone, Trash2, User } from "lucide-react";
 import React from "react";
 
@@ -28,7 +28,7 @@ const BeneficiaryCard = React.memo<BeneficiaryCardProps>(
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {beneficiary.name}
+                  {beneficiary.firstName} {beneficiary.lastName}
                 </h3>
                 <p className="text-sm text-gray-600">
                   {beneficiary.relationship}
@@ -78,7 +78,10 @@ const BeneficiaryCard = React.memo<BeneficiaryCardProps>(
               Modifier
             </button>
             <button
-              onClick={() => onDelete(beneficiary._id)}
+              onClick={() => {
+                const beneficiaryId = beneficiary._id || beneficiary.id;
+                if (beneficiaryId) onDelete(beneficiaryId);
+              }}
               className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center"
             >
               <Trash2 className="h-4 w-4 mr-1" />

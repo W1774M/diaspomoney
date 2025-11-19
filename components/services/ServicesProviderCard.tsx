@@ -5,7 +5,7 @@ import {
   getPrimaryService,
   getProviderRating,
 } from "@/lib/services/utils";
-import { ServiceCardProps } from "@/types/services";
+import type { ServiceCardProps } from "@/lib/types";
 import { Clock, MapPin, Star } from "lucide-react";
 import Image from "next/image";
 import React from "react";

@@ -6,7 +6,7 @@
  */
 
 import { useAuth } from '@/hooks';
-import { PaymentTransaction } from '@/types/payments';
+import { PaymentTransaction } from '@/lib/types';
 import { ArrowLeftRight, Search, TrendingDown, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -85,19 +85,19 @@ export default function TransactionsPage() {
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch =
       !searchTerm ||
-      transaction.transactionId
+      transaction._id
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
-      transaction.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      transaction.metadata?.['description']?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
-      filterStatus === 'all' || transaction.status === filterStatus;
+      filterStatus === 'all' || transaction.status === (filterStatus as any);
 
     return matchesSearch && matchesStatus;
   });
 
   const totalAmount = filteredTransactions
-    .filter(t => t.status === 'completed')
+    .filter(t => t.status === (filterStatus as any))
     .reduce((sum, t) => sum + t.amount, 0);
 
   if (isLoading) {
@@ -155,7 +155,7 @@ export default function TransactionsPage() {
             <div>
               <p className='text-sm text-gray-600'>Remboursements</p>
               <p className='text-2xl font-bold text-blue-600'>
-                {transactions.filter(t => t.status === 'refunded').length}
+                {transactions.filter(t => t.status === (filterStatus as any)).length}
               </p>
             </div>
             <TrendingDown className='h-8 w-8 text-blue-500' />
@@ -244,12 +244,12 @@ export default function TransactionsPage() {
                   <tr key={transaction._id} className='hover:bg-gray-50'>
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <div className='text-sm font-medium text-gray-900'>
-                        {transaction.transactionId}
+                        {transaction._id}
                       </div>
                     </td>
                     <td className='px-6 py-4'>
                       <div className='text-sm text-gray-900'>
-                        {transaction.description || 'Paiement'}
+                        {transaction.metadata?.['description'] || 'Paiement'}
                       </div>
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap'>
@@ -259,7 +259,7 @@ export default function TransactionsPage() {
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap'>
                       <div className='text-sm text-gray-500'>
-                        {transaction.paymentMethod}
+                        {transaction.type ? transaction.type.toLowerCase() : 'Card'}
                       </div>
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap'>

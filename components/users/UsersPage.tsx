@@ -33,7 +33,7 @@ const UsersPage = React.memo(function UsersPage() {
   }, [users]);
 
   const { filteredUsers, updateFilter, clearFilters, hasActiveFilters } =
-    useUserFilters(localUsers);
+    useUserFilters(localUsers as any);
 
   const handleDelete = useCallback(async (id: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {

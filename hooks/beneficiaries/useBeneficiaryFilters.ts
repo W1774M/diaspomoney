@@ -1,13 +1,11 @@
 "use client";
 
-import { Beneficiary, BeneficiaryFilters } from "@/types/beneficiaries";
+import type { Beneficiary, BeneficiaryFilters } from "@/lib/types";
 import { useCallback, useMemo, useState } from "react";
 
 export function useBeneficiaryFilters(beneficiaries: Beneficiary[]) {
   const [filters, setFilters] = useState<BeneficiaryFilters>({
     searchTerm: "",
-    relationship: "",
-    hasAccount: "",
   });
 
   // Sécurité : s'assurer que beneficiaries est un tableau
@@ -46,10 +44,7 @@ export function useBeneficiaryFilters(beneficiaries: Beneficiary[]) {
       }
 
       // Account status filter
-      if (filters.hasAccount === "with" && !beneficiary.hasAccount) {
-        return false;
-      }
-      if (filters.hasAccount === "without" && beneficiary.hasAccount) {
+      if (filters.hasAccount !== undefined && beneficiary.hasAccount !== filters.hasAccount) {
         return false;
       }
 
@@ -58,7 +53,7 @@ export function useBeneficiaryFilters(beneficiaries: Beneficiary[]) {
   }, [safeBeneficiaries, filters]);
 
   const updateFilter = useCallback(
-    (key: keyof BeneficiaryFilters, value: string) => {
+    (key: keyof BeneficiaryFilters, value: string | boolean | undefined) => {
       setFilters(prev => ({ ...prev, [key]: value }));
     },
     [],
@@ -67,16 +62,14 @@ export function useBeneficiaryFilters(beneficiaries: Beneficiary[]) {
   const clearFilters = useCallback(() => {
     setFilters({
       searchTerm: "",
-      relationship: "",
-      hasAccount: "",
     });
   }, []);
 
   const hasActiveFilters = useMemo(() => {
     return (
-      filters.searchTerm.length > 0 ||
-      filters.relationship.length > 0 ||
-      filters.hasAccount.length > 0
+      (filters.searchTerm?.length ?? 0) > 0 ||
+      filters.relationship !== undefined ||
+      filters.hasAccount !== undefined
     );
   }, [filters]);
 

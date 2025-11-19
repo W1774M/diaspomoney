@@ -1,7 +1,7 @@
 "use client";
 
 import { useBookings, useInvoices, useUsers } from "@/hooks";
-import { DashboardStats } from "@/types/dashboard";
+import type { DashboardStats } from "@/lib/types";
 import { useMemo } from "react";
 
 interface UseDashboardStatsProps {

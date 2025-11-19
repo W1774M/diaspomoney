@@ -5,7 +5,8 @@
  * Implémente le Custom Hooks Pattern
  */
 
-import { PreferencesData } from '@/types/settings';
+import { PreferencesData } from '@/lib/types';
+import { LANGUAGES, TIMEZONES } from '@/lib/constants';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/useAuth';
 
@@ -25,8 +26,8 @@ export interface UseNotificationPreferencesReturn {
 export function useNotificationPreferences(): UseNotificationPreferencesReturn {
   const { user } = useAuth();
   const [preferences, setPreferences] = useState<PreferencesData>({
-    language: 'fr',
-    timezone: 'Europe/Paris',
+    language: LANGUAGES.FR.code,
+    timezone: TIMEZONES.PARIS,
     notifications: true,
     emailNotifications: true,
     smsNotifications: false,
@@ -42,8 +43,8 @@ export function useNotificationPreferences(): UseNotificationPreferencesReturn {
       const userPreferences = (user as any).preferences;
       if (userPreferences) {
         setPreferences({
-          language: userPreferences.language || 'fr',
-          timezone: userPreferences.timezone || 'Europe/Paris',
+          language: userPreferences.language || LANGUAGES.FR.code,
+          timezone: userPreferences.timezone || TIMEZONES.PARIS,
           notifications: userPreferences.notifications !== false,
           emailNotifications: userPreferences.emailNotifications !== false,
           smsNotifications: userPreferences.smsNotifications === true,
@@ -83,12 +84,12 @@ export function useNotificationPreferences(): UseNotificationPreferencesReturn {
         } else {
           throw new Error(data.error || 'Erreur inconnue');
         }
-      } catch (err) {
+      } catch (error) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Erreur inconnue';
+          error instanceof Error ? error.message : 'Erreur inconnue';
         setError(errorMessage);
         // Le logging est fait côté serveur via les services avec @Log decorator
-        throw err;
+        throw error;
       } finally {
         setSaving(false);
       }

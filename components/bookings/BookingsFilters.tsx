@@ -1,7 +1,17 @@
 "use client";
 
-import { BookingsFiltersProps } from "@/types/bookings";
+import { BookingFilters } from "@/lib/types";
 import React, { useCallback } from "react";
+
+interface BookingsFiltersProps {
+  filters: BookingFilters & { dateRange: { start: string; end: string } };
+  onFilterChange: (
+    key: keyof BookingFilters | 'dateRange',
+    value: string | { start: string; end: string }
+  ) => void;
+  availableStatuses: string[];
+  availablePaymentStatuses: string[];
+}
 
 const BookingsFilters = React.memo<BookingsFiltersProps>(
   function BookingsFilters({
@@ -9,7 +19,7 @@ const BookingsFilters = React.memo<BookingsFiltersProps>(
     onFilterChange,
     availableStatuses,
     availablePaymentStatuses,
-  }) {
+  }: BookingsFiltersProps) {
     const handleStatusChange = useCallback(
       (e: React.ChangeEvent<HTMLSelectElement>) => {
         onFilterChange("status", e.target.value);
@@ -40,18 +50,19 @@ const BookingsFilters = React.memo<BookingsFiltersProps>(
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Status Filter */}
           <select
+            title="Statut"
             value={filters.status}
             onChange={handleStatusChange}
             className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="ALL">Tous les statuts</option>
-            {availableStatuses.map((status, idx) => (
+            {availableStatuses.map((status: string, idx: number) => (
               <option key={idx} value={status}>
-                {status === "confirmed"
+                {status === "CONFIRMED"
                   ? "Confirmé"
-                  : status === "pending"
+                  : status === "PENDING"
                   ? "En attente"
-                  : status === "cancelled"
+                  : status === "CANCELLED"
                   ? "Annulé"
                   : "Terminé"}
               </option>
@@ -60,12 +71,13 @@ const BookingsFilters = React.memo<BookingsFiltersProps>(
 
           {/* Payment Status Filter */}
           <select
+            title="Statut du paiement"
             value={filters.paymentStatus}
             onChange={handlePaymentStatusChange}
             className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="ALL">Tous les paiements</option>
-            {availablePaymentStatuses.map((status, idx) => (
+            {availablePaymentStatuses.map((status: string, idx: number) => (
               <option key={idx} value={status}>
                 {status === "paid"
                   ? "Payé"

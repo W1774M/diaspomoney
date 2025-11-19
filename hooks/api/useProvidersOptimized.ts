@@ -120,12 +120,12 @@ export const useProvidersOptimized = (filters: ProviderFilters = {}): UseProvide
       } else {
         throw new Error(data.error || "Erreur inconnue");
       }
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
         // Requête annulée, ne pas traiter comme une erreur
         return;
       }
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
+      setError(error instanceof Error ? error.message : "Erreur inconnue");
       setProviders([]);
       setTotal(0);
       setHasResults(false);

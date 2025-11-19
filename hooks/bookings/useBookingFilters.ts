@@ -1,6 +1,6 @@
 "use client";
 
-import { Booking, BookingFilters } from "@/types/bookings";
+import type { Booking, BookingFilters } from "@/lib/types";
 import { useCallback, useMemo, useState } from "react";
 
 export function useBookingFilters(bookings: Booking[]) {

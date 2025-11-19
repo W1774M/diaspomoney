@@ -2,7 +2,7 @@
  * Interface du repository pour KYC
  */
 
-import type { KYCData, KYCFilters } from '@/types/kyc';
+import type { KYCData, KYCFilters } from '@/lib/types';
 import {
   IPaginatedRepository,
   PaginatedResult,

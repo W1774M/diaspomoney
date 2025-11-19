@@ -30,7 +30,7 @@ export function useSignOut() {
           userId =
             sessionData?.user?.id || sessionData?.user?.email || undefined;
         }
-      } catch (e) {
+      } catch (_error) {
         // Ignorer les erreurs de récupération de session
       }
 

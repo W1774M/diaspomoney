@@ -1,6 +1,6 @@
 "use client";
 
-import { BeneficiariesSearchProps } from "@/types/beneficiaries";
+import { BeneficiariesSearchProps } from "@/lib/types";
 import { Search } from "lucide-react";
 import React, { useCallback } from "react";
 

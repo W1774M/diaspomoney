@@ -513,12 +513,7 @@ export const authConfig: NextAuthOptions = {
           },
         });
         // Retourner une session vide pour éviter une erreur 500
-        try {
-          return { user: {} };
-        } catch {
-          // Si même ça échoue, retourner null
-          return null;
-        }
+        return { user: {} };
       }
     },
 

@@ -1,4 +1,4 @@
-import { ApiError, ApiResponse } from '@/types';
+import { ApiError, ApiResponse } from '@/lib/types';
 
 class ApiClient {
   private baseUrl: string;

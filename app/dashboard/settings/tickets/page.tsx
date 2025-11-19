@@ -7,7 +7,7 @@
  */
 
 import { useAuth } from '@/hooks';
-import { SupportTicket } from '@/types/messaging';
+import { SupportTicket } from '@/lib/types';
 import {
   CheckCircle2,
   Clock,
@@ -107,9 +107,9 @@ export default function SupportTicketsPage() {
     const matchesSearch =
       !searchTerm ||
       ticket.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.messages.some(message =>
-        message.text?.toLowerCase().includes(searchTerm.toLowerCase()),
-      );
+      (ticket.messages && Array.isArray(ticket.messages) && ticket.messages.some((message: any) =>
+        typeof message === 'object' && message.text?.toLowerCase().includes(searchTerm.toLowerCase()),
+      ));
 
     const matchesStatus =
       filterStatus === 'all' || ticket.status === filterStatus;
@@ -289,9 +289,9 @@ export default function SupportTicketsPage() {
                         : 'Basse'}
                     </span>
                   </div>
-                  {ticket.messages.length > 0 && (
+                  {ticket.messages && Array.isArray(ticket.messages) && ticket.messages.length > 0 && (
                     <p className='text-sm text-gray-600 line-clamp-2'>
-                      {ticket.messages[0]?.text}
+                      {typeof ticket.messages[0] === 'object' ? (ticket.messages[0] as any)?.text : ''}
                     </p>
                   )}
                 </div>

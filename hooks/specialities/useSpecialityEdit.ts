@@ -6,7 +6,7 @@
  * Utilise les API routes au lieu d'importer directement les services
  */
 
-import { ISpeciality } from '@/types';
+import { ISpeciality } from '@/lib/types';
 import { useCallback, useState } from 'react';
 
 export interface UseSpecialityEditReturn {
@@ -73,12 +73,12 @@ export function useSpecialityEdit(): UseSpecialityEditReturn {
         } else {
           throw new Error(result.error || 'Erreur inconnue');
         }
-      } catch (err) {
+      } catch (error) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Erreur inconnue';
+          error instanceof Error ? error.message : 'Erreur inconnue';
         setError(errorMessage);
         // Le logging est fait côté serveur via SpecialityService avec @Log decorator
-        throw err;
+        throw error;
       } finally {
         setLoading(false);
       }

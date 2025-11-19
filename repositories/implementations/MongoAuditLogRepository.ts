@@ -17,9 +17,9 @@ import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import type { IAuditLogRepository } from '../interfaces/IAuditLogRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoAuditLogRepository implements IAuditLogRepository {
   private readonly collectionName = 'audit_logs';
@@ -204,7 +204,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   async findWithPagination(
     filters?: Record<string, any>,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<AuditLog>> {
+  ): Promise<PaginatedFindResult<AuditLog>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit || 50;
@@ -230,10 +230,15 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
       const result = {
         data: auditLogs,
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
 
       this.log.debug(
@@ -264,7 +269,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   async searchAuditLogs(
     query: AuditQuery,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<AuditLog>> {
+  ): Promise<PaginatedFindResult<AuditLog>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit || query.limit || 50;
@@ -317,10 +322,15 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
       const result = {
         data: auditLogs,
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
 
       this.log.debug(
@@ -566,7 +576,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   async findByUserId(
     userId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<AuditLog>> {
+  ): Promise<PaginatedFindResult<AuditLog>> {
     try {
       const result = await this.findWithPagination({ userId }, options);
       this.log.debug(
@@ -586,7 +596,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   async findByAction(
     action: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<AuditLog>> {
+  ): Promise<PaginatedFindResult<AuditLog>> {
     try {
       const result = await this.findWithPagination({ action }, options);
       this.log.debug(
@@ -606,7 +616,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   async findByCategory(
     category: AuditLog['category'],
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<AuditLog>> {
+  ): Promise<PaginatedFindResult<AuditLog>> {
     try {
       const result = await this.findWithPagination({ category }, options);
       this.log.debug(
@@ -626,7 +636,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   async findBySeverity(
     severity: AuditLog['severity'],
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<AuditLog>> {
+  ): Promise<PaginatedFindResult<AuditLog>> {
     try {
       const result = await this.findWithPagination({ severity }, options);
       this.log.debug(
@@ -645,9 +655,16 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
    * Mapper un document MongoDB vers un objet AuditLog
    */
   private mapToAuditLog(doc: any): AuditLog {
+    const docId = doc._id?.toString() || doc.id || '';
+    const timestamp = doc.timestamp ? new Date(doc.timestamp) : new Date();
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : timestamp;
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : timestamp;
     return {
-      id: doc.id || doc._id?.toString(),
-      timestamp: doc.timestamp ? new Date(doc.timestamp) : new Date(),
+      _id: docId,
+      id: docId,
+      timestamp,
+      createdAt,
+      updatedAt,
       userId: doc.userId,
       sessionId: doc.sessionId,
       action: doc.action,

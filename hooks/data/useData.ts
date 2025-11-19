@@ -12,8 +12,8 @@ export function useData<T>(fetchFn: () => Promise<T>) {
         setError(null);
         const result = await fetchFn();
         setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Erreur inconnue");
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "Erreur inconnue");
       } finally {
         setLoading(false);
       }

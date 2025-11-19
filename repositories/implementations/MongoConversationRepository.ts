@@ -12,14 +12,14 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import Conversation from '@/models/Conversation';
-import { Conversation as ConversationType } from '@/types/messaging';
+import { Conversation as ConversationType } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { ObjectId } from 'mongodb';
 import { IConversationRepository } from '../interfaces/IMessagingRepository';
 import type {
-  PaginatedResult,
+  PaginatedFindResult,
   PaginationOptions,
-} from '../interfaces/IRepository';
+} from '@/lib/types';
 
 export class MongoConversationRepository implements IConversationRepository {
   private readonly log = childLogger({
@@ -54,7 +54,7 @@ export class MongoConversationRepository implements IConversationRepository {
   async findByParticipant(
     userId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedResult<ConversationType>> {
+  ): Promise<PaginatedFindResult<ConversationType>> {
     try {
       const page = options?.page || 1;
       const limit = options?.limit || 20;
@@ -80,10 +80,15 @@ export class MongoConversationRepository implements IConversationRepository {
       return {
         data: conversations.map((c: any) => this.mapToConversation(c)),
         total,
-        page,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
+        pagination: {
+          page,
+          limit,
+          pages: Math.ceil(total / limit),
+          offset,
+          total,
+          hasNext: offset + limit < total,
+          hasPrev: offset > 0,
+        },
       };
     } catch (error) {
       this.log.error({ error, userId, options }, 'Error in findByParticipant');
@@ -298,8 +303,12 @@ export class MongoConversationRepository implements IConversationRepository {
   }
 
   private mapToConversation(doc: any): ConversationType {
+    const docId = doc._id?.toString() || doc.id || '';
+    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
+    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
     return {
-      _id: doc._id,
+      _id: docId,
+      id: docId,
       participants: doc.participants?.map((p: any) =>
         p.toString ? p.toString() : p,
       ),
@@ -307,8 +316,8 @@ export class MongoConversationRepository implements IConversationRepository {
       lastMessage: doc.lastMessage,
       lastMessageAt: doc.lastMessageAt,
       unreadCount: doc.unreadCount || {},
-      createdAt: doc.createdAt,
-      updatedAt: doc.updatedAt,
+      createdAt,
+      updatedAt,
     };
   }
 }

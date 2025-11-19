@@ -6,8 +6,7 @@
  * Utilise les API routes au lieu d'importer directement les services (évite les imports MongoDB côté client)
  */
 
-import { Complaint } from '@/types/complaints';
-import { UseComplaintsOptions, UseComplaintsReturn } from '@/types/hooks';
+import type { Complaint, UseComplaintsOptions, UseComplaintsReturn } from '@/lib/types';
 import { useCallback, useState } from 'react';
 
 /**

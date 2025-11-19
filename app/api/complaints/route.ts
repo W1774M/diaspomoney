@@ -8,12 +8,20 @@
  * - Middleware Pattern (authentification)
  * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache dans complaintService)
  * - Singleton Pattern (complaintService)
+ * - Builder Pattern (via ComplaintQueryBuilder)
+ * - Facade Pattern (via ComplaintFacade pour orchestrer la création complète)
  */
 
 import { auth } from '@/auth';
+import { HTTP_STATUS_CODES } from '@/lib/constants';
+import { ComplaintQueryBuilder } from '@/builders';
+import type { ComplaintType, ComplaintPriority, ComplaintStatus } from '@/lib/types';
+import { complaintFacade } from '@/facades';
+import { handleApiRoute, ApiErrors, ApiError, validateBody } from '@/lib/api/error-handler';
+import { CreateComplaintSchema } from '@/lib/validations/complaint.schema';
 import { childLogger } from '@/lib/logger';
+import { getComplaintRepository } from '@/repositories';
 import { complaintService } from '@/services/complaint/complaint.service';
-import { ComplaintServiceFilters } from '@/types/complaints';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -30,7 +38,7 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
       log.warn({ msg: 'Unauthorized access attempt' });
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      return NextResponse.json({ error: 'Non autorisé' }, { status: HTTP_STATUS_CODES.UNAUTHORIZED });
     }
 
     const { searchParams } = new URL(request.url);
@@ -43,24 +51,87 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit');
     const offset = searchParams.get('offset');
 
+    // Utiliser ComplaintQueryBuilder pour construire la requête (Builder Pattern)
+    const queryBuilder = new ComplaintQueryBuilder();
+
     // Par défaut, récupérer les réclamations de l'utilisateur connecté
-    const filters = {
-      userId: userId || session.user.id,
-      provider: provider || undefined,
-      appointmentId: appointmentId || undefined,
-      type: type || undefined,
-      priority: priority || undefined,
-      status: status || undefined,
-      limit: limit ? parseInt(limit) : undefined,
-      offset: offset ? parseInt(offset) : undefined,
-    };
+    const targetUserId = userId || session.user.id;
+    queryBuilder.byUser(targetUserId);
 
-    log.debug({ userId: session.user.id, filters }, 'Fetching complaints');
+    // Appliquer les filtres
+    if (provider) {
+      queryBuilder.byProvider(provider);
+    }
+    if (appointmentId) {
+      queryBuilder.byAppointment(appointmentId);
+    }
+    if (type) {
+      // Mapper ComplaintType vers le format attendu par ComplaintQueryBuilder
+      const typeMap: Record<ComplaintType, 'SERVICE_QUALITY' | 'BILLING' | 'CANCELLATION' | 'OTHER'> = {
+        QUALITY: 'SERVICE_QUALITY',
+        DELAY: 'OTHER',
+        BILLING: 'BILLING',
+        COMMUNICATION: 'OTHER',
+      };
+      const complaintType = type.toUpperCase() as ComplaintType;
+      const mappedType = typeMap[complaintType] || 'OTHER';
+      queryBuilder.byType(mappedType);
+    }
+    if (priority) {
+      // Mapper ComplaintPriority vers le format attendu (minuscules)
+      const priorityMap: Record<ComplaintPriority, 'low' | 'medium' | 'high'> = {
+        HIGH: 'high',
+        MEDIUM: 'medium',
+        LOW: 'low',
+      };
+      const complaintPriority = priority.toUpperCase() as ComplaintPriority;
+      const mappedPriority = priorityMap[complaintPriority] || 'medium';
+      queryBuilder.byPriority(mappedPriority);
+    }
+    if (status) {
+      queryBuilder.byStatus(status as ComplaintStatus);
+    }
 
-    // Utiliser le service avec décorateurs (@Log, @Cacheable)
-    const result = await complaintService.getComplaints(
-      filters as ComplaintServiceFilters,
+    // Pagination
+    const pageLimit = limit ? parseInt(limit) : 50;
+    const pageOffset = offset ? parseInt(offset) : 0;
+    const page = Math.floor(pageOffset / pageLimit) + 1;
+    queryBuilder.page(page, pageLimit);
+
+    // Trier par date de création (plus récentes en premier)
+    queryBuilder.orderByCreatedAt('desc');
+
+    // Construire la requête
+    const query = queryBuilder.build();
+
+    log.debug({ userId: session.user.id, filters: query.filters }, 'Fetching complaints');
+
+    // Utiliser le repository avec les filtres du builder
+    const complaintRepository = getComplaintRepository();
+    // Fix: Ensure correct types according to PaginationOptions,
+    // and avoid possibly undefined values for .limit and .page
+
+    // Calculate explicit values based on parsed limit/offset defaults above
+    const paginationLimit = query.pagination.limit ?? 50;
+    const paginationPage = query.pagination.page ?? 1;
+
+    const result = await complaintRepository.findComplaintsWithFilters(
+      query.filters,
+      {
+        limit: paginationLimit,
+        page: paginationPage,
+        offset: (paginationPage - 1) * paginationLimit,
+        sort: query.sort,
+      },
     );
+
+    // Adapter le résultat au format attendu
+    const adaptedResult = {
+      data: result.data,
+      total: result.total,
+      limit: pageLimit,
+      offset: pageOffset,
+    };
 
     log.info(
       {
@@ -73,10 +144,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      complaints: result.data,
-      total: result.total,
-      limit: result.limit,
-      offset: result.offset,
+      complaints: adaptedResult.data,
+      total: adaptedResult.total,
+      limit: adaptedResult.limit,
+      offset: adaptedResult.offset,
     });
   } catch (error) {
     log.error(
@@ -92,87 +163,54 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/complaints - Créer une nouvelle réclamation
+ * 
+ * Implémente les design patterns :
+ * - Service Layer Pattern (via complaintService)
+ * - Repository Pattern (via complaintService qui utilise les repositories)
+ * - Error Handling Pattern (via handleApiRoute)
+ * - Validation Pattern (via CreateComplaintSchema)
+ * - Facade Pattern (via ComplaintFacade pour orchestrer la création complète)
  */
 export async function POST(request: NextRequest) {
-  const reqId = request.headers.get('x-request-id') || undefined;
-  const log = childLogger({
-    requestId: reqId,
-    route: 'api/complaints',
-  });
-
-  try {
+  return handleApiRoute(request, async () => {
     const session = await auth();
     if (!session?.user?.id) {
-      log.warn({ msg: 'Unauthorized access attempt' });
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      throw ApiErrors.UNAUTHORIZED;
     }
 
+    // Validation avec Zod
     const body = await request.json();
-    const { title, type, priority, description, provider, appointmentId } =
-      body;
+    const data = validateBody(body, CreateComplaintSchema);
 
-    log.debug(
-      {
-        userId: session.user.id,
-        title,
-        type,
-        priority,
-      },
-      'Creating complaint',
-    );
+    // Utiliser ComplaintFacade pour orchestrer la création complète (Facade Pattern)
+    // La facade gère : création de réclamation + notifications utilisateur/provider + emails
+    const complaintData = {
+      ...data,
+      userId: session.user.id,
+      sendNotification: data.sendNotification ?? true, // Par défaut, envoyer la notification
+      notifyProvider: data.notifyProvider ?? true, // Par défaut, notifier le provider
+      sendEmail: data.sendEmail ?? true, // Par défaut, envoyer l'email
+      ...(data.recipientEmail ? { recipientEmail: data.recipientEmail } : {}),
+    } as Parameters<typeof complaintFacade.createComplaint>[0];
+    
+    const result = await complaintFacade.createComplaint(complaintData);
 
-    // Validation
-    if (
-      !title ||
-      !type ||
-      !priority ||
-      !description ||
-      !provider ||
-      !appointmentId
-    ) {
-      log.warn({ body }, 'Validation failed: missing required fields');
-      return NextResponse.json(
-        { error: 'Tous les champs obligatoires doivent être remplis' },
-        { status: 400 },
-      );
+    if (!result.success || !result.complaintId) {
+      throw new ApiError(400, result.error || 'Erreur lors de la création de la réclamation');
     }
 
-    // Utiliser le service avec décorateurs (@Log, @InvalidateCache)
-    const complaint = await complaintService.createComplaint({
-      title,
-      type,
-      priority,
-      description,
-      provider,
-      appointmentId,
-      userId: session.user.id,
-    });
+    // Récupérer la réclamation complète pour la réponse
+    const complaint = await complaintService.getComplaintById(result.complaintId);
+    if (!complaint) {
+      throw ApiErrors.NOT_FOUND;
+    }
 
-    log.info(
-      {
-        userId: session.user.id,
-        complaintId: complaint.id,
-        number: complaint.number,
-      },
-      'Complaint created successfully',
-    );
-
-    return NextResponse.json(
-      {
-        success: true,
-        complaint,
-        message: 'Réclamation créée avec succès',
-      },
-      { status: 201 },
-    );
-  } catch (error) {
-    log.error(
-      { error, msg: 'Error creating complaint' },
-      'Error creating complaint',
-    );
-    return NextResponse.json(
-      { error: 'Erreur lors de la création de la réclamation' },
-      { status: 500 },
-    );
-  }
+    return {
+      success: true,
+      complaint,
+      notificationSent: result.notificationSent ?? false,
+      emailSent: result.emailSent ?? false,
+      message: 'Réclamation créée avec succès',
+    };
+  }, 'api/complaints');
 }
