@@ -5,13 +5,14 @@
  * Implémente le Custom Hooks Pattern
  */
 
+import { ROLES, USER_STATUSES } from '@/lib/constants';
 import { IUser, UserRole } from '@/lib/types';
 import { useCallback, useMemo, useState } from 'react';
 
 export interface UserFilters {
   searchTerm?: string;
-  roleFilter?: 'ADMIN' | 'PROVIDER' | 'CUSTOMER' | 'CSM' | 'ALL';
-  statusFilter?: 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'SUSPENDED' | 'ALL';
+  roleFilter?: typeof ROLES.ADMIN | typeof ROLES.PROVIDER | typeof ROLES.CUSTOMER | typeof ROLES.CSM | 'ALL';
+  statusFilter?: typeof USER_STATUSES.ACTIVE | typeof USER_STATUSES.INACTIVE | typeof USER_STATUSES.PENDING | typeof USER_STATUSES.SUSPENDED | 'ALL';
 }
 
 /**

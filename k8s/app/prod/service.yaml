@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: diaspomoney-app-service
+  namespace: diaspomoney
+spec:
+  selector:
+    app: diaspomoney-app
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  type: ClusterIP

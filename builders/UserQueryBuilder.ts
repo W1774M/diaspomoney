@@ -9,9 +9,10 @@ import { QueryBuilder } from './QueryBuilder';
 export class UserQueryBuilder extends QueryBuilder {
   /**
    * Filtrer par rôle
+   * Note: roles est un tableau dans MongoDB, donc on utilise $in pour vérifier si le rôle existe dans le tableau
    */
   byRole(role: string): this {
-    return this.where('roles', role);
+    return this.whereIn('roles', [role]);
   }
 
   /**

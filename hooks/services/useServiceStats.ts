@@ -20,9 +20,19 @@ export function useServiceStats(providers: IUser[]): ServiceStats {
     ].sort();
 
     const services = safeProviders
-      .flatMap(p =>
-        p.selectedServices ? p.selectedServices.map(s => s.trim()) : [],
-      )
+      .flatMap(p => {
+        if (!p.selectedServices) return [];
+        // Gérer le cas où selectedServices est une chaîne ou un tableau
+        if (Array.isArray(p.selectedServices)) {
+          return p.selectedServices.map(s => String(s).trim());
+        }
+        // Type assertion pour gérer les cas où selectedServices pourrait être une chaîne
+        const servicesValue = p.selectedServices as unknown;
+        if (typeof servicesValue === 'string' && servicesValue.length > 0) {
+          return servicesValue.split(',').map(s => s.trim());
+        }
+        return [];
+      })
       .filter((service, idx, arr) => arr.indexOf(service) === idx)
       .sort();
 

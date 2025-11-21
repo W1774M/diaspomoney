@@ -1,357 +1,379 @@
-# Guide de Déploiement Kubernetes
+# 🚀 Guide de Déploiement Kubernetes (K3s) - DiaspoMoney
 
-Ce guide vous accompagne dans le déploiement de DiaspoMoney sur Kubernetes.
+Ce guide vous accompagne pour déployer DiaspoMoney sur Kubernetes (K3s) de manière reproductible et automatisée.
 
-## 📋 Prérequis
+## 📋 Table des matières
 
-### Infrastructure
+1. [Prérequis](#prérequis)
+2. [Configuration du Registry Docker](#configuration-du-registry-docker)
+3. [Vérification du Registry](#vérification-du-registry)
+4. [Déploiement](#déploiement)
+5. [Vérifications post-déploiement](#vérifications-post-déploiement)
+6. [Automatisation CI/CD](#automatisation-cicd)
+7. [Dépannage](#dépannage)
 
-- **Cluster Kubernetes** (v1.24+)
-- **kubectl** configuré et connecté au cluster
-- **Ingress Controller** (Nginx ou Traefik)
-- **Cert-Manager** (optionnel, pour Let's Encrypt)
-- **StorageClass** configuré pour les PersistentVolumes
-- **Registry Docker** pour stocker les images
+---
 
-### Outils
+## 🔧 Prérequis
+
+- K3s installé et fonctionnel
+- `kubectl` configuré et connecté au cluster
+- Registry Docker accessible (localhost:5000 ou IP distante)
+- Namespace `diaspomoney` créé
+- MongoDB et Redis déployés dans le cluster
+
+### Configuration initiale
+
+#### 1. Configurer kubectl pour K3s
 
 ```bash
-# Vérifier l'accès au cluster
+# Utiliser le script automatisé (recommandé)
+./scripts/setup-kubectl.sh
+
+# Ou manuellement
+mkdir -p ~/.kube
+sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+sudo chown $USER:$USER ~/.kube/config
+chmod 600 ~/.kube/config
+
+# Tester
 kubectl cluster-info
-
-# Vérifier les nodes
-kubectl get nodes
-
-# Vérifier le StorageClass
-kubectl get storageclass
 ```
 
-## 🚀 Déploiement Rapide
-
-### Option 1: Script automatisé
+#### 2. Initialiser le cluster
 
 ```bash
-# Générer les secrets
-./k8s/scripts/generate-secrets.sh
-
-# Éditer les secrets avec vos vraies valeurs
-vim k8s/secrets/secrets.yaml
-
-# Déployer
-./k8s/scripts/deploy.sh prod
+# Script d'initialisation complet
+./scripts/init-k8s.sh
 ```
 
-### Option 2: Déploiement manuel
+#### 3. Créer le namespace
 
 ```bash
-# 1. Créer le namespace
-kubectl apply -f k8s/environments/prod-namespace.yaml
-
-# 2. Créer les ConfigMaps
-kubectl apply -f k8s/configmaps/
-
-# 3. Créer les Secrets (après les avoir configurés)
-kubectl apply -f k8s/secrets/
-
-# 4. Déployer MongoDB
-kubectl apply -f k8s/mongodb/
-
-# 5. Déployer Redis
-kubectl apply -f k8s/redis/
-
-# 6. Déployer l'application
-kubectl apply -f k8s/app/
-
-# 7. Déployer l'Ingress
-kubectl apply -f k8s/ingress/
+kubectl create namespace diaspomoney
 ```
 
-### Option 3: Kustomize
+---
 
-```bash
-# Utiliser Kustomize pour gérer les environnements
-kubectl apply -k k8s/
-```
+## 🐳 Configuration du Registry Docker
 
-## 🔧 Configuration
+### Si le registry est sur la même machine (localhost)
 
-### 1. Secrets
-
-Les secrets contiennent des informations sensibles. **Ne jamais les commiter dans Git !**
-
-#### Génération automatique
-
-```bash
-./k8s/scripts/generate-secrets.sh
-```
-
-Cela génère des secrets avec des valeurs aléatoires pour :
-- `AUTH_SECRET`
-- `NEXTAUTH_SECRET`
-- `JWT_SECRET`
-- `MONGO_PASSWORD`
-- `REDIS_PASSWORD`
-
-#### Configuration manuelle
-
-Éditez `k8s/secrets/secrets.yaml` et remplacez :
-- `YOUR_GOOGLE_CLIENT_ID` → Votre Google Client ID
-- `YOUR_GOOGLE_CLIENT_SECRET` → Votre Google Client Secret
-- `YOUR_FACEBOOK_CLIENT_ID` → Votre Facebook Client ID
-- `YOUR_FACEBOOK_CLIENT_SECRET` → Votre Facebook Client Secret
-- `YOUR_SMTP_PASSWORD` → Votre mot de passe SMTP
-- `YOUR_STRIPE_SECRET_KEY` → Votre clé secrète Stripe
-- `YOUR_STRIPE_PUBLISHABLE_KEY` → Votre clé publique Stripe
-- `YOUR_STRIPE_WEBHOOK_SECRET` → Votre secret webhook Stripe
-- `YOUR_SENTRY_DSN` → Votre DSN Sentry
-
-### 2. ConfigMaps
-
-Les ConfigMaps contiennent des configurations non-sensibles. Vous pouvez les modifier selon vos besoins :
-
-```bash
-vim k8s/configmaps/app-config.yaml
-kubectl apply -f k8s/configmaps/app-config.yaml
-```
-
-### 3. Image Docker
-
-#### Construire l'image
-
-```bash
-docker build -t diaspomoney-app:latest .
-```
-
-#### Pousser vers un registry
-
-```bash
-# Tag pour votre registry
-docker tag diaspomoney-app:latest your-registry/diaspomoney-app:v1.0.0
-
-# Pousser
-docker push your-registry/diaspomoney-app:v1.0.0
-```
-
-#### Mettre à jour le deployment
-
-Éditez `k8s/app/deployment.yaml` :
+K3s devrait automatiquement utiliser `localhost:5000`. Si ce n'est pas le cas, créez `/etc/rancher/k3s/registries.yaml` :
 
 ```yaml
-image: your-registry/diaspomoney-app:v1.0.0
-imagePullPolicy: Always
+mirrors:
+  localhost:5000:
+    endpoint:
+      - "http://localhost:5000"
 ```
 
-Si vous utilisez un registry privé, créez un Secret :
+### Si le registry est sur une autre machine
 
-```bash
-kubectl create secret docker-registry registry-secret \
-  --docker-server=your-registry \
-  --docker-username=your-username \
-  --docker-password=your-password \
-  --docker-email=your-email \
-  -n diaspomoney-prod
-```
-
-Puis ajoutez dans le deployment :
+Remplacez `localhost` par l'IP ou le hostname accessible depuis les nœuds K3s :
 
 ```yaml
+mirrors:
+  192.168.1.10:5000:
+    endpoint:
+      - "http://192.168.1.10:5000"
+```
+
+Puis redémarrez K3s :
+
+```bash
+sudo systemctl restart k3s
+```
+
+---
+
+## ✅ Vérification du Registry
+
+### Test rapide avec kubectl
+
+```bash
+kubectl run registry-test \
+  --image=localhost:5000/diaspomoney:dev \
+  --restart=Never \
+  --rm -it \
+  -- /bin/sh -c "echo 'Registry OK'"
+```
+
+### Test avec un Pod
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: registry-test
+  namespace: diaspomoney
 spec:
-  template:
-    spec:
-      imagePullSecrets:
-      - name: registry-secret
+  containers:
+  - name: test
+    image: localhost:5000/diaspomoney:dev
+    command: ["sh","-c","sleep 3600"]
+EOF
 ```
 
-## 📊 Monitoring
-
-### Vérifier le statut
+Vérifier le statut :
 
 ```bash
-# Pods
-kubectl get pods -n diaspomoney-prod
-
-# Services
-kubectl get svc -n diaspomoney-prod
-
-# Ingress
-kubectl get ingress -n diaspomoney-prod
-
-# HPA
-kubectl get hpa -n diaspomoney-prod
+kubectl describe pod registry-test -n diaspomoney
+kubectl logs registry-test -n diaspomoney
 ```
 
-### Logs
+Si tout est OK, supprimez le pod de test :
 
 ```bash
-# Logs de l'application
-kubectl logs -f deployment/diaspomoney-app -n diaspomoney-prod
+kubectl delete pod registry-test -n diaspomoney
+```
 
+---
+
+## 🚀 Déploiement
+
+### 1. Build et Push de l'image
+
+```bash
+# Pour dev
+pnpm k8s:dev
+# ou
+docker build -f Dockerfile -t localhost:5000/diaspomoney:dev .
+docker push localhost:5000/diaspomoney:dev
+
+# Pour recette
+pnpm k8s:rct
+# ou
+docker build -f Dockerfile -t localhost:5000/diaspomoney:rct .
+docker push localhost:5000/diaspomoney:rct
+
+# Pour production
+pnpm k8s:prod
+# ou
+docker build -f Dockerfile -t localhost:5000/diaspomoney:prod .
+docker push localhost:5000/diaspomoney:prod
+```
+
+### 2. Déployer l'application
+
+#### Environnement DEV
+
+```bash
+kubectl apply -f k8s/app/dev/deployment.yaml
+kubectl apply -f k8s/app/dev/service.yaml
+kubectl apply -f k8s/app/dev/ingress.yaml
+```
+
+#### Environnement RECETTE
+
+```bash
+kubectl apply -f k8s/app/rct/deployment.yaml
+kubectl apply -f k8s/app/rct/service.yaml
+kubectl apply -f k8s/app/rct/ingress.yaml
+```
+
+#### Environnement PRODUCTION
+
+```bash
+kubectl apply -f k8s/app/prod/deployment.yaml
+kubectl apply -f k8s/app/prod/service.yaml
+kubectl apply -f k8s/app/prod/ingress.yaml
+```
+
+### 3. Script de déploiement automatisé
+
+Utilisez le script `scripts/deploy.sh` :
+
+```bash
+chmod +x scripts/deploy.sh
+./scripts/deploy.sh dev
+./scripts/deploy.sh rct
+./scripts/deploy.sh prod
+```
+
+---
+
+## 🔍 Vérifications post-déploiement
+
+### Vérifier les pods
+
+```bash
+# Voir tous les pods
+kubectl get pods -n diaspomoney
+
+# Voir les pods d'un environnement spécifique
+kubectl get pods -n diaspomoney -l app=diaspomoney-dev
+kubectl get pods -n diaspomoney -l app=diaspomoney-rct
+kubectl get pods -n diaspomoney -l app=diaspomoney-app
+
+# Vérifier le statut du déploiement
+kubectl rollout status deploy/diaspomoney-dev -n diaspomoney
+```
+
+### Vérifier les services
+
+```bash
+kubectl get svc -n diaspomoney
+```
+
+### Vérifier les ingress
+
+```bash
+kubectl get ingress -n diaspomoney
+```
+
+### Consulter les logs
+
+```bash
 # Logs d'un pod spécifique
-kubectl logs -f <pod-name> -n diaspomoney-prod
+kubectl logs -l app=diaspomoney-dev -n diaspomoney --tail=200
 
-# Logs de tous les pods
-kubectl logs -f -l app=diaspomoney -n diaspomoney-prod
+# Logs en temps réel
+kubectl logs -f -l app=diaspomoney-dev -n diaspomoney
+
+# Logs d'un container spécifique
+kubectl logs <pod-name> -n diaspomoney -c diaspomoney-dev
 ```
 
-### Métriques
+### Exécuter une commande dans un pod
 
 ```bash
-# Utilisation des ressources
-kubectl top pods -n diaspomoney-prod
-kubectl top nodes
-
-# Détails d'un pod
-kubectl describe pod <pod-name> -n diaspomoney-prod
+kubectl exec -it <pod-name> -n diaspomoney -- /bin/sh
 ```
 
-## 🔄 Mise à jour
-
-### Rolling Update
+### Vérifier les événements
 
 ```bash
-# Mettre à jour l'image
-kubectl set image deployment/diaspomoney-app \
-  app=your-registry/diaspomoney-app:v1.1.0 \
-  -n diaspomoney-prod
-
-# Suivre le rollout
-kubectl rollout status deployment/diaspomoney-app -n diaspomoney-prod
-
-# Voir l'historique
-kubectl rollout history deployment/diaspomoney-app -n diaspomoney-prod
+kubectl get events -n diaspomoney --sort-by='.lastTimestamp'
 ```
 
-### Rollback
+### Dépannage ImagePullBackOff
+
+Si vous voyez `ImagePullBackOff` :
 
 ```bash
-# Rollback vers la version précédente
-kubectl rollout undo deployment/diaspomoney-app -n diaspomoney-prod
-
-# Rollback vers une version spécifique
-kubectl rollout undo deployment/diaspomoney-app \
-  --to-revision=2 \
-  -n diaspomoney-prod
-```
-
-## 📦 Scaling
-
-### Scaling manuel
-
-```bash
-# Changer le nombre de replicas
-kubectl scale deployment diaspomoney-app --replicas=5 -n diaspomoney-prod
-```
-
-### Scaling automatique (HPA)
-
-Le HPA est configuré dans `k8s/app/hpa.yaml`. Il scale automatiquement entre 2 et 10 replicas.
-
-```bash
-# Vérifier le HPA
-kubectl get hpa -n diaspomoney-prod
-
-# Détails du HPA
-kubectl describe hpa diaspomoney-app-hpa -n diaspomoney-prod
-```
-
-## 💾 Backup et Restore
-
-### Backup MongoDB
-
-```bash
-./k8s/scripts/backup-mongodb.sh diaspomoney-prod
-```
-
-Le backup sera sauvegardé dans `./backups/mongodb-YYYYMMDD-HHMMSS.tar.gz`
-
-### Restore MongoDB
-
-```bash
-./k8s/scripts/restore-mongodb.sh ./backups/mongodb-20231108-120000.tar.gz diaspomoney-prod
-```
-
-⚠️ **Attention** : Le restore supprime les données existantes (`--drop`)
-
-## 🔒 Sécurité
-
-### Network Policies
-
-Les Network Policies sont dans `k8s/network-policies/`. Elles restreignent la communication entre pods.
-
-```bash
-kubectl apply -f k8s/network-policies/
-```
-
-### RBAC
-
-Les ServiceAccounts et RBAC sont dans `k8s/rbac/`.
-
-```bash
-kubectl apply -f k8s/rbac/
-```
-
-### Secrets Management
-
-Pour une meilleure sécurité, utilisez un gestionnaire de secrets externe :
-- **HashiCorp Vault**
-- **AWS Secrets Manager**
-- **Azure Key Vault**
-- **Google Secret Manager**
-
-## 🐛 Troubleshooting
-
-### Pods en CrashLoopBackOff
-
-```bash
-# Vérifier les logs
-kubectl logs <pod-name> -n diaspomoney-prod
+# Décrire le pod pour voir l'erreur
+kubectl describe pod <pod-name> -n diaspomoney
 
 # Vérifier les événements
-kubectl describe pod <pod-name> -n diaspomoney-prod
+kubectl get events -n diaspomoney
 
-# Vérifier les ressources
-kubectl top pod <pod-name> -n diaspomoney-prod
+# Vérifier la configuration du registry
+cat /etc/rancher/k3s/registries.yaml
 ```
 
-### Problèmes de connexion
+---
+
+## 🔄 Automatisation CI/CD
+
+### GitHub Actions
+
+Voir `.github/workflows/deploy-k8s.yml` pour un exemple complet.
+
+### Déploiement manuel avec tags
+
+Pour utiliser des tags immuables (recommandé) :
 
 ```bash
-# Tester la connexion MongoDB
-kubectl exec -it deployment/diaspomoney-app -n diaspomoney-prod -- sh
-# Puis dans le shell:
-# mongosh mongodb://mongodb:27017/diaspomoney
+# Build avec tag git SHA
+GIT_SHA=$(git rev-parse --short HEAD)
+docker build -t localhost:5000/diaspomoney:${GIT_SHA} .
+docker push localhost:5000/diaspomoney:${GIT_SHA}
 
-# Tester la connexion Redis
-kubectl exec -it deployment/diaspomoney-app -n diaspomoney-prod -- sh
-# Puis dans le shell:
-# redis-cli -h redis -p 6379 -a $REDIS_PASSWORD ping
+# Mettre à jour le deployment
+kubectl set image deployment/diaspomoney-dev \
+  diaspomoney-dev=localhost:5000/diaspomoney:${GIT_SHA} \
+  -n diaspomoney
+
+# Rollout restart
+kubectl rollout restart deployment/diaspomoney-dev -n diaspomoney
 ```
 
-### Problèmes d'Ingress
+---
 
-```bash
-# Vérifier l'Ingress
-kubectl describe ingress diaspomoney-ingress -n diaspomoney-prod
+## 🛠️ Dépannage
 
-# Vérifier les certificats TLS
-kubectl get certificate -n diaspomoney-prod
-```
+### Pod en état ImagePullBackOff
 
-### Problèmes de ressources
+1. Vérifier que l'image existe dans le registry :
+   ```bash
+   curl http://localhost:5000/v2/diaspomoney/tags/list
+   ```
 
-```bash
-# Vérifier les limites
-kubectl describe pod <pod-name> -n diaspomoney-prod | grep -A 5 "Limits"
+2. Vérifier la configuration du registry K3s :
+   ```bash
+   cat /etc/rancher/k3s/registries.yaml
+   ```
 
-# Vérifier les quotas
-kubectl describe quota -n diaspomoney-prod
-```
+3. Redémarrer K3s :
+   ```bash
+   sudo systemctl restart k3s
+   ```
 
-## 📚 Ressources supplémentaires
+### Pod en état CrashLoopBackOff
 
+1. Consulter les logs :
+   ```bash
+   kubectl logs <pod-name> -n diaspomoney --previous
+   ```
+
+2. Vérifier les variables d'environnement :
+   ```bash
+   kubectl describe pod <pod-name> -n diaspomoney
+   ```
+
+3. Vérifier les health checks :
+   ```bash
+   kubectl exec <pod-name> -n diaspomoney -- curl http://localhost:3000/
+   ```
+
+### Service non accessible
+
+1. Vérifier que le service pointe vers les bons pods :
+   ```bash
+   kubectl get endpoints -n diaspomoney
+   ```
+
+2. Tester depuis un pod :
+   ```bash
+   kubectl run test-pod --image=curlimages/curl -it --rm -- \
+     curl http://diaspomoney-dev-service.diaspomoney:80
+   ```
+
+### Ingress non fonctionnel
+
+1. Vérifier que Traefik est installé :
+   ```bash
+   kubectl get pods -n kube-system | grep traefik
+   ```
+
+2. Vérifier les annotations de l'ingress :
+   ```bash
+   kubectl describe ingress diaspomoney-dev-ingress -n diaspomoney
+   ```
+
+---
+
+## 📝 Bonnes pratiques
+
+1. **Tags immuables** : Utilisez des tags basés sur le SHA git plutôt que `:dev`, `:rct`, `:prod`
+2. **Secrets** : Utilisez Kubernetes Secrets pour les variables sensibles
+3. **Health checks** : Configurez des probes significatives
+4. **Ressources** : Définissez des requests et limits appropriés
+5. **Multi-réplicas** : Utilisez au moins 2 réplicas en production
+6. **Monitoring** : Configurez Prometheus et Grafana pour le monitoring
+7. **Backup** : Mettez en place des backups réguliers de MongoDB
+
+---
+
+## 🔗 Ressources supplémentaires
+
+- [Documentation K3s](https://k3s.io/)
 - [Documentation Kubernetes](https://kubernetes.io/docs/)
-- [Kustomize](https://kustomize.io/)
-- [Cert-Manager](https://cert-manager.io/)
-- [Nginx Ingress Controller](https://kubernetes.github.io/ingress-nginx/)
-- [Traefik Ingress Controller](https://doc.traefik.io/traefik/providers/kubernetes-ingress/)
+- [Documentation Traefik](https://doc.traefik.io/traefik/)
+
+---
+
+**Dernière mise à jour** : $(date)
 

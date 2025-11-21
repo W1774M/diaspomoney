@@ -6,48 +6,10 @@
 
 import { auth } from '@/auth';
 import { handleApiRoute, ApiErrors, validateBody } from '@/lib/api/error-handler';
+import { ConfirmPaymentSchema, type ConfirmPaymentInput } from '@/lib/validations/booking-payment.schema';
 import { emailService } from '@/services/email/email.service';
 import { logger } from '@/lib/logger';
 import { NextRequest } from 'next/server';
-import { z } from 'zod';
-
-/**
- * Schéma de validation pour la confirmation de paiement
- */
-const ConfirmPaymentSchema = z.object({
-  appointment: z.object({
-    _id: z.string().optional(),
-    id: z.string().optional(),
-    selectedService: z.object({
-      name: z.string(),
-      price: z.number(),
-    }).optional(),
-    provider: z.object({
-      id: z.string(),
-      name: z.string(),
-    }).optional(),
-    requester: z.object({
-      firstName: z.string(),
-      lastName: z.string(),
-      email: z.string().email(),
-      phone: z.string().optional(),
-    }).optional(),
-    recipient: z.object({
-      firstName: z.string(),
-      lastName: z.string(),
-      phone: z.string().optional(),
-    }).optional(),
-    timeslot: z.string().optional(),
-  }),
-  paymentData: z.object({
-    amount: z.number().positive(),
-    currency: z.string().length(3),
-    cardNumber: z.string().optional(),
-    expiryDate: z.string().optional(),
-    cvv: z.string().optional(),
-    cardholderName: z.string().optional(),
-  }),
-});
 
 /**
  * POST /api/bookings/confirm-payment - Confirmer le paiement d'une réservation
@@ -61,9 +23,9 @@ export async function POST(request: NextRequest) {
         throw ApiErrors.UNAUTHORIZED;
       }
 
-      // Valider le body avec Zod
+      // Validation avec Zod
       const body = await request.json();
-      const validatedData = validateBody(body, ConfirmPaymentSchema);
+      const validatedData: ConfirmPaymentInput = validateBody(body, ConfirmPaymentSchema);
 
       const { appointment, paymentData } = validatedData;
 

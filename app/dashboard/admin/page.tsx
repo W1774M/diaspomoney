@@ -2,9 +2,8 @@
 
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import DashboardQuickActions from '@/components/dashboard/DashboardQuickActions';
-import DashboardStats from '@/components/dashboard/DashboardStats';
+import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
 import { useAuth } from '@/hooks';
-import { useDashboardStats } from '@/hooks/dashboard';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -12,11 +11,6 @@ export default function AdminDashboardPage() {
   const { isAuthenticated, isLoading, user, isAdmin } = useAuth();
   const router = useRouter();
 
-  const stats = useDashboardStats({
-    userId: user?.id || '',
-    isAdmin: true,
-    isCSM: false,
-  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -48,7 +42,7 @@ export default function AdminDashboardPage() {
         userName={user?.name || 'Administrateur'}
         subtitle='Tableau de bord administrateur - Gérez votre plateforme Diaspomoney'
       />
-      <DashboardStats stats={stats} isAdmin={true} isCSM={false} />
+      <RoleSpecificStats userId={user?.id} />
       <DashboardQuickActions isAdmin={true} isCSM={false} />
     </div>
   );

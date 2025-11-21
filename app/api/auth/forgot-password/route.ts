@@ -1,20 +1,32 @@
+import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
+// Désactiver le prerendering pour cette route API
+export const dynamic = 'force-dynamic';
+
+import { logger } from '@/lib/logger';
+import { ForgotPasswordSchema, type ForgotPasswordInput } from '@/lib/validations/auth.schema';
 import { requestPasswordReset } from '@/services/auth/auth.service';
 import { userService } from '@/services/user/user.service';
 import * as crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Désactiver le prerendering pour cette route API
+;
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
-  try {
+  return handleApiRoute(request, async () => {
     // Skip during build time
-    if (process.env['NODE_ENV'] === 'production' && process.env['NEXT_PHASE'] === 'phase-production-build') {
+    const isBuildTime = process.env['NEXT_PHASE'] === 'phase-production-build' || 
+                        process.env['NEXT_PHASE'] === 'phase-development-build';
+    if (isBuildTime) {
       return NextResponse.json({ success: true, message: 'Service temporarily unavailable' }, { status: 503 });
     }
 
-    const { email } = await request.json();
-
-    if (!email) {
-      return NextResponse.json({ error: 'Email requis' }, { status: 400 });
-    }
+    // Validation avec Zod
+    const body = await request.json();
+    const data: ForgotPasswordInput = validateBody(body, ForgotPasswordSchema);
+    
+    const { email } = data;
 
     try {
       // Vérifier si l'utilisateur existe dans la base de données
@@ -34,30 +46,14 @@ export async function POST(request: NextRequest) {
       // Envoyer l'email de réinitialisation (seulement si Resend est configuré)
       if (process.env['RESEND_API_KEY']) {
         await requestPasswordReset(email);
-        console.log(`Email de récupération envoyé à ${email}`);
+        logger.info({ email: email }, 'Email de récupération envoyé');
       } else {
-        console.log(`Token de récupération généré pour ${email}: ${resetToken} (email non envoyé - RESEND_API_KEY non configuré)`);
+        logger.warn({ email: email, resetToken: resetToken }, 'Token de récupération généré (email non envoyé - RESEND_API_KEY non configuré)');
       }
-    } catch (_error) {
-      // L'utilisateur n'existe pas, mais on ne révèle pas cette information
-      console.log(
-        `Tentative de récupération pour un email inexistant: ${email}`,
-      );
+    } catch (error) {
+      logger.error({ error: error }, 'Error requesting password reset');
     }
 
-    // Pour des raisons de sécurité, on ne révèle pas si l'email existe ou non
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Si cet email existe, vous recevrez un lien de récupération',
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    console.error('Erreur récupération mot de passe:', error);
-    return NextResponse.json(
-      { error: 'Erreur interne du serveur' },
-      { status: 500 },
-    );
-  }
+    return NextResponse.json({ success: true, message: 'Si cet email existe, vous recevrez un lien de récupération' }, { status: 200 });
+  }, 'api/auth/forgot-password');
 }

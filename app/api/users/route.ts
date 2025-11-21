@@ -1,4 +1,7 @@
 /**
+// Désactiver le prerendering pour cette route API
+;
+
  * API Route pour les utilisateurs
  * Implémente les design patterns :
  * - Service Layer Pattern (via userRepository)

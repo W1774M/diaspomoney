@@ -1,6 +1,7 @@
 "use client";
 
 import { UsersFiltersProps } from "@/lib/types";
+import { ROLES, USER_STATUSES } from "@/lib/constants";
 import { Search } from "lucide-react";
 import React, { useCallback } from "react";
 
@@ -63,10 +64,10 @@ const UsersFilters = React.memo<UsersFiltersProps>(function UsersFilters({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="ALL">Tous les rôles</option>
-            <option value="ADMIN">Administrateur</option>
-            <option value="PROVIDER">Prestataire</option>
-            <option value="CUSTOMER">Client</option>
-            <option value="CSM">CSM</option>
+            <option value={ROLES.ADMIN}>Administrateur</option>
+            <option value={ROLES.PROVIDER}>Prestataire</option>
+            <option value={ROLES.CUSTOMER}>Client</option>
+            <option value={ROLES.CSM}>CSM</option>
           </select>
         </div>
 
@@ -81,10 +82,10 @@ const UsersFilters = React.memo<UsersFiltersProps>(function UsersFilters({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="ALL">Tous les statuts</option>
-            <option value="ACTIVE">Actif</option>
-            <option value="INACTIVE">Inactif</option>
-            <option value="PENDING">En attente</option>
-            <option value="SUSPENDED">Suspendu</option>
+            <option value={USER_STATUSES.ACTIVE}>Actif</option>
+            <option value={USER_STATUSES.INACTIVE}>Inactif</option>
+            <option value={USER_STATUSES.PENDING}>En attente</option>
+            <option value={USER_STATUSES.SUSPENDED}>Suspendu</option>
           </select>
         </div>
       </div>

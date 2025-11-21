@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/hooks';
+import { ROLES } from '@/lib/constants';
 import { ChevronDown, HelpCircle, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -132,18 +133,18 @@ export default function FAQPage() {
 
   // Déterminer le rôle principal pour afficher la FAQ appropriée
   const getPrimaryRole = () => {
-    if (!user?.roles || user.roles.length === 0) return 'CUSTOMER';
-    if (user.roles.includes('ADMIN') || user.roles.includes('SUPERADMIN'))
-      return 'ADMIN';
-    if (user.roles.includes('CSM')) return 'CSM';
-    if (user.roles.includes('PROVIDER')) return 'PROVIDER';
-    if (user.roles.includes('CUSTOMER')) return 'CUSTOMER';
-    if (user.roles.includes('BENEFICIARY')) return 'BENEFICIARY';
-    return 'CUSTOMER';
+    if (!user?.roles || user.roles.length === 0) return ROLES.CUSTOMER;
+    if (user.roles.includes(ROLES.ADMIN) || user.roles.includes(ROLES.SUPERADMIN))
+      return ROLES.ADMIN;
+    if (user.roles.includes(ROLES.CSM)) return ROLES.CSM;
+    if (user.roles.includes(ROLES.PROVIDER)) return ROLES.PROVIDER;
+    if (user.roles.includes(ROLES.CUSTOMER)) return ROLES.CUSTOMER;
+    if (user.roles.includes(ROLES.BENEFICIARY)) return ROLES.BENEFICIARY;
+    return ROLES.CUSTOMER;
   };
 
   const primaryRole = getPrimaryRole();
-  const faqs = faqData[primaryRole] || faqData['CUSTOMER'] || [];
+  const faqs = faqData[primaryRole] || faqData[ROLES.CUSTOMER] || [];
   const categories = Array.from(new Set(faqs.map(faq => faq.category)));
 
   const toggleItem = (id: string) => {

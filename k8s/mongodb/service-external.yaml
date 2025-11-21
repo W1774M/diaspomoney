@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: diaspomoney-mongo-external
+  namespace: diaspomoney
+  labels:
+    app: diaspomoney-mongo
+    purpose: external-access
+spec:
+  type: NodePort
+  selector:
+    app: diaspomoney-mongo
+  ports:
+  - port: 27017
+    targetPort: 27017
+    protocol: TCP
+    name: mongodb
+    # NodePort sera assigné automatiquement entre 30000-32767
+    # Ou vous pouvez spécifier un port fixe (ex: nodePort: 30017)
+    nodePort: 30017
+---
+# Service LoadBalancer alternatif (si votre cluster le supporte)
+# Décommentez si vous préférez LoadBalancer au lieu de NodePort
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: diaspomoney-mongo-external-lb
+#   namespace: diaspomoney
+#   labels:
+#     app: diaspomoney-mongo
+#     purpose: external-access
+# spec:
+#   type: LoadBalancer
+#   selector:
+#     app: diaspomoney-mongo
+#   ports:
+#   - port: 27017
+#     targetPort: 27017
+#     protocol: TCP
+#     name: mongodb
+

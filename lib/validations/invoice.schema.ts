@@ -49,7 +49,27 @@ export const CreateInvoiceSchema = z.object({
 });
 
 /**
+ * Schéma pour mettre à jour une facture
+ */
+export const UpdateInvoiceSchema = z.object({
+  amount: z.number().positive('Amount must be positive').optional(),
+  currency: z.string().length(3, 'Currency must be 3 characters').optional(),
+  items: z.array(InvoiceItemSchema).optional(),
+  tax: z.number().nonnegative('Tax cannot be negative').optional(),
+  dueDate: z.string().datetime().optional().or(z.date().optional()),
+  status: z.enum(['DRAFT', 'PENDING', 'PAID', 'OVERDUE', 'CANCELLED'], {
+    errorMap: () => ({ message: 'Invalid invoice status' }),
+  }).optional(),
+  invoiceNumber: z.string().optional(),
+  issueDate: z.string().datetime().optional().or(z.date().optional()),
+  paidDate: z.string().datetime().optional().or(z.date().optional()),
+  notes: z.string().max(1000).optional(),
+  providerId: z.string().optional(),
+});
+
+/**
  * Type TypeScript dérivé du schéma
  */
 export type CreateInvoiceInput = z.infer<typeof CreateInvoiceSchema>;
+export type UpdateInvoiceInput = z.infer<typeof UpdateInvoiceSchema>;
 

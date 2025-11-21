@@ -16,6 +16,7 @@ import {
 } from '@/lib/auth/auth-cache';
 import { useEffect, useRef, useState } from 'react';
 import { useSignOut } from './useSignOut';
+import { ROLES, USER_STATUSES } from '@/lib/constants';
 
 interface User {
   phone: string;
@@ -62,15 +63,15 @@ export function useAuth() {
         id: me.id,
         email: me.email,
         name: me.name,
-        roles: me.roles || ['CUSTOMER'],
-        status: me.status || 'ACTIVE',
+        roles: me.roles || [ROLES.CUSTOMER],
+        status: me.status || USER_STATUSES.ACTIVE,
         avatar: me.avatar || { image: '', name: me.name },
         oauth: me.oauth || {},
         phone: me.phone || '',
         company: me.company || '',
         address: me.address || '',
       });
-      setIsAuthenticated((me.status || 'ACTIVE') === 'ACTIVE');
+      setIsAuthenticated((me.status || USER_STATUSES.ACTIVE) === USER_STATUSES.ACTIVE);
       setIsLoading(false);
       return;
     }
@@ -93,7 +94,7 @@ export function useAuth() {
             company: me.company || '',
             address: me.address || '',
           });
-          setIsAuthenticated((me.status || 'ACTIVE') === 'ACTIVE');
+          setIsAuthenticated((me.status || USER_STATUSES.ACTIVE) === USER_STATUSES.ACTIVE);
         })
         .catch(() => {
           setUser(null);
@@ -149,7 +150,7 @@ export function useAuth() {
           company: me.company || '',
           address: me.address || '',
         });
-        setIsAuthenticated((me.status || 'ACTIVE') === 'ACTIVE');
+        setIsAuthenticated((me.status || USER_STATUSES.ACTIVE) === USER_STATUSES.ACTIVE);
         return data;
       })
       .catch(error => {
@@ -208,15 +209,15 @@ export function useAuth() {
         id: me.id,
         email: me.email,
         name: me.name,
-        roles: me.roles || ['CUSTOMER'],
-        status: me.status || 'ACTIVE',
+        roles: me.roles || [ROLES.CUSTOMER],
+        status: me.status || USER_STATUSES.ACTIVE,
         avatar: me.avatar || { image: '', name: me.name },
         oauth: me.oauth || {},
         phone: me.phone || '',
         company: me.company || '',
         address: me.address || '',
       });
-      setIsAuthenticated((me.status || 'ACTIVE') === 'ACTIVE');
+      setIsAuthenticated((me.status || USER_STATUSES.ACTIVE) === USER_STATUSES.ACTIVE);
     } catch (_error) {
       // Logging silencieux côté client - les erreurs sont gérées par le state
       setUser(null);
@@ -227,10 +228,10 @@ export function useAuth() {
     }
   };
 
-  const isAdmin = () => user?.roles.includes('ADMIN') || false;
-  const isProvider = () => user?.roles.includes('PROVIDER') || false;
-  const isCSM = () => user?.roles.includes('CSM') || false;
-  const isCustomer = () => user?.roles.includes('CUSTOMER') || false;
+  const isAdmin = () => user?.roles.includes(ROLES.ADMIN) || false;
+  const isProvider = () => user?.roles.includes(ROLES.PROVIDER) || false;
+  const isCSM = () => user?.roles.includes(ROLES.CSM) || false;
+  const isCustomer = () => user?.roles.includes(ROLES.CUSTOMER) || false;
 
   return {
     user,

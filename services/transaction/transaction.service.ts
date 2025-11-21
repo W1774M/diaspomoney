@@ -14,6 +14,8 @@
 import { SPECIALITY_TYPES, PAYMENT_METHODS } from '@/lib/constants';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
+import { CreateTransactionServiceSchema } from '@/lib/validations/transaction-service.schema';
 import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import { securityManager } from '@/lib/security/advanced-security';
@@ -53,21 +55,18 @@ export class TransactionService {
    * Créer une nouvelle transaction
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: CreateTransactionServiceSchema.passthrough(),
+        paramName: 'data',
+      },
+    ],
+  })
   @InvalidateCache('TransactionService:*')
   async createTransaction(data: TransactionData): Promise<Transaction> {
     try {
-      // Validation des données nécessaires
-      if (
-        !data.payerId ||
-        !data.beneficiaryId ||
-        typeof data.amount !== 'number' ||
-        !data.currency
-      ) {
-        throw new Error('Données de transaction incomplètes');
-      }
-      if (data.amount <= 0) {
-        throw new Error('Le montant doit être positif');
-      }
 
       // Vérifier que le payeur existe et est actif
       const payer = await userService.getUserProfile(data.payerId);
@@ -193,7 +192,7 @@ export class TransactionService {
   ): Promise<Transaction[]> {
     try {
       // Séparer pagination des vrais filtres
-      const { limit = 50, offset = 0, ...otherFilters } = filters as any;
+      const { limit: _limit = 50, offset: _offset = 0, ...otherFilters } = filters as any;
 
       // Convertir TransactionFilters (types/transaction) vers RepositoryTransactionFilters
       // Le repository attend status?: TransactionStatus (single) mais types/transaction a status?: TransactionStatus[] (array)

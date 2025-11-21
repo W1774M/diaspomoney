@@ -2,6 +2,7 @@
 
 import { useAuth, useUsers } from "@/hooks";
 import { useUserFilters } from "@/hooks/users";
+import { ROLES, USER_STATUSES } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import UsersFilters from "./UsersFilters";
@@ -14,16 +15,16 @@ const UsersPage = React.memo(function UsersPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<
-    "ADMIN" | "PROVIDER" | "CUSTOMER" | "CSM" | "ALL"
+    typeof ROLES.ADMIN | typeof ROLES.PROVIDER | typeof ROLES.CUSTOMER | typeof ROLES.CSM | "ALL"
   >("ALL");
   const [statusFilter, setStatusFilter] = useState<
-    "ACTIVE" | "INACTIVE" | "PENDING" | "SUSPENDED" | "ALL"
+    typeof USER_STATUSES.ACTIVE | typeof USER_STATUSES.INACTIVE | typeof USER_STATUSES.PENDING | typeof USER_STATUSES.SUSPENDED | "ALL"
   >("ALL");
 
   const { users = [], loading } = useUsers({
     role: roleFilter !== "ALL" ? roleFilter : undefined,
     status: statusFilter !== "ALL" ? statusFilter : undefined,
-    limit: 1000,
+    limit: 100, // Maximum autorisé par l'API
   });
 
   const [localUsers, setLocalUsers] = useState(users);
@@ -80,7 +81,7 @@ const UsersPage = React.memo(function UsersPage() {
   );
 
   const handleRoleChange = useCallback(
-    (value: "ADMIN" | "PROVIDER" | "CUSTOMER" | "CSM" | "ALL") => {
+    (value: typeof ROLES.ADMIN | typeof ROLES.PROVIDER | typeof ROLES.CUSTOMER | typeof ROLES.CSM | "ALL") => {
       setRoleFilter(value);
       updateFilter("roleFilter", value);
     },
@@ -88,7 +89,7 @@ const UsersPage = React.memo(function UsersPage() {
   );
 
   const handleStatusChange = useCallback(
-    (value: "ACTIVE" | "INACTIVE" | "PENDING" | "SUSPENDED" | "ALL") => {
+    (value: typeof USER_STATUSES.ACTIVE | typeof USER_STATUSES.INACTIVE | typeof USER_STATUSES.PENDING | typeof USER_STATUSES.SUSPENDED | "ALL") => {
       setStatusFilter(value);
       updateFilter("statusFilter", value);
     },

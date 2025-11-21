@@ -1,7 +1,8 @@
-"use client";
+'use client';
 
-import { DashboardServicesPage } from "@/components/dashboard-services";
+import DashboardServicesPage from '@/components/dashboard-services/DashboardServicesPage';
 
-export default function Services() {
+export default function ServicesPage() {
   return <DashboardServicesPage />;
 }
+

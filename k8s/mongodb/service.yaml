@@ -1,20 +1,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mongodb
-  namespace: diaspomoney-prod
+  name: diaspomoney-mongo
+  namespace: diaspomoney
   labels:
-    app: diaspomoney
-    component: mongodb
+    app: diaspomoney-mongo
 spec:
-  type: ClusterIP
-  clusterIP: None
+  selector:
+    app: diaspomoney-mongo
   ports:
   - port: 27017
     targetPort: 27017
     protocol: TCP
     name: mongodb
-  selector:
-    app: diaspomoney
-    component: mongodb
-
+  type: ClusterIP

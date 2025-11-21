@@ -34,7 +34,6 @@ export const useProviders = (filters: ProviderFilters = {}) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
-  const [hasInitialized, setHasInitialized] = useState(false);
 
   const fetchProviders = useCallback(
     async (customFilters?: ProviderFilters) => {
@@ -63,12 +62,10 @@ export const useProviders = (filters: ProviderFilters = {}) => {
         const data = await response.json();
         setProviders(data.providers || []);
         setTotal(data.total || 0);
-        setHasInitialized(true);
       } catch (error) {
         setError(error instanceof Error ? error.message : "Erreur inconnue");
         setProviders([]);
         setTotal(0);
-        setHasInitialized(true);
       } finally {
         setLoading(false);
       }
@@ -77,12 +74,10 @@ export const useProviders = (filters: ProviderFilters = {}) => {
   );
 
   useEffect(() => {
-    // Éviter les appels répétés si on a déjà initialisé et qu'il n'y a pas de providers
-    if (hasInitialized && providers.length === 0 && !loading) {
-      return;
-    }
+    // Exécuter uniquement au montage ou quand les filtres changent
     fetchProviders();
-  }, [fetchProviders, hasInitialized, providers.length, loading]);
+     
+  }, [fetchProviders]);
 
   return {
     providers,

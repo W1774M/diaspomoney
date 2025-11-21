@@ -93,7 +93,9 @@ export default function HistoricalOrderCard({
           ) : (
             <div className='w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center'>
               <span className='text-gray-500 text-sm font-medium'>
-                {order.providerName.charAt(0).toUpperCase()}
+                {order.providerName && order.providerName.length > 0 
+                  ? order.providerName.charAt(0).toUpperCase() 
+                  : '?'}
               </span>
             </div>
           )}

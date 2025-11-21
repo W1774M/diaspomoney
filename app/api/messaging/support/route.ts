@@ -8,7 +8,10 @@
  */
 
 import { auth } from '@/auth';
+import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
+import { CreateSupportMessageSchema, type CreateSupportMessageInput } from '@/lib/validations/message.schema';
+import dbConnect from '@/lib/mongodb';
 import { messagingService } from '@/services/messaging/messaging.service';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -22,6 +25,9 @@ export async function GET(_request: NextRequest) {
       log.warn({ msg: 'Unauthorized access attempt' });
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
+
+    // S'assurer que MongoDB est connecté avant d'utiliser les modèles
+    await dbConnect();
 
     const userId = session.user.id;
     log.debug({ userId }, 'Fetching support ticket');
@@ -65,7 +71,7 @@ export async function POST(request: NextRequest) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({ requestId: reqId, route: 'api/messaging/support' });
 
-  try {
+  return handleApiRoute(request, async () => {
     const session = await auth();
     if (!session?.user?.id) {
       log.warn({ msg: 'Unauthorized access attempt' });
@@ -73,27 +79,21 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id;
-    const { text, attachments } = await request.json();
+    
+    // Validation avec Zod
+    const body = await request.json();
+    const data: CreateSupportMessageInput = validateBody(body, CreateSupportMessageSchema);
 
     log.debug(
-      { userId, hasText: !!text, attachmentCount: attachments?.length || 0 },
+      { userId, hasText: !!data.text, attachmentCount: data.attachments?.length || 0 },
       'Sending support message',
     );
-
-    // Permettre l'envoi de messages avec uniquement des attachments
-    if (!text && (!attachments || attachments.length === 0)) {
-      log.warn({ userId }, 'Message rejected: no text or attachments');
-      return NextResponse.json(
-        { error: 'Texte du message ou pièce jointe requis' },
-        { status: 400 },
-      );
-    }
 
     // Utiliser le service pour envoyer le message
     const message = await messagingService.sendSupportMessage(
       userId,
-      text || '',
-      attachments,
+      data.text || '',
+      data.attachments,
     );
 
     log.info(
@@ -115,14 +115,5 @@ export async function POST(request: NextRequest) {
         attachments: message.attachments || [],
       },
     });
-  } catch (error) {
-    log.error(
-      { error, msg: 'Error sending support message' },
-      'Error sending support message',
-    );
-    return NextResponse.json(
-      { error: "Erreur lors de l'envoi du message" },
-      { status: 500 },
-    );
-  }
+  }, 'api/messaging/support');
 }

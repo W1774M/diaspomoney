@@ -128,7 +128,7 @@ export class MongoUserRepository implements IUserRepository {
         oauth?: unknown;
       };
       const userDataTyped = data as UserDataWithExtras;
-      const { _id, id, ...dataWithoutIds } = userDataTyped;
+      const { _id, id: _idUnused, ...dataWithoutIds } = userDataTyped;
       const userData: OptionalId<Document> = {
         ...dataWithoutIds,
         createdAt: now,

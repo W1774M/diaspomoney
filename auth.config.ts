@@ -525,48 +525,34 @@ export const authConfig: NextAuthOptions = {
 
       log.debug({ url, baseUrl }, 'Processing redirect');
 
-      // Si l'URL est relative, retourner une URL relative
+      // STRATÉGIE: Toujours retourner des chemins relatifs
+      // Kubernetes/Traefik gère le routage entre les environnements
+      // Next.js ne doit utiliser que des redirections internes (chemins relatifs)
+
+      // Si l'URL est déjà relative, la retourner telle quelle
       if (url && url.startsWith('/')) {
-        if (url.startsWith('/dashboard')) {
-          log.debug({ url }, 'Relative redirect to dashboard');
+        log.debug({ url }, 'Relative URL, returning as-is');
           return url;
-        }
-        log.debug('Default redirect to /dashboard');
-        return '/dashboard';
       }
 
-      // Si l'URL est absolue, vérifier qu'elle est sur le bon domaine
+      // Si l'URL est absolue, extraire uniquement le chemin
+      // Ignorer complètement le domaine - Kubernetes gère le routage
       try {
-        // Vérifier que url est valide avant de créer l'URL
         if (!url || url.trim() === '') {
           log.warn('Empty URL, redirecting to /dashboard');
           return '/dashboard';
         }
 
         const urlObj = new URL(url);
-
-        // Vérifier que baseUrl est valide avant de créer l'URL
-        if (!baseUrl || baseUrl.trim() === '') {
-          // Si baseUrl est invalide, extraire juste le chemin de l'URL
-          log.warn(
-            { pathname: urlObj.pathname },
-            'Invalid base URL, extracting path',
-          );
-          return urlObj.pathname + urlObj.search || '/dashboard';
-        }
-
-        const baseUrlObj = new URL(baseUrl);
-
-        if (urlObj.origin === baseUrlObj.origin) {
-          log.debug({ url }, 'Redirecting to authorized URL');
-          return url;
-        }
+        const relativePath = urlObj.pathname + urlObj.search;
 
         log.debug(
-          { pathname: urlObj.pathname },
-          'External URL detected, extracting path',
+          { originalUrl: url, relativePath },
+          'Extracted relative path from absolute URL',
         );
-        return urlObj.pathname + urlObj.search;
+        
+        // Retourner uniquement le chemin relatif
+        return relativePath || '/dashboard';
       } catch (error) {
         log.warn({ error, url }, 'Invalid URL, redirecting to /dashboard');
         Sentry.captureException(error, {

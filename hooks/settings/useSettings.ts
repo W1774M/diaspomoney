@@ -3,7 +3,6 @@
 import { useAuth } from '@/hooks';
 import { LANGUAGES, TIMEZONES } from '@/lib/constants';
 import {
-  BillingData,
   PreferencesData,
   PrivacyData,
   ProfileData,
@@ -47,12 +46,6 @@ export function useSettings() {
     newPassword: '',
     confirmPassword: '',
     twoFactorEnabled: false,
-  });
-
-  const [billingData, setBillingData] = useState<BillingData>({
-    paymentMethod: '',
-    billingAddress: '',
-    taxId: '',
   });
 
   const [privacyData, setPrivacyData] = useState<PrivacyData>({
@@ -203,7 +196,6 @@ export function useSettings() {
       profileData,
       preferencesData,
       securityData,
-      billingData,
       privacyData,
       complaintsData,
     ],
@@ -219,8 +211,6 @@ export function useSettings() {
     setPreferencesData,
     securityData,
     setSecurityData,
-    billingData,
-    setBillingData,
     privacyData,
     setPrivacyData,
     complaintsData,

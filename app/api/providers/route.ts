@@ -8,53 +8,19 @@
  * - Validation Pattern (via CreateProviderSchema, ProviderFiltersSchema)
  */
 
+// Désactiver le prerendering pour cette route API
+// Elle nécessite une connexion MongoDB qui n'est pas disponible pendant le build
+;
+
 import { UserQueryBuilder } from '@/builders';
 import { handleApiRoute, validateBody, validateQuery } from '@/lib/api/error-handler';
 import { PROVIDER_CONSTANTS, USER_STATUSES } from '@/lib/constants/index';
-import type { PaginationOptions, UserFilters, UserStatus } from '@/lib/types';
+import type { PaginationOptions, ProviderInfo, UserFilters, UserStatus } from '@/lib/types';
+import { CreateProviderSchema, ProviderFiltersSchema } from '@/lib/validations/provider.schema';
 import { getUserRepository } from '@/repositories';
 import { userService } from '@/services/user/user.service';
 import { NextRequest } from 'next/server';
-
-// Import schemas directly to avoid validation import errors
 import { z } from 'zod';
-
-// Define ProviderFiltersSchema here (fix import)
-export const ProviderFiltersSchema = z.object({
-  role: z.string().optional(),
-  status: z.string().optional(),
-  city: z.string().optional(),
-  category: z.string().optional(),
-  specialty: z.string().optional(),
-  service: z.string().optional(),
-  minRating: z.coerce.number().min(0).max(5).optional(),
-  limit: z.coerce.number().int().positive().max(100).default(50).optional(),
-  offset: z.coerce.number().int().min(0).default(0).optional(),
-});
-
-// Define CreateProviderSchema as a basic example for POST (fix import)
-export const CreateProviderSchema = z.object({
-  category: z.string().min(1, 'Category is required').optional(),
-  city: z.string().optional(),
-  specialties: z.array(z.string()).optional(),
-  services: z.array(z.string()).optional(),
-  rating: z.number().min(0).max(5).optional(),
-  // Add required fields here as appropriate
-});
-
-/**
- * Interface pour un provider avec types stricts
- */
-interface Provider {
-  id?: string;
-  _id?: string;
-  category?: string;
-  city?: string;
-  specialties?: string[];
-  services?: string[];
-  rating?: number;
-  [key: string]: unknown;
-}
 
 /**
  * GET /api/providers - Récupérer les providers
@@ -82,9 +48,9 @@ export async function GET(request: NextRequest) {
 
     // Appliquer les filtres de base
     queryBuilder.byRole(role);
-    if (filters.status) {
-      queryBuilder.byStatus(filters.status);
-    }
+    // Par défaut, ne récupérer que les providers ACTIFS
+    const status = filters.status || USER_STATUSES.ACTIVE;
+    queryBuilder.byStatus(status);
     if (filters.city) {
       queryBuilder.byCity(filters.city);
     }
@@ -108,7 +74,9 @@ export async function GET(request: NextRequest) {
       ...(query.pagination.offset !== undefined && { offset: query.pagination.offset }),
       ...(query.sort && { sort: query.sort }),
     };
-    const result = await userRepository.findUsersWithFilters(
+    // Utiliser directement findWithPagination avec les filtres MongoDB du builder
+    // car findUsersWithFilters reconstruit la requête et peut perdre les filtres
+    const result = await (userRepository as any).findWithPagination(
       query.filters,
       pagination,
     );
@@ -118,11 +86,11 @@ export async function GET(request: NextRequest) {
     if (role) {
       serviceFilters.role = role;
     }
-    if (filters.status) {
-      serviceFilters.status = Array.isArray(filters.status)
-        ? (filters.status as any[]).map(s => s as any) as UserStatus[]
-        : [filters.status as any] as UserStatus[];
-    }
+    // Par défaut, ne récupérer que les providers ACTIFS
+    const statusForService = filters.status || USER_STATUSES.ACTIVE;
+    serviceFilters.status = Array.isArray(statusForService)
+      ? (statusForService as any[]).map(s => s as any) as UserStatus[]
+      : [statusForService as any] as UserStatus[];
     if (limit !== undefined) {
       serviceFilters.limit = limit;
     }
@@ -133,7 +101,7 @@ export async function GET(request: NextRequest) {
 
     // Appliquer les filtres supplémentaires côté serveur si nécessaire
     // Utiliser les données du repository (plus complètes) ou du service (fallback)
-    let filteredProviders: Provider[] = (result?.data || serviceResult?.data || []) as Provider[];
+    let filteredProviders: ProviderInfo[] = (result?.data || serviceResult?.data || []) as ProviderInfo[];
 
     // Filtrage par catégorie (si les prestataires ont une propriété category)
     if (filters.category) {
@@ -147,8 +115,10 @@ export async function GET(request: NextRequest) {
           return provider.category === filters.category;
         }
         // Fallback: filtrer par spécialités si pas de catégorie
-        if (provider.specialties && Array.isArray(provider.specialties)) {
-          return provider.specialties.some((spec: string) =>
+        // Note: ProviderInfo utilise 'specialties' (pluriel) mais le schéma centralisé utilise 'specialities'
+        const providerSpecialties = (provider as any).specialties || (provider as any).specialities;
+        if (providerSpecialties && Array.isArray(providerSpecialties)) {
+          return providerSpecialties.some((spec: string) =>
             (categorySpecialties as unknown as string[]).some((catSpec: string) =>
               spec.toLowerCase().includes(catSpec.toLowerCase()),
             ),
@@ -161,37 +131,47 @@ export async function GET(request: NextRequest) {
     // Filtrage par ville
     if (filters.city) {
       filteredProviders = filteredProviders.filter(
-        (provider) =>
-          provider &&
-          provider.city &&
-          typeof provider.city === 'string' &&
-          provider.city.toLowerCase().includes(filters.city!.toLowerCase()),
+        (provider) => {
+          if (!provider) return false;
+          const city = provider['city'] || (provider as any).city;
+          return city &&
+            typeof city === 'string' &&
+            city.toLowerCase().includes(filters.city!.toLowerCase());
+        },
       );
     }
 
     // Filtrage par spécialité
     if (filters.specialty) {
       filteredProviders = filteredProviders.filter(
-        (provider) =>
-          provider &&
-          provider.specialties &&
-          Array.isArray(provider.specialties) &&
-          provider.specialties.some((spec: string) =>
-            spec.toLowerCase().includes(filters.specialty!.toLowerCase()),
-          ),
+        (provider) => {
+          if (!provider) return false;
+          // Gérer les deux variantes : specialties (ProviderInfo) et specialities (schéma)
+          const providerSpecialties = (provider as any).specialties || (provider as any).specialities;
+          return providerSpecialties &&
+            Array.isArray(providerSpecialties) &&
+            providerSpecialties.some((spec: string) =>
+              spec.toLowerCase().includes(filters.specialty!.toLowerCase()),
+            );
+        },
       );
     }
 
     // Filtrage par service
     if (filters.service) {
       filteredProviders = filteredProviders.filter(
-        (provider) =>
-          provider &&
-          provider.services &&
-          Array.isArray(provider.services) &&
-          provider.services.some((serv: string) =>
-            serv.toLowerCase().includes(filters.service!.toLowerCase()),
-          ),
+        (provider) => {
+          if (!provider) return false;
+          const services = provider.services;
+          if (!services || !Array.isArray(services)) return false;
+          return services.some((serv) => {
+            // Gérer les deux cas : Service (objet) ou string
+            const serviceName = typeof serv === 'string' 
+              ? serv 
+              : (serv as any).name || (serv as any).id || String(serv);
+            return serviceName.toLowerCase().includes(filters.service!.toLowerCase());
+          });
+        },
       );
     }
 

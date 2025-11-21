@@ -14,6 +14,7 @@ import { StatusBadge } from '@/components/ui';
 import { useNotificationManager } from '@/components/ui/Notification';
 import { useProviderDetail } from '@/hooks/providers';
 import imageLoader from '@/lib/image-loader';
+import { USER_STATUSES } from '@/lib/constants';
 import type { BookingFormData } from '@/lib/validations';
 import { UserRole } from '@/lib/types';
 import { Building, Calendar, MapPin, Star } from 'lucide-react';
@@ -149,7 +150,7 @@ export default function ProviderDetailPage() {
     <div className='mb-6'>
       <div className='flex items-center gap-3 mb-2'>
         <h1 className='text-3xl font-bold text-gray-900'>{provider.name}</h1>
-        <StatusBadge status='ACTIVE' size='md' />
+        <StatusBadge status={USER_STATUSES.ACTIVE} size='md' />
       </div>
       <p className='text-xl text-gray-600 mb-2'>{provider.specialty}</p>
       {provider.company && (
@@ -178,7 +179,9 @@ export default function ProviderDetailPage() {
         ) : (
           <div className='w-full h-full flex items-center justify-center bg-gray-200'>
             <span className='text-gray-500 text-6xl'>
-              {provider.name?.charAt(0).toUpperCase() || '?'}
+              {provider.name && provider.name.length > 0 
+                ? provider.name.charAt(0).toUpperCase() 
+                : '?'}
             </span>
           </div>
         )}

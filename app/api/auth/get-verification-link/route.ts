@@ -1,4 +1,7 @@
 /**
+// Désactiver le prerendering pour cette route API
+
+
  * API Route - Get Verification Link
  * Endpoint pour obtenir le lien de vérification (pour les tests)
  */

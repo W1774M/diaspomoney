@@ -47,7 +47,22 @@ export const CreateBookingSchema = z.object({
 });
 
 /**
+ * Schéma pour mettre à jour une réservation
+ */
+export const UpdateBookingSchema = z.object({
+  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW'], {
+    errorMap: () => ({ message: 'Invalid booking status' }),
+  }).optional(),
+  appointmentDate: z.string().datetime().optional().or(z.date().optional()),
+  timeslot: z.string().max(50).optional(),
+  consultationMode: z.enum(['IN_PERSON', 'TELEMEDICINE', 'HYBRID']).optional(),
+  recipient: RecipientSchema,
+  metadata: z.record(z.string()).optional(),
+});
+
+/**
  * Type TypeScript dérivé du schéma
  */
 export type CreateBookingInput = z.infer<typeof CreateBookingSchema>;
+export type UpdateBookingInput = z.infer<typeof UpdateBookingSchema>;
 

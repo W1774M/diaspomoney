@@ -9,13 +9,14 @@ import { Log } from '@/lib/decorators/log.decorator';
 import {
   Validate,
 } from '@/lib/decorators/validate.decorator';
-import { BOOKING_STATUSES, SPECIALITY_TYPES } from '@/lib/constants';
+import { BOOKING_STATUSES } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 import { Booking, getBookingRepository } from '@/repositories';
 import type { PaginatedFindResult } from '@/lib/types';
 import type { BookingData, BookingServiceFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
+import { CreateBookingSchema } from '@/lib/validations/booking.schema';
 
 /**
  * BookingService refactoré utilisant le Repository Pattern
@@ -118,18 +119,7 @@ export class BookingService {
     rules: [
       {
         paramIndex: 0,
-        schema: z
-          .object({
-            requesterId: z.string().min(1, 'Requester ID is required'),
-            providerId: z.string().min(1, 'Provider ID is required'),
-            serviceId: z.string().min(1, 'Service ID is required'),
-            serviceType: z.enum([
-              SPECIALITY_TYPES.HEALTH,
-              SPECIALITY_TYPES.BTP,
-              SPECIALITY_TYPES.EDUCATION,
-            ]),
-          })
-          .passthrough(),
+        schema: CreateBookingSchema.passthrough(),
         paramName: 'data',
       },
     ],

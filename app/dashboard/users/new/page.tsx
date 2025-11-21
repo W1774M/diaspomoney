@@ -15,7 +15,7 @@ import {
   USER_ROLES,
   USER_STATUSES,
 } from '@/lib/types';
-import { LANGUAGES, TIMEZONES, USER_STATUSES as CONST_USER_STATUSES } from '@/lib/constants';
+import { LANGUAGES, TIMEZONES, USER_STATUSES as CONST_USER_STATUSES, ROLES } from '@/lib/constants';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -299,7 +299,7 @@ export default function NewUserPage() {
         </div>
 
         {/* Informations spécifiques aux prestataires */}
-        {formData.roles.includes('PROVIDER') && (
+        {formData.roles.includes(ROLES.PROVIDER) && (
           <div className='bg-white rounded-lg shadow border border-gray-200 p-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-4'>
               Informations prestataire
@@ -339,7 +339,7 @@ export default function NewUserPage() {
         )}
 
         {/* Informations spécifiques aux clients */}
-        {formData.roles.includes('CUSTOMER') && (
+        {formData.roles.includes(ROLES.CUSTOMER) && (
           <div className='bg-white rounded-lg shadow border border-gray-200 p-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-4'>
               Informations client

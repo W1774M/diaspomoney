@@ -26,11 +26,19 @@ export function useServiceFilters(providers: IUser[]) {
   // Extract unique data from providers
   const availableServices = useMemo(() => {
     return safeProviders
-      .flatMap(p =>
-        p.selectedServices
-          ? p.selectedServices.map((s: string) => s.trim())
-          : [],
-      )
+      .flatMap(p => {
+        if (!p.selectedServices) return [];
+        // Gérer le cas où selectedServices est une chaîne ou un tableau
+        if (Array.isArray(p.selectedServices)) {
+          return p.selectedServices.map((s: string) => String(s).trim());
+        }
+        // Type assertion pour gérer les cas où selectedServices pourrait être une chaîne
+        const servicesValue = p.selectedServices as unknown;
+        if (typeof servicesValue === 'string' && servicesValue.length > 0) {
+          return servicesValue.split(',').map((s: string) => s.trim());
+        }
+        return [];
+      })
       .filter((service): service is string => Boolean(service))
       .filter((service, idx, arr) => arr.indexOf(service) === idx)
       .sort();
@@ -60,14 +68,16 @@ export function useServiceFilters(providers: IUser[]) {
   const filteredProviders = useMemo(() => {
     const result = safeProviders.filter(provider => {
       // Service filter
-      if (
-        filters.service &&
-        !provider.selectedServices
-          ?.join(',')
-          .toLowerCase()
-          .includes(filters.service.toLowerCase())
-      ) {
-        return false;
+      if (filters.service) {
+        let services = '';
+        if (Array.isArray(provider.selectedServices)) {
+          services = provider.selectedServices.join(',').toLowerCase();
+        } else if (provider.selectedServices) {
+          services = String(provider.selectedServices).toLowerCase();
+        }
+        if (!services || !services.includes(filters.service.toLowerCase())) {
+          return false;
+        }
       }
 
       // City filter

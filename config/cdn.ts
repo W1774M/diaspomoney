@@ -24,13 +24,14 @@ export interface CDNConfig {
 
 // Configuration CDN selon l'environnement
 export const getCDNConfig = (): CDNConfig => {
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  if (isProduction) {
+  // Temporairement désactivé : utiliser les images locales jusqu'à ce que le CDN soit actif
+  const useCDN = process.env['USE_CDN'] === 'true' && process.env.NODE_ENV === 'production';
+  
+  if (useCDN) {
     return {
       provider: 'cloudflare',
       baseUrl: 'https://cdn.diaspomoney.fr',
-      fallbackUrl: 'https://app.diaspomoney.fr',
+      fallbackUrl: process.env['NEXT_PUBLIC_APP_URL'] || process.env['NEXTAUTH_URL'] || '',
       caching: {
         images: 2592000, // 30 days
         css: 31536000, // 1 year
@@ -46,11 +47,13 @@ export const getCDNConfig = (): CDNConfig => {
     };
   }
 
-  // Configuration développement
+  // Configuration locale (développement et production sans CDN)
+  // Pour les images locales, on n'a pas besoin de baseUrl complet
+  // Next.js servira directement depuis /public
   return {
     provider: 'local',
-    baseUrl: 'http://localhost:3000',
-    fallbackUrl: 'http://localhost:3000',
+    baseUrl: '', // Vide car on utilise des chemins relatifs
+    fallbackUrl: '',
     caching: {
       images: 0,
       css: 0,
@@ -86,6 +89,14 @@ export const getAssetURL = (
 
   // Nettoyer le chemin
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
+
+  // Pour les images locales, retourner directement le chemin (Next.js gérera l'optimisation)
+  // Le loader personnalisé dans lib/image-loader.ts s'occupera de servir les images locales
+  if (config.provider === 'local') {
+    // Pour les images locales, on retourne simplement le chemin
+    // Next.js Image component utilisera le loader personnalisé qui servira depuis /public
+    return cleanPath;
+  }
 
   // Configuration Cloudflare
   if (config.provider === 'cloudflare') {
@@ -157,7 +168,7 @@ export const getAssetURL = (
   }
 
   // Fallback local / aws-cloudfront
-  return `${config.baseUrl}${cleanPath}`;
+  return cleanPath;
 };
 
 // Fonction pour précharger les assets critiques

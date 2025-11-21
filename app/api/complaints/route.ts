@@ -1,4 +1,7 @@
 /**
+// Désactiver le prerendering pour cette route API
+;
+
  * API Route pour les réclamations
  * Implémente les design patterns :
  * - Service Layer Pattern (via complaintService)

@@ -1,23 +1,19 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
-  name: mongodb
-  namespace: diaspomoney-prod
+  name: diaspomoney-mongo
+  namespace: diaspomoney
   labels:
-    app: diaspomoney
-    component: mongodb
+    app: diaspomoney-mongo
 spec:
-  serviceName: mongodb
   replicas: 1
   selector:
     matchLabels:
-      app: diaspomoney
-      component: mongodb
+      app: diaspomoney-mongo
   template:
     metadata:
       labels:
-        app: diaspomoney
-        component: mongodb
+        app: diaspomoney-mongo
     spec:
       containers:
       - name: mongodb
@@ -25,94 +21,58 @@ spec:
         ports:
         - containerPort: 27017
           name: mongodb
-          protocol: TCP
         env:
         - name: MONGO_INITDB_ROOT_USERNAME
           valueFrom:
             secretKeyRef:
-              name: mongodb-secrets
-              key: root-username
+              name: mongodb-secret
+              key: username
         - name: MONGO_INITDB_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: mongodb-secrets
-              key: root-password
+              name: mongodb-secret
+              key: password
         - name: MONGO_INITDB_DATABASE
-          valueFrom:
-            configMapKeyRef:
-              name: mongodb-config
-              key: database-name
+          value: "diaspomoney"
         volumeMounts:
         - name: mongodb-data
           mountPath: /data/db
-        - name: mongodb-init
+        - name: mongo-init
           mountPath: /docker-entrypoint-initdb.d
-          readOnly: true
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "500m"
+            cpu: "100m"
+            memory: "256Mi"
           limits:
-            memory: "2Gi"
-            cpu: "2000m"
+            cpu: "500m"
+            memory: "512Mi"
         livenessProbe:
           exec:
             command:
-            - mongosh
-            - --host
-            - 127.0.0.1
-            - --username
-            - $(MONGO_INITDB_ROOT_USERNAME)
-            - --password
-            - $(MONGO_INITDB_ROOT_PASSWORD)
-            - --authenticationDatabase
-            - admin
-            - --quiet
-            - --eval
-            - "db.adminCommand({ ping: 1 }).ok ? 0 : 1"
-          initialDelaySeconds: 40
+            - sh
+            - -c
+            - "mongosh --host 127.0.0.1 --username ${MONGO_INITDB_ROOT_USERNAME} --password ${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin --quiet --eval 'db.adminCommand({ ping: 1 }).ok ? 0 : 1'"
+          initialDelaySeconds: 30
           periodSeconds: 10
-          timeoutSeconds: 5
+          timeoutSeconds: 10
           failureThreshold: 12
         readinessProbe:
           exec:
             command:
-            - mongosh
-            - --host
-            - 127.0.0.1
-            - --username
-            - $(MONGO_INITDB_ROOT_USERNAME)
-            - --password
-            - $(MONGO_INITDB_ROOT_PASSWORD)
-            - --authenticationDatabase
-            - admin
-            - --quiet
-            - --eval
-            - "db.adminCommand({ ping: 1 }).ok ? 0 : 1"
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 999
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
-          capabilities:
-            drop:
-            - ALL
+            - sh
+            - -c
+            - "mongosh --host 127.0.0.1 --username ${MONGO_INITDB_ROOT_USERNAME} --password ${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin --quiet --eval 'db.adminCommand({ ping: 1 }).ok ? 0 : 1'"
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 10
       volumes:
-      - name: mongodb-init
+      - name: mongodb-data
+        # ⚠️ IMPORTANT: Si vous avez déjà une base de données existante, remplacez emptyDir par un PersistentVolumeClaim
+        # pour préserver vos données. Exemple:
+        # persistentVolumeClaim:
+        #   claimName: mongodb-pvc
+        persistentVolumeClaim:
+          claimName: mongodb-pvc
+      - name: mongo-init
         configMap:
-          name: mongodb-init-script
-      restartPolicy: Always
-  volumeClaimTemplates:
-  - metadata:
-      name: mongodb-data
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: standard
-      resources:
-        requests:
-          storage: 20Gi
-
+          name: mongo-init-script

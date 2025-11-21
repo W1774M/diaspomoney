@@ -63,6 +63,9 @@ export const UpdateUserSchema = z.object({
   marketingConsent: z.boolean().optional(),
   kycConsent: z.boolean().optional(),
   specialty: z.string().optional(),
+  status: z.string().optional(),
+  recommended: z.boolean().optional(),
+  clientNotes: z.string().optional(),
   preferences: z.object({
     language: z.string().optional(),
     timezone: z.string().optional(),

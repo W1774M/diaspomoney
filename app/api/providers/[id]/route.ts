@@ -1,5 +1,5 @@
 import { userService } from '@/services/user/user.service';
-import { USER_STATUSES, HTTP_STATUS_CODES } from '@/lib/constants';
+import { ROLES, USER_STATUSES, HTTP_STATUS_CODES } from '@/lib/constants';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -33,7 +33,7 @@ export async function GET(
     if (
       !provider.roles ||
       !Array.isArray(provider.roles) ||
-      !provider.roles.includes('PROVIDER')
+      !provider.roles.includes(ROLES.PROVIDER)
     ) {
       console.log('Provider non trouvé - roles:', provider.roles); // Debug
       return NextResponse.json(

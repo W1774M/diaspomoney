@@ -1,4 +1,7 @@
 /**
+// Désactiver le prerendering pour cette route API
+
+
  * API Route - Resend Verification
  * Endpoint pour renvoyer l'email de vérification
  */

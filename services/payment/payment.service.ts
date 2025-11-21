@@ -36,13 +36,21 @@ import * as Sentry from '@sentry/nextjs';
 import Stripe from 'stripe';
 
 // Corrigé: API version Stripe correcte et gestion sécurité
-const stripeSecretKey = process.env['STRIPE_SECRET_KEY'];
-if (!stripeSecretKey) {
-  throw new Error('Stripe secret key must be set in environment variables');
+// Initialisation lazy de Stripe pour éviter les erreurs pendant le build
+let stripe: Stripe | null = null;
+
+function getStripeInstance(): Stripe {
+  if (!stripe) {
+    const stripeSecretKey = process.env['STRIPE_SECRET_KEY'];
+    if (!stripeSecretKey) {
+      throw new Error('Stripe secret key must be set in environment variables');
+    }
+    stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2025-10-29.clover', // Version stable existante
+    });
+  }
+  return stripe;
 }
-const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2025-10-29.clover', // Version stable existante
-});
 
 export class PaymentService {
   private static instance: PaymentService;
@@ -93,7 +101,7 @@ export class PaymentService {
       }
 
       // Créer le Payment Intent avec Stripe
-      const paymentIntent = await stripe.paymentIntents.create({
+      const paymentIntent = await getStripeInstance().paymentIntents.create({
         amount: Math.round(amount * 100), // Convertir en centimes
         currency: currency.toLowerCase(),
         customer: customerId,
@@ -164,7 +172,7 @@ export class PaymentService {
     paymentMethodId?: string,
   ): Promise<PaymentResult> {
     try {
-      const paymentIntent = await stripe.paymentIntents.confirm(
+      const paymentIntent = await getStripeInstance().paymentIntents.confirm(
         paymentIntentId,
         paymentMethodId ? { payment_method: paymentMethodId } : undefined,
       );
@@ -236,14 +244,14 @@ export class PaymentService {
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   async getPaymentMethods(customerId: string): Promise<StripePaymentMethod[]> {
     try {
-      const customer = await stripe.customers.retrieve(customerId);
+      const customer = await getStripeInstance().customers.retrieve(customerId);
       const defaultPaymentMethodId =
         typeof customer === 'object' && !('deleted' in customer && customer.deleted)
           ? (customer.invoice_settings?.default_payment_method as string) ||
             (customer.metadata?.['default_payment_method'] as string)
           : null;
 
-      const paymentMethods = await stripe.paymentMethods.list({
+      const paymentMethods = await getStripeInstance().paymentMethods.list({
         customer: customerId,
         type: 'card',
       });
@@ -300,7 +308,7 @@ export class PaymentService {
   ): Promise<StripePaymentMethod> {
     try {
       // Attacher la méthode de paiement au client
-      const paymentMethod = await stripe.paymentMethods.attach(
+      const paymentMethod = await getStripeInstance().paymentMethods.attach(
         paymentMethodId,
         {
           customer: customerId,
@@ -309,7 +317,7 @@ export class PaymentService {
 
       // Définir comme défaut si demandé
       if (setAsDefault) {
-        await stripe.customers.update(customerId, {
+        await getStripeInstance().customers.update(customerId, {
           invoice_settings: {
             default_payment_method: paymentMethodId,
           },
@@ -366,7 +374,7 @@ export class PaymentService {
     paymentMethodId: string,
   ): Promise<void> {
     try {
-      await stripe.customers.update(customerId, {
+      await getStripeInstance().customers.update(customerId, {
         invoice_settings: {
           default_payment_method: paymentMethodId,
         },
@@ -395,7 +403,7 @@ export class PaymentService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   async removePaymentMethod(paymentMethodId: string): Promise<void> {
     try {
-      await stripe.paymentMethods.detach(paymentMethodId);
+      await getStripeInstance().paymentMethods.detach(paymentMethodId);
       this.log.info({ paymentMethodId }, 'Payment method removed successfully');
     } catch (error) {
       this.log.error(
@@ -437,7 +445,7 @@ export class PaymentService {
         refundPayload.reason = reason as NonNullable<StripeRefundCreateParams['reason']>;
       }
 
-      const refund = await stripe.refunds.create(refundPayload);
+      const refund = await getStripeInstance().refunds.create(refundPayload);
 
       // Mettre à jour la transaction dans la base de données
       const transaction =
@@ -503,7 +511,7 @@ export class PaymentService {
       if (!webhookSecret) {
         throw new Error('Stripe webhook secret not configured');
       }
-      const event = stripe.webhooks.constructEvent(
+      const event = getStripeInstance().webhooks.constructEvent(
         payload,
         signature,
         webhookSecret,
@@ -662,7 +670,7 @@ export class PaymentService {
     try {
       // Trouver la transaction associée
       const chargeId = dispute.charge as string;
-      const charge = (await stripe.charges.retrieve(chargeId)) as StripeCharge;
+      const charge = (await getStripeInstance().charges.retrieve(chargeId)) as StripeCharge;
       // PaymentIntent peut être null (edge case); gestion de fallback
       const paymentIntentId = typeof charge.payment_intent === 'string'
         ? charge.payment_intent

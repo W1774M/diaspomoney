@@ -1,6 +1,7 @@
 "use client";
 
 import { useBookings, useInvoices, useUsers } from "@/hooks";
+import { ROLES } from "@/lib/constants";
 import type { DashboardStats } from "@/lib/types";
 import { useMemo } from "react";
 
@@ -15,12 +16,12 @@ export function useDashboardStats({
   isAdmin,
   isCSM,
 }: UseDashboardStatsProps): DashboardStats {
-  const { users = [], total: totalUsers } = useUsers({ limit: 1000 });
+  const { users = [], total: totalUsers } = useUsers({ limit: 100 }); // Maximum autorisé par l'API
   const { bookings = [], total: totalBookings } = useBookings({
-    limit: 1000,
+    limit: 100, // Maximum autorisé par l'API
   });
   const { total: totalInvoices } = useInvoices({
-    limit: 1000,
+    limit: 100, // Maximum autorisé par l'API
     userId: userId || undefined,
     isAdmin,
     isProvider: false,
@@ -31,11 +32,10 @@ export function useDashboardStats({
     if (isAdmin || isCSM) {
       return {
         users: totalUsers,
-        customers: (users || []).filter(u => u.roles.includes("CUSTOMER")).length,
+        customers: (users || []).filter(u => u.roles.includes(ROLES.CUSTOMER)).length,
         providers: (users || []).filter(
           u =>
-            u.roles.includes("{PROVIDER:INSTITUTION}") ||
-            u.roles.includes("{PROVIDER:INDIVIDUAL}"),
+            u.roles.includes(ROLES.PROVIDER),
         ).length,
         bookings: totalBookings,
         invoices: totalInvoices,

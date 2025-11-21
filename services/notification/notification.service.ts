@@ -15,6 +15,8 @@
 import { LOCALE } from '@/lib/constants';
 import { Cacheable } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
+import { SendNotificationSchema } from '@/lib/validations/notification-service.schema';
 import { sendEmail } from '@/lib/email/resend';
 import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
@@ -60,21 +62,17 @@ export class NotificationService {
    * Envoyer une notification
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: SendNotificationSchema.passthrough(),
+        paramName: 'data',
+      },
+    ],
+  })
   async sendNotification(data: NotificationData): Promise<Notification> {
     try {
-      // Validation des données
-      if (!data.recipient || !data.type || !data.template) {
-        const error = new Error('Données de notification incomplètes');
-        this.log.error(
-          {
-            recipient: data.recipient,
-            type: data.type,
-            template: data.template,
-          },
-          'Invalid notification data',
-        );
-        throw error;
-      }
 
       // Récupérer le template depuis le repository
       const template = await this.getTemplate(data.template, data.locale);

@@ -1,5 +1,7 @@
 import { auth } from '@/auth';
+import { validateBody } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
+import { UpdateSpecialitySchema, type UpdateSpecialityInput } from '@/lib/validations/speciality.schema';
 import { specialityService } from '@/services/speciality/speciality.service';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -111,20 +113,30 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, description, group, isActive } = body;
+    
+    // Validation avec Zod
+    const data: UpdateSpecialityInput = validateBody(body, UpdateSpecialitySchema);
 
     log.debug(
-      { specialityId: id, hasName: !!name, hasDescription: !!description },
+      { specialityId: id, hasName: !!data.name, hasDescription: !!data.description },
       'Updating speciality',
     );
 
     // Utiliser le service avec décorateurs (@Log, @Validate, @InvalidateCache)
-    const speciality = await specialityService.updateSpeciality(id, {
-      name,
-      description,
-      group,
-      isActive,
-    });
+    // Mapper les champs du schéma vers l'interface du service
+    const updateData: {
+      name?: string;
+      description?: string;
+      group?: string;
+      isActive?: boolean;
+    } = {};
+    
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.category !== undefined) updateData.group = data.category; // Le service utilise 'group' mais le schéma utilise 'category'
+    if (data.isActive !== undefined) updateData.isActive = data.isActive;
+    
+    const speciality = await specialityService.updateSpeciality(id, updateData);
 
     log.info({ specialityId: id }, 'Speciality updated successfully');
 

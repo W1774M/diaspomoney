@@ -18,6 +18,7 @@ import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
 import { sendPasswordResetEmail, sendWelcomeEmail } from '@/lib/email/resend';
 import { childLogger } from '@/lib/logger';
+import { RegisterSchema, LoginSchema } from '@/lib/validations/auth.schema';
 import dbConnect from '@/lib/mongodb';
 import { getRedisClient } from '@/lib/redis/redis-client';
 import { securityManager } from '@/lib/security/advanced-security';
@@ -62,10 +63,7 @@ class AuthService {
     rules: [
       {
         paramIndex: 0,
-        schema: z.object({
-          email: z.string().email('Email invalide'),
-          password: z.string().min(1, 'Le mot de passe est requis'),
-        }).passthrough(),
+        schema: LoginSchema.passthrough(),
         paramName: 'credentials',
       },
     ],
@@ -218,18 +216,10 @@ class AuthService {
    */
   @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le mot de passe
   @Validate({
-      rules: [
+    rules: [
       {
         paramIndex: 0,
-        schema: z.object({
-          email: z.string().email('Email invalide'),
-          firstName: z.string().min(1, 'Le prénom est requis'),
-          lastName: z.string().min(1, 'Le nom est requis'),
-          country: z.string().min(1, 'Le pays est requis'),
-          termsAccepted: z.boolean().refine(val => val === true, {
-            message: 'Vous devez accepter les conditions',
-          }),
-        }).passthrough(),
+        schema: RegisterSchema as any,
         paramName: 'data',
       },
     ],

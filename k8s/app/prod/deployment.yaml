@@ -1,0 +1,203 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diaspomoney-app
+  namespace: diaspomoney
+  labels:
+    app: diaspomoney-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: diaspomoney-app
+  template:
+    metadata:
+      labels:
+        app: diaspomoney-app
+    spec:
+      containers:
+      - name: diaspomoney-app
+        image: localhost:5000/diaspomoney:prod
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
+        - name: HOSTNAME
+          value: "0.0.0.0"
+        - name: NODE_OPTIONS
+          value: "--dns-result-order=ipv4first"
+        - name: NEXT_TELEMETRY_DISABLED
+          value: "1"
+        - name: LOG_LEVEL
+          value: "error"
+        # URLs publiques
+        - name: APP_URL
+          value: "https://app.diaspomoney.fr"
+        - name: API_URL
+          value: "https://app.diaspomoney.fr/api"
+        - name: NEXTAUTH_URL
+          value: "https://app.diaspomoney.fr"
+        # URLs publiques Next.js (nécessaires pour le client)
+        - name: NEXT_PUBLIC_APP_URL
+          value: "https://app.diaspomoney.fr"
+        - name: NEXT_PUBLIC_API_URL
+          value: "https://app.diaspomoney.fr/api"
+        # MongoDB
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: connection-string
+        - name: MONGO_URL
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: connection-string
+        - name: MONGO_HOST
+          value: "diaspomoney-mongo"
+        # Redis
+        - name: REDIS_HOST
+          value: "diaspomoney-redis"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: password
+        - name: REDIS_URL
+          value: "redis://:$(REDIS_PASSWORD)@diaspomoney-redis:6379"
+        # Authentification & Sécurité
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: JWT_SECRET
+        - name: JWT_REFRESH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: JWT_REFRESH_SECRET
+        - name: NEXTAUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: NEXTAUTH_SECRET
+        - name: AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: AUTH_SECRET
+        - name: ENCRYPTION_MASTER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: ENCRYPTION_MASTER_KEY
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: ENCRYPTION_KEY
+        - name: SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: SESSION_SECRET
+        # OAuth
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: GOOGLE_CLIENT_ID
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: GOOGLE_CLIENT_SECRET
+        - name: FACEBOOK_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: FACEBOOK_CLIENT_ID
+        - name: FACEBOOK_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: FACEBOOK_CLIENT_SECRET
+        # Email
+        - name: RESEND_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: RESEND_API_KEY
+        - name: RESEND_FROM_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: RESEND_FROM_EMAIL
+        - name: RESEND_REPLY_TO
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: RESEND_REPLY_TO
+        # Paiements
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: STRIPE_SECRET_KEY
+        - name: STRIPE_PUBLISHABLE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: STRIPE_PUBLISHABLE_KEY
+        - name: STRIPE_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: STRIPE_WEBHOOK_SECRET
+        # Monitoring
+        - name: SENTRY_DSN
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: SENTRY_DSN
+        # CDN (À activer quand disponible)
+        # - name: CDN_URL
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: app-secrets
+        #       key: CDN_URL
+        # - name: CDN_ENABLED
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: app-secrets
+        #       key: CDN_ENABLED
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"

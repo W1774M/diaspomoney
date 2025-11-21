@@ -1,4 +1,7 @@
 import { BookingQueryBuilder } from "@/builders";
+// Désactiver le prerendering pour cette route API
+;
+
 import { commandHandler, CreateBookingCommand } from "@/commands";
 import { handleApiRoute, ApiErrors, ApiError, validateBody } from '@/lib/api/error-handler';
 import type { BookingFacadeData } from '@/lib/types';

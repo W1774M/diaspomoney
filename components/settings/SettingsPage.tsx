@@ -3,7 +3,6 @@
 import { useAuth } from '@/hooks';
 import { useSettings } from '@/hooks/settings';
 import React from 'react';
-import BillingSettings from './BillingSettings';
 import ComplaintsSettings from './ComplaintsSettings';
 import NotificationSettings from './NotificationSettings';
 import PrivacySettings from './PrivacySettings';
@@ -25,8 +24,6 @@ const SettingsPage = React.memo(function SettingsPage() {
     setPreferencesData,
     securityData,
     setSecurityData,
-    billingData,
-    setBillingData,
     privacyData,
     setPrivacyData,
     handleSave,
@@ -58,15 +55,6 @@ const SettingsPage = React.memo(function SettingsPage() {
             data={preferencesData}
             setData={setPreferencesData}
             onSave={() => handleSave('notifications')}
-            saving={saving}
-          />
-        );
-      case 'billing':
-        return (
-          <BillingSettings
-            data={billingData}
-            setData={setBillingData}
-            onSave={() => handleSave('billing')}
             saving={saving}
           />
         );

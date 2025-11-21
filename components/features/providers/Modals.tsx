@@ -228,7 +228,7 @@ export const ModalSelectService = ({
     setTimeout(() => {
       setSteps(1);
     }, 300);
-  }, [isFormValid, appointment, setSteps, addError]);
+  }, [isFormValid, setSteps, addError]);
 
   // Fonction pour obtenir la classe CSS d'un champ
   const getFieldClassName = useCallback(
@@ -353,9 +353,9 @@ export const ModalSelectService = ({
                 Services disponibles
               </h3>
               <div className='space-y-3'>
-                {provider.selectedServices?.length &&
-                provider.selectedServices?.length > 0
-                  ? provider.selectedServices?.map(
+                {Array.isArray(provider.selectedServices) &&
+                provider.selectedServices.length > 0
+                  ? provider.selectedServices.map(
                       (service: string, index: number) => (
                         <button
                           key={index}

@@ -1,7 +1,14 @@
 /**
+// Désactiver le prerendering pour cette route API
+;
+
  * API Route - Transactions
  * Endpoint de gestion des transactions
  */
+
+// Désactiver le prerendering pour cette route API
+// Elle nécessite une connexion MongoDB qui n'est pas disponible pendant le build
+;
 
 import { auth } from '@/auth';
 import { handleApiRoute, ApiErrors, validateBody } from '@/lib/api/error-handler';

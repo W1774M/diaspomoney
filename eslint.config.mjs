@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
+import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 
 // Variables globales combinées pour Node.js et Browser
@@ -91,6 +92,7 @@ export default [
     },
     plugins: {
       '@typescript-eslint': tseslint,
+      'react-hooks': reactHooks,
     },
     rules: {
       'no-console': ['warn', { allow: ['warn', 'error'] }],
@@ -129,7 +131,9 @@ export default [
       'no-global-assign': 'warn',
       // Désactiver les règles qui ne sont pas disponibles
       'import/no-anonymous-default-export': 'off',
-      'react-hooks/exhaustive-deps': 'off',
+      // Règles React Hooks
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
   {

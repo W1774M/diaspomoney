@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export default function AttachmentsPage() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -34,13 +34,7 @@ export default function AttachmentsPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchAttachments();
-    }
-  }, [isAuthenticated, filterType, searchQuery]);
-
-  const fetchAttachments = async () => {
+  const fetchAttachments = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -76,7 +70,13 @@ export default function AttachmentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterType, searchQuery]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchAttachments();
+    }
+  }, [isAuthenticated, fetchAttachments]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes  } B`;

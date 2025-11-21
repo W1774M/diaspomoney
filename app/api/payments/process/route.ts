@@ -3,6 +3,10 @@
  * Endpoint pour traiter un paiement complet avec orchestration
  */
 
+// Désactiver le prerendering pour cette route API
+// Elle nécessite une connexion MongoDB qui n'est pas disponible pendant le build
+;
+
 import { auth } from '@/auth';
 import { commandHandler, CreatePaymentCommand } from '@/commands';
 import { PaymentFacadeData } from '@/facades/payment.facade';

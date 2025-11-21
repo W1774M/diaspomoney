@@ -7,6 +7,7 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
+import { CreateInvoiceServiceSchema, UpdateInvoiceServiceSchema } from '@/lib/validations/invoice-service.schema';
 import type { PaginationOptions } from '@/lib/types';
 import { InvoiceStatus } from '@/lib/types';
 import {
@@ -62,11 +63,7 @@ export class InvoiceService {
     rules: [
       {
         paramIndex: 0,
-        schema: z.object({
-          userId: z.string().min(1, 'User ID is required'),
-          amount: z.number().positive('Amount must be positive'),
-          currency: z.string().length(3, 'Currency must be 3 characters'),
-        }).passthrough(),
+        schema: CreateInvoiceServiceSchema.passthrough(),
         paramName: 'data',
       },
     ],
@@ -200,6 +197,20 @@ export class InvoiceService {
   /**
    * Mettre à jour une facture
    */
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Invoice ID is required'),
+        paramName: 'id',
+      },
+      {
+        paramIndex: 1,
+        schema: UpdateInvoiceServiceSchema.passthrough(),
+        paramName: 'data',
+      },
+    ],
+  })
   @InvalidateCache('InvoiceService:*')
   async updateInvoice(
     id: string,

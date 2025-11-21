@@ -227,6 +227,8 @@ export const ModalPreview = ({
     isValid,
     confirmPayment,
     sendPaymentError,
+    addError,
+    addSuccess,
   ]);
 
   return (

@@ -1,12 +1,13 @@
 'use client';
 
 import { MOCK_USERS } from '@/mocks';
+import { ROLES, USER_STATUSES } from '@/lib/constants';
 import { AlertCircle, CheckCircle, Clock, MapPin, User } from 'lucide-react';
 
 export default function TrackingServicesPage() {
   // Filter providers from mock data for tracking services
   const mockServices = MOCK_USERS.filter(
-    user => user.roles.includes('PROVIDER') && user.status === 'ACTIVE',
+    user => user.roles.includes(ROLES.PROVIDER) && user.status === USER_STATUSES.ACTIVE,
   )
     .slice(0, 2)
     .map((provider, index) => ({

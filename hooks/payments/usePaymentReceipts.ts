@@ -48,7 +48,7 @@ export function usePaymentReceipts(): UsePaymentReceiptsReturn {
 
   useEffect(() => {
     fetchReceipts();
-  }, [fetchReceipts]);
+  }, [fetchReceipts]); // Exécuter quand fetchReceipts change
 
   return {
     receipts,

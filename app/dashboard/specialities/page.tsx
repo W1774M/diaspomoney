@@ -20,7 +20,7 @@ export default function SpecialitiesPage() {
     if (status === "unauthenticated") {
       router.push("/login");
     }
-  }, [status]); // Utiliser seulement le status de la session
+  }, [status, router]); // Utiliser seulement le status de la session
 
   // Simuler des données pour l'exemple
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function SpecialitiesPage() {
       setSpecialities(mockSpecialities);
       setLoading(false);
     }
-  }, [isAuthenticated]); // Utiliser seulement les valeurs stables
+  }, [isAuthenticated, isAdmin]); // Utiliser seulement les valeurs stables
 
   const filteredSpecialities = specialities.filter(speciality => {
     const matchesSearch = speciality.name

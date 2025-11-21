@@ -3,6 +3,7 @@
  * Fonctions helper pour les composants UI
  */
 
+import { ROLES, USER_STATUSES } from '@/lib/constants';
 import { RoleColor, StatusColor } from '@/lib/types';
 import { Building2, Users } from 'lucide-react';
 import React, { ReactElement } from 'react';
@@ -12,14 +13,14 @@ import React, { ReactElement } from 'react';
  */
 export function getRoleColor(role: string): RoleColor {
   switch (role) {
-    case 'ADMIN':
-    case 'SUPERADMIN':
+    case ROLES.ADMIN:
+    case ROLES.SUPERADMIN:
       return 'bg-red-100 text-red-800';
-    case 'CSM':
+    case ROLES.CSM:
       return 'bg-purple-100 text-purple-800';
-    case 'PROVIDER':
+    case ROLES.PROVIDER:
       return 'bg-[hsl(25,100%,53%)]/10 text-[hsl(25,100%,53%)]';
-    case 'CUSTOMER':
+    case ROLES.CUSTOMER:
       return 'bg-blue-100 text-blue-800';
     default:
       return 'bg-gray-100 text-gray-800';
@@ -31,13 +32,13 @@ export function getRoleColor(role: string): RoleColor {
  */
 export function getStatusColor(status: string): StatusColor {
   switch (status) {
-    case 'ACTIVE':
+    case USER_STATUSES.ACTIVE:
       return 'bg-green-100 text-green-800';
-    case 'INACTIVE':
+    case USER_STATUSES.INACTIVE:
       return 'bg-red-100 text-red-800';
-    case 'PENDING':
+    case USER_STATUSES.PENDING:
       return 'bg-yellow-100 text-yellow-800';
-    case 'SUSPENDED':
+    case USER_STATUSES.SUSPENDED:
       return 'bg-gray-100 text-gray-800';
     default:
       return 'bg-gray-100 text-gray-800';
@@ -49,12 +50,12 @@ export function getStatusColor(status: string): StatusColor {
  */
 export function getRoleIcon(role: string): ReactElement {
   switch (role) {
-    case 'SUPERADMIN':
-    case 'ADMIN':
-    case 'CSM':
-    case 'CUSTOMER':
+    case ROLES.SUPERADMIN:
+    case ROLES.ADMIN:
+    case ROLES.CSM:
+    case ROLES.CUSTOMER:
       return React.createElement(Users, { className: 'h-4 w-4' });
-    case 'PROVIDER':
+    case ROLES.PROVIDER:
       return React.createElement(Building2, { className: 'h-4 w-4' });
     default:
       return React.createElement(Users, { className: 'h-4 w-4' });

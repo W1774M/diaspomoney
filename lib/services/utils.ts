@@ -1,5 +1,6 @@
 import { Provider } from '@/hooks/useProviders';
 import { getProviderRatingStats } from '@/mocks';
+import { USER_STATUSES } from '../constants';
 
 /**
  * Extract unique specialties from providers
@@ -19,11 +20,18 @@ export function getUniqueSpecialties(providers: Provider[]): string[] {
  */
 export function getAvailableServices(providers: Provider[]): string[] {
   return providers
-    .flatMap(p =>
-      p['selectedServices']
-        ? p['selectedServices'].split(',').map((s: string) => s.trim())
-        : [],
-    )
+    .flatMap(p => {
+      if (!p['selectedServices']) return [];
+      // Gérer le cas où selectedServices est une chaîne ou un tableau
+      if (Array.isArray(p['selectedServices'])) {
+        return p['selectedServices'].map((s: string) => String(s).trim());
+      }
+      const servicesValue = p['selectedServices'] as unknown;
+      if (typeof servicesValue === 'string' && servicesValue.length > 0) {
+        return servicesValue.split(',').map((s: string) => s.trim());
+      }
+      return [];
+    })
     .filter((service, idx, arr) => arr.indexOf(service) === idx)
     .sort();
 }
@@ -43,10 +51,27 @@ export function getAvailableCities(providers: Provider[]): string[] {
 
 /**
  * Format provider name with company
+ * Utilise name comme fallback si firstName et lastName ne sont pas disponibles
  */
 export function formatProviderName(provider: Provider): string {
-  const name = `${provider.firstName} ${provider.lastName}`;
-  return provider['company'] ? `${name} (${provider['company']})` : name;
+  // Si firstName et lastName sont disponibles, les utiliser
+  if (provider.firstName && provider.lastName) {
+    const name = `${provider.firstName} ${provider.lastName}`;
+    return provider['company'] ? `${name} (${provider['company']})` : name;
+  }
+  
+  // Sinon, utiliser le champ name s'il existe
+  if (provider['name']) {
+    return provider['company'] 
+      ? `${provider['name']} (${provider['company']})` 
+      : provider['name'];
+  }
+  
+  // Fallback final : utiliser firstName seul, lastName seul, ou email
+  const fallbackName = provider.firstName || provider.lastName || provider.email || 'Prestataire';
+  return provider['company'] 
+    ? `${fallbackName} (${provider['company']})` 
+    : fallbackName;
 }
 
 /**
@@ -63,7 +88,7 @@ export function getProviderRating(provider: Provider): number {
  */
 export function isProviderAvailable(provider: Provider): boolean {
   return (
-    provider.status === 'ACTIVE' &&
+    provider.status === USER_STATUSES.ACTIVE &&
     Array.isArray(provider['availabilities']) &&
     provider['availabilities'].length > 0
   );
@@ -75,7 +100,15 @@ export function isProviderAvailable(provider: Provider): boolean {
 export function getPrimaryService(provider: Provider): string {
   if (!provider['selectedServices']) return 'Service non spécifié';
 
-  const services = provider['selectedServices'].map((s: string) => s.trim());
+  let services: string[] = [];
+  if (Array.isArray(provider['selectedServices'])) {
+    services = provider['selectedServices'].map((s: string) => String(s).trim());
+  } else {
+    const servicesValue = provider['selectedServices'] as unknown;
+    if (typeof servicesValue === 'string' && servicesValue.length > 0) {
+      services = servicesValue.split(',').map((s: string) => s.trim());
+    }
+  }
   return services[0] || 'Service non spécifié';
 }
 
@@ -85,7 +118,7 @@ export function getPrimaryService(provider: Provider): string {
 export function getAvailabilityStatus(
   provider: Provider,
 ): 'available' | 'busy' | 'offline' {
-  if (provider.status !== 'ACTIVE') return 'offline';
+  if (provider.status !== USER_STATUSES.ACTIVE) return 'offline';
   if (!provider['availabilities'] || provider['availabilities'].length === 0)
     return 'offline';
   return 'available';

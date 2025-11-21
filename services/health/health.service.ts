@@ -16,6 +16,7 @@ import { LOCALE, SPECIALITY_TYPES } from '@/lib/constants';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
+import { BookAppointmentSchema, CreatePrescriptionSchema } from '@/lib/validations/health.schema';
 import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import type {
@@ -104,37 +105,37 @@ class HealthService {
     rules: [
       {
         paramIndex: 0,
-        schema: z.string().min(1, 'Patient ID is required'),
+        schema: BookAppointmentSchema.shape.patientId,
         paramName: 'patientId',
       },
       {
         paramIndex: 1,
-        schema: z.string().min(1, 'Provider ID is required'),
+        schema: BookAppointmentSchema.shape.providerId,
         paramName: 'providerId',
       },
       {
         paramIndex: 2,
-        schema: z.string().min(1, 'Service ID is required'),
+        schema: BookAppointmentSchema.shape.serviceId,
         paramName: 'serviceId',
       },
       {
         paramIndex: 3,
-        schema: z.date(),
+        schema: BookAppointmentSchema.shape.date,
         paramName: 'date',
       },
       {
         paramIndex: 4,
-        schema: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format'),
+        schema: BookAppointmentSchema.shape.time,
         paramName: 'time',
       },
       {
         paramIndex: 5,
-        schema: z.number().positive('Duration must be positive'),
+        schema: BookAppointmentSchema.shape.duration,
         paramName: 'duration',
       },
       {
         paramIndex: 6,
-        schema: z.enum(['IN_PERSON', 'TELEMEDICINE']),
+        schema: BookAppointmentSchema.shape.type,
         paramName: 'type',
       },
     ],
@@ -347,34 +348,27 @@ class HealthService {
     rules: [
       {
         paramIndex: 0,
-        schema: z.string().min(1, 'Appointment ID is required'),
+        schema: CreatePrescriptionSchema.shape.appointmentId,
         paramName: 'appointmentId',
       },
       {
         paramIndex: 1,
-        schema: z.array(
-          z.object({
-            name: z.string().min(1),
-            dosage: z.string().min(1),
-            frequency: z.string().min(1),
-            duration: z.string().min(1),
-          }),
-        ),
+        schema: CreatePrescriptionSchema.shape.medications,
         paramName: 'medications',
       },
       {
         paramIndex: 2,
-        schema: z.string().min(1, 'Instructions are required'),
+        schema: CreatePrescriptionSchema.shape.instructions,
         paramName: 'instructions',
       },
       {
         paramIndex: 3,
-        schema: z.date(),
+        schema: CreatePrescriptionSchema.shape.validUntil,
         paramName: 'validUntil',
       },
       {
         paramIndex: 4,
-        schema: z.string().min(1, 'Issued by is required'),
+        schema: CreatePrescriptionSchema.shape.issuedBy,
         paramName: 'issuedBy',
       },
     ],

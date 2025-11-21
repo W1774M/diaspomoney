@@ -100,7 +100,9 @@ function generateBreadcrumbs(pathname: string): BreadcrumbItem[] {
       }
 
       // Utiliser le mapping ou formater le segment
-      const label = routeLabels[segment] || segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+      const label = routeLabels[segment] || (segment && segment.length > 0 
+        ? segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ')
+        : segment || '');
       breadcrumbs.push({
         label,
         href: currentPath,

@@ -1060,7 +1060,11 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
     // Si institution et cabinet, proposer sélection du motif
     if (isInstitution && watchedValues['consultationMode'] === 'cabinet') {
       const availableServices = provider.selectedServices
-        ? provider.selectedServices.split(',').map(s => s.trim())
+        ? (Array.isArray(provider.selectedServices)
+            ? provider.selectedServices.map(s => String(s).trim())
+            : typeof provider.selectedServices === 'string'
+              ? provider.selectedServices.split(',').map(s => s.trim())
+              : [])
         : [];
 
       return (

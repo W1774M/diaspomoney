@@ -1,4 +1,7 @@
 /**
+// Désactiver le prerendering pour cette route API
+;
+
  * API Route - Notifications
  * Endpoint pour gérer les notifications de l'utilisateur
  * Implémente les design patterns :

@@ -29,6 +29,7 @@ import type {
 } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
+import { CreateComplaintSchema } from '@/lib/validations/complaint.schema';
 
 /**
  * ComplaintService utilisant le Service Layer Pattern
@@ -132,16 +133,7 @@ export class ComplaintService {
     rules: [
       {
         paramIndex: 0,
-        schema: z
-          .object({
-            title: z.string().min(1, 'Title is required'),
-            type: z.enum(['QUALITY', 'DELAY', 'BILLING', 'COMMUNICATION']),
-            priority: z.enum(['HIGH', 'MEDIUM', 'LOW']),
-            description: z.string().min(1, 'Description is required'),
-            provider: z.string().min(1, 'Provider is required'),
-            appointmentId: z.string().min(1, 'Appointment ID is required'),
-          })
-          .passthrough(),
+        schema: CreateComplaintSchema.passthrough(),
         paramName: 'data',
       },
     ],

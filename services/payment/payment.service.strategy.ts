@@ -14,6 +14,8 @@
 
 import { Cacheable } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
+import { CreatePaymentIntentServiceSchema, ProcessPaymentServiceSchema } from '@/lib/validations/payment-service.schema';
 import { paymentEvents } from '@/lib/events';
 import { childLogger } from '@/lib/logger';
 import { PAYMENT_METHODS, CURRENCIES } from '@/lib/constants';
@@ -104,6 +106,35 @@ export class PaymentService {
    * Créer un Payment Intent
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: CreatePaymentIntentServiceSchema.shape.amount,
+        paramName: 'amount',
+      },
+      {
+        paramIndex: 1,
+        schema: CreatePaymentIntentServiceSchema.shape.currency,
+        paramName: 'currency',
+      },
+      {
+        paramIndex: 2,
+        schema: CreatePaymentIntentServiceSchema.shape.customerId,
+        paramName: 'customerId',
+      },
+      {
+        paramIndex: 3,
+        schema: CreatePaymentIntentServiceSchema.shape.metadata.optional(),
+        paramName: 'metadata',
+      },
+      {
+        paramIndex: 4,
+        schema: CreatePaymentIntentServiceSchema.shape.provider.optional(),
+        paramName: 'provider',
+      },
+    ],
+  })
   async createPaymentIntent(
     amount: number,
     currency: string,
@@ -112,14 +143,6 @@ export class PaymentService {
     provider?: string,
   ): Promise<PaymentIntent> {
     try {
-      // Validation des paramètres
-      if (amount <= 0) {
-        throw new Error('Le montant doit être positif');
-      }
-
-      if (!currency || currency.length !== 3) {
-        throw new Error('Devise invalide');
-      }
 
       // Sélectionner la stratégie
       const strategy = provider
@@ -262,6 +285,40 @@ export class PaymentService {
    * Traiter un paiement
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: ProcessPaymentServiceSchema.shape.amount,
+        paramName: 'amount',
+      },
+      {
+        paramIndex: 1,
+        schema: ProcessPaymentServiceSchema.shape.currency,
+        paramName: 'currency',
+      },
+      {
+        paramIndex: 2,
+        schema: ProcessPaymentServiceSchema.shape.customerId,
+        paramName: 'customerId',
+      },
+      {
+        paramIndex: 3,
+        schema: ProcessPaymentServiceSchema.shape.paymentMethodId,
+        paramName: 'paymentMethodId',
+      },
+      {
+        paramIndex: 4,
+        schema: ProcessPaymentServiceSchema.shape.metadata.optional(),
+        paramName: 'metadata',
+      },
+      {
+        paramIndex: 5,
+        schema: ProcessPaymentServiceSchema.shape.provider.optional(),
+        paramName: 'provider',
+      },
+    ],
+  })
   async processPayment(
     amount: number,
     currency: string,

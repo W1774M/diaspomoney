@@ -1,4 +1,7 @@
 /**
+// Désactiver le prerendering pour cette route API
+;
+
  * API Route - Beneficiaries
  * Endpoints pour gérer les bénéficiaires
  * Utilise BeneficiaryFacade (Facade Pattern) et handleApiRoute (Error Handling Pattern)

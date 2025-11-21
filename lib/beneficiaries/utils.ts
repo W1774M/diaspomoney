@@ -68,10 +68,11 @@ export function getBeneficiaryInitials(beneficiary: Beneficiary): string {
                'Unknown';
   return name
     .split(" ")
+    .filter((word: string) => word && word.length > 0)
     .map((word: string) => word.charAt(0))
     .join("")
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2) || "?";
 }
 
 /**

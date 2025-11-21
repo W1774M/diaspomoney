@@ -1,4 +1,9 @@
 import { auth } from '@/auth';
+// Désactiver le prerendering pour cette route API
+;
+
+import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
+import { CreateMessageSchema, type CreateMessageInput } from '@/lib/validations/message.schema';
 import Conversation from '@/models/Conversation';
 import Message from '@/models/Message';
 import mongoose from 'mongoose';
@@ -109,25 +114,21 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
+  return handleApiRoute(request, async () => {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
     const userId = session.user.id;
-    const { conversationId, text, attachments } = await request.json();
-
-    if (!conversationId || !text) {
-      return NextResponse.json(
-        { error: 'ID de conversation et texte requis' },
-        { status: 400 },
-      );
-    }
+    const body = await request.json();
+    
+    // Validation avec Zod
+    const data: CreateMessageInput = validateBody(body, CreateMessageSchema);
 
     // Vérifier que l'utilisateur est participant
     const conversation = await (Conversation as any).findById(
-      new mongoose.Types.ObjectId(conversationId),
+      new mongoose.Types.ObjectId(data.conversationId),
     );
     if (!conversation) {
       return NextResponse.json(
@@ -148,18 +149,19 @@ export async function POST(request: NextRequest) {
 
     // Créer le message
     const message = new Message({
-      conversationId: new mongoose.Types.ObjectId(conversationId),
+      conversationId: new mongoose.Types.ObjectId(data.conversationId),
       senderId: new mongoose.Types.ObjectId(userId),
-      text,
+      text: data.text,
+      type: data.type || 'TEXT',
       attachments:
-        attachments?.map((id: string) => new mongoose.Types.ObjectId(id)) || [],
+        data.attachments?.map((id: string) => new mongoose.Types.ObjectId(id)) || [],
       read: false,
     });
 
     await message.save();
 
     // Mettre à jour la conversation (last message and last message at)
-    conversation.lastMessage = text;
+    conversation.lastMessage = data.text;
     conversation.lastMessageAt = new Date();
 
     // Trouver l'autre participant et incrémenter son compteur
@@ -186,11 +188,5 @@ export async function POST(request: NextRequest) {
         attachments: message.attachments?.map((a: any) => a.toString()) || [],
       },
     });
-  } catch (error) {
-    console.error('Error creating message:', error);
-    return NextResponse.json(
-      { error: "Erreur lors de l'envoi du message" },
-      { status: 500 },
-    );
-  }
+  }, 'api/messaging/messages');
 }

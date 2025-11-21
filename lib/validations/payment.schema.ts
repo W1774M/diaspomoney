@@ -29,7 +29,18 @@ export const CreatePaymentSchema = z.object({
 });
 
 /**
+ * Schéma pour créer un PaymentIntent (Stripe)
+ */
+export const CreatePaymentIntentSchema = z.object({
+  amount: z.number().positive('Amount must be positive'),
+  currency: z.string().length(3, 'Currency must be 3 characters').default(DEFAULT_CURRENCY),
+  email: z.string().email('Invalid email format'),
+  metadata: z.record(z.string()).optional(),
+});
+
+/**
  * Type TypeScript dérivé du schéma
  */
 export type CreatePaymentInput = z.infer<typeof CreatePaymentSchema>;
+export type CreatePaymentIntentInput = z.infer<typeof CreatePaymentIntentSchema>;
 

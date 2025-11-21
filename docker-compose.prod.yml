@@ -1,140 +1,16 @@
-include:
-  - compose.monitoring.yml
-
-networks:
-  diaspomoney-prod:
-    driver: bridge
-    name: diaspomoney-prod
-  traefik:
-    external: true # Réseau Traefik partagé (créé par docker-compose.traefik.yml)
-    name: traefik
-
-volumes:
-  mongodb_prod_data:
-    driver: local
-  redis_prod_data:
-    driver: local
-  prometheus_data:
-    driver: local
-  grafana_data:
-    driver: local
-
 services:
-  # === APPLICATION PROD ===
+  # === BUILD APPLICATION PROD ===
   app-prod:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: diaspomoney-app-prod
-    restart: unless-stopped
-    env_file:
-      - .env.prod
-    environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://app.diaspomoney.fr
-      - NEXTAUTH_URL=https://app.diaspomoney.fr
-      - APP_URL=https://app.diaspomoney.fr
-    depends_on:
-      mongodb-prod:
-        condition: service_healthy
-      redis-prod:
-        condition: service_healthy
-    networks:
-      - traefik
-      - diaspomoney-prod
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-    deploy:
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: "1G"
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=diaspomoney-prod
-      # Route HTTPS principale
-      - traefik.http.routers.app-prod.rule=Host(`app.diaspomoney.fr`)
-      - traefik.http.routers.app-prod.entrypoints=websecure
-      - traefik.http.routers.app-prod.tls=true
-      - traefik.http.routers.app-prod.tls.certresolver=le
-      - traefik.http.routers.app-prod.service=app-prod-service
-      - traefik.http.services.app-prod-service.loadbalancer.server.port=3000
-      # Redirection HTTP vers HTTPS
-      - traefik.http.routers.app-prod-http.rule=Host(`app.diaspomoney.fr`)
-      - traefik.http.routers.app-prod-http.entrypoints=web
-      - traefik.http.routers.app-prod-http.middlewares=redirect-to-https-prod
-      - traefik.http.middlewares.redirect-to-https-prod.redirectscheme.scheme=https
-      - traefik.http.middlewares.redirect-to-https-prod.redirectscheme.permanent=true
-
-  # === DATABASE PROD ===
-  mongodb-prod:
-    image: mongo:7.0
-    container_name: diaspomoney-mongodb-prod
-    restart: unless-stopped
-    env_file:
-      - .env.prod
-    volumes:
-      - mongodb_prod_data:/data/db
-      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-    networks:
-      - diaspomoney-prod
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "mongosh --host 127.0.0.1 --username admin --password ${MONGO_PASSWORD} --authenticationDatabase admin --quiet --eval 'db.adminCommand({ ping: 1 }).ok ? 0 : 1'",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 40s
-
-  # === CACHE PROD ===
-  redis-prod:
-    image: redis:7.2-alpine
-    container_name: diaspomoney-redis-prod
-    restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - redis_prod_data:/data
-    networks:
-      - diaspomoney-prod
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  # === ADMIN TOOLS PROD ===
-  mongo-express-prod:
-    image: mongo-express:latest
-    container_name: diaspomoney-mongo-express-prod
-    restart: unless-stopped
-    env_file:
-      - .env.prod
-    environment:
-      ME_CONFIG_MONGODB_SERVER: mongodb-prod
-      ME_CONFIG_MONGODB_PORT: 27017
-      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD}
-      ME_CONFIG_MONGODB_AUTH_DATABASE: admin
-      ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-admin123}
-    depends_on:
-      mongodb-prod:
-        condition: service_healthy
-    networks:
-      - diaspomoney-prod
-      - traefik
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=diaspomoney-prod
-      - traefik.http.routers.mongo-express-prod.rule=Host(`mongo.diaspomoney.fr`)
-      - traefik.http.routers.mongo-express-prod.entrypoints=websecure
-      - traefik.http.routers.mongo-express-prod.tls=true
-      - traefik.http.routers.mongo-express-prod.tls.certresolver=le
-      - traefik.http.services.mongo-express-prod.loadbalancer.server.port=8081
+      dockerfile: Dockerfile.local
+      args:
+        ENV: prod
+        NODE_ENV: production
+        NEXT_PUBLIC_APP_URL: https://app.diaspomoney.fr
+        NEXT_PUBLIC_API_URL: https://app.diaspomoney.fr/api
+    image: localhost:5000/diaspomoney:prod
+    container_name: diaspomoney-app-prod-build
+    # Ne pas démarrer le container, juste builder l'image
+    profiles:
+      - build-only

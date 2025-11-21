@@ -1,23 +1,19 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
-  name: redis
-  namespace: diaspomoney-prod
+  name: diaspomoney-redis
+  namespace: diaspomoney
   labels:
-    app: diaspomoney
-    component: redis
+    app: diaspomoney-redis
 spec:
-  serviceName: redis
   replicas: 1
   selector:
     matchLabels:
-      app: diaspomoney
-      component: redis
+      app: diaspomoney-redis
   template:
     metadata:
       labels:
-        app: diaspomoney
-        component: redis
+        app: diaspomoney-redis
     spec:
       containers:
       - name: redis
@@ -25,67 +21,46 @@ spec:
         ports:
         - containerPort: 6379
           name: redis
-          protocol: TCP
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: password
         command:
         - redis-server
         - --appendonly
         - "yes"
         - --requirepass
-        - $(REDIS_PASSWORD)
-        env:
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: redis-secrets
-              key: password
-        volumeMounts:
-        - name: redis-data
-          mountPath: /data
+        - "$(REDIS_PASSWORD)"
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "250m"
+            cpu: "50m"
+            memory: "128Mi"
           limits:
-            memory: "512Mi"
-            cpu: "1000m"
+            cpu: "200m"
+            memory: "256Mi"
         livenessProbe:
           exec:
             command:
-            - redis-cli
-            - --raw
-            - incr
-            - ping
+            - sh
+            - -c
+            - "redis-cli --raw -a $(REDIS_PASSWORD) incr ping"
           initialDelaySeconds: 30
-          periodSeconds: 30
-          timeoutSeconds: 10
-          failureThreshold: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
         readinessProbe:
           exec:
             command:
-            - redis-cli
-            - --raw
-            - incr
-            - ping
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 999
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
-          capabilities:
-            drop:
-            - ALL
-      restartPolicy: Always
-  volumeClaimTemplates:
-  - metadata:
-      name: redis-data
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: standard
-      resources:
-        requests:
-          storage: 10Gi
-
+            - sh
+            - -c
+            - "redis-cli --raw -a $(REDIS_PASSWORD) incr ping"
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+      volumes:
+      - name: redis-data
+        emptyDir: {}  # Pour la persistance, utilisez un PersistentVolumeClaim en production

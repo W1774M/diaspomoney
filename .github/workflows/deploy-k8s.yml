@@ -1,0 +1,159 @@
+name: Build and Deploy to K3s
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - rct
+          - prod
+      image_tag:
+        description: 'Image tag (default: branch name or tag)'
+        required: false
+        type: string
+
+env:
+  REGISTRY: localhost:5000
+  IMAGE_NAME: diaspomoney
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate image tag
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.image_tag }}"
+            if [ -z "$TAG" ]; then
+              TAG="${{ github.event.inputs.environment }}"
+            fi
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            GIT_SHA=$(git rev-parse --short HEAD)
+            BRANCH=${GITHUB_REF#refs/heads/}
+            TAG="${BRANCH}-${GIT_SHA}"
+          fi
+          echo "tags=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${TAG}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Image tag: ${TAG}"
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+
+  deploy-dev:
+    name: Deploy to Dev
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      github.ref == 'refs/heads/develop' || 
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          # Ajoutez ici la configuration de votre cluster K3s
+          # Exemple avec un fichier kubeconfig:
+          # mkdir -p ~/.kube
+          # echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+          echo "Configurez votre accès au cluster K3s ici"
+
+      - name: Deploy to K3s
+        run: |
+          TAG=$(echo "${{ needs.build.outputs.image_tag }}" | cut -d: -f2)
+          ./scripts/deploy.sh dev "$TAG"
+
+  deploy-rct:
+    name: Deploy to Recette
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      github.ref == 'refs/heads/main' || 
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'rct')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubectl
+        run: |
+          echo "Configurez votre accès au cluster K3s ici"
+
+      - name: Deploy to K3s
+        run: |
+          TAG=$(echo "${{ needs.build.outputs.image_tag }}" | cut -d: -f2)
+          ./scripts/deploy.sh rct "$TAG"
+
+  deploy-prod:
+    name: Deploy to Production
+    needs: build
+    runs-on: ubuntu-latest
+    if: |
+      startsWith(github.ref, 'refs/tags/v') || 
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubectl
+        run: |
+          echo "Configurez votre accès au cluster K3s ici"
+
+      - name: Deploy to K3s
+        run: |
+          TAG=$(echo "${{ needs.build.outputs.image_tag }}" | cut -d: -f2)
+          ./scripts/deploy.sh prod "$TAG"
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/diaspomoney-app -n diaspomoney --timeout=5m
+          kubectl get pods -n diaspomoney -l app=diaspomoney-app
+

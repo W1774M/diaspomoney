@@ -1,6 +1,7 @@
 'use client';
 
 import { MOCK_USERS } from '@/mocks';
+import { ROLES, USER_STATUSES } from '@/lib/constants';
 import { Calendar, Clock, History, MapPin, Star, User } from 'lucide-react';
 import { useState } from 'react';
 
@@ -9,7 +10,7 @@ export default function HistoryServicesPage() {
 
   // Filter providers from mock data for history services
   const mockServices = MOCK_USERS.filter(
-    user => user.roles.includes('PROVIDER') && user.status === 'ACTIVE',
+    user => user.roles.includes(ROLES.PROVIDER) && user.status === USER_STATUSES.ACTIVE,
   )
     .slice(0, 3)
     .map((provider, index) => ({

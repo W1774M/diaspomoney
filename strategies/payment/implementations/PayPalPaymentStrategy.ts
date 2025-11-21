@@ -99,8 +99,8 @@ export class PayPalPaymentStrategy implements IPaymentStrategy {
             },
           ],
           application_context: {
-            return_url: data.returnUrl || `${process.env['NEXTAUTH_URL'] || 'https://app.diaspomoney.fr'}/payment/success`,
-            cancel_url: data.cancelUrl || `${process.env['NEXTAUTH_URL'] || 'https://app.diaspomoney.fr'}/payment/cancel`,
+            return_url: data.returnUrl || `${process.env['NEXTAUTH_URL'] || process.env['NEXT_PUBLIC_APP_URL'] || ''}/payment/success`,
+            cancel_url: data.cancelUrl || `${process.env['NEXTAUTH_URL'] || process.env['NEXT_PUBLIC_APP_URL'] || ''}/payment/cancel`,
           },
         }),
       });

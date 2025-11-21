@@ -4,6 +4,7 @@ import Logo from '@/components/ui/Logo';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useSignOut } from '@/hooks/auth/useSignOut';
 import imageLoader from '@/lib/image-loader';
+import { ROLES } from '@/lib/constants';
 import type { UINotification } from '@/lib/types';
 import { Bell, ChevronDown, Mail, MessageSquare } from 'lucide-react';
 import Image from 'next/image';
@@ -123,20 +124,20 @@ export default function DashboardHeader() {
   // Déterminer le rôle principal pour l'affichage
   const getPrimaryRole = () => {
     if (!user?.roles || user.roles.length === 0) return 'Utilisateur';
-    if (user.roles.includes('ADMIN')) return 'Administrateur';
-    if (user.roles.includes('CSM')) return 'CSM';
-    if (user.roles.includes('PROVIDER')) return 'Prestataire';
-    if (user.roles.includes('CUSTOMER')) return 'Client';
-    if (user.roles.includes('BENEFICIARY')) return 'Bénéficiaire';
+    if (user.roles.includes(ROLES.ADMIN)) return 'Administrateur';
+    if (user.roles.includes(ROLES.CSM)) return 'CSM';
+    if (user.roles.includes(ROLES.PROVIDER)) return 'Prestataire';
+    if (user.roles.includes(ROLES.CUSTOMER)) return 'Client';
+    if (user.roles.includes(ROLES.BENEFICIARY)) return 'Bénéficiaire';
     return 'Utilisateur';
   };
 
   const getSecondaryRole = () => {
     if (!user?.roles || user.roles.length === 0) return '';
-    if (user.roles.includes('ADMIN') && user.roles.length > 1)
+    if (user.roles.includes(ROLES.ADMIN) && user.roles.length > 1)
       return 'Super Admin';
     if (user.roles.length > 1) {
-      const roles = user.roles.filter(r => r !== 'ADMIN');
+      const roles = user.roles.filter(r => r !== ROLES.ADMIN);
       return roles.join(', ') || '';
     }
     return '';
@@ -145,11 +146,11 @@ export default function DashboardHeader() {
   // Initiales pour l'avatar
   const getInitials = () => {
     if (user?.name) {
-      const names = user.name.split(' ');
+      const names = user.name.split(' ').filter(n => n && n.length > 0);
       if (names.length >= 2) {
-        return `${names[0]?.charAt(0)}${names[names.length - 1]?.charAt(
-          0,
-        )}`.toUpperCase();
+        const first = names[0]?.charAt(0) || '';
+        const last = names[names.length - 1]?.charAt(0) || '';
+        return `${first}${last}`.toUpperCase();
       }
       return user.name.substring(0, 2).toUpperCase();
     }

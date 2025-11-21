@@ -1,0 +1,33 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: diaspomoney-dev-ingressroute-https
+  namespace: diaspomoney
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`dev.diaspomoney.fr`)
+      kind: Rule
+      services:
+        - name: diaspomoney-dev-service
+          port: 80
+  tls:
+    certResolver: le
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: diaspomoney-dev-ingressroute-http
+  namespace: diaspomoney
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`dev.diaspomoney.fr`)
+      kind: Rule
+      middlewares:
+        - name: https-redirect
+      services:
+        - name: diaspomoney-dev-service
+          port: 80

@@ -1,0 +1,16 @@
+services:
+  # === BUILD APPLICATION RECETTE ===
+  app-recette:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        ENV: rct
+        NODE_ENV: recette
+        NEXT_PUBLIC_APP_URL: https://rct.diaspomoney.fr
+        NEXT_PUBLIC_API_URL: https://rct.diaspomoney.fr/api
+    image: localhost:5000/diaspomoney:rct
+    container_name: diaspomoney-app-rct-build
+    # Ne pas démarrer le container, juste builder l'image
+    profiles:
+      - build-only

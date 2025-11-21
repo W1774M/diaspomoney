@@ -14,6 +14,7 @@
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
+import { USER_STATUSES } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 import {
   getBeneficiaryRepository,
@@ -31,6 +32,7 @@ import type { Beneficiary, BeneficiaryData, KYCData, KYCDocument, ProviderInfo, 
 import { securityManager } from '@/lib/security/advanced-security';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
+import { UpdateUserSchema } from '@/lib/validations/index';
 
 export interface UserProfile {
   _id?: string;
@@ -130,7 +132,7 @@ export class UserService {
             lastName: user.lastName || '',
             name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
             roles: user.roles || [],
-            kycStatus: (user as any)['kycStatus'] ?? 'PENDING',
+            kycStatus: (user as any)['kycStatus'] ?? USER_STATUSES.PENDING,
             rating: (user['providerInfo'] && typeof user['providerInfo']['rating'] === 'number')
               ? user['providerInfo']['rating']
               : typeof user['rating'] === 'number'
@@ -159,7 +161,7 @@ export class UserService {
           };
 
           // Correct isActive logic: only set true if status ACTIVE, else false.
-          profile.isActive = user.status === 'ACTIVE' ? true : false;
+          profile.isActive = user.status === USER_STATUSES.ACTIVE ? true : false;
 
           // Be sure to assign emailVerified in all falsy cases, not just `undefined`
           profile.isEmailVerified = (typeof user.isEmailVerified === 'boolean')
@@ -236,14 +238,14 @@ export class UserService {
         lastName: user.lastName || '',
         name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
         roles: user.roles || [],
-        status: user.status ?? 'PENDING',
-        isActive: user.status === 'ACTIVE' ? true : false,
+        status: user.status ?? USER_STATUSES.PENDING,
+        isActive: user.status === USER_STATUSES.ACTIVE ? true : false,
         isEmailVerified: (typeof (user as any)['isEmailVerified'] === 'boolean')
           ? (user as any)['isEmailVerified']
           : (typeof user['emailVerified'] === 'boolean')
             ? user['emailVerified']
             : false,
-        kycStatus: (user as any)['kycStatus'] ?? 'PENDING',
+        kycStatus: (user as any)['kycStatus'] ?? USER_STATUSES.PENDING,
         rating: (user['providerInfo'] && typeof user['providerInfo'].rating === 'number')
           ? user['providerInfo']['rating']
           : typeof user['rating'] === 'number'
@@ -329,26 +331,7 @@ export class UserService {
       },
       {
         paramIndex: 1,
-        schema: z
-          .object({
-            firstName: z.string().optional(),
-            lastName: z.string().optional(),
-            phone: z.string().optional(),
-            country: z.string().optional(),
-            roles: z.array(z.string()).optional(),
-            status: z.string().optional(),
-            specialty: z.string().optional(),
-            recommended: z.boolean().optional(),
-            clientNotes: z.string().optional(),
-            preferences: z
-              .object({
-                language: z.string().optional(),
-                timezone: z.string().optional(),
-                notifications: z.boolean().optional(),
-              })
-              .optional(),
-          })
-          .passthrough(),
+        schema: UpdateUserSchema.passthrough(),
         paramName: 'data',
       },
     ],
@@ -414,7 +397,7 @@ export class UserService {
         lastName: updatedUserDoc.lastName || '',
         name: updatedUserDoc.name || `${updatedUserDoc.firstName || ''} ${updatedUserDoc.lastName || ''}`.trim(),
         roles: updatedUserDoc.roles || [],
-        kycStatus: updatedUserDoc.kycStatus ?? 'PENDING',
+        kycStatus: updatedUserDoc.kycStatus ?? USER_STATUSES.PENDING,
         rating:
           (updatedUserDoc['providerInfo'] && typeof updatedUserDoc['providerInfo']['rating'] === 'number'
             ? updatedUserDoc['providerInfo']['rating']
@@ -444,7 +427,7 @@ export class UserService {
             : [],
       };
 
-      userProfile.isActive = updatedUserDoc.status === 'ACTIVE' ? true : false;
+      userProfile.isActive = updatedUserDoc.status === USER_STATUSES.ACTIVE ? true : false;
       userProfile.isEmailVerified = (typeof updatedUserDoc.isEmailVerified === 'boolean')
         ? updatedUserDoc.isEmailVerified
         : (typeof updatedUserDoc.emailVerified === 'boolean')

@@ -209,7 +209,6 @@ export const ModalPayment = ({
     setIsClosing(true);
     setTimeout(() => setSteps?.(2), 300);
   }, [
-    appointment,
     paymentData,
     validateCardNumber,
     validateExpiryDate,

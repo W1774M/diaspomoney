@@ -1,5 +1,7 @@
 import { auth } from '@/auth';
+import { validateBody } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
+import { UpdateInvoiceSchema, type UpdateInvoiceInput } from '@/lib/validations/invoice.schema';
 import { invoiceService } from '@/services/invoice/invoice.service';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
@@ -161,19 +163,19 @@ export async function PUT(
       );
     }
 
-    // Récupérer les données de la requête
+    // Récupérer et valider les données de la requête
     const body = await request.json();
+    const data: UpdateInvoiceInput = validateBody(body, UpdateInvoiceSchema);
 
-    // Préparer les données de mise à jour
-    const updateData: Partial<
-      import('@/services/invoice/invoice.service').InvoiceData
-    > = {
-      ...(body.amount !== undefined && { amount: body.amount }),
-      ...(body.currency && { currency: body.currency }),
-      ...(body.items && { items: body.items }),
-      ...(body.dueDate && { dueDate: new Date(body.dueDate) }),
-      ...(body.tax !== undefined && { tax: body.tax }),
-    };
+    // Préparer les données de mise à jour avec seulement les propriétés définies
+    const updateData: any = {};
+    if (data.amount !== undefined) updateData.amount = data.amount;
+    if (data.currency !== undefined) updateData.currency = data.currency;
+    if (data.items !== undefined) updateData.items = data.items;
+    if (data.dueDate !== undefined) {
+      updateData.dueDate = typeof data.dueDate === 'string' ? new Date(data.dueDate) : data.dueDate;
+    }
+    if (data.tax !== undefined) updateData.tax = data.tax;
 
     // Utiliser le Service Layer Pattern (InvoiceService utilise déjà Repository Pattern)
     // Le service a déjà les decorators @InvalidateCache, @Log
@@ -183,14 +185,14 @@ export async function PUT(
     // (invoiceNumber, status, issueDate, paidDate, notes, providerId)
     const Invoice = (await import('@/models/Invoice')).default;
     const additionalUpdates: any = {};
-    if (body.invoiceNumber)
-      additionalUpdates.invoiceNumber = body.invoiceNumber;
-    if (body.status) additionalUpdates.status = body.status;
-    if (body.issueDate) additionalUpdates.issueDate = new Date(body.issueDate);
-    if (body.paidDate) additionalUpdates.paidDate = new Date(body.paidDate);
-    if (body.notes !== undefined) additionalUpdates.notes = body.notes;
-    if (body.providerId !== undefined)
-      additionalUpdates.providerId = body.providerId;
+    if (data.invoiceNumber)
+      additionalUpdates.invoiceNumber = data.invoiceNumber;
+    if (data.status) additionalUpdates.status = data.status;
+    if (data.issueDate) additionalUpdates.issueDate = typeof data.issueDate === 'string' ? new Date(data.issueDate) : data.issueDate;
+    if (data.paidDate) additionalUpdates.paidDate = typeof data.paidDate === 'string' ? new Date(data.paidDate) : data.paidDate;
+    if (data.notes !== undefined) additionalUpdates.notes = data.notes;
+    if (data.providerId !== undefined)
+      additionalUpdates.providerId = data.providerId;
 
     if (Object.keys(additionalUpdates).length > 0) {
       await (Invoice as any).findByIdAndUpdate(
@@ -212,7 +214,7 @@ export async function PUT(
       invoiceNumber:
         invoiceDoc?.['invoiceNumber'] || finalInvoice.invoiceNumber,
       customerId: finalInvoice.userId,
-      providerId: invoiceDoc?.['providerId'] || body.providerId || '',
+      providerId: invoiceDoc?.['providerId'] || data.providerId || '',
       amount: finalInvoice.amount,
       currency: finalInvoice.currency || 'EUR',
       status: invoiceDoc?.['status'] || finalInvoice.status,
@@ -221,7 +223,7 @@ export async function PUT(
       paidDate: invoiceDoc?.['paidDate'] || finalInvoice.paidAt,
       paymentDate: invoiceDoc?.['paymentDate'] || finalInvoice.paidAt,
       items: finalInvoice.items || [],
-      notes: invoiceDoc?.['notes'] || body.notes,
+      notes: invoiceDoc?.['notes'] || data.notes,
       userId: finalInvoice.userId,
       createdAt: finalInvoice.createdAt,
       updatedAt: finalInvoice.updatedAt,

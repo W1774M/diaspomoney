@@ -11,6 +11,7 @@
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
+import dbConnect from '@/lib/mongodb';
 import SupportTicket from '@/models/SupportTicket';
 import { SupportTicket as SupportTicketType } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
@@ -25,10 +26,18 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
   private readonly log = childLogger({
     component: 'MongoSupportTicketRepository',
   });
+
+  // S'assurer que MongoDB est connecté avant chaque opération
+  private async ensureConnection() {
+    await dbConnect();
+  }
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'SupportTicketRepository:findById' }) // Cache 5 minutes
   async findById(id: string): Promise<SupportTicketType | null> {
     try {
+      // S'assurer que MongoDB est connecté
+      await this.ensureConnection();
+
       const ticket = await (SupportTicket as any).findById(new ObjectId(id));
       const result = ticket ? this.mapToTicket(ticket) : null;
       if (result) {
@@ -54,6 +63,9 @@ export class MongoSupportTicketRepository implements ISupportTicketRepository {
     options?: PaginationOptions,
   ): Promise<PaginatedFindResult<SupportTicketType>> {
     try {
+      // S'assurer que MongoDB est connecté
+      await this.ensureConnection();
+
       const page = options?.page || 1;
       const limit = options?.limit || 20;
       const offset = options?.offset || (page - 1) * limit;

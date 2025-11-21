@@ -32,7 +32,18 @@ const ServicesProviderCard = React.memo<ServiceCardProps>(
                 />
               ) : (
                 <span className="text-2xl font-bold text-gray-600">
-                  {provider.firstName.charAt(0).toUpperCase()}
+                  {(() => {
+                    // Utiliser firstName si disponible
+                    if (provider.firstName && provider.firstName.length > 0) {
+                      return provider.firstName.charAt(0).toUpperCase();
+                    }
+                    // Sinon utiliser name si disponible
+                    if (provider['name'] && provider['name'].length > 0) {
+                      return provider['name'].charAt(0).toUpperCase();
+                    }
+                    // Fallback
+                    return '?';
+                  })()}
                 </span>
               )}
             </div>

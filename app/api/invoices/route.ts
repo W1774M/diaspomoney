@@ -1,4 +1,7 @@
 import { auth } from '@/auth';
+// Désactiver le prerendering pour cette route API
+;
+
 import { InvoiceQueryBuilder } from '@/builders';
 import { invoiceFacade, type InvoiceFacadeData } from '@/facades';
 import { handleApiRoute, ApiErrors, ApiError, validateBody } from '@/lib/api/error-handler';

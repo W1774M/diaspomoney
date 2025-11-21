@@ -4,16 +4,22 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --webpack",
-    "build:css": "tailwindcss -i ./styles/globals.css -o ./public/styles.css --minify",
     "start": "next start",
+    "build:css": "tailwindcss -i ./styles/globals.css -o ./public/styles.css --minify",
+    "build": "next build --webpack && pnpm build:css",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:strict": "eslint . --ext .js,.jsx,.ts,.tsx --max-warnings=0",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "lint:next": "next lint || echo 'Warning: next lint has a known issue with pnpm. Use pnpm lint instead.'",
     "test": "cypress run",
     "test:ci": "cypress run --browser chrome --headless",
-    "type-check": "tsc --noEmit"
+    "tsc:check": "tsc --noEmit",
+    "tsc:check:strict": "tsc --noEmit --strict",
+    "tsc:check:fix": "tsc --noEmit --strict --fix",
+    "tsc:check:silent": "tsc --noEmit --strict --silent",
+    "deploy:dev": "./scripts/deploy-full.sh dev",
+    "deploy:rct": "./scripts/deploy-full.sh rct",
+    "deploy:prod": "./scripts/deploy-full.sh prod"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -28,6 +34,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "framer-motion": "^12.23.24",
+    "http-proxy-middleware": "^3.0.5",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.553.0",
@@ -51,6 +58,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.56.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.5",
@@ -66,6 +74,7 @@
     "cypress": "^13.6.0",
     "eslint": "^9.39.1",
     "eslint-config-next": "16.0.3",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "globals": "^16.5.0",
     "playwright": "^1.56.1",
     "postcss": "^8",

@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/hooks';
+import { ROLES } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -14,32 +15,32 @@ function getHighestPriorityDashboard(userRoles: string[] = []): string {
   }
 
   // Super Admin : ADMIN avec plusieurs autres rôles
-  if (userRoles.includes('ADMIN') && userRoles.length > 1) {
+  if (userRoles.includes(ROLES.ADMIN) && userRoles.length > 1) {
     return '/dashboard/admin';
   }
 
   // Admin
-  if (userRoles.includes('ADMIN')) {
+  if (userRoles.includes(ROLES.ADMIN)) {
     return '/dashboard/admin';
   }
 
   // CSM
-  if (userRoles.includes('CSM')) {
+  if (userRoles.includes(ROLES.CSM)) {
     return '/dashboard/csm';
   }
 
   // Provider
-  if (userRoles.includes('PROVIDER')) {
+  if (userRoles.includes(ROLES.PROVIDER)) {
     return '/dashboard/provider';
   }
 
   // Customer
-  if (userRoles.includes('CUSTOMER')) {
+  if (userRoles.includes(ROLES.CUSTOMER)) {
     return '/dashboard/customer';
   }
 
   // Beneficiary
-  if (userRoles.includes('BENEFICIARY')) {
+  if (userRoles.includes(ROLES.BENEFICIARY)) {
     return '/dashboard/beneficiary';
   }
 

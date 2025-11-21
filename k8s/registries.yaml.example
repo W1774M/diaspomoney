@@ -1,0 +1,26 @@
+# Configuration du registry Docker pour K3s
+# Copiez ce fichier vers /etc/rancher/k3s/registries.yaml
+# Puis redémarrez K3s: sudo systemctl restart k3s
+
+mirrors:
+  # Registry local (même machine)
+  localhost:5000:
+    endpoint:
+      - "http://localhost:5000"
+  
+  # Registry distant (autre machine)
+  # Remplacez 192.168.1.10 par l'IP de votre registry
+  # 192.168.1.10:5000:
+  #   endpoint:
+  #     - "http://192.168.1.10:5000"
+  
+  # Registry avec authentification (exemple)
+  # registry.example.com:
+  #   endpoint:
+  #     - "https://registry.example.com"
+  #   configs:
+  #     "registry.example.com":
+  #       auth:
+  #         username: "your-username"
+  #         password: "your-password"
+

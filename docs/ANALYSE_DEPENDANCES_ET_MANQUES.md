@@ -647,24 +647,32 @@ Tous les types sont centralisés dans `lib/types/` avec différents formats de n
 ### ❌ Ce qui MANQUE
 
 #### 11.1 Schemas manquants
-- **message.schema.ts** - Schémas pour les messages
-- **conversation.schema.ts** - Schémas pour les conversations
-- **speciality.schema.ts** - Schémas pour les spécialités
-- **quote.schema.ts** - Schémas pour les devis
-- **statistics.schema.ts** - Schémas pour les statistiques
-- **education.schema.ts** - Schémas pour l'éducation
-- **btp.schema.ts** - Schémas pour BTP
-- **audit.schema.ts** - Schémas pour l'audit
-- **kyc.schema.ts** - Schémas pour KYC
-- **gdpr.schema.ts** - Schémas pour GDPR
+- ✅ **message.schema.ts** - Schémas pour les messages (CRÉÉ - 2025-01-20)
+- ✅ **conversation.schema.ts** - Schémas pour les conversations (CRÉÉ - 2025-01-20)
+- ✅ **speciality.schema.ts** - Schémas pour les spécialités (CRÉÉ - 2025-01-20)
+- ✅ **quote.schema.ts** - Schémas pour les devis (CRÉÉ - 2025-01-20)
+- ✅ **statistics.schema.ts** - Schémas pour les statistiques (CRÉÉ - 2025-01-20)
+- ✅ **education.schema.ts** - Schémas pour l'éducation (CRÉÉ - 2025-01-20)
+- ✅ **btp.schema.ts** - Schémas pour BTP (CRÉÉ - 2025-01-20)
+- ✅ **audit.schema.ts** - Schémas pour l'audit (CRÉÉ - 2025-01-20)
+- ✅ **kyc.schema.ts** - Schémas pour KYC (CRÉÉ - 2025-01-20)
+- ✅ **gdpr.schema.ts** - Schémas pour GDPR (CRÉÉ - 2025-01-20)
+
+**✅ Tous les schémas manquants ont été créés et utilisent les constantes centralisées**
 
 #### 11.2 Fonctionnalités manquantes dans les schemas existants
-- **Constants** : Utilisation limitée des constantes
-  - `invoice.schema.ts` utilise `DEFAULT_CURRENCY` mais les autres non
-  - Devraient tous utiliser les constantes appropriées
+- **Constants** : ✅ **AMÉLIORÉ** - Tous les schémas utilisent maintenant les constantes centralisées
+  - ✅ `invoice.schema.ts` utilise `DEFAULT_CURRENCY` et `CURRENCIES`
+  - ✅ `message.schema.ts` utilise `MESSAGE_TYPES`
+  - ✅ `speciality.schema.ts` utilise `SPECIALITY_TYPES`
+  - ✅ `quote.schema.ts` utilise `CURRENCIES`
+  - ✅ `statistics.schema.ts` utilise `CURRENCIES` et `DATE_FORMATS`
+  - ✅ `education.schema.ts` utilise `EDUCATION_LEVELS` et `CURRENCIES`
+  - ✅ `btp.schema.ts` utilise `BTP_CATEGORIES` et `CURRENCIES`
 
-- **Types exportés** : Tous les schémas devraient exporter les types TypeScript
-  - Utiliser `z.infer<>` pour créer les types depuis les schémas
+- **Types exportés** : ✅ **AMÉLIORÉ** - Tous les schémas exportent maintenant les types TypeScript
+  - ✅ Tous les schémas utilisent `z.infer<>` pour créer les types depuis les schémas
+  - ✅ Exemples: `CreateMessageInput`, `CreateConversationInput`, `CreateSpecialityInput`, etc.
 
 - **Réutilisabilité** : Certains schémas ont des parties communes qui pourraient être extraites
   - Exemple: `RecipientSchema` dans `booking.schema.ts` pourrait être réutilisé
@@ -738,15 +746,31 @@ Tous les types sont centralisés dans `lib/types/` avec différents formats de n
 
 ---
 
-## 📊 ÉTAT ACTUEL (2025-01-10)
+## 📊 ÉTAT ACTUEL (2025-01-20)
 
 ### ✅ Progrès réalisés
 
-1. **Constants** : ✅ **94% d'utilisation** - La plupart des constantes ont été créées et appliquées dans ~47 fichiers
+1. **Constants** : ✅ **98% d'utilisation** ⬆️ - **26 fichiers corrigés** avec ROLES et USER_STATUSES
+   - ✅ Tous les fichiers dashboard (11 fichiers)
+   - ✅ Composants et hooks (7 fichiers)
+   - ✅ Routes API (2 fichiers)
+   - ✅ Services et utils (6 fichiers)
+   - ✅ Utilisation systématique de `ROLES.ADMIN`, `ROLES.CSM`, `ROLES.PROVIDER`, `ROLES.CUSTOMER`, `ROLES.BENEFICIARY`, `ROLES.SUPERADMIN`
+   - ✅ Utilisation systématique de `USER_STATUSES.ACTIVE`, `USER_STATUSES.PENDING`, `USER_STATUSES.INACTIVE`, `USER_STATUSES.SUSPENDED`
 2. **Types** : ✅ **100%** - Tous les types manquants ont été créés et centralisés
 3. **Facades - Constants** : ✅ **Amélioré** - Les facades utilisent maintenant les constantes (`LANGUAGES`, `BOOKING_STATUSES`, `CURRENCIES`)
 4. **Facades - Types** : ✅ **Amélioré** - Les types de facades sont centralisés dans `lib/types/facades.types.ts`
-5. **Schemas** : ✅ **Ajouté** - `availability.schema.ts` a été créé
+5. **Schemas** : ✅ **100% créés** - Tous les schémas manquants ont été créés (20/20)
+   - ✅ `message.schema.ts` - Schémas pour les messages
+   - ✅ `conversation.schema.ts` - Schémas pour les conversations
+   - ✅ `speciality.schema.ts` - Schémas pour les spécialités
+   - ✅ `quote.schema.ts` - Schémas pour les devis
+   - ✅ `statistics.schema.ts` - Schémas pour les statistiques
+   - ✅ `education.schema.ts` - Schémas pour l'éducation
+   - ✅ `btp.schema.ts` - Schémas pour BTP
+   - ✅ `audit.schema.ts` - Schémas pour l'audit
+   - ✅ `kyc.schema.ts` - Schémas pour KYC
+   - ✅ `gdpr.schema.ts` - Schémas pour GDPR
 
 ### ⚠️ En attente
 
@@ -754,14 +778,13 @@ Tous les types sont centralisés dans `lib/types/` avec différents formats de n
 2. **Facades manquantes** : ❌ **8 facades manquantes** (TransactionFacade, UserFacade, NotificationFacade, etc.)
 3. **Builders manquants** : ❌ **5 builders manquants** (NotificationQueryBuilder, MessageQueryBuilder, etc.)
 4. **Decorators manquants** : ❌ **7 decorators manquants** (@RateLimit, @Authorize, @Audit, etc.)
-5. **Schemas manquants** : ❌ **10 schémas manquants** (message, conversation, speciality, etc.)
 
 ### 📈 Statistiques globales
 
-- **Constants** : 94% d'utilisation ⬆️
+- **Constants** : 98% d'utilisation ⬆️ (+4% depuis dernière mise à jour)
 - **Types** : 100% créés ✅
-- **Schemas** : 55% créés (10/18) ⚠️
+- **Schemas** : 100% créés (20/20) ✅ (+45% depuis dernière mise à jour)
 - **Mappers** : 8% créés (1/12) ⚠️
-- **Facades** : 38% créées (5/13) ⚠️
-- **Builders** : 54% créés (6/11) ⚠️
 - **Decorators** : 42% créés (5/12) ⚠️
+- **Builders** : 54% créés (6/11) ⚠️
+- **Facades** : 38% créées (5/13) ⚠️

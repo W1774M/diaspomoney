@@ -40,17 +40,18 @@ export default function HomePage() {
       {/* Hero section */}
       <section className="bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white py-16">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center">
+          <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="md:w-1/2 mb-8 md:mb-0">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 flex items-center">
                 Transférez des services, pas de l&apos;argent
+                <span className="ml-3 w-1 h-12 bg-white"></span>
               </h2>
-              <p className="text-lg mb-6">
-                Garantissez à vos proches en Afrique des services de qualité en
-                santé, éducation et immobilier, sans risque de détournement ni
-                surfacturation.
+              <p className="text-lg mb-6 text-white/95">
+                La première plateforme tout-en-un qui révolutionne votre transfert
+                de services vers l&apos;Afrique : santé, éducation, immobilier...
+                tout réuni au même endroit.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <button
                   className="bg-white text-black px-6 py-3 rounded-md font-semibold hover:bg-gray-100 transition flex items-center justify-center hover:cursor-pointer"
                   onClick={() => handleRedirect()}
@@ -68,55 +69,66 @@ export default function HomePage() {
                   Voir comment ça marche
                 </button>
               </div>
+              <div className="flex flex-col sm:flex-row gap-6 mt-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                    <span className="text-xl">⏰</span>
+                  </div>
+                  <span className="text-white/95">Accompagnement personnalisé</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                    <span className="text-xl">🔥</span>
+                  </div>
+                  <span className="text-white/95">Suivi en temps réel</span>
+                </div>
+              </div>
             </div>
             <div className="md:w-1/2 flex justify-center">
-              <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md text-gray-800">
-                <h3 className="text-xl font-semibold mb-4">
-                  Quel service souhaitez-vous transférer ?
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <div
-                    className="flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left cursor-pointer"
+              <div className="bg-white rounded-lg shadow-xl overflow-hidden w-full max-w-md text-gray-800">
+                <div className="relative h-48 bg-gradient-to-br from-diaspomoney-500 to-diaspomoney-700 flex items-center justify-center">
+                  <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                    <span>✓</span>
+                    <span>Vérifié</span>
+                  </div>
+                  <div className="text-white text-center">
+                    <span className="text-6xl">🏥</span>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h3 className="text-xl font-bold mb-2">Service Santé - Abidjan</h3>
+                  <div className="flex items-center gap-2 text-gray-600 mb-2">
+                    <span className="text-sm">📍</span>
+                    <span className="text-sm">Abidjan, Côte d&apos;Ivoire</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600 mb-4">
+                    <span className="text-sm">🏥</span>
+                    <span className="text-sm">Consultation • Soins hospitaliers</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-700 border border-gray-200">
+                      Consultation
+                    </span>
+                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-700 border border-gray-200">
+                      Urgences
+                    </span>
+                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-700 border border-gray-200">
+                      Suivi médical
+                    </span>
+                  </div>
+                  <div className="mb-4">
+                    <span className="text-3xl font-bold text-diaspomoney-600">À partir de 25€</span>
+                    <span className="text-sm text-gray-600 ml-2">par consultation</span>
+                  </div>
+                  <button
+                    className="w-full bg-diaspomoney-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-diaspomoney-700 transition hover:cursor-pointer"
                     onClick={() => handleRedirect("health")}
                   >
-                    <div className="mr-4">
-                      <span className="text-blue-600 text-2xl">🏥</span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Santé</h4>
-                      <p className="text-sm text-gray-600">
-                        Consultations, soins hospitaliers, médicaments
-                      </p>
-                    </div>
-                  </div>
-                  <div
-                    className="flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left cursor-pointer"
-                    onClick={() => handleRedirect("edu")}
-                  >
-                    <div className="mr-4">
-                      <span className="text-blue-600 text-2xl">🎓</span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Éducation</h4>
-                      <p className="text-sm text-gray-600">
-                        Frais de scolarité, fournitures, formations
-                      </p>
-                    </div>
-                  </div>
-                  <div
-                    className="flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors text-left cursor-pointer"
-                    onClick={() => handleRedirect("immo")}
-                  >
-                    <div className="mr-4">
-                      <span className="text-blue-600 text-2xl">🏠</span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Immobilier</h4>
-                      <p className="text-sm text-gray-600">
-                        Achat, location, gestion immobilière
-                      </p>
-                    </div>
-                  </div>
+                    Réserver maintenant
+                  </button>
+                  <p className="text-xs text-gray-500 mt-3 text-center">
+                    Protection « Garantie service » incluse
+                  </p>
                 </div>
               </div>
             </div>

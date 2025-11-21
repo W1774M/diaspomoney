@@ -1,9 +1,8 @@
 'use client';
 
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import DashboardStats from '@/components/dashboard/DashboardStats';
+import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
 import { useAuth } from '@/hooks';
-import { useDashboardStats } from '@/hooks/dashboard';
 import { Calendar, Clock, DollarSign, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -13,11 +12,6 @@ export default function ProviderDashboardPage() {
   const { isAuthenticated, isLoading, user, isProvider } = useAuth();
   const router = useRouter();
 
-  const stats = useDashboardStats({
-    userId: user?.id || '',
-    isAdmin: false,
-    isCSM: false,
-  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -49,7 +43,7 @@ export default function ProviderDashboardPage() {
         userName={user?.name || 'Prestataire'}
         subtitle='Tableau de bord prestataire - Gérez vos services et rendez-vous'
       />
-      <DashboardStats stats={stats} isAdmin={false} isCSM={false} />
+      <RoleSpecificStats userId={user?.id} />
       
       {/* Actions rapides spécifiques aux prestataires */}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>

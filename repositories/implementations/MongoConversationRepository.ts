@@ -11,6 +11,7 @@
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
+import dbConnect from '@/lib/mongodb';
 import Conversation from '@/models/Conversation';
 import { Conversation as ConversationType } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
@@ -25,10 +26,18 @@ export class MongoConversationRepository implements IConversationRepository {
   private readonly log = childLogger({
     component: 'MongoConversationRepository',
   });
+
+  // S'assurer que MongoDB est connecté avant chaque opération
+  private async ensureConnection() {
+    await dbConnect();
+  }
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'ConversationRepository:findById' }) // Cache 5 minutes
   async findById(id: string): Promise<ConversationType | null> {
     try {
+      // S'assurer que MongoDB est connecté
+      await this.ensureConnection();
+
       const conversation = await (Conversation as any).findById(
         new ObjectId(id),
       );
@@ -56,6 +65,9 @@ export class MongoConversationRepository implements IConversationRepository {
     options?: PaginationOptions,
   ): Promise<PaginatedFindResult<ConversationType>> {
     try {
+      // S'assurer que MongoDB est connecté
+      await this.ensureConnection();
+
       const page = options?.page || 1;
       const limit = options?.limit || 20;
       const offset = options?.offset || (page - 1) * limit;
@@ -110,6 +122,9 @@ export class MongoConversationRepository implements IConversationRepository {
     type?: 'user' | 'support',
   ): Promise<ConversationType | null> {
     try {
+      // S'assurer que MongoDB est connecté
+      await this.ensureConnection();
+
       const filters: any = {
         participants: {
           $all: participantIds.map(id => new ObjectId(id)),

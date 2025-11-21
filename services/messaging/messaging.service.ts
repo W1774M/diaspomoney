@@ -27,6 +27,8 @@ import {
   ISupportTicketRepository,
 } from '@/repositories/interfaces/IMessagingRepository';
 import { UIAttachment, UIConversation, UIMessage } from '@/lib/types';
+import { CreateMessageSchema, UploadAttachmentSchema } from '@/lib/validations/index';
+import { CreateConversationSchema } from '@/lib/validations/conversation.schema';
 
 export interface CreateConversationData {
   participants: string[];
@@ -167,10 +169,7 @@ export class MessagingService {
     rules: [
       {
         paramIndex: 0,
-        schema: z.object({
-          participants: z.array(z.string().min(1)).min(2),
-          type: z.enum(['user', 'support']).optional(),
-        }),
+        schema: CreateConversationSchema.passthrough(),
         paramName: 'data',
       },
     ],
@@ -316,11 +315,7 @@ export class MessagingService {
     rules: [
       {
         paramIndex: 0,
-        schema: z.object({
-          conversationId: z.string().min(1),
-          text: z.string().min(1),
-          attachments: z.array(z.string()).optional(),
-        }),
+        schema: CreateMessageSchema.pick({ conversationId: true, text: true, attachments: true }).passthrough(),
         paramName: 'data',
       },
       { paramIndex: 1, schema: z.string().min(1), paramName: 'userId' },
@@ -597,15 +592,7 @@ export class MessagingService {
     rules: [
       {
         paramIndex: 0,
-        schema: z.object({
-          name: z.string().min(1),
-          type: z.string().min(1),
-          size: z.number().positive(),
-          url: z.string().url(),
-          uploadedBy: z.string().min(1),
-          conversationId: z.string().optional(),
-          messageId: z.string().optional(),
-        }),
+        schema: UploadAttachmentSchema.passthrough(),
         paramName: 'data',
       },
     ],

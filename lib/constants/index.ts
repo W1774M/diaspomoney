@@ -40,6 +40,12 @@ export const DATABASE = {
     APPOINTMENT_USER: 'userId_1',
     APPOINTMENT_PROVIDER: 'providerId_1',
   },
+  POOL_SIZE: {
+    DEFAULT: 10,
+    MEDIUM: 20,
+    LARGE: 50,
+  },
+  SOCKET_TIMEOUT: 45000, // 45 seconds
 } as const;
 
 // === SECURITY CONSTANTS ===
@@ -607,7 +613,7 @@ export const VALIDATION_RULES = {
     REGEX: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
   },
   URL: {
-    REGEX: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/,
+    REGEX: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/u,
   },
   DATE: {
     MIN_YEAR: 1900,

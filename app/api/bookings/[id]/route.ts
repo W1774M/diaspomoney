@@ -11,7 +11,9 @@
  */
 
 import { auth } from '@/auth';
+import { validateBody } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
+import { UpdateBookingSchema, type UpdateBookingInput } from '@/lib/validations/booking.schema';
 import { bookingService } from '@/services/booking/booking.service';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
@@ -104,13 +106,30 @@ export async function PUT(
     }
 
     const body = await request.json();
+    
+    // Validation avec Zod
+    const data: UpdateBookingInput = validateBody(body, UpdateBookingSchema);
+    
     log.debug(
-      { bookingId: params.id, fields: Object.keys(body) },
+      { bookingId: params.id, fields: Object.keys(data) },
       'Updating booking',
     );
 
+    // Construire l'objet de mise à jour avec seulement les propriétés définies
+    const updateData: any = {};
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.appointmentDate !== undefined) {
+      updateData.appointmentDate = typeof data.appointmentDate === 'string' 
+        ? new Date(data.appointmentDate) 
+        : data.appointmentDate;
+    }
+    if (data.timeslot !== undefined) updateData.timeslot = data.timeslot;
+    if (data.consultationMode !== undefined) updateData.consultationMode = data.consultationMode;
+    if (data.recipient !== undefined) updateData.recipient = data.recipient;
+    if (data.metadata !== undefined) updateData.metadata = data.metadata;
+
     // Utiliser le service avec décorateurs (@Log, @InvalidateCache)
-    const updatedBooking = await bookingService.updateBooking(params.id, body);
+    const updatedBooking = await bookingService.updateBooking(params.id, updateData);
 
     log.info(
       { bookingId: params.id, status: updatedBooking.status },

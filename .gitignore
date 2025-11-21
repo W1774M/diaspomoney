@@ -196,3 +196,17 @@ env.*
 k8s/generated/
 k8s/secrets/secrets.yaml
 k8s/.env
+# Kubernetes secrets (contiennent des mots de passe)
+k8s/**/secrets.yaml
+k8s/mongodb/secrets.yaml
+k8s/redis/secrets.yaml
+k8s/app/secrets.yaml
+# Documentation avec secrets
+docs/MONGODB_EXTERNAL_ACCESS.md
+# Fichiers .env
+.env*
+!.env.example
+env.*
+!env.example
+diaspomoney-app.tar
+*.tar

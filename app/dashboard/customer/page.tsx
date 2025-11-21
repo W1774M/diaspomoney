@@ -1,9 +1,8 @@
 'use client';
 
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import DashboardStats from '@/components/dashboard/DashboardStats';
+import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
 import { useAuth } from '@/hooks';
-import { useDashboardStats } from '@/hooks/dashboard';
 import { Calendar, CreditCard, FileText, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -13,11 +12,6 @@ export default function CustomerDashboardPage() {
   const { isAuthenticated, isLoading, user, isCustomer } = useAuth();
   const router = useRouter();
 
-  const stats = useDashboardStats({
-    userId: user?.id || '',
-    isAdmin: false,
-    isCSM: false,
-  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -49,7 +43,7 @@ export default function CustomerDashboardPage() {
         userName={user?.name || 'Client'}
         subtitle='Tableau de bord client - Gérez vos services et bénéficiaires'
       />
-      <DashboardStats stats={stats} isAdmin={false} isCSM={false} />
+      <RoleSpecificStats userId={user?.id} />
       
       {/* Actions rapides spécifiques aux clients */}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>

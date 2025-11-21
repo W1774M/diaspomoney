@@ -4,7 +4,6 @@ import type { SettingsTabsProps } from '@/lib/types';
 import {
   AlertTriangle,
   Bell,
-  CreditCard,
   Lock,
   Shield,
   User,
@@ -34,12 +33,6 @@ const SettingsTabs = React.memo<SettingsTabsProps>(function SettingsTabs({
       name: 'Notifications',
       icon: Bell,
       description: 'Préférences de notification',
-    },
-    {
-      id: 'billing',
-      name: 'Facturation',
-      icon: CreditCard,
-      description: 'Méthodes de paiement',
     },
     {
       id: 'privacy',

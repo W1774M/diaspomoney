@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
         result = await emailService.sendWelcomeEmail(
           email,
           data.name || 'Test User',
-          data.verificationUrl || 'https://app.diaspomoney.fr/verify?token=test',
+          data.verificationUrl || `${process.env['NEXTAUTH_URL'] || process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/verify?token=test`,
         );
         break;
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         result = await emailService.sendPasswordResetEmail(
           email,
           data.name || 'Test User',
-          data.resetUrl || 'https://app.diaspomoney.fr/reset?token=test',
+          data.resetUrl || `${process.env['NEXTAUTH_URL'] || process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/reset?token=test`,
         );
         break;
 

@@ -8,23 +8,10 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
+import { CreateSpecialitySchema, UpdateSpecialitySchema } from '@/lib/validations/speciality.schema';
 import { getSpecialityRepository, ISpecialityRepository } from '@/repositories';
 import { ISpeciality } from '@/lib/types';
 import { z } from 'zod';
-
-export interface CreateSpecialityData {
-  name: string;
-  description: string;
-  group: string;
-  isActive?: boolean;
-}
-
-export interface UpdateSpecialityData {
-  name?: string;
-  description?: string;
-  group?: string;
-  isActive?: boolean;
-}
 
 /**
  * SpecialityService utilisant le Service Layer Pattern
@@ -81,18 +68,15 @@ export class SpecialityService {
     rules: [
       {
         paramIndex: 0,
-        schema: z.object({
-          name: z.string().min(1, 'Name is required'),
-          description: z.string().min(1, 'Description is required'),
+        schema: CreateSpecialitySchema.pick({ name: true, description: true, category: true, isActive: true }).extend({
           group: z.string().min(1, 'Group is required'),
-          isActive: z.boolean().optional(),
-        }),
+        }).passthrough(),
         paramName: 'data',
       },
     ],
   })
   @InvalidateCache('speciality:*')
-  async createSpeciality(data: CreateSpecialityData): Promise<ISpeciality> {
+  async createSpeciality(data: { name: string; description: string; group: string; isActive?: boolean }): Promise<ISpeciality> {
     try {
       // Vérifier si une spécialité avec le même nom existe déjà (Repository Pattern)
       const existing = await this.specialityRepository.findByName(data.name);
@@ -129,12 +113,9 @@ export class SpecialityService {
       },
       {
         paramIndex: 1,
-        schema: z.object({
-          name: z.string().min(1).optional(),
-          description: z.string().min(1).optional(),
+        schema: UpdateSpecialitySchema.extend({
           group: z.string().min(1).optional(),
-          isActive: z.boolean().optional(),
-        }),
+        }).passthrough(),
         paramName: 'data',
       },
     ],
@@ -142,7 +123,7 @@ export class SpecialityService {
   @InvalidateCache('speciality:*')
   async updateSpeciality(
     id: string,
-    data: UpdateSpecialityData,
+    data: { name?: string; description?: string; group?: string; isActive?: boolean },
   ): Promise<ISpeciality> {
     try {
       // Vérifier que la spécialité existe (Repository Pattern)

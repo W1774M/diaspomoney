@@ -1,3 +1,4 @@
+import { ROLES, USER_STATUSES } from "@/lib/constants";
 import { UserRole, UserStatus } from "@/lib/types";
 
 /**
@@ -5,13 +6,13 @@ import { UserRole, UserStatus } from "@/lib/types";
  */
 export function getRoleColor(role: UserRole): string {
   switch (role) {
-    case "ADMIN":
+    case ROLES.ADMIN:
       return "bg-red-100 text-red-800";
-    case "PROVIDER":
+    case ROLES.PROVIDER:
       return "bg-blue-100 text-blue-800";
-    case "CUSTOMER":
+    case ROLES.CUSTOMER:
       return "bg-green-100 text-green-800";
-    case "CSM":
+    case ROLES.CSM:
       return "bg-purple-100 text-purple-800";
     default:
       return "bg-gray-100 text-gray-800";
@@ -23,13 +24,13 @@ export function getRoleColor(role: UserRole): string {
  */
 export function getStatusColor(status: UserStatus): string {
   switch (status) {
-    case "ACTIVE":
+    case USER_STATUSES.ACTIVE:
       return "bg-green-100 text-green-800";
-    case "INACTIVE":
+    case USER_STATUSES.INACTIVE:
       return "bg-gray-100 text-gray-800";
-    case "PENDING":
+    case USER_STATUSES.PENDING:
       return "bg-yellow-100 text-yellow-800";
-    case "SUSPENDED":
+    case USER_STATUSES.SUSPENDED:
       return "bg-red-100 text-red-800";
     default:
       return "bg-gray-100 text-gray-800";
@@ -41,13 +42,13 @@ export function getStatusColor(status: UserStatus): string {
  */
 export function getRoleText(role: UserRole): string {
   switch (role) {
-    case "ADMIN":
+    case ROLES.ADMIN:
       return "Administrateur";
-    case "PROVIDER":
+    case ROLES.PROVIDER:
       return "Prestataire";
-    case "CUSTOMER":
+    case ROLES.CUSTOMER:
       return "Client";
-    case "CSM":
+    case ROLES.CSM:
       return "CSM";
     default:
       return role;
@@ -59,13 +60,13 @@ export function getRoleText(role: UserRole): string {
  */
 export function getStatusText(status: UserStatus): string {
   switch (status) {
-    case "ACTIVE":
+    case USER_STATUSES.ACTIVE:
       return "Actif";
-    case "INACTIVE":
+    case USER_STATUSES.INACTIVE:
       return "Inactif";
-    case "PENDING":
+    case USER_STATUSES.PENDING:
       return "En attente";
-    case "SUSPENDED":
+    case USER_STATUSES.SUSPENDED:
       return "Suspendu";
     default:
       return status;
@@ -84,5 +85,5 @@ export function formatUserName(user: any): string {
  */
 export function getUserInitials(user: any): string {
   const name = user.name || user.email || "U";
-  return name.charAt(0).toUpperCase();
+  return name && name.length > 0 ? name.charAt(0).toUpperCase() : "U";
 }

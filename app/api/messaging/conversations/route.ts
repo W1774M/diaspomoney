@@ -1,4 +1,13 @@
 import { auth } from '@/auth';
+// Désactiver le prerendering pour cette route API
+export const dynamic = 'force-dynamic';
+
+// Désactiver le prerendering pour cette route API
+;
+
+import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
+import { CreateConversationSchema, type CreateConversationInput } from '@/lib/validations/conversation.schema';
+import dbConnect from '@/lib/mongodb';
 import Conversation from '@/models/Conversation';
 import Message from '@/models/Message';
 import mongoose from 'mongoose';
@@ -10,6 +19,9 @@ export async function GET(_request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
+
+    // S'assurer que MongoDB est connecté avant d'utiliser les modèles
+    await dbConnect();
 
     const userId = session.user.id;
 
@@ -86,16 +98,34 @@ export async function GET(_request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
+  return handleApiRoute(request, async () => {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const userId = session.user.id;
-    const { participantId } = await request.json();
+    // S'assurer que MongoDB est connecté avant d'utiliser les modèles
+    await dbConnect();
 
-    if (!participantId) {
+    const userId = session.user.id;
+    const body = await request.json();
+    
+    // Validation avec Zod - Pour une conversation user, on accepte participantId ou participants
+    let participantId: string;
+    if (body.participantId) {
+      participantId = body.participantId;
+    } else if (body.participants && Array.isArray(body.participants) && body.participants.length >= 2) {
+      // Si participants est fourni, prendre le premier qui n'est pas l'utilisateur actuel
+      participantId = body.participants.find((p: string) => p !== userId) || body.participants[0];
+    } else {
+      // Validation avec le schéma complet
+      const data: CreateConversationInput = validateBody(body, CreateConversationSchema);
+      // Pour une conversation user, prendre le premier participant qui n'est pas l'utilisateur actuel
+      const foundParticipant = data.participants.find((p: string) => p !== userId);
+      participantId = foundParticipant || data.participants[0] || ''; 
+    }
+
+    if (!participantId || participantId.trim() === '') {
       return NextResponse.json(
         { error: 'ID du participant requis' },
         { status: 400 },
@@ -140,11 +170,5 @@ export async function POST(request: NextRequest) {
         id: conversation._id.toString(),
       },
     });
-  } catch (error) {
-    console.error('Error creating conversation:', error);
-    return NextResponse.json(
-      { error: 'Erreur lors de la création de la conversation' },
-      { status: 500 },
-    );
-  }
+  }, 'api/messaging/conversations');
 }

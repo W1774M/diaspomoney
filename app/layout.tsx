@@ -25,6 +25,11 @@ export const metadata: Metadata = {
   description: 'Le lieu parfait pour acheter vos services pour la diaspora',
 };
 
+// Désactiver le prerendering globalement pour toutes les pages
+// Cela évite les erreurs MongoDB pendant le build
+// Note: Les routes API nécessitent toujours export const dynamic individuellement
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{

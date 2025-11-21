@@ -1,25 +1,23 @@
+import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
+// Désactiver le prerendering pour cette route API
+export const dynamic = 'force-dynamic';
+
+// Désactiver le prerendering pour cette route API
+
+
+import { ResetPasswordSchema, type ResetPasswordInput } from '@/lib/validations/auth.schema';
 import { NextRequest, NextResponse } from "next/server";
 import { mongoClient } from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-  try {
-    const { token, password } = await request.json();
-
-    if (!token || !password) {
-      return NextResponse.json(
-        { error: "Token et nouveau mot de passe requis" },
-        { status: 400 },
-      );
-    }
-
-    // Validation du mot de passe
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Le mot de passe doit contenir au moins 8 caractères" },
-        { status: 400 },
-      );
-    }
+  return handleApiRoute(request, async () => {
+    // Validation avec Zod
+    const body = await request.json();
+    const data: ResetPasswordInput = validateBody(body, ResetPasswordSchema);
+    
+    const { token, password } = data;
 
     // Connexion à la base de données
     const client = await mongoClient;
@@ -78,7 +76,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[RESET-PASSWORD] Mot de passe réinitialisé pour l'utilisateur: ${user['email']}`);
+    logger.info({ email: user['email'] }, 'Password reset successfully');
 
     return NextResponse.json(
       {
@@ -87,11 +85,5 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error) {
-    console.error("Erreur lors de la réinitialisation du mot de passe:", error);
-    return NextResponse.json(
-      { error: "Erreur interne du serveur" },
-      { status: 500 },
-    );
-  }
+  }, 'api/auth/reset-password');
 }

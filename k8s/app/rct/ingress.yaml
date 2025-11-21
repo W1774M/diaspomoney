@@ -1,0 +1,33 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: diaspomoney-rct-ingressroute-https
+  namespace: diaspomoney
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`rct.diaspomoney.fr`)
+      kind: Rule
+      services:
+        - name: diaspomoney-rct-service
+          port: 80
+  tls:
+    certResolver: le
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: diaspomoney-rct-ingressroute-http
+  namespace: diaspomoney
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`rct.diaspomoney.fr`)
+      kind: Rule
+      middlewares:
+        - name: https-redirect
+      services:
+        - name: diaspomoney-rct-service
+          port: 80
