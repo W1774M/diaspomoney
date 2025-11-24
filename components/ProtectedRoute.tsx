@@ -3,6 +3,7 @@
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
+import { useOAuthStatus } from "@/hooks/auth/useOAuthStatus";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -10,6 +11,12 @@ interface ProtectedRouteProps {
   fallback?: ReactNode;
 }
 
+/**
+ * ProtectedRoute Component (Legacy)
+ * Utilise AuthorizedRoute pour une meilleure gestion des autorisations
+ * 
+ * @deprecated Utilisez AuthorizedRoute pour une meilleure gestion des rôles et permissions
+ */
 export default function ProtectedRoute({
   children,
   requireAdmin = false,
@@ -80,7 +87,4 @@ export default function ProtectedRoute({
   }
 
   return <>{children}</>;
-}
-function useOAuthStatus(): { isOAuthUser: any } {
-  throw new Error("Function not implemented.");
 }

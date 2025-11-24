@@ -17,7 +17,12 @@ export function useBookings(): UseBookingsReturn {
       }
 
       const data = await response.json();
-      setBookings(data.bookings || []);
+      // Le nouveau format standardisé utilise data directement pour les listes
+      if (data.success) {
+        setBookings(Array.isArray(data.data) ? data.data : []);
+      } else {
+        throw new Error(data.error || 'Erreur lors de la récupération des réservations');
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Erreur inconnue');
     } finally {

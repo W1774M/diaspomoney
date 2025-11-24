@@ -12,7 +12,7 @@ export function useComplaintFilters(complaints: Complaint[]) {
   });
 
   // Sécurité : s'assurer que complaints est un tableau
-  const safeComplaints = complaints || [];
+  const safeComplaints = useMemo(() => complaints || [], [complaints]);
 
   // Extract unique values from complaints
   const availableStatuses = useMemo(() => {

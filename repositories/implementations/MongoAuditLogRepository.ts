@@ -10,6 +10,7 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
 import type { AuditLog, AuditQuery } from '@/lib/security/audit-logging';
@@ -86,6 +87,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   }
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('AuditLogRepository:*') // Invalider le cache après création
   async create(data: Partial<AuditLog>): Promise<AuditLog> {
     try {

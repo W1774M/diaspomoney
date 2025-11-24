@@ -11,16 +11,21 @@
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useInvoice, useInvoiceEdit, useInvoiceUsers } from '@/hooks/invoices';
 import { IInvoice, INVOICE_STATUSES, InvoiceStatus } from '@/lib/types';
+import { ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export default function EditInvoicePage() {
+/**
+ * Contenu de la page d'édition d'une facture
+ */
+function EditInvoicePageContent() {
   const params = useParams();
   const invoiceId = (params?.id as string) || null;
   const router = useRouter();
-  const { isAdmin, isAuthenticated, isLoading, status, user } = useAuth();
+  const { user } = useAuth();
 
   // Custom Hooks Pattern
   const {
@@ -206,48 +211,12 @@ export default function EditInvoicePage() {
     }
   };
 
-  // Vérifier l'authentification et les permissions
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    } else if (status === 'authenticated' && !isLoading && !isAdmin()) {
-      router.push('/dashboard/invoices');
-    }
-  }, [status, isLoading, isAdmin, router]);
-
   // Afficher un message de chargement
-  if (isLoading || invoiceLoading || usersLoading) {
+  if (invoiceLoading || usersLoading) {
     return (
       <div className='text-center py-12'>
         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
         <p className='mt-4 text-gray-600'>Chargement...</p>
-      </div>
-    );
-  }
-
-  // Redirection en cours
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  // Accès non autorisé
-  if (!isAdmin()) {
-    return (
-      <div className='text-center py-12'>
-        <div className='bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto'>
-          <h2 className='text-lg font-semibold text-red-800 mb-2'>
-            Accès non autorisé
-          </h2>
-          <p className='text-red-600 mb-4'>
-            Cette page est réservée aux administrateurs uniquement.
-          </p>
-          <button
-            onClick={() => router.push('/dashboard/invoices')}
-            className='px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors'
-          >
-            Retour aux factures
-          </button>
-        </div>
       </div>
     );
   }
@@ -602,5 +571,18 @@ export default function EditInvoicePage() {
         </div>
       </form>
     </>
+  );
+}
+
+/**
+ * Page d'édition d'une facture
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function EditInvoicePage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.ADMIN]} redirectTo="/dashboard/invoices">
+      <EditInvoicePageContent />
+    </AuthorizedRoute>
   );
 }

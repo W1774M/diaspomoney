@@ -389,6 +389,8 @@ export type {
 } from './users.types';
 export * from './auth.types';
 export * from './beneficiaries.types';
+export * from './service-options.types';
+export * from './service-booking.types';
 export * from './kyc.types';
 export * from './availability.types';
 export * from './email.types';
@@ -584,6 +586,22 @@ export type {
   ComplaintFacadeResult,
   BeneficiaryFacadeData,
   BeneficiaryFacadeResult,
+  TransactionFacadeData,
+  TransactionFacadeResult,
+  UserFacadeData,
+  UserFacadeResult,
+  NotificationFacadeData,
+  NotificationFacadeResult,
+  MessagingFacadeData,
+  MessagingFacadeResult,
+  StatisticsFacadeData,
+  StatisticsFacadeResult,
+  SpecialityFacadeData,
+  SpecialityFacadeResult,
+  EducationFacadeData,
+  EducationFacadeResult,
+  BTPFacadeData,
+  BTPFacadeResult,
   FacadeConfig,
   FacadeError,
 } from './facades.types';

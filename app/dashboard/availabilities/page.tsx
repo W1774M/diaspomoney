@@ -1,11 +1,9 @@
 'use client';
 
-import { useAuth } from '@/hooks/auth/useAuth';
 import { useAvailabilities } from '@/hooks/availabilities';
 import { useNotificationManager } from '@/components/ui/Notification';
 import type { AvailabilityRule, AvailabilityTimeSlot } from '@/lib/types/availability.types';
 import { Calendar, Plus, Save, Settings, Trash2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 // Utility: forces a unique string ID
@@ -14,9 +12,10 @@ const uniqueId = (() => {
   return () => `${Date.now()}-${++count}`.toString();
 })();
 
-export default function AvailabilitiesPage() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
+/**
+ * Contenu de la page Disponibilités
+ */
+export default function AvailabilitiesPageContent() {
   const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'custom'>(
     'weekly',
   );
@@ -37,13 +36,6 @@ export default function AvailabilitiesPage() {
 
   // Utiliser le gestionnaire de notifications toast (Toast Pattern)
   const { addSuccess, addError } = useNotificationManager();
-
-  // Ensure authentication
-  useEffect(() => {
-    if (!isAuthenticated && !isLoading) {
-      router.push('/login');
-    }
-  }, [isAuthenticated, isLoading, router]);
 
   // Afficher les erreurs de chargement
   useEffect(() => {
@@ -164,17 +156,13 @@ export default function AvailabilitiesPage() {
     refreshAvailabilities(activeTab);
   }, [activeTab, refreshAvailabilities]);
 
-  if (isLoading || availabilitiesLoading) {
+  if (availabilitiesLoading) {
     return (
       <div className='text-center py-12'>
         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
         <p className='mt-4 text-gray-600'>Chargement...</p>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
   }
 
   return (

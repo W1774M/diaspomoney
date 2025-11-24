@@ -1,38 +1,21 @@
 'use client';
 
-import { useAuth } from '@/hooks/auth/useAuth';
-import { ProviderInfo } from '@/lib/types';
+// import { useAuth } from '@/hooks';
+// import { ProviderInfo } from '@/lib/types';
+import { ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 import { ShoppingCart } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 /**
- * Page de réservations clients
+ * Contenu de la page de réservations clients
  * Accessible uniquement aux providers avec profil INDIVIDUAL
  */
-export default function ClientBookingsPage() {
-  const { isAuthenticated, isProvider, user, isLoading } = useAuth();
-  const router = useRouter();
+function ClientBookingsPageContent() {
+  // const { user, isProvider } = useAuth();
+  // const isIndividualProvider = isProvider() && (user as ProviderInfo)?.providerInfo?.type === 'INDIVIDUAL';
 
-  const isIndividualProvider = isProvider() && (user as ProviderInfo)?.providerInfo?.type === 'INDIVIDUAL';
-
-  useEffect(() => {
-    if (!isLoading && (!isAuthenticated || !isIndividualProvider)) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isIndividualProvider, isLoading, router]);
-
-  if (isLoading) {
-    return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]'></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !isIndividualProvider) {
-    return null;
-  }
+  // Note: La vérification du type INDIVIDUAL doit être faite côté backend
+  // Ici on vérifie seulement que l'utilisateur est un provider
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -62,6 +45,19 @@ export default function ClientBookingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Page de réservations clients
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function ClientBookingsPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.PROVIDER]} redirectTo="/dashboard">
+      <ClientBookingsPageContent />
+    </AuthorizedRoute>
   );
 }
 

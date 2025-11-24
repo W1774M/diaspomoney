@@ -8,12 +8,16 @@
 import { Log } from '@/lib/decorators/log.decorator';
 import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
+import { Transaction } from '@/lib/decorators/transaction.decorator';
 import { logger } from '@/lib/logger';
 import { LANGUAGES } from '@/lib/constants';
 import { invoiceService } from '@/services/invoice/invoice.service';
 import { notificationService } from '@/services/notification/notification.service';
 import { PaymentService } from '@/services/payment/payment.service';
 import { transactionService } from '@/services/transaction/transaction.service';
+import { transactionMapper, invoiceMapper } from '@/lib/mappers';
 import * as Sentry from '@sentry/nextjs';
 import type { PaymentFacadeData, PaymentFacadeResult, IFacade, FacadeOptions } from '@/lib/types';
 import { CreatePaymentSchema } from '@/lib/validations/payment.schema';
@@ -82,6 +86,9 @@ export class PaymentFacade implements IFacade<PaymentFacadeData, PaymentFacadeRe
       );
     },
   })
+  @Audit({ eventType: 'PAYMENT_PROCESSED', includeArgs: true })
+  @Performance({ warningThreshold: 3000, errorThreshold: 8000 })
+  @Transaction()
   async processPayment(data: PaymentFacadeData): Promise<PaymentFacadeResult> {
     try {
       logger.info(
@@ -158,8 +165,9 @@ export class PaymentFacade implements IFacade<PaymentFacadeData, PaymentFacadeRe
         },
       });
 
-      const transactionId =
-        transaction.id || (transaction as any)._id?.toString() || '';
+      // Mapper le résultat avec TransactionMapper
+      const mappedTransaction = transactionMapper.map(transaction as any);
+      const transactionId = mappedTransaction.id;
 
       let invoiceId: string | undefined;
 
@@ -186,7 +194,10 @@ export class PaymentFacade implements IFacade<PaymentFacadeData, PaymentFacadeRe
               transactionId: transactionId,
             },
           });
-          invoiceId = invoice.id || (invoice as any)._id?.toString();
+          
+          // Mapper le résultat avec InvoiceMapper
+          const mappedInvoice = invoiceMapper.map(invoice as any);
+          invoiceId = mappedInvoice.id;
         } catch (invoiceError) {
           // Ne pas faire échouer le paiement si la facture échoue
           logger.error(

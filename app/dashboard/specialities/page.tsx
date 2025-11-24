@@ -1,81 +1,21 @@
 "use client";
 
-import { useAuth } from "@/hooks/auth/useAuth";
-import { ISpeciality } from "@/lib/types";
+import { ROLES } from "@/lib/constants";
+import { AuthorizedRoute } from "@/components/auth";
 import { Building, Edit, Eye, Plus, Search, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useSpecialities } from "@/hooks/specialities/useSpecialities";
+import { useSpeciality } from "@/hooks/specialities/useSpeciality";
 
-export default function SpecialitiesPage() {
-  const { isAdmin, isLoading, isAuthenticated, status } = useAuth();
-  const router = useRouter();
-  const [specialities, setSpecialities] = useState<ISpeciality[]>([]);
-  const [loading, setLoading] = useState(true);
+/**
+ * Contenu de la page des spécialités
+ */
+function SpecialitiesPageContent() {
+  const { specialities, loading, error, refetch } = useSpecialities();
+  const { deleteSpeciality } = useSpeciality();
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
-
-  // Vérifier l'authentification
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    }
-  }, [status, router]); // Utiliser seulement le status de la session
-
-  // Simuler des données pour l'exemple
-  useEffect(() => {
-    if (isAuthenticated && isAdmin()) {
-      const mockSpecialities: ISpeciality[] = [
-        {
-          _id: "1",
-          name: "Cardiologie",
-          description: "Spécialité médicale du cœur",
-          group: "sante",
-          isActive: true,
-          createdAt: new Date("2024-01-01"),
-          updatedAt: new Date("2024-01-15"),
-        },
-        {
-          _id: "2",
-          name: "Dermatologie",
-          description: "Spécialité médicale de la peau",
-          group: "sante",
-          isActive: true,
-          createdAt: new Date("2024-01-02"),
-          updatedAt: new Date("2024-01-10"),
-        },
-        {
-          _id: "3",
-          name: "Rénovation",
-          description: "Services de rénovation immobilière",
-          group: "immo",
-          isActive: true,
-          createdAt: new Date("2024-01-03"),
-          updatedAt: new Date("2024-01-12"),
-        },
-        {
-          _id: "4",
-          name: "Plomberie",
-          description: "Services de plomberie",
-          group: "immo",
-          isActive: true,
-          createdAt: new Date("2024-01-04"),
-          updatedAt: new Date("2024-01-08"),
-        },
-        {
-          _id: "5",
-          name: "Transport médical",
-          description: "Services de transport médical",
-          group: "sante",
-          isActive: true,
-          createdAt: new Date("2024-01-05"),
-          updatedAt: new Date("2024-01-09"),
-        },
-      ];
-      setSpecialities(mockSpecialities);
-      setLoading(false);
-    }
-  }, [isAuthenticated, isAdmin]); // Utiliser seulement les valeurs stables
 
   const filteredSpecialities = specialities.filter(speciality => {
     const matchesSearch = speciality.name
@@ -87,7 +27,14 @@ export default function SpecialitiesPage() {
 
   const handleDelete = async (id: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cette spécialité ?")) {
-      setSpecialities(specialities.filter(speciality => speciality._id !== id));
+      try {
+        await deleteSpeciality(id);
+        // Recharger la liste après suppression
+        await refetch();
+      } catch (error) {
+        console.error("Erreur lors de la suppression:", error);
+        alert("Erreur lors de la suppression de la spécialité");
+      }
     }
   };
 
@@ -112,26 +59,25 @@ export default function SpecialitiesPage() {
     }).format(date);
   };
 
-  // Afficher un message de chargement ou d'accès refusé
-  if (isLoading) {
-    return (
-      <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
-        <p className="mt-4 text-gray-600">Chargement...</p>
-      </div>
-    );
-  }
-
-  // Redirection en cours
-  if (!isAuthenticated || !isAdmin()) {
-    return null;
-  }
-
   if (loading) {
     return (
       <div className="text-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
         <p className="mt-4 text-gray-600">Chargement des spécialités...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">Erreur: {error}</div>
+        <button
+          onClick={() => refetch()}
+          className="px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)]"
+        >
+          Réessayer
+        </button>
       </div>
     );
   }
@@ -295,5 +241,18 @@ export default function SpecialitiesPage() {
         <Plus className="h-6 w-6" />
       </Link>
     </>
+  );
+}
+
+/**
+ * Page des spécialités
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function SpecialitiesPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.ADMIN]} redirectTo="/dashboard">
+      <SpecialitiesPageContent />
+    </AuthorizedRoute>
   );
 }

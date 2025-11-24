@@ -23,7 +23,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> | { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -32,32 +32,49 @@ export async function GET(
   });
 
   try {
+    // Gérer params qui peut être une Promise dans Next.js 15+
+    const resolvedParams = await Promise.resolve(params);
+    const bookingId = resolvedParams.id;
+
     // Vérifier que l'ID est un ObjectId valide
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      log.warn({ bookingId: params.id }, 'Invalid booking ID format');
+    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+      log.warn({ bookingId }, 'Invalid booking ID format');
       return NextResponse.json(
         { error: 'ID de réservation invalide' },
         { status: 400 },
       );
     }
 
-    log.debug({ bookingId: params.id }, 'Fetching booking');
+    log.debug({ bookingId }, 'Fetching booking');
 
     // Utiliser le service avec décorateurs (@Log, @Cacheable)
-    const booking = await bookingService.getBookingById(params.id);
+    const booking = await bookingService.getBookingById(bookingId);
+
+    if (!booking) {
+      log.warn({ bookingId }, 'Booking not found');
+      return NextResponse.json(
+        { error: 'Réservation non trouvée' },
+        { status: 404 },
+      );
+    }
+
+    // Mapper le booking avec bookingMapper pour garantir un format cohérent
+    const { bookingMapper } = await import('@/lib/mappers');
+    const mappedBooking = bookingMapper.map(booking as any);
 
     log.info(
-      { bookingId: params.id, status: booking.status },
+      { bookingId, status: mappedBooking.status },
       'Booking fetched successfully',
     );
 
     return NextResponse.json({
       success: true,
-      booking,
+      booking: mappedBooking,
     });
   } catch (error) {
+    const resolvedParams = await Promise.resolve(params);
     log.error(
-      { error, bookingId: params.id, msg: 'Error fetching booking' },
+      { error, bookingId: resolvedParams.id, msg: 'Error fetching booking' },
       'Error fetching booking',
     );
 
@@ -81,7 +98,7 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> | { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -89,7 +106,27 @@ export async function PUT(
     route: 'api/bookings/[id]',
   });
 
+  // Logger immédiatement pour vérifier que la route est appelée
+  log.info({ msg: 'PUT /api/bookings/[id] called' });
+
+  // Résoudre params en dehors du try-catch pour qu'il soit accessible partout
+  let bookingId: string;
   try {
+    // Gérer params qui peut être une Promise dans Next.js 15+
+    const resolvedParams = await Promise.resolve(params);
+    bookingId = resolvedParams.id;
+    
+    log.info({ bookingId, msg: 'PUT handler started' });
+  } catch (paramError) {
+    log.error({ error: paramError, msg: 'Error resolving params' });
+    return NextResponse.json(
+      { error: 'Erreur lors de la résolution des paramètres' },
+      { status: 400 },
+    );
+  }
+
+  try {
+
     const session = await auth();
     if (!session?.user?.id) {
       log.warn({ msg: 'Unauthorized access attempt' });
@@ -97,8 +134,8 @@ export async function PUT(
     }
 
     // Vérifier que l'ID est un ObjectId valide
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      log.warn({ bookingId: params.id }, 'Invalid booking ID format');
+    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+      log.warn({ bookingId }, 'Invalid booking ID format');
       return NextResponse.json(
         { error: 'ID de réservation invalide' },
         { status: 400 },
@@ -111,7 +148,7 @@ export async function PUT(
     const data: UpdateBookingInput = validateBody(body, UpdateBookingSchema);
     
     log.debug(
-      { bookingId: params.id, fields: Object.keys(data) },
+      { bookingId, fields: Object.keys(data) },
       'Updating booking',
     );
 
@@ -125,25 +162,116 @@ export async function PUT(
     }
     if (data.timeslot !== undefined) updateData.timeslot = data.timeslot;
     if (data.consultationMode !== undefined) updateData.consultationMode = data.consultationMode;
-    if (data.recipient !== undefined) updateData.recipient = data.recipient;
     if (data.metadata !== undefined) updateData.metadata = data.metadata;
 
     // Utiliser le service avec décorateurs (@Log, @InvalidateCache)
-    const updatedBooking = await bookingService.updateBooking(params.id, updateData);
+    const updatedBooking = await bookingService.updateBooking(bookingId, updateData);
+
+    if (!updatedBooking) {
+      log.warn({ bookingId }, 'Booking not found after update');
+      return NextResponse.json(
+        { error: 'Réservation non trouvée' },
+        { status: 404 },
+      );
+    }
+
+    // Le booking retourné par updateBooking est déjà un Booking mappé
+    // On doit le convertir en BookingResponse pour l'API
+    // Utiliser le mapper pour garantir la cohérence avec les autres endpoints
+    const { bookingMapper } = await import('@/lib/mappers');
+    
+    // Convertir le Booking en BookingDocument pour le mapper
+    // Le mapper attend un BookingDocument (document MongoDB), pas un Booking déjà mappé
+    const bookingDoc: any = {
+      _id: updatedBooking._id,
+      id: updatedBooking.id,
+      reservationNumber: updatedBooking.reservationNumber,
+      requesterId: updatedBooking.requesterId,
+      providerId: updatedBooking.providerId,
+      serviceId: updatedBooking.serviceId,
+      serviceType: updatedBooking.serviceType,
+      status: updatedBooking.status, // Le statut est déjà au bon format depuis le repository
+      timeslot: updatedBooking.timeslot,
+      consultationMode: updatedBooking.consultationMode,
+      recipient: updatedBooking.recipient,
+      metadata: updatedBooking.metadata,
+      createdAt: updatedBooking.createdAt,
+      updatedAt: updatedBooking.updatedAt,
+    };
+    
+    // Ajouter appointmentDate seulement s'il existe
+    if (updatedBooking.appointmentDate) {
+      bookingDoc.appointmentDate = updatedBooking.appointmentDate;
+    }
+    
+    // Utiliser le mapper pour garantir la cohérence
+    let mappedBooking;
+    try {
+      mappedBooking = bookingMapper.map(bookingDoc);
+    } catch (mapperError) {
+      log.error(
+        { 
+          error: mapperError instanceof Error ? {
+            name: mapperError.name,
+            message: mapperError.message,
+            stack: mapperError.stack,
+          } : mapperError,
+          bookingId,
+          bookingDoc,
+        },
+        'Error mapping booking in PUT handler',
+      );
+      // En cas d'erreur de mapping, créer manuellement le BookingResponse
+      mappedBooking = {
+        id: updatedBooking.id,
+        _id: updatedBooking._id,
+        reservationNumber: updatedBooking.reservationNumber,
+        requesterId: updatedBooking.requesterId,
+        providerId: updatedBooking.providerId,
+        serviceId: updatedBooking.serviceId,
+        serviceType: updatedBooking.serviceType,
+        status: updatedBooking.status,
+        appointmentDate: updatedBooking.appointmentDate 
+          ? (updatedBooking.appointmentDate instanceof Date 
+              ? updatedBooking.appointmentDate.toISOString() 
+              : new Date(updatedBooking.appointmentDate).toISOString())
+          : undefined,
+        timeslot: updatedBooking.timeslot,
+        consultationMode: updatedBooking.consultationMode,
+        recipient: updatedBooking.recipient,
+        metadata: updatedBooking.metadata,
+        createdAt: updatedBooking.createdAt instanceof Date 
+          ? updatedBooking.createdAt.toISOString() 
+          : new Date(updatedBooking.createdAt).toISOString(),
+        updatedAt: updatedBooking.updatedAt instanceof Date 
+          ? updatedBooking.updatedAt.toISOString() 
+          : new Date(updatedBooking.updatedAt).toISOString(),
+      };
+    }
 
     log.info(
-      { bookingId: params.id, status: updatedBooking.status },
+      { bookingId, status: mappedBooking.status },
       'Booking updated successfully',
     );
 
     return NextResponse.json({
       success: true,
       message: 'Réservation mise à jour avec succès',
-      booking: updatedBooking,
+      booking: mappedBooking,
     });
   } catch (error) {
+    // bookingId est maintenant accessible depuis le scope externe
+    // Logger l'erreur complète pour le débogage
     log.error(
-      { error, bookingId: params.id, msg: 'Error updating booking' },
+      { 
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        } : error,
+        bookingId,
+        msg: 'Error updating booking', 
+      },
       'Error updating booking',
     );
 
@@ -154,8 +282,20 @@ export async function PUT(
       );
     }
 
+    // Retourner un message d'erreur plus détaillé en développement
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Erreur lors de la mise à jour de la réservation';
+    
     return NextResponse.json(
-      { error: 'Erreur lors de la mise à jour de la réservation' },
+      { 
+        error: process.env.NODE_ENV === 'development' 
+          ? errorMessage 
+          : 'Erreur lors de la mise à jour de la réservation',
+        ...(process.env.NODE_ENV === 'development' && error instanceof Error && {
+          details: error.stack,
+        }),
+      },
       { status: 500 },
     );
   }
@@ -166,7 +306,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> | { id: string } },
 ) {
   const reqId = request.headers.get('x-request-id') || undefined;
   const log = childLogger({
@@ -181,9 +321,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
+    // Gérer params qui peut être une Promise dans Next.js 15+
+    const resolvedParams = await Promise.resolve(params);
+    const bookingId = resolvedParams.id;
+
     // Vérifier que l'ID est un ObjectId valide
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      log.warn({ bookingId: params.id }, 'Invalid booking ID format');
+    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+      log.warn({ bookingId }, 'Invalid booking ID format');
       return NextResponse.json(
         { error: 'ID de réservation invalide' },
         { status: 400 },
@@ -191,15 +335,15 @@ export async function DELETE(
     }
 
     log.debug(
-      { bookingId: params.id, userId: session.user.id },
+      { bookingId, userId: session.user.id },
       'Cancelling booking',
     );
 
     // Utiliser le service avec décorateurs (@Log, @InvalidateCache)
-    const cancelledBooking = await bookingService.cancelBooking(params.id);
+    const cancelledBooking = await bookingService.cancelBooking(bookingId);
 
     log.info(
-      { bookingId: params.id, userId: session.user.id },
+      { bookingId, userId: session.user.id },
       'Booking cancelled successfully',
     );
 
@@ -209,8 +353,9 @@ export async function DELETE(
       booking: cancelledBooking,
     });
   } catch (error) {
+    const resolvedParams = await Promise.resolve(params);
     log.error(
-      { error, bookingId: params.id, msg: 'Error cancelling booking' },
+      { error, bookingId: resolvedParams.id, msg: 'Error cancelling booking' },
       'Error cancelling booking',
     );
 

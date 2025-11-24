@@ -4,7 +4,7 @@
  * Commandes pour les opérations de réservation
  */
 
-import { bookingFacade } from '@/facades/booking.facade';
+import { serviceBookingFacade } from '@/facades/service-booking.facade';
 import type { BookingFacadeData, BookingFacadeResult } from '@/lib/types';
 import { logger } from '@/lib/logger';
 import { bookingService } from '@/services/booking/booking.service';
@@ -24,7 +24,7 @@ export class CreateBookingCommand extends BaseCommand<BookingFacadeResult> {
   }
 
   async execute(): Promise<BookingFacadeResult> {
-    const result = await bookingFacade.createBookingWithPayment(this.commandData);
+    const result = await serviceBookingFacade.createBookingWithPayment(this.commandData);
     this.executedResult = result;
     return result;
   }

@@ -11,6 +11,7 @@
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
+import { beneficiaryMapper } from '@/lib/mappers';
 import { mongoClient } from '@/lib/mongodb';
 import type { Beneficiary, BeneficiaryFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
@@ -428,28 +429,33 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
 
   /**
    * Mapper un document MongoDB vers un objet Beneficiary
+   * Utilise maintenant le BeneficiaryMapper centralisé
    */
   private mapToBeneficiary(doc: any): Beneficiary {
-    const payerId =
-      doc.payerId?.toString() ||
-      doc.userId?.toString() ||
-      doc.payerId ||
-      doc.userId;
-    return {
-      id: doc._id?.toString() || doc.id,
-      _id: doc._id?.toString(),
-      payerId: payerId,
-      firstName: doc.firstName || doc.name?.split(' ')[0] || '',
-      lastName: doc.lastName || doc.name?.split(' ').slice(1).join(' ') || '',
-      email: doc.email,
-      phone: doc.phone,
-      relationship: doc.relationship,
-      country: doc.country,
-      address: doc.address,
-      isActive:
-        doc.isActive !== undefined ? doc.isActive : doc.status === 'active',
-      createdAt: doc.createdAt || new Date(),
-      updatedAt: doc.updatedAt || new Date(),
+    // Utiliser le mapper pour la transformation de base
+    const mapped = beneficiaryMapper.map(doc);
+    
+    // Convertir les dates string en Date pour compatibilité avec l'interface Beneficiary
+    const result: Beneficiary = {
+      id: mapped.id,
+      _id: mapped._id,
+      payerId: mapped.payerId,
+      firstName: mapped.firstName,
+      lastName: mapped.lastName,
+      email: mapped.email ?? '',
+      phone: mapped.phone ?? '',
+      relationship: mapped.relationship,
+      country: mapped.country,
+      isActive: mapped.isActive,
+      createdAt: new Date(mapped.createdAt),
+      updatedAt: new Date(mapped.updatedAt),
     };
+    
+    // Ajouter address seulement s'il existe
+    if (mapped.address) {
+      result.address = mapped.address;
+    }
+    
+    return result;
   }
 }

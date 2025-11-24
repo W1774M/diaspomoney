@@ -8,6 +8,7 @@
  * - Error Handling Pattern (Sentry)
  */
 
+import { SpecialityQueryBuilder } from '@/builders';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
@@ -216,9 +217,13 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'SpecialityRepository:findByName' }) // Cache 5 minutes
   async findByName(name: string): Promise<ISpeciality | null> {
     try {
-      return await this.findOne({ name });
+      const builder = new SpecialityQueryBuilder().byName(name);
+      const query = builder.getFilters();
+      return await this.findOne(query);
     } catch (error) {
       this.log.error({ error, name }, 'Error in findByName');
       Sentry.captureException(error as Error, {
@@ -229,9 +234,13 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'SpecialityRepository:findByGroup' }) // Cache 5 minutes
   async findByGroup(group: string): Promise<ISpeciality[]> {
     try {
-      return await this.findAll({ group });
+      const builder = new SpecialityQueryBuilder().byGroup(group);
+      const query = builder.getFilters();
+      return await this.findAll(query);
     } catch (error) {
       this.log.error({ error, group }, 'Error in findByGroup');
       Sentry.captureException(error as Error, {
@@ -242,9 +251,13 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
     }
   }
 
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'SpecialityRepository:findActive' }) // Cache 5 minutes
   async findActive(): Promise<ISpeciality[]> {
     try {
-      return await this.findAll({ isActive: true });
+      const builder = new SpecialityQueryBuilder().active();
+      const query = builder.getFilters();
+      return await this.findAll(query);
     } catch (error) {
       this.log.error({ error }, 'Error in findActive');
       Sentry.captureException(error as Error, {

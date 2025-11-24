@@ -9,7 +9,7 @@
  * - Middleware Pattern (authentification via useAuth)
  */
 
-import { useAuth, useUser } from '@/hooks';
+import { useUser } from '@/hooks';
 import {
   formatUserDate,
   getRoleColor,
@@ -17,24 +17,27 @@ import {
   getStatusColor,
 } from '@/lib/utils/user-utils';
 import { UserRole } from '@/lib/types';
+import { AuthorizedRoute } from '@/components/auth';
 import { ArrowLeft, Edit, Mail, Phone, Star } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect } from 'react';
 
-export default function UserDetailPage() {
+/**
+ * Contenu de la page de détail d'un utilisateur
+ */
+function UserDetailPageContent() {
   const params = useParams();
   const userId = params.id as string;
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { user, loading, error, fetchUser } = useUser();
 
   useEffect(() => {
-    if (isAuthenticated && userId) {
+    if (userId) {
       fetchUser(userId);
     }
-  }, [isAuthenticated, userId, fetchUser]);
+  }, [userId, fetchUser]);
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className='text-center py-12'>
         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
@@ -361,5 +364,18 @@ export default function UserDetailPage() {
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * Page de détail d'un utilisateur
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function UserDetailPage() {
+  return (
+    <AuthorizedRoute redirectTo="/login">
+      <UserDetailPageContent />
+    </AuthorizedRoute>
   );
 }

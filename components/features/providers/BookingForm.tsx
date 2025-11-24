@@ -185,14 +185,15 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
       window.removeEventListener('message', handleMessage);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [isAuthenticated, user, currentStep]);
+  }, [isAuthenticated, user, currentStep, registrationCompleted]);
 
   const watchedValues = watch();
   const totalSteps = 7;
 
   const prevModeRef = useRef<string | undefined>(undefined);
+  const consultationMode = watchedValues?.['consultationMode'];
   useEffect(() => {
-    const mode = String(watchedValues?.['consultationMode'] || '');
+    const mode = String(consultationMode || '');
     const videoAllowed = provider.acceptsVideoConsultation !== false;
     const prevMode = prevModeRef.current;
 
@@ -207,7 +208,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
       prevModeRef.current = mode;
     }
   }, [
-    watchedValues?.["consultationMode"],
+    consultationMode,
     provider.acceptsVideoConsultation,
     provider.role,
     currentStep,
@@ -221,6 +222,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
   // Pré-remplissage depuis la session (si accessible)
   useEffect(() => {
     let cancelled = false;
+    const requester = watchedValues?.["requester"] || {};
     (async () => {
       try {
         const res = await fetch('/api/auth/session');
@@ -228,7 +230,6 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
         const data = await res.json();
         const user = data?.user || {};
         if (cancelled) return;
-        const requester = watchedValues?.["requester"] || {};
         const name = typeof user.name === 'string' ? user.name : '';
         const firstName = user.firstName || name.split(' ')[0] || '';
         const lastName =
@@ -248,7 +249,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
     return () => {
       cancelled = true;
     };
-  }, [setValue, watchedValues?.["requester"]]);
+  }, [setValue, watchedValues]);
 
   // Fonction pour traiter le paiement après l'inscription
   // const processPaymentAfterRegistration = async (

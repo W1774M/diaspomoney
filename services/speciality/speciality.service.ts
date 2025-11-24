@@ -5,7 +5,10 @@
  */
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Authorize } from '@/lib/decorators/authorize.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
 import { CreateSpecialitySchema, UpdateSpecialitySchema } from '@/lib/validations/speciality.schema';
@@ -31,6 +34,30 @@ export class SpecialityService {
       SpecialityService.instance = new SpecialityService();
     }
     return SpecialityService.instance;
+  }
+
+  /**
+   * Récupérer toutes les spécialités
+   */
+  @Log({ level: 'info', logArgs: true })
+  @Cacheable(300, { prefix: 'specialities' }) // Cache 5 minutes
+  async getAllSpecialities(filters?: { group?: string; isActive?: boolean }): Promise<ISpeciality[]> {
+    try {
+      const queryFilters: Record<string, any> = {};
+      if (filters?.group) {
+        queryFilters['group'] = filters.group;
+      }
+      if (filters?.isActive !== undefined) {
+        queryFilters['isActive'] = filters.isActive;
+      }
+      return await this.specialityRepository.findAll(Object.keys(queryFilters).length > 0 ? queryFilters : undefined);
+    } catch (error) {
+      logger.error(
+        { error, filters },
+        'Erreur lors de la récupération des spécialités',
+      );
+      throw error;
+    }
   }
 
   /**
@@ -75,6 +102,9 @@ export class SpecialityService {
       },
     ],
   })
+  @Authorize({ roles: ['ADMIN', 'SUPER_ADMIN'] })
+  @Audit({ eventType: 'SPECIALITY_CREATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('speciality:*')
   async createSpeciality(data: { name: string; description: string; group: string; isActive?: boolean }): Promise<ISpeciality> {
     try {
@@ -120,6 +150,9 @@ export class SpecialityService {
       },
     ],
   })
+  @Authorize({ roles: ['ADMIN', 'SUPER_ADMIN'] })
+  @Audit({ eventType: 'SPECIALITY_UPDATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('speciality:*')
   async updateSpeciality(
     id: string,
@@ -170,6 +203,9 @@ export class SpecialityService {
       },
     ],
   })
+  @Authorize({ roles: ['ADMIN', 'SUPER_ADMIN'] })
+  @Audit({ eventType: 'SPECIALITY_DELETED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async deleteSpeciality(id: string): Promise<boolean> {
     try {
       // Vérifier que la spécialité existe (Repository Pattern)

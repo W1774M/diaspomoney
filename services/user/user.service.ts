@@ -14,7 +14,11 @@
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
-import { USER_STATUSES } from '@/lib/constants';
+import { Authorize } from '@/lib/decorators/authorize.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
+import { Transaction } from '@/lib/decorators/transaction.decorator';
+import { USER_STATUSES, KYC_STATUSES } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 import {
   getBeneficiaryRepository,
@@ -321,7 +325,6 @@ export class UserService {
   }
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @InvalidateCache('UserService:*')
   @Validate({
     rules: [
       {
@@ -336,6 +339,9 @@ export class UserService {
       },
     ],
   })
+  @Audit({ eventType: 'USER_PROFILE_UPDATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
+  @InvalidateCache('UserService:*')
   async updateUserProfile(
     userId: string,
     data: UpdateProfileData & {
@@ -460,6 +466,10 @@ export class UserService {
   }
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Authorize({ roles: ['ADMIN', 'SUPERADMIN'], checkOwnership: true })
+  @Audit({ eventType: 'USER_ACCOUNT_DELETED', includeArgs: true })
+  @Performance({ warningThreshold: 2000, errorThreshold: 5000 })
+  @Transaction()
   @InvalidateCache('UserService:*')
   async deleteUserAccount(userId: string): Promise<void> {
     try {
@@ -642,7 +652,7 @@ export class UserService {
       const kycData = await this.kycRepository.create({
         userId,
         documents,
-        status: 'PENDING',
+        status: KYC_STATUSES.PENDING,
         submittedAt: new Date(),
       });
 

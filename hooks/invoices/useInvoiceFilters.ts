@@ -11,7 +11,7 @@ export function useInvoiceFilters(invoices: any[]) {
   });
 
   // Sécurité : s'assurer que invoices est un tableau
-  const safeInvoices = invoices || [];
+  const safeInvoices = useMemo(() => invoices || [], [invoices]);
 
   const filteredInvoices = useMemo(() => {
     return safeInvoices.filter(invoice => {

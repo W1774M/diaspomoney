@@ -2,9 +2,9 @@
 
 import { useAuth } from '@/hooks';
 import { ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 import { ChevronDown, HelpCircle, Search } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 interface FAQItem {
   id: string;
@@ -117,19 +117,14 @@ const faqData: Record<string, FAQItem[]> = {
   ],
 };
 
-export default function FAQPage() {
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const router = useRouter();
+/**
+ * Contenu de la page FAQ
+ */
+function FAQPageContent() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-  }, [isAuthenticated, isLoading, router]);
 
   // Déterminer le rôle principal pour afficher la FAQ appropriée
   const getPrimaryRole = () => {
@@ -165,18 +160,6 @@ export default function FAQPage() {
       !selectedCategory || faq.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className='space-y-6'>
@@ -282,5 +265,18 @@ export default function FAQPage() {
         </a>
       </div>
     </div>
+  );
+}
+
+/**
+ * Page FAQ
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function FAQPage() {
+  return (
+    <AuthorizedRoute redirectTo="/login">
+      <FAQPageContent />
+    </AuthorizedRoute>
   );
 }

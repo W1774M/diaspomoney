@@ -3,39 +3,16 @@
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
 import { useAuth } from '@/hooks';
+import { ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 import { Calendar, Clock, DollarSign, Users } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
-export default function ProviderDashboardPage() {
-  const { isAuthenticated, isLoading, user, isProvider } = useAuth();
-  const router = useRouter();
-
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
-    // Rediriger si l'utilisateur n'est pas prestataire
-    if (!isLoading && isAuthenticated && !isProvider()) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isLoading, router, isProvider]);
-
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !isProvider()) {
-    return null;
-  }
+/**
+ * Contenu de la page Dashboard Provider
+ */
+function ProviderDashboardPageContent() {
+  const { user } = useAuth();
 
   return (
     <div className='space-y-6'>
@@ -108,6 +85,19 @@ export default function ProviderDashboardPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+/**
+ * Page Dashboard Provider
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function ProviderDashboardPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.PROVIDER]} redirectTo="/dashboard">
+      <ProviderDashboardPageContent />
+    </AuthorizedRoute>
   );
 }
 

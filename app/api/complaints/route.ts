@@ -16,32 +16,27 @@
  */
 
 import { auth } from '@/auth';
-import { HTTP_STATUS_CODES } from '@/lib/constants';
 import { ComplaintQueryBuilder } from '@/builders';
 import type { ComplaintType, ComplaintPriority, ComplaintStatus } from '@/lib/types';
 import { complaintFacade } from '@/facades';
 import { handleApiRoute, ApiErrors, ApiError, validateBody } from '@/lib/api/error-handler';
+import { createPaginatedResponse, createResourceResponse } from '@/lib/api/response';
 import { CreateComplaintSchema } from '@/lib/validations/complaint.schema';
-import { childLogger } from '@/lib/logger';
 import { getComplaintRepository } from '@/repositories';
 import { complaintService } from '@/services/complaint/complaint.service';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+
+// Désactiver le prerendering pour cette route API
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/complaints - Récupérer les réclamations
  */
 export async function GET(request: NextRequest) {
-  const reqId = request.headers.get('x-request-id') || undefined;
-  const log = childLogger({
-    requestId: reqId,
-    route: 'api/complaints',
-  });
-
-  try {
+  return handleApiRoute(request, async () => {
     const session = await auth();
     if (!session?.user?.id) {
-      log.warn({ msg: 'Unauthorized access attempt' });
-      return NextResponse.json({ error: 'Non autorisé' }, { status: HTTP_STATUS_CODES.UNAUTHORIZED });
+      throw ApiErrors.UNAUTHORIZED;
     }
 
     const { searchParams } = new URL(request.url);
@@ -107,14 +102,8 @@ export async function GET(request: NextRequest) {
     // Construire la requête
     const query = queryBuilder.build();
 
-    log.debug({ userId: session.user.id, filters: query.filters }, 'Fetching complaints');
-
     // Utiliser le repository avec les filtres du builder
     const complaintRepository = getComplaintRepository();
-    // Fix: Ensure correct types according to PaginationOptions,
-    // and avoid possibly undefined values for .limit and .page
-
-    // Calculate explicit values based on parsed limit/offset defaults above
     const paginationLimit = query.pagination.limit ?? 50;
     const paginationPage = query.pagination.page ?? 1;
 
@@ -128,40 +117,15 @@ export async function GET(request: NextRequest) {
       },
     );
 
-    // Adapter le résultat au format attendu
-    const adaptedResult = {
-      data: result.data,
-      total: result.total,
-      limit: pageLimit,
-      offset: pageOffset,
-    };
-
-    log.info(
+    return createPaginatedResponse(
+      result.data,
       {
-        userId: session.user.id,
+        page: paginationPage,
+        limit: paginationLimit,
         total: result.total,
-        count: result.data.length,
       },
-      'Complaints fetched successfully',
     );
-
-    return NextResponse.json({
-      success: true,
-      complaints: adaptedResult.data,
-      total: adaptedResult.total,
-      limit: adaptedResult.limit,
-      offset: adaptedResult.offset,
-    });
-  } catch (error) {
-    log.error(
-      { error, msg: 'Error fetching complaints' },
-      'Error fetching complaints',
-    );
-    return NextResponse.json(
-      { error: 'Erreur lors de la récupération des réclamations' },
-      { status: 500 },
-    );
-  }
+  }, 'api/complaints');
 }
 
 /**
@@ -208,12 +172,15 @@ export async function POST(request: NextRequest) {
       throw ApiErrors.NOT_FOUND;
     }
 
-    return {
-      success: true,
+    return createResourceResponse(
       complaint,
-      notificationSent: result.notificationSent ?? false,
-      emailSent: result.emailSent ?? false,
-      message: 'Réclamation créée avec succès',
-    };
+      {
+        message: 'Réclamation créée avec succès',
+        metadata: {
+          notificationSent: result.notificationSent ?? false,
+          emailSent: result.emailSent ?? false,
+        },
+      },
+    );
   }, 'api/complaints');
 }

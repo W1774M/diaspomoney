@@ -1,11 +1,11 @@
 'use client';
 
-import { useAuth } from '@/hooks/auth/useAuth';
-import { USER_STATUSES } from '@/lib/constants';
+import { USER_STATUSES, ROLES } from '@/lib/constants';
+import { AuthorizedRoute, AuthorizedContent } from '@/components/auth';
 import type { ProviderInfo, Service, User } from '@/lib/types';
 import { User as UserIcon, Building, Stethoscope, Wrench, GraduationCap, Mail, Phone, MapPin, Calendar, Shield, Star, CheckCircle, XCircle, Clock } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 type ProviderDetails = User & {
@@ -13,9 +13,10 @@ type ProviderDetails = User & {
   selectedServices?: string | string[];
 };
 
-export default function ProviderDetailPage() {
-  const { isAuthenticated, isAdmin, isCSM, isLoading } = useAuth();
-  const router = useRouter();
+/**
+ * Contenu de la page de détail d'un prestataire
+ */
+function ProviderDetailPageContent() {
   const params = useParams();
   const providerId = params?.id as string;
 
@@ -23,16 +24,9 @@ export default function ProviderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Vérification des permissions
-  useEffect(() => {
-    if (!isLoading && (!isAuthenticated || (!isAdmin() && !isCSM()))) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isAdmin, isCSM, isLoading, router]);
-
   // Récupération des détails du provider
   useEffect(() => {
-    if (!providerId || isLoading) return;
+    if (!providerId) return;
 
     const fetchProvider = async () => {
       try {
@@ -58,7 +52,7 @@ export default function ProviderDetailPage() {
     };
 
     fetchProvider();
-  }, [providerId, isLoading]);
+  }, [providerId]);
 
   const getCategoryIcon = (category?: string) => {
     switch (category) {
@@ -117,16 +111,12 @@ export default function ProviderDetailPage() {
     return provider.name || provider.email || 'Prestataire';
   };
 
-  if (isLoading || loading) {
+  if (loading) {
     return (
       <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]'></div>
       </div>
     );
-  }
-
-  if (!isAuthenticated || (!isAdmin() && !isCSM())) {
-    return null;
   }
 
   if (error) {
@@ -424,19 +414,32 @@ export default function ProviderDetailPage() {
                 >
                   Voir les réservations
                 </Link>
-                {isCSM() && (
+                <AuthorizedContent roles={[ROLES.CSM, ROLES.ADMIN]}>
                   <button
                     className='block w-full text-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors text-sm font-medium'
                   >
                     Modifier
                   </button>
-                )}
+                </AuthorizedContent>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Page de détail d'un prestataire
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function ProviderDetailPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.ADMIN, ROLES.CSM]} redirectTo="/dashboard">
+      <ProviderDetailPageContent />
+    </AuthorizedRoute>
   );
 }
 

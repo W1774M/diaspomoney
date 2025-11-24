@@ -44,7 +44,7 @@ export function useDashboardStats({
 
     // Pour les utilisateurs non-admin
     return {
-      bookings: (bookings || []).filter(a => a.userId === userId).length,
+      bookings: (bookings || []).filter(a => a.requesterId === userId).length,
       invoices: totalInvoices,
     };
   }, [

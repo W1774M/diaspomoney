@@ -81,20 +81,25 @@ export function useAuth() {
     if (existingPromise) {
       existingPromise
         .then(data => {
-          const me = data.user;
-          setUser({
-            id: me.id,
-            email: me.email,
-            name: me.name,
-            roles: me.roles || ['CUSTOMER'],
-            status: me.status || 'ACTIVE',
-            avatar: me.avatar || { image: '', name: me.name },
-            oauth: me.oauth || {},
-            phone: me.phone || '',
-            company: me.company || '',
-            address: me.address || '',
-          });
-          setIsAuthenticated((me.status || USER_STATUSES.ACTIVE) === USER_STATUSES.ACTIVE);
+          if (data && data.user) {
+            const me = data.user;
+            setUser({
+              id: me.id,
+              email: me.email,
+              name: me.name,
+              roles: me.roles || ['CUSTOMER'],
+              status: me.status || 'ACTIVE',
+              avatar: me.avatar || { image: '', name: me.name },
+              oauth: me.oauth || {},
+              phone: me.phone || '',
+              company: me.company || '',
+              address: me.address || '',
+            });
+            setIsAuthenticated((me.status || USER_STATUSES.ACTIVE) === USER_STATUSES.ACTIVE);
+          } else {
+            setUser(null);
+            setIsAuthenticated(false);
+          }
         })
         .catch(() => {
           setUser(null);
@@ -127,38 +132,53 @@ export function useAuth() {
       .then(res => {
         cleanup();
         if (res.ok) {
-          return res.json();
+          return res.json().catch(() => {
+            // Si res.json() échoue, retourner une valeur par défaut
+            throw new Error('Invalid JSON response');
+          });
         }
         if (res.status === 401) {
-          throw new Error('Not authenticated');
+          // Ne pas lancer d'erreur, retourner une valeur indiquant l'échec
+          return Promise.resolve({ user: null });
         }
-        throw new Error(`API error: ${res.status} ${res.statusText}`);
+        // Pour les autres erreurs HTTP, retourner une valeur par défaut
+        return Promise.resolve({ user: null });
       })
       .then(data => {
-        // Mettre en cache
-        setCachedAuth(data.user);
-        const me = data.user;
-        setUser({
-          id: me.id,
-          email: me.email,
-          name: me.name,
-          roles: me.roles || ['CUSTOMER'],
-          status: me.status || 'ACTIVE',
-          avatar: me.avatar || { image: '', name: me.name },
-          oauth: me.oauth || {},
-          phone: me.phone || '',
-          company: me.company || '',
-          address: me.address || '',
-        });
-        setIsAuthenticated((me.status || USER_STATUSES.ACTIVE) === USER_STATUSES.ACTIVE);
-        return data;
+        // Vérifier si data.user existe avant de l'utiliser
+        if (data && data.user) {
+          // Mettre en cache
+          setCachedAuth(data.user);
+          const me = data.user;
+          setUser({
+            id: me.id,
+            email: me.email,
+            name: me.name,
+            roles: me.roles || ['CUSTOMER'],
+            status: me.status || 'ACTIVE',
+            avatar: me.avatar || { image: '', name: me.name },
+            oauth: me.oauth || {},
+            phone: me.phone || '',
+            company: me.company || '',
+            address: me.address || '',
+          });
+          setIsAuthenticated((me.status || USER_STATUSES.ACTIVE) === USER_STATUSES.ACTIVE);
+          return data;
+        } else {
+          // Pas d'utilisateur dans la réponse
+          setUser(null);
+          setIsAuthenticated(false);
+          return { user: null };
+        }
       })
-      .catch(error => {
+      .catch(() => {
         cleanup();
         // Logging silencieux côté client - les erreurs sont gérées par le state
         setUser(null);
         setIsAuthenticated(false);
-        throw error;
+        // Ne pas rejeter la promesse pour éviter les "unhandled promise rejections"
+        // L'erreur est déjà gérée via le state (user = null, isAuthenticated = false)
+        return { user: null };
       })
       .finally(() => {
         setIsLoading(false);

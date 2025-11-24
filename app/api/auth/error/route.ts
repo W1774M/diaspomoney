@@ -13,7 +13,7 @@ function handleErrorRedirect(request: NextRequest) {
       path: request.nextUrl.pathname,
       query: request.nextUrl.search,
     },
-    '[AUTH][error] Request to /api/auth/error'
+    '[AUTH][error] Request to /api/auth/error',
   );
 
   const searchParams = request.nextUrl.searchParams;
@@ -39,7 +39,7 @@ function handleErrorRedirect(request: NextRequest) {
 
   logger.info(
     { target: loginUrl.toString() },
-    '[AUTH][error] Redirecting to'
+    '[AUTH][error] Redirecting to',
   );
 
   return NextResponse.redirect(loginUrl, HTTP_REDIRECT_TEMPORARY);

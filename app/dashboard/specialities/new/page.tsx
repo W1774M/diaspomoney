@@ -10,12 +10,17 @@
 
 import { useSpecialityCreate } from '@/hooks/specialities/useSpecialityCreate';
 import type { ISpeciality } from '@/lib/types';
+import { ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-export default function NewSpecialityPage() {
+/**
+ * Contenu de la page de création d'une nouvelle spécialité
+ */
+function NewSpecialityPageContent() {
   const router = useRouter();
   const { createSpeciality, loading } = useSpecialityCreate();
   const [formData, setFormData] = useState<Partial<ISpeciality>>({
@@ -139,8 +144,21 @@ export default function NewSpecialityPage() {
               )}
             </button>
           </div>
-        </form>
-      </div>
+    </form>
+  </div>
     </>
+  );
+}
+
+/**
+ * Page de création d'une nouvelle spécialité
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function NewSpecialityPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.ADMIN]} redirectTo="/dashboard/specialities">
+      <NewSpecialityPageContent />
+    </AuthorizedRoute>
   );
 }

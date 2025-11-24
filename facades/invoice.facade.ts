@@ -8,11 +8,14 @@
 import { Log } from '@/lib/decorators/log.decorator';
 import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { logger } from '@/lib/logger';
 import { LANGUAGES, CURRENCIES } from '@/lib/constants';
 import { emailService } from '@/services/email/email.service';
 import { invoiceService, InvoiceData } from '@/services/invoice/invoice.service';
 import { notificationService } from '@/services/notification/notification.service';
+import { invoiceMapper } from '@/lib/mappers';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
@@ -93,6 +96,8 @@ export class InvoiceFacade {
       );
     },
   })
+  @Audit({ eventType: 'INVOICE_CREATED_VIA_FACADE', includeArgs: true })
+  @Performance({ warningThreshold: 2000, errorThreshold: 5000 })
   async createInvoice(data: InvoiceFacadeData): Promise<InvoiceFacadeResult> {
     try {
       logger.info(
@@ -109,8 +114,11 @@ export class InvoiceFacade {
       // Étape 1: Créer la facture
       const invoice = await invoiceService.createInvoice(data);
 
-      const invoiceId = invoice.id || (invoice as any)._id?.toString() || '';
-      const invoiceNumber = invoice.invoiceNumber || '';
+      // Mapper le résultat avec InvoiceMapper
+      const mappedInvoice = invoiceMapper.map(invoice as any);
+
+      const invoiceId = mappedInvoice.id;
+      const invoiceNumber = mappedInvoice.invoiceNumber;
 
       let emailSent = false;
       let notificationSent = false;

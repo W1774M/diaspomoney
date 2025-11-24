@@ -73,13 +73,13 @@ const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
       }
     };
 
-    const handleClickOutside = (e: MouseEvent) => {
-      if (isOpen && !(e.target as Element).closest(".phone-input-container")) {
-        setIsOpen(false);
-      }
-    };
-
     useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (isOpen && !(e.target as Element).closest(".phone-input-container")) {
+          setIsOpen(false);
+        }
+      };
+
       document.addEventListener("mousedown", handleClickOutside);
       return () => {
         document.removeEventListener("mousedown", handleClickOutside);

@@ -12,6 +12,7 @@ import { TransactionQueryBuilder } from '@/builders';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
+import { transactionMapper } from '@/lib/mappers';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
@@ -564,34 +565,40 @@ export class MongoTransactionRepository implements ITransactionRepository {
   /**
    * Mapper un document MongoDB vers un objet Transaction
    */
+  /**
+   * Mapper un document MongoDB vers un objet Transaction
+   * Utilise maintenant le TransactionMapper centralisé
+   */
   private mapToTransaction(doc: any): Transaction {
-    const docId = doc._id?.toString() || doc.id || '';
-    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
-    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
+    // Utiliser le mapper pour la transformation de base
+    const mapped = transactionMapper.map(doc);
+    
+    // Convertir les dates string en Date pour compatibilité avec l'interface Transaction
     return {
-      id: docId,
-      _id: docId,
-      payerId: doc.payerId,
-      beneficiaryId: doc.beneficiaryId,
-      amount: doc.amount,
-      currency: doc.currency,
-      exchangeRate: doc.exchangeRate,
-      fees: doc.fees || 0,
-      totalAmount: doc.totalAmount || doc.amount,
-      serviceType: doc.serviceType,
-      serviceId: doc.serviceId,
-      description: doc.description,
-      status: doc.status,
-      type: doc.type || 'PAYMENT',
-      paymentMethod: doc.paymentMethod,
-      paymentProvider: doc.paymentProvider,
-      paymentIntentId: doc.paymentIntentId,
-      metadata: doc.metadata,
-      createdAt,
-      updatedAt,
-      completedAt: doc.completedAt,
-      failedAt: doc.failedAt,
-      failureReason: doc.failureReason,
+      id: mapped.id,
+      _id: mapped._id,
+      payerId: mapped.payerId,
+      beneficiaryId: mapped.beneficiaryId,
+      amount: mapped.amount,
+      currency: mapped.currency,
+      exchangeRate: mapped.exchangeRate ?? 1,
+      fees: mapped.fees,
+      totalAmount: mapped.totalAmount,
+      serviceType: mapped.serviceType,
+      ...(mapped.serviceId && { serviceId: mapped.serviceId }),
+      ...(mapped.description && { description: mapped.description }),
+      status: mapped.status as TransactionStatus,
+      type: mapped.type,
+      ...(mapped.paymentMethod && { paymentMethod: mapped.paymentMethod }),
+      ...(mapped.paymentProvider && { paymentProvider: mapped.paymentProvider }),
+      ...(mapped.paymentIntentId && { paymentIntentId: mapped.paymentIntentId }),
+      ...(mapped.refundId && { refundId: mapped.refundId }),
+      ...(mapped.metadata && { metadata: mapped.metadata }),
+      createdAt: new Date(mapped.createdAt),
+      updatedAt: new Date(mapped.updatedAt),
+      ...(mapped.completedAt && { completedAt: new Date(mapped.completedAt) }),
+      ...(mapped.failedAt && { failedAt: new Date(mapped.failedAt) }),
+      ...(mapped.failureReason && { failureReason: mapped.failureReason }),
     };
   }
 }

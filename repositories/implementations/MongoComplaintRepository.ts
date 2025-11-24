@@ -11,6 +11,7 @@
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
+import { complaintMapper } from '@/lib/mappers';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
@@ -367,34 +368,29 @@ export class MongoComplaintRepository implements IComplaintRepository {
     }
   }
 
+  /**
+   * Mapper un document MongoDB vers un objet Complaint
+   * Utilise maintenant le ComplaintMapper centralisé
+   */
   private mapToComplaint(doc: any): Complaint {
-    const docId = doc._id?.toString() || doc.id || '';
-    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
-    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
+    // Utiliser le mapper pour la transformation de base
+    const mapped = complaintMapper.map(doc);
+    
+    // Convertir les dates string en Date pour compatibilité avec l'interface Complaint
     return {
-      id: docId,
-      _id: docId,
-      number: doc.number,
-      title: doc.title,
-      type: doc.type || 'QUALITY',
-      priority: doc.priority || 'MEDIUM',
-      status: this.mapStatus(doc.status),
-      createdAt,
-      updatedAt,
-      description: doc.description || '',
-      provider: doc.provider || '',
-      appointmentId: doc.appointmentId || '',
-      userId: doc.userId,
+      id: mapped.id,
+      _id: mapped._id,
+      number: doc.number || mapped.id, // number n'est pas dans ComplaintResponse
+      title: mapped.title,
+      type: mapped.type,
+      priority: mapped.priority,
+      status: mapped.status,
+      createdAt: new Date(mapped.createdAt),
+      updatedAt: new Date(mapped.updatedAt),
+      description: mapped.description,
+      provider: mapped.provider,
+      appointmentId: mapped.appointmentId,
+      userId: mapped.userId,
     };
-  }
-
-  private mapStatus(status: string): ComplaintStatus {
-    const statusMap: Record<string, ComplaintStatus> = {
-      open: 'OPEN',
-      in_progress: 'IN_PROGRESS',
-      resolved: 'RESOLVED',
-      closed: 'CLOSED',
-    };
-    return statusMap[status?.toLowerCase()] || 'OPEN';
   }
 }

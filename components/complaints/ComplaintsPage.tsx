@@ -13,13 +13,14 @@
  * - Singleton Pattern (complaintService)
  */
 
-import { useAuth } from '@/hooks/auth/useAuth';
+import { useAuth, useAuthorization } from '@/hooks/auth';
 import {
   useComplaintFilters,
   useComplaintStats,
   useComplaints,
 } from '@/hooks/complaints';
 import type { Complaint } from '@/lib/types';
+import { ROLES } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect } from 'react';
 import ComplaintsFilters from './ComplaintsFilters';
@@ -29,7 +30,7 @@ import ComplaintsStats from './ComplaintsStats';
 import ComplaintsTable from './ComplaintsTable';
 
 const ComplaintsPage = React.memo(function ComplaintsPage() {
-  const { isCustomer, user } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const { complaints, loading, error, fetchComplaints } = useComplaints();
 
@@ -95,7 +96,10 @@ const ComplaintsPage = React.memo(function ComplaintsPage() {
   //   [updateFilter],
   // );
 
-  if (!isCustomer()) {
+  // Utiliser useAuthorization pour vérifier les permissions
+  const { isAuthorized } = useAuthorization({ roles: [ROLES.CUSTOMER] });
+  
+  if (!isAuthorized) {
     return (
       <div className='p-6'>
         <div className='text-center'>

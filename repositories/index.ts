@@ -17,6 +17,8 @@ export * from './interfaces/IPrescriptionRepository';
 export * from './interfaces/IQuoteRepository';
 export * from './interfaces/IRepository';
 export * from './interfaces/ISpecialityRepository';
+export * from './interfaces/IServiceRepository';
+export * from './interfaces/IServiceOptionRepository';
 export * from './interfaces/ITeleconsultationRepository';
 export * from './interfaces/ITransactionRepository';
 export * from './interfaces/IUserRepository';
@@ -39,6 +41,8 @@ export { MongoPCIAuditLogRepository } from './implementations/MongoPCIAuditLogRe
 export { MongoPrescriptionRepository } from './implementations/MongoPrescriptionRepository';
 export { MongoQuoteRepository } from './implementations/MongoQuoteRepository';
 export { MongoSpecialityRepository } from './implementations/MongoSpecialityRepository';
+export { MongoServiceRepository } from './implementations/MongoServiceRepository';
+export { MongoServiceOptionRepository } from './implementations/MongoServiceOptionRepository';
 export { MongoTeleconsultationRepository } from './implementations/MongoTeleconsultationRepository';
 export { MongoTransactionRepository } from './implementations/MongoTransactionRepository';
 export { MongoUserRepository } from './implementations/MongoUserRepository';
@@ -70,5 +74,7 @@ export {
   getTransactionRepository,
   getUserRepository,
   getAvailabilityRuleRepository,
+  getServiceRepository,
+  getServiceOptionRepository,
   repositoryContainer,
 } from './container/RepositoryContainer';

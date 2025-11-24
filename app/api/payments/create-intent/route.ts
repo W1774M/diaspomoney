@@ -7,44 +7,46 @@ import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
 import { CreatePaymentIntentSchema, type CreatePaymentIntentInput } from '@/lib/validations/payment.schema';
 import { paymentService } from '@/services/payment/payment.service.strategy';
-import { UserRole } from '@/lib/types';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 export async function POST(req: NextRequest) {
   return handleApiRoute(req, async () => {
-    // Vérifier l'authentification
+    // Authentification optionnelle - les paiements peuvent être effectués sans être connecté
     const session = await auth();
-    if (!session?.user || !session.user.id) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-    }
-
-    // Correction : certains types d'utilisateur n'ont pas le champ "roles", doit utiliser "role"
-    // On gère le cas où soit "role" soit "roles" est défini.
-    let userRole: UserRole | undefined = undefined;
-    if ('role' in session.user && session.user.role) {
-      userRole = session.user.role as UserRole;
-    } else if (
-      'roles' in session.user &&
-      Array.isArray(session.user.roles) &&
-      session.user.roles.length > 0
-    ) {
-      userRole = session.user.roles[0] as UserRole;
-    }
-    if (!userRole || userRole !== UserRole.CUSTOMER) {
-      return NextResponse.json(
-        { error: 'Seuls les clients peuvent effectuer des paiements' },
-        { status: 403 },
-      );
+    const reqId = req.headers.get('x-request-id');
+    const log = childLogger({
+      requestId: reqId || undefined,
+      route: 'payments/create-intent',
+    });
+    
+    // Utiliser l'ID utilisateur si connecté, sinon utiliser 'guest'
+    // Le customer Stripe sera créé avec l'email dans la stratégie Stripe
+    const customerId = session?.user?.id || 'guest';
+    
+    if (session?.user?.id) {
+      log.info({ userId: customerId, authenticated: true }, 'Authenticated user payment');
+    } else {
+      log.info({ authenticated: false }, 'Guest user payment');
     }
 
     // Validation avec Zod
     const body = await req.json();
+    
+    log.info({ body }, 'Received payment intent request');
+    
     const data: CreatePaymentIntentInput = validateBody(body, CreatePaymentIntentSchema);
     
     const amount = data.amount;
     const currency = data.currency.toLowerCase();
     const email = data.email;
     const metadata = data.metadata;
+    
+    log.info({ 
+      amount, 
+      currency, 
+      hasEmail: !!email,
+      hasMetadata: !!metadata, 
+    }, 'Validated payment intent data');
 
     // Tentative de création de PaymentIntent avec PaymentService (Strategy Pattern)
     // Convertir le montant de centimes en euros pour PaymentService
@@ -55,32 +57,48 @@ export async function POST(req: NextRequest) {
     const paymentIntent = await paymentService.createPaymentIntent(
       amountInEuros,
       currency.toUpperCase(),
-      session.user.id, // Utiliser l'ID utilisateur comme customerId
+      customerId, // Utiliser l'ID utilisateur si connecté, sinon 'guest'
       {
         ...(metadata || {}),
-        customerEmail: email,
+        customerEmail: email || '',
+        ...(session?.user?.id && { userId: session.user.id }), // Ajouter l'ID utilisateur si disponible
       },
     );
 
-    const reqId = req.headers.get('x-request-id');
-    const log = childLogger({
-      requestId: reqId || undefined,
-      route: 'payments/create-intent',
-    });
+    // Vérifier que clientSecret est présent avant de retourner
+    if (!paymentIntent.clientSecret) {
+      const error = new Error(
+        `Le PaymentIntent ${paymentIntent.id} a été créé mais aucun clientSecret n'est disponible. ` +
+        `Status: ${paymentIntent.status}`,
+      );
+      log.error(
+        {
+          paymentIntentId: paymentIntent.id,
+          status: paymentIntent.status,
+          paymentIntent,
+        },
+        'PaymentIntent created but no clientSecret available',
+      );
+      throw error;
+    }
+
     log.info({
       msg: 'PaymentIntent created',
       amount,
       currency,
       email,
       paymentIntentId: paymentIntent.id,
+      hasClientSecret: !!paymentIntent.clientSecret,
+      clientSecretPrefix: `${paymentIntent.clientSecret.substring(0, 20)  }...`,
     });
 
-    return NextResponse.json({
+    // Retourner un objet simple, handleApiRoute fera le NextResponse.json()
+    return {
       clientSecret: paymentIntent.clientSecret,
       paymentIntentId: paymentIntent.id,
       currency: paymentIntent.currency,
       amount: paymentIntent.amount * 100, // Convertir en centimes pour le client
       status: paymentIntent.status,
-    });
+    };
   }, 'api/payments/create-intent');
 }

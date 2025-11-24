@@ -1,17 +1,16 @@
 import { BookingQueryBuilder } from "@/builders";
 // Désactiver le prerendering pour cette route API
-;
+export const dynamic = 'force-dynamic';
 
-import { commandHandler, CreateBookingCommand } from "@/commands";
-import { handleApiRoute, ApiErrors, ApiError, validateBody } from '@/lib/api/error-handler';
+import { handleApiRoute, ApiError, validateBody } from '@/lib/api/error-handler';
+import { createPaginatedResponse, createResourceResponse } from '@/lib/api/response';
 import type { BookingFacadeData } from '@/lib/types';
-import { CreateBookingSchema } from '@/lib/validations/booking.schema';
+import { CreateBookingSchema, type CreateBookingInput } from '@/lib/validations/booking.schema';
 import { initializeDI } from "@/lib/di/initialize";
 import { logger } from "@/lib/logger";
 import { getBookingRepository } from "@/repositories";
-import { bookingService } from "@/services/booking/booking.service";
+import { serviceBookingFacade } from "@/facades";
 import { NextRequest } from "next/server";
-import { BookingData } from "@/lib/types";
 
 // ---------------------------------------------
 // CONSTANTS
@@ -91,13 +90,18 @@ export async function GET(request: NextRequest) {
       },
     );
 
-    return {
-      success: true,
-      bookings: result.data,
-      total: result.total,
-      limit: repoLimit,
-      offset: repoOffset,
-    };
+    // Mapper les bookings avec bookingMapper pour garantir un format cohérent
+    const { bookingMapper } = await import('@/lib/mappers');
+    const mappedBookings = bookingMapper.mapMany(result.data as any[]);
+
+    return createPaginatedResponse(
+      mappedBookings,
+      {
+        page: repoPage,
+        limit: repoLimit,
+        total: result.total,
+      },
+    );
   }, 'api/bookings');
 }
 
@@ -108,7 +112,7 @@ export async function POST(request: NextRequest) {
   return handleApiRoute(request, async () => {
     // Validation avec Zod
     const body = await request.json();
-    const data = validateBody(body, CreateBookingSchema);
+    const data = validateBody(body, CreateBookingSchema) as CreateBookingInput;
 
     // Si un paiement est inclus, utiliser la facade avec Command Pattern pour orchestrer tout le processus
     if (data.payment) {
@@ -126,23 +130,19 @@ export async function POST(request: NextRequest) {
         timeslot: typeof data.timeslot === "string" ? data.timeslot : undefined,
         consultationMode: (data.consultationMode as 'IN_PERSON' | 'TELEMEDICINE' | 'HYBRID') ?? undefined,
         recipient: data.recipient
-          ? `${data.recipient.firstName} ${data.recipient.lastName}`.trim()
+          ? typeof data.recipient === 'string'
+            ? data.recipient
+            : `${data.recipient.firstName} ${data.recipient.lastName}`.trim()
           : undefined,
         payment: data.payment as BookingFacadeData['payment'] | undefined,
         metadata: data.metadata as Record<string, string> | undefined,
       } as BookingFacadeData;
 
-      // Utiliser le Command Pattern pour exécuter la commande avec historique et undo
-      const command = new CreateBookingCommand(bookingData);
-      const commandResult = await commandHandler.execute(command);
+      // Utiliser serviceBookingFacade directement (logique fusionnée de BookingFacade)
+      const result = await serviceBookingFacade.createBookingWithPayment(bookingData);
 
-      if (!commandResult.success) {
-        throw new ApiError(400, commandResult.error || 'Erreur lors de la création de la réservation');
-      }
-
-      const result = commandResult.data;
-      if (!result) {
-        throw ApiErrors.INTERNAL_ERROR;
+      if (!result.success) {
+        throw new ApiError(400, result.error || 'Erreur lors de la création de la réservation');
       }
 
       // Extraire l'ID de booking de manière type-safe
@@ -152,14 +152,17 @@ export async function POST(request: NextRequest) {
       logger.info({
         bookingId,
         paymentSuccess: result.paymentResult?.success,
-      }, 'Booking created with payment via Command Pattern');
+      }, 'Booking created with payment via ServiceBookingFacade');
 
-      return {
-        success: true,
-        booking: result.booking,
-        paymentResult: result.paymentResult,
-        message: "Rendez-vous créé avec paiement traité avec succès",
-      };
+      return createResourceResponse(
+        result.booking,
+        {
+          message: "Rendez-vous créé avec paiement traité avec succès",
+          metadata: {
+            paymentResult: result.paymentResult,
+          },
+        },
+      );
     }
 
     // Sinon, créer simplement la réservation sans paiement
@@ -176,18 +179,28 @@ export async function POST(request: NextRequest) {
       timeslot: typeof data.timeslot === "string" ? data.timeslot : undefined,
       consultationMode: (data.consultationMode as 'IN_PERSON' | 'TELEMEDICINE' | 'HYBRID') ?? undefined,
       recipient: data.recipient
-        ? `${data.recipient.firstName} ${data.recipient.lastName}`.trim()
+        ? typeof data.recipient === 'string' 
+          ? data.recipient
+          : `${data.recipient.firstName} ${data.recipient.lastName}`.trim()
         : undefined,
       metadata: data.metadata as Record<string, string> | undefined,
     } as BookingFacadeData;
 
-    // Call bookingService (which expects BookingData; BookingFacadeData is sufficient)
-    const newAppointment = await bookingService.createBooking(bookingData as unknown as BookingData);
+    // Utiliser serviceBookingFacade pour créer la réservation sans paiement
+    const result = await serviceBookingFacade.createBookingWithPayment({
+      ...bookingData,
+      payment: undefined as any,
+    });
 
-    return {
-      success: true,
-      booking: newAppointment,
-      message: "Rendez-vous créé avec succès",
-    };
+    if (!result.success) {
+      throw new ApiError(400, result.error || 'Erreur lors de la création de la réservation');
+    }
+
+    return createResourceResponse(
+      result.booking,
+      {
+        message: "Rendez-vous créé avec succès",
+      },
+    );
   }, 'api/bookings');
 }

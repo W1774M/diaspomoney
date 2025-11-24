@@ -1,38 +1,15 @@
 'use client';
 
-import { useAuth } from '@/hooks/auth/useAuth';
-import { ProviderInfo } from '@/lib/types';
+import { ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 import { Bell } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 /**
- * Page de rappels importants
+ * Contenu de la page de rappels importants
  * Accessible uniquement aux providers avec profil INDIVIDUAL
  */
-export default function RemindersPage() {
-  const { isAuthenticated, isProvider, user, isLoading } = useAuth();
-  const router = useRouter();
+function RemindersPageContent() {
 
-  const isIndividualProvider = isProvider() && (user as ProviderInfo)?.providerInfo?.type === 'INDIVIDUAL';
-
-  useEffect(() => {
-    if (!isLoading && (!isAuthenticated || !isIndividualProvider)) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isIndividualProvider, isLoading, router]);
-
-  if (isLoading) {
-    return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]'></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !isIndividualProvider) {
-    return null;
-  }
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -62,6 +39,19 @@ export default function RemindersPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Page de rappels importants
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function RemindersPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.PROVIDER]} redirectTo="/dashboard">
+      <RemindersPageContent />
+    </AuthorizedRoute>
   );
 }
 

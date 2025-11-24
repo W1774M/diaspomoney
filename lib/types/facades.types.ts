@@ -10,12 +10,12 @@ export interface FacadeData {
   /**
    * ID de l'utilisateur qui effectue l'action
    */
-  userId?: string;
+  userId?: string | undefined;
 
   /**
    * Métadonnées supplémentaires
    */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, any> | undefined;
 }
 
 /**
@@ -133,27 +133,27 @@ export interface BookingFacadeData extends FacadeData {
   /**
    * Créneau horaire
    */
-  timeslot?: string;
+  timeslot?: string | undefined;
 
   /**
    * Mode de consultation
    */
-  consultationMode?: 'IN_PERSON' | 'TELEMEDICINE' | 'HYBRID';
+  consultationMode?: 'IN_PERSON' | 'TELEMEDICINE' | 'HYBRID' | undefined;
 
   /**
-   * Bénéficiaire
+   * Bénéficiaire (peut être une string ou un objet avec firstName, lastName, phone)
    */
-  recipient?: string;
+  recipient?: string | { firstName: string; lastName: string; phone: string } | undefined;
 
   /**
    * Données de paiement
    */
   payment?: {
-    amount: number;
-    currency: string;
-    paymentMethodId: string;
-    createInvoice?: boolean;
-  };
+  amount: number;
+  currency: string;
+  paymentMethodId: string;
+  createInvoice?: boolean;
+} | undefined;
 }
 
 /**
@@ -526,5 +526,389 @@ export interface FacadeError {
    * Détails
    */
   details?: Record<string, any>;
+}
+
+/**
+ * Données pour la facade de transaction
+ */
+export interface TransactionFacadeData extends FacadeData {
+  /**
+   * ID du payeur
+   */
+  payerId: string;
+
+  /**
+   * ID du bénéficiaire
+   */
+  beneficiaryId: string;
+
+  /**
+   * Montant
+   */
+  amount: number;
+
+  /**
+   * Devise
+   */
+  currency: string;
+
+  /**
+   * Type de transaction
+   */
+  type: string;
+
+  /**
+   * Statut
+   */
+  status?: string;
+
+  /**
+   * Description
+   */
+  description?: string;
+
+  /**
+   * ID du service
+   */
+  serviceId?: string;
+
+  /**
+   * Type de service
+   */
+  serviceType?: 'HEALTH' | 'BTP' | 'EDUCATION';
+
+  /**
+   * Envoyer une notification
+   */
+  sendNotification?: boolean;
+}
+
+/**
+ * Résultat de la facade de transaction
+ */
+export interface TransactionFacadeResult extends FacadeResult {
+  /**
+   * Transaction créée
+   */
+  transaction?: any; // Transaction
+
+  /**
+   * Notification envoyée
+   */
+  notificationSent?: boolean;
+}
+
+/**
+ * Données pour la facade d'utilisateur
+ */
+export interface UserFacadeData extends FacadeData {
+  /**
+   * Email
+   */
+  email: string;
+
+  /**
+   * Nom
+   */
+  name: string;
+
+  /**
+   * Prénom
+   */
+  firstName?: string;
+
+  /**
+   * Nom de famille
+   */
+  lastName?: string;
+
+  /**
+   * Téléphone
+   */
+  phone?: string;
+
+  /**
+   * Rôles
+   */
+  roles?: string[];
+
+  /**
+   * Statut
+   */
+  status?: string;
+
+  /**
+   * Données KYC
+   */
+  kycData?: {
+    documents: Array<{
+      type: string;
+      fileUrl: string;
+    }>;
+  };
+
+  /**
+   * Envoyer une notification de bienvenue
+   */
+  sendWelcomeNotification?: boolean;
+}
+
+/**
+ * Résultat de la facade d'utilisateur
+ */
+export interface UserFacadeResult extends FacadeResult {
+  /**
+   * Utilisateur créé
+   */
+  user?: any; // User
+
+  /**
+   * Données KYC créées
+   */
+  kycData?: any; // KYCData
+
+  /**
+   * Notification envoyée
+   */
+  notificationSent?: boolean;
+}
+
+/**
+ * Données pour la facade de notification
+ */
+export interface NotificationFacadeData extends FacadeData {
+  /**
+   * Destinataire
+   */
+  recipient: string;
+
+  /**
+   * Type de notification
+   */
+  type: string;
+
+  /**
+   * Template
+   */
+  template: string;
+
+  /**
+   * Données pour le template
+   */
+  data: Record<string, any>;
+
+  /**
+   * Canaux de notification
+   */
+  channels: Array<{
+    type: string;
+    enabled: boolean;
+    priority: string;
+  }>;
+
+  /**
+   * Priorité
+   */
+  priority?: string;
+
+  /**
+   * Date de programmation
+   */
+  scheduledAt?: Date;
+
+  /**
+   * Date d'expiration
+   */
+  expiresAt?: Date;
+}
+
+/**
+ * Résultat de la facade de notification
+ */
+export interface NotificationFacadeResult extends FacadeResult {
+  /**
+   * Notification créée
+   */
+  notification?: any; // Notification
+
+  /**
+   * Canaux utilisés
+   */
+  channelsUsed?: string[];
+}
+
+/**
+ * Données pour la facade de messagerie
+ */
+export interface MessagingFacadeData extends FacadeData {
+  /**
+   * ID de la conversation
+   */
+  conversationId?: string;
+
+  /**
+   * Participants
+   */
+  participants?: string[];
+
+  /**
+   * Type de conversation
+   */
+  type?: 'user' | 'support';
+
+  /**
+   * Texte du message
+   */
+  text: string;
+
+  /**
+   * Pièces jointes
+   */
+  attachments?: string[];
+
+  /**
+   * Envoyer une notification
+   */
+  sendNotification?: boolean;
+}
+
+/**
+ * Résultat de la facade de messagerie
+ */
+export interface MessagingFacadeResult extends FacadeResult {
+  /**
+   * Conversation créée ou utilisée
+   */
+  conversation?: any; // Conversation
+
+  /**
+   * Message créé
+   */
+  message?: any; // Message
+
+  /**
+   * Notification envoyée
+   */
+  notificationSent?: boolean;
+}
+
+/**
+ * Données pour la facade de statistiques
+ */
+export interface StatisticsFacadeData extends FacadeData {
+  /**
+   * ID de l'utilisateur
+   */
+  userId: string;
+
+  /**
+   * Période de début
+   */
+  dateFrom?: Date;
+
+  /**
+   * Période de fin
+   */
+  dateTo?: Date;
+
+  /**
+   * Type de statistiques
+   */
+  type?: 'personal' | 'transactions' | 'bookings' | 'providers';
+}
+
+/**
+ * Résultat de la facade de statistiques
+ */
+export interface StatisticsFacadeResult extends FacadeResult {
+  /**
+   * Statistiques calculées
+   */
+  statistics?: any; // PersonalStatistics
+}
+
+/**
+ * Données pour la facade de spécialité
+ */
+export interface SpecialityFacadeData extends FacadeData {
+  /**
+   * Nom
+   */
+  name: string;
+
+  /**
+   * Description
+   */
+  description: string;
+
+  /**
+   * Groupe
+   */
+  group: string;
+
+  /**
+   * Actif
+   */
+  isActive?: boolean;
+}
+
+/**
+ * Résultat de la facade de spécialité
+ */
+export interface SpecialityFacadeResult extends FacadeResult {
+  /**
+   * Spécialité créée
+   */
+  speciality?: any; // ISpeciality
+}
+
+/**
+ * Données pour la facade d'éducation
+ */
+export interface EducationFacadeData extends FacadeData {
+  /**
+   * Type d'opération
+   */
+  operation: 'searchSchools' | 'enrollStudent' | 'payTuition' | 'createInquiry';
+
+  /**
+   * Données spécifiques à l'opération
+   */
+  data: Record<string, any>;
+}
+
+/**
+ * Résultat de la facade d'éducation
+ */
+export interface EducationFacadeResult extends FacadeResult {
+  /**
+   * Résultat de l'opération
+   */
+  result?: any;
+}
+
+/**
+ * Données pour la facade BTP
+ */
+export interface BTPFacadeData extends FacadeData {
+  /**
+   * Type d'opération
+   */
+  operation: 'searchProperties' | 'searchContractors' | 'createQuote' | 'createProject';
+
+  /**
+   * Données spécifiques à l'opération
+   */
+  data: Record<string, any>;
+}
+
+/**
+ * Résultat de la facade BTP
+ */
+export interface BTPFacadeResult extends FacadeResult {
+  /**
+   * Résultat de l'opération
+   */
+  result?: any;
 }
 

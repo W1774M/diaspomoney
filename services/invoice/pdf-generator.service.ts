@@ -11,6 +11,7 @@
  */
 
 import { Log } from '@/lib/decorators/log.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { childLogger } from '@/lib/logger';
 import { CURRENCIES } from '@/lib/constants';
 import { getUserRepository } from '@/repositories';
@@ -48,6 +49,7 @@ export class PDFGeneratorService {
    * Générer un PDF de facture
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Performance({ warningThreshold: 2000, errorThreshold: 5000 })
   async generateInvoicePDF(invoice: Invoice): Promise<Buffer> {
     try {
       this.log.debug({ invoiceId: invoice.id }, 'Generating invoice PDF');

@@ -9,20 +9,23 @@
  * - Middleware Pattern (authentification via useAuth)
  */
 
-import { useAuth, useUser, useUserEdit } from '@/hooks';
+import { useUser, useUserEdit } from '@/hooks';
 import { USER_ROLES, USER_STATUSES } from '@/lib/types';
 import { UserEditFormData } from '@/lib/types';
 import { LANGUAGES, TIMEZONES, USER_STATUSES as CONST_USER_STATUSES, ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export default function EditUserPage() {
+/**
+ * Contenu de la page d'édition d'un utilisateur
+ */
+function EditUserPageContent() {
   const params = useParams();
   const userId = params.id as string;
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { user, loading, error, fetchUser } = useUser();
   const { updateUser, loading: saving, error: updateError } = useUserEdit();
   const [formData, setFormData] = useState<UserEditFormData>({
@@ -46,10 +49,10 @@ export default function EditUserPage() {
 
   // Charger les données de l'utilisateur
   useEffect(() => {
-    if (isAuthenticated && userId) {
+    if (userId) {
       fetchUser(userId);
     }
-  }, [isAuthenticated, userId, fetchUser]);
+  }, [userId, fetchUser]);
 
   // Remplir le formulaire avec les données de l'utilisateur
   useEffect(() => {
@@ -126,7 +129,7 @@ export default function EditUserPage() {
     }
   };
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className='text-center py-12'>
         <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
@@ -431,5 +434,18 @@ export default function EditUserPage() {
         </div>
       </form>
     </>
+  );
+}
+
+/**
+ * Page d'édition d'un utilisateur
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function EditUserPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.ADMIN]} redirectTo="/dashboard/users">
+      <EditUserPageContent />
+    </AuthorizedRoute>
   );
 }

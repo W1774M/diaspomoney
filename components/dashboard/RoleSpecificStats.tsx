@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useBookings } from '@/hooks/useBookings';
+import { usePlatformStatistics } from '@/hooks/statistics/usePlatformStatistics';
 import { BOOKING_STATUSES, ROLES } from '@/lib/constants';
 import { 
   ShoppingCart, 
@@ -19,6 +20,12 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useMemo } from 'react';
+import RevenueChart from './charts/RevenueChart';
+import UsersChart from './charts/UsersChart';
+import TransactionsChart from './charts/TransactionsChart';
+import UsersByRoleChart from './charts/UsersByRoleChart';
+import BookingsByStatusChart from './charts/BookingsByStatusChart';
+import TopServicesChart from './charts/TopServicesChart';
 
 interface RoleSpecificStatsProps {
   userId?: string | undefined;
@@ -171,21 +178,49 @@ export default function RoleSpecificStats({ userId }: RoleSpecificStatsProps) {
 
   // Statistiques pour SUPER ADMIN
   // Un utilisateur est super admin s'il a ADMIN ET au moins un autre rôle
+  const userRoles = user?.roles || [];
+  const hasAdmin = userRoles.includes(ROLES.ADMIN);
+  const hasMultipleRoles = userRoles.length > 1;
+  const isSuperAdmin = isAdmin() && hasAdmin && hasMultipleRoles;
+  
+  const { statistics: platformStats, loading: statsLoading, error: statsError } = usePlatformStatistics();
+  
   const superAdminStats = useMemo(() => {
-    const userRoles = user?.roles || [];
-    const hasAdmin = userRoles.includes(ROLES.ADMIN);
-    const hasMultipleRoles = userRoles.length > 1;
-    if (!isAdmin() || !hasAdmin || !hasMultipleRoles) return null;
+    if (!isSuperAdmin) return null;
 
-    // Simulé - à remplacer par vraies données
+    if (statsLoading || !platformStats) {
+      return {
+        platformHealth: 0,
+        systemUptime: 0,
+        serverPerformance: 0,
+        totalRevenue: 0,
+        operatingCosts: 0,
+        loading: true,
+      };
+    }
+
+    const overview = platformStats.overview;
+    const platformHealth = overview.totalUsers > 0 
+      ? Math.round((overview.completedTransactions / Math.max(overview.totalTransactions, 1)) * 100)
+      : 0;
+    const systemUptime = overview.totalTransactions > 0 
+      ? Math.round((overview.completedTransactions / overview.totalTransactions) * 100)
+      : 0;
+    const serverPerformance = overview.totalBookings > 0
+      ? Math.round((overview.completedBookings / overview.totalBookings) * 100)
+      : 0;
+
     return {
-      platformHealth: 0,
-      systemUptime: 0,
-      serverPerformance: 0,
-      totalRevenue: 0,
-      operatingCosts: 0,
+      platformHealth,
+      systemUptime,
+      serverPerformance,
+      totalRevenue: overview.totalRevenue,
+      operatingCosts: overview.totalRevenue * 0.1, // Estimation: 10% des revenus
+      loading: false,
+      overview,
+      charts: platformStats.charts,
     };
-  }, [user, isAdmin]);
+  }, [isSuperAdmin, platformStats, statsLoading]);
 
   // Rendu selon le rôle
   if (customerStats) {
@@ -413,47 +448,140 @@ export default function RoleSpecificStats({ userId }: RoleSpecificStatsProps) {
   }
 
   if (superAdminStats) {
+    const { overview, charts, loading } = superAdminStats as any;
+    
     return (
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8'>
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-          <div className='flex items-center justify-between mb-4'>
-            <Activity className='h-8 w-8 text-green-500' />
+      <div className='space-y-6'>
+        {/* Cartes de statistiques principales */}
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6'>
+          <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+            <div className='flex items-center justify-between mb-4'>
+              <Activity className='h-8 w-8 text-green-500' />
+            </div>
+            <h3 className='text-sm font-medium text-gray-600 mb-1'>Santé plateforme</h3>
+            <p className='text-2xl font-bold text-gray-900'>
+              {loading ? '...' : `${superAdminStats.platformHealth}%`}
+            </p>
           </div>
-          <h3 className='text-sm font-medium text-gray-600 mb-1'>Santé plateforme</h3>
-          <p className='text-2xl font-bold text-gray-900'>{superAdminStats.platformHealth}%</p>
-        </div>
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-          <div className='flex items-center justify-between mb-4'>
-            <Server className='h-8 w-8 text-blue-500' />
+          <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+            <div className='flex items-center justify-between mb-4'>
+              <Server className='h-8 w-8 text-blue-500' />
+            </div>
+            <h3 className='text-sm font-medium text-gray-600 mb-1'>Uptime système</h3>
+            <p className='text-2xl font-bold text-gray-900'>
+              {loading ? '...' : `${superAdminStats.systemUptime}%`}
+            </p>
           </div>
-          <h3 className='text-sm font-medium text-gray-600 mb-1'>Uptime système</h3>
-          <p className='text-2xl font-bold text-gray-900'>{superAdminStats.systemUptime}%</p>
-        </div>
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-          <div className='flex items-center justify-between mb-4'>
-            <Activity className='h-8 w-8 text-orange-500' />
+          <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+            <div className='flex items-center justify-between mb-4'>
+              <Activity className='h-8 w-8 text-orange-500' />
+            </div>
+            <h3 className='text-sm font-medium text-gray-600 mb-1'>Performance serveurs</h3>
+            <p className='text-2xl font-bold text-gray-900'>
+              {loading ? '...' : `${superAdminStats.serverPerformance}%`}
+            </p>
           </div>
-          <h3 className='text-sm font-medium text-gray-600 mb-1'>Performance serveurs</h3>
-          <p className='text-2xl font-bold text-gray-900'>{superAdminStats.serverPerformance}%</p>
-        </div>
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-          <div className='flex items-center justify-between mb-4'>
-            <DollarSign className='h-8 w-8 text-green-500' />
+          <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+            <div className='flex items-center justify-between mb-4'>
+              <DollarSign className='h-8 w-8 text-green-500' />
+            </div>
+            <h3 className='text-sm font-medium text-gray-600 mb-1'>Revenus totaux</h3>
+            <p className='text-2xl font-bold text-gray-900'>
+              {loading ? '...' : `${superAdminStats.totalRevenue.toFixed(2)} €`}
+            </p>
           </div>
-          <h3 className='text-sm font-medium text-gray-600 mb-1'>Revenus totaux</h3>
-          <p className='text-2xl font-bold text-gray-900'>
-            {superAdminStats.totalRevenue.toFixed(2)} €
-          </p>
-        </div>
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-          <div className='flex items-center justify-between mb-4'>
-            <CreditCard className='h-8 w-8 text-red-500' />
+          <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+            <div className='flex items-center justify-between mb-4'>
+              <CreditCard className='h-8 w-8 text-red-500' />
+            </div>
+            <h3 className='text-sm font-medium text-gray-600 mb-1'>Coûts d'exploitation</h3>
+            <p className='text-2xl font-bold text-gray-900'>
+              {loading ? '...' : `${superAdminStats.operatingCosts.toFixed(2)} €`}
+            </p>
           </div>
-          <h3 className='text-sm font-medium text-gray-600 mb-1'>Coûts d'exploitation</h3>
-          <p className='text-2xl font-bold text-gray-900'>
-            {superAdminStats.operatingCosts.toFixed(2)} €
-          </p>
         </div>
+
+        {/* Statistiques détaillées */}
+        {!loading && overview && (
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+            <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+              <div className='flex items-center justify-between mb-4'>
+                <Users className='h-8 w-8 text-blue-500' />
+              </div>
+              <h3 className='text-sm font-medium text-gray-600 mb-1'>Utilisateurs totaux</h3>
+              <p className='text-2xl font-bold text-gray-900'>{overview.totalUsers}</p>
+              <p className='text-xs text-gray-500 mt-1'>
+                {overview.totalCustomers} clients, {overview.totalProviders} prestataires
+              </p>
+            </div>
+            <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+              <div className='flex items-center justify-between mb-4'>
+                <ShoppingCart className='h-8 w-8 text-green-500' />
+              </div>
+              <h3 className='text-sm font-medium text-gray-600 mb-1'>Réservations</h3>
+              <p className='text-2xl font-bold text-gray-900'>{overview.totalBookings}</p>
+              <p className='text-xs text-gray-500 mt-1'>
+                {overview.completedBookings} terminées
+              </p>
+            </div>
+            <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+              <div className='flex items-center justify-between mb-4'>
+                <CreditCard className='h-8 w-8 text-orange-500' />
+              </div>
+              <h3 className='text-sm font-medium text-gray-600 mb-1'>Transactions</h3>
+              <p className='text-2xl font-bold text-gray-900'>{overview.totalTransactions}</p>
+              <p className='text-xs text-gray-500 mt-1'>
+                {overview.completedTransactions} complétées
+              </p>
+            </div>
+            <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+              <div className='flex items-center justify-between mb-4'>
+                <DollarSign className='h-8 w-8 text-purple-500' />
+              </div>
+              <h3 className='text-sm font-medium text-gray-600 mb-1'>Revenus ce mois</h3>
+              <p className='text-2xl font-bold text-gray-900'>
+                {overview.revenueThisMonth.toFixed(2)} €
+              </p>
+              <p className='text-xs text-gray-500 mt-1'>
+                {overview.newUsersThisMonth} nouveaux utilisateurs
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Graphiques */}
+        {!loading && charts && (
+          <div className='space-y-6'>
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+              <RevenueChart data={charts.monthlyData} />
+              <UsersChart data={charts.monthlyData} />
+            </div>
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+              <TransactionsChart data={charts.monthlyData} />
+              <UsersByRoleChart data={charts.usersByRole} />
+            </div>
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+              <BookingsByStatusChart data={charts.bookingsByStatus} />
+              <TopServicesChart data={charts.topServices} />
+            </div>
+          </div>
+        )}
+
+        {/* Message d'erreur */}
+        {statsError && (
+          <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
+            <p className='text-red-800 text-sm'>
+              Erreur lors du chargement des statistiques: {statsError}
+            </p>
+          </div>
+        )}
+
+        {/* Message de chargement */}
+        {statsLoading && (
+          <div className='bg-gray-50 border border-gray-200 rounded-lg p-8 text-center'>
+            <p className='text-gray-600'>Chargement des statistiques de la plateforme...</p>
+          </div>
+        )}
       </div>
     );
   }

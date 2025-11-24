@@ -1,13 +1,14 @@
 'use client';
 
-import { MOCK_INVOICES } from '@/mocks';
 import { IInvoice } from '@/lib/types';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 
 interface UseInvoicesProps {
   limit?: number;
   offset?: number;
+  page?: number;
   userId?: string | undefined;
+  status?: string | undefined;
   isAdmin?: boolean;
   isProvider?: boolean;
   isCustomer?: boolean;
@@ -18,77 +19,93 @@ interface UseInvoicesReturn {
   total: number;
   loading: boolean;
   error: string | null;
-  refetch: () => void;
+  refetch: () => Promise<void>;
 }
 
 export function useInvoices({
   limit = 50,
   offset = 0,
+  page,
   userId,
+  status,
   isAdmin = false,
   isProvider = false,
   isCustomer = false,
 }: UseInvoicesProps = {}): UseInvoicesReturn {
+  const [invoices, setInvoices] = useState<IInvoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
 
-  const { invoices, total } = useMemo(() => {
-    let filteredInvoices = [...MOCK_INVOICES];
+  // Mémoriser les options pour éviter les re-renders inutiles
+  const memoizedOptions = useMemo(
+    () => ({
+      limit,
+      offset,
+      page,
+      userId,
+      status,
+      isAdmin,
+      isProvider,
+      isCustomer,
+    }),
+    [limit, offset, page, userId, status, isAdmin, isProvider, isCustomer],
+  );
 
-    // Filtrer selon le rôle de l'utilisateur
-    if (!isAdmin) {
-      if (isProvider) {
-        // Les providers voient leurs factures (où ils sont le providerId)
-        filteredInvoices = filteredInvoices.filter(
-          invoice => invoice.providerId === userId,
-        );
-      } else if (isCustomer) {
-        // Les customers voient leurs factures (où ils sont le customerId)
-        filteredInvoices = filteredInvoices.filter(
-          invoice => invoice.customerId === userId,
-        );
-      } else if (userId) {
-        // Si un userId est spécifié mais pas de rôle, filtrer par customerId ou providerId
-        filteredInvoices = filteredInvoices.filter(
-          invoice => invoice.customerId === userId || invoice.providerId === userId,
-        );
-      }
-    }
-
-    // Appliquer la pagination
-    const paginatedInvoices = filteredInvoices.slice(offset, offset + limit);
-
-    return {
-      invoices: paginatedInvoices,
-      total: filteredInvoices.length,
-    };
-  }, [limit, offset, userId, isAdmin, isProvider, isCustomer]);
-
-  const refetch = () => {
+  // Fonction pour récupérer les factures
+  const fetchInvoices = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    // Simuler un délai de chargement
-    setTimeout(() => {
-      setLoading(false);
-    }, 500);
-  };
+    try {
+      // Construire les paramètres de requête
+      const params = new URLSearchParams();
+      if (memoizedOptions.page) {
+        params.append('page', memoizedOptions.page.toString());
+      } else if (memoizedOptions.offset !== undefined && memoizedOptions.limit) {
+        // Convertir offset en page si nécessaire
+        const calculatedPage = Math.floor(memoizedOptions.offset / memoizedOptions.limit) + 1;
+        params.append('page', calculatedPage.toString());
+      }
+      if (memoizedOptions.limit) {
+        params.append('limit', memoizedOptions.limit.toString());
+      }
+      if (memoizedOptions.status && memoizedOptions.status !== 'ALL') {
+        params.append('status', memoizedOptions.status);
+      }
 
-  // Simuler le chargement initial
+      // Appeler l'API route
+      const response = await fetch(`/api/invoices?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoices');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        // Le nouveau format standardisé utilise data directement pour les listes
+        setInvoices(Array.isArray(data.data) ? data.data : []);
+        setTotal(data.pagination?.total || 0);
+      } else {
+        throw new Error(data.error || 'Failed to fetch invoices');
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Erreur inconnue');
+      setInvoices([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [memoizedOptions]);
+
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [userId, isAdmin, isProvider, isCustomer]);
+    fetchInvoices();
+  }, [fetchInvoices]);
 
   return {
-    invoices: invoices as unknown as IInvoice[],
+    invoices,
     total,
     loading,
     error,
-    refetch,
+    refetch: fetchInvoices,
   };
 }

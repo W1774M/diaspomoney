@@ -14,6 +14,8 @@
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { logger } from '@/lib/logger';
 import {
   Complaint,
@@ -30,6 +32,7 @@ import type {
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 import { CreateComplaintSchema } from '@/lib/validations/complaint.schema';
+import { Authorize } from '@/lib/decorators';
 
 /**
  * ComplaintService utilisant le Service Layer Pattern
@@ -138,6 +141,8 @@ export class ComplaintService {
       },
     ],
   })
+  @Audit({ eventType: 'COMPLAINT_CREATED', includeArgs: true })
+  @Performance({ warningThreshold: 1500, errorThreshold: 4000 })
   @InvalidateCache('ComplaintService:*')
   async createComplaint(data: CreateComplaintData): Promise<Complaint> {
     try {
@@ -169,6 +174,8 @@ export class ComplaintService {
    * Mettre à jour une réclamation
    */
   @Log({ level: 'info', logArgs: true })
+  @Audit({ eventType: 'COMPLAINT_UPDATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('ComplaintService:*')
   async updateComplaint(
     id: string,
@@ -196,6 +203,9 @@ export class ComplaintService {
    * Supprimer une réclamation
    */
   @Log({ level: 'info', logArgs: true })
+  @Authorize({ roles: ['ADMIN', 'SUPERADMIN'] })
+  @Audit({ eventType: 'COMPLAINT_DELETED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('ComplaintService:*')
   async deleteComplaint(id: string): Promise<boolean> {
     try {

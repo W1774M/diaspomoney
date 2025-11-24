@@ -23,6 +23,8 @@ import { MongoTeleconsultationRepository } from '../implementations/MongoTelecon
 import { MongoTransactionRepository } from '../implementations/MongoTransactionRepository';
 import { MongoUserRepository } from '../implementations/MongoUserRepository';
 import { MongoAvailabilityRuleRepository } from '../implementations/MongoAvailabilityRuleRepository';
+import { MongoServiceRepository } from '../implementations/MongoServiceRepository';
+import { MongoServiceOptionRepository } from '../implementations/MongoServiceOptionRepository';
 import { IAuditLogRepository } from '../interfaces/IAuditLogRepository';
 import { IBeneficiaryRepository } from '../interfaces/IBeneficiaryRepository';
 import { IBookingRepository } from '../interfaces/IBookingRepository';
@@ -49,6 +51,8 @@ import { ITeleconsultationRepository } from '../interfaces/ITeleconsultationRepo
 import { ITransactionRepository } from '../interfaces/ITransactionRepository';
 import { IUserRepository } from '../interfaces/IUserRepository';
 import { IAvailabilityRuleRepository } from '../interfaces/IAvailabilityRuleRepository';
+import { IServiceRepository } from '../interfaces/IServiceRepository';
+import { IServiceOptionRepository } from '../interfaces/IServiceOptionRepository';
 
 /**
  * Container singleton pour gérer les instances de repositories
@@ -102,6 +106,9 @@ class RepositoryContainer {
     this.repositories.set('beneficiary', new MongoBeneficiaryRepository());
     this.repositories.set('kyc', new MongoKYCRepository());
     this.repositories.set('availabilityRule', new MongoAvailabilityRuleRepository());
+    // Repositories services
+    this.repositories.set('service', new MongoServiceRepository());
+    this.repositories.set('serviceOption', new MongoServiceOptionRepository());
     // Repository audit
     this.repositories.set('auditLog', new MongoAuditLogRepository());
   }
@@ -258,6 +265,20 @@ class RepositoryContainer {
   }
 
   /**
+   * Obtenir le repository service
+   */
+  getServiceRepository(): IServiceRepository {
+    return this.get<IServiceRepository>('service');
+  }
+
+  /**
+   * Obtenir le repository service option
+   */
+  getServiceOptionRepository(): IServiceOptionRepository {
+    return this.get<IServiceOptionRepository>('serviceOption');
+  }
+
+  /**
    * Obtenir le repository audit log
    */
   getAuditLogRepository(): IAuditLogRepository {
@@ -336,3 +357,9 @@ export const getDataSubjectRequestRepository = () =>
 
 export const getAvailabilityRuleRepository = () =>
   repositoryContainer.getAvailabilityRuleRepository();
+
+export const getServiceRepository = () =>
+  repositoryContainer.getServiceRepository();
+
+export const getServiceOptionRepository = () =>
+  repositoryContainer.getServiceOptionRepository();

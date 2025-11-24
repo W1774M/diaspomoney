@@ -9,7 +9,7 @@ export function useBeneficiaryFilters(beneficiaries: Beneficiary[]) {
   });
 
   // Sécurité : s'assurer que beneficiaries est un tableau
-  const safeBeneficiaries = beneficiaries || [];
+  const safeBeneficiaries = useMemo(() => beneficiaries || [], [beneficiaries]);
 
   // Extract unique relationships from beneficiaries
   const availableRelationships = useMemo(() => {

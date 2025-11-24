@@ -12,8 +12,9 @@
 // Elle nécessite une connexion MongoDB qui n'est pas disponible pendant le build
 ;
 
-import { UserQueryBuilder } from '@/builders';
+import { ProviderQueryBuilder } from '@/builders';
 import { handleApiRoute, validateBody, validateQuery } from '@/lib/api/error-handler';
+import { createPaginatedResponse, createResourceResponse } from '@/lib/api/response';
 import { PROVIDER_CONSTANTS, USER_STATUSES } from '@/lib/constants/index';
 import type { PaginationOptions, ProviderInfo, UserFilters, UserStatus } from '@/lib/types';
 import { CreateProviderSchema, ProviderFiltersSchema } from '@/lib/validations/provider.schema';
@@ -21,6 +22,9 @@ import { getUserRepository } from '@/repositories';
 import { userService } from '@/services/user/user.service';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+
+// Désactiver le prerendering pour cette route API
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/providers - Récupérer les providers
@@ -43,19 +47,19 @@ export async function GET(request: NextRequest) {
     const limit = filters.limit ?? PROVIDER_CONSTANTS.DEFAULT_LIMIT;
     const offset = filters.offset ?? PROVIDER_CONSTANTS.DEFAULT_OFFSET;
 
-    // Utiliser UserQueryBuilder pour construire la requête (Builder Pattern)
-    const queryBuilder = new UserQueryBuilder();
+    // Utiliser ProviderQueryBuilder pour construire la requête (Builder Pattern)
+    const queryBuilder = new ProviderQueryBuilder();
 
     // Appliquer les filtres de base
-    queryBuilder.byRole(role);
+    queryBuilder.providers(); // Filtrer uniquement les providers
     // Par défaut, ne récupérer que les providers ACTIFS
-    const status = filters.status || USER_STATUSES.ACTIVE;
+    const status = (filters.status || USER_STATUSES.ACTIVE) as typeof USER_STATUSES[keyof typeof USER_STATUSES];
     queryBuilder.byStatus(status);
     if (filters.city) {
       queryBuilder.byCity(filters.city);
     }
     if (filters.minRating !== undefined) {
-      queryBuilder.minRating(filters.minRating);
+      queryBuilder.withMinRating(filters.minRating);
     }
 
     // Pagination
@@ -63,22 +67,24 @@ export async function GET(request: NextRequest) {
     queryBuilder.page(page, limit);
 
     // Construire la requête
-    const query = queryBuilder.build();
+    const query = queryBuilder.getFilters();
+    const sort = queryBuilder.getSort();
+    const pagination = queryBuilder.getPagination();
 
     // Utiliser le repository avec les filtres du builder
     const userRepository = getUserRepository();
     // Normaliser pagination pour garantir limit et page
-    const pagination: PaginationOptions = {
-      limit: query.pagination.limit ?? 20,
-      page: query.pagination.page ?? 1,
-      ...(query.pagination.offset !== undefined && { offset: query.pagination.offset }),
-      ...(query.sort && { sort: query.sort }),
+    const paginationOptions: PaginationOptions = {
+      limit: pagination.limit ?? 20,
+      page: pagination.page ?? 1,
+      ...(pagination.offset !== undefined && { offset: pagination.offset }),
+      ...(Object.keys(sort).length > 0 && { sort }),
     };
     // Utiliser directement findWithPagination avec les filtres MongoDB du builder
     // car findUsersWithFilters reconstruit la requête et peut perdre les filtres
     const result = await (userRepository as any).findWithPagination(
-      query.filters,
-      pagination,
+      query,
+      paginationOptions,
     );
 
     // Récupérer les prestataires avec filtres (pour compatibilité avec le code existant)
@@ -186,14 +192,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return {
-      success: true,
-      providers: filteredProviders,
-      total: filteredProviders.length,
-      limit,
-      offset,
-      hasResults: filteredProviders.length > 0,
-    };
+    return createPaginatedResponse(
+      filteredProviders,
+      {
+        page: Math.floor(offset / limit) + 1,
+        limit,
+        total: filteredProviders.length,
+      },
+      {
+        metadata: {
+          hasResults: filteredProviders.length > 0,
+        },
+      },
+    );
   }, 'api/providers');
 }
 
@@ -219,10 +230,11 @@ export async function POST(request: NextRequest) {
       createdAt: new Date(),
     };
 
-    return {
-      success: true,
-      provider: newProvider,
-      message: 'Prestataire créé avec succès',
-    };
+    return createResourceResponse(
+      newProvider,
+      {
+        message: 'Prestataire créé avec succès',
+      },
+    );
   }, 'api/providers');
 }

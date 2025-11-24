@@ -68,17 +68,21 @@ const UsersTable = React.memo<UsersTableProps>(function UsersTable({
 
   return (
     <div className="space-y-4">
-      {users.map((user: any) => (
-        <UserCard
-          key={user._id}
-          user={user}
-          onDelete={onDelete}
-          onEdit={onEdit}
-          onView={onView}
-          onSendEmail={onSendEmail}
-          onCall={onCall}
-        />
-      ))}
+      {users.map((user: any, index: number) => {
+        // Créer une clé unique : utiliser _id si disponible, sinon combiner email et index
+        const uniqueKey = user._id || user.email || `user-${index}`;
+        return (
+          <UserCard
+            key={uniqueKey}
+            user={user}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            onView={onView}
+            onSendEmail={onSendEmail}
+            onCall={onCall}
+          />
+        );
+      })}
     </div>
   );
 });

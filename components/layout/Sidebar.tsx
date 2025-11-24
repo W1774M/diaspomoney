@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/hooks/auth/useAuth';
+import { useAuthorization } from '@/hooks/auth/useAuthorization';
 import imageLoader from '@/lib/image-loader';
 import { ROLES } from '@/lib/constants';
 import {
@@ -42,6 +43,9 @@ import {
   Users,
   Video,
   Wrench,
+  Settings2,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -135,10 +139,10 @@ function getAvailableDashboards(userRoles: string[] = []): Dashboard[] {
  */
 function buildNavigationSections(
   dashboards: Dashboard[],
-  isAdmin: () => boolean,
-  isProvider: () => boolean,
-  isCSM: () => boolean,
-  isCustomer: () => boolean,
+  isAuthorizedAdmin: boolean,
+  isAuthorizedProvider: boolean,
+  isAuthorizedCSM: boolean,
+  isAuthorizedCustomer: boolean,
   unreadNotificationsCount?: number,
   pendingBookingsCount?: number,
   user?: any,
@@ -234,7 +238,7 @@ function buildNavigationSections(
   const gestionItems: NavigationItem[] = [];
 
   // ===== ADMIN (Priorité 1 - Le plus important) =====
-  if (isAdmin()) {
+  if (isAuthorizedAdmin) {
     // Utilisateurs
     gestionItems.push({
       name: 'Utilisateurs',
@@ -274,9 +278,18 @@ function buildNavigationSections(
           ? pendingBookingsCount
           : 0,
     });
+
+    // Gestion de service (Admin uniquement)
+    gestionItems.push({
+      name: 'Gestion de service',
+      key: 'services',
+      href: '/dashboard/services',
+      icon: Settings2,
+      show: true,
+    });
   }
   // ===== CSM (Priorité 2) =====
-  else if (isCSM()) {
+  else if (isAuthorizedCSM) {
     // Prestataires
     gestionItems.push({
       name: 'Prestataires',
@@ -300,7 +313,7 @@ function buildNavigationSections(
     });
   }
   // ===== PROVIDER (Priorité 3) =====
-  else if (isProvider()) {
+  else if (isAuthorizedProvider) {
     const providerType = user?.providerInfo?.type; // 'INDIVIDUAL' | 'INSTITUTION'
     const providerCategory = user?.providerInfo?.category; // 'HEALTH' | 'BTP' | 'EDUCATION'
     
@@ -603,7 +616,7 @@ function buildNavigationSections(
     });
   }
   // ===== CUSTOMER (Priorité 4 - Le moins important) =====
-  else if (isCustomer()) {
+  else if (isAuthorizedCustomer) {
     // Mes bénéficiaires
     gestionItems.push({
       name: 'Mes bénéficiaires',
@@ -680,14 +693,14 @@ function buildNavigationSections(
         key: 'quotes',
         href: '/dashboard/quotes',
         icon: FileText,
-        show: isCustomer() || isProvider(),
+        show: isAuthorizedCustomer || isAuthorizedProvider,
       },
       {
         name: 'Bon de paiement',
         key: 'payment-receipts',
         href: '/dashboard/payment-receipts',
         icon: FileText,
-        show: isCustomer(),
+        show: isAuthorizedCustomer,
       },
     ],
   });
@@ -919,6 +932,8 @@ function FooterActions({
   pathname,
   isSettingsExpanded,
   onToggleSettings,
+  tabsEnabled = true,
+  onToggleTabs,
 }: FooterActionsProps) {
   const settingsItems = [
     {
@@ -1028,6 +1043,28 @@ function FooterActions({
         )}
       </div>
 
+      {/* Toggle des onglets */}
+      {onToggleTabs && (
+        <div className='border-t border-slate-700'>
+          <button
+            onClick={onToggleTabs}
+            className='flex items-center justify-between px-4 py-3 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors w-full'
+            title={tabsEnabled ? 'Désactiver les onglets' : 'Activer les onglets'}
+          >
+            <div className='flex items-center'>
+              {tabsEnabled ? (
+                <ToggleRight className='h-5 w-5 mr-3 text-slate-400' />
+              ) : (
+                <ToggleLeft className='h-5 w-5 mr-3 text-slate-400' />
+              )}
+              <span className='text-sm font-medium'>
+                {tabsEnabled ? 'Onglets activés' : 'Onglets désactivés'}
+              </span>
+            </div>
+          </button>
+        </div>
+      )}
+
       {/* Déconnexion */}
       <div className='border-t border-slate-700'>
         <button
@@ -1053,14 +1090,16 @@ export default function Sidebar() {
   const pathname = usePathname();
   const {
     user,
-    isAdmin,
-    isProvider,
-    isCSM,
     isAuthenticated,
-    isCustomer,
     signOut,
     isSigningOut,
   } = useAuth();
+  
+  // Utiliser useAuthorization pour les vérifications d'autorisation
+  const { isAuthorized: isAuthorizedAdmin } = useAuthorization({ roles: [ROLES.ADMIN] });
+  const { isAuthorized: isAuthorizedCSM } = useAuthorization({ roles: [ROLES.CSM] });
+  const { isAuthorized: isAuthorizedProvider } = useAuthorization({ roles: [ROLES.PROVIDER] });
+  const { isAuthorized: isAuthorizedCustomer } = useAuthorization({ roles: [ROLES.CUSTOMER] });
 
   const [isBillingExpanded, setIsBillingExpanded] = useState(false);
   const [isDashboardsExpanded, setIsDashboardsExpanded] = useState(false);
@@ -1074,6 +1113,21 @@ export default function Sidebar() {
   const [pendingBookingsCount, setPendingBookingsCount] = useState<
     number | undefined
   >(undefined);
+  // État pour l'activation/désactivation des onglets
+  const [tabsEnabled, setTabsEnabled] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebar-tabs-enabled');
+      return saved !== null ? saved === 'true' : true; // Par défaut activé
+    }
+    return true;
+  });
+
+  // Sauvegarder l'état dans localStorage quand il change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebar-tabs-enabled', String(tabsEnabled));
+    }
+  }, [tabsEnabled]);
 
   // Gestion de l'expansion automatique selon le pathname
   useEffect(() => {
@@ -1190,18 +1244,18 @@ export default function Sidebar() {
 
   // Récupérer le nombre de commandes en attente depuis l'API
   useEffect(() => {
-    if (!isAuthenticated || (!isAdmin() && !isCSM() && !isProvider())) {
+    if (!isAuthenticated || (!isAuthorizedAdmin && !isAuthorizedCSM && !isAuthorizedProvider)) {
       setPendingBookingsCount(undefined);
       return;
     }
 
     const fetchPendingCount = async () => {
       try {
-        const role = isAdmin()
+        const role = isAuthorizedAdmin
           ? 'admin'
-          : isCSM()
+          : isAuthorizedCSM
           ? 'csm'
-          : isProvider()
+          : isAuthorizedProvider
           ? 'provider'
           : 'all';
         const response = await fetch(
@@ -1223,7 +1277,7 @@ export default function Sidebar() {
     // Rafraîchir toutes les 30 secondes
     const interval = setInterval(fetchPendingCount, 30000);
     return () => clearInterval(interval);
-  }, [isAuthenticated, isAdmin, isCSM, isProvider]);
+  }, [isAuthenticated, isAuthorizedAdmin, isAuthorizedCSM, isAuthorizedProvider]);
 
   // Ne pas afficher la sidebar si l'utilisateur n'est pas connecté
   if (!isAuthenticated) {
@@ -1234,10 +1288,10 @@ export default function Sidebar() {
   const dashboards = getAvailableDashboards(user?.roles || []);
   const sections = buildNavigationSections(
     dashboards,
-    isAdmin,
-    isProvider,
-    isCSM,
-    isCustomer,
+    isAuthorizedAdmin,
+    isAuthorizedProvider,
+    isAuthorizedCSM,
+    isAuthorizedCustomer,
     unreadNotificationsCount,
     pendingBookingsCount,
     user,
@@ -1260,7 +1314,7 @@ export default function Sidebar() {
             {/* Items de la section */}
             <div className='space-y-1'>
               {section.items
-                .filter((item: NavigationItem) => item.show)
+                .filter((item: NavigationItem) => item.show && (tabsEnabled || !item.values))
                 .map((item: NavigationItem) => {
                   // Lien simple
                   if (item.href) {
@@ -1333,6 +1387,8 @@ export default function Sidebar() {
         pathname={pathname}
         isSettingsExpanded={isSettingsExpanded}
         onToggleSettings={() => setIsSettingsExpanded(!isSettingsExpanded)}
+        tabsEnabled={tabsEnabled}
+        onToggleTabs={() => setTabsEnabled(!tabsEnabled)}
       />
     </aside>
   );

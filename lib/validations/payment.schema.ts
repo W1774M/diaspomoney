@@ -34,7 +34,7 @@ export const CreatePaymentSchema = z.object({
 export const CreatePaymentIntentSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   currency: z.string().length(3, 'Currency must be 3 characters').default(DEFAULT_CURRENCY),
-  email: z.string().email('Invalid email format'),
+  email: z.string().email('Invalid email format').optional(),
   metadata: z.record(z.string()).optional(),
 });
 

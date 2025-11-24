@@ -1,21 +1,25 @@
+/**
+ * Configuration Stripe pour les routes API
+ * Utilise la configuration centralisée conforme à la documentation officielle
+ * https://docs.stripe.com/api/authentication?lang=node
+ */
+
 import Stripe from 'stripe';
+import { getStripeInstance, isStripeConfigured } from './stripe-config';
 
-const stripeSecretKey = process.env['STRIPE_SECRET_KEY'];
-if (!stripeSecretKey) {
-  // In dev, we want a clear error if env is missing
-  console.warn('[Stripe] STRIPE_SECRET_KEY is not set. Stripe will not work.');
-}
+// Instance Stripe pour compatibilité avec le code existant
+let stripe: Stripe | undefined;
 
-export const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, {
-      apiVersion: '2025-10-29.clover',
-      typescript: true,
-    })
-  : (undefined as unknown as Stripe);
-
+/**
+ * Obtient l'instance Stripe (compatibilité avec le code existant)
+ * Utilise la configuration centralisée
+ */
 export function getStripe(): Stripe {
   if (!stripe) {
-    throw new Error('Stripe is not configured. Missing STRIPE_SECRET_KEY env.');
+    if (!isStripeConfigured()) {
+      throw new Error('Stripe is not configured. Missing STRIPE_SECRET_KEY env.');
+    }
+    stripe = getStripeInstance();
   }
   return stripe;
 }

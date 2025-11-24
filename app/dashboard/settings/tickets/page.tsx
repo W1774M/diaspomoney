@@ -6,8 +6,8 @@
  * Déplacée depuis Messagerie Interne vers Paramètres
  */
 
-import { useAuth } from '@/hooks';
 import { SupportTicket } from '@/lib/types';
+import { AuthorizedRoute } from '@/components/auth';
 import {
   CheckCircle2,
   Clock,
@@ -19,8 +19,10 @@ import {
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export default function SupportTicketsPage() {
-  const { isAuthenticated, isLoading } = useAuth();
+/**
+ * Contenu de la page Tickets Support
+ */
+function SupportTicketsPageContent() {
   const router = useRouter();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,17 +32,8 @@ export default function SupportTicketsPage() {
   >('all');
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-  }, [isAuthenticated, isLoading, router]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchTickets();
-    }
-  }, [isAuthenticated]);
+    fetchTickets();
+  }, []);
 
   const fetchTickets = async () => {
     try {
@@ -116,18 +109,6 @@ export default function SupportTicketsPage() {
 
     return matchesSearch && matchesStatus;
   });
-
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className='space-y-6'>
@@ -301,5 +282,18 @@ export default function SupportTicketsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Page Tickets Support
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function SupportTicketsPage() {
+  return (
+    <AuthorizedRoute redirectTo="/login">
+      <SupportTicketsPageContent />
+    </AuthorizedRoute>
   );
 }

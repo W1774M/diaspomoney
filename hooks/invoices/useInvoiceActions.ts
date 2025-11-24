@@ -1,70 +1,70 @@
 'use client';
 
-import { useNotificationManager } from '@/components/ui/Notification';
 import { useCallback, useState } from 'react';
+import { useNotificationManager } from '@/components/ui/Notification';
 
-interface UseInvoiceActionsReturn {
-  downloadInvoice: (invoiceId: string) => Promise<void>;
-  sendInvoiceByEmail: (invoiceId: string) => Promise<void>;
+export interface UseInvoiceActionsReturn {
+  deleteInvoice: (id: string) => Promise<boolean>;
+  downloadInvoice: (id: string) => Promise<void>;
+  sendInvoiceByEmail: (id: string) => Promise<void>;
   isDownloading: boolean;
   isSending: boolean;
 }
 
 /**
- * Custom Hook pour les actions sur les factures (download, send email, print)
- * Implémente le Custom Hooks Pattern
+ * Hook pour les actions sur les factures (delete, download)
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern
+ * - Error Handling Pattern
+ * - Notification Pattern
  */
-export function useInvoiceActions(): UseInvoiceActionsReturn {
+export function useInvoiceActions(
+  onSuccess?: () => void | Promise<void>,
+): UseInvoiceActionsReturn {
+  const { addSuccess, addError } = useNotificationManager();
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const { addSuccess, addError } = useNotificationManager();
 
-  const downloadInvoice = useCallback(
-    async (invoiceId: string) => {
-      if (!invoiceId) {
-        addError('ID de facture manquant');
-        return;
+  const deleteInvoice = useCallback(
+    async (id: string): Promise<boolean> => {
+      if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
+        return false;
       }
 
       try {
-        setIsDownloading(true);
-
-        const response = await fetch(`/api/invoices/${invoiceId}/download`, {
-          method: 'GET',
+        const response = await fetch(`/api/invoices/${id}`, {
+          method: 'DELETE',
         });
 
         if (!response.ok) {
-          if (response.status === 404) {
-            addError('Facture non trouvée');
-          } else if (response.status === 403) {
-            addError('Accès non autorisé');
-          } else {
-            addError('Erreur lors du téléchargement de la facture');
-          }
-          return;
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Erreur lors de la suppression de la facture');
         }
 
-        // Récupérer le blob PDF
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
+        addSuccess('Facture supprimée avec succès');
+        await onSuccess?.();
+        return true;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Erreur lors de la suppression de la facture';
+        addError(errorMessage);
+        return false;
+      }
+    },
+    [addSuccess, addError, onSuccess],
+  );
 
-        // Extraire le nom de fichier depuis les headers ou utiliser un nom par défaut
-        const contentDisposition = response.headers.get('content-disposition');
-        const filename =
-          contentDisposition?.split('filename=')[1]?.replace(/"/g, '') ||
-          `facture-${invoiceId}.pdf`;
-
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-        addSuccess('Facture téléchargée avec succès');
-      } catch (_error) {
-        addError('Erreur lors du téléchargement de la facture');
+  const downloadInvoice = useCallback(
+    async (id: string): Promise<void> => {
+      try {
+        setIsDownloading(true);
+        // Ouvrir le téléchargement dans une nouvelle fenêtre
+        window.open(`/api/invoices/${id}/download`, '_blank');
+        addSuccess('Téléchargement de la facture démarré');
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Erreur lors du téléchargement de la facture';
+        addError(errorMessage);
       } finally {
         setIsDownloading(false);
       }
@@ -73,52 +73,33 @@ export function useInvoiceActions(): UseInvoiceActionsReturn {
   );
 
   const sendInvoiceByEmail = useCallback(
-    async (invoiceId: string) => {
-      if (!invoiceId) {
-        addError('ID de facture manquant');
-        return;
-      }
-
+    async (id: string): Promise<void> => {
       try {
         setIsSending(true);
-
-        const response = await fetch(`/api/invoices/${invoiceId}/send-email`, {
+        const response = await fetch(`/api/invoices/${id}/send`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
         });
 
         if (!response.ok) {
-          const data = await response.json().catch(() => ({}));
-          if (response.status === 404) {
-            addError('Facture non trouvée');
-          } else if (response.status === 403) {
-            addError('Accès non autorisé');
-          } else {
-            addError(
-              data.error || "Erreur lors de l'envoi de la facture par email",
-            );
-          }
-          return;
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Erreur lors de l\'envoi de la facture par email');
         }
 
-        const data = await response.json();
-        if (data.success) {
-          addSuccess('Facture envoyée par email avec succès');
-        } else {
-          addError(data.error || "Erreur lors de l'envoi de la facture");
-        }
-      } catch (_error) {
-        addError("Erreur lors de l'envoi de la facture par email");
+        addSuccess('Facture envoyée par email avec succès');
+        await onSuccess?.();
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Erreur lors de l\'envoi de la facture par email';
+        addError(errorMessage);
       } finally {
         setIsSending(false);
       }
     },
-    [addSuccess, addError],
+    [addSuccess, addError, onSuccess],
   );
 
   return {
+    deleteInvoice,
     downloadInvoice,
     sendInvoiceByEmail,
     isDownloading,

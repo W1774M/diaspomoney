@@ -1,29 +1,22 @@
 'use client';
 
-import { useAuth } from '@/hooks/auth/useAuth';
 import { useProviders } from '@/hooks/useProviders';
-import { USER_STATUSES } from '@/lib/constants';
+import { USER_STATUSES, ROLES } from '@/lib/constants';
+import { AuthorizedRoute, AuthorizedContent } from '@/components/auth';
 import { User, Plus, Search, Building, Stethoscope, Wrench, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 
-export default function ProvidersPage() {
-  const { isAuthenticated, isAdmin, isCSM, isLoading } = useAuth();
-  const router = useRouter();
+/**
+ * Contenu de la page des prestataires
+ */
+function ProvidersPageContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(USER_STATUSES.ACTIVE);
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
-
-  // Vérification des permissions
-  useEffect(() => {
-    if (!isLoading && (!isAuthenticated || (!isAdmin() && !isCSM()))) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isAdmin, isCSM, isLoading, router]);
 
   // Récupération des providers avec filtres
   // Note: L'API filtre déjà par rôle PROVIDER, pas besoin de le passer ici
@@ -101,18 +94,6 @@ export default function ProvidersPage() {
     return statusColors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  if (isLoading) {
-    return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]'></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || (!isAdmin() && !isCSM())) {
-    return null;
-  }
-
   return (
     <div className='min-h-screen bg-gray-50'>
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
@@ -128,7 +109,7 @@ export default function ProvidersPage() {
                 </p>
               </div>
             </div>
-            {isCSM() && (
+            <AuthorizedContent roles={[ROLES.CSM, ROLES.ADMIN]}>
               <Link
                 href='/dashboard/providers/new'
                 className='inline-flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors'
@@ -136,7 +117,7 @@ export default function ProvidersPage() {
                 <Plus className='h-5 w-5 mr-2' />
                 Nouveau prestataire
               </Link>
-            )}
+            </AuthorizedContent>
           </div>
         </div>
 
@@ -157,6 +138,7 @@ export default function ProvidersPage() {
 
             {/* Filtre statut */}
             <select
+            title='Filtre statut'
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
@@ -173,6 +155,7 @@ export default function ProvidersPage() {
 
             {/* Filtre catégorie */}
             <select
+            title='Filtre catégorie'
               value={categoryFilter}
               onChange={(e) => {
                 setCategoryFilter(e.target.value);
@@ -188,6 +171,7 @@ export default function ProvidersPage() {
 
             {/* Filtre type */}
             <select
+              title='Filtre type'
               value={typeFilter}
               onChange={(e) => {
                 setTypeFilter(e.target.value);
@@ -229,7 +213,7 @@ export default function ProvidersPage() {
                 ? 'Aucun résultat ne correspond à vos critères de recherche.'
                 : 'Aucun prestataire n\'a été enregistré pour le moment.'}
             </p>
-            {isCSM() && (
+            <AuthorizedContent roles={[ROLES.CSM, ROLES.ADMIN]}>
               <Link
                 href='/dashboard/providers/new'
                 className='inline-flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors'
@@ -237,7 +221,7 @@ export default function ProvidersPage() {
                 <Plus className='h-5 w-5 mr-2' />
                 Ajouter un prestataire
               </Link>
-            )}
+            </AuthorizedContent>
           </div>
         ) : (
           <>
@@ -365,3 +349,15 @@ export default function ProvidersPage() {
   );
 }
 
+/**
+ * Page des prestataires
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function ProvidersPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.ADMIN, ROLES.CSM]} redirectTo="/dashboard">
+      <ProvidersPageContent />
+    </AuthorizedRoute>
+  );
+}

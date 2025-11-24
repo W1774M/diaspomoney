@@ -9,6 +9,9 @@ import { Log } from '@/lib/decorators/log.decorator';
 import {
   Validate,
 } from '@/lib/decorators/validate.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
+import { Transaction } from '@/lib/decorators/transaction.decorator';
 import { BOOKING_STATUSES } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 import { Booking, getBookingRepository } from '@/repositories';
@@ -16,7 +19,6 @@ import type { PaginatedFindResult } from '@/lib/types';
 import type { BookingData, BookingServiceFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
-import { CreateBookingSchema } from '@/lib/validations/booking.schema';
 
 /**
  * BookingService refactoré utilisant le Repository Pattern
@@ -36,6 +38,7 @@ export class BookingService {
    * Récupérer tous les rendez-vous avec filtres
    * Utilisation du repository
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Cacheable(900, { prefix: 'BookingService:getBookings' }) // Cache 15 minutes
   async getBookings(filters: BookingServiceFilters = {}): Promise<{
     data: Booking[];
@@ -119,11 +122,18 @@ export class BookingService {
     rules: [
       {
         paramIndex: 0,
-        schema: CreateBookingSchema.passthrough(),
+        schema: z.object({
+          requesterId: z.string().min(1),
+          providerId: z.string().min(1),
+          serviceId: z.string().min(1),
+        }).passthrough(),
         paramName: 'data',
       },
     ],
   })
+  @Audit({ eventType: 'BOOKING_CREATED', includeArgs: true })
+  @Performance({ warningThreshold: 2000, errorThreshold: 5000 })
+  @Transaction()
   @InvalidateCache('BookingService:*')
   async createBooking(data: BookingData): Promise<Booking> {
     try {
@@ -157,6 +167,18 @@ export class BookingService {
   /**
    * Mettre à jour un rendez-vous
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Booking ID is required'),
+        paramName: 'id',
+      },
+    ],
+  })
+  @Audit({ eventType: 'BOOKING_UPDATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('BookingService:*')
   async updateBooking(
     id: string,
@@ -184,6 +206,8 @@ export class BookingService {
    * Mettre à jour le statut d'une réservation
    */
   @Log({ level: 'info', logArgs: true })
+  @Audit({ eventType: 'BOOKING_STATUS_UPDATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('BookingService:*')
   async updateBookingStatus(
     id: string,
@@ -255,6 +279,17 @@ export class BookingService {
   /**
    * Supprimer un rendez-vous
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Booking ID is required'),
+        paramName: 'id',
+      },
+    ],
+  })
+  @InvalidateCache('BookingService:*')
   async deleteBooking(id: string): Promise<boolean> {
     try {
       return await this.bookingRepository.delete(id);
@@ -268,6 +303,7 @@ export class BookingService {
   /**
    * Récupérer les réservations d'un utilisateur
    */
+  @Log({ level: 'debug', logArgs: true })
   @Cacheable(900, { prefix: 'BookingService:getUserBookings' }) // Cache 15 minutes
   async getUserBookings(
     userId: string,
@@ -292,6 +328,7 @@ export class BookingService {
   /**
    * Récupérer les réservations d'un provider
    */
+  @Log({ level: 'debug', logArgs: true })
   @Cacheable(900, { prefix: 'BookingService:getProviderBookings' }) // Cache 15 minutes
   async getProviderBookings(
     providerId: string,
@@ -316,6 +353,8 @@ export class BookingService {
   /**
    * Récupérer les réservations à venir
    */
+  @Log({ level: 'debug', logArgs: true })
+  @Cacheable(300, { prefix: 'BookingService:getUpcomingBookings' })
   async getUpcomingBookings(options?: {
     limit?: number;
     offset?: number;

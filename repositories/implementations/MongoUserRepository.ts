@@ -12,7 +12,7 @@ import { UserQueryBuilder } from '@/builders';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
-import { USER_STATUSES, ROLES } from '@/lib/constants';
+import { USER_STATUSES, ROLES, KYC_STATUSES } from '@/lib/constants';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
@@ -191,7 +191,7 @@ export class MongoUserRepository implements IUserRepository {
         emailVerified: data['isEmailVerified'] ?? data['emailVerified'] ?? false,
         marketingConsent: data['marketingConsent'] || false,
         kycConsent: data['kycConsent'],
-        kycStatus: data['kycStatus'] || 'PENDING', // TODO: Créer KYC_STATUSES constant
+        kycStatus: data['kycStatus'] || KYC_STATUSES.PENDING,
         oauth: data['oauth'],
         ...data,
       });

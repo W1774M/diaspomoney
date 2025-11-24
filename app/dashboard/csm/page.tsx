@@ -4,37 +4,14 @@ import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import DashboardQuickActions from '@/components/dashboard/DashboardQuickActions';
 import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
 import { useAuth } from '@/hooks';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 
-export default function CSMDashboardPage() {
-  const { isAuthenticated, isLoading, user, isCSM } = useAuth();
-  const router = useRouter();
-
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
-    // Rediriger si l'utilisateur n'est pas CSM
-    if (!isLoading && isAuthenticated && !isCSM()) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isLoading, router, isCSM]);
-
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !isCSM()) {
-    return null;
-  }
+/**
+ * Contenu de la page Dashboard CSM
+ */
+function CSMDashboardPageContent() {
+  const { user } = useAuth();
 
   return (
     <div className='space-y-6'>
@@ -45,6 +22,19 @@ export default function CSMDashboardPage() {
       <RoleSpecificStats userId={user?.id} />
       <DashboardQuickActions isAdmin={false} isCSM={true} />
     </div>
+  );
+}
+
+/**
+ * Page Dashboard CSM
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function CSMDashboardPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.CSM]} redirectTo="/dashboard">
+      <CSMDashboardPageContent />
+    </AuthorizedRoute>
   );
 }
 

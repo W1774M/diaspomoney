@@ -16,12 +16,16 @@ import {
   USER_STATUSES,
 } from '@/lib/types';
 import { LANGUAGES, TIMEZONES, USER_STATUSES as CONST_USER_STATUSES, ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
-export default function NewUserPage() {
+/**
+ * Contenu de la page de création d'un nouvel utilisateur
+ */
+function NewUserPageContent() {
   const router = useRouter();
   const { createUser, loading } = useCreateUser();
   const { addSuccess, addError } = useNotificationManager();
@@ -440,5 +444,18 @@ export default function NewUserPage() {
         </div>
       </form>
     </>
+  );
+}
+
+/**
+ * Page de création d'un nouvel utilisateur
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function NewUserPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.ADMIN]} redirectTo="/dashboard/users">
+      <NewUserPageContent />
+    </AuthorizedRoute>
   );
 }

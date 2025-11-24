@@ -3,39 +3,16 @@
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
 import { useAuth } from '@/hooks';
+import { ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 import { Calendar, CreditCard, FileText, Users } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
-export default function CustomerDashboardPage() {
-  const { isAuthenticated, isLoading, user, isCustomer } = useAuth();
-  const router = useRouter();
-
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
-    // Rediriger si l'utilisateur n'est pas client
-    if (!isLoading && isAuthenticated && !isCustomer()) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isLoading, router, isCustomer]);
-
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !isCustomer()) {
-    return null;
-  }
+/**
+ * Contenu de la page Dashboard Customer
+ */
+function CustomerDashboardPageContent() {
+  const { user } = useAuth();
 
   return (
     <div className='space-y-6'>
@@ -108,6 +85,19 @@ export default function CustomerDashboardPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+/**
+ * Page Dashboard Customer
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function CustomerDashboardPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.CUSTOMER]} redirectTo="/dashboard">
+      <CustomerDashboardPageContent />
+    </AuthorizedRoute>
   );
 }
 

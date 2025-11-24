@@ -2,6 +2,8 @@
 export { useAuth } from './auth/useAuth';
 export { useForgotPassword } from './auth/useForgotPassword';
 export { useLogin } from './auth/useLogin';
+export { useAuthorization, useHasRole, useHasPermission } from './auth/useAuthorization';
+export type { AuthorizationOptions, AuthorizationResult } from './auth/useAuthorization';
 
 // Data hooks
 export { useProviderDetail } from './providers';
@@ -51,6 +53,9 @@ export * from './notifications';
 
 // Payments hooks
 export * from './payments';
+
+// Transactions hooks
+export * from './transactions';
 
 // Specialities hooks
 export * from './specialities';

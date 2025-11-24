@@ -1,12 +1,12 @@
 import { IUser as Provider, UseProviderReturn } from "@/lib/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export function useProvider(id: string | number): UseProviderReturn {
   const [provider, setProvider] = useState<Provider | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProvider = async () => {
+  const fetchProvider = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -33,13 +33,13 @@ export function useProvider(id: string | number): UseProviderReturn {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     if (id) {
       fetchProvider();
     }
-  }, [id]);
+  }, [id, fetchProvider]);
 
   return {
     provider,

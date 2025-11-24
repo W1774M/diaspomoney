@@ -12,8 +12,9 @@ import { InvoiceQueryBuilder } from '@/builders';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
+import { invoiceMapper } from '@/lib/mappers';
 import { InvoiceStatus } from '@/lib/types';
-import { CURRENCIES } from '@/lib/constants';
+// CURRENCIES is not used in this repository but may be used in future currency validations
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
@@ -476,49 +477,49 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
 
   /**
    * Mapper un document MongoDB vers un objet Invoice
+   * Utilise maintenant le InvoiceMapper centralisé
    */
   private mapToInvoice(doc: MongoDocument<Invoice>): Invoice {
-    const docId = doc._id?.toString() || doc['id'] || '';
-    const createdAt = doc['createdAt'] ? new Date(doc['createdAt']) : new Date();
-    const updatedAt = doc['updatedAt'] ? new Date(doc['updatedAt']) : createdAt;
-    return {
-      id: docId,
-      _id: docId,
-      invoiceNumber: doc['invoiceNumber'],
-      customerId: doc['customerId'] || doc['userId'] || '',
-      providerId: doc['providerId'] || '',
-      userId: doc['userId'] || doc['customerId'] || '',
-      transactionId: doc['transactionId'],
-      bookingId: doc['bookingId'],
-      amount: doc['amount'],
-      currency: doc['currency'] || CURRENCIES.EUR.code,
-      tax: doc['tax'] || 0,
-      totalAmount: doc['totalAmount'] || doc['amount'] + (doc['tax'] || 0),
-      status: this.mapStatus(doc['status']),
-      issueDate: doc['issueDate'] ? new Date(doc['issueDate']) : createdAt,
-      dueDate: doc['dueDate'] ? new Date(doc['dueDate']) : createdAt,
-      paidAt: doc['paidAt'] || doc['paymentDate'],
-      items: doc['items'] || [],
-      billingAddress: doc['billingAddress'],
-      metadata: doc['metadata'],
-      createdAt,
-      updatedAt,
+    // Utiliser le mapper pour la transformation de base
+    const mapped = invoiceMapper.map(doc);
+    
+    // Convertir les dates string en Date pour compatibilité avec l'interface Invoice
+    const result: Invoice = {
+      id: mapped.id,
+      _id: mapped._id,
+      invoiceNumber: mapped.invoiceNumber,
+      customerId: mapped.customerId,
+      providerId: mapped.providerId,
+      userId: mapped.customerId, // Invoice utilise customerId comme userId
+      amount: mapped.amount,
+      currency: mapped.currency,
+      tax: mapped.tax ?? 0,
+      totalAmount: mapped.totalAmount,
+      status: mapped.status,
+      issueDate: new Date(mapped.issueDate),
+      dueDate: new Date(mapped.dueDate),
+      items: mapped.items || [],
+      createdAt: new Date(mapped.createdAt),
+      updatedAt: new Date(mapped.updatedAt),
     };
-  }
-
-  /**
-   * Mapper le statut depuis le format MongoDB vers le format Invoice
-   */
-  private mapStatus(status: string | undefined): Invoice['status'] {
-    if (!status) return 'DRAFT';
-    const statusMap: Record<string, Invoice['status']> = {
-      draft: 'DRAFT',
-      sent: InvoiceStatus.PENDING,
-      pending: InvoiceStatus.PENDING,
-      paid: 'PAID',
-      overdue: 'OVERDUE',
-      cancelled: 'CANCELLED',
-    };
-    return statusMap[status.toLowerCase()] || 'DRAFT';
+    
+    // Ajouter les propriétés optionnelles seulement si elles existent
+    if (mapped.transactionId) {
+      result.transactionId = mapped.transactionId;
+    }
+    if (mapped.bookingId) {
+      result.bookingId = mapped.bookingId;
+    }
+    if (mapped.paidAt) {
+      result.paidAt = new Date(mapped.paidAt);
+    }
+    if (mapped.billingAddress) {
+      result.billingAddress = mapped.billingAddress;
+    }
+    if (mapped.metadata) {
+      result.metadata = mapped.metadata;
+    }
+    
+    return result;
   }
 }

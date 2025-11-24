@@ -12,6 +12,7 @@ import { BookingQueryBuilder } from '@/builders';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
+import { BOOKING_STATUSES } from '@/lib/constants';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
@@ -98,12 +99,56 @@ export class MongoBookingRepository implements IBookingRepository {
     }
   }
 
+  /**
+   * Générer un numéro de réservation unique
+   * Format: RES-YYYY-NNNN (ex: RES-2025-0001)
+   */
+  private async generateReservationNumber(): Promise<string> {
+    try {
+      const collection = await this.getCollection();
+      const year = new Date().getFullYear();
+      const prefix = `RES-${year}-`;
+
+      // Trouver le dernier numéro de l'année
+      const lastBooking = await collection.findOne(
+        { reservationNumber: { $regex: `^${prefix}` } },
+        { sort: { reservationNumber: -1 } },
+      );
+
+      let sequence = 1;
+      if (lastBooking && lastBooking['reservationNumber']) {
+        const lastNumber = lastBooking['reservationNumber'].replace(prefix, '');
+        const parsed = parseInt(lastNumber, 10);
+        if (!isNaN(parsed)) {
+          sequence = parsed + 1;
+        }
+      }
+
+      return `${prefix}${sequence.toString().padStart(4, '0')}`;
+    } catch (error) {
+      this.log.error({ error }, 'Error in generateReservationNumber');
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoBookingRepository',
+          action: 'generateReservationNumber',
+        },
+      });
+      throw error;
+    }
+  }
+
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @InvalidateCache('BookingRepository:*') // Invalider le cache après création
   async create(data: Partial<Booking>): Promise<Booking> {
     try {
       const collection = await this.getCollection();
       const now = new Date();
+      
+      // Générer un numéro de réservation si non fourni
+      if (!data.reservationNumber) {
+        data.reservationNumber = await this.generateReservationNumber();
+      }
+      
       const bookingData: OptionalId<Document> = {
         ...data,
         _id: data.id ? new ObjectId(data.id) : new ObjectId(),
@@ -285,7 +330,7 @@ export class MongoBookingRepository implements IBookingRepository {
       const now = new Date();
       return this.findWithPagination(
         {
-          status: { $in: ['PENDING', 'CONFIRMED'] },
+          status: { $in: [BOOKING_STATUSES.PENDING, BOOKING_STATUSES.CONFIRMED] },
           appointmentDate: { $gte: now },
         },
         options,
@@ -419,40 +464,36 @@ export class MongoBookingRepository implements IBookingRepository {
 
   /**
    * Mapper un document MongoDB vers un objet Booking
+   * Utilise maintenant le BookingMapper centralisé
    */
   private mapToBooking(doc: any): Booking {
-    const docId = doc._id?.toString() || doc.id || '';
-    const createdAt = doc.createdAt ? new Date(doc.createdAt) : new Date();
-    const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : createdAt;
-    return {
-      id: docId,
-      _id: docId,
-      requesterId: doc.requesterId || doc.userId,
-      providerId: doc.providerId,
-      serviceId: doc.serviceId,
-      serviceType: doc.serviceType || 'HEALTH',
-      status: this.mapStatus(doc.status),
-      appointmentDate: doc.appointmentDate || doc.date,
-      timeslot: doc.timeslot,
-      consultationMode: doc.consultationMode,
-      recipient: doc.recipient || doc.beneficiary,
-      metadata: doc.metadata,
-      createdAt,
-      updatedAt,
+    // Import dynamique pour éviter les dépendances circulaires
+    const { mapBookingToResponse } = require('@/lib/mappers/booking.mapper');
+    const mapped = mapBookingToResponse(doc);
+    
+    // Convertir les dates string en Date pour compatibilité avec l'interface Booking
+    const result: Booking = {
+      id: mapped.id,
+      _id: mapped._id,
+      reservationNumber: mapped.reservationNumber,
+      requesterId: mapped.requesterId,
+      providerId: mapped.providerId,
+      serviceId: mapped.serviceId,
+      serviceType: mapped.serviceType,
+      status: mapped.status,
+      timeslot: mapped.timeslot,
+      consultationMode: mapped.consultationMode,
+      recipient: mapped.recipient,
+      metadata: mapped.metadata,
+      createdAt: new Date(mapped.createdAt),
+      updatedAt: new Date(mapped.updatedAt),
     };
-  }
-
-  /**
-   * Mapper le statut depuis le format MongoDB vers le format Booking
-   */
-  private mapStatus(status: string): Booking['status'] {
-    const statusMap: Record<string, Booking['status']> = {
-      pending: 'PENDING',
-      confirmed: 'CONFIRMED',
-      cancelled: 'CANCELLED',
-      completed: 'COMPLETED',
-      no_show: 'NO_SHOW',
-    };
-    return statusMap[status.toLowerCase()] || 'PENDING';
+    
+    // Ajouter appointmentDate seulement s'il existe
+    if (mapped.appointmentDate) {
+      result.appointmentDate = new Date(mapped.appointmentDate);
+    }
+    
+    return result;
   }
 }

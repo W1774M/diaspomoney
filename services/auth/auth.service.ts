@@ -16,6 +16,9 @@ import { LOCALE } from '@/lib/constants';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
+import { RateLimit } from '@/lib/decorators/rate-limit.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { sendPasswordResetEmail, sendWelcomeEmail } from '@/lib/email/resend';
 import { childLogger } from '@/lib/logger';
 import { RegisterSchema, LoginSchema } from '@/lib/validations/auth.schema';
@@ -68,6 +71,9 @@ class AuthService {
       },
     ],
   })
+  @RateLimit({ maxRequests: 5, windowMs: 60000 }) // 5 tentatives par minute
+  @Audit({ eventType: 'USER_LOGIN', includeArgs: false })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('AuthService:*') // Invalider le cache après connexion
   async login(
     credentials: LoginCredentials,
@@ -224,6 +230,9 @@ class AuthService {
       },
     ],
   })
+  @RateLimit({ maxRequests: 3, windowMs: 60000 }) // 3 inscriptions par minute
+  @Audit({ eventType: 'USER_REGISTER', includeArgs: false })
+  @Performance({ warningThreshold: 2000, errorThreshold: 5000 })
   @InvalidateCache('AuthService:*') // Invalider le cache après inscription
   async register(
     data: RegisterData,

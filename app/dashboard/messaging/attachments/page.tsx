@@ -1,8 +1,8 @@
 'use client';
 
-import { useAuth } from '@/hooks';
 import imageLoader from '@/lib/image-loader';
 import { UIAttachment } from '@/lib/types';
+import { AuthorizedRoute } from '@/components/auth';
 import {
   Download,
   File,
@@ -14,25 +14,18 @@ import {
   Trash2,
 } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
-export default function AttachmentsPage() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
+/**
+ * Contenu de la page Pièces jointes
+ */
+function AttachmentsPageContent() {
   const [attachments, setAttachments] = useState<UIAttachment[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'image' | 'document'>(
     'all',
   );
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-  }, [isAuthenticated, isLoading, router]);
 
   const fetchAttachments = useCallback(async () => {
     try {
@@ -73,10 +66,8 @@ export default function AttachmentsPage() {
   }, [filterType, searchQuery]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchAttachments();
-    }
-  }, [isAuthenticated, fetchAttachments]);
+    fetchAttachments();
+  }, [fetchAttachments]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes  } B`;
@@ -131,16 +122,12 @@ export default function AttachmentsPage() {
     }
   };
 
-  if (isLoading || loading) {
+  if (loading) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
         <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
       </div>
     );
-  }
-
-  if (!isAuthenticated || loading) {
-    return null;
   }
 
   return (
@@ -267,5 +254,18 @@ export default function AttachmentsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Page Pièces jointes
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function AttachmentsPage() {
+  return (
+    <AuthorizedRoute redirectTo="/login">
+      <AttachmentsPageContent />
+    </AuthorizedRoute>
   );
 }

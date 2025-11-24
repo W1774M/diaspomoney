@@ -14,6 +14,7 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import { redis } from '@/lib/redis/redis-client';
@@ -104,6 +105,7 @@ export class AuditLoggingSystem {
    * Enregistrer un log d'audit
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('AuditLoggingSystem:*')
   async createAuditLog(
     action: string,

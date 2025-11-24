@@ -1,16 +1,15 @@
 import { auth } from '@/auth';
 // Désactiver le prerendering pour cette route API
-;
+export const dynamic = 'force-dynamic';
 
 import { InvoiceQueryBuilder } from '@/builders';
 import { invoiceFacade, type InvoiceFacadeData } from '@/facades';
 import { handleApiRoute, ApiErrors, ApiError, validateBody } from '@/lib/api/error-handler';
+import { createPaginatedResponse, createResourceResponse } from '@/lib/api/response';
 import { CreateInvoiceSchema } from '@/lib/validations/invoice.schema';
-import { childLogger } from '@/lib/logger';
 import { getInvoiceRepository } from '@/repositories';
 import { invoiceService } from '@/services/invoice/invoice.service';
-import * as Sentry from '@sentry/nextjs';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 // Constante locale pour éviter le problème d'import
 const DEFAULT_CURRENCY = 'EUR';
@@ -31,17 +30,10 @@ const DEFAULT_CURRENCY = 'EUR';
  * GET /api/invoices - Récupérer la liste des factures
  */
 export async function GET(request: NextRequest) {
-  const reqId = request.headers.get('x-request-id') || undefined;
-  const log = childLogger({
-    requestId: reqId,
-    route: 'api/invoices',
-  });
-
-  try {
+  return handleApiRoute(request, async () => {
     const session = await auth();
     if (!session?.user?.id) {
-      log.warn({ msg: 'Unauthorized access attempt' });
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+      throw ApiErrors.UNAUTHORIZED;
     }
 
     const userId = session.user.id;
@@ -49,8 +41,6 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const status = searchParams.get('status');
-
-    log.debug({ userId, page, limit, status }, 'Fetching invoices');
 
     // Utiliser InvoiceQueryBuilder pour construire la requête (Builder Pattern)
     const queryBuilder = new InvoiceQueryBuilder();
@@ -92,49 +82,15 @@ export async function GET(request: NextRequest) {
       },
     );
 
-    // Adapter le résultat au format attendu
-    const invoices = {
-      data: result.data,
-      total: result.total,
-      page,
-      limit,
-    };
-
-    log.info(
+    return createPaginatedResponse(
+      result.data,
       {
-        userId,
-        invoicesCount: invoices.data.length,
-        total: invoices.total,
+        page: result.pagination.page,
+        limit: result.pagination.limit,
+        total: result.total,
       },
-      'Invoices fetched successfully',
     );
-
-    return NextResponse.json({
-      success: true,
-      invoices: invoices.data,
-      pagination: {
-        page: invoices.page,
-        limit: invoices.limit,
-        total: invoices.total,
-        totalPages: Math.ceil(invoices.total / invoices.limit),
-      },
-    });
-  } catch (error) {
-    log.error(
-      { error, msg: 'Error fetching invoices' },
-      'Error fetching invoices',
-    );
-    Sentry.captureException(error, {
-      tags: {
-        component: 'InvoiceAPI',
-        action: 'GET',
-      },
-    });
-    return NextResponse.json(
-      { error: 'Erreur lors de la récupération des factures' },
-      { status: 500 },
-    );
-  }
+  }, 'api/invoices');
 }
 
 /**
@@ -220,11 +176,15 @@ export async function POST(request: NextRequest) {
       throw ApiErrors.NOT_FOUND;
     }
 
-    return {
-      success: true,
+    return createResourceResponse(
       invoice,
-      emailSent: result.emailSent ?? false,
-      notificationSent: result.notificationSent ?? false,
-    };
+      {
+        message: 'Facture créée avec succès',
+        metadata: {
+          emailSent: result.emailSent ?? false,
+          notificationSent: result.notificationSent ?? false,
+        },
+      },
+    );
   }, 'api/invoices');
 }

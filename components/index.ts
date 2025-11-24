@@ -2,7 +2,6 @@ export * from "./beneficiaries";
 export * from "./bookings";
 export * from "./complaints";
 export * from "./dashboard";
-export * from "./dashboard-services";
 export * from "./features/auth";
 export * from "./features/providers";
 export * from "./invoices";

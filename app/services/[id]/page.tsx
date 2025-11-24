@@ -1,574 +1,335 @@
 /**
- * Page de détails d'un prestataire
- * Implémente les design patterns :
- * - Custom Hooks Pattern (useProviderDetail)
- * - Error Handling Pattern (Sentry côté client)
- * - Component Composition Pattern (sous-composants)
+ * Page de détails d'un service
+ * Utilise les types, constantes et schémas centralisés
  */
 
 'use client';
 
-import { BookingForm } from '@/components/features/providers/BookingForm';
-import { InfiniteReviewsCarousel } from '@/components/providers/index';
-import { StatusBadge } from '@/components/ui';
-import { useNotificationManager } from '@/components/ui/Notification';
-import { useProviderDetail } from '@/hooks/providers';
-import imageLoader from '@/lib/image-loader';
-import { USER_STATUSES } from '@/lib/constants';
-import type { BookingFormData } from '@/lib/validations';
-import { UserRole } from '@/lib/types';
-import { Building, Calendar, MapPin, Star } from 'lucide-react';
-import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { ServiceBookingWizard } from '@/components/services/ServiceBookingWizard';
+import { SPECIALITY_TYPES } from '@/lib/constants';
+import { 
+  ArrowLeft, 
+  Check, 
+  Clock, 
+  Shield, 
+  Heart, 
+  GraduationCap, 
+  Home,
+  Calendar,
+} from 'lucide-react';
+import type { ServiceType } from '@/lib/types/constants.types';
+import { logger } from '@/lib/logger';
 
-export default function ProviderDetailPage() {
-  const router = useRouter();
-  const { addSuccess, addError } = useNotificationManager();
-  const id = useParams().id;
-  const providerId = Array.isArray(id) ? id[0] : id;
+// Mapping des types de service vers les icônes et labels
+const SERVICE_TYPE_CONFIG: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+  [SPECIALITY_TYPES.HEALTH]: {
+    icon: <Heart className="w-8 h-8" />,
+    label: 'Santé',
+    color: 'text-red-500',
+  },
+  [SPECIALITY_TYPES.EDUCATION]: {
+    icon: <GraduationCap className="w-8 h-8" />,
+    label: 'Éducation',
+    color: 'text-blue-500',
+  },
+  [SPECIALITY_TYPES.BTP]: {
+    icon: <Home className="w-8 h-8" />,
+    label: 'Immobilier',
+    color: 'text-green-500',
+  },
+};
 
-  // Utiliser le hook personnalisé (Custom Hooks Pattern)
-  const { provider, ratingStats, loading, error } =
-    useProviderDetail(providerId);
-
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [showBookingModal, setShowBookingModal] = useState(false);
-  const [showBookingForm, setShowBookingForm] = useState(false);
-
-  const ratingColor = (rating: number) => {
-    if (rating >= 4.5) return 'text-green-600';
-    if (rating >= 4.0) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const ratingText = (rating: number) => {
-    if (rating >= 4.5) return 'Excellent';
-    if (rating >= 4.0) return 'Très bien';
-    if (rating >= 3.5) return 'Bien';
-    return 'Moyen';
-  };
-
-  const availableSlots = useMemo(() => {
-    type TimeSlot = { start: string; end: string };
-    const isTimeSlot = (v: unknown): v is TimeSlot =>
-      !!v &&
-      typeof v === 'object' &&
-      v !== null &&
-      'start' in (v as any) &&
-      'end' in (v as any);
-
-    const parseStringSlot = (s: string): TimeSlot | null => {
-      const [startIso, endIso] = s.split('|');
-      if (!startIso || !endIso) return null;
-      return { start: startIso, end: endIso };
-    };
-
-    if (!provider) return [] as TimeSlot[];
-
-    const raw = Array.isArray(provider.availabilities)
-      ? provider.availabilities
-      : [];
-    const normalized: TimeSlot[] = (raw as any[])
-      .map(item =>
-        typeof item === 'string'
-          ? parseStringSlot(item)
-          : isTimeSlot(item)
-          ? (item as TimeSlot)
-          : null,
-      )
-      .filter((v): v is TimeSlot => !!v);
-
-    // Optionally remove taken appointments if provided in same {start,end} shape
-    const taken = Array.isArray(provider.appointments)
-      ? (provider.appointments as unknown[]).filter(isTimeSlot)
-      : [];
-
-    return normalized.filter(
-      slot =>
-        !taken.some(appt => appt.start === slot.start && appt.end === slot.end),
-    );
-  }, [provider]);
-
-  const handleBookingClick = () => {
-    setShowBookingModal(true);
-    setShowBookingForm(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowBookingModal(false);
-    setShowBookingForm(false);
-  };
-
-  const handleFormSubmit = async (_data: BookingFormData) => {
-    try {
-      // Simuler un délai d'envoi
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Fermer le formulaire et afficher un message de succès
-      handleCloseModal();
-      addSuccess('Rendez-vous confirmé avec succès !');
-    } catch (_error) {
-      addError('Erreur lors de la prise de rendez-vous. Veuillez réessayer.');
-      // Les erreurs sont déjà gérées par le hook et Sentry
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
-      </div>
-    );
+// Mapping de l'ID URL vers le type de service
+// Les paramètres acceptés sont : health, edu, immo
+const mapIdToServiceType = (id: string): ServiceType | null => {
+  const idLower = id.toLowerCase();
+  if (idLower === 'health' || idLower === 'sante' || idLower === SPECIALITY_TYPES.HEALTH.toLowerCase()) {
+    return SPECIALITY_TYPES.HEALTH as ServiceType;
   }
+  if (idLower === 'edu' || idLower === 'education' || idLower === SPECIALITY_TYPES.EDUCATION.toLowerCase()) {
+    return SPECIALITY_TYPES.EDUCATION as ServiceType;
+  }
+  if (idLower === 'immo' || idLower === 'btp' || idLower === 'housing' || idLower === SPECIALITY_TYPES.BTP.toLowerCase()) {
+    return SPECIALITY_TYPES.BTP as ServiceType;
+  }
+  return null;
+};
 
-  if (error || !provider) {
+export default function ServiceDetailPage() {
+  const router = useRouter();
+  const params = useParams();
+  const serviceId = Array.isArray(params.id) ? params.id[0] : params.id;
+  
+  // L'ID correspond au type de service (health, education, btp)
+  const serviceType = mapIdToServiceType(serviceId || '');
+  const [showBookingWizard, setShowBookingWizard] = useState(false);
+
+  if (!serviceType) {
     return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='text-center'>
-          <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-            Prestataire non trouvé
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Shield className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            Type de service invalide
           </h2>
-          <p className='text-gray-600 mb-4'>
-            {error ||
-              "Le prestataire que vous recherchez n'existe pas ou n'est plus disponible."}
+          <p className="text-gray-600 mb-6">
+            Le type de service "{serviceId}" n'est pas reconnu.
           </p>
           <button
             onClick={() => router.push('/services')}
-            className='mt-4 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors'
-            type='button'
+            className="bg-[hsl(25,100%,53%)] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition"
+            type="button"
           >
-            Retour aux prestataires
+            Retour aux services
           </button>
         </div>
       </div>
     );
   }
 
-  // Subcomponents for readability (Component Composition Pattern)
-  const HeaderSection = () => (
-    <div className='mb-6'>
-      <div className='flex items-center gap-3 mb-2'>
-        <h1 className='text-3xl font-bold text-gray-900'>{provider.name}</h1>
-        <StatusBadge status={USER_STATUSES.ACTIVE} size='md' />
-      </div>
-      <p className='text-xl text-gray-600 mb-2'>{provider.specialty}</p>
-      {provider.company && (
-        <div className='flex items-center text-gray-600 mb-2'>
-          <Building className='w-5 h-5 mr-2' />
-          <span>{provider.company}</span>
-        </div>
-      )}
-    </div>
-  );
-
-  const ImageAndRating = () => (
-    <div className='lg:w-1/3'>
-      <div className='relative w-full h-64 rounded-lg flex items-center justify-center overflow-hidden bg-gray-100 mb-4'>
-        {provider.profileImage ? (
-          <Image
-            src={provider.profileImage}
-            alt={provider.name || ''}
-            fill
-            className='object-contain object-center'
-            sizes='(max-width: 1024px) 100vw, 33vw'
-            priority
-            loader={imageLoader}
-            unoptimized
-          />
-        ) : (
-          <div className='w-full h-full flex items-center justify-center bg-gray-200'>
-            <span className='text-gray-500 text-6xl'>
-              {provider.name && provider.name.length > 0 
-                ? provider.name.charAt(0).toUpperCase() 
-                : '?'}
-            </span>
-          </div>
-        )}
-      </div>
-      <div className='text-center'>
-        <div className='flex items-center justify-center mb-2'>
-          <Star className='w-6 h-6 text-yellow-400 mr-2' />
-          <span
-            className={`text-2xl font-bold ${ratingColor(
-              ratingStats?.averageRating ?? 0,
-            )}`}
-          >
-            {ratingStats?.averageRating !== undefined &&
-            ratingStats?.averageRating !== null
-              ? ratingStats.averageRating
-              : 'N/A'}
-          </span>
-        </div>
-        <p className='text-gray-600 mb-2'>
-          {ratingText(ratingStats?.averageRating ?? 0)}
-        </p>
-        <p className='text-sm text-gray-500'>
-          Basé sur {ratingStats?.totalReviews || 0} avis clients
-        </p>
-      </div>
-    </div>
-  );
-
-  const LocationSection = () =>
-    provider.apiGeo &&
-    Array.isArray(provider.apiGeo) &&
-    provider.apiGeo.length > 0 ? (
-      <div className='flex items-center text-gray-600 mb-4'>
-        <MapPin className='w-5 h-5 mr-2' />
-        <span>
-          {provider.apiGeo
-            .map(geo => geo?.display_name)
-            .filter(Boolean)
-            .join(', ')}
-        </span>
-      </div>
-    ) : null;
-
-  const ServicesSection = () => {
-    // Vérifier les services depuis providerInfo ou selectedServices
-    const services =
-      provider.providerInfo?.services ||
-      provider.specialties ||
-      provider.selectedServices ||
-      [];
-
-    if (!services || services.length === 0) return null;
-
-    // Gérer le cas où services est un string ou un array
-    let servicesList: string[] = [];
-
-    if (Array.isArray(services)) {
-      servicesList = services.map(s =>
-        typeof s === 'string' ? s : (s as any).name || s.toString(),
-      );
-    } else if (typeof services === 'string') {
-      servicesList = (services as string)
-        .split(',')
-        .map((s: string) => s.trim());
-    }
-
-    if (servicesList.length === 0) return null;
-
-    return (
-      <div className='mb-6'>
-        <h3 className='text-lg font-semibold text-gray-900 mb-3'>
-          Services proposés
-        </h3>
-        <div className='flex flex-wrap gap-2'>
-          {servicesList.map((service, index) => (
-            <span
-              key={index}
-              className='inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200'
-            >
-              {service}
-            </span>
-          ))}
-        </div>
-      </div>
-    );
+  const serviceTypeConfig = SERVICE_TYPE_CONFIG[serviceType] || {
+    icon: <Shield className="w-8 h-8" />,
+    label: serviceType,
+    color: 'text-gray-500',
   };
-
-  const BookingButton = () => {
-    const handleQuoteRequest = () => {
-      addError(
-        'Fonctionnalité pas encore disponible, veuillez patienter pour le moment',
-      );
-    };
-
-    // Si c'est un provider HEALTH, afficher le bouton de réservation
-    if (provider.roles?.includes(UserRole.PROVIDER)) {
-      return (
-        <div className='mb-6'>
-          <button
-            onClick={handleBookingClick}
-            className='flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg'
-            data-testid='booking-button'
-            type='button'
-          >
-            <Calendar className='w-5 h-5' />
-            Prendre rendez-vous
-          </button>
-        </div>
-      );
-    }
-
-    // Pour les autres catégories (EDU, IMMO), afficher le bouton de devis
-    return (
-      <div className='mb-6'>
-        <button
-          onClick={handleQuoteRequest}
-          className='flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-medium shadow-lg'
-          data-testid='quote-button'
-          type='button'
-        >
-          <Calendar className='w-5 h-5' />
-          Demander un devis
-        </button>
-      </div>
-    );
-  };
-
-  const PhotosSection = () => (
-    <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8'>
-      <h3 className='text-xl font-semibold text-gray-900 mb-4'>Photos</h3>
-      {provider.images && provider.images.length > 0 ? (
-        <div className='flex flex-wrap gap-2'>
-          {provider.images.map((image, index) => (
-            <button
-              aria-label={`Voir la photo ${index + 1}`}
-              key={index}
-              type='button'
-              className='focus:outline-none'
-              onClick={() => setSelectedImage(image)}
-              style={{ border: 'none', background: 'none', padding: 0 }}
-            >
-              <Image
-                src={image}
-                alt={provider.name || ''}
-                width={100}
-                height={100}
-                className='rounded shadow hover:scale-105 transition-transform'
-                sizes='100px'
-              />
-            </button>
-          ))}
-        </div>
-      ) : (
-        <span className='text-gray-500 text-sm'>
-          Aucune photo enregistrée pour ce prestataire.
-        </span>
-      )}
-      {selectedImage && (
-        <div
-          className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70'
-          onClick={() => setSelectedImage(null)}
-          style={{ cursor: 'zoom-out' }}
-        >
-          <div className='relative' onClick={e => e.stopPropagation()}>
-            <Image
-              src={selectedImage}
-              alt={provider.name || ''}
-              width={800}
-              height={800}
-              className='rounded-lg shadow-lg max-h-[80vh] max-w-[90vw] object-contain'
-              sizes='(max-width: 800px) 100vw, 800px'
-            />
-            <button
-              className='absolute top-2 right-2 bg-white rounded-full p-1 shadow hover:bg-gray-200'
-              onClick={() => setSelectedImage(null)}
-              aria-label='Fermer'
-              type='button'
-            >
-              <svg
-                width='24'
-                height='24'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='2'
-              >
-                <path d='M6 6l12 12M6 18L18 6' />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const BookingModal = () => (
-    <>
-      {showBookingModal && (
-        <div
-          className='fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'
-          onClick={handleCloseModal}
-          data-testid='booking-modal-overlay'
-        >
-          {showBookingForm ? (
-            <div onClick={e => e.stopPropagation()}>
-              <BookingForm
-                provider={{
-                  _id: provider._id,
-                  name: provider.name,
-                  specialty: provider.specialty ?? '',
-                  ...(provider.roles?.includes(UserRole.CUSTOMER as any)
-                    ? { role: UserRole.CUSTOMER as any }
-                    : provider.roles?.includes(UserRole.PROVIDER as any)
-                    ? { role: UserRole.PROVIDER as any }
-                    : {}),
-                  selectedServices:
-                    typeof provider.selectedServices === 'string'
-                      ? provider.selectedServices
-                      : '',
-                  price: (provider as any).price,
-                  services: (provider as any).services,
-                  availabilities: availableSlots,
-                }}
-                onClose={handleCloseModal}
-                onSubmit={handleFormSubmit}
-              />
-            </div>
-          ) : null}
-        </div>
-      )}
-    </>
-  );
 
   return (
-    <div className='min-h-screen bg-gray-50 py-8'>
-      <div className='max-w-6xl mx-auto px-4 sm:px-6 lg:px-8'>
-        {/* En-tête avec bouton retour */}
-        <div className='mb-6'>
-          <button
-            onClick={() => {
-              // Revenir si possible, sinon fallback en conservant la catégorie du prestataire
-              if (window.history.length > 1) {
-                router.back();
-                return;
-              }
-            }}
-            className='flex items-center text-blue-600 hover:text-blue-800 transition-colors'
-            type='button'
-          >
-            <svg
-              className='w-5 h-5 mr-2'
-              fill='none'
-              stroke='currentColor'
-              viewBox='0 0 24 24'
+    <div className="min-h-screen bg-gray-50">
+      {showBookingWizard ? (
+        <div className="py-8">
+          <div className="container mx-auto px-4">
+            <button
+              onClick={() => setShowBookingWizard(false)}
+              className="flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,48%)] mb-6 transition"
+              type="button"
             >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M15 19l-7-7 7-7'
-              />
-            </svg>
-            Retour aux prestataires
-          </button>
-        </div>
-
-        {/* Informations principales */}
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-8'>
-          <div className='flex flex-col lg:flex-row gap-8'>
-            <ImageAndRating />
-            <div className='lg:w-2/3'>
-              <HeaderSection />
-              <LocationSection />
-              {provider.specialty !== 'Ecole'}
-              <ServicesSection />
-              <BookingButton />
-            </div>
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Retour aux détails
+            </button>
+            <ServiceBookingWizard
+              initialServiceType={serviceType}
+              onComplete={(bookingId) => {
+                // Ne pas rediriger automatiquement - laisser l'utilisateur voir l'étape 4 de confirmation
+                // La redirection se fera via les boutons dans l'étape 4
+                logger.info({ bookingId: bookingId as string }, 'Booking completed');
+              }}
+              onCancel={() => setShowBookingWizard(false)}
+            />
           </div>
         </div>
-
-        {/* Photos */}
-        <PhotosSection />
-
-        {/* Description et détails */}
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8'>
-          <h3 className='text-xl font-semibold text-gray-900 mb-4'>À propos</h3>
-          <p className='text-gray-700 leading-relaxed'>
-            {provider.description ||
-              `${provider.name} est un prestataire qualifié dans le domaine de ${provider.specialty}. 
-Avec une expertise reconnue et une approche centrée sur le client, 
-nous nous engageons à fournir des services de qualité adaptés à vos besoins.`}
-          </p>
-        </div>
-
-        {/* Recommandations */}
-        {provider.recommended && (
-          <div className='bg-green-50 border border-green-200 rounded-lg p-6'>
-            <div className='flex items-center'>
-              <Star className='w-6 h-6 text-green-600 mr-3' />
-              <div>
-                <h4 className='text-lg font-semibold text-green-800'>
-                  Prestataire recommandé
-                </h4>
-                <p className='text-green-700'>
-                  Ce prestataire a été recommandé par notre équipe pour la
-                  qualité de ses services.
-                </p>
-              </div>
+      ) : (
+        <div className="py-8">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Header avec bouton retour */}
+            <div className="mb-6">
+              <button
+                onClick={() => router.push('/services')}
+                className="flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,48%)] transition"
+                type="button"
+              >
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                Retour aux services
+              </button>
             </div>
-          </div>
-        )}
 
-        {/* Statistiques de rating détaillées */}
-        {ratingStats && ratingStats.totalReviews > 0 && (
-          <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8'>
-            <h3 className='text-xl font-semibold text-gray-900 mb-4'>
-              Évaluations détaillées
-            </h3>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-              {/* Note moyenne */}
-              <div className='text-center'>
-                <div className='text-4xl font-bold text-[hsl(25,100%,53%)] mb-2'>
-                  {ratingStats.averageRating}
+            {/* Carte principale du service */}
+            <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+              <div className="flex items-start gap-6 mb-6">
+                <div className={`${serviceTypeConfig.color} flex-shrink-0`}>
+                  {serviceTypeConfig.icon}
                 </div>
-                <div className='flex justify-center mb-2'>
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <Star
-                      key={star}
-                      className={`w-6 h-6 ${
-                        star <= Math.round(ratingStats.averageRating)
-                          ? 'text-yellow-400 fill-current'
-                          : 'text-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <p className='text-gray-600'>
-                  Basé sur {ratingStats.totalReviews} avis
-                </p>
-              </div>
-
-              {/* Distribution des notes */}
-              <div className='space-y-2'>
-                {[5, 4, 3, 2, 1].map(rating => (
-                  <div key={rating} className='flex items-center'>
-                    <span className='text-sm text-gray-600 w-8'>{rating}</span>
-                    <Star className='w-4 h-4 text-yellow-400 fill-current mr-2' />
-                    <div className='flex-1 bg-gray-200 rounded-full h-2 mx-2'>
-                      <div
-                        className='bg-[hsl(25,100%,53%)] h-2 rounded-full'
-                        style={{
-                          width: `${
-                            ratingStats.totalReviews > 0
-                              ? (ratingStats.ratingDistribution[
-                                  rating as keyof typeof ratingStats.ratingDistribution
-                                ] /
-                                  ratingStats.totalReviews) *
-                                100
-                              : 0
-                          }%`,
-                        }}
-                      />
-                    </div>
-                    <span className='text-sm text-gray-600 w-8'>
-                      {
-                        ratingStats.ratingDistribution[
-                          rating as keyof typeof ratingStats.ratingDistribution
-                        ]
-                      }
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h1 className="text-3xl font-bold text-gray-900">Services {serviceTypeConfig.label}</h1>
+                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                      {serviceTypeConfig.label}
                     </span>
                   </div>
-                ))}
+                  <p className="text-lg text-gray-600 mb-4">
+                    {serviceType === SPECIALITY_TYPES.HEALTH && 
+                      "Accès à un réseau de professionnels de santé certifiés pour vous et vos proches."}
+                    {serviceType === SPECIALITY_TYPES.EDUCATION && 
+                      "Paiement direct et sécurisé des frais d'éducation pour vos proches."}
+                    {serviceType === SPECIALITY_TYPES.BTP && 
+                      "Accompagnement dans la recherche, la location et la construction de biens immobiliers."}
+                  </p>
+                  
+                  <div className="flex items-center gap-6 text-sm text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      <span>Disponible immédiatement</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      <span>Garanti DiaspoMoney</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <div className="border-t pt-6">
+                <div className="flex items-center justify-end">
+                  <button
+                    onClick={() => setShowBookingWizard(true)}
+                    className="flex items-center gap-2 bg-[hsl(25,100%,53%)] text-white px-8 py-4 rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition shadow-lg"
+                    type="button"
+                  >
+                    <Calendar className="w-5 h-5" />
+                    Commencer la réservation
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Informations détaillées */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {/* Caractéristiques */}
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                  Caractéristiques
+                </h3>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-gray-700">
+                      Services adaptés à vos besoins
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-gray-700">
+                      Paiement sécurisé via Stripe
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-gray-700">
+                      Suivi en temps réel
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-gray-700">
+                      Garantie de remboursement
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Processus */}
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                  Comment ça marche
+                </h3>
+                <ol className="space-y-3">
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-[hsl(25,100%,53%)] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      1
+                    </span>
+                    <span className="text-gray-700">
+                      Sélectionnez le service et remplissez vos informations
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-[hsl(25,100%,53%)] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      2
+                    </span>
+                    <span className="text-gray-700">
+                      Effectuez le paiement de manière sécurisée
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-[hsl(25,100%,53%)] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      3
+                    </span>
+                    <span className="text-gray-700">
+                      Choisissez les disponibilités de votre bénéficiaire
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-[hsl(25,100%,53%)] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      4
+                    </span>
+                    <span className="text-gray-700">
+                      Vous serez recontacté rapidement pour le suivi
+                    </span>
+                  </li>
+                </ol>
+              </div>
+            </div>
+
+            {/* Section garanties */}
+            <div className="bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(41,86%,46%)] rounded-lg shadow-lg p-8 text-white mb-8">
+              <div className="flex items-start gap-4">
+                <Shield className="w-12 h-12 flex-shrink-0" />
+                <div>
+                  <h3 className="text-2xl font-bold mb-3">
+                    Garantie DiaspoMoney
+                  </h3>
+                  <p className="text-white/90 mb-4">
+                    Nous garantissons l'exécution de votre service. Si le service n'est pas 
+                    exécuté dans les délais convenus, vous serez intégralement remboursé.
+                  </p>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5" />
+                      <span>Remboursement garanti si service non exécuté</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5" />
+                      <span>Suivi personnalisé par un Country Sales Manager</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-5 h-5" />
+                      <span>Support client disponible 24/7</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* FAQ ou informations supplémentaires */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                Questions fréquentes
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    Combien de temps prend le traitement ?
+                  </h4>
+                  <p className="text-gray-600">
+                    Le traitement commence généralement sous 24-48h après confirmation du paiement.
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    Puis-je annuler ma réservation ?
+                  </h4>
+                  <p className="text-gray-600">
+                    Oui, vous pouvez annuler votre réservation jusqu'à 24h avant le rendez-vous 
+                    et être intégralement remboursé.
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    Comment puis-je suivre mon service ?
+                  </h4>
+                  <p className="text-gray-600">
+                    Vous recevrez des notifications par email et SMS à chaque étape. 
+                    Vous pouvez également suivre l'avancement depuis votre tableau de bord.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        )}
-
-        {/* Carousel d'avis clients infini */}
-        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8'>
-          <h3 className='text-xl font-semibold text-gray-900 mb-4'>
-            Avis clients
-          </h3>
-          <InfiniteReviewsCarousel providerId={providerId} />
         </div>
-      </div>
-
-      {/* Modal de prise de rendez-vous */}
-      <BookingModal />
+      )}
     </div>
   );
 }

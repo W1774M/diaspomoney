@@ -4,7 +4,7 @@
  * Basé sur la charte de développement et les design patterns
  */
 
-import { Cacheable, Log } from '@/lib/decorators';
+import { Cacheable, Log, Performance } from '@/lib/decorators';
 import { logger } from '@/lib/logger';
 import {
   getBookingRepository,
@@ -22,7 +22,7 @@ import type {
   UserWithBudgets,
 } from '@/lib/types/statistics.types';
 import { TransactionStatus } from '@/lib/types/transaction.types';
-import { CURRENCIES } from '@/lib/constants';
+import { CURRENCIES, TRANSACTION_STATUSES, USER_STATUSES } from '@/lib/constants';
 import { ObjectId } from 'mongodb';
 
 /**
@@ -41,6 +41,7 @@ export class StatisticsService {
    * Utilise les décorateurs @Log et @Cacheable pour le logging et le cache
    */
   @Log({ level: 'info', logArgs: true, logResult: false })
+  @Performance({ warningThreshold: 2000, errorThreshold: 5000 })
   @Cacheable(300, { prefix: 'statistics:personal' }) // Cache 5 minutes
   async getPersonalStatistics(userId: string): Promise<PersonalStatistics> {
     try {
@@ -105,12 +106,12 @@ export class StatisticsService {
         fetchAllBookings(),
         fetchAllTransactions({
           payerId: userId,
-          status: 'COMPLETED',
+          status: TRANSACTION_STATUSES.COMPLETED,
           dateFrom: startOfMonth,
         }),
         fetchAllTransactions({
           payerId: userId,
-          status: 'COMPLETED',
+          status: TRANSACTION_STATUSES.COMPLETED,
           dateFrom: startOfYear,
         }),
       ]);
@@ -248,7 +249,7 @@ export class StatisticsService {
                 company: p.company,
                 address: p.address,
                 roles: Array.isArray(p.roles) ? p.roles : [p.roles].filter(Boolean),
-                status: p.status || 'ACTIVE',
+                status: p.status || USER_STATUSES.ACTIVE,
                 specialty: p.specialty,
                 recommended: p.recommended ?? false,
                 providerInfo: p.providerInfo || {},

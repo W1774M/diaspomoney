@@ -4,37 +4,13 @@ import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import DashboardQuickActions from '@/components/dashboard/DashboardQuickActions';
 import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
 import { useAuth } from '@/hooks';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { AdminRoute } from '@/components/auth';
 
-export default function AdminDashboardPage() {
-  const { isAuthenticated, isLoading, user, isAdmin } = useAuth();
-  const router = useRouter();
-
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
-    // Rediriger si l'utilisateur n'est pas admin
-    if (!isLoading && isAuthenticated && !isAdmin()) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isLoading, router, isAdmin]);
-
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !isAdmin()) {
-    return null;
-  }
+/**
+ * Contenu du tableau de bord admin
+ */
+function AdminDashboardContent() {
+  const { user } = useAuth();
 
   return (
     <div className='space-y-6'>
@@ -45,6 +21,19 @@ export default function AdminDashboardPage() {
       <RoleSpecificStats userId={user?.id} />
       <DashboardQuickActions isAdmin={true} isCSM={false} />
     </div>
+  );
+}
+
+/**
+ * Page du tableau de bord admin
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AdminRoute aligné avec @Authorize decorator backend)
+ */
+export default function AdminDashboardPage() {
+  return (
+    <AdminRoute redirectTo="/dashboard">
+      <AdminDashboardContent />
+    </AdminRoute>
   );
 }
 

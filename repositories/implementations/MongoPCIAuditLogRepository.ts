@@ -11,6 +11,7 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
 import type { PCIAuditLog } from '@/lib/types';
@@ -38,6 +39,7 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
   }
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('PCIAuditLogRepository')
   async create(data: Partial<PCIAuditLog>): Promise<PCIAuditLog> {
     try {

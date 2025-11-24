@@ -6,6 +6,9 @@
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
+import { Transaction } from '@/lib/decorators/transaction.decorator';
 import { logger } from '@/lib/logger';
 import { CreateInvoiceServiceSchema, UpdateInvoiceServiceSchema } from '@/lib/validations/invoice-service.schema';
 import type { PaginationOptions } from '@/lib/types';
@@ -68,6 +71,9 @@ export class InvoiceService {
       },
     ],
   })
+  @Audit({ eventType: 'INVOICE_CREATED', includeArgs: true })
+  @Performance({ warningThreshold: 2000, errorThreshold: 5000 })
+  @Transaction()
   @InvalidateCache('InvoiceService:*')
   async createInvoice(data: InvoiceData): Promise<Invoice> {
     try {
@@ -146,6 +152,8 @@ export class InvoiceService {
   /**
    * Récupérer les factures d'un utilisateur
    */
+  @Log({ level: 'debug', logArgs: true })
+  @Performance({ warningThreshold: 500, errorThreshold: 2000 })
   @Cacheable(900, { prefix: 'InvoiceService:getUserInvoices' }) // Cache 15 minutes
   async getUserInvoices(
     userId: string,
@@ -170,6 +178,7 @@ export class InvoiceService {
   /**
    * Récupérer les factures avec filtres
    */
+  @Log({ level: 'debug', logArgs: true })
   @Cacheable(900, { prefix: 'InvoiceService:getInvoices' }) // Cache 15 minutes
   async getInvoices(
     filters: Record<string, any>,
@@ -197,6 +206,7 @@ export class InvoiceService {
   /**
    * Mettre à jour une facture
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
       {
@@ -254,6 +264,8 @@ export class InvoiceService {
   /**
    * Mettre à jour le statut d'une facture
    */
+  @Log({ level: 'info', logArgs: true })
+  @InvalidateCache('InvoiceService:*')
   async updateInvoiceStatus(
     id: string,
     status: InvoiceStatus,
@@ -270,6 +282,8 @@ export class InvoiceService {
   /**
    * Marquer une facture comme payée
    */
+  @Log({ level: 'info', logArgs: true })
+  @InvalidateCache('InvoiceService:*')
   async markInvoiceAsPaid(id: string, paidAt?: Date): Promise<boolean> {
     try {
       return await this.invoiceRepository.markAsPaid(id, paidAt || new Date());
@@ -283,6 +297,8 @@ export class InvoiceService {
   /**
    * Récupérer les factures en retard
    */
+  @Log({ level: 'debug', logArgs: true })
+  @Cacheable(300, { prefix: 'InvoiceService:getOverdueInvoices' })
   async getOverdueInvoices(options?: {
     limit?: number;
     offset?: number;
@@ -307,6 +323,17 @@ export class InvoiceService {
   /**
    * Supprimer une facture
    */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Invoice ID is required'),
+        paramName: 'id',
+      },
+    ],
+  })
+  @InvalidateCache('InvoiceService:*')
   async deleteInvoice(id: string): Promise<boolean> {
     try {
       return await this.invoiceRepository.delete(id);

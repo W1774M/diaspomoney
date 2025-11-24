@@ -2,9 +2,12 @@
 
 import { useBookings } from '@/hooks';
 import { useBookingCancel, useBookingFilters } from '@/hooks/bookings';
-import type { Booking } from '@/lib/types';
+import type { BookingResponse } from '@/lib/mappers/booking.mapper';
+
+// Use BookingResponse as the main type
+type Booking = BookingResponse;
 import { useRouter } from 'next/navigation';
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import BookingsHeader from './BookingsHeader';
 import BookingsSearch from './BookingsSearch';
 import BookingsTable from './BookingsTable';
@@ -23,9 +26,9 @@ import BookingsTable from './BookingsTable';
  */
 const BookingsPage = React.memo(function BookingsPage() {
   const router = useRouter();
-  const { bookings, loading, error } = useBookings({
-    limit: 1000,
-  });
+  // Mémoriser les options pour éviter les re-renders inutiles
+  const bookingsOptions = useMemo(() => ({ limit: 1000 }), []);
+  const { bookings, loading, error } = useBookings(bookingsOptions);
 
   const {
     filters,
@@ -35,7 +38,7 @@ const BookingsPage = React.memo(function BookingsPage() {
     updateFilter,
     clearFilters,
     hasActiveFilters,
-  } = useBookingFilters(bookings as Booking[]);
+  } = useBookingFilters(bookings);
 
   const { cancelBooking, loading: cancelLoading } = useBookingCancel();
 
@@ -54,7 +57,7 @@ const BookingsPage = React.memo(function BookingsPage() {
   );
 
   const handleCancelBooking = useCallback(
-    async (booking: Booking) => {
+    async (booking: BookingResponse) => {
       if (!confirm('Êtes-vous sûr de vouloir annuler cette réservation ?')) {
         return;
       }
@@ -121,13 +124,19 @@ const BookingsPage = React.memo(function BookingsPage() {
               <option value='ALL'>Tous les statuts</option>
               {availableStatuses.map((status, idx) => (
                 <option key={idx} value={status}>
-                  {status === 'confirmed'
+                  {status === 'CONFIRMED'
                     ? 'Confirmé'
-                    : status === 'pending'
+                    : status === 'PENDING'
                     ? 'En attente'
-                    : status === 'cancelled'
+                    : status === 'CANCELLED'
                     ? 'Annulé'
-                    : 'Terminé'}
+                    : status === 'COMPLETED'
+                    ? 'Terminé'
+                    : status === 'IN_PROGRESS'
+                    ? 'En cours'
+                    : status === 'NO_SHOW'
+                    ? 'Absent'
+                    : status}
                 </option>
               ))}
             </select>

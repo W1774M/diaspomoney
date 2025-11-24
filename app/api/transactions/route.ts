@@ -12,6 +12,7 @@
 
 import { auth } from '@/auth';
 import { handleApiRoute, ApiErrors, validateBody } from '@/lib/api/error-handler';
+import { createListResponse, createResourceResponse } from '@/lib/api/response';
 import { CreateTransactionSchema } from '@/lib/validations/transaction.schema';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import {
@@ -19,6 +20,9 @@ import {
 } from '@/services/transaction/transaction.service';
 import type { TransactionData, TransactionFilters } from '@/lib/types';
 import { NextRequest } from 'next/server';
+
+// Désactiver le prerendering pour cette route API
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/transactions - Récupérer les transactions
@@ -102,11 +106,14 @@ export async function GET(request: NextRequest) {
       type: 'counter',
     });
 
-    return {
-      success: true,
+    return createListResponse(
       transactions,
-      count: transactions.length,
-    };
+      {
+        metadata: {
+          count: transactions.length,
+        },
+      },
+    );
   }, 'api/transactions');
 }
 
@@ -161,10 +168,11 @@ export async function POST(request: NextRequest) {
       type: 'counter',
     });
 
-    return {
-      success: true,
+    return createResourceResponse(
       transaction,
-      message: 'Transaction créée avec succès',
-    };
+      {
+        message: 'Transaction créée avec succès',
+      },
+    );
   }, 'api/transactions');
 }

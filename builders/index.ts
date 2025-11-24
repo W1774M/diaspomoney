@@ -14,4 +14,10 @@ export { InvoiceQueryBuilder } from './InvoiceQueryBuilder';
 export { TransactionQueryBuilder } from './TransactionQueryBuilder';
 export { UserQueryBuilder } from './UserQueryBuilder';
 export { BeneficiaryQueryBuilder } from './BeneficiaryQueryBuilder';
+export { NotificationQueryBuilder } from './NotificationQueryBuilder';
+export { MessageQueryBuilder } from './MessageQueryBuilder';
+export { SpecialityQueryBuilder } from './SpecialityQueryBuilder';
+export { ProviderQueryBuilder } from './ProviderQueryBuilder';
+export { StatisticsQueryBuilder } from './StatisticsQueryBuilder';
+export { QuoteQueryBuilder } from './QuoteQueryBuilder';
 

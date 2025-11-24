@@ -7,7 +7,6 @@ export * from './invoice.schema';
 export * from './invoice-service.schema';
 export * from './complaint.schema';
 export * from './user.schema';
-export * from './booking.schema';
 export * from './booking-payment.schema';
 export * from './payment.schema';
 export * from './payment-service.schema';
@@ -30,4 +29,7 @@ export * from './kyc.schema';
 export * from './gdpr.schema';
 export * from './auth.schema';
 export * from './health.schema';
+export * from './service-options.schema';
+export * from './service.schema';
+export * from './booking.schema';
 

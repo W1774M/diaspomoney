@@ -44,9 +44,11 @@ export function useComplaints(): UseComplaintsReturn {
         }
 
         const data = await response.json();
-        if (data.success && data.complaints) {
+        if (data.success) {
+          // Le nouveau format standardisé utilise data directement pour les listes
+          const complaintsData = Array.isArray(data.data) ? data.data : [];
           // Convertir les dates string en Date objects
-          const parsedComplaints: Complaint[] = data.complaints.map(
+          const parsedComplaints: Complaint[] = complaintsData.map(
             (c: any) => ({
               ...c,
               createdAt:
@@ -60,7 +62,7 @@ export function useComplaints(): UseComplaintsReturn {
             }),
           );
           setComplaints(parsedComplaints);
-          setTotal(data.total || parsedComplaints.length);
+          setTotal(data.pagination?.total || parsedComplaints.length);
         } else {
           throw new Error(data.error || 'Erreur inconnue');
         }

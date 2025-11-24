@@ -7,6 +7,7 @@ import { IPaginatedRepository, PaginatedResult, PaginationOptions } from './IRep
 export interface Booking {
   id: string;
   _id: string; // Requis pour BaseEntity
+  reservationNumber: string; // Numéro de réservation unique
   requesterId: string;
   providerId: string;
   serviceId: string;
@@ -28,10 +29,10 @@ export interface Booking {
 export type BookingStatus =
   | 'PENDING'
   | 'CONFIRMED'
+  | 'IN_PROGRESS'
   | 'COMPLETED'
   | 'CANCELLED'
-  | 'NO_SHOW'
-  | 'FAILED';
+  | 'NO_SHOW';
 
 export interface BookingFilters {
   requesterId?: string;

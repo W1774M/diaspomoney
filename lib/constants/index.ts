@@ -428,6 +428,35 @@ export const NOTIFICATION_TYPES = {
 } as const;
 export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];
 
+// NOTIFICATION STATUS CONSTANTS
+export const NOTIFICATION_STATUSES = {
+  PENDING: 'PENDING',
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  FAILED: 'FAILED',
+  EXPIRED: 'EXPIRED',
+} as const;
+export type NotificationStatus = typeof NOTIFICATION_STATUSES[keyof typeof NOTIFICATION_STATUSES];
+
+// NOTIFICATION PRIORITY CONSTANTS
+export const NOTIFICATION_PRIORITIES = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT',
+} as const;
+export type NotificationPriority = typeof NOTIFICATION_PRIORITIES[keyof typeof NOTIFICATION_PRIORITIES];
+
+// NOTIFICATION CHANNEL CONSTANTS
+export const NOTIFICATION_CHANNELS = {
+  EMAIL: 'EMAIL',
+  SMS: 'SMS',
+  PUSH: 'PUSH',
+  WHATSAPP: 'WHATSAPP',
+  IN_APP: 'IN_APP',
+} as const;
+export type NotificationChannel = typeof NOTIFICATION_CHANNELS[keyof typeof NOTIFICATION_CHANNELS];
+
 // MESSAGE TYPE CONSTANTS
 export const MESSAGE_TYPES = {
   TEXT: 'TEXT',
@@ -561,6 +590,15 @@ export const API_ENDPOINTS = {
     QUOTE: '/api/btp/quote',
   },
 } as const;
+
+// KYC STATUS CONSTANTS
+export const KYC_STATUSES = {
+  PENDING: 'PENDING',
+  IN_REVIEW: 'IN_REVIEW',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+} as const;
+export type KYCStatus = typeof KYC_STATUSES[keyof typeof KYC_STATUSES];
 
 // VALIDATION RULES
 export const VALIDATION_RULES = {

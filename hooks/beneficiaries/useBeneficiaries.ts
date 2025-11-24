@@ -40,7 +40,12 @@ export function useBeneficiaries(): UseBeneficiariesReturn {
       }
 
       const data = await response.json();
-      setBeneficiaries(data.beneficiaries || []);
+      // Le nouveau format standardisé utilise data directement pour les listes
+      if (data.success) {
+        setBeneficiaries(Array.isArray(data.data) ? data.data : []);
+      } else {
+        throw new Error(data.error || 'Erreur lors de la récupération des bénéficiaires');
+      }
     } catch (error) {
       logger.error({ error }, 'Erreur fetchBeneficiaries:');
       setError(error instanceof Error ? error.message : 'Erreur inconnue');
@@ -73,7 +78,8 @@ export function useBeneficiaries(): UseBeneficiariesReturn {
         }
 
         const result = await response.json();
-        const newBeneficiary = result.beneficiary;
+        // Le nouveau format standardisé utilise data directement pour les ressources
+        const newBeneficiary = result.data || result.beneficiary;
 
         // Ajouter à la liste locale
         setBeneficiaries(prev => [newBeneficiary, ...prev]);
@@ -115,7 +121,8 @@ export function useBeneficiaries(): UseBeneficiariesReturn {
         }
 
         const result = await response.json();
-        const updatedBeneficiary = result.beneficiary;
+        // Le nouveau format standardisé utilise data directement pour les ressources
+        const updatedBeneficiary = result.data || result.beneficiary;
 
         // Mettre à jour dans la liste locale
         setBeneficiaries(prev =>

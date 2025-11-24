@@ -183,13 +183,31 @@ export class PaymentService {
           });
       }
 
+      // Vérifier que clientSecret est présent
+      if (!result.clientSecret) {
+        const error = new Error(
+          `Le PaymentIntent a été créé mais aucun clientSecret n'a été retourné. ` +
+          `PaymentIntentId: ${result.paymentIntentId || result.transactionId}`,
+        );
+        this.log.error(
+          {
+            result,
+            paymentIntentId: result.paymentIntentId,
+            transactionId: result.transactionId,
+            provider: provider || this.defaultProvider,
+          },
+          'PaymentIntent created but no clientSecret in result',
+        );
+        throw error;
+      }
+
       // Mapper le résultat vers PaymentIntent
       const paymentIntent = {
         id: result.paymentIntentId || result.transactionId || '',
         amount,
         currency,
         status: this.mapStatus(result),
-        clientSecret: result.clientSecret || '',
+        clientSecret: result.clientSecret,
         metadata: result.metadata || {},
       };
       this.log.info(
@@ -198,6 +216,7 @@ export class PaymentService {
           amount,
           currency,
           provider: provider || this.defaultProvider,
+          hasClientSecret: !!paymentIntent.clientSecret,
         },
         'Payment intent created successfully',
       );

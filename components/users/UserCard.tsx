@@ -9,6 +9,7 @@ import {
   getUserInitials,
 } from "@/lib/users/utils";
 import type { UserCardProps } from "@/lib/types";
+import { logger } from "@/lib/logger";
 import { Mail, Phone } from "lucide-react";
 import Image from "next/image";
 import React from "react";
@@ -24,6 +25,14 @@ const UserCard = React.memo<UserCardProps>(function UserCard({
 }) {
   const userName = formatUserName(user);
   const initials = getUserInitials(user);
+  const [imageError, setImageError] = React.useState(false);
+
+  const handleImageError = React.useCallback(() => {
+    if (!imageError) {
+      logger.debug({ userId: user._id, avatar: user.avatar?.image }, '[UserCard] Erreur de chargement de l\'avatar');
+      setImageError(true);
+    }
+  }, [user._id, user.avatar?.image, imageError]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -31,13 +40,14 @@ const UserCard = React.memo<UserCardProps>(function UserCard({
         {/* Avatar */}
         <div className="flex-shrink-0">
           <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-            {user.avatar?.image ? (
+            {user.avatar?.image && !imageError ? (
               <Image
                 src={user.avatar.image}
-                alt={user.avatar.name}
+                alt={user.avatar.name || userName}
                 width={48}
                 height={48}
                 className="w-full h-full object-cover"
+                onError={handleImageError}
               />
             ) : (
               <span className="text-lg font-bold text-gray-600">
@@ -66,7 +76,7 @@ const UserCard = React.memo<UserCardProps>(function UserCard({
               <div className="flex flex-wrap gap-2 mt-3">
                 {user.roles?.map((role: string, index: number) => (
                   <span
-                    key={index}
+                    key={`${role}-${index}`}
                     className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(role as any)}`}
                   >
                     {getRoleText(role as any)}

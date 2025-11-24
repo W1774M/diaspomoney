@@ -11,6 +11,7 @@
 
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
@@ -79,6 +80,7 @@ export class MessagingService {
       { paramIndex: 0, schema: z.string().min(1), paramName: 'userId' },
     ],
   })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async getConversations(
     userId: string,
     options?: { page?: number; limit?: number },
@@ -174,6 +176,7 @@ export class MessagingService {
       },
     ],
   })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async createConversation(
     data: CreateConversationData,
   ): Promise<UIConversation> {
@@ -240,6 +243,7 @@ export class MessagingService {
       { paramIndex: 1, schema: z.string().min(1), paramName: 'userId' },
     ],
   })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async getMessages(
     conversationId: string,
     userId: string,
@@ -321,6 +325,7 @@ export class MessagingService {
       { paramIndex: 1, schema: z.string().min(1), paramName: 'userId' },
     ],
   })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async sendMessage(data: SendMessageData, userId: string): Promise<UIMessage> {
     try {
       // Vérifier que l'utilisateur est participant

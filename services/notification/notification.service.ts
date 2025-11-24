@@ -12,9 +12,10 @@
  * - Dependency Injection
  */
 
-import { LOCALE } from '@/lib/constants';
+import { LOCALE, NOTIFICATION_STATUSES } from '@/lib/constants';
 import { Cacheable } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
 import { SendNotificationSchema } from '@/lib/validations/notification-service.schema';
 import { sendEmail } from '@/lib/email/resend';
@@ -71,6 +72,7 @@ export class NotificationService {
       },
     ],
   })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async sendNotification(data: NotificationData): Promise<Notification> {
     try {
 
@@ -105,7 +107,7 @@ export class NotificationService {
         subject: processedContent.subject,
         content: processedContent.content,
         channels: data.channels,
-        status: 'PENDING',
+        status: NOTIFICATION_STATUSES.PENDING,
         metadata: {
           template: data.template,
           locale: data.locale,
@@ -168,6 +170,7 @@ export class NotificationService {
    * Envoyer une notification de bienvenue
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async sendWelcomeNotification(
     userEmail: string,
     userName: string,
@@ -201,6 +204,7 @@ export class NotificationService {
    * Envoyer une notification de succès de paiement
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async sendPaymentSuccessNotification(
     userEmail: string,
     amount: number,
@@ -240,6 +244,7 @@ export class NotificationService {
    * Envoyer une notification d'échec de paiement
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async sendPaymentFailedNotification(
     userEmail: string,
     amount: number,
@@ -279,6 +284,7 @@ export class NotificationService {
    * Envoyer une notification KYC approuvé
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async sendKYCApprovedNotification(
     userEmail: string,
     userName: string,
@@ -314,6 +320,7 @@ export class NotificationService {
    * Envoyer un code 2FA
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Performance({ warningThreshold: 500, errorThreshold: 2000 })
   async send2FACode(
     userPhone: string,
     code: string,
@@ -345,6 +352,7 @@ export class NotificationService {
    * Envoyer un rappel de rendez-vous
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async sendAppointmentReminder(
     userEmail: string,
     appointmentDate: Date,

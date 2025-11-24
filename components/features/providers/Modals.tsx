@@ -1,6 +1,12 @@
 'use client';
 /**
  * ModalSelectService Component
+ * 
+ * ⚠️ DÉPRÉCIÉ : Ce composant utilise l'ancien flux de réservation.
+ * Pour le nouveau flux, utilisez ServiceBookingWizard depuis @/components/services/ServiceBookingWizard
+ * 
+ * Ce composant est conservé pour compatibilité mais devrait être remplacé progressivement.
+ * 
  * Implémente les design patterns :
  * - Custom Hooks Pattern (useCallback, useMemo, useState)
  * - Error Handling Pattern (via useNotificationManager)

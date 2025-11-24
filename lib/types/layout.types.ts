@@ -80,6 +80,8 @@ export interface UserSectionProps {
  * Props pour le composant FooterActions
  */
 export interface FooterActionsProps {
+  tabsEnabled?: boolean;
+  onToggleTabs?: () => void;
   onSignOut: () => void;
   isSigningOut: boolean;
   pathname: string;

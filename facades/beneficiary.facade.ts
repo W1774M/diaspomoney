@@ -7,11 +7,14 @@
 
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { logger } from '@/lib/logger';
 import { LANGUAGES } from '@/lib/constants';
 import { getBeneficiaryRepository } from '@/repositories';
 import { userService } from '@/services/user/user.service';
 import { notificationService } from '@/services/notification/notification.service';
+import { beneficiaryMapper } from '@/lib/mappers';
 import type {
   Beneficiary,
   BeneficiaryData,
@@ -80,6 +83,8 @@ export class BeneficiaryFacade {
       },
     ],
   })
+  @Audit({ eventType: 'BENEFICIARY_CREATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async createBeneficiary(
     userId: string,
     data: BeneficiaryFacadeData,
@@ -108,7 +113,10 @@ export class BeneficiaryFacade {
         address: data.address || '',
       });
 
-      const beneficiaryId = beneficiary.id || (beneficiary as any)._id?.toString() || '';
+      // Mapper le résultat avec BeneficiaryMapper
+      const mappedBeneficiary = beneficiaryMapper.map(beneficiary as any);
+
+      const beneficiaryId = mappedBeneficiary.id;
 
       let notificationSent = false;
       let emailSent = false;
@@ -174,7 +182,7 @@ export class BeneficiaryFacade {
 
       return {
         success: true,
-        beneficiary,
+        beneficiary: mappedBeneficiary as unknown as Beneficiary, // Convertir vers le type attendu
         notificationSent,
         emailSent,
       };
@@ -222,6 +230,8 @@ export class BeneficiaryFacade {
       },
     ],
   })
+  @Audit({ eventType: 'BENEFICIARY_UPDATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async updateBeneficiary(
     userId: string,
     beneficiaryId: string,

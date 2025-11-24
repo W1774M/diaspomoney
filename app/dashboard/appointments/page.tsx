@@ -2,13 +2,17 @@
 
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useBookings } from '@/hooks/useBookings';
-import { BOOKING_STATUSES } from '@/lib/constants';
+import { BOOKING_STATUSES, ROLES } from '@/lib/constants';
+import { AuthorizedRoute, AuthorizedContent } from '@/components/auth';
 import { Search, Calendar, CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 
-export default function AppointmentsPage() {
-  const { isAuthenticated, isAdmin, isCSM, isProvider, isCustomer, user, isLoading } = useAuth();
+/**
+ * Contenu de la page des rendez-vous
+ */
+function AppointmentsPageContent() {
+  const { isAdmin, isCSM, isProvider, isCustomer, user } = useAuth();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -55,12 +59,6 @@ export default function AppointmentsPage() {
     return bookings.filter((booking: any) => booking.serviceType === 'HEALTH');
   }, [bookings]);
 
-  // Vérification des permissions
-  useEffect(() => {
-    if (!isLoading && (!isAuthenticated || (!isAdmin() && !isCSM() && !isProvider() && !isCustomer()))) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isAdmin, isCSM, isProvider, isCustomer, isLoading, router]);
 
   // Filtrage local par terme de recherche
   const filteredAppointments = useMemo(() => {
@@ -193,17 +191,6 @@ export default function AppointmentsPage() {
     return appointment.requester?.email || 'Client inconnu';
   };
 
-  if (isLoading) {
-    return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]'></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || (!isAdmin() && !isCSM() && !isProvider() && !isCustomer())) {
-    return null;
-  }
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -243,6 +230,7 @@ export default function AppointmentsPage() {
 
             {/* Filtre statut */}
             <select
+              title='Filtre statut'
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
@@ -298,7 +286,7 @@ export default function AppointmentsPage() {
                       <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                         N° Réservation
                       </th>
-                      {(isAdmin() || isCSM()) && (
+                      <AuthorizedContent roles={[ROLES.ADMIN, ROLES.CSM]}>
                         <>
                           <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                             Patient
@@ -307,7 +295,7 @@ export default function AppointmentsPage() {
                             Médecin
                           </th>
                         </>
-                      )}
+                      </AuthorizedContent>
                       {isProvider() && (
                         <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                           Patient
@@ -343,7 +331,7 @@ export default function AppointmentsPage() {
                             {appointment.reservationNumber || appointment._id?.slice(-8) || 'N/A'}
                           </div>
                         </td>
-                        {(isAdmin() || isCSM()) && (
+                        <AuthorizedContent roles={[ROLES.ADMIN, ROLES.CSM]}>
                           <>
                             <td className='px-6 py-4 whitespace-nowrap'>
                               <div className='text-sm text-gray-900'>{getRequesterName(appointment)}</div>
@@ -354,7 +342,7 @@ export default function AppointmentsPage() {
                               <div className='text-sm text-gray-500'>{appointment.provider?.email}</div>
                             </td>
                           </>
-                        )}
+                        </AuthorizedContent>
                         {isProvider() && (
                           <td className='px-6 py-4 whitespace-nowrap'>
                             <div className='text-sm text-gray-900'>{getRequesterName(appointment)}</div>
@@ -424,6 +412,19 @@ export default function AppointmentsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Page des rendez-vous
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function AppointmentsPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.ADMIN, ROLES.CSM, ROLES.PROVIDER, ROLES.CUSTOMER]} redirectTo="/dashboard">
+      <AppointmentsPageContent />
+    </AuthorizedRoute>
   );
 }
 

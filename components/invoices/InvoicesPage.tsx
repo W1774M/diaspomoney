@@ -7,12 +7,11 @@
  * - Notification Pattern (via useNotificationManager)
  */
 
-import { useNotificationManager } from '@/components/ui/Notification';
 import { useAuth } from '@/hooks';
-import { useInvoiceFilters } from '@/hooks/invoices';
+import { useInvoiceFilters, useInvoices, useInvoiceActions } from '@/hooks/invoices';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import InvoicesFilters from './InvoicesFilters';
 import InvoicesHeader from './InvoicesHeader';
 import InvoicesTable from './InvoicesTable';
@@ -21,11 +20,8 @@ import InvoicesTabs from './InvoicesTabs';
 const InvoicesPage = React.memo(function InvoicesPage() {
   const { user, isAdmin, isProvider, isCustomer } = useAuth();
   const { canCreateInvoices } = usePermissions();
-  const { addSuccess, addError } = useNotificationManager();
   const router = useRouter();
 
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<
     'PAID' | 'PENDING' | 'OVERDUE' | 'CANCELLED' | 'ALL'
@@ -35,38 +31,20 @@ const InvoicesPage = React.memo(function InvoicesPage() {
     'all' | 'as-provider' | 'as-customer'
   >('all');
 
-  // Récupérer les factures depuis la base de données
-  useEffect(() => {
-    const fetchInvoices = async () => {
-      if (!user) {
-        setInvoices([]);
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      try {
-        // Appel à l'API pour récupérer les factures de l'utilisateur connecté
-        const response = await fetch('/api/invoices', { method: 'GET' });
-        if (!response.ok) {
-          setInvoices([]);
-          setLoading(false);
-          return;
-        }
-        const data = await response.json();
-        // Optionnel: filtrer par utilisateur côté client si l'API retourne trop large
-        setInvoices(Array.isArray(data.invoices) ? data.invoices : []);
-      } catch (_error) {
-        setInvoices([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInvoices();
-  }, [user]);
+  // Utiliser le hook useInvoices pour récupérer les factures
+  const { invoices, loading, error: invoicesError, refetch } = useInvoices({
+    userId: user?.id,
+    status: statusFilter !== 'ALL' ? statusFilter : undefined,
+    isAdmin: isAdmin(),
+    isProvider: isProvider(),
+    isCustomer: isCustomer(),
+  });
 
   const { filteredInvoices, updateFilter, clearFilters, hasActiveFilters } =
     useInvoiceFilters(invoices);
+
+  // Utiliser le hook useInvoiceActions pour les actions
+  const { deleteInvoice, downloadInvoice } = useInvoiceActions(refetch);
 
   const handleView = useCallback(
     (id: string) => {
@@ -82,37 +60,19 @@ const InvoicesPage = React.memo(function InvoicesPage() {
     [router],
   );
 
-  // Optionnel: Ici on peut appeler une API pour supprimer réellement la facture
   const handleDelete = useCallback(
     async (id: string) => {
-      if (
-        window.confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')
-      ) {
-        try {
-          setLoading(true);
-          const response = await fetch(`/api/invoices/${id}`, {
-            method: 'DELETE',
-          });
-          if (response.ok) {
-            setInvoices(prev => prev.filter(invoice => invoice._id !== id));
-            addSuccess('Facture supprimée avec succès');
-          } else {
-            addError('Erreur lors de la suppression de la facture');
-          }
-        } catch (_error) {
-          addError('Erreur lors de la suppression de la facture');
-        } finally {
-          setLoading(false);
-        }
-      }
+      await deleteInvoice(id);
     },
-    [addSuccess, addError],
+    [deleteInvoice],
   );
 
-  const handleDownload = useCallback((id: string) => {
-    // Implémenter le téléchargement de la facture
-    window.open(`/api/invoices/${id}/download`, '_blank');
-  }, []);
+  const handleDownload = useCallback(
+    async (id: string) => {
+      await downloadInvoice(id);
+    },
+    [downloadInvoice],
+  );
 
   const handleAddInvoice = useCallback(() => {
     router.push('/dashboard/invoices/new');
@@ -177,6 +137,18 @@ const InvoicesPage = React.memo(function InvoicesPage() {
             className='px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors'
           >
             Effacer tous les filtres
+          </button>
+        </div>
+      )}
+
+      {invoicesError && (
+        <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
+          <p className='text-red-800'>{invoicesError}</p>
+          <button
+            onClick={() => refetch()}
+            className='mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors'
+          >
+            Réessayer
           </button>
         </div>
       )}

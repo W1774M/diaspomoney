@@ -195,9 +195,7 @@ export function useSettings() {
     [
       profileData,
       preferencesData,
-      securityData,
       privacyData,
-      complaintsData,
     ],
   );
 

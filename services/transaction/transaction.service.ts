@@ -15,6 +15,9 @@ import { SPECIALITY_TYPES, PAYMENT_METHODS } from '@/lib/constants';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
+import { Transaction as TransactionDecorator } from '@/lib/decorators/transaction.decorator';
 import { CreateTransactionServiceSchema } from '@/lib/validations/transaction-service.schema';
 import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
@@ -64,6 +67,9 @@ export class TransactionService {
       },
     ],
   })
+  @Audit({ eventType: 'TRANSACTION_CREATED', includeArgs: true })
+  @Performance({ warningThreshold: 2000, errorThreshold: 5000 })
+  @TransactionDecorator()
   @InvalidateCache('TransactionService:*')
   async createTransaction(data: TransactionData): Promise<Transaction> {
     try {
@@ -240,6 +246,8 @@ export class TransactionService {
    * Mettre à jour le statut d'une transaction
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Audit({ eventType: 'TRANSACTION_STATUS_UPDATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('TransactionService:*')
   async updateTransactionStatus(
     transactionId: string,
@@ -311,6 +319,9 @@ export class TransactionService {
    * Rembourser une transaction
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Audit({ eventType: 'TRANSACTION_REFUNDED', includeArgs: true })
+  @Performance({ warningThreshold: 2000, errorThreshold: 5000 })
+  @TransactionDecorator()
   @InvalidateCache('TransactionService:*')
   async refundTransaction(
     transactionId: string,

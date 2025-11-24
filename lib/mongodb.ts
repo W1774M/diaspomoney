@@ -27,7 +27,7 @@ if (!process.env['MONGODB_URI']) {
 
 // Configuration optimisée pour éviter les timeouts
 // Utiliser les valeurs de la configuration centralisée avec des valeurs par défaut
-const dbOptions = config.database.options || {};
+const dbOptions = config?.database?.options || {};
 const options = {
   maxPoolSize: dbOptions['maxPoolSize'] || 10,
   serverSelectionTimeoutMS: dbOptions['serverSelectionTimeoutMS'] || 10000, // Augmenté à 10s pour Kubernetes

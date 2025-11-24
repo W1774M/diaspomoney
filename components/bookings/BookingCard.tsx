@@ -31,8 +31,9 @@ const BookingCard = React.memo<BookingCardProps>(function BookingCard({
   const bookingAmount = formatBookingAmount(booking);
   const statusDisplay = getStatusDisplay(booking.status);
   const statusColor = getStatusColor(booking.status);
-  const paymentStatusDisplay = getPaymentStatusDisplay(booking.paymentStatus);
-  const paymentStatusColor = getPaymentStatusColor(booking.paymentStatus);
+  const paymentStatus = (booking.metadata?.['paymentStatus'] as string) || 'pending';
+  const paymentStatusDisplay = getPaymentStatusDisplay(paymentStatus);
+  const paymentStatusColor = getPaymentStatusColor(paymentStatus);
 
   return (
     <tr className="hover:bg-gray-50">

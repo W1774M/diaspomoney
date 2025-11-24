@@ -8,6 +8,7 @@
  * - Error Handling Pattern (Sentry)
  */
 
+import { MessageQueryBuilder } from '@/builders';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
@@ -55,25 +56,45 @@ export class MongoMessageRepository implements IMessageRepository {
     options?: PaginationOptions,
   ): Promise<PaginatedFindResult<MessageType>> {
     try {
-      const page = options?.page || 1;
-      const limit = options?.limit || 50;
-      const offset = options?.offset || (page - 1) * limit;
-
-      const query = (Message as any).find({
-        conversationId: new ObjectId(conversationId),
-      });
-
-      if (options?.sort) {
-        query.sort(options.sort);
+      const builder = new MessageQueryBuilder()
+        .byConversation(conversationId);
+      
+      if (options) {
+        if (options.limit) builder.limit(options.limit);
+        if (options.offset) builder.offset(options.offset);
+        if (options.page) builder.page(options.page, options.limit || 50);
+        if (options.sort) {
+          Object.entries(options.sort).forEach(([field, direction]) => {
+            builder.orderBy(field, direction === 1 ? 'asc' : 'desc');
+          });
+        } else {
+          builder.orderBy('createdAt', 'desc');
+        }
       } else {
-        query.sort({ createdAt: -1 });
+        builder.orderBy('createdAt', 'desc');
       }
 
+      const queryFilters = builder.getFilters();
+      const sort = builder.getSort();
+      const pagination = builder.getPagination();
+      const page = pagination.page || 1;
+      const limit = pagination.limit || 50;
+      const offset = pagination.offset || (page - 1) * limit;
+
+      // Convertir conversationId en ObjectId pour MongoDB
+      const mongoQuery = {
+        ...queryFilters,
+        conversationId: new ObjectId(conversationId),
+      };
+
+      const mongoSort: Record<string, 1 | -1> = {};
+      Object.entries(sort).forEach(([field, direction]) => {
+        mongoSort[field] = direction === 1 ? 1 : -1;
+      });
+
       const [messages, total] = await Promise.all([
-        query.skip(offset).limit(limit).lean(),
-        (Message as any).countDocuments({
-          conversationId: new ObjectId(conversationId),
-        }),
+        (Message as any).find(mongoQuery).sort(mongoSort).skip(offset).limit(limit).lean(),
+        (Message as any).countDocuments(mongoQuery),
       ]);
 
       return {

@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/hooks';
 import { ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -47,41 +48,41 @@ function getHighestPriorityDashboard(userRoles: string[] = []): string {
   return '/dashboard';
 }
 
-export default function DashboardPage() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+/**
+ * Contenu de la page dashboard (redirection)
+ */
+function DashboardPageContent() {
+  const { user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-
     // Rediriger vers le dashboard de priorité la plus haute
-    if (!isLoading && isAuthenticated && user?.roles) {
+    if (user?.roles) {
       const highestPriorityDashboard = getHighestPriorityDashboard(user.roles);
       if (highestPriorityDashboard !== '/dashboard') {
         router.replace(highestPriorityDashboard);
       }
     }
-  }, [isAuthenticated, isLoading, router, user]);
-
-  if (isLoading) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
+  }, [user?.roles, router]);
 
   // Afficher un loader pendant la redirection
   return (
     <div className='min-h-screen flex items-center justify-center'>
       <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
     </div>
+  );
+}
+
+/**
+ * Page dashboard principale
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ * - Redirection automatique vers le dashboard approprié selon le rôle
+ */
+export default function DashboardPage() {
+  return (
+    <AuthorizedRoute redirectTo="/login">
+      <DashboardPageContent />
+    </AuthorizedRoute>
   );
 }

@@ -9,6 +9,7 @@
 
 import { auth } from '@/auth';
 import { handleApiRoute, ApiErrors, validateBody } from '@/lib/api/error-handler';
+import { createListResponse, createResourceResponse } from '@/lib/api/response';
 import { beneficiaryFacade } from '@/facades';
 import { getUserRepository } from '@/repositories';
 import {
@@ -16,6 +17,9 @@ import {
   type CreateBeneficiaryApiInput,
 } from '@/lib/validations/beneficiary.schema';
 import { NextRequest } from 'next/server';
+
+// Désactiver le prerendering pour cette route API
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/beneficiaries - Récupérer tous les bénéficiaires de l'utilisateur
@@ -60,7 +64,7 @@ export async function GET(request: NextRequest) {
         updatedAt: b.updatedAt?.toISOString() || new Date().toISOString(),
       }));
 
-      return { beneficiaries: mappedBeneficiaries };
+      return createListResponse(mappedBeneficiaries);
     },
     'api/beneficiaries',
   );
@@ -160,7 +164,12 @@ export async function POST(request: NextRequest) {
         updatedAt: beneficiary.updatedAt?.toISOString() || new Date().toISOString(),
       };
 
-      return { beneficiary: mappedBeneficiary };
+      return createResourceResponse(
+        mappedBeneficiary,
+        {
+          message: 'Bénéficiaire créé avec succès',
+        },
+      );
     },
     'api/beneficiaries',
   );

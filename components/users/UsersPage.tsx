@@ -1,17 +1,21 @@
 "use client";
 
-import { useAuth, useUsers } from "@/hooks";
+import { useUsers, useAuthorization } from "@/hooks";
 import { useUserFilters } from "@/hooks/users";
 import { ROLES, USER_STATUSES } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 import { useRouter } from "next/navigation";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import UsersFilters from "./UsersFilters";
 import UsersHeader from "./UsersHeader";
 import UsersTable from "./UsersTable";
 
-const UsersPage = React.memo(function UsersPage() {
-  const { isAdmin } = useAuth();
+function UsersPage() {
   const router = useRouter();
+  
+  // Mémoriser les options d'autorisation pour éviter les re-renders
+  const authOptions = useMemo(() => ({ roles: [ROLES.ADMIN] }), []);
+  const { isAuthorized } = useAuthorization(authOptions);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<
@@ -21,29 +25,57 @@ const UsersPage = React.memo(function UsersPage() {
     typeof USER_STATUSES.ACTIVE | typeof USER_STATUSES.INACTIVE | typeof USER_STATUSES.PENDING | typeof USER_STATUSES.SUSPENDED | "ALL"
   >("ALL");
 
-  const { users = [], loading } = useUsers({
-    role: roleFilter !== "ALL" ? roleFilter : undefined,
-    status: statusFilter !== "ALL" ? statusFilter : undefined,
-    limit: 100, // Maximum autorisé par l'API
-  });
+  // Mémoriser les options pour éviter les re-renders infinis
+  const usersOptions = useMemo(() => {
+    const opts = {
+      role: roleFilter !== "ALL" ? roleFilter : undefined,
+      status: statusFilter !== "ALL" ? statusFilter : undefined,
+      limit: 100, // Maximum autorisé par l'API
+    };
+    return opts;
+  }, [roleFilter, statusFilter]);
 
-  const [localUsers, setLocalUsers] = useState(users);
-
+  const { users = [], loading, error } = useUsers(usersOptions);
+  
+  // Utiliser directement users au lieu de localUsers pour éviter les mises à jour inutiles
+  // localUsers n'est nécessaire que pour les suppressions locales
+  const [deletedUserIds, setDeletedUserIds] = useState<Set<string>>(new Set());
+  
+  // Logger les erreurs de récupération des utilisateurs
   useEffect(() => {
-    setLocalUsers(users);
-  }, [users]);
+    if (error) {
+      logger.error({ error, roleFilter, statusFilter }, '[UsersPage] Erreur lors de la récupération des utilisateurs');
+    }
+  }, [error, roleFilter, statusFilter]);
+
+  // Logger les tentatives d'accès non autorisées
+  useEffect(() => {
+    if (!isAuthorized) {
+      logger.warn({}, '[UsersPage] Tentative d\'accès non autorisée à la page utilisateurs');
+    }
+  }, [isAuthorized]);
+  
+  // Filtrer les utilisateurs supprimés localement
+  const localUsers = useMemo(() => {
+    if (deletedUserIds.size === 0) {
+      return users;
+    }
+    return users.filter(user => !deletedUserIds.has(user._id));
+  }, [users, deletedUserIds]);
 
   const { filteredUsers, updateFilter, clearFilters, hasActiveFilters } =
     useUserFilters(localUsers as any);
 
   const handleDelete = useCallback(async (id: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
-      setLocalUsers(prev => prev.filter(user => user._id !== id));
+      logger.info({ userId: id }, '[UsersPage] Suppression d\'utilisateur demandée');
+      setDeletedUserIds(prev => new Set([...prev, id]));
     }
   }, []);
 
   const handleEdit = useCallback(
     (id: string) => {
+      logger.debug({ userId: id }, '[UsersPage] Navigation vers édition utilisateur');
       router.push(`/dashboard/users/${id}/edit`);
     },
     [router],
@@ -51,6 +83,7 @@ const UsersPage = React.memo(function UsersPage() {
 
   const handleView = useCallback(
     (id: string) => {
+      logger.debug({ userId: id }, '[UsersPage] Navigation vers détails utilisateur');
       router.push(`/dashboard/users/${id}`);
     },
     [router],
@@ -58,17 +91,20 @@ const UsersPage = React.memo(function UsersPage() {
 
   const handleSendEmail = useCallback((user: any) => {
     if (user.email) {
+      logger.debug({ userId: user._id, email: user.email }, '[UsersPage] Ouverture client email');
       window.open(`mailto:${user.email}`);
     }
   }, []);
 
   const handleCall = useCallback((user: any) => {
     if (user.phone) {
+      logger.debug({ userId: user._id, phone: user.phone }, '[UsersPage] Appel utilisateur');
       window.open(`tel:${user.phone}`);
     }
   }, []);
 
   const handleAddUser = useCallback(() => {
+    logger.debug({}, '[UsersPage] Navigation vers création utilisateur');
     router.push("/dashboard/users/new");
   }, [router]);
 
@@ -96,7 +132,7 @@ const UsersPage = React.memo(function UsersPage() {
     [updateFilter],
   );
 
-  if (!isAdmin()) {
+  if (!isAuthorized) {
     return (
       <div className="text-center py-12">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">
@@ -147,8 +183,8 @@ const UsersPage = React.memo(function UsersPage() {
       />
     </div>
   );
-});
+}
 
 UsersPage.displayName = "UsersPage";
 
-export default UsersPage;
+export default React.memo(UsersPage);

@@ -13,6 +13,7 @@
 
 import { Cacheable } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
 import { z } from 'zod';
@@ -55,6 +56,7 @@ export class EmailService {
    * Test de connexion Resend
    */
   @Log({ level: 'info', logArgs: false, logExecutionTime: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @Cacheable(60, { prefix: 'EmailService:testConnection' }) // Cache 1 minute
   async testConnection(): Promise<boolean> {
     try {
@@ -97,6 +99,7 @@ export class EmailService {
       { paramIndex: 2, schema: z.string().url(), paramName: 'verificationUrl' },
     ],
   })
+  @Performance({ warningThreshold: 1500, errorThreshold: 4000 })
   async sendWelcomeEmail(
     email: string,
     name: string,
@@ -148,6 +151,7 @@ export class EmailService {
       { paramIndex: 2, schema: z.string().url(), paramName: 'resetUrl' },
     ],
   })
+  @Performance({ warningThreshold: 1500, errorThreshold: 4000 })
   async sendPasswordResetEmail(
     email: string,
     name: string,
@@ -207,6 +211,7 @@ export class EmailService {
       { paramIndex: 4, schema: z.string().min(1), paramName: 'service' },
     ],
   })
+  @Performance({ warningThreshold: 1500, errorThreshold: 4000 })
   async sendPaymentConfirmationEmail(
     email: string,
     name: string,
@@ -275,6 +280,7 @@ export class EmailService {
       { paramIndex: 5, schema: z.enum(['confirmation', 'reminder']), paramName: 'type' },
     ],
   })
+  @Performance({ warningThreshold: 1500, errorThreshold: 4000 })
   async sendAppointmentNotificationEmail(
     email: string,
     name: string,
@@ -342,6 +348,7 @@ export class EmailService {
       { paramIndex: 2, schema: z.string().min(1), paramName: 'html' },
     ],
   })
+  @Performance({ warningThreshold: 1500, errorThreshold: 4000 })
   async sendCustomEmail(
     to: string | string[],
     subject: string,

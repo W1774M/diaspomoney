@@ -1,26 +1,21 @@
 'use client';
 
-import { useAuth } from '@/hooks/auth/useAuth';
-import { ProviderInfo } from '@/lib/types';
+// import { useAuth } from '@/hooks';
+// import { ProviderInfo } from '@/lib/types';
+import { ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 import { Calendar } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 /**
- * Page de planning des missions
+ * Contenu de la page de planning des missions
  * Accessible uniquement aux providers avec profil INDIVIDUAL
  */
-export default function MissionPlanningPage() {
-  const { isAuthenticated, isProvider, user, isLoading } = useAuth();
-  const router = useRouter();
+function MissionPlanningPageContent() {
+  // const { user, isProvider } = useAuth();
+  // const isIndividualProvider = isProvider() && (user as ProviderInfo)?.providerInfo?.type === 'INDIVIDUAL';
 
-  const isIndividualProvider = isProvider() && (user as ProviderInfo)?.providerInfo?.type === 'INDIVIDUAL';
-
-  useEffect(() => {
-    if (!isLoading && (!isAuthenticated || !isIndividualProvider)) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isIndividualProvider, isLoading, router]);
+  // Note: La vérification du type INDIVIDUAL doit être faite côté backend
+  // Ici on vérifie seulement que l'utilisateur est un provider
 
 
 
@@ -52,6 +47,19 @@ export default function MissionPlanningPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Page de planning des missions
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function MissionPlanningPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.PROVIDER]} redirectTo="/dashboard">
+      <MissionPlanningPageContent />
+    </AuthorizedRoute>
   );
 }
 

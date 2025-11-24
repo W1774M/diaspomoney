@@ -3,6 +3,7 @@
  */
 
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import { getStripeInstance } from '@/lib/stripe-config';
 import type {
   StripePaymentIntentCreateParams,
   StripeRefundCreateParams,
@@ -25,14 +26,9 @@ export class StripePaymentStrategy implements IPaymentStrategy {
   private stripe: Stripe;
 
   constructor() {
-    const secretKey = process.env['STRIPE_SECRET_KEY'];
-    if (!secretKey) {
-      throw new Error('STRIPE_SECRET_KEY is not defined');
-    }
-
-    this.stripe = new Stripe(secretKey, {
-      apiVersion: '2025-10-29.clover',
-    });
+    // Utilise la configuration centralisée conforme à la documentation Stripe
+    // https://docs.stripe.com/api/authentication?lang=node
+    this.stripe = getStripeInstance();
   }
 
   canProcess(data: PaymentData): boolean {
@@ -129,22 +125,108 @@ export class StripePaymentStrategy implements IPaymentStrategy {
         };
       }
 
+      // Créer ou récupérer un customer Stripe
+      // Si customerId commence par "cus_", c'est déjà un ID Stripe
+      // Sinon, on crée un nouveau customer ou on le récupère depuis les métadonnées
+      let stripeCustomerId: string | undefined = undefined;
+      
+      if (data.customerId && data.customerId.startsWith('cus_')) {
+        // C'est déjà un ID Stripe valide
+        stripeCustomerId = data.customerId;
+        // eslint-disable-next-line no-console
+        console.log('[StripePaymentStrategy] Using existing Stripe customer:', stripeCustomerId);
+      } else if (data.metadata?.['customerEmail']) {
+        // Chercher un customer existant par email
+        const customers = await this.stripe.customers.list({
+          email: data.metadata['customerEmail'],
+          limit: 1,
+        });
+        
+        if (customers.data.length > 0) {
+          stripeCustomerId = customers.data[0]?.id || undefined;
+          // eslint-disable-next-line no-console
+          console.log('[StripePaymentStrategy] Found existing Stripe customer:', stripeCustomerId);
+        } else {
+          // Créer un nouveau customer
+          const customer = await this.stripe.customers.create({
+            email: data.metadata['customerEmail'],
+            metadata: {
+              userId: data.customerId,
+              source: 'diaspomoney',
+            },
+          });
+          stripeCustomerId = customer.id;
+          // eslint-disable-next-line no-console
+          console.log('[StripePaymentStrategy] Created new Stripe customer:', stripeCustomerId);
+        }
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('[StripePaymentStrategy] No customer email provided, creating PaymentIntent without customer');
+      }
+
       const paymentIntentParams: StripePaymentIntentCreateParams = {
         amount: Math.round(data.amount * 100),
         currency: data.currency.toLowerCase(),
-        customer: data.customerId,
+        ...(stripeCustomerId && { customer: stripeCustomerId }),
+        ...(data.metadata?.['customerEmail'] && !stripeCustomerId && { 
+          receipt_email: data.metadata['customerEmail'], 
+        }),
         metadata: {
           ...data.metadata,
+          userId: data.customerId,
           source: 'diaspomoney',
           created_at: new Date().toISOString(),
         },
+        // Note: automatic_payment_methods et confirmation_method sont mutuellement exclusifs
+        // Quand automatic_payment_methods est utilisé, confirmation_method est géré automatiquement
         automatic_payment_methods: {
           enabled: true,
         },
-        confirmation_method: 'manual',
+        // Ne pas spécifier confirmation_method quand automatic_payment_methods est utilisé
         capture_method: 'automatic',
       };
-      const paymentIntent = await this.stripe.paymentIntents.create(paymentIntentParams);
+      
+      let paymentIntent;
+      try {
+        paymentIntent = await this.stripe.paymentIntents.create(paymentIntentParams);
+      } catch (stripeError: any) {
+        console.error('[StripePaymentStrategy] Error creating PaymentIntent:', {
+          error: stripeError.message,
+          type: stripeError.type,
+          code: stripeError.code,
+          param: stripeError.param,
+          paymentIntentParams: {
+            ...paymentIntentParams,
+            customer: paymentIntentParams.customer ? `${paymentIntentParams.customer.substring(0, 10)}...` : undefined,
+          },
+        });
+        Sentry.captureException(stripeError, {
+          tags: { component: 'StripePaymentStrategy', method: 'createPaymentIntent' },
+          extra: { paymentIntentParams, stripeError },
+        });
+        throw new Error(
+          `Erreur Stripe lors de la création du PaymentIntent: ${stripeError.message || 'Erreur inconnue'}`,
+        );
+      }
+
+      // Vérifier que client_secret est présent (obligatoire pour Stripe Elements)
+      if (!paymentIntent.client_secret) {
+        const error = new Error(
+          `Stripe n'a pas retourné de client_secret pour le PaymentIntent ${paymentIntent.id}. ` +
+          `Status: ${paymentIntent.status}, Confirmation method: ${paymentIntentParams.confirmation_method}`,
+        );
+        console.error('[StripePaymentStrategy] Missing client_secret:', {
+          paymentIntentId: paymentIntent.id,
+          status: paymentIntent.status,
+          confirmation_method: paymentIntentParams.confirmation_method,
+          capture_method: paymentIntentParams.capture_method,
+        });
+        Sentry.captureException(error, {
+          tags: { component: 'StripePaymentStrategy', method: 'createPaymentIntent' },
+          extra: { paymentIntentId: paymentIntent.id, paymentIntent },
+        });
+        throw error;
+      }
 
       monitoringManager.recordMetric({
         name: 'payment_intents_created',
@@ -160,7 +242,7 @@ export class StripePaymentStrategy implements IPaymentStrategy {
       return {
         success: true,
         paymentIntentId: paymentIntent.id,
-        clientSecret: paymentIntent.client_secret || '',
+        clientSecret: paymentIntent.client_secret,
         metadata: {
           status: paymentIntent.status,
           amount: paymentIntent.amount,

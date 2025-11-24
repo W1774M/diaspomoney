@@ -1,7 +1,8 @@
 "use client";
 
-import { useAuth, useProviders } from "@/hooks";
-import { USER_STATUSES } from "@/lib/constants";
+import { useProviders } from "@/hooks";
+import { USER_STATUSES, ROLES } from "@/lib/constants";
+import { AuthorizedRoute } from "@/components/auth";
 import {
   ArrowLeft,
   Building,
@@ -12,20 +13,14 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-export default function ProviderContactsPage() {
-  const { isCSM, isAuthenticated, isLoading, status } = useAuth();
-  const router = useRouter();
+/**
+ * Contenu de la page Contacts des prestataires
+ */
+function ProviderContactsPageContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const { providers, loading } = useProviders();
-
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    }
-  }, [status, router]);
 
 
   const filteredProviders = providers.filter(provider => {
@@ -70,41 +65,6 @@ export default function ProviderContactsPage() {
     }).format(date);
   };
 
-  if (isLoading) {
-    return (
-      <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
-        <p className="mt-4 text-gray-600">Chargement...</p>
-      </div>
-    );
-  }
-
-  if (!isLoading && !isAuthenticated) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-red-600 mb-4">
-          <h2 className="text-xl font-semibold">Accès non autorisé</h2>
-          <p className="text-gray-600">
-            Vous devez être connecté pour accéder à cette page.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isLoading && !isCSM()) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-red-600 mb-4">
-          <h2 className="text-xl font-semibold">Accès non autorisé</h2>
-          <p className="text-gray-600">
-            Vous n'avez pas les permissions nécessaires pour accéder à cette
-            page. Seuls les CSM peuvent consulter les contacts des prestataires.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   if (loading) {
     return (
@@ -291,5 +251,18 @@ export default function ProviderContactsPage() {
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * Page Contacts des prestataires
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function ProviderContactsPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.CSM]} redirectTo="/dashboard">
+      <ProviderContactsPageContent />
+    </AuthorizedRoute>
   );
 }

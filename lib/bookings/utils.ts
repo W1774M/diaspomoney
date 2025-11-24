@@ -1,4 +1,4 @@
-import type { Booking } from "@/lib/types";
+import type { BookingResponse } from "@/lib/mappers/booking.mapper";
 
 /**
  * Get booking status color
@@ -75,16 +75,16 @@ export function getPaymentStatusDisplay(status: string): string {
 /**
  * Format booking date
  */
-export function formatBookingDate(booking: Booking): string {
-  return new Date(booking.date).toLocaleDateString("fr-FR");
+export function formatBookingDate(booking: BookingResponse): string {
+  const date = booking.appointmentDate ? new Date(booking.appointmentDate) : new Date(booking.createdAt);
+  return date.toLocaleDateString("fr-FR");
 }
 
 /**
  * Format booking time (extracted from date or other field)
  */
-export function formatBookingTime(booking: Booking): string {
-  // Since the existing type doesn't have a time field, we'll extract it from the date or use a default
-  const date = new Date(booking.date);
+export function formatBookingTime(booking: BookingResponse): string {
+  const date = booking.appointmentDate ? new Date(booking.appointmentDate) : new Date(booking.createdAt);
   return date.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
@@ -94,45 +94,52 @@ export function formatBookingTime(booking: Booking): string {
 /**
  * Format booking amount
  */
-export function formatBookingAmount(booking: Booking): string {
-  return `${booking.totalAmount} €`;
+export function formatBookingAmount(booking: BookingResponse): string {
+  const amount = (booking.metadata?.['totalAmount'] as number) || (booking.metadata?.['amount'] as number) || 0;
+  return `${amount} €`;
 }
 
 /**
  * Get provider full name
  */
-export function getProviderName(booking: Booking): string {
-  return `${booking.provider.firstName} ${booking.provider.lastName}`;
+export function getProviderName(booking: BookingResponse): string {
+  // Provider info is not directly available in BookingResponse, use serviceId as fallback
+  return booking.providerId || 'N/A';
 }
 
 /**
  * Get requester full name
  */
-export function getRequesterName(booking: Booking): string {
-  return `${booking.requester.firstName} ${booking.requester.lastName}`;
+export function getRequesterName(booking: BookingResponse): string {
+  const requesterInfo = booking.metadata?.['requesterInfo'];
+  if (requesterInfo && typeof requesterInfo === 'object' && 'firstName' in requesterInfo && 'lastName' in requesterInfo) {
+    return `${requesterInfo.firstName} ${requesterInfo.lastName}`;
+  }
+  return booking.requesterId || 'N/A';
 }
 
 /**
  * Get provider specialties
  */
-export function getProviderSpecialties(booking: Booking): string {
-  return booking.provider.specialties.join(", ");
+export function getProviderSpecialties(booking: BookingResponse): string {
+  // Specialties are not directly available in BookingResponse
+  return booking.serviceType || 'N/A';
 }
 
 /**
  * Check if booking is upcoming
  */
-export function isUpcoming(booking: Booking): boolean {
-  const bookingDate = new Date(booking.date);
+export function isUpcoming(booking: BookingResponse): boolean {
+  const bookingDate = booking.appointmentDate ? new Date(booking.appointmentDate) : new Date(booking.createdAt);
   const now = new Date();
-  return bookingDate > now && booking.status === "confirmed";
+  return bookingDate > now && booking.status === "CONFIRMED";
 }
 
 /**
  * Check if booking is past
  */
-export function isPast(booking: Booking): boolean {
-  const bookingDate = new Date(booking.date);
+export function isPast(booking: BookingResponse): boolean {
+  const bookingDate = booking.appointmentDate ? new Date(booking.appointmentDate) : new Date(booking.createdAt);
   const now = new Date();
   return bookingDate < now;
 }
@@ -140,8 +147,8 @@ export function isPast(booking: Booking): boolean {
 /**
  * Check if booking is today
  */
-export function isToday(booking: Booking): boolean {
-  const bookingDate = new Date(booking.date);
+export function isToday(booking: BookingResponse): boolean {
+  const bookingDate = booking.appointmentDate ? new Date(booking.appointmentDate) : new Date(booking.createdAt);
   const today = new Date();
   return (
     bookingDate.getDate() === today.getDate() &&
@@ -153,8 +160,8 @@ export function isToday(booking: Booking): boolean {
 /**
  * Get booking urgency level
  */
-export function getUrgencyLevel(booking: Booking): "low" | "medium" | "high" {
-  const bookingDate = new Date(booking.date);
+export function getUrgencyLevel(booking: BookingResponse): "low" | "medium" | "high" {
+  const bookingDate = booking.appointmentDate ? new Date(booking.appointmentDate) : new Date(booking.createdAt);
   const now = new Date();
   const diffHours = (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 

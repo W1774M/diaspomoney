@@ -8,6 +8,7 @@
  * - Error Handling Pattern (Sentry)
  */
 
+import { NotificationQueryBuilder } from '@/builders';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
@@ -227,25 +228,83 @@ export class MongoNotificationRepository implements INotificationRepository {
     }
   }
 
+  /**
+   * Construire une requête notification avec NotificationQueryBuilder
+   */
+  private buildNotificationQuery(
+    filters?: NotificationFilters,
+    options?: PaginationOptions,
+  ): NotificationQueryBuilder {
+    const builder = new NotificationQueryBuilder();
+
+    // Appliquer les filtres
+    if (filters?.recipient) {
+      builder.byRecipient(filters.recipient);
+    }
+    if (filters?.type) {
+      builder.byType(filters.type);
+    }
+    if (filters?.status) {
+      builder.byStatus(filters.status);
+    }
+    if (filters?.channelType) {
+      builder.byChannel(filters.channelType as any);
+    }
+    if (filters?.dateFrom || filters?.dateTo) {
+      if (filters.dateFrom && filters.dateTo) {
+        builder.whereGreaterThanOrEqual('createdAt', filters.dateFrom)
+          .whereLessThanOrEqual('createdAt', filters.dateTo);
+      } else if (filters.dateFrom) {
+        builder.whereGreaterThanOrEqual('createdAt', filters.dateFrom);
+      } else if (filters.dateTo) {
+        builder.whereLessThanOrEqual('createdAt', filters.dateTo);
+      }
+    }
+
+    // Appliquer la pagination
+    if (options) {
+      if (options.limit) {
+        builder.limit(options.limit);
+      }
+      if (options.offset) {
+        builder.offset(options.offset);
+      }
+      if (options.page) {
+        builder.page(options.page);
+      }
+      if (options.sort) {
+        Object.entries(options.sort).forEach(([field, direction]) => {
+          builder.orderBy(field, direction === 1 ? 'asc' : 'desc');
+        });
+      }
+    }
+
+    return builder;
+  }
+
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'NotificationRepository:findWithPagination' }) // Cache 5 minutes
   async findWithPagination(
-    filters?: Record<string, any>,
+    filters?: NotificationFilters,
     options?: PaginationOptions,
   ): Promise<PaginatedFindResult<Notification>> {
     try {
-      const collection = await this.getCollection();
-      const limit = options?.limit || 50;
-      const offset = options?.offset || 0;
-      const page = options?.page || Math.floor(offset / limit) + 1;
+      const builder = this.buildNotificationQuery(filters, options);
+      const query = builder.getFilters();
+      const sort = builder.getSort();
+      const pagination = builder.getPagination();
 
-      const query = filters || {};
+      const collection = await this.getCollection();
+      const limit = pagination.limit || 50;
+      const offset = pagination.offset || 0;
+      const page = pagination.page || Math.floor(offset / limit) + 1;
+
       const total = await collection.countDocuments(query);
 
       let cursor = collection.find(query);
 
-      if (options?.sort) {
-        cursor = cursor.sort(options.sort);
+      if (Object.keys(sort).length > 0) {
+        cursor = cursor.sort(sort);
       } else {
         cursor = cursor.sort({ createdAt: -1 });
       }

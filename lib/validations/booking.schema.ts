@@ -1,68 +1,67 @@
 /**
- * Schémas de validation Zod pour les réservations/bookings
- * Utilisés dans les routes API pour valider les entrées
+ * Schémas de validation Zod pour les réservations de service
+ * Utilise les constantes centralisées
  */
 
 import { z } from 'zod';
+import { SPECIALITY_TYPES, BOOKING_STATUSES, PAYMENT } from '@/lib/constants';
 
-// Constantes locales
-const DEFAULT_SERVICE_ID = 'default';
-const DEFAULT_CURRENCY = 'EUR';
-
-/**
- * Schéma pour le destinataire d'une réservation
- */
-const RecipientSchema = z.object({
-  firstName: z.string().min(1).max(50),
-  lastName: z.string().min(1).max(50),
-  phone: z.string().min(1).max(20),
-}).optional();
-
-/**
- * Schéma pour le paiement d'une réservation
- */
-const BookingPaymentSchema = z.object({
-  amount: z.number().positive('Amount must be positive'),
-  currency: z.string().length(3, 'Currency must be 3 characters').default(DEFAULT_CURRENCY),
-  paymentMethodId: z.string().min(1, 'Payment method ID is required'),
-  createInvoice: z.boolean().optional(),
-}).optional();
+const DEFAULT_CURRENCY = PAYMENT.DEFAULT_CURRENCY;
 
 /**
  * Schéma pour créer une réservation
  */
 export const CreateBookingSchema = z.object({
-  requesterId: z.string().min(1, 'Requester ID is required'),
-  providerId: z.string().min(1, 'Provider ID is required'),
-  serviceId: z.string().min(1).default(DEFAULT_SERVICE_ID),
-  serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION'], {
-    errorMap: () => ({ message: 'Service type must be one of: HEALTH, BTP, EDUCATION' }),
-  }),
-  appointmentDate: z.string().datetime().optional().or(z.date().optional()),
-  timeslot: z.string().max(50).optional(),
+  requesterId: z.string().min(1, 'L\'ID du demandeur est requis'),
+  providerId: z.string().min(1, 'L\'ID du prestataire est requis'),
+  serviceId: z.string().optional(),
+  serviceType: z.enum([
+    SPECIALITY_TYPES.HEALTH,
+    SPECIALITY_TYPES.BTP,
+    SPECIALITY_TYPES.EDUCATION,
+    SPECIALITY_TYPES.LEGAL,
+    SPECIALITY_TYPES.FINANCE,
+    SPECIALITY_TYPES.TECHNOLOGY,
+  ]),
+  appointmentDate: z.union([z.string(), z.date()]).optional(),
+  timeslot: z.string().optional(),
   consultationMode: z.enum(['IN_PERSON', 'TELEMEDICINE', 'HYBRID']).optional(),
-  recipient: RecipientSchema,
-  payment: BookingPaymentSchema,
-  metadata: z.record(z.string()).optional(),
+  recipient: z.union([
+    z.string(),
+    z.object({
+      firstName: z.string(),
+      lastName: z.string(),
+    }),
+  ]).optional(),
+  payment: z.object({
+    amount: z.number().positive(),
+    currency: z.string().default(DEFAULT_CURRENCY),
+    paymentMethodId: z.string().optional(),
+    createInvoice: z.boolean().optional().default(true),
+  }).optional(),
+  metadata: z.record(z.any()).optional(),
 });
 
 /**
  * Schéma pour mettre à jour une réservation
  */
 export const UpdateBookingSchema = z.object({
-  status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW'], {
-    errorMap: () => ({ message: 'Invalid booking status' }),
-  }).optional(),
-  appointmentDate: z.string().datetime().optional().or(z.date().optional()),
-  timeslot: z.string().max(50).optional(),
+  status: z.enum([
+    BOOKING_STATUSES.PENDING,
+    BOOKING_STATUSES.CONFIRMED,
+    BOOKING_STATUSES.IN_PROGRESS,
+    BOOKING_STATUSES.COMPLETED,
+    BOOKING_STATUSES.CANCELLED,
+    BOOKING_STATUSES.NO_SHOW,
+  ]).optional(),
+  appointmentDate: z.union([z.string(), z.date()]).optional(),
+  timeslot: z.string().optional(),
   consultationMode: z.enum(['IN_PERSON', 'TELEMEDICINE', 'HYBRID']).optional(),
-  recipient: RecipientSchema,
-  metadata: z.record(z.string()).optional(),
+  metadata: z.record(z.any()).optional(),
 });
 
 /**
- * Type TypeScript dérivé du schéma
+ * Types TypeScript dérivés des schémas
  */
 export type CreateBookingInput = z.infer<typeof CreateBookingSchema>;
 export type UpdateBookingInput = z.infer<typeof UpdateBookingSchema>;
-

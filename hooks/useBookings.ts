@@ -1,45 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import type { BookingResponse } from '@/lib/mappers/booking.mapper';
 
-export interface Booking {
-  _id: string;
-  userId: string;
-  providerId: string;
-  date: Date;
-  status: string;
-  paymentStatus: string;
-  reservationNumber: string;
-  price: number;
-  totalAmount: number;
-  requester: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-  };
-  recipient: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-  };
-  provider: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    specialties: string[];
-  };
-  selectedService: {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-  };
-  createdAt: Date;
-  updatedAt: Date;
-  [key: string]: any;
-}
+// Utiliser BookingResponse du mapper comme type principal
+export type Booking = BookingResponse;
 
 export interface UseBookingsOptions {
   userId?: string | undefined;
@@ -55,20 +18,26 @@ export const useBookings = (options: UseBookingsOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
 
-  const fetchBookings = async () => {
+  // Mémoriser les options pour éviter les re-renders inutiles
+  // Utiliser JSON.stringify pour comparer les valeurs plutôt que la référence de l'objet
+  const optionsString = JSON.stringify(options);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const memoizedOptions = useMemo(() => options, [optionsString]);
+
+  const fetchBookings = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
       const searchParams = new URLSearchParams();
 
-      if (options.userId) searchParams.append("userId", options.userId);
-      if (options.providerId)
-        searchParams.append("providerId", options.providerId);
-      if (options.status) searchParams.append("status", options.status);
-      if (options.limit) searchParams.append("limit", options.limit.toString());
-      if (options.offset)
-        searchParams.append("offset", options.offset.toString());
+      if (memoizedOptions.userId) searchParams.append("userId", memoizedOptions.userId);
+      if (memoizedOptions.providerId)
+        searchParams.append("providerId", memoizedOptions.providerId);
+      if (memoizedOptions.status) searchParams.append("status", memoizedOptions.status);
+      if (memoizedOptions.limit) searchParams.append("limit", memoizedOptions.limit.toString());
+      if (memoizedOptions.offset)
+        searchParams.append("offset", memoizedOptions.offset.toString());
 
       const response = await fetch(`/api/bookings?${searchParams.toString()}`);
 
@@ -77,24 +46,26 @@ export const useBookings = (options: UseBookingsOptions = {}) => {
       }
 
       const data = await response.json();
-      setBookings(data.bookings);
-      setTotal(data.total);
+      
+      // Le nouveau format standardisé utilise data directement pour les listes
+      if (data.success) {
+        setBookings(Array.isArray(data.data) ? data.data : []);
+        setTotal(data.pagination?.total || 0);
+      } else {
+        throw new Error(data.error || 'Erreur lors de la récupération des réservations');
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : "Erreur inconnue");
+      setBookings([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [memoizedOptions]);
 
   useEffect(() => {
     fetchBookings();
-  }, [
-    options.userId,
-    options.providerId,
-    options.status,
-    options.limit,
-    options.offset,
-  ]);
+  }, [fetchBookings]);
 
   return {
     bookings,

@@ -7,6 +7,7 @@ import {
 import type { INotificationUIType } from '@/lib/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useMemo } from 'react';
 
 const notificationVariants = {
   initial: { opacity: 0, y: 50, scale: 0.3 },
@@ -92,7 +93,7 @@ export default function NotificationContainer() {
 export const useNotificationManager = () => {
   const dispatch = useDispatch();
 
-  return {
+  return useMemo(() => ({
     addSuccess: (message: string, duration = 5000) => {
       dispatch(
         notificationActions.add({
@@ -132,5 +133,5 @@ export const useNotificationManager = () => {
         }),
       );
     },
-  };
+  }), [dispatch]);
 };

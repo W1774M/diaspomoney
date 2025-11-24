@@ -4,19 +4,18 @@
 
  * API Route pour les utilisateurs
  * Implémente les design patterns :
- * - Service Layer Pattern (via userRepository)
- * - Repository Pattern (via userRepository)
- * - Builder Pattern (via UserQueryBuilder)
+ * - Facade Pattern (via userFacade)
+ * - Service Layer Pattern (via userFacade qui utilise userService)
+ * - Repository Pattern (via userFacade qui utilise userRepository)
  * - Error Handling Pattern (via handleApiRoute)
- * - Validation Pattern (via CreateUserSchema)
+ * - Validation Pattern (via CreateUserSchema, UserFiltersSchema)
  */
 
-import { UserQueryBuilder } from '@/builders';
 import { handleApiRoute, validateBody, validateQuery } from '@/lib/api/error-handler';
-import type { PaginationOptions, User, UserRole, UserStatus, ProviderInfo } from '@/lib/types';
-import { getUserRepository } from '@/repositories';
+import { createPaginatedResponse, createResourceResponse } from '@/lib/api/response';
 import { CreateUserSchema, UserFiltersSchema } from '@/lib/validations/user.schema';
 import type { z } from 'zod';
+import type { UserFilters, UserStatus } from '@/lib/types';
 import { LANGUAGES, TIMEZONES, USER_STATUSES, ROLES } from '@/lib/constants';
 import { NextRequest } from 'next/server';
 
@@ -25,13 +24,17 @@ type CreateUserInput = z.infer<typeof CreateUserSchema>;
 /**
  * GET /api/users - Récupérer les utilisateurs
  * 
+ * Implémente les design patterns :
+ * - Facade Pattern (via userFacade.getUsers)
+ * - Error Handling Pattern (via handleApiRoute)
+ * - Validation Pattern (via UserFiltersSchema)
+ * 
  * @param request - La requête HTTP
  * @returns Liste paginée des utilisateurs
  */
 export async function GET(request: NextRequest) {
   return handleApiRoute(request, async () => {
     const { searchParams } = new URL(request.url);
-    const userRepository = getUserRepository();
 
     // Validation des paramètres de requête
     const filtersResult = validateQuery(searchParams, UserFiltersSchema);
@@ -39,51 +42,53 @@ export async function GET(request: NextRequest) {
     type Filters = typeof filtersResult;
     const filters: Filters = filtersResult;
 
-    // Utiliser UserQueryBuilder pour construire la requête
-    const queryBuilder = new UserQueryBuilder();
-
-    // Appliquer les filtres
-    if (filters.role) {
-      queryBuilder.byRole(filters.role);
-    }
-    if (filters.status) {
-      queryBuilder.byStatus(filters.status);
-    }
-    if (filters.search) {
-      queryBuilder.whereOr([
-        { firstName: { $regex: filters.search, $options: 'i' } },
-        { lastName: { $regex: filters.search, $options: 'i' } },
-        { email: { $regex: filters.search, $options: 'i' } },
-      ]);
-    }
-
-    // Pagination (PAGINATION from constants may not provide .DEFAULT_LIMIT/.DEFAULT_PAGE, fix that)
+    // Pagination
     const limit = filters.limit ?? 20;
     const page = filters.page ?? 1;
-    queryBuilder.page(page, limit);
 
-    // Construire et exécuter la requête
-    const query = queryBuilder.build();
-    // Normaliser pagination pour garantir limit et page
-    const pagination: PaginationOptions = {
-      limit: query.pagination.limit ?? limit,
-      page: query.pagination.page ?? page,
-      ...(query.pagination.offset !== undefined && { offset: query.pagination.offset }),
-      ...(query.sort && { sort: query.sort }),
-    };
-    const result = await userRepository.findUsersWithFilters(
-      query.filters,
-      pagination,
+    // Importer userFacade
+    const { userFacade } = await import('@/facades');
+
+    // Utiliser UserFacade pour récupérer les utilisateurs (Facade Pattern)
+    // Convertir status en string si c'est un tableau (pour compatibilité avec UserFilters)
+    const statusFilter = Array.isArray(filters.status) 
+      ? filters.status[0] 
+      : filters.status;
+
+    // Construire les filtres en excluant les valeurs undefined pour exactOptionalPropertyTypes
+    // Note: UserFilters.status attend UserStatus[] mais on passe string pour le builder
+    const userFilters: Partial<UserFilters> = {};
+    if (filters.role) {
+      userFilters.role = filters.role;
+    }
+    if (statusFilter && typeof statusFilter === 'string') {
+      // Convertir string en UserStatus[] pour correspondre au type UserFilters
+      userFilters.status = [statusFilter as UserStatus];
+    }
+    if (filters.search) {
+      userFilters.search = filters.search;
+    }
+
+    const result = await userFacade.getUsers(
+      userFilters,
+      {
+        limit,
+        page,
+      },
     );
 
-    return {
-      success: true,
-      data: result.data,
-      total: result.total,
-      page: result.pagination.page,
-      limit: result.pagination.limit,
-      hasMore: result.pagination.hasNext,
-    };
+    if (!result.success || !result.data) {
+      throw new Error(result.error || 'Erreur lors de la récupération des utilisateurs');
+    }
+
+    return createPaginatedResponse(
+      result.data,
+      result.pagination || {
+        page,
+        limit,
+        total: result.total || 0,
+      },
+    );
   }, 'api/users');
 }
 
@@ -91,8 +96,7 @@ export async function GET(request: NextRequest) {
  * POST /api/users - Créer un nouvel utilisateur
  * 
  * Implémente les design patterns :
- * - Service Layer Pattern (via userRepository)
- * - Repository Pattern (via getUserRepository)
+ * - Facade Pattern (via userFacade)
  * - Error Handling Pattern (via handleApiRoute)
  * - Validation Pattern (via CreateUserSchema)
  * 
@@ -106,8 +110,8 @@ export async function POST(request: NextRequest) {
     // Validation avec Zod
     const data: CreateUserInput = validateBody(body, CreateUserSchema);
 
-    // Utiliser UserRepository (Repository Pattern)
-    const userRepository = getUserRepository();
+    // Importer userFacade
+    const { userFacade } = await import('@/facades');
 
     // Préparer les données pour la création
     // Gérer le cas où name est fourni mais pas firstName/lastName, ou vice versa
@@ -149,47 +153,47 @@ export async function POST(request: NextRequest) {
         timezone?: string;
         notifications?: boolean;
       };
+      kycData?: {
+        documents: Array<{
+          type: string;
+          fileUrl: string;
+        }>;
+      };
+      sendWelcomeNotification?: boolean;
     };
 
     const extendedData = body as ExtendedUserData;
 
-    // Créer l'utilisateur via le repository
-    // Note: On utilise Record<string, unknown> pour éviter les problèmes avec exactOptionalPropertyTypes
-    const userData = {
+    // Utiliser UserFacade pour créer l'utilisateur (Facade Pattern)
+    const facadeData = {
       email: data.email.toLowerCase(),
       name: name,
       firstName: firstName,
       lastName: lastName,
       ...(data.phone?.trim() && { phone: data.phone.trim() }),
-      ...(extendedData.company?.trim() && { company: extendedData.company.trim() }),
-      ...(extendedData.address?.trim() && { address: extendedData.address.trim() }),
-      roles: (data.roles || [ROLES.CUSTOMER]) as UserRole[],
-      status: (extendedData.status || USER_STATUSES.ACTIVE) as UserStatus,
-      ...(extendedData.specialty?.trim() || data.specialty?.trim() ? { specialty: (extendedData.specialty?.trim() || data.specialty?.trim())! } : {}),
-      preferences: (extendedData.preferences && {
-        language: extendedData.preferences.language || LANGUAGES.FR.code,
-        timezone: extendedData.preferences.timezone || TIMEZONES.PARIS,
-        notifications: extendedData.preferences.notifications ?? true,
-      }) || (data.preferences && {
-        language: data.preferences.language || LANGUAGES.FR.code,
-        timezone: data.preferences.timezone || TIMEZONES.PARIS,
-        notifications: data.preferences.notifications ?? true,
-      }) || {
-        language: LANGUAGES.FR.code,
-        timezone: TIMEZONES.PARIS,
-        notifications: true,
+      roles: data.roles || [ROLES.CUSTOMER],
+      status: extendedData.status || USER_STATUSES.ACTIVE,
+      ...(extendedData.kycData && { kycData: extendedData.kycData }),
+      sendWelcomeNotification: extendedData.sendWelcomeNotification ?? true,
+      metadata: {
+        ...(extendedData.company?.trim() && { company: extendedData.company.trim() }),
+        ...(extendedData.address?.trim() && { address: extendedData.address.trim() }),
+        ...(extendedData.specialty?.trim() && { specialty: extendedData.specialty.trim() }),
+        ...(extendedData.clientNotes && { clientNotes: extendedData.clientNotes }),
+        ...(extendedData.preferences && { preferences: extendedData.preferences }),
       },
-      // Champs optionnels supplémentaires
-      ...(extendedData.clientNotes && {
-        clientNotes: extendedData.clientNotes,
-      }),
-    } as Partial<User> & {
-      providerInfo?: Partial<ProviderInfo>;
     };
 
-    const user = await userRepository.create(userData);
+    const result = await userFacade.execute(facadeData);
+
+    if (!result.success || !result.user) {
+      throw new Error(result.error || 'Erreur lors de la création de l\'utilisateur');
+    }
 
     // Mapper vers le format attendu par le frontend
+    const user = result.user;
+    const userRecord = user as Record<string, unknown>;
+    
     type UserResponse = {
       id: string;
       _id: string;
@@ -212,7 +216,6 @@ export async function POST(request: NextRequest) {
       updatedAt: string;
     };
 
-    const userRecord = user as Record<string, unknown>;
     const mappedUser: UserResponse = {
       id: user.id || user._id || '',
       _id: user.id || user._id || '',
@@ -235,10 +238,14 @@ export async function POST(request: NextRequest) {
       updatedAt: user.updatedAt?.toISOString() || new Date().toISOString(),
     };
 
-    return {
-      success: true,
-      data: mappedUser,
-      message: 'Utilisateur créé avec succès',
-    };
+    return createResourceResponse(
+      mappedUser,
+      {
+        message: result.message || 'Utilisateur créé avec succès',
+        metadata: {
+          notificationSent: result.notificationSent,
+        },
+      },
+    );
   }, 'api/users');
 }

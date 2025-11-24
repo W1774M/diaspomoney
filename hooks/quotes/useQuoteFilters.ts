@@ -11,7 +11,7 @@ export function useQuoteFilters(quotes: any[]) {
   });
 
   // Sécurité : s'assurer que quotes est un tableau
-  const safeQuotes = quotes || [];
+  const safeQuotes = useMemo(() => quotes || [], [quotes]);
 
   const filteredQuotes = useMemo(() => {
     return safeQuotes.filter(quote => {

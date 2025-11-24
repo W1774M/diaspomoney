@@ -50,7 +50,7 @@ export const ApiErrors = {
  *     const body = await request.json();
  *     const data = CreateInvoiceSchema.parse(body);
  *     const result = await invoiceFacade.createInvoice(data);
- *     return { success: true, invoice: result };
+ *     return createResourceResponse(result, { message: 'Facture créée avec succès' });
  *   }, 'api/invoices');
  * }
  * ```
@@ -65,6 +65,11 @@ export async function handleApiRoute<T>(
 
   try {
     const result = await handler();
+    // Si le résultat est déjà une NextResponse, la retourner telle quelle
+    if (result instanceof NextResponse) {
+      return result;
+    }
+    // Sinon, l'envelopper dans NextResponse.json
     return NextResponse.json(result);
   } catch (error) {
     // Erreur API personnalisée
@@ -81,9 +86,11 @@ export async function handleApiRoute<T>(
 
       return NextResponse.json(
         {
+          success: false,
           error: error.message,
           code: error.code,
           ...(error.details && typeof error.details === 'object' ? { details: error.details as Record<string, unknown> } : {}),
+          ...(reqId && { requestId: reqId }),
         },
         { status: error.statusCode },
       );
@@ -96,12 +103,14 @@ export async function handleApiRoute<T>(
       
       return NextResponse.json(
         {
+          success: false,
           error: 'Erreur de validation',
           code: 'VALIDATION_ERROR',
           details: zodError.issues.map(issue => ({
             path: issue.path.join('.'),
             message: issue.message,
           })),
+          ...(reqId && { requestId: reqId }),
         },
         { status: 400 },
       );
@@ -122,8 +131,10 @@ export async function handleApiRoute<T>(
 
     return NextResponse.json(
       {
+        success: false,
         error: 'Erreur interne du serveur',
         code: 'INTERNAL_ERROR',
+        ...(reqId && { requestId: reqId }),
       },
       { status: 500 },
     );

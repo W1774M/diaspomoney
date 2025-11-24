@@ -1,9 +1,10 @@
 "use client";
 
-import type { Booking, BookingFilters } from "@/lib/types";
+import type { BookingFilters } from "@/lib/types";
+import type { BookingResponse } from "@/lib/mappers/booking.mapper";
 import { useCallback, useMemo, useState } from "react";
 
-export function useBookingFilters(bookings: Booking[]) {
+export function useBookingFilters(bookings: BookingResponse[]) {
   const [filters, setFilters] = useState<BookingFilters>({
     searchTerm: "",
     status: "ALL",
@@ -15,34 +16,40 @@ export function useBookingFilters(bookings: Booking[]) {
   });
 
   // Sécurité : s'assurer que bookings est un tableau
-  const safeBookings = bookings || [];
+  const safeBookings = useMemo(() => bookings || [], [bookings]);
 
   // Extract unique statuses from bookings
   const availableStatuses = useMemo(() => {
     return [...new Set(safeBookings.map(b => b.status))].sort();
   }, [safeBookings]);
 
+  // Payment status is derived from metadata or transaction status
   const availablePaymentStatuses = useMemo(() => {
-    return [...new Set(safeBookings.map(b => b.paymentStatus))].sort();
+    const paymentStatuses = safeBookings
+      .map(b => (b.metadata?.['paymentStatus'] as string) || 'UNKNOWN')
+      .filter((status): status is string => typeof status === 'string');
+    return [...new Set(paymentStatuses)].sort();
   }, [safeBookings]);
 
   // Filter bookings based on current filters
   const filteredBookings = useMemo(() => {
     return safeBookings.filter(booking => {
       // Search term filter
-      if (
-        filters.searchTerm &&
-        !booking.reservationNumber
+      if (filters.searchTerm) {
+        const searchLower = filters.searchTerm.toLowerCase();
+        const matchesReservationNumber = booking.reservationNumber
           ?.toLowerCase()
-          ?.includes(filters.searchTerm.toLowerCase()) &&
-        !`${booking.provider?.firstName || ''} ${booking.provider?.lastName || ''}`
-          .toLowerCase()
-          .includes(filters.searchTerm.toLowerCase()) &&
-        !`${booking.requester?.firstName || ''} ${booking.requester?.lastName || ''}`
-          .toLowerCase()
-          .includes(filters.searchTerm.toLowerCase())
-      ) {
-        return false;
+          .includes(searchLower);
+        const matchesRecipient = booking.recipient
+          ? `${booking.recipient.firstName || ''} ${booking.recipient.lastName || ''}`
+              .toLowerCase()
+              .includes(searchLower)
+          : false;
+        const matchesServiceId = booking.serviceId?.toLowerCase().includes(searchLower);
+        
+        if (!matchesReservationNumber && !matchesRecipient && !matchesServiceId) {
+          return false;
+        }
       }
 
       // Status filter
@@ -51,16 +58,18 @@ export function useBookingFilters(bookings: Booking[]) {
       }
 
       // Payment status filter
-      if (
-        filters.paymentStatus !== "ALL" &&
-        booking.paymentStatus !== filters.paymentStatus
-      ) {
-        return false;
+      if (filters.paymentStatus !== "ALL") {
+        const bookingPaymentStatus = (booking.metadata?.['paymentStatus'] as string) || 'UNKNOWN';
+        if (bookingPaymentStatus !== filters.paymentStatus) {
+          return false;
+        }
       }
 
       // Date range filter
       if (filters.dateRange.start || filters.dateRange.end) {
-        const bookingDate = new Date(booking.date);
+        const bookingDate = booking.appointmentDate 
+          ? new Date(booking.appointmentDate)
+          : new Date(booking.createdAt);
         const startDate = filters.dateRange.start
           ? new Date(filters.dateRange.start)
           : null;

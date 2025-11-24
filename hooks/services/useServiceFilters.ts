@@ -21,7 +21,7 @@ export function useServiceFilters(providers: IUser[]) {
   });
 
   // Sécurité : s'assurer que providers est un tableau
-  const safeProviders = providers || [];
+  const safeProviders = useMemo(() => providers || [], [providers]);
 
   // Extract unique data from providers
   const availableServices = useMemo(() => {

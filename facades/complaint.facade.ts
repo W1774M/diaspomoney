@@ -7,11 +7,14 @@
 
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
 import { logger } from '@/lib/logger';
 import { LANGUAGES } from '@/lib/constants';
 import { complaintService } from '@/services/complaint/complaint.service';
 import { notificationService } from '@/services/notification/notification.service';
 import { CreateComplaintData } from '@/lib/types';
+import { complaintMapper } from '@/lib/mappers';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
@@ -75,6 +78,8 @@ export class ComplaintFacade {
       },
     ],
   })
+  @Audit({ eventType: 'COMPLAINT_CREATED_VIA_FACADE', includeArgs: true })
+  @Performance({ warningThreshold: 1500, errorThreshold: 4000 })
   async createComplaint(
     data: ComplaintFacadeData,
   ): Promise<ComplaintFacadeResult> {
@@ -93,8 +98,11 @@ export class ComplaintFacade {
       // Étape 1: Créer la réclamation
       const complaint = await complaintService.createComplaint(data);
 
-      const complaintId: string = complaint.id || (complaint as any)._id?.toString() || '';
-      const complaintNumber: string = complaint.number || '';
+      // Mapper le résultat avec ComplaintMapper
+      const mappedComplaint = complaintMapper.map(complaint as any);
+
+      const complaintId: string = mappedComplaint.id;
+      const complaintNumber: string = mappedComplaint.id; // Utiliser l'ID comme numéro si number n'existe pas
 
       let notificationSent = false;
       let emailSent = false;

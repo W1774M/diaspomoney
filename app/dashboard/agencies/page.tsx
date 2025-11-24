@@ -1,35 +1,13 @@
 'use client';
 
-import { useAuth } from '@/hooks/auth/useAuth';
+import { ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
 import { Building } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 /**
- * Page de gestion des agences
- * Accessible uniquement aux administrateurs
+ * Contenu de la page de gestion des agences
  */
-export default function AgenciesPage() {
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && (!isAuthenticated || !isAdmin())) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isAdmin, isLoading, router]);
-
-  if (isLoading) {
-    return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]'></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !isAdmin()) {
-    return null;
-  }
+function AgenciesPageContent() {
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -59,6 +37,19 @@ export default function AgenciesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Page de gestion des agences
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ */
+export default function AgenciesPage() {
+  return (
+    <AuthorizedRoute roles={[ROLES.ADMIN]} redirectTo="/dashboard">
+      <AgenciesPageContent />
+    </AuthorizedRoute>
   );
 }
 

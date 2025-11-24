@@ -3,3 +3,4 @@
  */
 
 export * from './useStatistics';
+export * from './usePlatformStatistics';

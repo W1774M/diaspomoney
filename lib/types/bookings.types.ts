@@ -174,11 +174,14 @@ export interface BookingStats {
   averageAmount: number;
 }
 
+// BookingResponse is imported from @/lib/mappers/booking.mapper
+import type { BookingResponse as BookingResponseType } from '@/lib/mappers/booking.mapper';
+
 export interface BookingCardProps {
-  booking: Booking;
-  onView: (booking: Booking) => void;
-  onEdit: (booking: Booking) => void;
-  onCancel: (booking: Booking) => void;
+  booking: BookingResponseType;
+  onView: (booking: BookingResponseType) => void;
+  onEdit: (booking: BookingResponseType) => void;
+  onCancel: (booking: BookingResponseType) => void;
 }
 
 export interface BookingFormProps {
@@ -216,13 +219,14 @@ export interface BookingsFiltersProps {
   availablePaymentStatuses: string[];
 }
 
+// BookingResponse is already imported above as BookingResponseType
 export interface BookingsTableProps {
-  bookings: Booking[];
+  bookings: BookingResponseType[];
   loading: boolean;
   error: string | null;
-  onView: (booking: Booking) => void;
-  onEdit: (booking: Booking) => void;
-  onCancel: (booking: Booking) => void;
+  onView: (booking: BookingResponseType) => void;
+  onEdit: (booking: BookingResponseType) => void;
+  onCancel: (booking: BookingResponseType) => void;
 }
 
 export interface BookingsPageProps {
