@@ -5,8 +5,16 @@ metadata:
   namespace: diaspomoney
   labels:
     app: diaspomoney-rct
+    env: rct
+    tier: frontend
 spec:
-  replicas: 1
+  replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
   selector:
     matchLabels:
       app: diaspomoney-rct
@@ -14,17 +22,20 @@ spec:
     metadata:
       labels:
         app: diaspomoney-rct
+        env: rct
+      annotations:
+        kubectl.kubernetes.io/restartedAt: $(date +%Y-%m-%dT%H:%M:%SZ)
     spec:
       containers:
       - name: diaspomoney-rct
-        image: localhost:5000/diaspomoney:rct
-        imagePullPolicy: IfNotPresent
+        image: localhost:5000/diaspomoney:rct-latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
           name: http
         env:
         - name: NODE_ENV
-          value: "recette"
+          value: "production"
         - name: PORT
           value: "3000"
         - name: HOSTNAME
@@ -199,3 +210,52 @@ spec:
           limits:
             cpu: "500m"
             memory: "512Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: diaspomoney-rct-service
+  namespace: diaspomoney
+  labels:
+    app: diaspomoney-rct
+spec:
+  selector:
+    app: diaspomoney-rct
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: diaspomoney-rct-ingress
+  namespace: diaspomoney
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: |
+      diaspomoney-redirect-to-https@kubernetescrd,
+      diaspomoney-compress@kubernetescrd,
+      diaspomoney-rate-limit@kubernetescrd
+spec:
+  rules:
+  - host: rct.diaspomoney.fr
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: diaspomoney-rct-service
+            port:
+              number: 80
+tls:
+  - hosts:
+    - rct.diaspomoney.fr
+    secretName: diaspomoney-rct-tls

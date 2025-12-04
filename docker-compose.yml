@@ -1,113 +1,47 @@
-
-networks:
-  diaspomoney:
-    driver: bridge
-  traefik:
-    external: false
+version: '3.8'
 
 services:
-
-  # === APPLICATION ===
-  app:
+  # === BUILD FOR RECETTE ===
+  app-recette:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: diaspomoney-app
-    restart: unless-stopped
-    env_file:
-      - .env
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - traefik
-      - diaspomoney
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-    deploy:
-      resources:
-        limits:
-          cpus: "2.0"
-          memory: "1G"
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=diaspomoney_diaspomoney
-      - traefik.http.routers.app.rule=Host(`app.diaspomoney.fr`)
-      - traefik.http.routers.app.entrypoints=websecure
-      - traefik.http.routers.app.tls=true
-      - traefik.http.routers.app.tls.certresolver=le
-      - traefik.http.services.app.loadbalancer.server.port=3000
-      - traefik.http.routers.app.middlewares=app-headers
-      - traefik.http.middlewares.app-headers.headers.customRequestHeaders.X-Forwarded-Proto=https
-      - traefik.http.routers.app-http.rule=Host(`app.diaspomoney.fr`)
-      - traefik.http.routers.app-http.entrypoints=web
-      - traefik.http.routers.app-http.middlewares=redirect-to-https
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
-      - traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true
+      args:
+        ENV: rct
+        NODE_ENV: production
+        NEXT_PUBLIC_APP_URL: https://rct.diaspomoney.fr
+        NEXT_PUBLIC_API_URL: https://rct.diaspomoney.fr/api
+        USE_LOCAL_BUILD: "false"
+    image: localhost:5000/diaspomoney:rct-${BUILD_DATE:-latest}
+    container_name: diaspomoney-app-rct-build
+    profiles: ["build-only"]
 
-  # === DATABASE ===
-  mongodb:
-    image: mongo:7.0
-    container_name: diaspomoney-mongodb
-    restart: unless-stopped
-    env_file:
-      - .env
-    volumes:
-      - mongodb_data:/data/db
-      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-    networks:
-      - diaspomoney
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "mongosh --host 127.0.0.1 --username admin --password ${MONGO_PASSWORD} --authenticationDatabase admin --quiet --eval 'db.adminCommand({ ping: 1 }).ok ? 0 : 1'",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 40s
+  # === BUILD FOR PROD ===
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ENV: prod
+        NODE_ENV: production
+        NEXT_PUBLIC_APP_URL: https://diaspomoney.fr
+        NEXT_PUBLIC_API_URL: https://diaspomoney.fr/api
+        USE_LOCAL_BUILD: "false"
+    image: localhost:5000/diaspomoney:prod-${BUILD_DATE:-latest}
+    container_name: diaspomoney-app-prod-build
+    profiles: ["build-only"]
 
-  # === CACHE ===
-  redis:
-    image: redis:7.2-alpine
-    container_name: diaspomoney-redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - redis_data:/data
-    networks:
-      - diaspomoney
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-
-  # === ADMIN TOOLS ===
-  mongo-express:
-    image: mongo-express:latest
-    container_name: diaspomoney-mongo-express
-    restart: unless-stopped
-    env_file:
-      - .env
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    networks:
-      - diaspomoney
-      - traefik
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.mongo-express.rule=Host(`mongo.diaspomoney.fr`)
-      - traefik.http.routers.mongo-express.entrypoints=websecure
-      - traefik.http.routers.mongo-express.tls=true
-      - traefik.http.routers.mongo-express.tls.certresolver=le
-      - traefik.http.services.mongo-express.loadbalancer.server.port=8081
+  # === BUILD FOR DEV ===
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ENV: dev
+        NODE_ENV: development
+        NEXT_PUBLIC_APP_URL: http://localhost:3000
+        NEXT_PUBLIC_API_URL: http://localhost:3000/api
+        USE_LOCAL_BUILD: "true"  # Use local build for dev
+    image: localhost:5000/diaspomoney:dev-${BUILD_DATE:-latest}
+    container_name: diaspomoney-app-dev-build
+    profiles: ["build-only"]

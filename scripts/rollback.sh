@@ -12,7 +12,4 @@ case "$ENV" in
     ;;
 esac
 
-POD=$(kubectl get pod -n diaspomoney -l app=$APP -o name | head -n 1)
-
-echo "📡 Logs du pod : $POD"
-kubectl logs -f "$POD" -n diaspomoney
+kubectl rollout undo deployment/$APP -n diaspomoney

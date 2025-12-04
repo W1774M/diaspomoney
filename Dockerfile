@@ -1,86 +1,93 @@
 ###############################
-# 1. BUILD (Next.js) - Optionnel si USE_LOCAL_BUILD=true
+# STAGE 1: Builder
 ###############################
-FROM node:lts-alpine AS builder
+FROM node:20-alpine AS builder
 
-# ---- ARGUMENTS D'ENVIRONNEMENT ----
-ARG ENV=prod
-ARG NODE_ENV=production
-ARG NEXT_PUBLIC_APP_URL
-ARG NEXT_PUBLIC_API_URL
+# Build arguments (shared across all envs)
+ARG ENV=dev
+ARG NODE_ENV=development
+ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
+ARG NEXT_PUBLIC_API_URL=http://localhost:3000/api
 ARG USE_LOCAL_BUILD=false
 
-# ---- INSTALL PNPM SANS REGISTRY (local .tar ok) ----
-RUN apk add --no-cache wget curl libc6-compat && \
-    (wget -qO /bin/pnpm https://github.com/pnpm/pnpm/releases/latest/download/pnpm-linuxstatic-x64 \
-    || curl -fsSL https://github.com/pnpm/pnpm/releases/latest/download/pnpm-linuxstatic-x64 -o /bin/pnpm) && \
-    chmod +x /bin/pnpm
+# Install build dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    git \
+    && rm -rf /var/cache/apk/*
 
-# ---- TRAVAIL ----
+# Set working directory
 WORKDIR /app
 
-# Copier les fichiers pour installation des deps
+# Copy package files first for better caching
 COPY package.json pnpm-lock.yaml ./
 
-# Installer toutes les dépendances (mode build)
-RUN pnpm install --frozen-lockfile --offline || pnpm install --frozen-lockfile
+# Initialize pnpm
+RUN corepack enable && \
+    corepack prepare pnpm@8.6.12 --activate && \
+    pnpm install --frozen-lockfile
 
-# Si USE_LOCAL_BUILD=true, copier seulement .next, sinon copier le code et builder
+# Copy remaining files
 COPY . .
 
-# ---- VARIABLES POUR LE BUILD ----
-ENV NODE_ENV=$NODE_ENV
-ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_TELEMETRY_DISABLED=1
+# Set environment variables
+ENV NODE_ENV=$NODE_ENV \
+    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    NEXT_TELEMETRY_DISABLED=1 \
+    ENV=$ENV
 
-# ---- BUILD NEXT.JS (seulement si USE_LOCAL_BUILD=false) ----
-RUN if [ "$USE_LOCAL_BUILD" != "true" ]; then pnpm run build; fi
-
+# Build the application (unless using local build)
+RUN if [ "$USE_LOCAL_BUILD" != "true" ]; then \
+      pnpm run build; \
+    fi
 
 ###############################
-# 2. RUNTIME (Exécution)
+# STAGE 2: Runner
 ###############################
-FROM node:lts-alpine AS runner
+FROM node:20-alpine AS runner
 
-# Copier pnpm depuis builder
-COPY --from=builder /bin/pnpm /bin/pnpm
-
+# Install runtime dependencies
 RUN apk add --no-cache libc6-compat
 
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S -u 1001 nextjs -G nodejs
+
+# Install pnpm
+RUN corepack enable && \
+    corepack prepare pnpm@8.6.12 --activate
+
+# Set working directory
 WORKDIR /app
 
-# Création user non root
-RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
-
-# Copier uniquement les fichiers nécessaires
+# Copy production dependencies
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
+RUN corepack enable && \
+    corepack prepare pnpm@8.6.12 --activate && \
+    pnpm install --force --ignore-scripts
 
-# Installer seulement les deps de prod
-RUN pnpm install --prod --frozen-lockfile --offline || pnpm install --prod --frozen-lockfile && \
-    chown -R nextjs:nodejs /app
-
-# Copier le build
-# Si USE_LOCAL_BUILD=true, .next doit être dans le contexte (modifier .dockerignore avant build)
-# Si USE_LOCAL_BUILD=false, copier depuis builder
-ARG USE_LOCAL_BUILD=false
-# Copier .next depuis le contexte (sera disponible si .dockerignore a été modifié)
-# COPY --chown=nextjs:nodejs .next ./.next
-# Copier les autres fichiers depuis builder
+# Copy built assets from builder
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./
-COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
-COPY --from=builder --chown=nextjs:nodejs /app/proxy.ts ./proxy.ts
 
+# Switch to non-root user
 USER nextjs
 
-# ---- VARIABLES RUNTIME (modifiable dans Kubernetes) ----
-ENV HOSTNAME=0.0.0.0
-ENV PORT=3000
-ENV NEXT_TELEMETRY_DISABLED=1
+# Runtime environment
+ENV NODE_ENV=production \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0 \
+    NEXT_TELEMETRY_DISABLED=1 \
+    ENV=$ENV
 
-# Exposer le port
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s \
+    CMD curl -f http://localhost:3000/api/health || exit 1
+
+# Expose port and run
 EXPOSE 3000
-
-# Lancer Next.js
-CMD ["pnpm", "start"]
+CMD ["node", "server.js"]

@@ -1,124 +1,51 @@
 #!/bin/bash
 
-# Script de déploiement automatisé pour DiaspoMoney sur K3s
-# Usage: ./scripts/deploy.sh [dev|rct|prod] [image-tag]
+# Set environment (rct, prod, dev)
+ENV=$1
+BUILD_DATE=$(date +'%Y%m%d-%H%M%S')
+IMAGE_TAG="localhost:5000/diaspomoney:${ENV}-${BUILD_DATE}"
 
-set -e
-
-ENV=${1:-dev}
-TAG=${2:-${ENV}}
-REGISTRY=${REGISTRY:-localhost:5000}
-NAMESPACE=${NAMESPACE:-diaspomoney}
-IMAGE_NAME="diaspomoney"
-
-# Couleurs pour les messages
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Fonction pour afficher les messages
-info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
-
-warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-    exit 1
-}
-
-# Vérifier que l'environnement est valide
-if [[ ! "$ENV" =~ ^(dev|rct|prod)$ ]]; then
-    error "Environnement invalide: $ENV. Utilisez: dev, rct ou prod"
-fi
-
-info "Déploiement de DiaspoMoney - Environnement: $ENV"
-info "Registry: $REGISTRY"
-info "Image: $REGISTRY/$IMAGE_NAME:$TAG"
-
-# Vérifier que kubectl est disponible
-if ! command -v kubectl &> /dev/null; then
-    error "kubectl n'est pas installé ou n'est pas dans le PATH"
-fi
-
-# Vérifier que le namespace existe
-if ! kubectl get namespace "$NAMESPACE" &> /dev/null; then
-    warn "Le namespace $NAMESPACE n'existe pas. Création..."
-    kubectl create namespace "$NAMESPACE"
-fi
-
-# Vérifier que l'image existe dans le registry
-info "Vérification de l'image dans le registry..."
-if ! curl -s "http://$REGISTRY/v2/$IMAGE_NAME/tags/list" | grep -q "$TAG"; then
-    warn "L'image $REGISTRY/$IMAGE_NAME:$TAG n'a pas été trouvée dans le registry"
-    read -p "Voulez-vous builder et pusher l'image maintenant? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        info "Build de l'image..."
-        docker build -f Dockerfile -t "$REGISTRY/$IMAGE_NAME:$TAG" .
-        info "Push de l'image..."
-        docker push "$REGISTRY/$IMAGE_NAME:$TAG"
-    else
-        error "L'image doit être disponible dans le registry pour continuer"
-    fi
-fi
-
-# Déterminer les fichiers de manifest selon l'environnement
+# Environment-specific variables
 case $ENV in
-    dev)
-        DEPLOYMENT_FILE="k8s/app/dev/deployment.yaml"
-        SERVICE_FILE="k8s/app/dev/service.yaml"
-        INGRESS_FILE="k8s/app/dev/ingress.yaml"
-        APP_NAME="diaspomoney-dev"
-        ;;
-    rct)
-        DEPLOYMENT_FILE="k8s/app/rct/deployment.yaml"
-        SERVICE_FILE="k8s/app/rct/service.yaml"
-        INGRESS_FILE="k8s/app/rct/ingress.yaml"
-        APP_NAME="diaspomoney-rct"
-        ;;
-    prod)
-        DEPLOYMENT_FILE="k8s/app/prod/deployment.yaml"
-        SERVICE_FILE="k8s/app/prod/service.yaml"
-        INGRESS_FILE="k8s/app/prod/ingress.yaml"
-        APP_NAME="diaspomoney-app"
-        ;;
+  rct)
+    APP_URL="https://rct.diaspomoney.fr"
+    API_URL="https://rct.diaspomoney.fr/api"
+    ;;
+  prod)
+    APP_URL="https://diaspomoney.fr"
+    API_URL="https://diaspomoney.fr/api"
+    ;;
+  dev)
+    APP_URL="http://localhost:3000"
+    API_URL="http://localhost:3000/api"
+    ;;
+  *)
+    echo "❌ Invalid environment. Use: rct, prod, or dev"
+    exit 1
+    ;;
 esac
 
-# Mettre à jour l'image dans le deployment
-info "Mise à jour de l'image dans le deployment..."
-if kubectl get deployment "$APP_NAME" -n "$NAMESPACE" &> /dev/null; then
-    kubectl set image deployment/"$APP_NAME" \
-        "$APP_NAME=$REGISTRY/$IMAGE_NAME:$TAG" \
-        -n "$NAMESPACE"
-else
-    info "Création du deployment..."
-    # Remplacer l'image dans le fichier temporairement
-    sed "s|localhost:5000/diaspomoney:$ENV|$REGISTRY/$IMAGE_NAME:$TAG|g" "$DEPLOYMENT_FILE" | \
-        kubectl apply -f -
-fi
+# Build Docker image
+echo "📦 Building Docker image for $ENV..."
+docker build \
+  --build-arg ENV=$ENV \
+  --build-arg NODE_ENV=production \
+  --build-arg NEXT_PUBLIC_APP_URL=$APP_URL \
+  --build-arg NEXT_PUBLIC_API_URL=$API_URL \
+  -t $IMAGE_TAG \
+  -f Dockerfile \
+  .
 
-# Appliquer le service
-info "Application du service..."
-kubectl apply -f "$SERVICE_FILE"
+# Push to local registry
+echo "📤 Pushing image to registry..."
+docker push $IMAGE_TAG
 
-# Appliquer l'ingress
-info "Application de l'ingress..."
-kubectl apply -f "$INGRESS_FILE"
+# Tag as latest for caching
+docker tag $IMAGE_TAG "localhost:5000/diaspomoney:${ENV}-latest"
+docker push "localhost:5000/diaspomoney:${ENV}-latest"
 
-# Attendre que le deployment soit prêt
-info "Attente du rollout..."
-kubectl rollout status deployment/"$APP_NAME" -n "$NAMESPACE" --timeout=5m
+# Deploy to k3s
+echo "🚀 Deploying to k3s..."
+kubectl rollout restart deployment -n $ENV diaspomoney-app
 
-# Afficher le statut
-info "Statut du déploiement:"
-kubectl get pods -n "$NAMESPACE" -l app="$APP_NAME"
-kubectl get svc -n "$NAMESPACE" | grep "$APP_NAME"
-kubectl get ingress -n "$NAMESPACE" | grep "$APP_NAME"
-
-info "Déploiement terminé avec succès!"
-info "Pour voir les logs: kubectl logs -l app=$APP_NAME -n $NAMESPACE --tail=200"
+echo "✅ Deployment complete: $IMAGE_TAG"
