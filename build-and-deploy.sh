@@ -27,16 +27,13 @@ docker push ${FULL_IMAGE}
 
 # Étape 3: Application des ressources Kubernetes
 echo -e "${YELLOW}[3/4] Déploiement des ressources Kubernetes...${NC}"
-kubectl apply -f k8s/app/rct/middleware-security.yaml
-kubectl apply -f k8s/tls-options.yaml
-kubectl apply -f k8s/app/rct/deployment.yaml
-kubectl apply -f k8s/app/rct/service.yaml
-kubectl apply -f k8s/app/rct/ingress.yaml
-kubectl apply -f k8s/app/rct/ingress-acme.yaml
+kubectl apply -f k8s/app/rct/deployment.yaml -n ${NAMESPACE}
+kubectl apply -f k8s/app/rct/service.yaml -n ${NAMESPACE}
+kubectl apply -f k8s/app/rct/ingress.yaml -n ${NAMESPACE}
 
 # Forcer le redéploiement pour s'assurer que la nouvelle image est utilisée
 echo -e "${YELLOW}Forçage du redéploiement avec la nouvelle image...${NC}"
-kubectl rollout restart deployment/diaspomoney-rct -n ${NAMESPACE}
+kubectl rollout restart deployment/diaspomoney-rct -n ${NAMESPACE} 
 
 # Étape 4: Vérification du déploiement
 echo -e "${YELLOW}[4/4] Vérification du déploiement...${NC}"

@@ -65,7 +65,7 @@ RUN pnpm install --prod --frozen-lockfile --offline || pnpm install --prod --fro
 # Si USE_LOCAL_BUILD=false, copier depuis builder
 ARG USE_LOCAL_BUILD=false
 # Copier .next depuis le contexte (sera disponible si .dockerignore a été modifié)
-COPY --chown=nextjs:nodejs .next ./.next
+# COPY --chown=nextjs:nodejs .next ./.next
 # Copier les autres fichiers depuis builder
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./
