@@ -1,0 +1,2 @@
+additionalArguments:
+  - "--entryPoints.mongo.address=:27018/tcp"

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongo-express-traefik-auth
+  namespace: diaspomoney
+type: Opaque
+data:
+  users: YWRtaW46JDJ5JDA1JElYWDUybnhSRkJSRGZzVHFwL0VObnVoU1h1dThhZkd3YmhCazY0OXgwM3puSElLOFNRUWtlCg==
+

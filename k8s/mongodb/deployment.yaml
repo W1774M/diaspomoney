@@ -34,11 +34,13 @@ spec:
               key: password
         - name: MONGO_INITDB_DATABASE
           value: "diaspomoney"
+
         volumeMounts:
         - name: mongodb-data
           mountPath: /data/db
         - name: mongo-init
           mountPath: /docker-entrypoint-initdb.d
+
         resources:
           requests:
             cpu: "100m"
@@ -46,6 +48,7 @@ spec:
           limits:
             cpu: "500m"
             memory: "512Mi"
+
         livenessProbe:
           exec:
             command:
@@ -56,6 +59,7 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 10
           failureThreshold: 12
+
         readinessProbe:
           exec:
             command:
@@ -65,14 +69,12 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 10
+
       volumes:
       - name: mongodb-data
-        # ⚠️ IMPORTANT: Si vous avez déjà une base de données existante, remplacez emptyDir par un PersistentVolumeClaim
-        # pour préserver vos données. Exemple:
-        # persistentVolumeClaim:
-        #   claimName: mongodb-pvc
         persistentVolumeClaim:
           claimName: mongodb-pvc
+
       - name: mongo-init
         configMap:
           name: mongo-init-script

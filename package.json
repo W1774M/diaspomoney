@@ -107,7 +107,15 @@
     "overrides": {
       "import-in-the-middle": "1.15.0",
       "require-in-the-middle": "8.0.1"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@sentry/cli",
+      "cypress",
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ]
   },
-  "ignore-workspace-root-check": true
+  "ignore-workspace-root-check": true,
+  "packageManager": "pnpm@10.18.3"
 }

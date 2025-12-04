@@ -8,7 +8,7 @@ metadata:
     env: rct
     tier: frontend
 spec:
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 3
   strategy:
     rollingUpdate:

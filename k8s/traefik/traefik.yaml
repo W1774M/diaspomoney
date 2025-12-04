@@ -5,15 +5,21 @@ metadata:
   namespace: kube-system
 data:
   traefik.yaml: |
+    entryPoints:
+      web:
+        address: ":80"
+
+      websecure:
+        address: ":443"
+
+      mongo:
+        address: ":27017"
+
     certificatesResolvers:
       le:
         acme:
           email: "contact@diaspomoney.fr"
           storage: "/data/acme.json"
-          # Utiliser httpChallenge pour Let's Encrypt (plus fiable)
           httpChallenge:
             entryPoint: web
-          # Utiliser tlsChallenge en complément si nécessaire
           tlsChallenge: true
-          # Utiliser le serveur de staging pour les tests (désactiver pour la production)
-          # caServer: "https://acme-staging-v02.api.letsencrypt.org/directory"

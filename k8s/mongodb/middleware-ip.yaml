@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: allow-dev-ip
+  namespace: diaspomoney
+spec:
+  ipWhiteList:
+    sourceRange:
+      -  82.67.169.181/32   # remplace par ton IP publique

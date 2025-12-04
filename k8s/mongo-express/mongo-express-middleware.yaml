@@ -1,10 +1,8 @@
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: https-redirect
+  name: mongoauth
   namespace: diaspomoney
 spec:
-  redirectScheme:
-    scheme: https
-    permanent: true
-
+  basicAuth:
+    secret: mongo-express-basicauth
