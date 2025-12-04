@@ -26,7 +26,7 @@ export default function HomePage() {
         onExploreClick={handleExploreClick}
       />
       <BenefitsSection />
-      <ExpertsSection />
+      {/* <ExpertsSection /> */}
       <PartnersSection />
     </div>
   );
