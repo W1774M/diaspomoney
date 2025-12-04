@@ -39,22 +39,64 @@ vi.mock('@/lib/mappers', () => ({
 // Mock de handleApiRoute
 vi.mock('@/lib/api/error-handler', () => ({
   handleApiRoute: vi.fn(async (_request, handler) => {
-    const result = await handler();
-    // Si le résultat a déjà une méthode json(), le retourner tel quel
-    if (result && typeof result === 'object' && 'json' in result) {
-      return result;
+    try {
+      const result = await handler();
+      // Si le résultat a déjà une méthode json(), le retourner tel quel
+      if (result && typeof result === 'object' && 'json' in result) {
+        return result;
+      }
+      // Sinon, envelopper dans un objet avec json()
+      return {
+        json: async () => result,
+        status: 200,
+      };
+    } catch (error: any) {
+      // Gérer les erreurs ApiError
+      if (error.status || error.statusCode) {
+        return {
+          json: async () => ({ error: error.message || 'Erreur', success: false }),
+          status: error.status || error.statusCode,
+        };
+      }
+      // Autres erreurs
+      return {
+        json: async () => ({ error: error.message || 'Erreur interne du serveur', success: false }),
+        status: 500,
+      };
     }
-    // Sinon, envelopper dans un objet avec json()
-    return {
-      json: async () => result,
-      status: 200,
-    };
   }),
-  validateBody: vi.fn((body) => body),
+  validateBody: vi.fn(async (body, schema) => {
+    // Simuler la validation Zod - lancer une erreur si requesterId est manquant
+    // Vérifier si le schéma est CreateBookingSchema en vérifiant si c'est un objet avec des méthodes Zod
+    if (schema && typeof schema === 'object' && 'parse' in schema) {
+      try {
+        // Essayer de parser avec le schéma réel
+        const parsed = await (schema as any).parseAsync(body);
+        return parsed;
+      } catch (error: any) {
+        // Si la validation échoue, lancer une erreur de validation
+        const { ApiErrors } = await import('@/lib/api/error-handler');
+        throw ApiErrors.VALIDATION_ERROR(error.errors || [{ path: ['requesterId'], message: 'L\'ID du demandeur est requis' }]);
+      }
+    }
+    // Si pas de schéma ou schéma simple, vérifier manuellement
+    if (schema && !body.requesterId && !body.providerId) {
+      const { ApiErrors } = await import('@/lib/api/error-handler');
+      throw ApiErrors.VALIDATION_ERROR({ issues: [{ path: ['requesterId'], message: 'L\'ID du demandeur est requis' }, { path: ['providerId'], message: 'L\'ID du fournisseur est requis' }] });
+    }
+    // Retourner le body tel quel pour permettre la construction de BookingFacadeData
+    return body;
+  }),
   ApiError: class ApiError extends Error {
     constructor(public status: number, message: string) {
       super(message);
+      this.name = 'ApiError';
     }
+  },
+  ApiErrors: {
+    UNAUTHORIZED: new Error('Unauthorized'),
+    FORBIDDEN: new Error('Forbidden'),
+    NOT_FOUND: new Error('Not Found'),
   },
 }));
 
@@ -67,20 +109,26 @@ vi.mock('@/lib/api/response', () => ({
       pagination,
     }),
   })),
-  createResourceResponse: vi.fn((data, metadata) => ({
+  createResourceResponse: vi.fn((data, options) => ({
     json: async () => ({
       success: true,
       data,
-      ...metadata,
+      ...(options?.message && { message: options.message }),
+      ...(options?.metadata && { metadata: options.metadata }),
     }),
   })),
 }));
 
 // Mock de logger
+const mockLogger = {
+  info: vi.fn(),
+  error: vi.fn(),
+  warn: vi.fn(),
+  debug: vi.fn(),
+};
+
 vi.mock('@/lib/logger', () => ({
-  logger: {
-    info: vi.fn(),
-  },
+  logger: mockLogger,
 }));
 
 // Mock de initializeDI
@@ -350,6 +398,12 @@ describe('POST /api/bookings', () => {
   });
 
   it('devrait créer une réservation avec paiement', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    });
+
     const mockBooking = {
       id: 'booking123',
       reservationNumber: 'RES-001',
@@ -386,7 +440,7 @@ describe('POST /api/bookings', () => {
 
     expect(data.success).toBe(true);
     expect(data.data).toEqual(mockBooking);
-    expect(data.metadata.paymentResult).toBeDefined();
+    expect(data.metadata?.paymentResult).toBeDefined();
   });
 
   it('devrait créer une réservation sans paiement', async () => {
@@ -440,6 +494,12 @@ describe('POST /api/bookings', () => {
   });
 
   it('devrait construire BookingFacadeData', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    });
+
     const { serviceBookingFacade } = await import('@/facades');
     vi.mocked(serviceBookingFacade.createBookingWithPayment).mockResolvedValue({
       success: true,
@@ -497,7 +557,12 @@ describe('POST /api/bookings', () => {
   });
 
   it('devrait logger avec logger.info', async () => {
-    const { logger } = await import('@/lib/logger');
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    });
+
     const { serviceBookingFacade } = await import('@/facades');
     vi.mocked(serviceBookingFacade.createBookingWithPayment).mockResolvedValue({
       success: true,
@@ -522,7 +587,7 @@ describe('POST /api/bookings', () => {
 
     await POST(request);
 
-    expect(logger.info).toHaveBeenCalledWith(
+    expect(mockLogger.info).toHaveBeenCalledWith(
       expect.objectContaining({
         bookingId: 'booking123',
         paymentSuccess: true,
@@ -532,6 +597,12 @@ describe('POST /api/bookings', () => {
   });
 
   it('devrait retourner paymentResult dans metadata si paiement', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    });
+
     const { serviceBookingFacade } = await import('@/facades');
     vi.mocked(serviceBookingFacade.createBookingWithPayment).mockResolvedValue({
       success: true,
@@ -560,8 +631,8 @@ describe('POST /api/bookings', () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect(data.metadata.paymentResult).toBeDefined();
-    expect(data.metadata.paymentResult.success).toBe(true);
+    expect(data.metadata?.paymentResult).toBeDefined();
+    expect(data.metadata?.paymentResult.success).toBe(true);
   });
 
   it('devrait ne pas retourner paymentResult si pas de paiement', async () => {

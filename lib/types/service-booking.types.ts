@@ -20,7 +20,8 @@ export interface ClientInfo {
 }
 
 // Utiliser BeneficiaryData existant avec extension pour location
-export interface BeneficiaryInfo extends Omit<BeneficiaryData, 'relationship'> {
+export interface BeneficiaryInfo extends Omit<BeneficiaryData, 'relationship' | 'country'> {
+  country?: string; // Optionnel car peut être dans location.country
   location?: {
     address: string;
     city: string;

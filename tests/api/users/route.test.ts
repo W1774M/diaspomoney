@@ -23,11 +23,26 @@ vi.mock('@/facades', () => ({
 // Mock de handleApiRoute
 vi.mock('@/lib/api/error-handler', () => ({
   handleApiRoute: vi.fn(async (_request, handler) => {
-    const result = await handler();
-    return {
-      json: async () => result,
-      status: 200,
-    };
+    try {
+      const result = await handler();
+      return {
+        json: async () => result,
+        status: 200,
+      };
+    } catch (error: any) {
+      // Gérer les erreurs ApiError
+      if (error.status || error.statusCode) {
+        return {
+          json: async () => ({ error: error.message || 'Erreur', success: false }),
+          status: error.status || error.statusCode,
+        };
+      }
+      // Autres erreurs (Error standard)
+      return {
+        json: async () => ({ error: error.message || 'Erreur interne du serveur', success: false }),
+        status: 500,
+      };
+    }
   }),
   validateBody: vi.fn((body) => body),
   validateQuery: vi.fn((params) => {
@@ -37,6 +52,18 @@ vi.mock('@/lib/api/error-handler', () => ({
     });
     return result;
   }),
+  ApiError: class ApiError extends Error {
+    constructor(public status: number, message: string) {
+      super(message);
+      this.name = 'ApiError';
+    }
+  },
+  ApiErrors: {
+    UNAUTHORIZED: new Error('Unauthorized'),
+    FORBIDDEN: new Error('Forbidden'),
+    NOT_FOUND: new Error('Not Found'),
+    VALIDATION_ERROR: () => new Error('Validation Error'),
+  },
 }));
 
 describe('GET /api/users', () => {

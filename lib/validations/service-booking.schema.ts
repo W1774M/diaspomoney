@@ -22,8 +22,8 @@ const BeneficiaryInfoSchema = z.object({
   firstName: z.string().min(1, 'Le prénom est requis'),
   lastName: z.string().min(1, 'Le nom est requis'),
   phone: z.string().min(1, 'Le téléphone est requis'),
-  email: z.string().email('Email invalide'),
-  country: z.string().min(1, 'Le pays est requis'),
+  email: z.string().email('Email invalide').optional().or(z.literal('')),
+  country: z.string().optional(), // Optionnel car peut être dans location.country
   location: z.object({
     address: z.string(),
     city: z.string(),
@@ -39,17 +39,18 @@ const SelectedServiceSchema = z.object({
   serviceId: z.string().min(1, 'L\'ID du service est requis'),
   category: z.string().min(1, 'La catégorie est requise'),
   label: z.string().min(1, 'Le label est requis'),
-  description: z.string(),
+  description: z.string().default(''), // Permettre une description vide
   price: z.number().positive('Le prix doit être positif'),
   options: z.array(z.any()).default([]),
 });
 
 /**
  * Schéma pour ServiceOption
+ * Note: La catégorie est optionnelle car une option peut être associée à plusieurs services de catégories différentes
  */
 const ServiceOptionSchema = z.object({
   id: z.string(),
-  category: z.string(),
+  category: z.string().optional(), // Optionnel car une option peut être multi-catégories
   label: z.string(),
   description: z.string().optional(),
   price: z.number(),

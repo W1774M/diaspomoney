@@ -16,7 +16,36 @@ import type { InvoiceFacadeData } from '@/facades/invoice.facade';
 vi.mock('@/services/invoice/invoice.service');
 vi.mock('@/services/email/email.service');
 vi.mock('@/services/notification/notification.service');
-vi.mock('@/repositories');
+
+// Mock des repositories - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
+const { mockUserRepository } = vi.hoisted(() => {
+  return {
+    mockUserRepository: {
+      findById: vi.fn(),
+      findByEmail: vi.fn(),
+      create: vi.fn(),
+      findUsersWithFilters: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
+
+vi.mock('@/repositories', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/repositories')>();
+  return {
+    ...actual,
+    getUserRepository: vi.fn(() => mockUserRepository),
+    getInvoiceRepository: vi.fn(() => ({
+      findById: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findAll: vi.fn(),
+    })),
+  };
+});
+
 vi.mock('@/lib/mappers');
 vi.mock('@/lib/logger');
 vi.mock('@sentry/nextjs', () => ({
@@ -116,9 +145,7 @@ describe('InvoiceFacade', () => {
         invoiceNumber: mockInvoice.invoiceNumber,
       } as any);
 
-      const { getUserRepository } = await import('@/repositories');
-      const mockRepository = getUserRepository();
-      vi.mocked(mockRepository.findById).mockResolvedValue({
+      mockUserRepository.findById.mockResolvedValue({
         _id: 'user123',
         email: 'user@example.com',
       } as any);
@@ -228,10 +255,8 @@ describe('InvoiceFacade', () => {
         items: [], // Aucun item
       } as InvoiceFacadeData;
 
-      const result = await invoiceFacade.createInvoice(invalidData);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      // Le décorateur @Validate lance une exception pour les données invalides
+      await expect(invoiceFacade.createInvoice(invalidData)).rejects.toThrow();
     });
 
     it('ne devrait pas faire échouer la création si l\'envoi d\'email échoue', async () => {
@@ -270,9 +295,7 @@ describe('InvoiceFacade', () => {
         invoiceNumber: mockInvoice.invoiceNumber,
       } as any);
 
-      const { getUserRepository } = await import('@/repositories');
-      const mockRepository = getUserRepository();
-      vi.mocked(mockRepository.findById).mockResolvedValue({
+      mockUserRepository.findById.mockResolvedValue({
         _id: 'user123',
         email: 'user@example.com',
       } as any);

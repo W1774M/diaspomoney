@@ -7,9 +7,10 @@ import { z } from 'zod';
 
 /**
  * Schéma pour créer une option de service
+ * Note: La catégorie n'est pas requise car une option peut être associée à plusieurs services de catégories différentes
  */
 export const CreateServiceOptionSchema = z.object({
-  category: z.string().min(1, 'La catégorie est requise'),
+  category: z.string().optional(), // Optionnel car une option peut être multi-catégories
   label: z.string().min(1, 'Le libellé est requis').max(200, 'Le libellé est trop long'),
   description: z.string().min(1, 'La description est requise').max(1000, 'La description est trop longue'),
   price: z.number().min(0, 'Le prix doit être positif'),

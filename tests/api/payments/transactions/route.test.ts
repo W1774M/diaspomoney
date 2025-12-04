@@ -221,8 +221,6 @@ describe('GET /api/payments/transactions', () => {
       user: { id: 'user123' },
     } as any);
 
-    const { getTransactionRepository } = await import('@/repositories');
-    const mockRepository = getTransactionRepository();
     vi.mocked(mockTransactionRepository.findTransactionsWithFilters).mockRejectedValue(
       new Error('Database error'),
     );

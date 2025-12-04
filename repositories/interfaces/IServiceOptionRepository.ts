@@ -7,7 +7,7 @@ import { IRepository } from './IRepository';
 export interface ServiceOption {
   _id: string;
   id: string;
-  category: 'HEALTH' | 'EDUCATION' | 'BTP';
+  category?: 'HEALTH' | 'EDUCATION' | 'BTP'; // Optionnel car une option peut être associée à plusieurs services de catégories différentes
   label: string;
   description: string;
   price: number;

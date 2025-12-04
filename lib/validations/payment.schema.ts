@@ -16,6 +16,7 @@ export const CreatePaymentSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   currency: z.string().length(3, 'Currency must be 3 characters').default(DEFAULT_CURRENCY),
   paymentMethodId: z.string().min(1, 'Payment method ID is required'),
+  customerId: z.string().min(1).optional(), // Optionnel car peut venir de la session
   payerId: z.string().min(1).optional(),
   beneficiaryId: z.string().min(1).optional(),
   serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION'], {

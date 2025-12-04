@@ -24,8 +24,7 @@ export async function GET(
     const resolvedParams = await Promise.resolve(params);
     const optionId = resolvedParams.id;
 
-    const options = await serviceService.getAllOptions();
-    const option = options.find(o => o.id === optionId || o._id === optionId);
+    const option = await serviceService.getServiceOptionById(optionId);
     
     if (!option) {
       throw ApiErrors.NOT_FOUND;

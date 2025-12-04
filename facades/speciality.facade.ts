@@ -14,7 +14,7 @@ import { specialityService } from '@/services/speciality/speciality.service';
 import { specialityMapper } from '@/lib/mappers';
 import * as Sentry from '@sentry/nextjs';
 import type { SpecialityFacadeData, SpecialityFacadeResult, IFacade, FacadeOptions } from '@/lib/types';
-import { CreateSpecialitySchema } from '@/lib/validations/speciality.schema';
+import { CreateSpecialityFacadeSchema } from '@/lib/validations/speciality.schema';
 
 // Réexporter pour compatibilité
 export type { SpecialityFacadeData, SpecialityFacadeResult };
@@ -42,7 +42,7 @@ export class SpecialityFacade implements IFacade<SpecialityFacadeData, Specialit
     rules: [
       {
         paramIndex: 0,
-        schema: CreateSpecialitySchema,
+        schema: CreateSpecialityFacadeSchema,
         paramName: 'data',
       },
     ],

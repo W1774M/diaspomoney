@@ -15,7 +15,36 @@ import { complaintFacade, type ComplaintFacadeData } from '@/facades/complaint.f
 vi.mock('@/services/complaint/complaint.service');
 vi.mock('@/services/notification/notification.service');
 vi.mock('@/services/email/email.service');
-vi.mock('@/repositories');
+
+// Mock des repositories - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
+const { mockUserRepository } = vi.hoisted(() => {
+  return {
+    mockUserRepository: {
+      findById: vi.fn(),
+      findByEmail: vi.fn(),
+      create: vi.fn(),
+      findUsersWithFilters: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
+
+vi.mock('@/repositories', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/repositories')>();
+  return {
+    ...actual,
+    getUserRepository: vi.fn(() => mockUserRepository),
+    getComplaintRepository: vi.fn(() => ({
+      findById: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findAll: vi.fn(),
+    })),
+  };
+});
+
 vi.mock('@/lib/mappers');
 vi.mock('@/lib/logger');
 vi.mock('@sentry/nextjs', () => ({
@@ -126,9 +155,7 @@ describe('ComplaintFacade', () => {
         id: 'complaint123',
       } as any);
 
-      const { getUserRepository } = await import('@/repositories');
-      const mockRepository = getUserRepository();
-      vi.mocked(mockRepository.findById).mockResolvedValue({
+      mockUserRepository.findById.mockResolvedValue({
         id: 'provider123',
       } as any);
 

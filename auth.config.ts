@@ -376,6 +376,12 @@ export const authConfig: NextAuthOptions = {
           token.email = user.email;
           token.name = user.name;
           token.picture = (user as any)['image'];
+          // Ajouter les rôles de l'utilisateur au token
+          if ((user as any).roles) {
+            token.roles = Array.isArray((user as any).roles)
+              ? (user as any).roles
+              : [(user as any).roles];
+          }
         }
 
         // Si userId n'est toujours pas défini (fallback pour sécurité)
@@ -397,6 +403,12 @@ export const authConfig: NextAuthOptions = {
               token.email = dbUser.email;
               token.name = dbUser.name;
               token.picture = (dbUser as any)['image'];
+              // Ajouter les rôles de l'utilisateur au token
+              if ((dbUser as any).roles) {
+                token.roles = Array.isArray((dbUser as any).roles)
+                  ? (dbUser as any).roles
+                  : [(dbUser as any).roles];
+              }
             }
           } catch (error) {
             log.error(
@@ -411,6 +423,32 @@ export const authConfig: NextAuthOptions = {
               },
               extra: { email: token.email },
             });
+          }
+        }
+
+        // Rafraîchir les rôles si le token existe mais n'a pas de rôles (pour les sessions existantes)
+        if (token.userId && !token.roles) {
+          log.debug(
+            { userId: token.userId },
+            'Roles missing in token, fetching from repository',
+          );
+          try {
+            const userRepository = getUserRepository();
+            const dbUser = await userRepository.findById(token.userId);
+            if (dbUser && (dbUser as any).roles) {
+              token.roles = Array.isArray((dbUser as any).roles)
+                ? (dbUser as any).roles
+                : [(dbUser as any).roles];
+              log.debug(
+                { userId: token.userId, roles: token.roles },
+                'Roles refreshed in token',
+              );
+            }
+          } catch (error) {
+            log.warn(
+              { error, userId: token.userId },
+              'Error refreshing roles from repository',
+            );
           }
         }
 
@@ -488,6 +526,12 @@ export const authConfig: NextAuthOptions = {
         }
         if (token.picture) {
           session.user.image = token.picture;
+        }
+        // Ajouter les rôles du token à la session
+        if (token.roles) {
+          (session.user as any).roles = Array.isArray(token.roles)
+            ? token.roles
+            : [token.roles];
         }
 
         // Ajouter les informations du provider

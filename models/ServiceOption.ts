@@ -14,7 +14,7 @@ const ServiceOptionSchema = new Schema(
     },
     category: {
       type: String,
-      required: true,
+      required: false, // Optionnel car une option peut être associée à plusieurs services de catégories différentes
       enum: ['HEALTH', 'EDUCATION', 'BTP'],
       index: true,
     },
@@ -64,7 +64,7 @@ ServiceOptionSchema.index({ label: 'text', description: 'text' });
 export interface ServiceOptionDocument extends Document {
   _id: string;
   id: string;
-  category: 'HEALTH' | 'EDUCATION' | 'BTP';
+  category?: 'HEALTH' | 'EDUCATION' | 'BTP'; // Optionnel car une option peut être associée à plusieurs services de catégories différentes
   label: string;
   description: string;
   price: number;

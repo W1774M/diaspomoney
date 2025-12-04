@@ -26,7 +26,7 @@ export class MongoServiceOptionRepository implements IServiceOptionRepository {
     return {
       _id: doc['_id'].toString(),
       id: doc['id'] || doc['_id'].toString(),
-      category: doc['category'],
+      category: doc['category'] || undefined, // Peut être undefined
       label: doc['label'],
       description: doc['description'],
       price: doc['price'],
@@ -44,7 +44,20 @@ export class MongoServiceOptionRepository implements IServiceOptionRepository {
   async findById(id: string): Promise<ServiceOption | null> {
     try {
       const collection = await this.getCollection();
-      const option = await collection.findOne({ _id: new ObjectId(id) });
+      
+      // Essayer d'abord par ID personnalisé
+      let option = await collection.findOne({ id });
+      
+      // Si non trouvé et que l'ID ressemble à un ObjectId, essayer par _id
+      if (!option && ObjectId.isValid(id)) {
+        try {
+          option = await collection.findOne({ _id: new ObjectId(id) });
+        } catch (objectIdError) {
+          // Si la conversion ObjectId échoue, on garde null
+          this.log.debug({ id, error: objectIdError }, 'Failed to find by _id, already tried by custom id');
+        }
+      }
+      
       return option ? this.mapToServiceOption(option) : null;
     } catch (error) {
       this.log.error({ error, id }, 'Error in findById');
@@ -133,11 +146,38 @@ export class MongoServiceOptionRepository implements IServiceOptionRepository {
       delete updateData.id;
       delete updateData.createdAt;
       
-      await collection.updateOne(
-        { _id: new ObjectId(id) },
+      // Essayer d'abord par ID personnalisé
+      let result = await collection.updateOne(
+        { id },
         { $set: updateData },
       );
-      const updated = await collection.findOne({ _id: new ObjectId(id) });
+      
+      // Si aucun document mis à jour et que l'ID ressemble à un ObjectId, essayer par _id
+      if (result.matchedCount === 0 && ObjectId.isValid(id)) {
+        try {
+          result = await collection.updateOne(
+            { _id: new ObjectId(id) },
+            { $set: updateData },
+          );
+        } catch (objectIdError) {
+          this.log.debug({ id, error: objectIdError }, 'Failed to update by _id, already tried by custom id');
+        }
+      }
+      
+      if (result.matchedCount === 0) {
+        throw new Error('Service option not found for update');
+      }
+      
+      // Récupérer le document mis à jour - essayer d'abord par ID personnalisé
+      let updated = await collection.findOne({ id });
+      if (!updated && ObjectId.isValid(id)) {
+        try {
+          updated = await collection.findOne({ _id: new ObjectId(id) });
+        } catch (_objectIdError) {
+          // Ignorer l'erreur, on va vérifier si updated est null
+        }
+      }
+      
       if (!updated) {
         throw new Error('Service option not found after update');
       }
@@ -154,7 +194,20 @@ export class MongoServiceOptionRepository implements IServiceOptionRepository {
   async delete(id: string): Promise<boolean> {
     try {
       const collection = await this.getCollection();
-      const result = await collection.deleteOne({ _id: new ObjectId(id) });
+      
+      // Essayer d'abord par ID personnalisé (comme "consultation-medicale")
+      let result = await collection.deleteOne({ id });
+      
+      // Si aucun document supprimé et que l'ID ressemble à un ObjectId, essayer par _id
+      if (result.deletedCount === 0 && ObjectId.isValid(id)) {
+        try {
+          result = await collection.deleteOne({ _id: new ObjectId(id) });
+        } catch (objectIdError) {
+          // Si la conversion ObjectId échoue, on garde le résultat précédent (0 supprimé)
+          this.log.debug({ id, error: objectIdError }, 'Failed to delete by _id, already tried by custom id');
+        }
+      }
+      
       return result.deletedCount > 0;
     } catch (error) {
       this.log.error({ error, id }, 'Error in delete');
@@ -290,7 +343,19 @@ export class MongoServiceOptionRepository implements IServiceOptionRepository {
   async exists(id: string): Promise<boolean> {
     try {
       const collection = await this.getCollection();
-      const count = await collection.countDocuments({ _id: new ObjectId(id) }, { limit: 1 });
+      
+      // Essayer d'abord par ID personnalisé
+      let count = await collection.countDocuments({ id }, { limit: 1 });
+      
+      // Si non trouvé et que l'ID ressemble à un ObjectId, essayer par _id
+      if (count === 0 && ObjectId.isValid(id)) {
+        try {
+          count = await collection.countDocuments({ _id: new ObjectId(id) }, { limit: 1 });
+        } catch (_objectIdError) {
+          // Si la conversion ObjectId échoue, on garde 0
+        }
+      }
+      
       return count > 0;
     } catch (error) {
       this.log.error({ error, id }, 'Error in exists');

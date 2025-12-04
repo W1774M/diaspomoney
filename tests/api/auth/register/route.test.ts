@@ -23,7 +23,33 @@ vi.mock('@/services/auth/auth.service', () => ({
 
 // Mock de handleApiRoute
 vi.mock('@/lib/api/error-handler', () => ({
-  handleApiRoute: vi.fn((_request, handler) => handler()),
+  handleApiRoute: vi.fn(async (_request, handler) => {
+    try {
+      const result = await handler();
+      // Si le résultat a déjà une méthode json(), le retourner tel quel
+      if (result && typeof result === 'object' && 'json' in result) {
+        return result;
+      }
+      // Sinon, envelopper dans un objet avec json()
+      return {
+        json: async () => result,
+        status: 200,
+      };
+    } catch (error: any) {
+      // Gérer les erreurs ApiError
+      if (error.status || error.statusCode) {
+        return {
+          json: async () => ({ error: error.message || 'Erreur', success: false }),
+          status: error.status || error.statusCode,
+        };
+      }
+      // Autres erreurs (Error standard)
+      return {
+        json: async () => ({ error: error.message || 'Erreur interne du serveur', success: false }),
+        status: 500,
+      };
+    }
+  }),
   validateBody: vi.fn((body) => body),
 }));
 
@@ -53,8 +79,9 @@ describe('POST /api/auth/register', () => {
     const mockUser = {
       id: 'user123',
       email: 'test@example.com',
-      firstName: 'John',
-      lastName: 'Doe',
+      role: 'CUSTOMER',
+      isVerified: false,
+      kycStatus: 'PENDING',
     };
 
     const mockAuthResponse = {
@@ -120,7 +147,13 @@ describe('POST /api/auth/register', () => {
 
   it('devrait sanitiser les données (email en minuscules, trim)', async () => {
     const mockAuthResponse = {
-      user: { id: 'user123', email: 'test@example.com' },
+      user: { 
+        id: 'user123', 
+        email: 'test@example.com',
+        role: 'CUSTOMER',
+        isVerified: false,
+        kycStatus: 'PENDING',
+      },
       accessToken: 'token',
       refreshToken: 'refresh',
       expiresIn: 3600,
@@ -160,7 +193,13 @@ describe('POST /api/auth/register', () => {
   it('devrait valider le body avec RegisterSchema', async () => {
     const { validateBody } = await import('@/lib/api/error-handler');
     const mockAuthResponse = {
-      user: { id: 'user123' },
+      user: { 
+        id: 'user123',
+        email: 'test@example.com',
+        role: 'CUSTOMER',
+        isVerified: false,
+        kycStatus: 'PENDING',
+      },
       accessToken: 'token',
       refreshToken: 'refresh',
       expiresIn: 3600,
@@ -220,7 +259,13 @@ describe('POST /api/auth/register', () => {
 
   it('devrait extraire IP depuis x-forwarded-for', async () => {
     const mockAuthResponse = {
-      user: { id: 'user123' },
+      user: { 
+        id: 'user123',
+        email: 'test@example.com',
+        role: 'CUSTOMER',
+        isVerified: false,
+        kycStatus: 'PENDING',
+      },
       accessToken: 'token',
       refreshToken: 'refresh',
       expiresIn: 3600,
@@ -260,7 +305,13 @@ describe('POST /api/auth/register', () => {
 
   it('devrait utiliser x-real-ip si x-forwarded-for est absent', async () => {
     const mockAuthResponse = {
-      user: { id: 'user123' },
+      user: { 
+        id: 'user123',
+        email: 'test@example.com',
+        role: 'CUSTOMER',
+        isVerified: false,
+        kycStatus: 'PENDING',
+      },
       accessToken: 'token',
       refreshToken: 'refresh',
       expiresIn: 3600,
@@ -300,7 +351,13 @@ describe('POST /api/auth/register', () => {
 
   it('devrait utiliser "unknown" si aucune IP n\'est disponible', async () => {
     const mockAuthResponse = {
-      user: { id: 'user123' },
+      user: { 
+        id: 'user123',
+        email: 'test@example.com',
+        role: 'CUSTOMER',
+        isVerified: false,
+        kycStatus: 'PENDING',
+      },
       accessToken: 'token',
       refreshToken: 'refresh',
       expiresIn: 3600,
@@ -337,7 +394,13 @@ describe('POST /api/auth/register', () => {
 
   it('devrait gérer marketingConsent par défaut à false', async () => {
     const mockAuthResponse = {
-      user: { id: 'user123' },
+      user: { 
+        id: 'user123',
+        email: 'test@example.com',
+        role: 'CUSTOMER',
+        isVerified: false,
+        kycStatus: 'PENDING',
+      },
       accessToken: 'token',
       refreshToken: 'refresh',
       expiresIn: 3600,

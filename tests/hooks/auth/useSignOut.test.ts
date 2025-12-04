@@ -268,7 +268,7 @@ describe('useSignOut', () => {
     const { result } = renderHook(() => useSignOut());
 
     // Lancer la déconnexion
-    await act(async () => {
+    act(() => {
       result.current.signOut();
     });
 
@@ -277,7 +277,7 @@ describe('useSignOut', () => {
 
     // Résoudre la promesse pour terminer la déconnexion
     await act(async () => {
-      resolvePromise!();
+      resolvePromise!(undefined);
       await promise;
     });
 

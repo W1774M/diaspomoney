@@ -8,6 +8,8 @@ import { StripeCheckout } from "@/components/payments/StripeCheckout";
 import { ServiceBookingSidebar } from "./ServiceBookingSidebar";
 import { useNotificationManager } from "@/components/ui/Notification";
 import { childLogger } from "@/lib/logger";
+import { useServices } from "@/hooks/services/useServices";
+import { useServiceOptions } from "@/hooks/services/useServiceOptions";
 import type {
   ServiceType,
   ServiceBookingState,
@@ -16,140 +18,13 @@ import type {
   ServiceBookingApiResponse,
   ValidationError,
 } from "@/lib/types/service-booking.types";
-import type { ServiceOption } from "@/lib/types/service-options.types";
 import { SPECIALITY_TYPES, CURRENCIES } from "@/lib/constants";
 
 // Créer un logger avec contexte pour ce composant
 const logger = childLogger({ component: 'ServiceBookingWizard' });
 
 // ServiceBookingWizardProps est maintenant importé depuis lib/types/service-booking.types
-
-// Services disponibles par type
-// Utilise les constantes centralisées SPECIALITY_TYPES
-const AVAILABLE_SERVICES: Record<string, ServiceOption[]> = {
-  [SPECIALITY_TYPES.HEALTH]: [
-    {
-      id: "consultation-general",
-      category: SPECIALITY_TYPES.HEALTH,
-      label: "Consultation générale",
-      description: "Consultation avec un médecin généraliste",
-      price: 30,
-      optional: false,
-    },
-    {
-      id: "consultation-specialist",
-      category: SPECIALITY_TYPES.HEALTH,
-      label: "Consultation spécialisée",
-      description: "Consultation avec un médecin spécialiste",
-      price: 50,
-      optional: false,
-    },
-    {
-      id: "teleconsultation",
-      category: SPECIALITY_TYPES.HEALTH,
-      label: "Téléconsultation",
-      description: "Consultation médicale à distance",
-      price: 25,
-      optional: false,
-    },
-  ],
-  [SPECIALITY_TYPES.EDUCATION]: [
-    {
-      id: "devis-education",
-      category: SPECIALITY_TYPES.EDUCATION,
-      label: "Devis éducation",
-      description: "Devis pour les études supérieures et universitaires",
-      price: 20,
-      optional: false,
-    },
-    {
-      id: "school-fees",
-      category: SPECIALITY_TYPES.EDUCATION,
-      label: "Frais de scolarité",
-      description: "Paiement des frais de scolarité",
-      price: 0, // À définir selon l'établissement
-      optional: false,
-    },
-    {
-      id: "supplies",
-      category: SPECIALITY_TYPES.EDUCATION,
-      label: "Fournitures scolaires",
-      description: "Devis pour les fournitures scolaires",
-      price: 20,
-      optional: false,
-    },
-    {
-      id: "school-transportation",
-      category: SPECIALITY_TYPES.EDUCATION,
-      label: "Transport scolaire",
-      description: "Paiement des frais de transport scolaire",
-      price: 100,
-      optional: false,
-    },
-  ],
-  [SPECIALITY_TYPES.BTP]: [
-    {
-      id: "housing-search",
-      category: SPECIALITY_TYPES.BTP,
-      label: "Recherche de logement",
-      description: "Accompagnement dans la recherche de logement",
-      price: 100,
-      optional: false,
-    },
-    {
-      id: "property-visit",
-      category: SPECIALITY_TYPES.BTP,
-      label: "Visite de propriété",
-      description: "Organisation de visite avec un professionnel",
-      price: 50,
-      optional: true,
-    },
-    {
-      id: "construction-quote",
-      category: SPECIALITY_TYPES.BTP,
-      label: "Devis construction",
-      description: "Devis pour travaux de construction",
-      price: 150,
-      optional: false,
-    },
-    {
-      id: "renovation-quote",
-      category: SPECIALITY_TYPES.BTP,
-      label: "Devis rénovation",
-      description: "Devis pour travaux de rénovation",
-      price: 100,
-      optional: false,
-    },
-  ],
-};
-
-// Options supplémentaires disponibles
-const ADDITIONAL_OPTIONS: ServiceOption[] = [
-  {
-    id: "urgent",
-    category: "priority",
-    label: "Traitement urgent",
-    description: "Traitement prioritaire sous 24h",
-    price: 20,
-    optional: true,
-  },
-  {
-    id: "insurance",
-    category: "insurance",
-    label: "Assurance incluse",
-    description: "Assurance couvrant le service",
-    price: 15,
-    optional: true,
-  },
-  {
-    id: "follow-up",
-    category: "support",
-    label: "Suivi personnalisé",
-    description: "Suivi dédié par un Country Sales Manager",
-    price: 30,
-    optional: true,
-  },
-];
+// Les services et options sont maintenant récupérés depuis la base de données via les hooks useServices et useServiceOptions
 
 // Clé pour le localStorage
 const STORAGE_KEY = 'serviceBookingData';
@@ -232,6 +107,27 @@ export function ServiceBookingWizard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
   const [confirmedReservationNumber, setConfirmedReservationNumber] = useState<string | null>(null);
+  
+  // Récupérer les services depuis la base de données
+  const { 
+    services: availableServices, 
+    loading: servicesLoading, 
+    error: servicesError,
+    refetch: refetchServices,
+  } = useServices({
+    category: state.serviceType || undefined,
+    isActive: true, // Seulement les services actifs
+  });
+  
+  // Récupérer les options supplémentaires depuis la base de données
+  const { 
+    options: additionalOptions, 
+    loading: optionsLoading, 
+    error: optionsError,
+    refetch: refetchOptions,
+  } = useServiceOptions({
+    isActive: true, // Seulement les options actives
+  });
 
   // Restaurer l'étape depuis le cache
   // Nettoyer le cache si le paiement est déjà confirmé (pour éviter les doublons)
@@ -359,7 +255,7 @@ export function ServiceBookingWizard({
   };
 
 
-  const handleServiceSelect = (service: ServiceOption) => {
+  const handleServiceSelect = (service: { id: string; category: string; label: string; description: string; price: number; optional?: boolean }) => {
     setState((prev) => ({
       ...prev,
       selectedService: {
@@ -373,7 +269,7 @@ export function ServiceBookingWizard({
     }));
   };
 
-  const handleToggleOption = (option: ServiceOption) => {
+  const handleToggleOption = (option: { id: string; category: string; label: string; description: string; price: number; optional?: boolean }) => {
     setState((prev) => {
       const exists = prev.additionalOptions.some((opt) => opt.id === option.id);
       if (exists) {
@@ -386,7 +282,14 @@ export function ServiceBookingWizard({
       } else {
         return {
           ...prev,
-          additionalOptions: [...prev.additionalOptions, option],
+          additionalOptions: [...prev.additionalOptions, {
+            id: option.id,
+            category: option.category,
+            label: option.label,
+            description: option.description,
+            price: option.price,
+            optional: option.optional ?? true,
+          }],
         };
       }
     });
@@ -400,15 +303,20 @@ export function ServiceBookingWizard({
       paymentIntentId,
       paymentConfirmed: true, 
     }));
-    // Ne pas passer automatiquement à l'étape suivante
-    // L'utilisateur doit cliquer sur "Suivant" après avoir vu la confirmation
+    
+    // Passer automatiquement à l'étape suivante (confirmation) et soumettre la réservation
+    // Passer directement le paymentIntentId pour éviter les problèmes de timing avec setState
+    await handleFinalSubmit(paymentIntentId);
   };
 
-  const handleFinalSubmit = async () => {
+  const handleFinalSubmit = async (paymentIntentIdOverride?: string) => {
     // Empêcher les doubles soumissions
     if (isSubmitting) {
       return;
     }
+
+    // Utiliser le paymentIntentId passé en paramètre ou celui de l'état
+    const paymentIntentId = paymentIntentIdOverride || state.paymentIntentId;
 
     // Validation côté client avant l'envoi
     if (!state.serviceType) {
@@ -431,7 +339,7 @@ export function ServiceBookingWizard({
       return;
     }
     
-    if (!state.paymentIntentId) {
+    if (!paymentIntentId) {
       alert("Le paiement n'a pas été validé. Veuillez compléter le paiement avant de confirmer.");
       return;
     }
@@ -475,7 +383,7 @@ export function ServiceBookingWizard({
           options: state.selectedService!.options || [],
         },
         additionalOptions: state.additionalOptions,
-        paymentIntentId: state.paymentIntentId!,
+        paymentIntentId: paymentIntentId,
       };
 
       // Ajouter les disponibilités uniquement pour HEALTH
@@ -498,7 +406,28 @@ export function ServiceBookingWizard({
       });
 
       // Lire la réponse même en cas d'erreur pour obtenir le message détaillé
-      const data = await response.json() as ServiceBookingApiResponse;
+      let data: ServiceBookingApiResponse;
+      try {
+        data = await response.json() as ServiceBookingApiResponse;
+      } catch (_jsonError) {
+        // Si la réponse n'est pas du JSON valide, utiliser le texte brut
+        const text = await response.text();
+        logger.error(
+          {
+            status: response.status,
+            statusText: response.statusText,
+            responseText: text,
+            serviceType: state.serviceType,
+          },
+          'Erreur lors de la création de la réservation - Réponse non-JSON',
+        );
+        
+        notificationManager.addError(
+          `Erreur lors de l'enregistrement: ${response.statusText || 'Erreur inconnue'} (${response.status})`,
+        );
+        setIsSubmitting(false);
+        return;
+      }
 
       if (!response.ok) {
         // Afficher le message d'erreur détaillé de l'API
@@ -523,10 +452,16 @@ export function ServiceBookingWizard({
             status: response.status,
             statusText: response.statusText,
             error: data.error,
+            errors: data.errors,
             serviceType: state.serviceType,
             errorMessage,
+            requestData: {
+              serviceType: requestData.serviceType,
+              serviceId: requestData.selectedService.serviceId,
+              hasPaymentIntentId: !!requestData.paymentIntentId,
+            },
           },
-          'Erreur lors de la création de la réservation'
+          'Erreur lors de la création de la réservation',
         );
         
         notificationManager.addError(`Erreur lors de l'enregistrement: ${errorMessage}`);
@@ -1009,9 +944,26 @@ export function ServiceBookingWizard({
                     <p className="text-gray-600 mb-6">
                       Choisissez le service qui correspond à vos besoins
                     </p>
-                    {state.serviceType && AVAILABLE_SERVICES[state.serviceType] && (AVAILABLE_SERVICES[state.serviceType]?.length ?? 0) > 0 ? (
+                    {servicesLoading ? (
+                      <div className="text-center py-12">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]"></div>
+                        <p className="mt-4 text-gray-600">Chargement des services...</p>
+                      </div>
+                    ) : servicesError ? (
+                      <div className="text-center py-12 bg-red-50 rounded-lg border-2 border-red-200">
+                        <p className="text-red-700 mb-2">Erreur lors du chargement des services</p>
+                        <p className="text-sm text-red-600 mb-4">{servicesError}</p>
+                        <button
+                          onClick={() => refetchServices()}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                          type="button"
+                        >
+                          Réessayer
+                        </button>
+                      </div>
+                    ) : availableServices && availableServices.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {(AVAILABLE_SERVICES[state.serviceType] || []).map((service) => (
+                        {availableServices.map((service) => (
                           <button
                             key={service.id}
                             onClick={() => handleServiceSelect(service)}
@@ -1063,8 +1015,26 @@ export function ServiceBookingWizard({
                       <p className="text-gray-600 mb-6">
                         Personnalisez votre service avec des options additionnelles (optionnel)
                       </p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {ADDITIONAL_OPTIONS.map((option) => {
+                      {optionsLoading ? (
+                        <div className="text-center py-8">
+                          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-[hsl(25,100%,53%)]"></div>
+                          <p className="mt-2 text-sm text-gray-600">Chargement des options...</p>
+                        </div>
+                      ) : optionsError ? (
+                        <div className="text-center py-8 bg-red-50 rounded-lg border-2 border-red-200">
+                          <p className="text-red-700 mb-2 text-sm">Erreur lors du chargement des options</p>
+                          <p className="text-xs text-red-600 mb-4">{optionsError}</p>
+                          <button
+                            onClick={() => refetchOptions()}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+                            type="button"
+                          >
+                            Réessayer
+                          </button>
+                        </div>
+                      ) : additionalOptions && additionalOptions.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {additionalOptions.map((option) => {
                           const isSelected = state.additionalOptions.some(
                             (opt) => opt.id === option.id,
                           );
@@ -1094,7 +1064,12 @@ export function ServiceBookingWizard({
                             </button>
                           );
                         })}
-                      </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                          <p className="text-gray-500 text-sm">Aucune option supplémentaire disponible</p>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1170,65 +1145,57 @@ export function ServiceBookingWizard({
             {/* Formulaire de paiement Stripe */}
             {state.totalAmount > 0 ? (
               <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-                {state.paymentConfirmed ? (
-                  // Message de confirmation après paiement réussi
-                  <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 text-center">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Check className="w-8 h-8 text-green-600" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-green-900 mb-2">
-                      Paiement confirmé avec succès !
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-[hsl(23,100%,53%)]" />
+                      Informations de paiement
                     </h3>
-                    <p className="text-sm text-green-700 mb-4">
-                      Votre paiement de {state.totalAmount.toFixed(2)}€ a été traité avec succès.
-                    </p>
-                    <p className="text-xs text-green-600">
-                      Vous pouvez maintenant passer à l'étape suivante en cliquant sur "Suivant".
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                      </svg>
+                      <span>Paiement sécurisé</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Vos informations de paiement sont cryptées et sécurisées par Stripe. 
+                    Nous ne stockons jamais vos données bancaires.
+                  </p>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <p className="text-sm text-blue-800">
+                      <strong>Note :</strong> Si vous avez une carte enregistrée, vous pouvez la sélectionner ou en ajouter une nouvelle. 
+                      Le formulaire Stripe vous permet de choisir parmi vos moyens de paiement enregistrés.
                     </p>
                   </div>
-                ) : (
-                  <>
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                          <CreditCard className="w-5 h-5 text-[hsl(23,100%,53%)]" />
-                          Informations de paiement
-                        </h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                          </svg>
-                          <span>Paiement sécurisé</span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-6">
-                        Vos informations de paiement sont cryptées et sécurisées par Stripe. 
-                        Nous ne stockons jamais vos données bancaires.
-                      </p>
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                        <p className="text-sm text-blue-800">
-                          <strong>Note :</strong> Si vous avez une carte enregistrée, vous pouvez la sélectionner ou en ajouter une nouvelle. 
-                          Le formulaire Stripe vous permet de choisir parmi vos moyens de paiement enregistrés.
-                        </p>
-                      </div>
-                    </div>
+                </div>
 
-                    <StripeCheckout
-                      amountInMinorUnit={Math.round(state.totalAmount * 100)}
-                      currency={CURRENCIES.EUR.code}
-                      customerEmail={state.clientInfo.email || ""}
-                      metadata={{
-                        serviceType: state.serviceType || "",
-                        serviceId: state.selectedService?.serviceId || "",
-                        serviceLabel: state.selectedService?.label || "",
-                      }}
-                      onSuccess={handlePaymentSuccess}
-                      onError={(error: string) => {
-                        alert(`Erreur de paiement: ${error}`);
-                      }}
-                    />
-                  </>
-                )}
+                {/* Conteneur pour Stripe avec bouton Précédent */}
+                <StripeCheckout
+                  amountInMinorUnit={Math.round(state.totalAmount * 100)}
+                  currency={CURRENCIES.EUR.code}
+                  customerEmail={state.clientInfo.email || ""}
+                  metadata={{
+                    serviceType: state.serviceType || "",
+                    serviceId: state.selectedService?.serviceId || "",
+                    serviceLabel: state.selectedService?.label || "",
+                  }}
+                  onSuccess={handlePaymentSuccess}
+                  onError={(error: string) => {
+                    alert(`Erreur de paiement: ${error}`);
+                  }}
+                  renderActions={({ submitting }) => (
+                    <button
+                      onClick={handleBack}
+                      disabled={submitting}
+                      className="flex items-center gap-2 px-6 py-4 border rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      type="button"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                      Précédent
+                    </button>
+                  )}
+                />
 
                 {/* Badges de sécurité */}
                 <div className="mt-6 pt-6 border-t border-gray-200 flex flex-wrap items-center gap-4 text-xs text-gray-500">
@@ -1489,7 +1456,7 @@ export function ServiceBookingWizard({
               )}
 
               {/* Navigation Buttons */}
-              {currentStep < 4 && (
+              {currentStep < 4 && currentStep !== 3 && (
                 <div className="flex justify-between mt-6">
                   <button
                     onClick={currentStep > 1 ? handleBack : onCancel}
@@ -1499,36 +1466,15 @@ export function ServiceBookingWizard({
                     <ArrowLeft className="w-5 h-5" />
                     {currentStep > 1 ? "Précédent" : "Annuler"}
                   </button>
-                  {currentStep === 3 ? (
-                    <button
-                      onClick={handleFinalSubmit}
-                      disabled={!validateStep(3) || isSubmitting}
-                      className="flex items-center gap-2 px-6 py-3 bg-[hsl(25,100%,53%)] text-white rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      type="button"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                          <span>Enregistrement en cours...</span>
-                        </>
-                      ) : (
-                        <>
-                          Confirmer la réservation
-                          <Check className="w-5 h-5" />
-                        </>
-                      )}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleNext}
-                      disabled={!validateStep(currentStep)}
-                      className="flex items-center gap-2 px-6 py-3 bg-[hsl(25,100%,53%)] text-white rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      type="button"
-                    >
-                      Suivant
-                      <ArrowRight className="w-5 h-5" />
-                    </button>
-                  )}
+                  <button
+                    onClick={handleNext}
+                    disabled={!validateStep(currentStep)}
+                    className="flex items-center gap-2 px-6 py-3 bg-[hsl(25,100%,53%)] text-white rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    type="button"
+                  >
+                    Suivant
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
                 </div>
               )}
             </div>

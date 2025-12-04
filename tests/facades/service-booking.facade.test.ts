@@ -11,14 +11,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { serviceBookingFacade } from '@/facades/service-booking.facade';
 import type { ServiceBookingFacadeData } from '@/lib/types/service-booking.types';
 
-// Mock des dépendances
-const mockPaymentServiceInstance = {
-  createPaymentIntent: vi.fn(),
-  processPayment: vi.fn(),
-  getTransactionStatus: vi.fn(),
-  cancelPaymentIntent: vi.fn(),
-  refundPayment: vi.fn(),
-};
+// Mock des dépendances - hoisted pour être disponible dans vi.mock()
+const { mockPaymentServiceInstance } = vi.hoisted(() => {
+  const mockInstance = {
+    createPaymentIntent: vi.fn(),
+    processPayment: vi.fn(),
+    getTransactionStatus: vi.fn(),
+    cancelPaymentIntent: vi.fn(),
+    refundPayment: vi.fn(),
+  };
+  return { mockPaymentServiceInstance: mockInstance };
+});
 
 vi.mock('@/services/booking/booking.service');
 vi.mock('@/services/payment/payment.service.strategy', () => ({
@@ -103,7 +106,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
         transactionId: 'trans123',
         paymentIntentId: bookingData.paymentIntentId,
@@ -165,7 +168,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
         transactionId: 'trans456',
         paymentIntentId: bookingData.paymentIntentId,
@@ -225,7 +228,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
         transactionId: 'trans789',
         paymentIntentId: bookingData.paymentIntentId,
@@ -298,7 +301,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
         transactionId: 'trans123',
         paymentIntentId: bookingData.paymentIntentId,
@@ -370,7 +373,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
         transactionId: 'trans123',
         paymentIntentId: bookingData.paymentIntentId,
@@ -437,7 +440,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
         transactionId: 'trans123',
         paymentIntentId: bookingData.paymentIntentId,
@@ -501,7 +504,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
         transactionId: 'trans123',
         paymentIntentId: bookingData.paymentIntentId,
@@ -570,7 +573,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
         transactionId: 'trans123',
         paymentIntentId: bookingData.paymentIntentId,
@@ -645,7 +648,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
         transactionId: 'trans123',
         paymentIntentId: bookingData.paymentIntentId,
@@ -734,10 +737,8 @@ describe('ServiceBookingFacade', () => {
         paymentIntentId: '',
       } as ServiceBookingFacadeData;
 
-      const result = await serviceBookingFacade.execute(invalidData);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      // Le décorateur @Validate lance une exception pour les données invalides
+      await expect(serviceBookingFacade.execute(invalidData)).rejects.toThrow();
     });
 
     it('ne devrait pas faire échouer la création si l\'envoi de notification échoue', async () => {
@@ -765,7 +766,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
         transactionId: 'trans123',
         paymentIntentId: bookingData.paymentIntentId,
@@ -815,7 +816,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: false,
         error: 'Payment verification failed',
       } as any);
@@ -860,7 +861,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
         transactionId: 'trans123',
         paymentIntentId: bookingData.paymentIntentId,
@@ -933,7 +934,7 @@ describe('ServiceBookingFacade', () => {
 
       const { PaymentService } = await import('@/services/payment/payment.service.strategy');
       const mockPaymentService = PaymentService.getInstance();
-      mockPaymentService.getTransactionStatus.mockResolvedValue({
+      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
         transactionId: 'trans123',
         paymentIntentId: bookingDataWithDate.paymentIntentId,

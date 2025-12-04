@@ -10,7 +10,7 @@ import { Validate } from '@/lib/decorators/validate.decorator';
 import { Authorize } from '@/lib/decorators/authorize.decorator';
 import { Audit } from '@/lib/decorators/audit.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
-import { SPECIALITY_TYPES } from '@/lib/constants';
+import { SPECIALITY_TYPES, ROLES } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 import {
   CreateServiceSchema,
@@ -52,7 +52,7 @@ export class ServiceService {
       },
     ],
   })
-  @Authorize({ roles: ['ADMIN', 'SUPERADMIN'] })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
   @Audit({ eventType: 'SERVICE_CREATED', includeArgs: true })
   @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
   @InvalidateCache('ServiceRepository:*')
@@ -88,7 +88,7 @@ export class ServiceService {
       },
     ],
   })
-  @Authorize({ roles: ['ADMIN', 'SUPERADMIN'] })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
   @Audit({ eventType: 'SERVICE_UPDATED', includeArgs: true })
   @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
   @InvalidateCache('ServiceRepository:*')
@@ -104,7 +104,7 @@ export class ServiceService {
   }
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @Authorize({ roles: ['ADMIN', 'SUPERADMIN'] })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
   @Audit({ eventType: 'SERVICE_DELETED', includeArgs: true })
   @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
   @InvalidateCache('ServiceRepository:*')
@@ -162,22 +162,43 @@ export class ServiceService {
       },
     ],
   })
-  @Authorize({ roles: ['ADMIN', 'SUPERADMIN'] })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
   @Audit({ eventType: 'SERVICE_OPTION_CREATED', includeArgs: true })
   @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
   @InvalidateCache('ServiceOptionRepository:*')
   async createServiceOption(data: z.infer<typeof CreateServiceOptionSchema>) {
     try {
-      // Générer un ID si non fourni
-      const optionId = `${data.category.toLowerCase()  }-${  data.label.toLowerCase().replace(/\s+/g, '-')}`;
+      // Générer un ID basé sur le label (sans catégorie car une option peut être multi-catégories)
+      const optionId = data.label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const option = await this.serviceOptionRepository.create({
         ...data,
         id: optionId,
+        // Ne pas inclure category si elle n'est pas fournie
+        ...(data.category ? { category: data.category } : {}),
       } as any);
       logger.info({ optionId: option.id }, 'Service option created successfully');
       return option;
     } catch (error) {
       logger.error({ error, data }, 'Error creating service option');
+      throw error;
+    }
+  }
+
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'ServiceService:getServiceOptionById' })
+  async getServiceOptionById(id: string) {
+    try {
+      // Essayer d'abord par ID personnalisé
+      let option = await this.serviceOptionRepository.findByCustomId(id);
+      
+      // Si non trouvé, essayer par _id
+      if (!option) {
+        option = await this.serviceOptionRepository.findById(id);
+      }
+      
+      return option;
+    } catch (error) {
+      logger.error({ error, id }, 'Error getting service option by id');
       throw error;
     }
   }
@@ -197,7 +218,7 @@ export class ServiceService {
       },
     ],
   })
-  @Authorize({ roles: ['ADMIN', 'SUPERADMIN'] })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
   @Audit({ eventType: 'SERVICE_OPTION_UPDATED', includeArgs: true })
   @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
   @InvalidateCache('ServiceOptionRepository:*')
@@ -213,7 +234,7 @@ export class ServiceService {
   }
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @Authorize({ roles: ['ADMIN', 'SUPERADMIN'] })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
   @Audit({ eventType: 'SERVICE_OPTION_DELETED', includeArgs: true })
   @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
   @InvalidateCache('ServiceOptionRepository:*')
@@ -248,7 +269,7 @@ export class ServiceService {
   }
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @Authorize({ roles: ['ADMIN', 'SUPERADMIN'] })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
   @Audit({ eventType: 'SERVICE_OPTION_ASSOCIATED', includeArgs: true })
   @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
   @InvalidateCache('ServiceRepository:*')
@@ -264,7 +285,7 @@ export class ServiceService {
   }
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @Authorize({ roles: ['ADMIN', 'SUPERADMIN'] })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
   @Audit({ eventType: 'SERVICE_OPTION_DISSOCIATED', includeArgs: true })
   @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
   @InvalidateCache('ServiceRepository:*')

@@ -51,8 +51,29 @@ export const UpdateSpecialitySchema = z.object({
 });
 
 /**
+ * Schéma pour la facade (utilise 'group' au lieu de 'type')
+ */
+export const CreateSpecialityFacadeSchema = z.object({
+  name: z.string().min(1, 'Speciality name is required').max(100, 'Speciality name is too long'),
+  description: z.string().max(500, 'Description is too long').optional(),
+  group: z.enum([
+    SPECIALITY_TYPES.HEALTH,
+    SPECIALITY_TYPES.BTP,
+    SPECIALITY_TYPES.EDUCATION,
+    SPECIALITY_TYPES.LEGAL,
+    SPECIALITY_TYPES.FINANCE,
+    SPECIALITY_TYPES.TECHNOLOGY,
+  ] as [string, ...string[]], {
+    errorMap: () => ({ message: 'Invalid speciality type' }),
+  }),
+  isActive: z.boolean().default(true),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+/**
  * Types TypeScript dérivés des schémas
  */
 export type CreateSpecialityInput = z.infer<typeof CreateSpecialitySchema>;
 export type UpdateSpecialityInput = z.infer<typeof UpdateSpecialitySchema>;
+export type CreateSpecialityFacadeInput = z.infer<typeof CreateSpecialityFacadeSchema>;
 

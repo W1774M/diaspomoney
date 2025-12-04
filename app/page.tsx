@@ -5,6 +5,7 @@ import {
   HeroSection,
   BenefitsSection,
   PartnersSection,
+  ExpertsSection,
 } from "@/components/features/home";
 
 export default function HomePage() {
@@ -25,6 +26,7 @@ export default function HomePage() {
         onExploreClick={handleExploreClick}
       />
       <BenefitsSection />
+      <ExpertsSection />
       <PartnersSection />
     </div>
   );

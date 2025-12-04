@@ -5,11 +5,16 @@
  * et Stripe en mode test pour les paiements
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import { POST as POST_CREATE_INTENT } from '@/app/api/payments/create-intent/route';
 import { POST as POST_PROCESS } from '@/app/api/payments/process/route';
 import { GET as GET_TRANSACTIONS } from '@/app/api/payments/transactions/route';
 import { NextRequest } from 'next/server';
+
+// Mock de auth pour les tests d'intégration
+vi.mock('@/auth', () => ({
+  auth: vi.fn(),
+}));
 
 describe('Integration: /api/payments', () => {
   beforeAll(() => {
@@ -18,6 +23,14 @@ describe('Integration: /api/payments', () => {
       throw new Error('MONGODB_URI doit être défini pour les tests d\'intégration');
     }
     // Note: Stripe en mode test devrait être configuré via STRIPE_SECRET_KEY
+  });
+
+  beforeEach(async () => {
+    // Mock par défaut pour tous les tests
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'test-user-id', roles: ['CUSTOMER'] },
+    } as any);
   });
 
   afterAll(() => {

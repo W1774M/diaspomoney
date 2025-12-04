@@ -65,9 +65,24 @@ vi.mock('@/lib/api/error-handler', () => ({
   validateBody: vi.fn((body) => body),
   validateQuery: vi.fn((params) => Object.fromEntries(params)),
   ApiErrors: {
-    UNAUTHORIZED: new Error('Unauthorized'),
-    NOT_FOUND: new Error('Not Found'),
-    VALIDATION_ERROR: (msg: string) => new Error(msg),
+    UNAUTHORIZED: (() => {
+      const err = new Error('Unauthorized') as any;
+      err.statusCode = 401;
+      err.status = 401;
+      return err;
+    })(),
+    NOT_FOUND: (() => {
+      const err = new Error('Not Found') as any;
+      err.statusCode = 404;
+      err.status = 404;
+      return err;
+    })(),
+    VALIDATION_ERROR: (msg: string) => {
+      const err = new Error(msg) as any;
+      err.statusCode = 400;
+      err.status = 400;
+      return err;
+    },
   },
 }));
 
@@ -101,6 +116,7 @@ describe('GET /api/notifications', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123', email: 'test@example.com' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
     });
     mockFind.mockResolvedValueOnce(mockNotifications);
     mockCountDocuments.mockResolvedValueOnce(1).mockResolvedValueOnce(0);
@@ -118,6 +134,7 @@ describe('GET /api/notifications', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123', email: 'test@example.com' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
     });
     mockFind.mockResolvedValueOnce([]);
     mockCountDocuments.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
@@ -156,6 +173,7 @@ describe('PATCH /api/notifications', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123', email: 'test@example.com' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
     });
     mockFindOne.mockResolvedValueOnce(mockNotification);
     mockUpdateOne.mockResolvedValueOnce({ modifiedCount: 1 });
@@ -180,6 +198,7 @@ describe('PATCH /api/notifications', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123', email: 'test@example.com' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
     });
     mockFindOne.mockResolvedValueOnce(null);
 
@@ -208,6 +227,7 @@ describe('PUT /api/notifications', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123', email: 'test@example.com' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
     });
     mockUpdateMany.mockResolvedValueOnce({ modifiedCount: 5 });
 
@@ -231,6 +251,7 @@ describe('PUT /api/notifications', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123', email: 'test@example.com' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
     });
 
     const request = new NextRequest('http://localhost:3000/api/notifications', {

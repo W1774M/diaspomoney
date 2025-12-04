@@ -7,10 +7,10 @@ import { beforeAll, afterAll } from 'vitest';
 
 // Configuration des variables d'environnement pour les tests d'intégration
 (process.env as any).NODE_ENV = 'test';
-process.env['MONGODB_URI'] = process.env['MONGODB_URI'] || 'mongodb://localhost:27017/diaspomoney_test';
+process.env['MONGODB_URI'] = process.env['MONGODB_URI'] || 'mongodb://217.154.22.202:27017/diaspomoney_test';
 process.env['REDIS_URL'] = process.env['REDIS_URL'] || 'redis://localhost:6379';
-process.env.NEXTAUTH_SECRET = 'test-secret-key-for-testing-only';
-process.env.NEXTAUTH_URL = 'http://localhost:3000';
+process.env.NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || 'test-secret-key-for-testing-only';
+process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
 // Setup avant tous les tests d'intégration
 beforeAll(async () => {

@@ -37,16 +37,16 @@ spec:
           value: "error"
         # URLs publiques
         - name: APP_URL
-          value: "https://app.diaspomoney.fr"
+          value: "https://diaspomoney.fr"
         - name: API_URL
-          value: "https://app.diaspomoney.fr/api"
+          value: "https://diaspomoney.fr/api"
         - name: NEXTAUTH_URL
-          value: "https://app.diaspomoney.fr"
+          value: "https://diaspomoney.fr"
         # URLs publiques Next.js (nécessaires pour le client)
         - name: NEXT_PUBLIC_APP_URL
-          value: "https://app.diaspomoney.fr"
+          value: "https://diaspomoney.fr"
         - name: NEXT_PUBLIC_API_URL
-          value: "https://app.diaspomoney.fr/api"
+          value: "https://diaspomoney.fr/api"
         # MongoDB
         - name: MONGODB_URI
           valueFrom:

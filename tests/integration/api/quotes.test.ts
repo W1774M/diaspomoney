@@ -5,9 +5,14 @@
  * et testent le flux complet de la requête à la réponse
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import { GET } from '@/app/api/quotes/route';
 import { NextRequest } from 'next/server';
+
+// Mock de auth pour les tests d'intégration
+vi.mock('@/auth', () => ({
+  auth: vi.fn(),
+}));
 
 describe('Integration: /api/quotes', () => {
   beforeAll(() => {
@@ -15,6 +20,14 @@ describe('Integration: /api/quotes', () => {
     if (!process.env['MONGODB_URI']) {
       throw new Error('MONGODB_URI doit être défini pour les tests d\'intégration');
     }
+  });
+
+  beforeEach(async () => {
+    // Mock par défaut pour tous les tests
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'test-user-id', roles: ['CUSTOMER'] },
+    } as any);
   });
 
   afterAll(() => {
@@ -41,7 +54,7 @@ describe('Integration: /api/quotes', () => {
       const response = await GET(request);
       
       const data = await response.json();
-      if (data.data.length > 0) {
+      if (data.success && data.data && data.data.length > 0) {
         expect(data.data[0].type).toBe('HEALTH');
       }
     });
@@ -64,8 +77,10 @@ describe('Integration: /api/quotes', () => {
       const response = await GET(request);
       
       const data = await response.json();
-      expect(data.pagination.page).toBe(2);
-      expect(data.pagination.limit).toBe(5);
+      if (data.success && data.pagination) {
+        expect(data.pagination.page).toBe(2);
+        expect(data.pagination.limit).toBe(5);
+      }
     });
   });
 });

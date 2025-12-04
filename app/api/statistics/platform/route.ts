@@ -55,49 +55,45 @@ export async function GET(request: NextRequest) {
     // Récupérer toutes les données nécessaires
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-    const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const last12Months = new Date(now.getFullYear() - 1, now.getMonth(), 1);
 
     // Récupérer les utilisateurs
-    const usersResult = await userRepository.findAll({}, { limit: 10000, page: 1, offset: 0 });
-    const allUsers = usersResult.data || [];
+    const allUsers = await userRepository.findAll({});
     
     // Récupérer les bookings
     const bookingsResult = await bookingRepository.findBookingsWithFilters(
       {},
-      { limit: 10000, page: 1, offset: 0 }
+      { limit: 10000, page: 1, offset: 0 },
     );
     const allBookings = bookingsResult.data || [];
     
     // Récupérer les transactions
     const transactionsResult = await transactionRepository.findTransactionsWithFilters(
       {},
-      { limit: 10000, page: 1, offset: 0 }
+      { limit: 10000, page: 1, offset: 0 },
     );
     const allTransactions = transactionsResult.data || [];
     
     // Récupérer les factures
     const invoicesResult = await invoiceRepository.findInvoicesWithFilters(
       {},
-      { limit: 10000, page: 1, offset: 0 }
+      { limit: 10000, page: 1, offset: 0 },
     );
     const allInvoices = invoicesResult.data || [];
 
     // Calculer les statistiques globales
     const totalUsers = allUsers.length;
-    const totalCustomers = allUsers.filter(u => 
-      Array.isArray(u.roles) ? u.roles.includes(ROLES.CUSTOMER) : u.roles === ROLES.CUSTOMER
+    const totalCustomers = allUsers.filter((u: any) => 
+      Array.isArray(u.roles) ? u.roles.includes(ROLES.CUSTOMER) : u.roles === ROLES.CUSTOMER,
     ).length;
-    const totalProviders = allUsers.filter(u => 
-      Array.isArray(u.roles) ? u.roles.includes(ROLES.PROVIDER) : u.roles === ROLES.PROVIDER
+    const totalProviders = allUsers.filter((u: any) => 
+      Array.isArray(u.roles) ? u.roles.includes(ROLES.PROVIDER) : u.roles === ROLES.PROVIDER,
     ).length;
-    const totalAdmins = allUsers.filter(u => 
-      Array.isArray(u.roles) ? u.roles.includes(ROLES.ADMIN) : u.roles === ROLES.ADMIN
+    const totalAdmins = allUsers.filter((u: any) => 
+      Array.isArray(u.roles) ? u.roles.includes(ROLES.ADMIN) : u.roles === ROLES.ADMIN,
     ).length;
 
     // Nouveaux utilisateurs ce mois
-    const newUsersThisMonth = allUsers.filter(u => {
+    const newUsersThisMonth = allUsers.filter((u: any) => {
       const createdAt = new Date(u.createdAt || u.createdat || Date.now());
       return createdAt >= startOfMonth;
     }).length;
@@ -111,7 +107,7 @@ export async function GET(request: NextRequest) {
     // Statistiques des transactions
     const totalTransactions = allTransactions.length;
     const completedTransactions = allTransactions.filter(t => 
-      t.status === TRANSACTION_STATUSES.COMPLETED
+      t.status === TRANSACTION_STATUSES.COMPLETED,
     ).length;
     const totalRevenue = allTransactions
       .filter(t => t.status === TRANSACTION_STATUSES.COMPLETED)
@@ -141,12 +137,12 @@ export async function GET(request: NextRequest) {
                t.status === TRANSACTION_STATUSES.COMPLETED;
       });
       
-      const monthBookings = allBookings.filter(b => {
-        const createdAt = new Date(b.createdAt || b.date || Date.now());
+      const monthBookings = allBookings.filter((b) => {
+        const createdAt = new Date(b.createdAt || Date.now());
         return createdAt >= monthDate && createdAt < nextMonthDate;
       });
       
-      const monthUsers = allUsers.filter(u => {
+      const monthUsers = allUsers.filter((u: any) => {
         const createdAt = new Date(u.createdAt || u.createdat || Date.now());
         return createdAt >= monthDate && createdAt < nextMonthDate;
       });
@@ -178,8 +174,8 @@ export async function GET(request: NextRequest) {
 
     // Top 5 services les plus utilisés
     const serviceCounts: Record<string, number> = {};
-    allBookings.forEach(booking => {
-      const serviceName = (booking.selectedService as any)?.name || 'Service inconnu';
+    allBookings.forEach((booking: any) => {
+      const serviceName = booking.selectedService?.name || booking.serviceId || 'Service inconnu';
       serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
     });
     const topServices = Object.entries(serviceCounts)

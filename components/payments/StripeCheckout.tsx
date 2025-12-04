@@ -8,7 +8,7 @@ import {
 } from "@stripe/react-stripe-js";
 import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { logger } from "@/lib/logger";
 
 // Dans Next.js, les variables d'environnement côté client doivent avoir le préfixe NEXT_PUBLIC_
@@ -35,6 +35,7 @@ export type StripeCheckoutProps = {
   metadata?: Record<string, string>;
   onSuccess: (_: string) => Promise<void> | void;
   onError?: (_msg: string) => void;
+  renderActions?: (props: { amount: number; submitting: boolean }) => React.ReactNode;
 };
 
 export function StripeCheckout(props: StripeCheckoutProps) {
@@ -250,6 +251,7 @@ export function StripeCheckout(props: StripeCheckoutProps) {
       <InnerCheckout
         amountInMinorUnit={amountInMinorUnit}
         onSuccess={onSuccess}
+        {...(props.renderActions ? { renderActions: props.renderActions } : {})}
         // Only pass onError if it's defined, to match the expected type
         {...(onError ? { onError } : {})}
       />
@@ -274,24 +276,41 @@ function InnerCheckout({
   amountInMinorUnit,
   onSuccess,
   onError,
+  renderActions,
 }: {
   amountInMinorUnit: number;
   onSuccess: (_: string) => Promise<void> | void;
   onError?: (_msg: string) => void;
+  renderActions?: (props: { amount: number; submitting: boolean }) => React.ReactNode;
 }) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
   const handleSubmit = async () => {
+    // Empêcher les doubles soumissions
+    if (submitting || paymentConfirmed) {
+      logger.warn({ 
+        submitting,
+        paymentConfirmed,
+      }, "Payment already being processed or confirmed");
+      return;
+    }
+
     if (!stripe || !elements) {
-      logger.warn({}, "Stripe or elements not ready");
+      logger.warn({ 
+        hasStripe: !!stripe,
+        hasElements: !!elements,
+      }, "Stripe or elements not ready");
       return;
     }
     
     setSubmitting(true);
     try {
-      logger.info({}, "Confirming payment...");
+      logger.info({ 
+        amount: amountInMinorUnit / 100,
+      }, "Confirming payment...");
       
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
@@ -303,18 +322,70 @@ function InnerCheckout({
       
       if (error) {
         const msg = error.message || "Le paiement a échoué";
-        logger.error({ 
-          error: error.message || 'Unknown error',
+        
+        // Extraire toutes les propriétés de l'erreur Stripe de manière sécurisée
+        const errorDetails: Record<string, any> = {
+          message: error.message || 'Unknown error',
           type: error.type || 'unknown',
-          code: error.code || 'unknown',
-        }, "Payment confirmation error");
+        };
+        
+        // Ajouter les propriétés optionnelles si elles existent
+        if (error.code) errorDetails["code"] = error.code;
+        if (error.decline_code) errorDetails["decline_code"] = error.decline_code;
+        if (error.param) errorDetails["param"] = error.param;
+        if (error.payment_intent) {
+          errorDetails["paymentIntentId"] = typeof error.payment_intent === 'string' 
+            ? error.payment_intent 
+            : error.payment_intent.id;
+        }
+        if (error.payment_method) {
+          errorDetails["paymentMethodId"] = typeof error.payment_method === 'string'
+            ? error.payment_method
+            : error.payment_method.id;
+        }
+        
+        // Si l'erreur indique que le PaymentIntent est déjà confirmé, vérifier son état
+        if (error.code === 'payment_intent_unexpected_state' && error.payment_intent) {
+          const paymentIntentId = typeof error.payment_intent === 'string' 
+            ? error.payment_intent 
+            : error.payment_intent.id;
+          
+          try {
+            // Récupérer l'état actuel du PaymentIntent
+            const currentIntent = await stripe.retrievePaymentIntent(paymentIntentId);
+            
+            if (currentIntent.paymentIntent?.status === 'succeeded' || 
+                currentIntent.paymentIntent?.status === 'processing') {
+              // Le paiement est déjà confirmé, appeler onSuccess
+              logger.info({ 
+                paymentIntentId,
+                status: currentIntent.paymentIntent.status,
+              }, "Payment already confirmed, calling onSuccess");
+              
+              setPaymentConfirmed(true);
+              await onSuccess(paymentIntentId);
+              setSubmitting(false);
+              return;
+            }
+          } catch (retrieveError) {
+            logger.warn({ 
+              error: retrieveError,
+              paymentIntentId,
+            }, "Failed to retrieve payment intent status");
+          }
+        }
+        
+        logger.error(errorDetails, "Payment confirmation error");
         onError?.(msg);
         setSubmitting(false);
         return;
       }
       
       if (!paymentIntent) {
-        logger.error({}, "No paymentIntent returned from confirmPayment");
+        logger.error({ 
+          hasError: false,
+          hasPaymentIntent: false,
+        }, "No paymentIntent returned from confirmPayment");
         onError?.("Aucune information de paiement retournée");
         setSubmitting(false);
         return;
@@ -324,6 +395,9 @@ function InnerCheckout({
         paymentIntentId: paymentIntent.id,
         status: paymentIntent.status, 
       }, "Payment confirmed");
+      
+      // Marquer le paiement comme confirmé pour éviter les doubles soumissions
+      setPaymentConfirmed(true);
       
       // Vérifier que le paiement est bien complété avant d'appeler onSuccess
       if (paymentIntent.status === "succeeded") {
@@ -342,19 +416,42 @@ function InnerCheckout({
       } else {
         // Paiement non complété (requires_payment_method, canceled, etc.)
         logger.warn({ 
-          status: paymentIntent.status, 
+          status: paymentIntent.status,
+          paymentIntentId: paymentIntent.id,
         }, "Payment not completed");
         onError?.(`Paiement non complété. Statut: ${paymentIntent.status}`);
+        setPaymentConfirmed(false); // Réinitialiser si le paiement n'est pas complété
         setSubmitting(false);
         return;
       }
     } catch (error: any) {
-      logger.error({ error }, "Unexpected error during payment");
+      // Extraire les détails de l'erreur de manière sécurisée
+      const errorDetails: Record<string, any> = {
+        errorMessage: error?.message || 'Unknown error',
+        errorName: error?.name || 'Error',
+      };
+      
+      // Ajouter la stack trace si disponible
+      if (error?.stack) {
+        errorDetails["stack"] = error.stack;
+      }
+      
+      // Si c'est une erreur Stripe, extraire les détails supplémentaires
+      if (error?.type) {
+        errorDetails["type"] = error.type;
+      }
+      if (error?.code) {
+        errorDetails["code"] = error.code;
+      }
+      
+      logger.error(errorDetails, "Unexpected error during payment");
       onError?.(error?.message || "Erreur lors du paiement");
     } finally {
       setSubmitting(false);
     }
   };
+
+  const amount = amountInMinorUnit / 100;
 
   return (
     <div className="space-y-6">
@@ -369,37 +466,87 @@ function InnerCheckout({
         />
       </div>
 
-      {/* Bouton de paiement */}
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={!stripe || submitting}
-        className="w-full bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white py-4 px-6 rounded-xl font-semibold hover:opacity-90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
-      >
-        {submitting ? (
-          <>
-            <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-            <span>Traitement du paiement…</span>
-          </>
-        ) : (
-          <>
-            <span>Payer {amountInMinorUnit / 100}€</span>
-            <svg
-              className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 7l5 5m0 0l-5 5m5-5H6"
-              />
-            </svg>
-          </>
-        )}
-      </button>
+      {/* Actions personnalisées ou bouton de paiement par défaut */}
+      {renderActions ? (
+        <div className="flex items-center gap-4">
+          {renderActions({ amount, submitting })}
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!stripe || submitting || paymentConfirmed}
+            className="flex-1 bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white py-4 px-6 rounded-xl font-semibold hover:opacity-90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
+          >
+            {submitting ? (
+              <>
+                <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span>Traitement du paiement…</span>
+              </>
+            ) : paymentConfirmed ? (
+              <>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>Paiement confirmé</span>
+              </>
+            ) : (
+              <>
+                <span>Payer {amount}€</span>
+                <svg
+                  className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
+                </svg>
+              </>
+            )}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!stripe || submitting || paymentConfirmed}
+          className="w-full bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white py-4 px-6 rounded-xl font-semibold hover:opacity-90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
+        >
+          {submitting ? (
+            <>
+              <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <span>Traitement du paiement…</span>
+            </>
+          ) : paymentConfirmed ? (
+            <>
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>Paiement confirmé</span>
+            </>
+          ) : (
+            <>
+              <span>Payer {amount}€</span>
+              <svg
+                className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }

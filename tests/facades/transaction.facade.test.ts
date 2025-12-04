@@ -257,6 +257,11 @@ describe('TransactionFacade', () => {
       expect(result.success).toBe(true);
       expect(transactionService.createTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
+          payerId: transactionData.payerId,
+          beneficiaryId: transactionData.beneficiaryId,
+          amount: transactionData.amount,
+          currency: transactionData.currency,
+          type: transactionData.type,
           metadata: transactionData.metadata,
         }),
       );
@@ -333,10 +338,8 @@ describe('TransactionFacade', () => {
         type: '', // Type vide
       } as TransactionFacadeData;
 
-      const result = await transactionFacade.execute(invalidData);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      // Le décorateur @Validate lance une exception pour les données invalides
+      await expect(transactionFacade.execute(invalidData)).rejects.toThrow();
     });
 
     it('ne devrait pas faire échouer la création si l\'envoi de notification échoue', async () => {

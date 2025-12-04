@@ -78,13 +78,13 @@ export function ServiceCarousel({
       {/* Indicators - Professional fintech style */}
       {services.length > 1 && (
         <div className="flex justify-center gap-3 mt-6" role="tablist" aria-label="Indicateurs de carousel">
-          {services.map((_, index) => (
+          {services.map((service, index) => (
             <button
               key={index}
               type="button"
               role="tab"
               aria-selected={index === currentIndex}
-              aria-label={`Aller au service ${index + 1}: ${services[index].title}`}
+              aria-label={`Aller au service ${index + 1}: ${service.title}`}
               className={`rounded-full transition-all duration-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50 ${
                 index === currentIndex
                   ? "w-10 h-2.5 bg-white shadow-lg"

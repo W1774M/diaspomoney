@@ -79,10 +79,14 @@ export function Authorize(options: AuthorizeDecoratorOptions = {}) {
         // Les permissions peuvent être stockées dans session.user ou dans un champ séparé
         const userPermissions = (session.user as any).permissions || [];
 
+        // Les SUPERADMIN et ADMIN ont accès à tout
+        const isSuperAdmin = userRoles.includes(ROLES.SUPERADMIN);
+        const isAdmin = userRoles.includes(ROLES.ADMIN);
+
         // Vérifier les rôles
         if (roles.length > 0) {
-          const hasRequiredRole = roles.some(role =>
-            userRoles.includes(role) || userRoles.includes(ROLES.ADMIN),
+          const hasRequiredRole = isSuperAdmin || isAdmin || roles.some(role =>
+            userRoles.includes(role),
           );
 
           if (!hasRequiredRole) {

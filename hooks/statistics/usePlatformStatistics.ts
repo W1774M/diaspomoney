@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { API_ENDPOINTS } from '@/lib/constants';
 
 interface PlatformStatistics {
   overview: {
@@ -72,7 +71,7 @@ export function usePlatformStatistics(): UsePlatformStatisticsReturn {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorData = await response.json().catch(() => ({})) as { error?: string };
         throw new Error(errorData.error || 'Erreur lors de la récupération des statistiques');
       }
 

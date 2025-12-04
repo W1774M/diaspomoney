@@ -37,16 +37,38 @@ vi.mock('@/lib/monitoring/advanced-monitoring', () => ({
 // Mock de handleApiRoute
 vi.mock('@/lib/api/error-handler', () => ({
   handleApiRoute: vi.fn(async (_request, handler) => {
-    const result = await handler();
-    // Si le résultat a déjà une méthode json(), le retourner tel quel
-    if (result && typeof result === 'object' && 'json' in result) {
-      return result;
+    try {
+      const result = await handler();
+      // Si le résultat a déjà une méthode json(), le retourner tel quel
+      if (result && typeof result === 'object' && 'json' in result) {
+        return result;
+      }
+      // Sinon, envelopper dans un objet avec json()
+      return {
+        json: async () => result,
+        status: 200,
+      };
+    } catch (error: any) {
+      // Gérer les erreurs ApiError
+      if (error.status || error.statusCode) {
+        return {
+          json: async () => ({ error: error.message || 'Erreur', success: false }),
+          status: error.status || error.statusCode,
+        };
+      }
+      // Si c'est UNAUTHORIZED ou autre erreur ApiErrors
+      if (error.message === 'Unauthorized') {
+        return {
+          json: async () => ({ error: 'Non autorisé', success: false }),
+          status: 401,
+        };
+      }
+      // Autres erreurs
+      return {
+        json: async () => ({ error: error.message || 'Erreur interne du serveur', success: false }),
+        status: 500,
+      };
     }
-    // Sinon, envelopper dans un objet avec json()
-    return {
-      json: async () => result,
-      status: 200,
-    };
   }),
   ApiErrors: {
     UNAUTHORIZED: new Error('Unauthorized'),

@@ -14,9 +14,9 @@ if (!process.env['MONGODB_URI']) {
   if (isBuildTime) {
     logger.warn(
       'MONGODB_URI not set during build, using placeholder' +
-        ` (MONGODB_URI=${process.env['MONGODB_URI'] || 'mongodb://localhost:27017/diaspomoney'}, NEXT_PHASE=${process.env['NEXT_PHASE'] || 'unknown'})`,
+        ` (MONGODB_URI=${process.env['MONGODB_URI'] || 'mongodb://217.154.22.202:27017/diaspomoney'}, NEXT_PHASE=${process.env['NEXT_PHASE'] || 'unknown'})`,
     );
-    uri = process.env['MONGODB_URI'] || 'mongodb://localhost:27017/diaspomoney';
+    uri = process.env['MONGODB_URI'] || 'mongodb://217.154.22.202:27017/diaspomoney';
   } else {
     // Utiliser la configuration centralisée
     uri = config.database.uri;

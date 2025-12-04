@@ -60,11 +60,13 @@ describe('POST /api/auth/forgot-password', () => {
     const mockUser = {
       id: 'user123',
       email: 'test@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
     };
 
     const { userService } = await import('@/services/user/user.service');
     vi.mocked(userService.getUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(undefined);
+    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(mockUser);
 
     const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
       method: 'POST',
@@ -94,11 +96,13 @@ describe('POST /api/auth/forgot-password', () => {
     const mockUser = {
       id: 'user123',
       email: 'TEST@EXAMPLE.COM',
+      firstName: 'John',
+      lastName: 'Doe',
     };
 
     const { userService } = await import('@/services/user/user.service');
     vi.mocked(userService.getUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(undefined);
+    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(mockUser);
 
     const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
       method: 'POST',
@@ -119,13 +123,15 @@ describe('POST /api/auth/forgot-password', () => {
     const mockUser = {
       id: 'user123',
       email: 'test@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
     };
 
     const { userService } = await import('@/services/user/user.service');
     const { requestPasswordReset } = await import('@/services/auth/auth.service');
     
     vi.mocked(userService.getUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(undefined);
+    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(mockUser);
     vi.mocked(requestPasswordReset).mockResolvedValueOnce(true);
 
     const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
@@ -145,11 +151,13 @@ describe('POST /api/auth/forgot-password', () => {
     const mockUser = {
       id: 'user123',
       email: 'test@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
     };
 
     const { userService } = await import('@/services/user/user.service');
     vi.mocked(userService.getUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(undefined);
+    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(mockUser);
 
     const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
       method: 'POST',
@@ -191,11 +199,13 @@ describe('POST /api/auth/forgot-password', () => {
     const mockUser = {
       id: 'user123',
       email: 'test@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
     };
 
     const { userService } = await import('@/services/user/user.service');
     vi.mocked(userService.getUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(undefined);
+    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(mockUser);
 
     const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
       method: 'POST',
@@ -214,11 +224,13 @@ describe('POST /api/auth/forgot-password', () => {
     const mockUser = {
       id: 'user123',
       email: 'test@example.com',
+      firstName: 'John',
+      lastName: 'Doe',
     };
 
     const { userService } = await import('@/services/user/user.service');
     vi.mocked(userService.getUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(undefined);
+    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(mockUser);
 
     const beforeTime = Date.now();
     const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {

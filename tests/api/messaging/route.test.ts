@@ -26,46 +26,135 @@ vi.mock('@/lib/mongodb', () => ({
 }));
 
 // Mock de Conversation model - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
-const { mockConversationFindOne, mockConversationFindById, mockConversationUpdateOne } = vi.hoisted(() => {
+const { mockConversationFind, mockConversationFindOne, mockConversationFindById, mockConversationUpdateOne, mockConversationSave } = vi.hoisted(() => {
+  const mockFind = vi.fn();
+  const mockFindOne = vi.fn();
+  const mockFindById = vi.fn();
+  const mockUpdateOne = vi.fn();
+  const mockSave = vi.fn();
+  
   return {
-    mockConversationFindOne: vi.fn(),
-    mockConversationFindById: vi.fn(),
-    mockConversationUpdateOne: vi.fn(),
+    mockConversationFind: mockFind,
+    mockConversationFindOne: mockFindOne,
+    mockConversationFindById: mockFindById,
+    mockConversationUpdateOne: mockUpdateOne,
+    mockConversationSave: mockSave,
   };
 });
 
 vi.mock('@/models/Conversation', () => {
-  const mockConversationModel = vi.fn((data) => ({
-    ...data,
-    save: vi.fn(),
-  }));
-  (mockConversationModel as any).findOne = mockConversationFindOne;
-  (mockConversationModel as any).findById = mockConversationFindById;
-  (mockConversationModel as any).updateOne = mockConversationUpdateOne;
+  class MockConversation {
+    _id?: { toString: () => string };
+    constructor(public data?: any) {}
+    async save() {
+      const saved = mockConversationSave();
+      if (saved && saved._id) {
+        this._id = saved._id;
+      } else if (!this._id) {
+        this._id = { toString: () => 'conv1' };
+      }
+      return Promise.resolve(this);
+    }
+    static find() {
+      return {
+        sort: vi.fn(() => ({
+          populate: vi.fn(() => ({
+            lean: vi.fn(() => Promise.resolve(mockConversationFind())),
+          })),
+        })),
+      };
+    }
+    static findOne() {
+      const queryResult = mockConversationFindOne();
+      const promise = Promise.resolve(queryResult);
+      (promise as any).lean = vi.fn(() => Promise.resolve(queryResult));
+      return promise;
+    }
+    static findById() {
+      return Promise.resolve(mockConversationFindById());
+    }
+    static updateOne() {
+      return Promise.resolve(mockConversationUpdateOne());
+    }
+  }
   return {
-    default: mockConversationModel,
+    default: MockConversation,
   };
 });
 
-// Mock de Message model - créer des instances de mocks réutilisables
-const mockMessageFind = vi.fn();
-const mockMessageFindOne = vi.fn();
-const mockMessageCountDocuments = vi.fn();
-const mockMessageUpdateMany = vi.fn();
+// Mock de Message model - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
+const { mockMessageFind, mockMessageFindOne, mockMessageCountDocuments, mockMessageUpdateMany, mockMessageSave } = vi.hoisted(() => {
+  const mockFind = vi.fn();
+  const mockFindOne = vi.fn();
+  const mockCountDocuments = vi.fn();
+  const mockUpdateMany = vi.fn();
+  const mockSave = vi.fn();
+  
+  return {
+    mockMessageFind: mockFind,
+    mockMessageFindOne: mockFindOne,
+    mockMessageCountDocuments: mockCountDocuments,
+    mockMessageUpdateMany: mockUpdateMany,
+    mockMessageSave: mockSave,
+  };
+});
 
 vi.mock('@/models/Message', () => {
-  const mockMessageModel = vi.fn((data) => ({
-    ...data,
-    save: vi.fn(),
-    _id: { toString: () => 'msg1' },
-    createdAt: new Date(),
-  }));
-  (mockMessageModel as any).find = mockMessageFind;
-  (mockMessageModel as any).findOne = mockMessageFindOne;
-  (mockMessageModel as any).countDocuments = mockMessageCountDocuments;
-  (mockMessageModel as any).updateMany = mockMessageUpdateMany;
+  class MockMessage {
+    _id: { toString: () => string };
+    createdAt: Date;
+    senderId?: { toString: () => string };
+    text?: string;
+    attachments?: any[];
+    constructor(public data?: any) {
+      this._id = { toString: () => 'msg1' };
+      this.createdAt = new Date();
+      if (data) {
+        this.text = data.text;
+        this.senderId = data.senderId || { toString: () => 'user123' };
+        this.attachments = data.attachments || [];
+      }
+    }
+    async save() {
+      const saved = mockMessageSave();
+      if (saved) {
+        if (saved._id) this._id = saved._id;
+        if (saved.senderId) this.senderId = saved.senderId;
+        if (saved.text) this.text = saved.text;
+        if (saved.attachments) this.attachments = saved.attachments;
+        if (saved.createdAt) this.createdAt = saved.createdAt;
+      }
+      return Promise.resolve(this);
+    }
+    static find() {
+      return {
+        sort: vi.fn(() => ({
+          limit: vi.fn(() => ({
+            skip: vi.fn(() => ({
+              populate: vi.fn(() => ({
+                lean: vi.fn(() => Promise.resolve(mockMessageFind())),
+              })),
+            })),
+          })),
+        })),
+      };
+    }
+    static findOne() {
+      return {
+        sort: vi.fn(() => ({
+          lean: vi.fn(() => Promise.resolve(mockMessageFindOne())),
+        })),
+      };
+    }
+    static countDocuments() {
+      return Promise.resolve(mockMessageCountDocuments());
+    }
+    static updateMany() {
+      return Promise.resolve(mockMessageUpdateMany());
+    }
+  }
   return {
-    default: mockMessageModel,
+    default: MockMessage,
   };
 });
 
@@ -109,10 +198,15 @@ describe('GET /api/messaging/conversations', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
-    });
-    mockConversationFind.mockResolvedValueOnce(mockConversations);
-    mockMessageFindOne.mockResolvedValueOnce(null);
-    mockMessageCountDocuments.mockResolvedValueOnce(0);
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+    mockConversationFind.mockReturnValueOnce(mockConversations);
+    mockMessageFindOne.mockReturnValueOnce(null);
+    mockMessageCountDocuments.mockReturnValueOnce(0);
+    
+    // Mock dbConnect
+    const dbConnect = (await import('@/lib/mongodb')).default;
+    vi.mocked(dbConnect).mockResolvedValueOnce(undefined);
 
     const request = new NextRequest('http://localhost:3000/api/messaging/conversations');
     const response = await GET_CONVERSATIONS(request);
@@ -145,11 +239,16 @@ describe('POST /api/messaging/conversations', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
-    });
-    mockConversationFindOne.mockResolvedValueOnce(null);
-    mockConversationSave.mockResolvedValueOnce({
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+    mockConversationFindOne.mockReturnValueOnce(null);
+    mockConversationSave.mockReturnValueOnce({
       _id: { toString: () => 'conv1' },
-    });
+    } as any);
+    
+    // Mock dbConnect
+    const dbConnect = (await import('@/lib/mongodb')).default;
+    vi.mocked(dbConnect).mockResolvedValueOnce(undefined);
 
     const request = new NextRequest('http://localhost:3000/api/messaging/conversations', {
       method: 'POST',
@@ -175,8 +274,13 @@ describe('POST /api/messaging/conversations', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
-    });
-    mockConversationFindOne.mockResolvedValueOnce(mockExistingConversation);
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+    mockConversationFindOne.mockReturnValueOnce(mockExistingConversation);
+    
+    // Mock dbConnect
+    const dbConnect = (await import('@/lib/mongodb')).default;
+    vi.mocked(dbConnect).mockResolvedValueOnce(undefined);
 
     const request = new NextRequest('http://localhost:3000/api/messaging/conversations', {
       method: 'POST',
@@ -220,12 +324,17 @@ describe('GET /api/messaging/messages', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
-    });
-    mockConversationFindOne.mockResolvedValueOnce(mockConversation);
-    mockMessageFind.mockResolvedValueOnce(mockMessages);
-    mockMessageCountDocuments.mockResolvedValueOnce(1);
-    mockMessageUpdateMany.mockResolvedValueOnce({ modifiedCount: 1 });
-    mockConversationUpdateOne.mockResolvedValueOnce({ modifiedCount: 1 });
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+    mockConversationFindOne.mockReturnValueOnce(mockConversation);
+    mockMessageFind.mockReturnValueOnce(mockMessages);
+    mockMessageCountDocuments.mockReturnValueOnce(1);
+    mockMessageUpdateMany.mockReturnValueOnce({ modifiedCount: 1 });
+    mockConversationUpdateOne.mockReturnValueOnce({ modifiedCount: 1 });
+    
+    // Mock dbConnect
+    const dbConnect = (await import('@/lib/mongodb')).default;
+    vi.mocked(dbConnect).mockResolvedValueOnce(undefined);
 
     const request = new NextRequest('http://localhost:3000/api/messaging/messages?conversationId=conv1');
     const response = await GET_MESSAGES(request);
@@ -240,7 +349,8 @@ describe('GET /api/messaging/messages', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
-    });
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
 
     const request = new NextRequest('http://localhost:3000/api/messaging/messages');
     const response = await GET_MESSAGES(request);
@@ -270,15 +380,20 @@ describe('POST /api/messaging/messages', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
-    });
-    mockConversationFindById.mockResolvedValueOnce(mockConversation);
-    mockMessageSave.mockResolvedValueOnce({
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+    mockConversationFindById.mockReturnValueOnce(mockConversation);
+    mockMessageSave.mockReturnValueOnce({
       _id: { toString: () => 'msg1' },
       text: 'Hello',
       senderId: { toString: () => 'user123' },
       createdAt: new Date(),
       attachments: [],
-    });
+    } as any);
+    
+    // Mock dbConnect
+    const dbConnect = (await import('@/lib/mongodb')).default;
+    vi.mocked(dbConnect).mockResolvedValueOnce(undefined);
 
     const request = new NextRequest('http://localhost:3000/api/messaging/messages', {
       method: 'POST',
@@ -306,8 +421,13 @@ describe('POST /api/messaging/messages', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
-    });
-    mockConversationFindById.mockResolvedValueOnce(mockConversation);
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+    mockConversationFindById.mockReturnValueOnce(mockConversation);
+    
+    // Mock dbConnect
+    const dbConnect = (await import('@/lib/mongodb')).default;
+    vi.mocked(dbConnect).mockResolvedValueOnce(undefined);
 
     const request = new NextRequest('http://localhost:3000/api/messaging/messages', {
       method: 'POST',

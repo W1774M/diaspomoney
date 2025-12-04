@@ -108,13 +108,11 @@ describe('POST /api/auth/reset-password', () => {
     vi.mocked(mockFindOne).mockResolvedValueOnce(mockUser);
     vi.mocked(mockUpdateOne).mockResolvedValueOnce({ modifiedCount: 1 });
     const bcryptModule = await import('bcryptjs');
-    vi.mocked(bcryptModule.default.hash).mockResolvedValueOnce('hashed-password');
+    vi.mocked(bcryptModule.default.hash).mockImplementationOnce(() => Promise.resolve('hashed-password'));
     
     // Obtenir les références pour les assertions
     const { mongoClient } = await import('@/lib/mongodb');
-    const client = await mongoClient;
-    const db = client.db();
-    const usersCollection = db.collection('users');
+    await mongoClient;
 
     const request = new NextRequest('http://localhost:3000/api/auth/reset-password', {
       method: 'POST',
@@ -211,7 +209,7 @@ describe('POST /api/auth/reset-password', () => {
     vi.mocked(mockFindOne).mockResolvedValueOnce(mockUser);
     vi.mocked(mockUpdateOne).mockResolvedValueOnce({ modifiedCount: 1 });
     const bcryptModule = await import('bcryptjs');
-    vi.mocked(bcryptModule.default.hash).mockResolvedValueOnce('hashed-password');
+    vi.mocked(bcryptModule.default.hash).mockImplementationOnce(() => Promise.resolve('hashed-password'));
 
     const request = new NextRequest('http://localhost:3000/api/auth/reset-password', {
       method: 'POST',
@@ -240,7 +238,7 @@ describe('POST /api/auth/reset-password', () => {
     vi.mocked(mockFindOne).mockResolvedValueOnce(mockUser);
     vi.mocked(mockUpdateOne).mockResolvedValueOnce({ modifiedCount: 0 }); // Échec de mise à jour
     const bcryptModule = await import('bcryptjs');
-    vi.mocked(bcryptModule.default.hash).mockResolvedValueOnce('hashed-password');
+    vi.mocked(bcryptModule.default.hash).mockImplementationOnce(() => Promise.resolve('hashed-password'));
 
     const request = new NextRequest('http://localhost:3000/api/auth/reset-password', {
       method: 'POST',
@@ -269,7 +267,7 @@ describe('POST /api/auth/reset-password', () => {
     vi.mocked(mockFindOne).mockResolvedValueOnce(mockUser);
     vi.mocked(mockUpdateOne).mockResolvedValueOnce({ modifiedCount: 1 });
     const bcryptModule = await import('bcryptjs');
-    vi.mocked(bcryptModule.default.hash).mockResolvedValueOnce('hashed-password');
+    vi.mocked(bcryptModule.default.hash).mockImplementationOnce(() => Promise.resolve('hashed-password'));
 
     const request = new NextRequest('http://localhost:3000/api/auth/reset-password', {
       method: 'POST',
@@ -295,7 +293,7 @@ describe('POST /api/auth/reset-password', () => {
     vi.mocked(mockFindOne).mockResolvedValueOnce(mockUser);
     vi.mocked(mockUpdateOne).mockResolvedValueOnce({ modifiedCount: 1 });
     const bcryptModule = await import('bcryptjs');
-    vi.mocked(bcryptModule.default.hash).mockResolvedValueOnce('hashed-password');
+    vi.mocked(bcryptModule.default.hash).mockImplementationOnce(() => Promise.resolve('hashed-password'));
 
     const request = new NextRequest('http://localhost:3000/api/auth/reset-password', {
       method: 'POST',
@@ -321,7 +319,7 @@ describe('POST /api/auth/reset-password', () => {
     vi.mocked(mockFindOne).mockResolvedValueOnce(mockUser);
     vi.mocked(mockUpdateOne).mockResolvedValueOnce({ modifiedCount: 1 });
     const bcryptModule = await import('bcryptjs');
-    vi.mocked(bcryptModule.default.hash).mockResolvedValueOnce('hashed-password');
+    vi.mocked(bcryptModule.default.hash).mockImplementationOnce(() => Promise.resolve('hashed-password'));
 
     const request = new NextRequest('http://localhost:3000/api/auth/reset-password', {
       method: 'POST',

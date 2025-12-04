@@ -42,30 +42,75 @@ vi.mock('@/repositories', () => ({
   getComplaintRepository: vi.fn(() => mockComplaintRepository),
 }));
 
-// Mock de ComplaintQueryBuilder
-const mockQueryBuilder = {
-  byUser: vi.fn().mockReturnThis(),
-  byProvider: vi.fn().mockReturnThis(),
-  byAppointment: vi.fn().mockReturnThis(),
-  byType: vi.fn().mockReturnThis(),
-  byPriority: vi.fn().mockReturnThis(),
-  byStatus: vi.fn().mockReturnThis(),
-  page: vi.fn().mockReturnThis(),
-  orderByCreatedAt: vi.fn().mockReturnThis(),
-  build: vi.fn(() => ({
-    filters: {},
-    pagination: { page: 1, limit: 50 },
-    sort: { createdAt: -1 },
-  })),
-};
+// Mock de ComplaintQueryBuilder - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
+const { mockComplaintQueryBuilderSpy } = vi.hoisted(() => {
+  class MockComplaintQueryBuilder {
+    byUser = vi.fn().mockReturnThis();
+    byProvider = vi.fn().mockReturnThis();
+    byAppointment = vi.fn().mockReturnThis();
+    byType = vi.fn().mockReturnThis();
+    byPriority = vi.fn().mockReturnThis();
+    byStatus = vi.fn().mockReturnThis();
+    page = vi.fn().mockReturnThis();
+    orderByCreatedAt = vi.fn().mockReturnThis();
+    build = vi.fn(() => ({
+      filters: {},
+      pagination: { page: 1, limit: 50 },
+      sort: { createdAt: -1 },
+    }));
+  }
+  // Utiliser une fonction constructeur normale au lieu de vi.fn()
+  function MockComplaintQueryBuilderConstructor() {
+    return new MockComplaintQueryBuilder();
+  }
+  const spy = vi.fn(MockComplaintQueryBuilderConstructor);
+  return {
+    mockComplaintQueryBuilderSpy: spy,
+  };
+});
 
 vi.mock('@/builders', () => ({
-  ComplaintQueryBuilder: vi.fn(() => mockQueryBuilder),
+  ComplaintQueryBuilder: mockComplaintQueryBuilderSpy,
 }));
 
 // Mock de handleApiRoute
 vi.mock('@/lib/api/error-handler', () => ({
-  handleApiRoute: vi.fn((_request, handler) => handler()),
+  handleApiRoute: vi.fn(async (_request, handler) => {
+    try {
+      const result = await handler();
+      // Si le résultat a déjà une méthode json(), le retourner tel quel avec status
+      if (result && typeof result === 'object' && 'json' in result) {
+        return {
+          ...result,
+          status: result.status || 200,
+        };
+      }
+      // Sinon, envelopper dans un objet avec json() et status
+      return {
+        json: async () => result,
+        status: 200,
+      };
+    } catch (error: any) {
+      // Si c'est une erreur ApiError, retourner le status approprié
+      if (error.statusCode || error.status) {
+        return {
+          json: async () => ({ 
+            success: false,
+            error: error.message || 'Erreur' 
+          }),
+          status: error.statusCode || error.status,
+        };
+      }
+      // Si c'est UNAUTHORIZED ou autre erreur ApiErrors
+      if (error.message === 'Unauthorized') {
+        return {
+          json: async () => ({ error: 'Non autorisé' }),
+          status: 401,
+        };
+      }
+      throw error;
+    }
+  }),
   validateBody: vi.fn((body) => body),
   ApiErrors: {
     UNAUTHORIZED: new Error('Unauthorized'),
@@ -74,7 +119,9 @@ vi.mock('@/lib/api/error-handler', () => ({
   ApiError: class ApiError extends Error {
     constructor(public status: number, message: string) {
       super(message);
+      this.statusCode = status;
     }
+    statusCode?: number;
   },
 }));
 
@@ -113,6 +160,7 @@ describe('GET /api/complaints', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
     });
     vi.mocked(mockComplaintRepository.findComplaintsWithFilters).mockResolvedValueOnce({
       data: mockComplaints,
@@ -125,13 +173,16 @@ describe('GET /api/complaints', () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(mockQueryBuilder.byUser).toHaveBeenCalledWith('user123');
+    expect(mockComplaintQueryBuilderSpy).toHaveBeenCalled();
+    const instance = mockComplaintQueryBuilderSpy.mock.results[0]?.value;
+    expect(instance?.byUser).toHaveBeenCalledWith('user123');
   });
 
   it('devrait appliquer les filtres de requête', async () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
     });
     vi.mocked(mockComplaintRepository.findComplaintsWithFilters).mockResolvedValueOnce({
       data: [],
@@ -141,8 +192,9 @@ describe('GET /api/complaints', () => {
     const request = new NextRequest('http://localhost:3000/api/complaints?provider=provider123&status=PENDING');
     await GET(request);
 
-    expect(mockQueryBuilder.byProvider).toHaveBeenCalledWith('provider123');
-    expect(mockQueryBuilder.byStatus).toHaveBeenCalledWith('PENDING');
+    const instance = mockComplaintQueryBuilderSpy.mock.results[0]?.value;
+    expect(instance?.byProvider).toHaveBeenCalledWith('provider123');
+    expect(instance?.byStatus).toHaveBeenCalledWith('PENDING');
   });
 
   it('devrait retourner 401 si non authentifié', async () => {
@@ -161,6 +213,7 @@ describe('GET /api/complaints', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
     });
     vi.mocked(mockComplaintRepository.findComplaintsWithFilters).mockResolvedValueOnce({
       data: [],
@@ -170,7 +223,8 @@ describe('GET /api/complaints', () => {
     const request = new NextRequest('http://localhost:3000/api/complaints');
     await GET(request);
 
-    expect(mockQueryBuilder.page).toHaveBeenCalled();
+    const instance = mockComplaintQueryBuilderSpy.mock.results[0]?.value;
+    expect(instance?.page).toHaveBeenCalled();
   });
 });
 
@@ -182,13 +236,24 @@ describe('POST /api/complaints', () => {
   it('devrait créer une réclamation avec succès', async () => {
     const mockComplaint = {
       id: 'complaint1',
-      type: 'SERVICE_QUALITY',
-      status: 'PENDING',
+      _id: 'complaint1',
+      number: 'COMP-001',
+      title: 'Test complaint',
+      type: 'QUALITY' as const,
+      priority: 'MEDIUM' as const,
+      status: 'OPEN' as const,
+      description: 'Test description',
+      provider: 'provider123',
+      appointmentId: 'appointment123',
+      userId: 'user123',
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
     });
     const { complaintFacade } = await import('@/facades');
     vi.mocked(complaintFacade.createComplaint).mockResolvedValueOnce({
@@ -248,6 +313,7 @@ describe('POST /api/complaints', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
     });
     const { complaintFacade } = await import('@/facades');
     vi.mocked(complaintFacade.createComplaint).mockResolvedValueOnce({
@@ -255,7 +321,21 @@ describe('POST /api/complaints', () => {
       complaintId: 'complaint1',
     });
     const { complaintService } = await import('@/services/complaint/complaint.service');
-    vi.mocked(complaintService.getComplaintById).mockResolvedValueOnce({ id: 'complaint1' });
+    vi.mocked(complaintService.getComplaintById).mockResolvedValueOnce({
+      id: 'complaint1',
+      _id: 'complaint1',
+      number: 'COMP-001',
+      title: 'Test',
+      type: 'QUALITY' as const,
+      priority: 'MEDIUM' as const,
+      status: 'OPEN' as const,
+      description: 'Test description',
+      provider: 'provider123',
+      appointmentId: 'appointment123',
+      userId: 'user123',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
     const request = new NextRequest('http://localhost:3000/api/complaints', {
       method: 'POST',
@@ -275,6 +355,7 @@ describe('POST /api/complaints', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
     });
     const { complaintFacade } = await import('@/facades');
     vi.mocked(complaintFacade.createComplaint).mockResolvedValueOnce({
@@ -291,7 +372,12 @@ describe('POST /api/complaints', () => {
       }),
     });
 
-    await expect(POST(request)).rejects.toThrow();
+    const response = await POST(request);
+    const data = await response.json();
+    
+    // Le mock handleApiRoute gère les erreurs et retourne un objet avec status
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(data.success).toBe(false);
   });
 });
 

@@ -15,7 +15,36 @@ import type { UserFacadeData, UserStatus } from '@/lib/types';
 // Mock des dépendances
 vi.mock('@/services/user/user.service');
 vi.mock('@/services/notification/notification.service');
-vi.mock('@/repositories');
+
+// Mock des repositories - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
+const { mockUserRepository } = vi.hoisted(() => {
+  return {
+    mockUserRepository: {
+      findById: vi.fn(),
+      findByEmail: vi.fn(),
+      create: vi.fn(),
+      findUsersWithFilters: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
+
+vi.mock('@/repositories', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/repositories')>();
+  return {
+    ...actual,
+    getUserRepository: vi.fn(() => mockUserRepository),
+    getNotificationRepository: vi.fn(() => ({
+      findById: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findAll: vi.fn(),
+    })),
+  };
+});
+
 vi.mock('@/lib/mappers');
 vi.mock('@/lib/logger');
 
@@ -52,9 +81,7 @@ describe('UserFacade', () => {
         updatedAt: new Date(),
       };
 
-      const { getUserRepository } = await import('@/repositories');
-      const mockRepository = getUserRepository();
-      vi.mocked(mockRepository.create).mockResolvedValue(mockUser as any);
+      mockUserRepository.create.mockResolvedValue(mockUser as any);
 
       const { userMapper } = await import('@/lib/mappers');
       vi.mocked(userMapper.map).mockReturnValue(mockUser as any);
@@ -72,9 +99,7 @@ describe('UserFacade', () => {
         name: 'Test User',
       };
 
-      const { getUserRepository } = await import('@/repositories');
-      const mockRepository = getUserRepository();
-      vi.mocked(mockRepository.create).mockRejectedValue(
+      mockUserRepository.create.mockRejectedValue(
         new Error('Email déjà utilisé'),
       );
 
@@ -90,10 +115,8 @@ describe('UserFacade', () => {
         name: '', // Nom vide
       } as UserFacadeData;
 
-      const result = await userFacade.execute(invalidData);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
+      // Le décorateur @Validate lance une exception pour les données invalides
+      await expect(userFacade.execute(invalidData)).rejects.toThrow();
     });
   });
 
@@ -127,9 +150,7 @@ describe('UserFacade', () => {
         },
       ];
 
-      const { getUserRepository } = await import('@/repositories');
-      const mockRepository = getUserRepository();
-      vi.mocked(mockRepository.findUsersWithFilters).mockResolvedValue({
+      mockUserRepository.findUsersWithFilters.mockResolvedValue({
         data: mockUsers as any,
         total: 2,
         pagination: {
@@ -160,9 +181,7 @@ describe('UserFacade', () => {
         page: 2,
       };
 
-      const { getUserRepository } = await import('@/repositories');
-      const mockRepository = getUserRepository();
-      vi.mocked(mockRepository.findUsersWithFilters).mockResolvedValue({
+      mockUserRepository.findUsersWithFilters.mockResolvedValue({
         data: [] as any,
         total: 25,
         pagination: {
@@ -185,9 +204,7 @@ describe('UserFacade', () => {
     });
 
     it('devrait gérer les erreurs lors de la récupération', async () => {
-      const { getUserRepository } = await import('@/repositories');
-      const mockRepository = getUserRepository();
-      vi.mocked(mockRepository.findUsersWithFilters).mockRejectedValue(
+      mockUserRepository.findUsersWithFilters.mockRejectedValue(
         new Error('Erreur de connexion à la base de données'),
       );
 

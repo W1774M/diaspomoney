@@ -1,21 +1,53 @@
 /**
- * Tests unitaires pour /api/bookings/[id]
+ * Unit tests for /api/bookings/[id]
  * 
- * Implémente les tests pour :
+ * Tests for:
  * - GET /api/bookings/[id]
  * - PUT /api/bookings/[id]
  * - DELETE /api/bookings/[id]
- * - Validation des paramètres
- * - Utilisation de bookingService
- * - Gestion d'erreurs
+ * - Parameter validation
+ * - Usage of bookingService and bookingMapper
+ * - Error handling
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET, PUT, DELETE } from '@/app/api/bookings/[id]/route';
 import { NextRequest } from 'next/server';
 import mongoose from 'mongoose';
+import type { Booking } from '@/repositories/interfaces/IBookingRepository';
+import type { BookingResponse } from '@/lib/mappers/booking.mapper';
 
-// Mock de bookingService
+// Helper pour créer un mock Booking complet
+const createMockBooking = (overrides: Partial<Booking> = {}): Booking => ({
+  id: '507f1f77bcf86cd799439011',
+  _id: '507f1f77bcf86cd799439011',
+  reservationNumber: 'RES-001',
+  requesterId: 'user123',
+  providerId: 'provider123',
+  serviceId: 'service123',
+  serviceType: 'HEALTH',
+  status: 'CONFIRMED',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  ...overrides,
+});
+
+// Helper pour créer un mock BookingResponse complet
+const createMockBookingResponse = (overrides: Partial<BookingResponse> = {}): BookingResponse => ({
+  id: '507f1f77bcf86cd799439011',
+  _id: '507f1f77bcf86cd799439011',
+  reservationNumber: 'RES-001',
+  requesterId: 'user123',
+  providerId: 'provider123',
+  serviceId: 'service123',
+  serviceType: 'HEALTH',
+  status: 'CONFIRMED',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  ...overrides,
+});
+
+// bookingService mock
 vi.mock('@/services/booking/booking.service', () => ({
   bookingService: {
     getBookingById: vi.fn(),
@@ -24,24 +56,24 @@ vi.mock('@/services/booking/booking.service', () => ({
   },
 }));
 
-// Mock de bookingMapper
+// bookingMapper mock
 vi.mock('@/lib/mappers', () => ({
   bookingMapper: {
     map: vi.fn(),
   },
 }));
 
-// Mock de auth
+// auth mock
 vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }));
 
-// Mock de validateBody
+// validateBody mock
 vi.mock('@/lib/api/error-handler', () => ({
   validateBody: vi.fn((body) => body),
 }));
 
-// Mock de childLogger
+// childLogger mock
 vi.mock('@/lib/logger', () => ({
   childLogger: vi.fn(() => ({
     debug: vi.fn(),
@@ -59,21 +91,15 @@ describe('GET /api/bookings/[id]', () => {
     vi.clearAllMocks();
     bookingService = (await import('@/services/booking/booking.service')).bookingService;
     bookingMapper = (await import('@/lib/mappers')).bookingMapper;
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'user123' },
+    } as any);
   });
 
-  it('devrait récupérer une réservation par ID avec succès', async () => {
-    const mockBooking = {
-      _id: '507f1f77bcf86cd799439011',
-      reservationNumber: 'RES-001',
-      status: 'CONFIRMED',
-    };
-
-    const mockMappedBooking = {
-      id: '507f1f77bcf86cd799439011',
-      reservationNumber: 'RES-001',
-      status: 'CONFIRMED',
-    };
-
+  it('should fetch a booking by ID successfully', async () => {
+    const mockBooking = createMockBooking();
+    const mockMappedBooking = createMockBookingResponse();
     vi.mocked(bookingService.getBookingById).mockResolvedValueOnce(mockBooking);
     vi.mocked(bookingMapper.map).mockReturnValueOnce(mockMappedBooking);
 
@@ -90,7 +116,7 @@ describe('GET /api/bookings/[id]', () => {
     expect(vi.mocked(bookingMapper.map)).toHaveBeenCalledWith(mockBooking);
   });
 
-  it('devrait retourner 400 pour un ID invalide', async () => {
+  it('should return 400 for invalid ID', async () => {
     const request = new NextRequest('http://localhost:3000/api/bookings/invalid-id');
     const params = { id: 'invalid-id' };
 
@@ -102,8 +128,8 @@ describe('GET /api/bookings/[id]', () => {
     expect(vi.mocked(bookingService.getBookingById)).not.toHaveBeenCalled();
   });
 
-  it('devrait retourner 404 si la réservation n\'existe pas', async () => {
-    vi.mocked(bookingService.getBookingById).mockResolvedValueOnce(null);
+  it('should return 404 if booking does not exist', async () => {
+    vi.mocked(bookingService.getBookingById).mockResolvedValueOnce(null as any);
 
     const validId = new mongoose.Types.ObjectId().toString();
     const request = new NextRequest(`http://localhost:3000/api/bookings/${validId}`);
@@ -116,7 +142,7 @@ describe('GET /api/bookings/[id]', () => {
     expect(data.error).toBe('Réservation non trouvée');
   });
 
-  it('devrait gérer les erreurs du service', async () => {
+  it('should handle service errors', async () => {
     vi.mocked(bookingService.getBookingById).mockRejectedValueOnce(new Error('Database error'));
 
     const validId = new mongoose.Types.ObjectId().toString();
@@ -130,14 +156,12 @@ describe('GET /api/bookings/[id]', () => {
     expect(data.error).toBe('Erreur interne du serveur');
   });
 
-  it('devrait gérer params comme Promise', async () => {
-    const mockBooking = {
-      _id: '507f1f77bcf86cd799439011',
-      reservationNumber: 'RES-001',
-    };
+  it('should support params as Promise', async () => {
+    const mockBooking = createMockBooking();
+    const mockMappedBooking = createMockBookingResponse();
 
     vi.mocked(bookingService.getBookingById).mockResolvedValueOnce(mockBooking);
-    vi.mocked(bookingMapper.map).mockReturnValueOnce(mockBooking);
+    vi.mocked(bookingMapper.map).mockReturnValueOnce(mockMappedBooking);
 
     const request = new NextRequest('http://localhost:3000/api/bookings/507f1f77bcf86cd799439011');
     const params = Promise.resolve({ id: '507f1f77bcf86cd799439011' });
@@ -147,6 +171,20 @@ describe('GET /api/bookings/[id]', () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
+  });
+
+  it('should return 404 if booking does not exist (GET does not check auth)', async () => {
+    vi.mocked(bookingService.getBookingById).mockResolvedValueOnce(null as any);
+
+    const validId = new mongoose.Types.ObjectId().toString();
+    const request = new NextRequest(`http://localhost:3000/api/bookings/${validId}`);
+    const params = { id: validId };
+
+    const response = await GET(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(data.error).toBe('Réservation non trouvée');
   });
 });
 
@@ -159,27 +197,24 @@ describe('PUT /api/bookings/[id]', () => {
     bookingService = (await import('@/services/booking/booking.service')).bookingService;
     bookingMapper = (await import('@/lib/mappers')).bookingMapper;
     const { auth } = await import('@/auth');
-    vi.mocked(auth).mockResolvedValueOnce({
+    vi.mocked(auth).mockResolvedValue({
       user: { id: 'user123' },
-    });
+    } as any);
   });
 
-  it('devrait mettre à jour une réservation avec succès', async () => {
-    const mockUpdatedBooking = {
-      _id: '507f1f77bcf86cd799439011',
-      id: '507f1f77bcf86cd799439011',
-      reservationNumber: 'RES-001',
-      status: 'CONFIRMED',
-      appointmentDate: new Date('2024-01-15'),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  it('should update a booking successfully', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user123' },
+    } as any);
 
-    const mockMappedBooking = {
-      id: '507f1f77bcf86cd799439011',
-      reservationNumber: 'RES-001',
-      status: 'CONFIRMED',
-    };
+    const mockUpdatedBooking = createMockBooking({
+      appointmentDate: new Date('2024-01-15'),
+    });
+
+    const mockMappedBooking = createMockBookingResponse({
+      appointmentDate: new Date('2024-01-15').toISOString(),
+    });
 
     vi.mocked(bookingService.updateBooking).mockResolvedValueOnce(mockUpdatedBooking);
     vi.mocked(bookingMapper.map).mockReturnValueOnce(mockMappedBooking);
@@ -203,7 +238,7 @@ describe('PUT /api/bookings/[id]', () => {
     expect(vi.mocked(bookingService.updateBooking)).toHaveBeenCalled();
   });
 
-  it('devrait retourner 401 si non authentifié', async () => {
+  it('should return 401 if unauthenticated', async () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce(null);
 
@@ -222,7 +257,7 @@ describe('PUT /api/bookings/[id]', () => {
     expect(vi.mocked(bookingService.updateBooking)).not.toHaveBeenCalled();
   });
 
-  it('devrait retourner 400 pour un ID invalide', async () => {
+  it('should return 400 for invalid ID', async () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123', roles: ['CUSTOMER'] },
@@ -241,19 +276,13 @@ describe('PUT /api/bookings/[id]', () => {
     expect(data.error).toBe('ID de réservation invalide');
   });
 
-  it('devrait valider le body avec UpdateBookingSchema', async () => {
+  it('should validate body with UpdateBookingSchema', async () => {
     const { validateBody } = await import('@/lib/api/error-handler');
-    const mockUpdatedBooking = {
-      _id: '507f1f77bcf86cd799439011',
-      id: '507f1f77bcf86cd799439011',
-      reservationNumber: 'RES-001',
-      status: 'CONFIRMED',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    const mockUpdatedBooking = createMockBooking();
+    const mockMappedBooking = createMockBookingResponse();
 
     vi.mocked(bookingService.updateBooking).mockResolvedValueOnce(mockUpdatedBooking);
-    vi.mocked(bookingMapper.map).mockReturnValueOnce(mockUpdatedBooking);
+    vi.mocked(bookingMapper.map).mockReturnValueOnce(mockMappedBooking);
 
     const request = new NextRequest('http://localhost:3000/api/bookings/507f1f77bcf86cd799439011', {
       method: 'PUT',
@@ -266,8 +295,13 @@ describe('PUT /api/bookings/[id]', () => {
     expect(validateBody).toHaveBeenCalled();
   });
 
-  it('devrait retourner 404 si la réservation n\'existe pas', async () => {
-    vi.mocked(bookingService.updateBooking).mockResolvedValueOnce(null);
+  it('should return 404 if booking does not exist', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user123' },
+    } as any);
+
+    vi.mocked(bookingService.updateBooking).mockResolvedValueOnce(null as any);
 
     const validId = new mongoose.Types.ObjectId().toString();
     const request = new NextRequest(`http://localhost:3000/api/bookings/${validId}`, {
@@ -283,7 +317,12 @@ describe('PUT /api/bookings/[id]', () => {
     expect(data.error).toBe('Réservation non trouvée');
   });
 
-  it('devrait gérer les erreurs du service', async () => {
+  it('should handle service errors', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user123' },
+    } as any);
+
     vi.mocked(bookingService.updateBooking).mockRejectedValueOnce(new Error('Database error'));
 
     const validId = new mongoose.Types.ObjectId().toString();
@@ -300,18 +339,17 @@ describe('PUT /api/bookings/[id]', () => {
     expect(data.error).toBeDefined();
   });
 
-  it('devrait gérer params comme Promise', async () => {
-    const mockUpdatedBooking = {
-      _id: '507f1f77bcf86cd799439011',
-      id: '507f1f77bcf86cd799439011',
-      reservationNumber: 'RES-001',
-      status: 'CONFIRMED',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  it('should support params as Promise', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user123' },
+    } as any);
+
+    const mockUpdatedBooking = createMockBooking();
+    const mockMappedBooking = createMockBookingResponse();
 
     vi.mocked(bookingService.updateBooking).mockResolvedValueOnce(mockUpdatedBooking);
-    vi.mocked(bookingMapper.map).mockReturnValueOnce(mockUpdatedBooking);
+    vi.mocked(bookingMapper.map).mockReturnValueOnce(mockMappedBooking);
 
     const request = new NextRequest('http://localhost:3000/api/bookings/507f1f77bcf86cd799439011', {
       method: 'PUT',
@@ -334,17 +372,15 @@ describe('DELETE /api/bookings/[id]', () => {
     vi.clearAllMocks();
     bookingService = (await import('@/services/booking/booking.service')).bookingService;
     const { auth } = await import('@/auth');
-    vi.mocked(auth).mockResolvedValueOnce({
+    vi.mocked(auth).mockResolvedValue({
       user: { id: 'user123' },
-    });
+    } as any);
   });
 
-  it('devrait annuler une réservation avec succès', async () => {
-    const mockCancelledBooking = {
-      _id: '507f1f77bcf86cd799439011',
-      reservationNumber: 'RES-001',
+  it('should cancel a booking successfully', async () => {
+    const mockCancelledBooking = createMockBooking({
       status: 'CANCELLED',
-    };
+    });
 
     vi.mocked(bookingService.cancelBooking).mockResolvedValueOnce(mockCancelledBooking);
 
@@ -359,11 +395,13 @@ describe('DELETE /api/bookings/[id]', () => {
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
     expect(data.message).toBe('Réservation annulée avec succès');
-    expect(data.booking).toEqual(mockCancelledBooking);
+    expect(data.booking).toBeDefined();
+    expect(data.booking.status).toBe('CANCELLED');
+    expect(data.booking.id).toBe('507f1f77bcf86cd799439011');
     expect(vi.mocked(bookingService.cancelBooking)).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
   });
 
-  it('devrait retourner 401 si non authentifié', async () => {
+  it('should return 401 if unauthenticated', async () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce(null);
 
@@ -381,7 +419,7 @@ describe('DELETE /api/bookings/[id]', () => {
     expect(vi.mocked(bookingService.cancelBooking)).not.toHaveBeenCalled();
   });
 
-  it('devrait retourner 400 pour un ID invalide', async () => {
+  it('should return 400 for invalid ID', async () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123', roles: ['CUSTOMER'] },
@@ -399,7 +437,7 @@ describe('DELETE /api/bookings/[id]', () => {
     expect(data.error).toBe('ID de réservation invalide');
   });
 
-  it('devrait retourner 404 si la réservation n\'existe pas', async () => {
+  it('should return 404 if booking does not exist', async () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123', roles: ['CUSTOMER'] },
@@ -421,14 +459,13 @@ describe('DELETE /api/bookings/[id]', () => {
     expect(data.error).toBe('Réservation non trouvée');
   });
 
-  it('devrait retourner 400 si la réservation est déjà annulée', async () => {
+  it('should return 400 if booking is already canceled', async () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123', roles: ['CUSTOMER'] },
     } as any);
 
     const { bookingService } = await import('@/services/booking/booking.service');
-    // La route vérifie si le message contient "déjà annulée" ou "terminée"
     vi.mocked(bookingService.cancelBooking).mockRejectedValueOnce(new Error('Réservation déjà annulée'));
 
     const validId = new mongoose.Types.ObjectId().toString();
@@ -440,14 +477,13 @@ describe('DELETE /api/bookings/[id]', () => {
     const response = await DELETE(request, { params });
     const data = await response.json();
 
-    // La route devrait retourner 400 si le message contient "déjà annulée"
     expect([400, 500]).toContain(response.status);
     if (response.status === 400) {
       expect(data.error).toContain('annulée');
     }
   });
 
-  it('devrait gérer les erreurs du service', async () => {
+  it('should handle service errors', async () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123', roles: ['CUSTOMER'] },
@@ -469,26 +505,18 @@ describe('DELETE /api/bookings/[id]', () => {
     expect(data.error).toBe("Erreur lors de l'annulation de la réservation");
   });
 
-  it('devrait gérer params comme Promise', async () => {
+  it('should support params as Promise', async () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
       user: { id: 'user123', roles: ['CUSTOMER'] },
     } as any);
 
     const { bookingService } = await import('@/services/booking/booking.service');
-    const mockCancelledBooking = {
-      _id: '507f1f77bcf86cd799439011',
-      id: '507f1f77bcf86cd799439011',
-      reservationNumber: 'RES-001',
+    const mockCancelledBooking = createMockBooking({
       status: 'CANCELLED',
-      requesterId: 'user123',
-      providerId: 'provider1',
-      serviceId: 'service1',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    });
 
-    vi.mocked(bookingService.cancelBooking).mockResolvedValueOnce(mockCancelledBooking as any);
+    vi.mocked(bookingService.cancelBooking).mockResolvedValueOnce(mockCancelledBooking);
 
     const request = new NextRequest('http://localhost:3000/api/bookings/507f1f77bcf86cd799439011', {
       method: 'DELETE',

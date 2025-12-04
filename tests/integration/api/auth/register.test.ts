@@ -30,7 +30,7 @@ describe('Integration: /api/auth/register', () => {
         firstName: 'Test',
         lastName: 'User',
         countryOfResidence: 'FR',
-        dateOfBirth: '1990-01-01',
+        dateOfBirth: '1990-01-01T00:00:00.000Z', // Format datetime ISO
         targetCountry: 'CA',
         targetCity: 'Montreal',
         securityQuestion: 'What is your favorite color?',

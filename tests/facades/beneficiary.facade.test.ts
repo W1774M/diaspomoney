@@ -17,7 +17,41 @@ import { beneficiaryFacade, type BeneficiaryFacadeData, type UpdateBeneficiaryFa
 vi.mock('@/services/user/user.service');
 vi.mock('@/services/notification/notification.service');
 vi.mock('@/services/email/email.service');
-vi.mock('@/repositories');
+
+// Mock des repositories - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
+const { mockBeneficiaryRepository } = vi.hoisted(() => {
+  return {
+    mockBeneficiaryRepository: {
+      findById: vi.fn(),
+      findByPayer: vi.fn(),
+      update: vi.fn(),
+      create: vi.fn(),
+      delete: vi.fn(),
+    },
+  };
+});
+
+vi.mock('@/repositories', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/repositories')>();
+  return {
+    ...actual,
+    getBeneficiaryRepository: vi.fn(() => mockBeneficiaryRepository),
+    getUserRepository: vi.fn(() => ({
+      findById: vi.fn(),
+      findByEmail: vi.fn(),
+      create: vi.fn(),
+      findUsersWithFilters: vi.fn(),
+    })),
+    getAuditLogRepository: vi.fn(() => ({
+      findById: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findAll: vi.fn(),
+    })),
+  };
+});
+
 vi.mock('@/lib/mappers');
 vi.mock('@/lib/logger');
 vi.mock('@sentry/nextjs', () => ({
@@ -144,13 +178,11 @@ describe('BeneficiaryFacade', () => {
         email: 'john@example.com',
       };
 
-      const { getBeneficiaryRepository } = await import('@/repositories');
-      const mockRepository = getBeneficiaryRepository();
-      vi.mocked(mockRepository.findById).mockResolvedValue(mockExistingBeneficiary as any);
-      vi.mocked(mockRepository.findByPayer).mockResolvedValue({
+      mockBeneficiaryRepository.findById.mockResolvedValue(mockExistingBeneficiary as any);
+      mockBeneficiaryRepository.findByPayer.mockResolvedValue({
         data: [mockExistingBeneficiary],
       } as any);
-      vi.mocked(mockRepository.update).mockResolvedValue({
+      mockBeneficiaryRepository.update.mockResolvedValue({
         ...mockExistingBeneficiary,
         ...updateData,
       } as any);
@@ -166,9 +198,7 @@ describe('BeneficiaryFacade', () => {
     });
 
     it('devrait retourner une erreur si le bénéficiaire n\'existe pas', async () => {
-      const { getBeneficiaryRepository } = await import('@/repositories');
-      const mockRepository = getBeneficiaryRepository();
-      vi.mocked(mockRepository.findById).mockResolvedValue(null);
+      mockBeneficiaryRepository.findById.mockResolvedValue(null);
 
       const result = await beneficiaryFacade.updateBeneficiary(
         'user123',
@@ -186,9 +216,7 @@ describe('BeneficiaryFacade', () => {
         payerId: 'other-user',
       };
 
-      const { getBeneficiaryRepository } = await import('@/repositories');
-      const mockRepository = getBeneficiaryRepository();
-      vi.mocked(mockRepository.findById).mockResolvedValue(mockExistingBeneficiary as any);
+      mockBeneficiaryRepository.findById.mockResolvedValue(mockExistingBeneficiary as any);
 
       const result = await beneficiaryFacade.updateBeneficiary(
         'user123',

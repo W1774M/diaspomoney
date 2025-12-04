@@ -67,6 +67,11 @@ export async function POST(request: NextRequest) {
 
     // Seuls les admins peuvent créer des services
     if (!session.user.roles?.includes(ROLES.ADMIN)) {
+      logger.warn({
+        userId: session.user.id,
+        userRoles: session.user.roles,
+        requiredRole: ROLES.ADMIN,
+      }, '[POST /api/services] Accès refusé - Rôle ADMIN requis');
       throw ApiErrors.FORBIDDEN;
     }
 

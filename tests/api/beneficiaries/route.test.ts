@@ -25,9 +25,14 @@ vi.mock('@/auth', () => ({
   auth: mockAuth,
 }));
 
-// Mock de beneficiaryFacade
-const mockGetBeneficiaries = vi.fn();
-const mockCreateBeneficiary = vi.fn();
+// Mock de beneficiaryFacade - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
+const { mockGetBeneficiaries, mockCreateBeneficiary } = vi.hoisted(() => {
+  return {
+    mockGetBeneficiaries: vi.fn(),
+    mockCreateBeneficiary: vi.fn(),
+  };
+});
+
 vi.mock('@/facades', () => ({
   beneficiaryFacade: {
     getBeneficiaries: mockGetBeneficiaries,
@@ -35,8 +40,13 @@ vi.mock('@/facades', () => ({
   },
 }));
 
-// Mock de getUserRepository
-const mockFindByEmail = vi.fn();
+// Mock de getUserRepository - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
+const { mockFindByEmail } = vi.hoisted(() => {
+  return {
+    mockFindByEmail: vi.fn(),
+  };
+});
+
 vi.mock('@/repositories', () => ({
   getUserRepository: vi.fn(() => ({
     findByEmail: mockFindByEmail,
@@ -45,8 +55,40 @@ vi.mock('@/repositories', () => ({
 
 // Mock de handleApiRoute
 vi.mock('@/lib/api/error-handler', () => ({
-  handleApiRoute: vi.fn((_request, handler) => handler()),
+  handleApiRoute: vi.fn(async (_request, handler) => {
+    try {
+      const result = await handler();
+      // Si le résultat a déjà une méthode json(), le retourner tel quel
+      if (result && typeof result === 'object' && 'json' in result) {
+        return result;
+      }
+      // Sinon, envelopper dans un objet avec json()
+      return {
+        json: async () => result,
+        status: 200,
+      };
+    } catch (error: any) {
+      // Gérer les erreurs ApiError
+      if (error.status || error.statusCode) {
+        return {
+          json: async () => ({ error: error.message || 'Erreur', success: false }),
+          status: error.status || error.statusCode,
+        };
+      }
+      // Autres erreurs
+      return {
+        json: async () => ({ error: error.message || 'Erreur interne du serveur', success: false }),
+        status: 500,
+      };
+    }
+  }),
   validateBody: vi.fn((body) => body),
+  ApiError: class ApiError extends Error {
+    constructor(public status: number, message: string) {
+      super(message);
+      this.name = 'ApiError';
+    }
+  },
   ApiErrors: {
     UNAUTHORIZED: new Error('Unauthorized'),
     NOT_FOUND: new Error('Not Found'),

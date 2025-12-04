@@ -97,7 +97,14 @@ vi.mock('@/lib/logger', () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
+    debug: vi.fn(),
   },
+  childLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  })),
 }));
 
 describe('GET /api/services', () => {
@@ -109,9 +116,14 @@ describe('GET /api/services', () => {
     const mockServices = [
       {
         id: 'service1',
-        name: 'Service 1',
-        category: 'HEALTH',
+        _id: 'service1',
+        category: 'HEALTH' as const,
+        label: 'Service 1',
+        description: 'Service description',
+        price: 100,
         isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     ];
 
@@ -177,8 +189,14 @@ describe('POST /api/services', () => {
   it('devrait créer un service avec succès (admin)', async () => {
     const mockService = {
       id: 'service1',
-      name: 'New Service',
-      category: 'HEALTH',
+      _id: 'service1',
+      category: 'HEALTH' as const,
+      label: 'New Service',
+      description: 'Service description',
+      price: 100,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     mockAuth.mockResolvedValueOnce({
@@ -248,7 +266,17 @@ describe('POST /api/services', () => {
       user: { id: 'admin123', roles: ['ADMIN'] },
     });
     const { serviceService } = await import('@/services/service/service.service');
-    vi.mocked(serviceService.createService).mockResolvedValueOnce({ id: 'service1' });
+    vi.mocked(serviceService.createService).mockResolvedValueOnce({
+      id: 'service1',
+      _id: 'service1',
+      category: 'HEALTH' as const,
+      label: 'Service 1',
+      description: 'Service description',
+      price: 100,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
     const request = new NextRequest('http://localhost:3000/api/services', {
       method: 'POST',

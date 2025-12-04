@@ -14,7 +14,7 @@ import { GET, POST } from '@/app/api/providers/route';
 import { NextRequest } from 'next/server';
 
 // Mock de ProviderQueryBuilder - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
-const { mockProviderQueryBuilder, mockProviderQueryBuilderSpy } = vi.hoisted(() => {
+const { mockProviderQueryBuilderSpy } = vi.hoisted(() => {
   class MockProviderQueryBuilder {
     providers = vi.fn().mockReturnThis();
     byStatus = vi.fn().mockReturnThis();
@@ -25,9 +25,12 @@ const { mockProviderQueryBuilder, mockProviderQueryBuilderSpy } = vi.hoisted(() 
     getSort = vi.fn(() => ({}));
     getPagination = vi.fn(() => ({ page: 1, limit: 20 }));
   }
-  const spy = vi.fn().mockImplementation(() => new MockProviderQueryBuilder());
+  // Utiliser une fonction constructeur normale au lieu de vi.fn().mockImplementation()
+  function MockProviderQueryBuilderConstructor() {
+    return new MockProviderQueryBuilder();
+  }
+  const spy = vi.fn(MockProviderQueryBuilderConstructor);
   return {
-    mockProviderQueryBuilder: MockProviderQueryBuilder,
     mockProviderQueryBuilderSpy: spy,
   };
 });
@@ -100,6 +103,10 @@ describe('GET /api/providers', () => {
     const mockProviders = [
       {
         id: 'provider1',
+        _id: 'provider1',
+        email: 'provider1@example.com',
+        firstName: 'Provider',
+        lastName: 'One',
         name: 'Provider 1',
         city: 'Paris',
         rating: 4.5,
@@ -113,6 +120,10 @@ describe('GET /api/providers', () => {
     const { userService } = await import('@/services/user/user.service');
     vi.mocked(userService.getUsers).mockResolvedValueOnce({
       data: mockProviders,
+      total: 1,
+      limit: 50,
+      offset: 0,
+      page: 1,
     });
 
     const request = new NextRequest('http://localhost:3000/api/providers');
@@ -133,6 +144,10 @@ describe('GET /api/providers', () => {
     const { userService } = await import('@/services/user/user.service');
     vi.mocked(userService.getUsers).mockResolvedValueOnce({
       data: [],
+      total: 0,
+      limit: 50,
+      offset: 0,
+      page: 1,
     });
 
     const request = new NextRequest('http://localhost:3000/api/providers?city=Paris&minRating=4');
@@ -150,6 +165,10 @@ describe('GET /api/providers', () => {
     const { userService } = await import('@/services/user/user.service');
     vi.mocked(userService.getUsers).mockResolvedValueOnce({
       data: [],
+      total: 0,
+      limit: 50,
+      offset: 0,
+      page: 1,
     });
 
     const request = new NextRequest('http://localhost:3000/api/providers');
@@ -159,7 +178,7 @@ describe('GET /api/providers', () => {
     expect(mockProviderQueryBuilderSpy).toHaveBeenCalled();
     // Vérifier que page() a été appelé sur l'instance
     const instances = mockProviderQueryBuilderSpy.mock.results;
-    if (instances.length > 0 && instances[0].value) {
+    if (instances.length > 0 && instances[0]?.value) {
       expect(instances[0].value.page).toHaveBeenCalled();
     }
   });
