@@ -193,7 +193,25 @@ export class MongoBookingRepository implements IBookingRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      return result?.['value'] ? this.mapToBooking(result['value']) : null;
+      
+      // Vérifier si le document a été trouvé et mis à jour
+      if (!result || !result['value']) {
+        this.log.warn({ id, data }, 'Document not found during update');
+        return null;
+      }
+      
+      try {
+        const mapped = this.mapToBooking(result['value']);
+        return mapped;
+      } catch (mappingError) {
+        this.log.error(
+          { error: mappingError, id, rawDocument: result['value'] },
+          'Error mapping booking document',
+        );
+        // Si le mapping échoue, on retourne null plutôt que de lancer une erreur
+        // pour permettre au service de gérer l'erreur de manière appropriée
+        return null;
+      }
     } catch (error) {
       this.log.error({ error, id, data }, 'Error in update');
       Sentry.captureException(error as Error, {
@@ -262,13 +280,141 @@ export class MongoBookingRepository implements IBookingRepository {
       const sort = options?.sort || { createdAt: -1 };
 
       const query = filters || {};
-      const total = await collection.countDocuments(query);
-      const bookings = await collection
-        .find(query)
-        .sort(sort)
-        .skip(offset)
-        .limit(limit)
-        .toArray();
+      
+      // Vérifier si on trie par metadata.totalAmount (montant stocké comme string)
+      const sortKeys = Object.keys(sort);
+      const isSortingByAmount = sortKeys.includes('metadata.totalAmount');
+      
+      let bookings: any[];
+      let total: number;
+
+      const isSortingByCompletionRate = sort['metadata.currentStep'] !== undefined;
+
+      if (isSortingByAmount) {
+        // Utiliser un pipeline d'agrégation pour convertir le montant en nombre avant de trier
+        const sortDirection = sort['metadata.totalAmount'] === 1 ? 1 : -1;
+        
+        const pipeline: any[] = [
+          { $match: query },
+          {
+            $addFields: {
+              // Convertir metadata.totalAmount en nombre
+              // Gérer les cas où c'est une string (avec ou sans espaces, caractères non numériques)
+              // ou un nombre
+              numericAmount: {
+                $switch: {
+                  branches: [
+                    {
+                      case: { $eq: [{ $type: '$metadata.totalAmount' }, 'string'] },
+                      then: {
+                        $toDouble: {
+                          $ifNull: [
+                            {
+                              $replaceAll: {
+                                input: {
+                                  $replaceAll: {
+                                    input: {
+                                      $replaceAll: {
+                                        input: { $ifNull: ['$metadata.totalAmount', '0'] },
+                                        find: ' ',
+                                        replacement: '',
+                                      },
+                                    },
+                                    find: '€',
+                                    replacement: '',
+                                  },
+                                },
+                                find: ',',
+                                replacement: '.',
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      },
+                    },
+                    {
+                      case: { $eq: [{ $type: '$metadata.totalAmount' }, 'number'] },
+                      then: { $ifNull: ['$metadata.totalAmount', 0] },
+                    },
+                    {
+                      case: { $eq: [{ $type: '$metadata.totalAmount' }, 'double'] },
+                      then: { $ifNull: ['$metadata.totalAmount', 0] },
+                    },
+                    {
+                      case: { $eq: [{ $type: '$metadata.totalAmount' }, 'int'] },
+                      then: { $ifNull: ['$metadata.totalAmount', 0] },
+                    },
+                  ],
+                  default: 0,
+                },
+              },
+            },
+          },
+          { $sort: { numericAmount: sortDirection } },
+          { $skip: offset },
+          { $limit: limit },
+          {
+            $project: {
+              numericAmount: 0, // Exclure le champ temporaire du résultat
+            },
+          },
+        ];
+        
+        // Compter le total
+        const countPipeline = [
+          { $match: query },
+          { $count: 'total' },
+        ];
+        const countResult = await collection.aggregate(countPipeline).toArray();
+        total = countResult.length > 0 && countResult[0] ? (countResult[0]['total'] as number) || 0 : 0;
+        
+        // Récupérer les données
+        bookings = await collection.aggregate(pipeline).toArray();
+      } else if (isSortingByCompletionRate) {
+        // Utiliser un pipeline d'agrégation pour trier par taux de progression (currentStep)
+        const sortDirection = sort['metadata.currentStep'] === 1 ? 1 : -1;
+        
+        const pipeline: any[] = [
+          { $match: query },
+          {
+            $addFields: {
+              // Convertir metadata.currentStep en nombre, avec 0 par défaut si absent
+              completionStep: {
+                $toInt: { $ifNull: ['$metadata.currentStep', 0] },
+              },
+            },
+          },
+          { $sort: { completionStep: sortDirection } },
+          { $skip: offset },
+          { $limit: limit },
+          {
+            $project: {
+              completionStep: 0, // Exclure le champ temporaire du résultat
+            },
+          },
+        ];
+        
+        // Compter le total
+        const countPipeline = [
+          { $match: query },
+          { $count: 'total' },
+        ];
+        const countResult = await collection.aggregate(countPipeline).toArray();
+        total = countResult.length > 0 && countResult[0] ? (countResult[0]['total'] as number) || 0 : 0;
+        
+        // Récupérer les données
+        bookings = await collection.aggregate(pipeline).toArray();
+      } else {
+        // Tri normal pour les autres champs
+        total = await collection.countDocuments(query);
+        bookings = await collection
+          .find(query)
+          .sort(sort)
+          .skip(offset)
+          .limit(limit)
+          .toArray();
+      }
 
       const pages = Math.ceil(total / limit);
       return {
@@ -376,11 +522,16 @@ export class MongoBookingRepository implements IBookingRepository {
       const queryBuilder = this.buildBookingQuery(filters, options);
       const query = queryBuilder.build();
 
+      // S'assurer qu'un tri est toujours défini (par défaut: createdAt desc)
+      const sort: Record<string, 1 | -1> = Object.keys(query.sort || {}).length > 0 
+        ? query.sort 
+        : { createdAt: -1 as const };
+
       const pagination: PaginationOptions = {
         limit: query.pagination.limit ?? 50,
         page: query.pagination.page ?? 1,
         ...(query.pagination.offset !== undefined && { offset: query.pagination.offset }),
-        ...(query.sort && { sort: query.sort }),
+        sort,
       };
       return this.findWithPagination(query.filters, pagination);
     } catch (error) {
@@ -424,11 +575,11 @@ export class MongoBookingRepository implements IBookingRepository {
     if (filters.status) {
       builder.byStatus(
         filters.status as
+          | 'DRAFT'
           | 'PENDING'
           | 'CONFIRMED'
-          | 'COMPLETED'
-          | 'CANCELLED'
-          | 'NO_SHOW',
+          | 'FINISHED'
+          | 'CANCELLED',
       );
     }
     if (filters.dateFrom || filters.dateTo) {
@@ -440,6 +591,32 @@ export class MongoBookingRepository implements IBookingRepository {
         builder.whereLessThanOrEqual('appointmentDate', filters.dateTo);
       }
     }
+    // Filtrer par statut de paiement (via metadata.paymentStatus)
+    if (filters['paymentStatus']) {
+      builder.byPaymentStatus(filters['paymentStatus']);
+    }
+
+    // Préserver les filtres non reconnus (comme metadata.paymentStatus déjà construit par l'API route)
+    const recognizedFilters = [
+      'requesterId',
+      'providerId',
+      'serviceId',
+      'serviceType',
+      'status',
+      'dateFrom',
+      'dateTo',
+      'paymentStatus',
+    ];
+    Object.keys(filters).forEach(key => {
+      if (!recognizedFilters.includes(key) && filters[key] !== undefined) {
+        // Préserver les filtres non reconnus (comme metadata.paymentStatus déjà construit)
+        // Vérifier que le filtre n'est pas déjà dans le builder
+        const currentFilters = builder.getFilters();
+        if (!currentFilters[key]) {
+          builder.where(key, filters[key]);
+        }
+      }
+    });
 
     // Appliquer la pagination
     if (options) {
@@ -456,7 +633,13 @@ export class MongoBookingRepository implements IBookingRepository {
         Object.entries(options.sort).forEach(([field, direction]) => {
           builder.orderBy(field, direction === 1 ? 'asc' : 'desc');
         });
+      } else {
+        // Appliquer un tri par défaut si aucun tri n'est spécifié
+        builder.orderByCreatedAt('desc');
       }
+    } else {
+      // Appliquer un tri par défaut si aucune option n'est fournie
+      builder.orderByCreatedAt('desc');
     }
 
     return builder;

@@ -52,11 +52,11 @@ export class PCIDSSCompliance {
       const auditLogId = `pci_audit_${Date.now()}_${Math.random()
         .toString(36)
         .substr(2, 9)}`;
-      const auditLog: Omit<PCIAuditLog, 'userId' | 'transactionId'> & {
+      const auditLog: Omit<PCIAuditLog, '_id' | 'userId' | 'transactionId'> & {
         userId?: string | undefined;
         transactionId?: string | undefined;
       } = {
-        _id: auditLogId,
+        // Ne pas définir _id ici, il sera généré par le repository MongoDB
         id: auditLogId,
         timestamp: now,
         event,

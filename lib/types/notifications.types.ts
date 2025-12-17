@@ -171,7 +171,8 @@ export const NotificationType = {
 /**
  * Notification pour la base de données (avec BaseEntity)
  */
-export interface Notification extends BaseEntity {
+export interface Notification extends Omit<BaseEntity, '_id'> {
+  _id?: string; // Optionnel, généré par le repository MongoDB
   channels: NotificationChannel[];
   id: string;
   recipient: string;
@@ -187,4 +188,11 @@ export interface Notification extends BaseEntity {
   deliveredAt?: Date;
   failedAt?: Date;
   failureReason?: string;
+}
+
+/**
+ * Notification avec _id requis (pour les résultats de requête depuis MongoDB)
+ */
+export interface NotificationWithId extends Omit<Notification, '_id'> {
+  _id: string; // Requis pour les résultats de requête
 }

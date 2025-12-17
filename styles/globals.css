@@ -9,6 +9,7 @@ html,
   -webkit-text-size-adjust: 100%;
 }
 
+
 :root {
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
@@ -61,6 +62,16 @@ html,
 body {
   color: hsl(var(--foreground));
   background: hsl(var(--background));
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
 }
 
 /* (Les animations et styles custom peuvent être réinsérés ici si besoin) */

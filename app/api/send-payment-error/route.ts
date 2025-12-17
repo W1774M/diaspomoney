@@ -2,6 +2,7 @@ import { config } from "@/config/env";
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { logger } from '@/lib/logger';
 
 // Configuration du transporteur email
 const transporter = nodemailer.createTransport({
@@ -28,8 +29,7 @@ const generateRetryToken = () => {
 const sendEmail = async (to: string, subject: string, html: string) => {
   // En mode développement, simuler l'envoi d'email
   if (config.isDevelopment) {
-    console.log("📧 [DEV] Email simulé :", { to, subject });
-    console.log("📧 [DEV] Contenu HTML :", `${html.substring(0, 200)  }...`);
+    logger.debug({ to, subject, htmlPreview: html.substring(0, 200) }, 'Email simulé en mode développement');
     return { messageId: `dev-${  Date.now()}` };
   }
 
@@ -62,9 +62,9 @@ export async function POST(request: NextRequest) {
     const { token, expiresAt } = generateRetryToken();
 
     // URL de retry (à adapter selon votre structure)
-    const retryUrl = `${
-      process.env["NEXT_PUBLIC_APP_URL"] || "http://localhost:3000"
-    }/providers/${
+    const { cleanUrl } = await import('@/lib/utils');
+    const baseUrl = cleanUrl(process.env["NEXT_PUBLIC_APP_URL"]);
+    const retryUrl = `${baseUrl}/providers/${
       appointment.provider.id
     }?retry=${token}&expires=${expiresAt.getTime()}`;
 
@@ -322,7 +322,7 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Erreur lors de l'envoi des emails d'erreur:", error);
+    logger.error({ error }, "Erreur lors de l'envoi des emails d'erreur");
     return NextResponse.json(
       { error: "Erreur lors de l'envoi des emails d'erreur" },
       { status: 500 },

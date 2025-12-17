@@ -57,13 +57,12 @@ export async function PUT(
       // Préparer les données de mise à jour
       const updateData: any = {};
 
-      if (validatedData.firstName && validatedData.lastName) {
+      if (validatedData.firstName !== undefined) {
         updateData.firstName = validatedData.firstName.trim();
+      }
+
+      if (validatedData.lastName !== undefined) {
         updateData.lastName = validatedData.lastName.trim();
-      } else if (validatedData.name) {
-        const nameParts = validatedData.name.trim().split(' ');
-        updateData.firstName = nameParts[0] || '';
-        updateData.lastName = nameParts.slice(1).join(' ') || '';
       }
 
       if (validatedData.email !== undefined) {
@@ -74,12 +73,17 @@ export async function PUT(
         updateData.phone = validatedData.phone?.trim() || undefined;
       }
 
-      if (validatedData.relationship) {
+      if (validatedData.relationship !== undefined) {
         updateData.relationship = validatedData.relationship;
       }
 
-      if (validatedData.country) {
-        updateData.country = validatedData.country;
+      if (validatedData.location !== undefined) {
+        updateData.location = {
+          address: validatedData.location.address?.trim(),
+          city: validatedData.location.city?.trim(),
+          country: validatedData.location.country?.trim(),
+          postalCode: validatedData.location.postalCode?.trim(),
+        };
       }
 
       // Utiliser BeneficiaryFacade pour mettre à jour le bénéficiaire
@@ -107,6 +111,7 @@ export async function PUT(
         email: beneficiary.email || '',
         phone: beneficiary.phone || '',
         relationship: beneficiary.relationship,
+        location: beneficiary.location,
         hasAccount: false,
         status: beneficiary.isActive ? 'active' : 'inactive',
         createdAt: beneficiary.createdAt?.toISOString() || new Date().toISOString(),

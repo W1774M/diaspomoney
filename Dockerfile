@@ -16,10 +16,23 @@ RUN corepack enable && corepack install
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy app files
+# Note: COPY . . invalide le cache si les fichiers changent
+# Pour forcer un rebuild complet, utiliser --no-cache lors du docker build
 COPY . .
 
 # Build Next.js
+# Accept build args for NEXT_PUBLIC_* variables
+ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# Note: Le nettoyage des guillemets est fait dans le code JavaScript (StripeCheckout.tsx)
+# pour s'assurer que la clé est correcte même si elle contient des guillemets dans l'image
+ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+
 RUN pnpm run build
 
 ###############################
@@ -41,6 +54,8 @@ RUN pnpm install --prod --offline --ignore-scripts
 # Copy build output
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+# Copy data directory if it exists
+COPY --from=builder /app/data ./data
 
 ENV NODE_ENV=production \
     PORT=3000 \

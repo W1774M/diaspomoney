@@ -35,7 +35,11 @@
     "dev:filtered": "powershell -Command \"$env:LOG_FILE='true'; pnpm dev | Select-String -Pattern '(info|warning|error|api)'\"",
     "dev:filtered:errors": "powershell -Command \"$env:LOG_FILE='true'; pnpm dev | Select-String -Pattern '(error|warning|fatal)'\"",
     "check:stripe": "echo 'Ouvrez http://localhost:3000/api/stripe/check-config dans votre navigateur'",
-    "check:stripe:logs": "powershell -Command \"$env:LOG_FILE='true'; pnpm dev | Select-String -Pattern '(stripe|Stripe|STRIPE|payment|Payment|PAYMENT)'\""
+    "check:stripe:logs": "powershell -Command \"$env:LOG_FILE='true'; pnpm dev | Select-String -Pattern '(stripe|Stripe|STRIPE|payment|Payment|PAYMENT)'\"",
+    "cleanup:images": "node scripts/find-unused-images.js --dry-run",
+    "cleanup:images:delete": "node scripts/find-unused-images.js --delete",
+    "cleanup:docker": "./scripts/cleanup-docker.sh --dry-run",
+    "cleanup:docker:all": "./scripts/cleanup-docker.sh --all"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -50,9 +54,11 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "framer-motion": "^12.23.24",
+    "html2canvas": "^1.4.1",
     "http-proxy-middleware": "^3.0.5",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
+    "jspdf": "^3.0.4",
     "lucide-react": "^0.553.0",
     "mongodb": "^7.0.0",
     "mongoose": "^8.19.3",
@@ -65,6 +71,7 @@
     "react": "^18",
     "react-dom": "^18",
     "react-hook-form": "^7.66.0",
+    "react-international-phone": "^4.6.1",
     "recharts": "^3.5.0",
     "require-in-the-middle": "^8.0.1",
     "resend": "^2.0.0",
@@ -110,8 +117,8 @@
     },
     "onlyBuiltDependencies": [
       "@sentry/cli",
+      "core-js",
       "cypress",
-      "esbuild",
       "sharp",
       "unrs-resolver"
     ]

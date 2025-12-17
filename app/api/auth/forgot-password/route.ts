@@ -1,6 +1,4 @@
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
-// Désactiver le prerendering pour cette route API
-export const dynamic = 'force-dynamic';
 
 import { logger } from '@/lib/logger';
 import { ForgotPasswordSchema, type ForgotPasswordInput } from '@/lib/validations/auth.schema';
@@ -9,9 +7,7 @@ import { userService } from '@/services/user/user.service';
 import * as crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Désactiver le prerendering pour cette route API
 ;
-export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   return handleApiRoute(request, async () => {

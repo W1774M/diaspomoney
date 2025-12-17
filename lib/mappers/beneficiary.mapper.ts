@@ -4,7 +4,7 @@
  */
 
 import type { IMapper, MappingOptions } from '@/lib/types';
-import type { BeneficiaryRelationship } from '@/lib/types/beneficiaries.types';
+import type { BeneficiaryLocation, BeneficiaryRelationship } from '@/lib/types/beneficiaries.types';
 // Beneficiary type is used in the function signatures
 
 /**
@@ -19,6 +19,8 @@ export interface BeneficiaryDocument {
   email?: string;
   phone?: string;
   relationship?: string;
+  location?: BeneficiaryLocation;
+  // Legacy fields pour compatibilité
   country?: string;
   address?: string;
   isActive?: boolean;
@@ -43,8 +45,12 @@ export interface BeneficiaryResponse {
   email?: string;
   phone?: string;
   relationship: BeneficiaryRelationship;
-  country: string;
-  address?: string;
+  location: {
+    address: string;
+    city: string;
+    country: string;
+    postalCode?: string;
+  };
   isActive: boolean;
   hasAccount?: boolean;
   status?: string;
@@ -131,6 +137,17 @@ export function mapBeneficiaryToResponse(
   const lastName = beneficiaryDoc.lastName || '';
   const name = beneficiaryDoc.name || `${firstName} ${lastName}`.trim() || '';
 
+  // Gérer location (nouveau format) ou country/address (legacy)
+  const location: BeneficiaryLocation = beneficiaryDoc.location || {
+    address: beneficiaryDoc.address || '',
+    city: '',
+    country: beneficiaryDoc.country || '',
+  };
+  
+  // Ajouter postalCode seulement s'il est défini
+  if (beneficiaryDoc.location?.postalCode) {
+    location.postalCode = beneficiaryDoc.location.postalCode;
+  }
   return {
     id,
     _id,
@@ -140,8 +157,7 @@ export function mapBeneficiaryToResponse(
     ...(beneficiaryDoc.email && { email: beneficiaryDoc.email }),
     ...(beneficiaryDoc.phone && { phone: beneficiaryDoc.phone }),
     relationship: mapRelationship(beneficiaryDoc.relationship),
-    country: beneficiaryDoc.country || '',
-    ...(beneficiaryDoc.address && { address: beneficiaryDoc.address }),
+    location,
     isActive: beneficiaryDoc.isActive ?? true,
     ...(beneficiaryDoc.hasAccount !== undefined && { hasAccount: beneficiaryDoc.hasAccount }),
     ...(beneficiaryDoc.status && { status: beneficiaryDoc.status }),

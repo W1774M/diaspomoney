@@ -1,6 +1,7 @@
 "use client";
 
 import { BookingFilters } from "@/lib/types";
+import { getStatusDisplay, getPaymentStatusDisplay } from "@/lib/bookings/utils";
 import React, { useCallback } from "react";
 
 interface BookingsFiltersProps {
@@ -58,13 +59,7 @@ const BookingsFilters = React.memo<BookingsFiltersProps>(
             <option value="ALL">Tous les statuts</option>
             {availableStatuses.map((status: string, idx: number) => (
               <option key={idx} value={status}>
-                {status === "CONFIRMED"
-                  ? "Confirmé"
-                  : status === "PENDING"
-                  ? "En attente"
-                  : status === "CANCELLED"
-                  ? "Annulé"
-                  : "Terminé"}
+                {getStatusDisplay(status)}
               </option>
             ))}
           </select>
@@ -79,13 +74,7 @@ const BookingsFilters = React.memo<BookingsFiltersProps>(
             <option value="ALL">Tous les paiements</option>
             {availablePaymentStatuses.map((status: string, idx: number) => (
               <option key={idx} value={status}>
-                {status === "paid"
-                  ? "Payé"
-                  : status === "pending"
-                  ? "En attente"
-                  : status === "failed"
-                  ? "Échoué"
-                  : "Remboursé"}
+                {getPaymentStatusDisplay(status)}
               </option>
             ))}
           </select>

@@ -4,12 +4,13 @@
  *
  * Implémente les design patterns :
  * - Service Layer Pattern (via authService)
- * - Repository Pattern (via authService qui utilise les repositories)
+ * - Facade Pattern (via authService qui utilise userFacade pour orchestrer la création d'utilisateur)
+ * - Repository Pattern (via authService qui utilise les repositories via userFacade)
  * - Dependency Injection (via authService singleton)
  * - Logger Pattern (structured logging avec childLogger + @Log decorator dans le service)
- * - Error Handling Pattern (Sentry)
- * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache dans authService)
- * - Singleton Pattern (authService)
+ * - Error Handling Pattern (via handleApiRoute + Sentry)
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache, @Audit, @Performance dans authService et userFacade)
+ * - Singleton Pattern (authService, userFacade)
  */
 
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
         firstName: data.firstName.trim(),
         lastName: data.lastName.trim(),
         phone: data.phone?.trim(),
-        country: data.countryOfResidence.trim(),
+        country: data.countryOfResidence?.trim(),
         dateOfBirth: data.dateOfBirth,
         targetCountry: data.targetCountry,
         targetCity: data.targetCity,
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
         value: 1,
         timestamp: new Date(),
         labels: {
-          country: sanitizedData.country,
+          country: sanitizedData.country || '',
           has_phone: sanitizedData.phone ? 'true' : 'false',
         },
         type: 'counter',
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
         {
           userId: result.user.id,
           email: result.user.email,
-          country: sanitizedData.country,
+          country: sanitizedData.country || '',
           ipAddress,
         },
         'User registration successful',

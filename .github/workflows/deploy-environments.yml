@@ -204,10 +204,15 @@ jobs:
         NODE_ENV: development
         NEXT_PUBLIC_APP_URL: https://dev.diaspomoney.fr
         NEXT_PUBLIC_API_URL: https://dev.diaspomoney.fr/api
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY_DEV }}
 
     - name: Build Docker image
       run: |
-        docker build -f Dockerfile.prod -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev-${{ github.sha }} .
+        docker build -f Dockerfile.prod \
+          --build-arg NEXT_PUBLIC_APP_URL=https://dev.diaspomoney.fr \
+          --build-arg NEXT_PUBLIC_API_URL=https://dev.diaspomoney.fr/api \
+          --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY_DEV }} \
+          -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev-${{ github.sha }} .
         docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev-${{ github.sha }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:dev-latest
 
     - name: Push to registry
@@ -270,10 +275,15 @@ jobs:
         NODE_ENV: production
         NEXT_PUBLIC_APP_URL: https://rct.diaspomoney.fr
         NEXT_PUBLIC_API_URL: https://rct.diaspomoney.fr/api
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY_RCT }}
 
     - name: Build Docker image
       run: |
-        docker build -f Dockerfile.prod -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:rct-${{ github.sha }} .
+        docker build -f Dockerfile.prod \
+          --build-arg NEXT_PUBLIC_APP_URL=https://rct.diaspomoney.fr \
+          --build-arg NEXT_PUBLIC_API_URL=https://rct.diaspomoney.fr/api \
+          --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY_RCT }} \
+          -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:rct-${{ github.sha }} .
         docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:rct-${{ github.sha }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:rct-latest
 
     - name: Push to registry
@@ -309,7 +319,7 @@ jobs:
     
     environment:
       name: production
-      url: https://app.diaspomoney.fr
+      url: https://diaspomoney.fr
 
     steps:
     - name: Checkout code
@@ -335,12 +345,17 @@ jobs:
       run: npm run build
       env:
         NODE_ENV: production
-        NEXT_PUBLIC_APP_URL: https://app.diaspomoney.fr
-        NEXT_PUBLIC_API_URL: https://app.diaspomoney.fr/api
+        NEXT_PUBLIC_APP_URL: https://diaspomoney.fr
+        NEXT_PUBLIC_API_URL: https://diaspomoney.fr/api
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY_PROD }}
 
     - name: Build Docker image
       run: |
-        docker build -f Dockerfile.prod -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:prod-${{ github.sha }} .
+        docker build -f Dockerfile.prod \
+          --build-arg NEXT_PUBLIC_APP_URL=https://diaspomoney.fr \
+          --build-arg NEXT_PUBLIC_API_URL=https://diaspomoney.fr/api \
+          --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY_PROD }} \
+          -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:prod-${{ github.sha }} .
         docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:prod-${{ github.sha }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:prod-latest
 
     - name: Push to registry
@@ -365,7 +380,7 @@ jobs:
     - name: Run smoke tests
       run: |
         kubectl run smoke-test --image=curlimages/curl:latest --rm -i --restart=Never \
-          -- curl -f https://app.diaspomoney.fr/api/health
+          -- curl -f https://diaspomoney.fr/api/health
 
     - name: Notify deployment
       uses: 8398a7/action-slack@v3

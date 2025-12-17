@@ -1,8 +1,9 @@
 import { useNotificationManager } from '@/components/ui/Notification';
 import { authEvents } from '@/lib/events';
 import { childLogger } from '@/lib/logger';
+import { clearAuthCache } from '@/lib/auth/auth-cache';
 import { authActions, useSimpleStore } from '@/store/simple-store';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -18,6 +19,7 @@ export const useLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const dispatch = useSimpleStore(state => state.dispatch);
   const router = useRouter();
+  const { update: refreshSession } = useSession();
   const { addSuccess, addError } = useNotificationManager();
 
   const login = async (data: LoginData): Promise<boolean> => {
@@ -40,11 +42,10 @@ export const useLogin = () => {
           }
         | undefined;
       try {
-        // Construire callbackUrl de manière sécurisée
-        const callbackUrl =
-          typeof window !== 'undefined'
-            ? `${window.location.origin}/dashboard`
-            : '/dashboard';
+        // IMPORTANT: toujours utiliser un callbackUrl RELATIF.
+        // Un callbackUrl absolu peut provoquer des erreurs "Invalid URL" / "Failed to construct"
+        // selon la config NEXTAUTH_URL / proxy / environnement.
+        const callbackUrl = '/dashboard';
 
         result = await signIn('credentials', {
           email: data.email,
@@ -154,7 +155,9 @@ export const useLogin = () => {
 
         // Vérifier la session en appelant l'API directement
         try {
-          const sessionResponse = await fetch('/api/auth/session');
+          const sessionResponse = await fetch('/api/auth/session', {
+            cache: 'no-store',
+          });
           if (sessionResponse.ok) {
             const sessionData = await sessionResponse.json();
             if (sessionData?.user) {
@@ -312,7 +315,12 @@ export const useLogin = () => {
         return false;
       }
 
-      if (result?.ok) {
+      const isSuccess =
+        result?.ok === true ||
+        result?.status === 200 ||
+        (!!result?.url && !result?.error);
+
+      if (isSuccess) {
         logger.info(
           { redirectUrl: '/dashboard' },
           'Connexion réussie, redirection vers /dashboard',
@@ -321,7 +329,9 @@ export const useLogin = () => {
         // Observer Pattern : Émettre l'événement de connexion réussie
         // Récupérer les infos utilisateur depuis la session
         try {
-          const sessionResponse = await fetch('/api/auth/session');
+          const sessionResponse = await fetch('/api/auth/session', {
+            cache: 'no-store',
+          });
           if (sessionResponse.ok) {
             const sessionData = await sessionResponse.json();
             if (sessionData?.user) {
@@ -398,26 +408,177 @@ export const useLogin = () => {
   };
 
   const handleLoginSuccess = async () => {
+    // Important: purger le cache /api/users/me (et la promesse partagée) pour éviter
+    // de réutiliser un ancien 401 immédiatement après login, ce qui casse la redirection
+    // (AuthorizedRoute pense "non authentifié" et renvoie à /login).
+    clearAuthCache();
+
     // La session NextAuth est maintenant établie côté cookies
     dispatch(authActions.loginSuccess({} as any));
-    addSuccess('Connexion réussie ! Redirection en cours...');
+
+    // Forcer la mise à jour du contexte NextAuth pour que useSession/AuthGuard
+    // détectent immédiatement la session sans rechargement manuel.
+    let sessionSynced = false;
+    for (let i = 0; i < 3; i++) {
+      try {
+        const refreshed = await refreshSession?.();
+        sessionSynced = !!refreshed?.user;
+        logger.debug(
+          { attempt: i + 1, sessionSynced },
+          'Refresh NextAuth session après connexion',
+        );
+        if (sessionSynced) {
+          break;
+        }
+      } catch (error) {
+        logger.debug(
+          {
+            error:
+              error instanceof Error ? error.message : String(error),
+            attempt: i + 1,
+          },
+          'Échec du refresh NextAuth session, nouvelle tentative',
+        );
+      }
+      await new Promise(resolve => setTimeout(resolve, 150));
+    }
+
+    // Récupérer les informations utilisateur pour l'email
+    let userEmail = '';
+    let userName = '';
+    try {
+      const sessionResponse = await fetch('/api/auth/session');
+      if (sessionResponse.ok) {
+        const sessionData = await sessionResponse.json();
+        if (sessionData?.user) {
+          userEmail = sessionData.user.email || '';
+          userName = sessionData.user.name || `${sessionData.user.firstName || ''} ${sessionData.user.lastName || ''}`.trim() || 'Utilisateur';
+        }
+      }
+    } catch (error) {
+      logger.warn({ error }, 'Erreur lors de la récupération de la session pour l\'email');
+    }
+
+    // Envoyer l'email de notification de connexion (en arrière-plan, ne pas bloquer)
+    if (userEmail && userName) {
+      try {
+        const { sendLoginSuccessEmail } = await import('@/lib/email/resend');
+        sendLoginSuccessEmail(userEmail, userName).catch((emailError) => {
+          logger.warn({ error: emailError }, 'Erreur lors de l\'envoi de l\'email de connexion');
+        });
+      } catch (importError) {
+        logger.warn({ error: importError }, 'Erreur lors de l\'import de sendLoginSuccessEmail');
+      }
+    }
+
+    // Afficher le toast de succès
+    addSuccess('Connexion réussie ! Redirection vers votre dashboard...');
+
+    // Attendre que l'authentification soit complètement validée
+    // Vérifier plusieurs fois que la session est bien établie
+    let sessionValidated = false;
+    for (let i = 0; i < 5; i++) {
+      try {
+        const sessionResponse = await fetch('/api/auth/session', {
+          cache: 'no-store',
+        });
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json();
+          if (sessionData?.user) {
+            sessionValidated = true;
+            break;
+          }
+        }
+      } catch (error) {
+        logger.debug({ attempt: i + 1 }, 'Tentative de validation de session');
+      }
+      // Attendre 200ms entre chaque tentative
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    if (!sessionValidated) {
+      logger.warn('Session non validée après plusieurs tentatives, redirection quand même');
+    }
+
+    // Laisser le temps au toast d'apparaître
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Normaliser et sécuriser l'URL de redirection
+    const normalizeRedirectUrl = (url?: string | null) => {
+      if (!url) return '/dashboard';
+
+      // Autoriser uniquement les redirections internes pour éviter les open redirects
+      if (typeof window === 'undefined') {
+        return url.startsWith('/') ? url : '/dashboard';
+      }
+
+      try {
+        const parsed = new URL(url, window.location.origin);
+        if (parsed.origin !== window.location.origin) {
+          return '/dashboard';
+        }
+        return parsed.pathname + parsed.search + parsed.hash;
+      } catch (_err) {
+        return url.startsWith('/') ? url : '/dashboard';
+      }
+    };
 
     // Vérifier s'il y a une URL de callback stockée
-    const callbackUrl = sessionStorage.getItem('authCallbackUrl');
-    const redirectUrl = callbackUrl || '/dashboard';
+    const rawCallbackUrl =
+      typeof window !== 'undefined'
+        ? sessionStorage.getItem('authCallbackUrl')
+        : null;
+    const redirectUrl = normalizeRedirectUrl(rawCallbackUrl);
 
     logger.info(
-      { redirectUrl, hasCallbackUrl: !!callbackUrl },
+      {
+        redirectUrl,
+        hasCallbackUrl: !!rawCallbackUrl,
+        sessionValidated,
+      },
       'Redirection après connexion réussie',
     );
 
     // Nettoyer l'URL de callback du sessionStorage
-    if (callbackUrl) {
+    if (rawCallbackUrl && typeof window !== 'undefined') {
       sessionStorage.removeItem('authCallbackUrl');
     }
 
-    // Redirection vers l'URL appropriée
-    router.push(redirectUrl);
+    // Rafraîchir le router si disponible, mais ne pas bloquer la redirection en cas d'erreur
+    try {
+      router.refresh?.();
+    } catch (refreshError) {
+      logger.debug(
+        {
+          error:
+            refreshError instanceof Error
+              ? refreshError.message
+              : String(refreshError),
+        },
+        'Échec du refresh router avant redirection, poursuite du flow',
+      );
+    }
+
+    // Laisser un léger délai pour que la session soit prise en compte
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Utiliser le router pour la navigation, fallback sur window.location
+    try {
+      router.replace(redirectUrl);
+    } catch (navigationError) {
+      logger.warn(
+        {
+          error:
+            navigationError instanceof Error
+              ? navigationError.message
+              : String(navigationError),
+        },
+        'router.replace a échoué, fallback vers window.location',
+      );
+      if (typeof window !== 'undefined') {
+        window.location.assign(redirectUrl);
+      }
+    }
   };
 
   return {

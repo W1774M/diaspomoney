@@ -117,7 +117,7 @@ export class NotificationService {
         createdAt: new Date(),  
         updatedAt: new Date(),
         userId: (data as any as NotificationData & { userId: string }).userId,
-        _id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        // Ne pas définir _id ici, il sera généré par le repository MongoDB
       };
 
       // Sauvegarder en base de données via le repository
@@ -514,6 +514,19 @@ export class NotificationService {
           createdAt: new Date(),
           updatedAt: new Date(),
         },
+        login_success: {
+          _id: 'login_success',
+          id: 'login_success',
+          name: 'login_success',
+          subject: 'Connexion réussie - DiaspoMoney',
+          content:
+            'Bonjour, vous vous êtes connecté avec succès à votre compte DiaspoMoney le {{timestamp}}. Si ce n\'était pas vous, veuillez contacter {{supportEmail}} immédiatement.',
+          variables: ['email', 'timestamp', 'supportEmail'],
+          channels: [{ type: 'EMAIL', enabled: true, priority: 'LOW' }, { type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       };
 
       const template = defaultTemplates[templateName] || null;
@@ -605,8 +618,43 @@ export class NotificationService {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   private async sendEmail(notification: Notification): Promise<void> {
     try {
+      // Récupérer l'email de l'utilisateur si recipient est un ID
+      let recipientEmail = notification.recipient;
+      
+      // Vérifier si recipient est un email valide ou un ID
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notification.recipient);
+      
+      if (!isEmail) {
+        // C'est probablement un ID utilisateur, récupérer l'email
+        try {
+          const { getUserRepository } = await import('@/repositories');
+          const userRepository = getUserRepository();
+          const user = await userRepository.findById(notification.recipient);
+          
+          if (user && user.email) {
+            recipientEmail = user.email;
+            this.log.debug(
+              { userId: notification.recipient, email: recipientEmail },
+              'Resolved user email from userId',
+            );
+          } else {
+            this.log.warn(
+              { recipient: notification.recipient },
+              'User not found or has no email, cannot send email',
+            );
+            throw new Error(`User not found or has no email: ${notification.recipient}`);
+          }
+        } catch (userError) {
+          this.log.error(
+            { error: userError, recipient: notification.recipient },
+            'Error fetching user email',
+          );
+          throw new Error(`Failed to resolve user email: ${notification.recipient}`);
+        }
+      }
+      
       const emailSent = await sendEmail({
-        to: notification.recipient,
+        to: recipientEmail,
         subject: notification.subject,
         html: notification.content.replace(/\n/g, '<br>'),
         text: notification.content,

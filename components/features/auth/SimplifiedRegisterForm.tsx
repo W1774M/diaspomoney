@@ -2,6 +2,7 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useNotificationManager } from "@/components/ui/Notification";
 
 interface BookingData {
   requester: {
@@ -30,6 +31,7 @@ export function SimplifiedRegisterForm({
   onSuccess,
 }: SimplifiedRegisterFormProps) {
   const router = useRouter();
+  const { addSuccess } = useNotificationManager();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -124,6 +126,12 @@ export function SimplifiedRegisterForm({
 
       if (res.ok) {
         localStorage.removeItem("bookingData");
+
+        // Afficher une notification de succès avec l'emoji 🔔
+        addSuccess(
+          "🔔 Compte créé avec succès ! Vérifiez votre email pour activer votre compte.",
+          6000,
+        );
 
         // Si on est dans une popup, notifier la fenêtre parent
         if (window.opener) {

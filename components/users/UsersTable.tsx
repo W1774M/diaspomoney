@@ -69,8 +69,8 @@ const UsersTable = React.memo<UsersTableProps>(function UsersTable({
   return (
     <div className="space-y-4">
       {users.map((user: any, index: number) => {
-        // Créer une clé unique : utiliser _id si disponible, sinon combiner email et index
-        const uniqueKey = user._id || user.email || `user-${index}`;
+        // Créer une clé unique : utiliser _id ou id si disponible, sinon combiner email et index
+        const uniqueKey = user._id || user.id || user.email || `user-${index}`;
         return (
           <UserCard
             key={uniqueKey}

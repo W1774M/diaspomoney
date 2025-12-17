@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { PhoneInput } from 'react-international-phone';
 import type {
   BTPQuoteFormProps,
   QuoteFormData,
@@ -555,14 +556,18 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                   </div>
                   <div className='space-y-2'>
                     <label className='text-sm font-medium'>Téléphone</label>
-                    <Input
-                      type='tel'
-                      placeholder='+221 33 123 45 67'
+                    <PhoneInput
+                      defaultCountry="fr"
                       value={formData.contact.phone}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                        handleInputContact('phone')(e)
-                      }
-                      maxLength={20}
+                      onChange={(phone) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          contact: { ...prev.contact, phone: phone },
+                        }));
+                        setFormErrors(errs => ({ ...errs, phone: '' }));
+                      }}
+                      className="w-full"
+                      inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
                     />
                     {formErrors['phone'] && (
                       <p className='text-red-500 text-xs'>

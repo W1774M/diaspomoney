@@ -8,7 +8,6 @@ import {
   Calendar,
   Mail,
   MapPin,
-  Phone,
   Save,
   Smartphone,
   Trash2,
@@ -16,6 +15,7 @@ import {
   User,
   Wallet,
 } from 'lucide-react';
+import { PhoneInput } from 'react-international-phone';
 import Image from 'next/image';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -26,6 +26,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [deletingAvatar, setDeletingAvatar] = useState(false);
+    const [avatarError, setAvatarError] = useState(false);
 
     // Charger l'avatar depuis les données utilisateur
     useEffect(() => {
@@ -36,6 +37,8 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
         } else if (userAvatar?.image) {
           setAvatarUrl(userAvatar.image);
         }
+        // Réinitialiser l'erreur quand l'utilisateur change
+        setAvatarError(false);
       }
     }, [user]);
 
@@ -59,6 +62,20 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
         const file = e.target.files?.[0];
         if (!file) return;
 
+        // Vérifier le type de fichier
+        if (!file.type.startsWith('image/')) {
+          alert('Le fichier doit être une image (JPG, PNG, GIF, etc.)');
+          
+          return;
+        }
+
+        // Vérifier la taille (max 5MB)
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+          alert('Le fichier est trop volumineux (maximum 5MB)');
+          return;
+        }
+
         setUploadingAvatar(true);
         try {
           const formData = new FormData();
@@ -67,24 +84,40 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
           const response = await fetch('/api/users/me/avatar', {
             method: 'POST',
             body: formData,
+            // Ne pas définir Content-Type explicitement, le navigateur le fera automatiquement
+            // avec la boundary pour multipart/form-data
           });
 
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Erreur lors de l'upload");
+            let errorMessage = "Erreur lors de l'upload";
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.error || errorData.details || errorMessage;
+            } catch (parseError) {
+              // Si la réponse n'est pas du JSON, utiliser le statut
+              errorMessage = `Erreur ${response.status}: ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
           }
 
           const result = await response.json();
-          setAvatarUrl(result.avatar);
-          // Rafraîchir la page pour mettre à jour l'avatar partout
-          window.location.reload();
+          if (result.success && result.avatar) {
+            setAvatarUrl(result.avatar);
+            // Rafraîchir la page pour mettre à jour l'avatar partout
+            window.location.reload();
+          } else {
+            throw new Error("Réponse invalide du serveur");
+          }
         } catch (error) {
           console.error("Erreur lors de l'upload de l'avatar:", error);
-          alert(
-            error instanceof Error
-              ? error.message
-              : "Erreur lors de l'upload de la photo de profil",
-          );
+          const errorMessage = error instanceof Error 
+            ? error.message 
+            : "Erreur lors de l'upload de la photo de profil";
+          alert(errorMessage);
+          // Réinitialiser l'input file pour permettre de réessayer
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
         } finally {
           setUploadingAvatar(false);
         }
@@ -106,20 +139,30 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Erreur lors de la suppression');
+          let errorMessage = 'Erreur lors de la suppression';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorData.details || errorMessage;
+          } catch (parseError) {
+            errorMessage = `Erreur ${response.status}: ${response.statusText}`;
+          }
+          throw new Error(errorMessage);
         }
 
-        setAvatarUrl(null);
-        // Rafraîchir la page pour mettre à jour l'avatar partout
-        window.location.reload();
+        const result = await response.json();
+        if (result.success) {
+          setAvatarUrl(null);
+          // Rafraîchir la page pour mettre à jour l'avatar partout
+          window.location.reload();
+        } else {
+          throw new Error("Réponse invalide du serveur");
+        }
       } catch (error) {
         console.error("Erreur lors de la suppression de l'avatar:", error);
-        alert(
-          error instanceof Error
-            ? error.message
-            : 'Erreur lors de la suppression de la photo de profil',
-        );
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Erreur lors de la suppression de la photo de profil';
+        alert(errorMessage);
       } finally {
         setDeletingAvatar(false);
       }
@@ -141,7 +184,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
           <div className='flex items-center space-x-6'>
             {/* Aperçu de l'avatar */}
             <div className='relative'>
-              {avatarUrl ? (
+              {avatarUrl && !avatarError ? (
                 <div className='relative w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200'>
                   <Image
                     src={avatarUrl}
@@ -150,6 +193,10 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
                     className='object-cover'
                     loader={imageLoader}
                     unoptimized
+                    onError={() => {
+                      // En cas d'erreur (404, etc.), afficher l'icône par défaut
+                      setAvatarError(true);
+                    }}
                   />
                 </div>
               ) : (
@@ -298,16 +345,13 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
                   <Smartphone className='h-4 w-4 inline mr-1' />
                   Téléphone
                 </label>
-                <div className='relative'>
-                  <Phone className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                  <input
-                    type='tel'
-                    value={data.phone}
-                    onChange={e => handleChange('phone', e.target.value)}
-                    className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]'
-                    placeholder='+33 1 23 45 67 89'
-                  />
-                </div>
+                <PhoneInput
+                  defaultCountry="fr"
+                  value={data.phone || ""}
+                  onChange={(phone) => handleChange('phone', phone)}
+                  className="w-full"
+                  inputClassName="w-full pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]"
+                />
               </div>
 
               <div>

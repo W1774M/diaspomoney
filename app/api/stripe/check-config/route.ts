@@ -9,9 +9,7 @@ import { isStripeConfigured, getStripeMode, getStripeInstance } from '@/lib/stri
 export async function GET() {
   try {
     const secretKey = process.env['STRIPE_SECRET_KEY'];
-    const publishableKey = 
-      process.env['NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'] || 
-      process.env['STRIPE_PUBLISHABLE_KEY'];
+    const publishableKey = process.env['NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'];
 
     const config = {
       secretKey: {

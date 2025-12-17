@@ -37,7 +37,7 @@ const BENEFITS = [
 
 export function BenefitsSection() {
   return (
-    <section className="py-20 md:py-24 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden">
+    <section className="py-20 md:py-24  bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(41,86%,46%)] text-white relative overflow-hidden">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-[0.02] bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMwMDAiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')]" />
       

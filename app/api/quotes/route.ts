@@ -16,10 +16,6 @@ import { getQuoteRepository } from '@/repositories';
 import { quoteMapper } from '@/lib/mappers';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-
-// Désactiver le prerendering pour cette route API
-export const dynamic = 'force-dynamic';
-
 const QuoteFiltersSchema = z.object({
   type: z.enum(['BTP', 'EDUCATION']).optional(),
   status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'EXPIRED']).optional(),

@@ -1,6 +1,4 @@
 import { auth } from '@/auth';
-// Désactiver le prerendering pour cette route API
-export const dynamic = 'force-dynamic';
 
 import { InvoiceQueryBuilder } from '@/builders';
 import { invoiceFacade, type InvoiceFacadeData } from '@/facades';

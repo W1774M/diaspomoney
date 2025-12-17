@@ -41,8 +41,7 @@ Le code vérifie maintenant automatiquement les deux variables pour compatibilit
 ```typescript
 // Le code vérifie d'abord NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 // Puis STRIPE_PUBLISHABLE_KEY en fallback
-const publishableKey = process.env["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"] || 
-                        process.env["STRIPE_PUBLISHABLE_KEY"];
+const publishableKey = process.env["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"];
 ```
 
 ## 📋 Variables Stripe complètes

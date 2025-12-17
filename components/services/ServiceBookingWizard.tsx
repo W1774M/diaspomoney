@@ -10,6 +10,7 @@ import { useNotificationManager } from "@/components/ui/Notification";
 import { childLogger } from "@/lib/logger";
 import { useServices } from "@/hooks/services/useServices";
 import { useServiceOptions } from "@/hooks/services/useServiceOptions";
+import { PhoneInput } from "react-international-phone";
 import type {
   ServiceType,
   ServiceBookingState,
@@ -39,6 +40,24 @@ const loadFromStorage = (initialServiceType: ServiceType | null): ServiceBooking
       const parsed = JSON.parse(saved);
       // Vérifier que le type de service correspond
       if (parsed.serviceType === initialServiceType || !initialServiceType) {
+        // S'assurer que additionalOptions est un tableau valide
+        if (!Array.isArray(parsed.additionalOptions)) {
+          parsed.additionalOptions = [];
+        }
+        
+        logger.debug(
+          {
+            serviceType: parsed.serviceType,
+            additionalOptionsCount: parsed.additionalOptions?.length || 0,
+            additionalOptions: parsed.additionalOptions?.map((opt: any) => ({
+              id: opt.id,
+              label: opt.label,
+              price: opt.price,
+            })) || [],
+          },
+          'Données restaurées depuis localStorage',
+        );
+        
         return parsed;
       }
     }
@@ -107,6 +126,14 @@ export function ServiceBookingWizard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
   const [confirmedReservationNumber, setConfirmedReservationNumber] = useState<string | null>(null);
+  const [draftBookingId, setDraftBookingId] = useState<string | null>(null);
+  
+  // États pour le code promotionnel
+  const [promotionCode, setPromotionCode] = useState('');
+  const [promotionCodeData, setPromotionCodeData] = useState<any>(null);
+  const [promotionCodeError, setPromotionCodeError] = useState<string | null>(null);
+  const [validatingCode, setValidatingCode] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
   
   // Récupérer les services depuis la base de données
   const { 
@@ -181,6 +208,23 @@ export function ServiceBookingWizard({
   }, [isAuthenticated, user, initialServiceType]);
 
   // Sauvegarder dans localStorage à chaque modification du state
+  // Restaurer le draftBookingId depuis le localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.draftBookingId) {
+            setDraftBookingId(parsed.draftBookingId);
+          }
+        }
+      } catch (error) {
+        logger.error({ error }, 'Erreur lors de la lecture du draftBookingId');
+      }
+    }
+  }, []);
+
   // Utiliser un debounce pour éviter trop d'écritures
   // Ne pas sauvegarder si on est à l'étape 4 (confirmation) pour éviter de sauvegarder l'état réinitialisé
   useEffect(() => {
@@ -191,14 +235,32 @@ export function ServiceBookingWizard({
     }
     
     const timeoutId = setTimeout(() => {
-      saveToStorage({
+      // S'assurer que additionalOptions est toujours un tableau
+      const stateToSave = {
         ...state,
+        additionalOptions: Array.isArray(state.additionalOptions) ? state.additionalOptions : [],
         currentStep, // Inclure l'étape actuelle dans la sauvegarde
-      });
+        draftBookingId, // Inclure le draftBookingId
+      } as ServiceBookingState & { draftBookingId?: string | null };
+      
+      logger.debug(
+        {
+          currentStep,
+          additionalOptionsCount: stateToSave.additionalOptions.length,
+          additionalOptions: stateToSave.additionalOptions.map(opt => ({
+            id: opt.id,
+            label: opt.label,
+            price: opt.price,
+          })),
+        },
+        'Sauvegarde dans localStorage',
+      );
+      
+      saveToStorage(stateToSave);
     }, 300); // Debounce de 300ms
 
     return () => clearTimeout(timeoutId);
-  }, [state, currentStep]);
+  }, [state, currentStep, draftBookingId]);
 
   // Calculer le montant total
   useEffect(() => {
@@ -207,11 +269,58 @@ export function ServiceBookingWizard({
       (sum, opt) => sum + opt.price,
       0,
     );
+    const subtotal = basePrice + optionsPrice;
+    const finalAmount = subtotal - discountAmount;
     setState((prev) => ({
       ...prev,
-      totalAmount: basePrice + optionsPrice,
+      totalAmount: Math.max(0, finalAmount),
     }));
-  }, [state.selectedService, state.additionalOptions]);
+  }, [state.selectedService, state.additionalOptions, discountAmount]);
+
+  // Valider le code promotionnel
+  const validatePromotionCode = async (code: string) => {
+    if (!code || code.trim() === '') {
+      setPromotionCodeData(null);
+      setDiscountAmount(0);
+      setPromotionCodeError(null);
+      return;
+    }
+
+    setValidatingCode(true);
+    setPromotionCodeError(null);
+
+    try {
+      const response = await fetch('/api/promotion-codes/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: code.toUpperCase().trim(),
+          amount: (state.selectedService?.price || 0) + state.additionalOptions.reduce((sum, opt) => sum + opt.price, 0),
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success && data.valid) {
+        setPromotionCodeData(data.code);
+        setDiscountAmount(data.discount.amount);
+        setPromotionCodeError(null);
+        notificationManager.addSuccess(`Code promotionnel appliqué : ${data.discount.percentage}% de réduction`);
+      } else {
+        setPromotionCodeData(null);
+        setDiscountAmount(0);
+        setPromotionCodeError(data.error || 'Code promotionnel invalide');
+        notificationManager.addError(data.error || 'Code promotionnel invalide');
+      }
+    } catch (error) {
+      logger.error({ error }, 'Error validating promotion code');
+      setPromotionCodeData(null);
+      setDiscountAmount(0);
+      setPromotionCodeError('Erreur lors de la validation du code');
+      notificationManager.addError('Erreur lors de la validation du code');
+    } finally {
+      setValidatingCode(false);
+    }
+  };
 
   const validateStep = (step: number): boolean => {
     switch (step) {
@@ -242,8 +351,60 @@ export function ServiceBookingWizard({
     }
   };
 
-  const handleNext = () => {
+  // Fonction pour enregistrer la progression de l'étape
+  const trackProgress = async (step: number, stepName: string) => {
+    try {
+      const response = await fetch('/api/bookings/track-progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          step,
+          stepName,
+          serviceType: state.serviceType,
+          clientInfo: state.clientInfo,
+          beneficiaryInfo: state.beneficiaryInfo,
+          selectedService: state.selectedService
+            ? {
+                serviceId: state.selectedService.serviceId,
+                label: state.selectedService.label,
+                price: state.selectedService.price,
+              }
+            : undefined,
+          paymentIntentId: state.paymentIntentId || undefined,
+          bookingId: draftBookingId || undefined,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.bookingId && !draftBookingId) {
+          setDraftBookingId(data.bookingId);
+        }
+        logger.debug({ step, stepName, bookingId: data.bookingId }, 'Progress tracked');
+      } else {
+        logger.warn({ step, stepName, status: response.status }, 'Failed to track progress');
+      }
+    } catch (error) {
+      logger.error({ error, step, stepName }, 'Error tracking progress');
+      // Ne pas bloquer le processus si l'enregistrement de progression échoue
+    }
+  };
+
+  const handleNext = async () => {
     if (validateStep(currentStep)) {
+      // Définir les noms des étapes
+      const stepNames: Record<number, string> = {
+        1: 'Sélection du type de service',
+        2: 'Informations client et bénéficiaire',
+        3: 'Paiement',
+        4: 'Confirmation',
+      };
+
+      // Enregistrer la progression de l'étape actuelle avant de passer à la suivante
+      await trackProgress(currentStep, stepNames[currentStep] || `Étape ${currentStep}`);
+
       setCurrentStep((prev) => Math.min(prev + 1, 4));
       setState((prev) => ({ ...prev, currentStep: currentStep + 1 }));
     }
@@ -272,30 +433,44 @@ export function ServiceBookingWizard({
   const handleToggleOption = (option: { id: string; category: string; label: string; description: string; price: number; optional?: boolean }) => {
     setState((prev) => {
       const exists = prev.additionalOptions.some((opt) => opt.id === option.id);
-      if (exists) {
-        return {
-          ...prev,
-          additionalOptions: prev.additionalOptions.filter(
-            (opt) => opt.id !== option.id,
-          ),
-        };
-      } else {
-        return {
-          ...prev,
-          additionalOptions: [...prev.additionalOptions, {
-            id: option.id,
-            category: option.category,
-            label: option.label,
-            description: option.description,
-            price: option.price,
-            optional: option.optional ?? true,
-          }],
-        };
-      }
+      const newState = exists
+        ? {
+            ...prev,
+            additionalOptions: prev.additionalOptions.filter(
+              (opt) => opt.id !== option.id,
+            ),
+          }
+        : {
+            ...prev,
+            additionalOptions: [...prev.additionalOptions, {
+              id: option.id,
+              category: option.category,
+              label: option.label,
+              description: option.description,
+              price: option.price,
+              optional: option.optional ?? true,
+            }],
+          };
+      
+      // Logger pour déboguer
+      logger.debug(
+        {
+          optionId: option.id,
+          optionLabel: option.label,
+          action: exists ? 'removed' : 'added',
+          totalOptions: newState.additionalOptions.length,
+          options: newState.additionalOptions.map(opt => ({ id: opt.id, label: opt.label, price: opt.price })),
+        },
+        'Option toggled',
+      );
+      
+      return newState;
     });
   };
 
   const handlePaymentSuccess = async (paymentIntentId: string) => {
+    logger.info({ paymentIntentId }, 'Payment succeeded, proceeding to final submit');
+    
     // Le paiement a été confirmé avec succès dans StripeCheckout
     // On met à jour l'état pour indiquer que le paiement est confirmé
     setState((prev) => ({ 
@@ -306,7 +481,18 @@ export function ServiceBookingWizard({
     
     // Passer automatiquement à l'étape suivante (confirmation) et soumettre la réservation
     // Passer directement le paymentIntentId pour éviter les problèmes de timing avec setState
-    await handleFinalSubmit(paymentIntentId);
+    try {
+      await handleFinalSubmit(paymentIntentId);
+    } catch (error) {
+      logger.error({ error, paymentIntentId }, 'Error in handleFinalSubmit after payment success');
+      // Même en cas d'erreur, on passe à l'étape 4 car le paiement a réussi
+      // L'utilisateur pourra voir la confirmation et l'admin pourra gérer la réservation manuellement
+      setCurrentStep(4);
+      setIsSubmitting(false);
+      notificationManager.addWarning(
+        'Paiement confirmé, mais erreur lors de l\'enregistrement. Notre équipe va traiter votre réservation.',
+      );
+    }
   };
 
   const handleFinalSubmit = async (paymentIntentIdOverride?: string) => {
@@ -384,6 +570,15 @@ export function ServiceBookingWizard({
         },
         additionalOptions: state.additionalOptions,
         paymentIntentId: paymentIntentId,
+        metadata: {
+          ...(draftBookingId && { draftBookingId }),
+          ...(promotionCodeData && {
+            promotionCode: promotionCodeData.label,
+            promotionCodeId: promotionCodeData._id || promotionCodeData.id,
+            discountAmount: discountAmount,
+            discountPercentage: promotionCodeData.percentage,
+          }),
+        },
       };
 
       // Ajouter les disponibilités uniquement pour HEALTH
@@ -397,7 +592,32 @@ export function ServiceBookingWizard({
         requestData = baseRequestData as ServiceBookingRequestData;
       }
 
-      logger.info({ serviceType: state.serviceType, bookingData: requestData }, 'Envoi des données de réservation');
+      // Logger détaillé pour vérifier que les options sont bien présentes
+      logger.info(
+        {
+          serviceType: state.serviceType,
+          additionalOptionsCount: state.additionalOptions.length,
+          additionalOptions: state.additionalOptions.map(opt => ({
+            id: opt.id,
+            label: opt.label,
+            price: opt.price,
+          })),
+          basePrice: state.selectedService?.price,
+          totalAmount: state.totalAmount,
+          bookingData: {
+            ...requestData,
+            additionalOptions: requestData.additionalOptions.map(opt => ({
+              id: opt.id,
+              label: opt.label,
+              price: opt.price,
+            })),
+          },
+        },
+        'Envoi des données de réservation',
+      );
+
+      // Enregistrer la progression de l'étape 4 (confirmation) avant la soumission finale
+      await trackProgress(4, 'Confirmation');
 
       const response = await fetch("/api/services/book", {
         method: "POST",
@@ -418,9 +638,29 @@ export function ServiceBookingWizard({
             statusText: response.statusText,
             responseText: text,
             serviceType: state.serviceType,
+            paymentIntentId,
           },
           'Erreur lors de la création de la réservation - Réponse non-JSON',
         );
+        
+        // Si le paiement a réussi mais la réponse n'est pas valide, passer à l'étape 4 quand même
+        if (paymentIntentId) {
+          logger.warn({ 
+            paymentIntentId,
+            status: response.status,
+          }, 'Payment succeeded but API response is invalid JSON, passing to step 4 anyway');
+          
+          // Nettoyer le cache
+          clearStorage();
+          
+          // Passer à l'étape 4 avec un avertissement
+          setCurrentStep(4);
+          setIsSubmitting(false);
+          notificationManager.addWarning(
+            'Paiement confirmé, mais erreur lors de l\'enregistrement. Notre équipe va traiter votre réservation manuellement.',
+          );
+          return;
+        }
         
         notificationManager.addError(
           `Erreur lors de l'enregistrement: ${response.statusText || 'Erreur inconnue'} (${response.status})`,
@@ -460,30 +700,60 @@ export function ServiceBookingWizard({
               serviceId: requestData.selectedService.serviceId,
               hasPaymentIntentId: !!requestData.paymentIntentId,
             },
+            paymentIntentId,
           },
           'Erreur lors de la création de la réservation',
         );
         
+        // Si le paiement a réussi mais l'API retourne une erreur, passer à l'étape 4 quand même
+        // L'admin pourra gérer la réservation manuellement
+        if (paymentIntentId) {
+          logger.warn({ 
+            paymentIntentId, 
+            errorMessage,
+            status: response.status,
+          }, 'Payment succeeded but booking API returned error, passing to step 4 anyway');
+          
+          // Nettoyer le cache
+          clearStorage();
+          
+          // Passer à l'étape 4 avec un avertissement
+          setCurrentStep(4);
+          setIsSubmitting(false);
+          notificationManager.addWarning(
+            'Paiement confirmé, mais erreur lors de l\'enregistrement. Notre équipe va traiter votre réservation manuellement.',
+          );
+          return;
+        }
+        
+        // Si pas de paiement, afficher l'erreur normalement
         notificationManager.addError(`Erreur lors de l'enregistrement: ${errorMessage}`);
         setIsSubmitting(false);
         return;
       }
 
       if (data.success) {
+        logger.info({ responseData: data }, 'Booking API response received with success=true');
+        
         // Extraire l'ID de la réservation depuis différentes structures de réponse possibles
         const bookingId = data.bookingId || 
                          data.booking?.id || 
                          data.booking?._id ||
+                         (data.booking as any)?.id ||
                          (typeof data.bookingId === 'string' ? data.bookingId : null);
         
         // Extraire le numéro de réservation si disponible
         const reservationNumber = data.reservationNumber ||
                                  data.booking?.reservationNumber || 
+                                 (data.booking as any)?.reservationNumber ||
                                  null;
         
-        if (!bookingId) {
-          logger.warn({ responseData: data }, 'Booking created but no bookingId in response');
-        }
+        logger.info({ 
+          bookingId, 
+          reservationNumber, 
+          hasBooking: !!data.booking,
+          bookingKeys: data.booking ? Object.keys(data.booking) : [],
+        }, 'Extracted booking information from response');
         
         // 1. Nettoyer le cache IMMÉDIATEMENT après une soumission réussie
         // Cela empêche le useEffect de sauvegarder l'état réinitialisé
@@ -508,10 +778,15 @@ export function ServiceBookingWizard({
           );
           
           onComplete?.(bookingId);
+        } else {
+          logger.warn({ responseData: data }, 'Booking created but no bookingId in response');
+          // Même sans bookingId, on passe à l'étape 4 pour afficher la confirmation
+          notificationManager.addSuccess('Réservation confirmée !');
         }
         
-        // 3. Passer à l'étape de confirmation (étape 4)
+        // 3. Passer à l'étape de confirmation (étape 4) - TOUJOURS si success=true
         // Les données restent dans l'état pour l'affichage de confirmation
+        logger.info({ currentStepBefore: currentStep }, 'Passing to step 4 (confirmation)');
         setCurrentStep(4);
         setIsSubmitting(false);
         
@@ -520,8 +795,26 @@ export function ServiceBookingWizard({
         // quittera la page ou cliquera sur "Voir mes réservations"
       } else {
         const errorMessage = data.error || "Une erreur est survenue lors de l'enregistrement de la réservation";
-        alert(errorMessage);
-        setIsSubmitting(false);
+        logger.error({ 
+          responseData: data, 
+          errorMessage,
+          paymentIntentId,
+          currentStep,
+        }, 'Booking API returned success=false');
+        
+        // Même si l'API retourne une erreur, si le paiement a réussi, on passe à l'étape 4
+        // L'admin pourra gérer la réservation manuellement
+        if (paymentIntentId) {
+          logger.warn('Payment succeeded but booking creation failed, passing to step 4 anyway');
+          setCurrentStep(4);
+          setIsSubmitting(false);
+          notificationManager.addWarning(
+            'Paiement confirmé, mais erreur lors de l\'enregistrement. Notre équipe va traiter votre réservation.',
+          );
+        } else {
+          alert(errorMessage);
+          setIsSubmitting(false);
+        }
       }
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
@@ -691,20 +984,20 @@ export function ServiceBookingWizard({
                       <Phone className="w-4 h-4" />
                       Téléphone *
                     </label>
-                    <input
-                      id="client-phone"
-                      type="tel"
+                    <PhoneInput
+                      defaultCountry="fr"
                       value={state.clientInfo.phone || ""}
-                      onChange={(e) =>
+                      onChange={(phone) =>
                         setState((prev) => ({
                           ...prev,
                           clientInfo: {
                             ...prev.clientInfo,
-                            phone: e.target.value,
+                            phone: phone,
                           },
                         }))
                       }
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="w-full"
+                      inputClassName="w-full px-4 py-2 border rounded-lg"
                       required
                       aria-label="Téléphone du client"
                     />
@@ -739,7 +1032,7 @@ export function ServiceBookingWizard({
               <div>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <User className="w-5 h-5" />
-                  Informations du bénéficiaire
+                  Informations du bénéficiaire {state.serviceType === SPECIALITY_TYPES.EDUCATION ? "ou Élève" : (state.serviceType === SPECIALITY_TYPES.BTP ? "ou Contact Local" : "")}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -790,20 +1083,20 @@ export function ServiceBookingWizard({
                     <label htmlFor="beneficiary-phone" className="block text-sm font-medium mb-1">
                       Téléphone *
                     </label>
-                    <input
-                      id="beneficiary-phone"
-                      type="tel"
+                    <PhoneInput
+                      defaultCountry="fr"
                       value={state.beneficiaryInfo.phone || ""}
-                      onChange={(e) =>
+                      onChange={(phone) =>
                         setState((prev) => ({
                           ...prev,
                           beneficiaryInfo: {
                             ...prev.beneficiaryInfo,
-                            phone: e.target.value,
+                            phone: phone,
                           },
                         }))
                       }
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="w-full"
+                      inputClassName="w-full px-4 py-2 border rounded-lg"
                       required
                       aria-label="Téléphone du bénéficiaire"
                     />
@@ -1105,6 +1398,52 @@ export function ServiceBookingWizard({
               </p>
             </div>
 
+            {/* Code promotionnel */}
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">Code promotionnel</h3>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promotionCode}
+                    onChange={(e) => {
+                      setPromotionCode(e.target.value);
+                      if (e.target.value.trim() === '') {
+                        setPromotionCodeData(null);
+                        setDiscountAmount(0);
+                        setPromotionCodeError(null);
+                      }
+                    }}
+                    onBlur={() => {
+                      if (promotionCode.trim()) {
+                        validatePromotionCode(promotionCode);
+                      }
+                    }}
+                    placeholder="Entrez votre code promotionnel"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent uppercase"
+                    disabled={validatingCode}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => validatePromotionCode(promotionCode)}
+                    disabled={validatingCode || !promotionCode.trim()}
+                    className="px-6 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    {validatingCode ? 'Validation...' : 'Appliquer'}
+                  </button>
+                </div>
+                {promotionCodeError && (
+                  <p className="text-sm text-red-600">{promotionCodeError}</p>
+                )}
+                {promotionCodeData && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800">
+                    ✓ Code appliqué : {promotionCodeData.percentage}% de réduction
+                    {discountAmount > 0 && ` (-${discountAmount.toFixed(2)}€)`}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Récapitulatif de la commande */}
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
               <h3 className="text-lg font-semibold mb-4 text-gray-900">Récapitulatif de la commande</h3>
@@ -1133,11 +1472,23 @@ export function ServiceBookingWizard({
                   </div>
                 )}
                 
-                <div className="pt-4 border-t-2 border-gray-300 flex justify-between items-center">
-                  <span className="text-lg font-bold text-gray-900">Total à payer</span>
-                  <span className="text-3xl font-bold text-[hsl(23,100%,53%)]">
-                    {state.totalAmount.toFixed(2)}€
-                  </span>
+                {promotionCodeData && discountAmount > 0 && (
+                  <div className="pt-3 border-t border-gray-200 flex justify-between items-center text-green-600">
+                    <span className="text-sm font-medium">Réduction ({promotionCodeData.percentage}%)</span>
+                    <span className="text-sm font-semibold">-{discountAmount.toFixed(2)}€</span>
+                  </div>
+                )}
+                
+                <div className="pt-4 border-t-2 border-gray-300">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold text-gray-900">Total à payer</span>
+                    <span className="text-3xl font-bold text-[hsl(23,100%,53%)]">
+                      {state.totalAmount.toFixed(2)}€
+                    </span>
+                  </div>
+                  {promotionCodeData && (
+                    <p className="text-xs text-gray-500 mt-1">Code: {promotionCodeData.label}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1329,12 +1680,14 @@ export function ServiceBookingWizard({
                           {state.beneficiaryInfo.firstName} {state.beneficiaryInfo.lastName}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Téléphone</p>
-                        <p className="font-medium text-gray-900">
-                          {state.beneficiaryInfo.phone}
-                        </p>
-                      </div>
+                      {state.beneficiaryInfo.phone && (
+                        <div>
+                          <p className="text-sm text-gray-500">Téléphone</p>
+                          <p className="font-medium text-gray-900">
+                            {state.beneficiaryInfo.phone}
+                          </p>
+                        </div>
+                      )}
                       {state.beneficiaryInfo.email && (
                         <div>
                           <p className="text-sm text-gray-500">Email</p>

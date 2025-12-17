@@ -625,7 +625,7 @@ export interface UserFacadeData extends FacadeData {
   /**
    * Téléphone
    */
-  phone?: string;
+  phone?: string | undefined;
 
   /**
    * Rôles
@@ -651,6 +651,12 @@ export interface UserFacadeData extends FacadeData {
    * Envoyer une notification de bienvenue
    */
   sendWelcomeNotification?: boolean;
+
+  /**
+   * Mot de passe (pour l'inscription)
+   * Si fourni, utilise createWithPassword au lieu de create
+   */
+  password?: string | undefined;
 }
 
 /**

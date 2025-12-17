@@ -7,17 +7,23 @@
  * - Service Layer Pattern (via les API routes)
  * - Logger Pattern (logging structuré côté serveur)
  * - Middleware Pattern (authentification via useAuth)
+ * 
+ * Architecture :
+ * - Le composant utilise useUserEdit qui appelle /api/users/[id]
+ * - /api/users/[id] utilise le Service Layer Pattern (userService.updateUserProfile)
+ * - userService utilise le Repository Pattern pour la persistance
  */
 
 import { useUser, useUserEdit } from '@/hooks';
-import { USER_ROLES, USER_STATUSES } from '@/lib/types';
-import { UserEditFormData } from '@/lib/types';
+import { USER_ROLES, USER_STATUSES, ProviderType, ProviderCategory } from '@/lib/types';
 import { LANGUAGES, TIMEZONES, USER_STATUSES as CONST_USER_STATUSES, ROLES } from '@/lib/constants';
 import { AuthorizedRoute } from '@/components/auth';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plus, X as XIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { PhoneInput } from 'react-international-phone';
+import { useNotificationManager } from '@/components/ui/Notification';
 
 /**
  * Contenu de la page d'édition d'un utilisateur
@@ -27,24 +33,46 @@ function EditUserPageContent() {
   const userId = params.id as string;
   const router = useRouter();
   const { user, loading, error, fetchUser } = useUser();
-  const { updateUser, loading: saving, error: updateError } = useUserEdit();
-  const [formData, setFormData] = useState<UserEditFormData>({
+  const { updateUser, loading: saving } = useUserEdit();
+  const { addSuccess, addError } = useNotificationManager();
+  const [formData, setFormData] = useState({
     email: '',
+    firstName: '',
+    lastName: '',
     name: '',
     phone: '',
-    company: '',
-    address: '',
-    roles: [],
-    status: CONST_USER_STATUSES.ACTIVE,
-    specialty: '',
-    recommended: false,
+    roles: [] as string[],
+        status: CONST_USER_STATUSES.ACTIVE as string,
     clientNotes: '',
     avatar: '',
-    preferences: {
-      language: LANGUAGES.FR.code,
-      timezone: TIMEZONES.PARIS,
-      notifications: true,
-    },
+        preferences: {
+          language: LANGUAGES.FR.code as string,
+          timezone: TIMEZONES.PARIS as string,
+          notifications: true,
+        },
+    // Provider info
+    isProvider: false,
+    providerType: ProviderType.INDIVIDUAL,
+    providerCategory: ProviderCategory.HEALTH,
+    // Individuel
+    individualFirstName: '',
+    individualLastName: '',
+    individualRcs: '',
+    individualTva: '',
+    individualSiret: '',
+    individualSiren: '',
+    // Institution
+    institutionName: '',
+    institutionRcs: '',
+    institutionTva: '',
+    institutionSiret: '',
+    institutionSiren: '',
+    // Adresse professionnelle
+    professionalAddress: '',
+    // Provider autres
+    recommended: false,
+    specialties: [] as string[],
+    specialtyInput: '',
   });
 
   // Charger les données de l'utilisateur
@@ -57,21 +85,17 @@ function EditUserPageContent() {
   // Remplir le formulaire avec les données de l'utilisateur
   useEffect(() => {
     if (user) {
+      const isProvider = (user.roles || []).some(role => String(role) === ROLES.PROVIDER);
+      const providerInfo = user.providerInfo || {} as any;
+      
       setFormData({
         email: user.email || '',
-        name:
-          user.name ||
-          `${(user as any).firstName || ''} ${
-            (user as any).lastName || ''
-          }`.trim() ||
-          '',
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        name: user.name || '',
         phone: user.phone || '',
-        company: user.company || '',
-        address: user.address || '',
         roles: (user.roles || []).map(String),
         status: String(user.status || CONST_USER_STATUSES.ACTIVE),
-        specialty: user.specialty || '',
-        recommended: user.recommended || false,
         clientNotes: user.clientNotes || '',
         avatar:
           typeof user.avatar === 'string'
@@ -82,27 +106,61 @@ function EditUserPageContent() {
           timezone: user.preferences?.timezone || TIMEZONES.PARIS,
           notifications: user.preferences?.notifications ?? true,
         },
+        // Provider info
+        isProvider,
+        providerType: providerInfo.type || ProviderType.INDIVIDUAL,
+        providerCategory: providerInfo.category || ProviderCategory.HEALTH,
+        // Individuel
+        individualFirstName: providerInfo.individual?.firstName || '',
+        individualLastName: providerInfo.individual?.lastName || '',
+        individualRcs: providerInfo.individual?.rcs || '',
+        individualTva: providerInfo.individual?.tva || '',
+        individualSiret: providerInfo.individual?.siret || '',
+        individualSiren: providerInfo.individual?.siren || '',
+        // Institution
+        institutionName: providerInfo.institution?.legalName || '',
+        institutionRcs: providerInfo.institution?.registrationNumbers?.rcs || providerInfo.institution?.rcs || '',
+        institutionTva: providerInfo.institution?.taxId || providerInfo.institution?.tva || '',
+        institutionSiret: providerInfo.institution?.registrationNumbers?.siret || providerInfo.institution?.siret || '',
+        institutionSiren: providerInfo.institution?.registrationNumbers?.siren || providerInfo.institution?.siren || '',
+        // Adresse professionnelle
+        professionalAddress: providerInfo.professionalAddress?.street || '',
+        // Provider autres
+        recommended: user.recommended || providerInfo.recommended || false,
+        specialties: providerInfo.specialties || user.specialties || [],
+        specialtyInput: '',
       });
     }
   }, [user]);
 
-  const handleInputChange = (field: string, value: any) => {
+  // Mettre à jour isProvider quand les rôles changent
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      isProvider: prev.roles.includes(ROLES.PROVIDER as string),
+    }));
+  }, [formData.roles]);
+
+  const handleInputChange = useCallback((
+    field: string,
+    value: string | boolean | string[] | ProviderType | ProviderCategory
+  ) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
-  };
+  }, []);
 
-  const handleRoleChange = (role: string, checked: boolean) => {
+  const handleRoleChange = useCallback((role: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
       roles: checked
         ? [...prev.roles, role]
         : prev.roles.filter(r => r !== role),
     }));
-  };
+  }, []);
 
-  const handlePreferenceChange = (field: string, value: any) => {
+  const handlePreferenceChange = useCallback((field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       preferences: {
@@ -110,24 +168,133 @@ function EditUserPageContent() {
         [field]: value,
       },
     }));
-  };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleAddSpecialty = useCallback(() => {
+    if (formData.specialtyInput.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        specialties: [...prev.specialties, prev.specialtyInput.trim()],
+        specialtyInput: '',
+      }));
+    }
+  }, [formData.specialtyInput]);
+
+  const handleRemoveSpecialty = useCallback((index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      specialties: prev.specialties.filter((_, i) => i !== index),
+    }));
+  }, []);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!userId) return;
 
     try {
-      // Le hook gère déjà les erreurs via setError
-      await updateUser(userId, formData);
+      const isCustomer = formData.roles.includes(ROLES.CUSTOMER);
+      const isProvider = formData.roles.includes(ROLES.PROVIDER);
+      const isInstitutionProvider = isProvider && formData.providerType === ProviderType.INSTITUTION;
+      const isCustomerAndProvider = isCustomer && isProvider;
 
-      // Rediriger vers la page de détail seulement en cas de succès
-      router.push(`/dashboard/users/${userId}`);
-    } catch (_error) {
-      // Le hook gère déjà les erreurs et le logging est fait côté serveur
-      // via userService avec @Log decorator
+      // Construire les données de mise à jour
+      const updateData: any = {
+        email: formData.email,
+        phone: formData.phone,
+        roles: formData.roles,
+        status: formData.status,
+        clientNotes: formData.clientNotes,
+        preferences: formData.preferences,
+      };
+
+      // Construire name, firstName, lastName selon le type
+      if (isInstitutionProvider) {
+        updateData.name = formData.institutionName;
+        updateData.firstName = formData.institutionName;
+        updateData.lastName = '';
+      } else if (isCustomerAndProvider) {
+        if (formData.providerType === ProviderType.INDIVIDUAL) {
+          updateData.name = formData.individualFirstName && formData.individualLastName
+            ? `${formData.individualFirstName} ${formData.individualLastName}`
+            : formData.firstName && formData.lastName
+            ? `${formData.firstName} ${formData.lastName}`
+            : formData.name || formData.email;
+          updateData.firstName = formData.individualFirstName || formData.firstName || '';
+          updateData.lastName = formData.individualLastName || formData.lastName || '';
+        } else {
+          updateData.name = formData.institutionName || formData.firstName || formData.name || formData.email;
+          updateData.firstName = formData.institutionName || formData.firstName || '';
+          updateData.lastName = formData.lastName || '';
+        }
+      } else {
+        updateData.name = formData.firstName && formData.lastName
+          ? `${formData.firstName} ${formData.lastName}`
+          : formData.name || formData.email;
+        updateData.firstName = formData.firstName || '';
+        updateData.lastName = formData.lastName || '';
+      }
+
+      // Ajouter providerInfo seulement si c'est un provider
+      if (isProvider) {
+        updateData.providerInfo = {
+          type: formData.providerType,
+          category: formData.providerCategory,
+          specialties: formData.specialties,
+          recommended: formData.recommended,
+          ...(formData.providerType === ProviderType.INDIVIDUAL ? {
+            individual: {
+              firstName: formData.individualFirstName,
+              lastName: formData.individualLastName,
+              rcs: formData.individualRcs,
+              tva: formData.individualTva,
+              siret: formData.individualSiret,
+              siren: formData.individualSiren,
+            },
+          } : {
+            institution: {
+              legalName: formData.institutionName,
+              registrationNumber: formData.institutionRcs || formData.institutionSiret || formData.institutionSiren || '',
+              taxId: formData.institutionTva || '',
+              rcs: formData.institutionRcs,
+              siret: formData.institutionSiret,
+              siren: formData.institutionSiren,
+            },
+          }),
+          professionalAddress: {
+            street: formData.professionalAddress,
+            city: '', // Sera rempli plus tard avec Google API
+            country: '', // Sera rempli plus tard avec Google API
+            postalCode: '', // Sera rempli plus tard avec Google API
+          },
+        };
+        updateData.recommended = formData.recommended;
+      }
+
+      const result = await updateUser(userId, updateData);
+      
+      if (result) {
+        addSuccess('Utilisateur mis à jour avec succès', 5000);
+        
+        // Attendre un peu pour que la notification s'affiche
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Rediriger vers la page de détail seulement en cas de succès
+        router.push(`/dashboard/users/${userId}`);
+      } else {
+        throw new Error("Erreur lors de la mise à jour de l'utilisateur");
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Erreur lors de la mise à jour de l'utilisateur. Veuillez réessayer.";
+      
+      // Afficher la notification d'erreur
+      addError(errorMessage, 8000);
+      
+      // Ne pas rediriger en cas d'erreur pour que l'utilisateur puisse voir le message
     }
-  };
+  }, [formData, userId, updateUser, router, addSuccess, addError]);
 
   if (loading) {
     return (
@@ -183,20 +350,6 @@ function EditUserPageContent() {
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div>
               <label className='block text-sm font-medium text-gray-700 mb-2'>
-                Nom complet *
-              </label>
-              <input
-                type='text'
-                value={formData.name}
-                onChange={e => handleInputChange('name', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
-                placeholder='Jean Dupont'
-                required
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
                 Email *
               </label>
               <input
@@ -213,38 +366,12 @@ function EditUserPageContent() {
               <label className='block text-sm font-medium text-gray-700 mb-2'>
                 Téléphone
               </label>
-              <input
-                type='tel'
+              <PhoneInput
+                defaultCountry="fr"
                 value={formData.phone}
-                onChange={e => handleInputChange('phone', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
-                placeholder='+33 1 23 45 67 89'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
-                Entreprise
-              </label>
-              <input
-                type='text'
-                value={formData.company}
-                onChange={e => handleInputChange('company', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
-                placeholder='Entreprise ABC'
-              />
-            </div>
-
-            <div className='md:col-span-2'>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
-                Adresse
-              </label>
-              <textarea
-                value={formData.address}
-                onChange={e => handleInputChange('address', e.target.value)}
-                rows={3}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
-                placeholder='123 Rue de la Paix, 75001 Paris, France'
+                onChange={(phone) => handleInputChange('phone', phone)}
+                className="w-full"
+                inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
               />
             </div>
           </div>
@@ -295,49 +422,381 @@ function EditUserPageContent() {
           </div>
         </div>
 
-        {/* Informations spécifiques aux prestataires */}
-        {formData.roles.includes(ROLES.PROVIDER) && (
+        {/* Informations client */}
+        {formData.roles.includes(ROLES.CUSTOMER) && !formData.roles.includes(ROLES.PROVIDER) && (
           <div className='bg-white rounded-lg shadow border border-gray-200 p-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-4'>
-              Informations prestataire
+              Informations client
             </h2>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
                 <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Spécialité
+                  Prénom *
                 </label>
                 <input
                   type='text'
-                  value={formData.specialty}
-                  onChange={e => handleInputChange('specialty', e.target.value)}
+                  value={formData.firstName}
+                  onChange={e => handleInputChange('firstName', e.target.value)}
                   className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
-                  placeholder='Cardiologie, BTP, etc.'
+                  placeholder='Jean'
+                  required
                 />
               </div>
 
-              <div className='flex items-center'>
-                <input
-                  title='Prestataire recommandé'
-                  type='checkbox'
-                  checked={formData.recommended}
-                  onChange={e =>
-                    handleInputChange('recommended', e.target.checked)
-                  }
-                  className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded'
-                />
-                <label className='ml-2 text-sm text-gray-700'>
-                  Prestataire recommandé
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Nom *
                 </label>
+                <input
+                  type='text'
+                  value={formData.lastName}
+                  onChange={e => handleInputChange('lastName', e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  placeholder='Dupont'
+                  required
+                />
               </div>
             </div>
           </div>
         )}
 
-        {/* Informations spécifiques aux clients */}
+        {/* Informations client optionnelles si customer ET provider */}
+        {formData.roles.includes(ROLES.CUSTOMER) && formData.roles.includes(ROLES.PROVIDER) && (
+          <div className='bg-white rounded-lg shadow border border-gray-200 p-6'>
+            <h2 className='text-lg font-semibold text-gray-900 mb-4'>
+              Informations client (optionnel)
+            </h2>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Prénom
+                </label>
+                <input
+                  type='text'
+                  value={formData.firstName}
+                  onChange={e => handleInputChange('firstName', e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  placeholder='Jean'
+                />
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Nom
+                </label>
+                <input
+                  type='text'
+                  value={formData.lastName}
+                  onChange={e => handleInputChange('lastName', e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  placeholder='Dupont'
+                />
+              </div>
+              <small className='text-xs text-gray-500 md:col-span-2'>
+                Ces champs sont optionnels si l&apos;utilisateur est à la fois client et prestataire.
+              </small>
+            </div>
+          </div>
+        )}
+
+        {/* Informations prestataire */}
+        {formData.roles.includes(ROLES.PROVIDER) && (
+          <div className='bg-white rounded-lg shadow border border-gray-200 p-6 space-y-6'>
+            <h2 className='text-lg font-semibold text-gray-900'>
+              Informations prestataire
+            </h2>
+
+            {/* Type de prestataire */}
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-3'>
+                Type de prestataire *
+              </label>
+              <div className='flex gap-4'>
+                <label className='flex items-center'>
+                  <input
+                    type='radio'
+                    name='providerType'
+                    value={ProviderType.INDIVIDUAL}
+                    checked={formData.providerType === ProviderType.INDIVIDUAL}
+                    onChange={e => handleInputChange('providerType', e.target.value as ProviderType)}
+                    className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300'
+                  />
+                  <span className='ml-2 text-sm text-gray-700'>Individuel</span>
+                </label>
+                <label className='flex items-center'>
+                  <input
+                    type='radio'
+                    name='providerType'
+                    value={ProviderType.INSTITUTION}
+                    checked={formData.providerType === ProviderType.INSTITUTION}
+                    onChange={e => handleInputChange('providerType', e.target.value as ProviderType)}
+                    className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300'
+                  />
+                  <span className='ml-2 text-sm text-gray-700'>Entreprise</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Informations individuelles */}
+            {formData.providerType === ProviderType.INDIVIDUAL && (
+              <div className='space-y-4'>
+                <h3 className='text-md font-semibold text-gray-800'>Informations individuelles</h3>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Prénom *
+                    </label>
+                    <input
+                      type='text'
+                      value={formData.individualFirstName}
+                      onChange={e => handleInputChange('individualFirstName', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      placeholder='Jean'
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Nom *
+                    </label>
+                    <input
+                      type='text'
+                      value={formData.individualLastName}
+                      onChange={e => handleInputChange('individualLastName', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      placeholder='Dupont'
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      RCS
+                    </label>
+                    <input
+                      type='text'
+                      value={formData.individualRcs}
+                      onChange={e => handleInputChange('individualRcs', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      placeholder='RCS Paris B 123 456 789'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      TVA
+                    </label>
+                    <input
+                      type='text'
+                      value={formData.individualTva}
+                      onChange={e => handleInputChange('individualTva', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      placeholder='FR 12 345678901'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      SIRET
+                    </label>
+                    <input
+                      type='text'
+                      value={formData.individualSiret}
+                      onChange={e => handleInputChange('individualSiret', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      placeholder='123 456 789 00012'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      SIREN
+                    </label>
+                    <input
+                      type='text'
+                      value={formData.individualSiren}
+                      onChange={e => handleInputChange('individualSiren', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      placeholder='123 456 789'
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Informations entreprise */}
+            {formData.providerType === ProviderType.INSTITUTION && (
+              <div className='space-y-4'>
+                <h3 className='text-md font-semibold text-gray-800'>Informations entreprise</h3>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  <div className='md:col-span-2'>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      Nom de l&apos;entreprise *
+                    </label>
+                    <input
+                      type='text'
+                      value={formData.institutionName}
+                      onChange={e => handleInputChange('institutionName', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      placeholder='Entreprise ABC'
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      RCS
+                    </label>
+                    <input
+                      type='text'
+                      value={formData.institutionRcs}
+                      onChange={e => handleInputChange('institutionRcs', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      placeholder='RCS Paris B 123 456 789'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      TVA
+                    </label>
+                    <input
+                      type='text'
+                      value={formData.institutionTva}
+                      onChange={e => handleInputChange('institutionTva', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      placeholder='FR 12 345678901'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      SIRET
+                    </label>
+                    <input
+                      type='text'
+                      value={formData.institutionSiret}
+                      onChange={e => handleInputChange('institutionSiret', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      placeholder='123 456 789 00012'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      SIREN
+                    </label>
+                    <input
+                      type='text'
+                      value={formData.institutionSiren}
+                      onChange={e => handleInputChange('institutionSiren', e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      placeholder='123 456 789'
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Adresse professionnelle */}
+            <div className='space-y-4'>
+              <h3 className='text-md font-semibold text-gray-800'>Adresse professionnelle *</h3>
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  Adresse complète *
+                </label>
+                <input
+                  type='text'
+                  value={formData.professionalAddress}
+                  onChange={e => handleInputChange('professionalAddress', e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  placeholder='123 Rue de la Paix, 75001 Paris, France'
+                  required
+                />
+                <p className='mt-1 text-xs text-gray-500'>
+                  Saisissez l&apos;adresse complète. Le découpage administratif sera ajouté ultérieurement.
+                </p>
+              </div>
+            </div>
+
+            {/* Catégorie */}
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-2'>
+                Catégorie *
+              </label>
+              <select
+                value={formData.providerCategory}
+                onChange={e => handleInputChange('providerCategory', e.target.value as ProviderCategory)}
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                required
+              >
+                <option value={ProviderCategory.HEALTH}>Santé</option>
+                <option value={ProviderCategory.BTP}>BTP</option>
+                <option value={ProviderCategory.EDUCATION}>Éducation</option>
+              </select>
+            </div>
+
+            {/* Spécialités */}
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-2'>
+                Spécialités
+              </label>
+              <div className='flex gap-2 mb-2'>
+                <input
+                  type='text'
+                  value={formData.specialtyInput}
+                  onChange={e => handleInputChange('specialtyInput', e.target.value)}
+                  onKeyPress={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddSpecialty();
+                    }
+                  }}
+                  className='flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  placeholder='Ajouter une spécialité'
+                />
+                <button
+                  type='button'
+                  onClick={handleAddSpecialty}
+                  className='px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors'
+                >
+                  <Plus className='h-4 w-4' />
+                </button>
+              </div>
+              {formData.specialties.length > 0 && (
+                <div className='flex flex-wrap gap-2'>
+                  {formData.specialties.map((specialty, index) => (
+                    <span
+                      key={index}
+                      className='inline-flex items-center px-3 py-1 rounded-full text-sm bg-[hsl(25,100%,53%)]/10 text-[hsl(25,100%,53%)]'
+                    >
+                      {specialty}
+                      <button
+                        type='button'
+                        onClick={() => handleRemoveSpecialty(index)}
+                        className='ml-2 text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+                      >
+                        <XIcon className='h-3 w-3' />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Prestataire recommandé */}
+            <div className='flex items-center'>
+              <input
+                type='checkbox'
+                id='recommended'
+                checked={formData.recommended}
+                onChange={e => handleInputChange('recommended', e.target.checked)}
+                className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded'
+              />
+              <label htmlFor='recommended' className='ml-2 text-sm text-gray-700'>
+                Prestataire recommandé
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* Notes client */}
         {formData.roles.includes(ROLES.CUSTOMER) && (
           <div className='bg-white rounded-lg shadow border border-gray-200 p-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-4'>
-              Informations client
+              Notes client
             </h2>
             <div>
               <label className='block text-sm font-medium text-gray-700 mb-2'>
@@ -428,9 +887,6 @@ function EditUserPageContent() {
           >
             {saving ? 'Sauvegarde...' : 'Sauvegarder'}
           </button>
-          {updateError && (
-            <p className='text-red-600 text-sm mt-2'>{updateError}</p>
-          )}
         </div>
       </form>
     </>

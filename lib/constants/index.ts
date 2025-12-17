@@ -19,7 +19,7 @@ export const ENVIRONMENTS = {
 export const URLS = {
   DEV: 'https://dev.diaspomoney.fr',
   RCT: 'https://rct.diaspomoney.fr',
-  PROD: 'https://app.diaspomoney.fr',
+  PROD: 'https://diaspomoney.fr',
 } as const;
 
 // === DATABASE CONSTANTS ===
@@ -388,12 +388,11 @@ export type UserStatus = typeof USER_STATUSES[keyof typeof USER_STATUSES];
 
 // BOOKING STATUS CONSTANTS
 export const BOOKING_STATUSES = {
+  DRAFT: 'DRAFT',
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
-  IN_PROGRESS: 'IN_PROGRESS',
-  COMPLETED: 'COMPLETED',
+  FINISHED: 'FINISHED',
   CANCELLED: 'CANCELLED',
-  NO_SHOW: 'NO_SHOW',
 } as const;
 export type BookingStatus = typeof BOOKING_STATUSES[keyof typeof BOOKING_STATUSES];
 

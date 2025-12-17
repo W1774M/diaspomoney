@@ -3,7 +3,6 @@
  * Endpoint pour traiter un paiement complet avec orchestration
  */
 
-// Désactiver le prerendering pour cette route API
 // Elle nécessite une connexion MongoDB qui n'est pas disponible pendant le build
 ;
 

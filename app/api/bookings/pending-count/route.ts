@@ -72,14 +72,27 @@ export async function GET(request: NextRequest) {
       bookingFilters.dateTo = filters.dateTo;
     }
 
-    // Récupérer le nombre de commandes en attente
+    // Récupérer toutes les commandes en attente pour filtrer celles non vues
     const result = await bookingRepository.findBookingsWithFilters(bookingFilters, {
-      limit: 1,
+      limit: 1000, // Récupérer toutes les commandes pour filtrer côté serveur
       page: 1,
       offset: 0,
     });
 
-    const pendingCount = result.total;
+    // Filtrer les commandes non vues par l'utilisateur actuel
+    // Une commande est considérée comme "non vue" si :
+    // - metadata.viewedBy n'existe pas ou ne contient pas l'userId
+    // - metadata.viewedBy est un tableau qui ne contient pas l'userId
+    const unviewedBookings = result.data.filter((booking: any) => {
+      const viewedBy = booking.metadata?.viewedBy;
+      if (!viewedBy) return true; // Non vue si viewedBy n'existe pas
+      if (Array.isArray(viewedBy)) {
+        return !viewedBy.includes(userId);
+      }
+      return viewedBy !== userId;
+    });
+
+    const pendingCount = unviewedBookings.length;
 
     log.info(
       {

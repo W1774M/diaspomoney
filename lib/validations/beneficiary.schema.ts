@@ -7,15 +7,10 @@ import { z } from 'zod';
 
 /**
  * Schéma pour créer un bénéficiaire (format API)
- * Supporte à la fois "name" (legacy) et "firstName/lastName" (nouveau format)
  */
 export const CreateBeneficiaryApiSchema = z.object({
-  // Format legacy (compatibilité)
-  name: z.string().min(1).optional(),
-  // Format nouveau
-  firstName: z.string().min(1).optional(),
-  lastName: z.string().min(1).optional(),
-  // Champs communs
+  firstName: z.string().min(1, 'Le prénom est requis'),
+  lastName: z.string().min(1, 'Le nom est requis'),
   email: z.string().email('Email invalide').optional().or(z.literal('')),
   phone: z.string().optional(),
   relationship: z.enum([
@@ -28,27 +23,20 @@ export const CreateBeneficiaryApiSchema = z.object({
   ], {
     errorMap: () => ({ message: 'La relation est obligatoire' }),
   }),
-  country: z.string().min(2, 'Le pays est requis').optional(),
-}).refine(
-  (data) => {
-    // Au moins name OU (firstName ET lastName) doit être fourni
-    return data.name || (data.firstName && data.lastName);
-  },
-  {
-    message: 'Le nom (ou prénom et nom) est obligatoire',
-  },
-);
+  location: z.object({
+    address: z.string().min(1, 'L\'adresse est requise'),
+    city: z.string().min(1, 'La ville est requise'),
+    country: z.string().min(2, 'Le pays est requis'),
+    postalCode: z.string().optional(),
+  }),
+});
 
 /**
  * Schéma pour mettre à jour un bénéficiaire (format API)
  */
 export const UpdateBeneficiaryApiSchema = z.object({
-  // Format legacy (compatibilité)
-  name: z.string().min(1).optional(),
-  // Format nouveau
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
-  // Champs communs
   email: z.string().email('Email invalide').optional().or(z.literal('')),
   phone: z.string().optional(),
   relationship: z.enum([
@@ -59,7 +47,12 @@ export const UpdateBeneficiaryApiSchema = z.object({
     'FRIEND',
     'OTHER',
   ]).optional(),
-  country: z.string().min(2).optional(),
+  location: z.object({
+    address: z.string().min(1).optional(),
+    city: z.string().min(1).optional(),
+    country: z.string().min(2).optional(),
+    postalCode: z.string().optional(),
+  }).optional(),
 });
 
 /**
@@ -78,8 +71,12 @@ export const CreateBeneficiarySchema = z.object({
     'FRIEND',
     'OTHER',
   ]),
-  country: z.string().min(2, 'Le pays est requis'),
-  address: z.string().optional(),
+  location: z.object({
+    address: z.string().min(1, 'L\'adresse est requise'),
+    city: z.string().min(1, 'La ville est requise'),
+    country: z.string().min(2, 'Le pays est requis'),
+    postalCode: z.string().optional(),
+  }),
 });
 
 /**
@@ -98,8 +95,12 @@ export const UpdateBeneficiarySchema = z.object({
     'FRIEND',
     'OTHER',
   ]).optional(),
-  country: z.string().min(2).optional(),
-  address: z.string().optional(),
+  location: z.object({
+    address: z.string().min(1).optional(),
+    city: z.string().min(1).optional(),
+    country: z.string().min(2).optional(),
+    postalCode: z.string().optional(),
+  }).optional(),
 });
 
 /**

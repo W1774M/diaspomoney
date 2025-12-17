@@ -14,9 +14,10 @@ import {
   setAuthPromise,
   setCachedAuth,
 } from '@/lib/auth/auth-cache';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSignOut } from './useSignOut';
 import { ROLES, USER_STATUSES } from '@/lib/constants';
+import { authEvents } from '@/lib/events';
 
 interface User {
   phone: string;
@@ -188,20 +189,8 @@ export function useAuth() {
     setAuthPromise(fetchPromise);
   }, [isClient]);
 
-  // Utiliser le hook de déconnexion spécialisé
-  const handleSignOut = async () => {
-    // Nettoyer l'état local avant la déconnexion
-    setUser(null);
-    setIsAuthenticated(false);
-    // Nettoyer le cache partagé
-    clearAuthCache();
-
-    // Utiliser le hook de déconnexion
-    await signOut();
-  };
-
-  // Force refresh auth state (useful after login)
-  const refreshAuth = async () => {
+  // Force refresh auth state (useful après login ou logout)
+  const refreshAuth = useCallback(async () => {
     // Nettoyer le cache pour forcer un nouveau fetch
     clearAuthCache();
     didFetchRef.current = false;
@@ -246,6 +235,38 @@ export function useAuth() {
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  // Écoute les événements globaux d'auth pour rafraîchir l'état sans rechargement
+  useEffect(() => {
+    if (!isClient) return;
+
+    const unsubscribeLogin = authEvents.onUserLoggedIn(async () => {
+      await refreshAuth();
+    });
+
+    const unsubscribeLogout = authEvents.onUserLoggedOut(() => {
+      clearAuthCache();
+      setUser(null);
+      setIsAuthenticated(false);
+    });
+
+    return () => {
+      unsubscribeLogin?.();
+      unsubscribeLogout?.();
+    };
+  }, [isClient, refreshAuth]);
+
+  // Utiliser le hook de déconnexion spécialisé
+  const handleSignOut = async () => {
+    // Nettoyer l'état local avant la déconnexion
+    setUser(null);
+    setIsAuthenticated(false);
+    // Nettoyer le cache partagé
+    clearAuthCache();
+
+    // Utiliser le hook de déconnexion
+    await signOut();
   };
 
   const isAdmin = () => user?.roles.includes(ROLES.ADMIN) || false;

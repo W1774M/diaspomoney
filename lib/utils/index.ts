@@ -264,6 +264,15 @@ export function sanitizeInput(input: string): string {
     .replace(/on\w+=/gi, '');
 }
 
+/**
+ * Nettoie une URL en supprimant les guillemets et espaces
+ * Utile pour nettoyer les variables d'environnement qui peuvent contenir des guillemets
+ */
+export function cleanUrl(url: string | undefined): string {
+  if (!url) return 'http://localhost:3000';
+  return url.trim().replace(/^["']|["']$/g, '');
+}
+
 export function generateToken(length: number = 32): string {
   const chars =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

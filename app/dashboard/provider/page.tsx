@@ -5,8 +5,6 @@ import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
 import { useAuth } from '@/hooks';
 import { ROLES } from '@/lib/constants';
 import { AuthorizedRoute } from '@/components/auth';
-import { Calendar, Clock, DollarSign, Users } from 'lucide-react';
-import Link from 'next/link';
 
 /**
  * Contenu de la page Dashboard Provider
@@ -20,10 +18,10 @@ function ProviderDashboardPageContent() {
         userName={user?.name || 'Prestataire'}
         subtitle='Tableau de bord prestataire - Gérez vos services et rendez-vous'
       />
-      <RoleSpecificStats userId={user?.id} />
+      <RoleSpecificStats {...(user?.id && { userId: user.id })} />
       
       {/* Actions rapides spécifiques aux prestataires */}
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+      {/* <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
         <Link
           href='/dashboard/availabilities'
           className='bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow'
@@ -83,7 +81,7 @@ function ProviderDashboardPageContent() {
             Gérez vos relations clients
           </p>
         </Link>
-      </div>
+      </div> */}
     </div>
   );
 }

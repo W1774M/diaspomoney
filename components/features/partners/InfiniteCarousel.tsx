@@ -294,17 +294,15 @@ export function InfiniteCarousel() {
             />
 
             {/* Image du partenaire */}
-            <span
-              className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
-              style={{
-                backgroundImage: `url(${
-                  partner && partner.logo ? partner.logo : ''
-                })`,
-                backgroundSize: 'auto 100%',
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center',
-              }}
-            ></span>
+            <div className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4'>
+              <ExternalImage
+                src={partner && partner.logo ? partner.logo : ''}
+                alt={partner && partner.name ? partner.name : 'Partenaire'}
+                className='w-full h-full object-contain'
+                width={300}
+                height={200}
+              />
+            </div>
 
             {/* Contenu */}
             <div className='p-6'>
@@ -375,15 +373,15 @@ export function InfiniteCarousel() {
               />
 
               {/* Image du partenaire */}
-              <span
-                className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
-                style={{
-                  backgroundImage: `url(${partner.logo})`,
-                  backgroundSize: 'auto 100%',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'center',
-                }}
-              ></span>
+              <div className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4'>
+                <ExternalImage
+                  src={partner.logo}
+                  alt={partner.name}
+                  className='w-full h-full object-contain'
+                  width={300}
+                  height={200}
+                />
+              </div>
 
               {/* Contenu */}
               <div className='p-6'>
@@ -467,21 +465,13 @@ export function InfiniteCarousel() {
                 />
 
                 {/* Image du partenaire */}
-                <div
-                  className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center'
-                  style={{
-                    backgroundImage: `url(${partner.logo})`,
-                    backgroundSize: 'auto 100%',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'center',
-                  }}
-                >
+                <div className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-2 sm:p-3 md:p-4'>
                   <ExternalImage
                     src={partner.logo}
                     alt={partner.name}
                     className='w-full h-full object-contain'
-                    width={100}
-                    height={100}
+                    width={300}
+                    height={200}
                   />
                 </div>
 

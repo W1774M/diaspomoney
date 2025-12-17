@@ -1,7 +1,6 @@
 'use client';
 
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import DashboardQuickActions from '@/components/dashboard/DashboardQuickActions';
 import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
 import { useAuth } from '@/hooks';
 import { AdminRoute } from '@/components/auth';
@@ -18,8 +17,8 @@ function AdminDashboardContent() {
         userName={user?.name || 'Administrateur'}
         subtitle='Tableau de bord administrateur - Gérez votre plateforme Diaspomoney'
       />
-      <RoleSpecificStats userId={user?.id} />
-      <DashboardQuickActions isAdmin={true} isCSM={false} />
+      <RoleSpecificStats {...(user?.id && { userId: user.id })} />
+      {/* <DashboardQuickActions isAdmin={true} isCSM={false} /> */}
     </div>
   );
 }

@@ -13,7 +13,7 @@ import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
-import type { Notification, NotificationStatus } from '@/lib/types';
+import type { Notification, NotificationWithId, NotificationStatus } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import type {
@@ -39,11 +39,11 @@ export class MongoNotificationRepository implements INotificationRepository {
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'NotificationRepository:findById' }) // Cache 5 minutes
-  async findById(id: string): Promise<Notification | null> {
+  async findById(id: string): Promise<NotificationWithId | null> {
     try {
       const collection = await this.getCollection();
       const notification = await collection.findOne({ _id: new ObjectId(id) });
-      const result = notification ? this.mapToNotification(notification) : null;
+      const result = notification ? (this.mapToNotification(notification) as NotificationWithId) : null;
       if (result) {
         this.log.debug({ notificationId: id }, 'Notification found');
       } else {
@@ -59,11 +59,11 @@ export class MongoNotificationRepository implements INotificationRepository {
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'NotificationRepository:findAll' }) // Cache 5 minutes
-  async findAll(filters?: Record<string, any>): Promise<Notification[]> {
+  async findAll(filters?: Record<string, any>): Promise<NotificationWithId[]> {
     try {
       const collection = await this.getCollection();
       const notifications = await collection.find(filters || {}).toArray();
-      const result = notifications.map(n => this.mapToNotification(n));
+      const result = notifications.map(n => this.mapToNotification(n) as NotificationWithId);
       this.log.debug({ count: result.length, filters }, 'Notifications found');
       return result;
     } catch (error) {
@@ -75,11 +75,11 @@ export class MongoNotificationRepository implements INotificationRepository {
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'NotificationRepository:findOne' }) // Cache 5 minutes
-  async findOne(filters: Record<string, any>): Promise<Notification | null> {
+  async findOne(filters: Record<string, any>): Promise<NotificationWithId | null> {
     try {
       const collection = await this.getCollection();
       const notification = await collection.findOne(filters);
-      const result = notification ? this.mapToNotification(notification) : null;
+      const result = notification ? (this.mapToNotification(notification) as NotificationWithId) : null;
       this.log.debug({ filters, found: !!result }, 'findOne completed');
       return result;
     } catch (error) {
@@ -91,13 +91,25 @@ export class MongoNotificationRepository implements INotificationRepository {
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @InvalidateCache('NotificationRepository:*') // Invalider le cache après création
-  async create(data: Partial<Notification>): Promise<Notification> {
+  async create(data: Partial<Notification>): Promise<NotificationWithId> {
     try {
       const collection = await this.getCollection();
       const now = new Date();
+      
+      // Générer un ID unique pour la notification
+      const notificationId = data.id && ObjectId.isValid(data.id)
+        ? data.id
+        : data.id || `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Créer un ObjectId valide pour _id (MongoDB)
+      const mongoId = ObjectId.isValid(notificationId)
+        ? new ObjectId(notificationId)
+        : new ObjectId();
+      
       const notificationData: OptionalId<Document> = {
         ...data,
-        _id: data.id ? new ObjectId(data.id) : new ObjectId(),
+        _id: mongoId,
+        id: notificationId,
         createdAt: now,
         updatedAt: now,
       };
@@ -108,7 +120,7 @@ export class MongoNotificationRepository implements INotificationRepository {
       if (!notification) {
         throw new Error('Failed to create notification');
       }
-      const mappedNotification = this.mapToNotification(notification);
+      const mappedNotification = this.mapToNotification(notification) as NotificationWithId;
       this.log.info(
         {
           notificationId: mappedNotification.id,
@@ -134,7 +146,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   async update(
     id: string,
     data: Partial<Notification>,
-  ): Promise<Notification | null> {
+  ): Promise<NotificationWithId | null> {
     try {
       const collection = await this.getCollection();
       const updateData: Partial<Notification> = {
@@ -147,7 +159,7 @@ export class MongoNotificationRepository implements INotificationRepository {
         { returnDocument: 'after' },
       );
       const updated = result?.['value']
-        ? this.mapToNotification(result['value'])
+        ? (this.mapToNotification(result['value']) as NotificationWithId)
         : null;
       if (updated) {
         this.log.info(
@@ -287,7 +299,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   async findWithPagination(
     filters?: NotificationFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedFindResult<Notification>> {
+  ): Promise<PaginatedFindResult<NotificationWithId>> {
     try {
       const builder = this.buildNotificationQuery(filters, options);
       const query = builder.getFilters();
@@ -312,7 +324,7 @@ export class MongoNotificationRepository implements INotificationRepository {
       cursor = cursor.skip(offset).limit(limit);
 
       const data = await cursor.toArray();
-      const notifications = data.map(doc => this.mapToNotification(doc));
+      const notifications = data.map(doc => this.mapToNotification(doc) as NotificationWithId);
 
       const pages = Math.ceil(total / limit);
       const result = {
@@ -357,7 +369,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   async findByRecipient(
     recipient: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedFindResult<Notification>> {
+  ): Promise<PaginatedFindResult<NotificationWithId>> {
     try {
       const result = await this.findWithPagination({ recipient }, options);
       this.log.debug(
@@ -377,7 +389,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   async findByStatus(
     status: NotificationStatus,
     options?: PaginationOptions,
-  ): Promise<PaginatedFindResult<Notification>> {
+  ): Promise<PaginatedFindResult<NotificationWithId>> {
     try {
       const result = await this.findWithPagination({ status }, options);
       this.log.debug(
@@ -397,7 +409,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   async findByType(
     type: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedFindResult<Notification>> {
+  ): Promise<PaginatedFindResult<NotificationWithId>> {
     try {
       const result = await this.findWithPagination({ type }, options);
       this.log.debug(
@@ -416,7 +428,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   @Cacheable(300, { prefix: 'NotificationRepository:findPending' }) // Cache 5 minutes
   async findPending(
     options?: PaginationOptions,
-  ): Promise<PaginatedFindResult<Notification>> {
+  ): Promise<PaginatedFindResult<NotificationWithId>> {
     try {
       const result = await this.findWithPagination(
         { status: 'PENDING' },
@@ -441,7 +453,7 @@ export class MongoNotificationRepository implements INotificationRepository {
   async findNotificationsWithFilters(
     filters: NotificationFilters,
     options?: PaginationOptions,
-  ): Promise<PaginatedFindResult<Notification>> {
+  ): Promise<PaginatedFindResult<NotificationWithId>> {
     try {
       const query: Record<string, any> = {};
 
@@ -498,7 +510,7 @@ export class MongoNotificationRepository implements INotificationRepository {
       failedAt?: Date;
       failureReason?: string;
     },
-  ): Promise<Notification | null> {
+  ): Promise<NotificationWithId | null> {
     try {
       const updateData: Partial<Notification> = {
         status,

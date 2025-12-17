@@ -38,11 +38,20 @@ export function setAuthPromise(promise: Promise<any>): void {
       promise,
     };
   } else {
+    // Mettre à jour le timestamp pour que la promesse ne reste pas "collée" indéfiniment
+    // (sinon on peut réutiliser une promesse 401 après une connexion réussie).
+    authCache.timestamp = Date.now();
     authCache.promise = promise;
   }
 }
 
 export function getAuthPromise(): Promise<any> | null {
-  return authCache?.promise || null;
+  if (!authCache?.promise) return null;
+  // Ne jamais réutiliser une promesse trop ancienne : après login/logout, on veut refetch.
+  if (Date.now() - authCache.timestamp >= CACHE_DURATION) {
+    authCache = null;
+    return null;
+  }
+  return authCache.promise;
 }
 

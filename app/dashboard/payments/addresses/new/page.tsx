@@ -13,6 +13,7 @@ import { useBillingAddressCreate } from '@/hooks/payments/useBillingAddressCreat
 import { ArrowLeft, Building, Home, MapPin, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { PhoneInput } from 'react-international-phone';
 import { useState } from 'react';
 
 export default function NewAddressPage() {
@@ -266,12 +267,12 @@ export default function NewAddressPage() {
                     <label className='block text-sm font-medium text-gray-700 mb-2'>
                       Téléphone
                     </label>
-                    <input
-                      type='tel'
+                    <PhoneInput
+                      defaultCountry="fr"
                       value={formData.phone || ''}
-                      onChange={e => handleInputChange('phone', e.target.value)}
-                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
-                      placeholder='+33 1 23 45 67 89'
+                      onChange={(phone) => handleInputChange('phone', phone)}
+                      className="w-full"
+                      inputClassName="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
                     />
                   </div>
 

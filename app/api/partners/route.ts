@@ -1,5 +1,4 @@
 import { logger } from '@/lib/logger';
-// Désactiver le prerendering pour cette route API
 ;
 
 import dbConnect, { getCollection } from '@/lib/mongodb';

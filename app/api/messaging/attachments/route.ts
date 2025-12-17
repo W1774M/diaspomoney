@@ -1,5 +1,4 @@
 import { auth } from '@/auth';
-// Désactiver le prerendering pour cette route API
 
 
 import Attachment from '@/models/Attachment';

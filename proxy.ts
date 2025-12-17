@@ -26,7 +26,7 @@ export default function proxy(request: NextRequest) {
   // Only enforce HTTPS redirect for the SAME hostname
   
   // List of allowed hosts (each environment is independent)
-  const allowedHosts = ['app.diaspomoney.fr', 'dev.diaspomoney.fr', 'rct.diaspomoney.fr'];
+  const allowedHosts = ['diaspomoney.fr', 'dev.diaspomoney.fr', 'rct.diaspomoney.fr'];
   const isAllowedHost = allowedHosts.some(allowed => host === allowed || host.startsWith(`${allowed}:`));
 
     // Only enforce HTTPS redirect for external HTTP requests coming through Traefik
@@ -58,7 +58,7 @@ export default function proxy(request: NextRequest) {
     isAllowedHost,
     url: request.nextUrl.toString(),
     nextPublicAppUrl: process.env['NEXT_PUBLIC_APP_URL'],
-    nextAuthUrl: process.env.NEXTAUTH_URL,
+    nextAuthUrl: process.env['NEXT_PUBLIC_APP_URL'],
   });
 
   // ---- ACCESS CONTROL & SESSION CHECKS ----

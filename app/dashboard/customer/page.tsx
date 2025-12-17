@@ -5,8 +5,6 @@ import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
 import { useAuth } from '@/hooks';
 import { ROLES } from '@/lib/constants';
 import { AuthorizedRoute } from '@/components/auth';
-import { Calendar, CreditCard, FileText, Users } from 'lucide-react';
-import Link from 'next/link';
 
 /**
  * Contenu de la page Dashboard Customer
@@ -20,10 +18,10 @@ function CustomerDashboardPageContent() {
         userName={user?.name || 'Client'}
         subtitle='Tableau de bord client - Gérez vos services et bénéficiaires'
       />
-      <RoleSpecificStats userId={user?.id} />
+      <RoleSpecificStats {...(user?.id && { userId: user.id })} />
       
       {/* Actions rapides spécifiques aux clients */}
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+      {/* <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
         <Link
           href='/dashboard/services'
           className='bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow'
@@ -83,7 +81,7 @@ function CustomerDashboardPageContent() {
             Gérez vos cartes et méthodes de paiement
           </p>
         </Link>
-      </div>
+      </div> */}
     </div>
   );
 }

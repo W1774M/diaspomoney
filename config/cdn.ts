@@ -31,7 +31,7 @@ export const getCDNConfig = (): CDNConfig => {
     return {
       provider: 'cloudflare',
       baseUrl: 'https://cdn.diaspomoney.fr',
-      fallbackUrl: process.env['NEXT_PUBLIC_APP_URL'] || process.env['NEXTAUTH_URL'] || '',
+      fallbackUrl: process.env['NEXT_PUBLIC_APP_URL'] || '',
       caching: {
         images: 2592000, // 30 days
         css: 31536000, // 1 year

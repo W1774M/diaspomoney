@@ -6,6 +6,7 @@
 import { authEvents, UserLoggedInEvent } from '@/lib/events';
 import { logger } from '@/lib/logger';
 import { notificationService } from '@/services/notification/notification.service';
+import { bookingService } from '@/services/booking/booking.service';
 import * as Sentry from '@sentry/nextjs';
 
 /**
@@ -55,7 +56,41 @@ export function setupAuthEventListeners() {
         }
       }
 
-      // 2. Logger l'événement pour analytics
+      // 2. Lier les commandes guest à l'utilisateur connecté
+      // Si l'utilisateur a créé des commandes en tant que guest avec le même email,
+      // on les lie automatiquement à son compte
+      try {
+        const linkedCount = await bookingService.linkGuestBookingsToUser(
+          data.userId,
+          data.email,
+        );
+        
+        if (linkedCount > 0) {
+          logger.info(
+            {
+              userId: data.userId,
+              email: data.email,
+              linkedBookingsCount: linkedCount,
+            },
+            '[AuthEventListeners] Commandes guest liées à l\'utilisateur',
+          );
+        }
+      } catch (linkError: unknown) {
+        // Ne pas faire échouer la connexion si la liaison échoue
+        const errorMessage =
+          linkError instanceof Error ? linkError.message : 'Unknown error';
+        logger.warn(
+          {
+            error: errorMessage,
+            userId: data.userId,
+            email: data.email,
+          },
+          '[AuthEventListeners] Erreur lors de la liaison des commandes guest, ignorée',
+        );
+        // Ne pas envoyer à Sentry car ce n'est pas critique
+      }
+
+      // 3. Logger l'événement pour analytics
       // analytics.track('user_logged_in', {
       //   userId: data.userId,
       //   email: data.email,
@@ -63,7 +98,7 @@ export function setupAuthEventListeners() {
       //   ipAddress: data.ipAddress,
       // });
 
-      // 3. Mettre à jour la dernière connexion en base
+      // 4. Mettre à jour la dernière connexion en base
       // await userRepository.update(data.userId, {
       //   lastLoginAt: data.timestamp,
       //   lastLoginIp: data.ipAddress,

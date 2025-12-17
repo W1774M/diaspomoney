@@ -13,10 +13,6 @@ import { UpdateServiceSchema } from '@/lib/validations/service.schema';
 import { serviceService } from '@/services/service/service.service';
 import { auth } from '@/auth';
 import { NextRequest } from 'next/server';
-
-// Désactiver le prerendering pour cette route API
-export const dynamic = 'force-dynamic';
-
 /**
  * GET /api/services/[id] - Récupère un service
  */

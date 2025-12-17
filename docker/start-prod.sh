@@ -25,7 +25,7 @@ fi
 echo "✅ Environnement de production démarré !"
 echo ""
 echo "📋 Services disponibles :"
-echo "  - Application: https://app.diaspomoney.fr"
+echo "  - Application: https://diaspomoney.fr"
 echo "  - Mongo Express: https://mongo.diaspomoney.fr"
 echo "  - Traefik Dashboard: https://dashboard.diaspomoney.fr"
 echo ""

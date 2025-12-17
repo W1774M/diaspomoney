@@ -1,8 +1,6 @@
 import { BookingQueryBuilder } from "@/builders";
-// Désactiver le prerendering pour cette route API
-export const dynamic = 'force-dynamic';
 
-import { handleApiRoute, ApiError, validateBody } from '@/lib/api/error-handler';
+import { handleApiRoute, ApiError, validateBody, ApiErrors } from '@/lib/api/error-handler';
 import { createPaginatedResponse, createResourceResponse } from '@/lib/api/response';
 import type { BookingFacadeData } from '@/lib/types';
 import { CreateBookingSchema, type CreateBookingInput } from '@/lib/validations/booking.schema';
@@ -11,21 +9,23 @@ import { logger } from "@/lib/logger";
 import { getBookingRepository } from "@/repositories";
 import { serviceBookingFacade } from "@/facades";
 import { NextRequest } from "next/server";
+import { auth } from '@/auth';
+import { ROLES } from '@/lib/constants';
 
 // ---------------------------------------------
 // CONSTANTS
 // ---------------------------------------------
 const PAGINATION_DEFAULT_LIMIT = 50;
 
-import { BOOKING_STATUSES } from '@/lib/constants';
+import { BOOKING_STATUSES, TRANSACTION_STATUSES } from '@/lib/constants';
 
 // The allowed statuses for filtering
 const VALID_STATUSES = [
+  BOOKING_STATUSES.DRAFT,
   BOOKING_STATUSES.PENDING,
   BOOKING_STATUSES.CONFIRMED,
-  BOOKING_STATUSES.COMPLETED,
+  BOOKING_STATUSES.FINISHED,
   BOOKING_STATUSES.CANCELLED,
-  BOOKING_STATUSES.NO_SHOW,
 ] as const;
 type ValidStatus = typeof VALID_STATUSES[number];
 
@@ -42,26 +42,116 @@ if (typeof window === 'undefined') {
  */
 export async function GET(request: NextRequest) {
   return handleApiRoute(request, async () => {
+    // Vérifier l'authentification
+    const session = await auth();
+    if (!session?.user?.id) {
+      throw ApiErrors.UNAUTHORIZED;
+    }
+
+    const userRoles = session.user.roles || [];
+    const isAdmin = userRoles.includes(ROLES.ADMIN) || userRoles.includes(ROLES.SUPERADMIN);
+    const isProvider = userRoles.includes(ROLES.PROVIDER);
+    const isCustomer = userRoles.includes(ROLES.CUSTOMER);
+    const userId = session.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    const providerId = searchParams.get("providerId");
+    const requestedUserId = searchParams.get("userId");
+    const requestedProviderId = searchParams.get("providerId");
+    const viewMode = searchParams.get("viewMode"); // "customer" ou "provider"
     const status = searchParams.get("status");
+    const paymentStatus = searchParams.get("paymentStatus");
     const limit = searchParams.get("limit");
     const offset = searchParams.get("offset");
+    const sortBy = searchParams.get("sortBy");
+    const sortOrder = searchParams.get("sortOrder") || 'desc'; // Par défaut, tri décroissant
+
+    // Construire les filtres pour le repository
+    const bookingFilters: Record<string, any> = {};
+    
+    // Logique de filtrage basée sur les rôles et permissions
+    // IMPORTANT : Les non-admins ne peuvent JAMAIS voir les commandes d'autres utilisateurs
+    // Les paramètres userId et providerId dans l'URL sont ignorés pour les non-admins
+    
+    if (isAdmin) {
+      // Les admins peuvent voir toutes les commandes
+      // Ils peuvent aussi filtrer par userId ou providerId s'ils sont fournis
+      if (requestedUserId) {
+        bookingFilters["requesterId"] = requestedUserId;
+      }
+      if (requestedProviderId) {
+        bookingFilters["providerId"] = requestedProviderId;
+      }
+      // Si aucun filtre n'est fourni, les admins voient toutes les commandes (pas de filtre appliqué)
+    } else {
+      // Pour les non-admins, FORCER le filtrage par leur propre userId
+      // Ignorer complètement les paramètres userId/providerId de l'URL pour éviter les contournements
+      
+      if (isProvider && isCustomer) {
+        // Utilisateur avec les deux rôles : permettre de switcher via viewMode
+        if (viewMode === 'provider') {
+          // Vue provider : voir uniquement les commandes où il est le provider
+          bookingFilters["providerId"] = userId;
+        } else {
+          // Vue customer (par défaut) : voir uniquement les commandes où il est le requester
+          bookingFilters["requesterId"] = userId;
+        }
+      } else if (isProvider) {
+        // Provider uniquement : voir uniquement ses propres commandes (où il est le provider)
+        bookingFilters["providerId"] = userId;
+      } else if (isCustomer) {
+        // Customer uniquement : voir uniquement ses propres commandes (où il est le requester)
+        bookingFilters["requesterId"] = userId;
+      } else {
+        // Aucun rôle valide : refuser l'accès
+        throw ApiErrors.FORBIDDEN;
+      }
+      
+      // SÉCURITÉ : S'assurer qu'un filtre est toujours appliqué pour les non-admins
+      // Si aucun filtre n'est défini, c'est une erreur de sécurité
+      if (!bookingFilters["requesterId"] && !bookingFilters["providerId"]) {
+        logger.warn(
+          { userId, roles: userRoles, viewMode, isProvider, isCustomer },
+          'No booking filter applied for non-admin user - security issue',
+        );
+        throw ApiErrors.FORBIDDEN;
+      }
+      
+      // Log de sécurité pour vérifier que le filtrage est bien appliqué
+      logger.debug(
+        {
+          userId,
+          roles: userRoles,
+          viewMode,
+          filterApplied: bookingFilters["requesterId"] ? 'requesterId' : 'providerId',
+          filterValue: bookingFilters["requesterId"] || bookingFilters["providerId"],
+        },
+        'Booking filter applied for non-admin user',
+      );
+    }
+    if (status && VALID_STATUSES.includes(status as ValidStatus)) {
+      bookingFilters["status"] = status;
+    }
+    if (paymentStatus && Object.values(TRANSACTION_STATUSES).includes(paymentStatus as any)) {
+      // Passer paymentStatus dans les filtres pour que buildBookingQuery le gère
+      // Passer paymentStatus dans les filtres pour que buildBookingQuery le gère
+      bookingFilters["paymentStatus"] = paymentStatus;
+    }
 
     // Utiliser BookingQueryBuilder pour construire la requête (Builder Pattern)
     const queryBuilder = new BookingQueryBuilder();
 
     // Appliquer les filtres
-    if (userId) {
-      queryBuilder.byRequester(userId);
+    if (bookingFilters["requesterId"]) {
+      queryBuilder.byRequester(bookingFilters["requesterId"]);
     }
-    if (providerId) {
-      queryBuilder.byProvider(providerId);
+    if (bookingFilters["providerId"]) {
+      queryBuilder.byProvider(bookingFilters["providerId"]);
     }
-    if (status && VALID_STATUSES.includes(status as ValidStatus)) {
-      // Accept only known statuses
-      queryBuilder.byStatus(status as ValidStatus);
+    if (bookingFilters["status"]) {
+      queryBuilder.byStatus(bookingFilters["status"] as ValidStatus);
+    }
+    if (bookingFilters["paymentStatus"]) {
+      queryBuilder.byPaymentStatus(bookingFilters["paymentStatus"]);
     }
 
     // Pagination avec valeurs par défaut
@@ -69,6 +159,35 @@ export async function GET(request: NextRequest) {
     const pageOffset = offset ? parseInt(offset) : 0;
     const page = Math.floor(pageOffset / pageLimit) + 1;
     queryBuilder.page(page, pageLimit);
+
+    // Tri
+    if (sortBy) {
+      const direction = sortOrder === 'asc' ? 'asc' : 'desc';
+      // Mapper les champs de tri
+      switch (sortBy) {
+        case 'appointmentDate':
+          queryBuilder.orderByAppointmentDate(direction);
+          break;
+        case 'createdAt':
+          queryBuilder.orderByCreatedAt(direction);
+          break;
+        case 'reservationNumber':
+          queryBuilder.orderByReservationNumber(direction);
+          break;
+        case 'amount':
+          queryBuilder.orderByAmount(direction);
+          break;
+        case 'completionRate':
+          queryBuilder.orderByCompletionRate(direction);
+          break;
+        default:
+          // Par défaut, trier par date de création décroissante
+          queryBuilder.orderByCreatedAt('desc');
+      }
+    } else {
+      // Par défaut, trier par date de création décroissante
+      queryBuilder.orderByCreatedAt('desc');
+    }
 
     // Construire la requête
     const query = queryBuilder.build();

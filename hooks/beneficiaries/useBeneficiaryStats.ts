@@ -14,13 +14,17 @@ export function useBeneficiaryStats(
 
     const byRelationship: Record<string, number> = {};
     const byCountry: Record<string, number> = {};
+    const byCity: Record<string, number> = {};
     
     safeBeneficiaries.forEach(b => {
       if (b.relationship) {
         byRelationship[b.relationship] = (byRelationship[b.relationship] || 0) + 1;
       }
-      if (b.country) {
-        byCountry[b.country] = (byCountry[b.country] || 0) + 1;
+      if (b.location?.country) {
+        byCountry[b.location.country] = (byCountry[b.location.country] || 0) + 1;
+      }
+      if (b.location?.city) {
+        byCity[b.location.city] = (byCity[b.location.city] || 0) + 1;
       }
     });
 
@@ -32,6 +36,7 @@ export function useBeneficiaryStats(
       withoutAccount,
       byRelationship,
       byCountry,
+      byCity,
     };
   }, [beneficiaries]);
 }

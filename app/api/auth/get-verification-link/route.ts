@@ -1,5 +1,4 @@
 /**
-// Désactiver le prerendering pour cette route API
 
 
  * API Route - Get Verification Link
@@ -10,6 +9,7 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,10 +43,11 @@ export async function POST(request: NextRequest) {
     );
 
     // Créer le lien de vérification
-    const verificationUrl = `${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}`;
+    const { cleanUrl } = await import('@/lib/utils');
+    const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+    const verificationUrl = `${baseUrl}/verify-email?token=${emailVerificationToken}`;
 
-    console.log('🔗 Lien de vérification généré pour:', email);
-    console.log('🔗 URL:', verificationUrl);
+    logger.info({ email, verificationUrl }, 'Lien de vérification généré');
 
     return NextResponse.json(
       {
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error('Erreur get-verification-link API:', error);
+    logger.error({ error }, 'Erreur get-verification-link API');
 
     return NextResponse.json(
       {

@@ -1,24 +1,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: diaspomoney-app
+  name: diaspomoney-prod
   namespace: diaspomoney
   labels:
-    app: diaspomoney-app
+    app: diaspomoney-prod
+    env: prod
+    tier: frontend
 spec:
   replicas: 2
+  revisionHistoryLimit: 3
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
   selector:
     matchLabels:
-      app: diaspomoney-app
+      app: diaspomoney-prod
   template:
     metadata:
       labels:
-        app: diaspomoney-app
+        app: diaspomoney-prod
+        env: prod
+      annotations:
+        kubectl.kubernetes.io/restartedAt: $(date +%Y-%m-%dT%H:%M:%SZ)
     spec:
       containers:
-      - name: diaspomoney-app
-        image: localhost:5000/diaspomoney:prod
-        imagePullPolicy: IfNotPresent
+      - name: diaspomoney-prod
+        image: localhost:5000/diaspomoney:prod-latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 3000
           name: http
@@ -29,24 +40,18 @@ spec:
           value: "3000"
         - name: HOSTNAME
           value: "0.0.0.0"
-        - name: NODE_OPTIONS
-          value: "--dns-result-order=ipv4first"
-        - name: NEXT_TELEMETRY_DISABLED
-          value: "1"
+        - name: NEXT_TELEMETRY_ENABLED
+          value: "true"
         - name: LOG_LEVEL
-          value: "error"
-        # URLs publiques
-        - name: APP_URL
-          value: "https://diaspomoney.fr"
-        - name: API_URL
-          value: "https://diaspomoney.fr/api"
-        - name: NEXTAUTH_URL
-          value: "https://diaspomoney.fr"
+          value: "info"
         # URLs publiques Next.js (nécessaires pour le client)
         - name: NEXT_PUBLIC_APP_URL
           value: "https://diaspomoney.fr"
         - name: NEXT_PUBLIC_API_URL
           value: "https://diaspomoney.fr/api"
+        # NextAuth URL (doit correspondre à NEXT_PUBLIC_APP_URL)
+        - name: NEXTAUTH_URL
+          value: "https://diaspomoney.fr"
         # MongoDB
         - name: MONGODB_URI
           valueFrom:
@@ -151,11 +156,11 @@ spec:
             secretKeyRef:
               name: app-secrets
               key: STRIPE_SECRET_KEY
-        - name: STRIPE_PUBLISHABLE_KEY
+        - name: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
           valueFrom:
             secretKeyRef:
               name: app-secrets
-              key: STRIPE_PUBLISHABLE_KEY
+              key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
         - name: STRIPE_WEBHOOK_SECRET
           valueFrom:
             secretKeyRef:
@@ -183,7 +188,7 @@ spec:
             path: /
             port: 3000
           initialDelaySeconds: 30
-          periodSeconds: 20
+          periodSeconds: 10
           timeoutSeconds: 10
           failureThreshold: 3
         readinessProbe:
@@ -191,7 +196,7 @@ spec:
             path: /
             port: 3000
           initialDelaySeconds: 10
-          periodSeconds: 10
+          periodSeconds: 5
           timeoutSeconds: 10
           failureThreshold: 3
         resources:
@@ -201,3 +206,21 @@ spec:
           limits:
             cpu: "500m"
             memory: "512Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: diaspomoney-prod-service
+  namespace: diaspomoney
+  labels:
+    app: diaspomoney-prod
+spec:
+  selector:
+    app: diaspomoney-prod
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  type: ClusterIP

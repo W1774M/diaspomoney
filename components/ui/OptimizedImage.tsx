@@ -145,6 +145,8 @@ export const UserAvatar: React.FC<{
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
 }> = ({ src, name, size = 'md', className = '' }) => {
+  const [hasError, setHasError] = useState(false);
+
   const sizeClasses = {
     sm: 'w-8 h-8',
     md: 'w-12 h-12',
@@ -159,7 +161,8 @@ export const UserAvatar: React.FC<{
     .toUpperCase()
     .slice(0, 2);
 
-  if (!src) {
+  // Afficher les initiales si pas de src ou si erreur de chargement
+  if (!src || hasError) {
     return (
       <div
         className={`${sizeClasses[size]} bg-blue-500 text-white rounded-full flex items-center justify-center font-semibold ${className}`}
@@ -178,6 +181,7 @@ export const UserAvatar: React.FC<{
       quality={90}
       format='webp'
       className={`${sizeClasses[size]} rounded-full object-cover ${className}`}
+      onError={() => setHasError(true)}
     />
   );
 };

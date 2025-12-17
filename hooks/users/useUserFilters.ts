@@ -8,6 +8,9 @@
 import { ROLES, USER_STATUSES } from '@/lib/constants';
 import { IUser, UserRole } from '@/lib/types';
 import { useCallback, useMemo, useState } from 'react';
+import { childLogger } from '@/lib/logger';
+
+const logger = childLogger({ component: 'useUserFilters' });
 
 export interface UserFilters {
   searchTerm?: string;
@@ -20,10 +23,13 @@ export interface UserFilters {
  * Implémente le Custom Hooks Pattern
  */
 export function useUserFilters(users: IUser[]) {
-  console.log('[useUserFilters] Appelé avec', {
+  logger.debug({
     usersCount: users.length,
     usersIds: users.slice(0, 3).map(u => u._id || u.id),
-  });
+  }, 'useUserFilters appelé');
+  
+  // Sécurité : s'assurer que users est un tableau
+  const safeUsers = useMemo(() => users || [], [users]);
   
   const [filters, setFilters] = useState<UserFilters>({
     searchTerm: '',
@@ -50,11 +56,11 @@ export function useUserFilters(users: IUser[]) {
   }, []);
 
   const filteredUsers = useMemo(() => {
-    console.log('[useUserFilters] filteredUsers recalculé', {
-      usersCount: users.length,
+    logger.debug({
+      usersCount: safeUsers.length,
       filters,
-    });
-    return users.filter(user => {
+    }, 'useUserFilters filteredUsers recalculé');
+    return safeUsers.filter(user => {
       // Filtre par recherche (nom, email, entreprise)
       if (filters.searchTerm) {
         const searchLower = filters.searchTerm.toLowerCase();
@@ -85,11 +91,11 @@ export function useUserFilters(users: IUser[]) {
 
       return true;
     });
-  }, [users, filters]);
+  }, [safeUsers, filters]);
   
-  console.log('[useUserFilters] filteredUsers résultat', {
+  logger.debug({
     count: filteredUsers.length,
-  });
+  }, 'useUserFilters filteredUsers résultat');
 
   const hasActiveFilters = useMemo(() => {
     return (

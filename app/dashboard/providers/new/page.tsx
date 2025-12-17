@@ -5,6 +5,7 @@ import { CreateUserInput, UserRole, UserStatus } from '@/lib/types';
 import { ArrowLeft, Building, MapPin, Plus, User } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { PhoneInput } from 'react-international-phone';
 
 export default function NewProviderPage() {
   const { isCSM, isAuthenticated, isLoading } = useAuth();
@@ -141,18 +142,17 @@ export default function NewProviderPage() {
                 <label className='block text-sm font-medium text-gray-700 mb-1'>
                   Téléphone
                 </label>
-                <input
-                  type='tel'
-                  name='phone'
-                  value={formData.phone}
-                  onChange={e =>
+                <PhoneInput
+                  defaultCountry="fr"
+                  value={formData.phone || ""}
+                  onChange={(phone) =>
                     setFormData((prev: any) => ({
                       ...prev,
-                      phone: e.target.value,
+                      phone: phone,
                     }))
                   }
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
-                  placeholder='+33 1 23 45 67 89'
+                  className="w-full"
+                  inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
                 />
               </div>
               <div>

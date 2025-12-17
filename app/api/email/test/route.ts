@@ -17,19 +17,27 @@ export async function POST(request: NextRequest) {
 
     switch (type) {
       case 'welcome':
-        result = await emailService.sendWelcomeEmail(
-          email,
-          data.name || 'Test User',
-          data.verificationUrl || `${process.env['NEXTAUTH_URL'] || process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/verify?token=test`,
-        );
+        {
+          const { cleanUrl } = await import('@/lib/utils');
+          const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+          result = await emailService.sendWelcomeEmail(
+            email,
+            data.name || 'Test User',
+            data.verificationUrl || `${baseUrl}/verify?token=test`,
+          );
+        }
         break;
 
       case 'password_reset':
-        result = await emailService.sendPasswordResetEmail(
-          email,
-          data.name || 'Test User',
-          data.resetUrl || `${process.env['NEXTAUTH_URL'] || process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/reset?token=test`,
-        );
+        {
+          const { cleanUrl } = await import('@/lib/utils');
+          const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+          result = await emailService.sendPasswordResetEmail(
+            email,
+            data.name || 'Test User',
+            data.resetUrl || `${baseUrl}/reset?token=test`,
+          );
+        }
         break;
 
       case 'payment_confirmation':

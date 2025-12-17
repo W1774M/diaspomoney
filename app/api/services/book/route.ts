@@ -3,42 +3,94 @@
  * POST /api/services/book
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { auth } from '@/auth';
+import { handleApiRoute } from '@/lib/api/error-handler';
+import { childLogger } from '@/lib/logger';
 import { serviceBookingFacade } from '@/facades';
 import type { ServiceBookingFacadeData } from '@/lib/types/service-booking.types';
 
 export async function POST(req: NextRequest) {
-  try {
+  const reqId = req.headers.get('x-request-id') || undefined;
+  const log = childLogger({
+    requestId: reqId,
+    route: 'api/services/book',
+  });
+
+  return handleApiRoute(req, async () => {
     const data: ServiceBookingFacadeData = await req.json();
 
     // Valider les données requises
     if (!data.serviceType || !data.clientInfo || !data.beneficiaryInfo || !data.selectedService || !data.paymentIntentId) {
-      return NextResponse.json(
+      log.warn({ data: { serviceType: data.serviceType, hasClientInfo: !!data.clientInfo, hasBeneficiaryInfo: !!data.beneficiaryInfo, hasSelectedService: !!data.selectedService, hasPaymentIntentId: !!data.paymentIntentId } }, 'Données incomplètes');
+      throw new Error('Données incomplètes');
+    }
+
+    // Récupérer l'utilisateur connecté si disponible
+    const session = await auth();
+    const userId = session?.user?.id;
+
+    log.info(
+      {
+        userId,
+        isAuthenticated: !!userId,
+        serviceType: data.serviceType,
+        clientEmail: data.clientInfo.email,
+      },
+      'Création de réservation de service',
+    );
+
+    // Si l'utilisateur est connecté, ajouter son ID dans les métadonnées
+    // Cela permettra d'attribuer la commande à l'utilisateur au lieu de générer un guest ID
+    if (userId) {
+      data.metadata = {
+        ...(data.metadata || {}),
+        userId: userId,
+      };
+      
+      log.debug(
         {
-          success: false,
-          error: 'Données incomplètes',
+          userId,
+          hasMetadata: !!data.metadata,
+          metadataKeys: data.metadata ? Object.keys(data.metadata) : [],
         },
-        { status: 400 },
+        'ID utilisateur ajouté aux métadonnées',
+      );
+    } else {
+      log.info(
+        {
+          clientEmail: data.clientInfo.email,
+        },
+        'Utilisateur non connecté, génération d\'un guest ID',
       );
     }
 
     // Exécuter la facade
     const result = await serviceBookingFacade.execute(data);
 
-    if (result.success) {
-      return NextResponse.json(result, { status: 201 });
-    } else {
-      return NextResponse.json(result, { status: 400 });
+    if (!result.success) {
+      log.error(
+        {
+          error: result.error,
+          serviceType: data.serviceType,
+          userId,
+        },
+        'Échec de la création de réservation',
+      );
+      throw new Error(result.error || 'Erreur lors de la création de la réservation');
     }
-  } catch (error: any) {
-    console.error('Error creating service booking:', error);
-    return NextResponse.json(
+
+    log.info(
       {
-        success: false,
-        error: error.message || 'Une erreur est survenue',
+        bookingId: result.bookingId,
+        reservationNumber: result.reservationNumber,
+        userId,
+        serviceType: data.serviceType,
       },
-      { status: 500 },
+      'Réservation créée avec succès',
     );
-  }
+
+    return result;
+  }, 'api/services/book');
 }
 

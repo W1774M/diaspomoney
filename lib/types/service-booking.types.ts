@@ -19,16 +19,6 @@ export interface ClientInfo {
   email: string;
 }
 
-// Utiliser BeneficiaryData existant avec extension pour location
-export interface BeneficiaryInfo extends Omit<BeneficiaryData, 'relationship' | 'country'> {
-  country?: string; // Optionnel car peut être dans location.country
-  location?: {
-    address: string;
-    city: string;
-    country: string;
-    postalCode?: string;
-  };
-}
 
 export interface SelectedService {
   serviceId: string;
@@ -51,7 +41,7 @@ export interface ServiceBookingState {
   currentStep: number;
   serviceType: ServiceType | null;
   clientInfo: Partial<ClientInfo>;
-  beneficiaryInfo: Partial<BeneficiaryInfo>;
+  beneficiaryInfo: Partial<BeneficiaryData>;
   selectedService: SelectedService | null;
   additionalOptions: ServiceOption[];
   paymentIntentId: string | null;
@@ -63,7 +53,7 @@ export interface ServiceBookingState {
 export interface ServiceBookingFacadeData {
   serviceType: ServiceType;
   clientInfo: ClientInfo;
-  beneficiaryInfo: BeneficiaryInfo;
+  beneficiaryInfo: BeneficiaryData;
   selectedService: SelectedService;
   additionalOptions: ServiceOption[];
   paymentIntentId: string;
@@ -112,7 +102,7 @@ export interface ServiceBookingWizardProps {
 export interface ServiceBookingRequestData {
   serviceType: ServiceType;
   clientInfo: ClientInfo;
-  beneficiaryInfo: BeneficiaryInfo;
+  beneficiaryInfo: BeneficiaryData;
   selectedService: SelectedService;
   additionalOptions: ServiceOption[];
   paymentIntentId: string;

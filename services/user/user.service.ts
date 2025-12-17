@@ -46,6 +46,8 @@ export interface UserProfile {
   lastName: string;
   name?: string;
   phone?: string;
+  company?: string;
+  address?: string;
   country?: string;
   roles?: string[];
   status?: string;
@@ -55,6 +57,8 @@ export interface UserProfile {
   createdAt?: Date;
   updatedAt?: Date;
   specialty?: string;
+  recommended?: boolean;
+  clientNotes?: string;
   providerInfo?: {
     rating?: number;
     reviewCount?: number;
@@ -68,6 +72,11 @@ export interface UserProfile {
   specialties?: string[];
   services?: string[];
   selectedServices?: string[];
+  preferences?: {
+    language?: string;
+    timezone?: string;
+    notifications?: boolean;
+  };
 }
 
 export interface UpdateProfileData {
@@ -311,9 +320,41 @@ export class UserService {
         userProfile.phone = user.phone;
       }
 
+      if (typeof user.company === 'string') {
+        userProfile.company = user.company;
+      }
+
+      if (typeof user.address === 'string') {
+        userProfile.address = user.address;
+      }
+
+      if (typeof user.clientNotes === 'string') {
+        userProfile.clientNotes = user.clientNotes;
+      }
+
+      if (typeof user.recommended === 'boolean') {
+        userProfile.recommended = user.recommended;
+      }
+
       const countryVal = (user as any)['country'] ?? user['countryOfResidence'];
       if (typeof countryVal === 'string') {
         userProfile.country = countryVal;
+      }
+
+      // Inclure les préférences
+      if (user.preferences && typeof user.preferences === 'object') {
+        userProfile.preferences = {
+          language: (user.preferences as any).language || 'fr',
+          timezone: (user.preferences as any).timezone || 'Europe/Paris',
+          notifications: (user.preferences as any).notifications !== false,
+        };
+      } else {
+        // Valeurs par défaut si pas de préférences
+        userProfile.preferences = {
+          language: 'fr',
+          timezone: 'Europe/Paris',
+          notifications: true,
+        };
       }
 
       return userProfile;
@@ -384,6 +425,15 @@ export class UserService {
           notifications: data.preferences.notifications ?? currentPrefs.notifications ?? false,
         };
         updateData.preferences = newPrefs as any;
+      }
+      if ('providerInfo' in data && data.providerInfo) {
+        updateData.providerInfo = data.providerInfo as any;
+      }
+      if ('name' in data && typeof data.name === 'string' && data.name) {
+        updateData.name = data.name;
+      }
+      if ('email' in data && typeof data.email === 'string' && data.email) {
+        updateData.email = data.email;
       }
 
       const updatedUser = await this.userRepository.update(userId, updateData as Partial<User>);
@@ -543,8 +593,12 @@ export class UserService {
         throw new Error('Relation requise');
       }
 
-      if (!this.isValidCountry(data.country)) {
-        throw new Error('Pays invalide');
+      if (!data.location) {
+        throw new Error('Localisation requise');
+      }
+
+      if (!data.location.address || !data.location.city || !data.location.country) {
+        throw new Error('Adresse, ville et pays requis');
       }
 
       const count = await this.beneficiaryRepository.countByPayer(userId);
@@ -557,12 +611,15 @@ export class UserService {
         firstName: data.firstName,
         lastName: data.lastName,
         relationship: data.relationship,
-        country: data.country,
+        location: data.location,
         isActive: true,
       };
-      if (typeof data.email === 'string') beneficiaryData.email = data.email;
-      if (typeof data.phone === 'string') beneficiaryData.phone = data.phone;
-      if (typeof data.address === 'string') beneficiaryData.address = data.address;
+      if (typeof data.email === 'string' && data.email.trim()) {
+        beneficiaryData.email = data.email.trim();
+      }
+      if (typeof data.phone === 'string' && data.phone.trim()) {
+        beneficiaryData.phone = data.phone.trim();
+      }
       const beneficiary = await this.beneficiaryRepository.create(
         beneficiaryData,
       );
@@ -757,8 +814,49 @@ export class UserService {
   }
 
   private isValidPhone(phone: string): boolean {
-    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-    return phoneRegex.test(phone);
+    if (!phone || typeof phone !== 'string') return false;
+    
+    // Nettoyer le numéro (garder seulement les chiffres et +)
+    const cleaned = phone.trim();
+    
+    // Formats acceptés :
+    // - Format international avec + : +23777653118
+    // - Format international avec 00 : 0023777653118
+    // - Format national français : 0612345678 (10 chiffres)
+    // - Format international français : +33612345678 ou 33612345678
+    
+    // Si commence par +, doit avoir entre 8 et 15 chiffres après le +
+    if (cleaned.startsWith('+')) {
+      const digits = cleaned.substring(1).replace(/\D/g, '');
+      return digits.length >= 7 && digits.length <= 15;
+    }
+    
+    // Si commence par 00, c'est un format international (ex: 0023777653118)
+    if (cleaned.startsWith('00')) {
+      const digits = cleaned.replace(/\D/g, '');
+      // Doit avoir au moins 10 chiffres (indicatif pays + numéro)
+      return digits.length >= 10 && digits.length <= 15;
+    }
+    
+    // Sinon, vérifier si c'est un format national ou international sans préfixe
+    const digits = cleaned.replace(/\D/g, '');
+    
+    // Format national français (10 chiffres commençant par 0)
+    if (digits.startsWith('0') && digits.length === 10) {
+      return true;
+    }
+    
+    // Format international sans préfixe (7-15 chiffres, ne commence pas par 0)
+    if (digits.length >= 7 && digits.length <= 15 && !digits.startsWith('0')) {
+      return true;
+    }
+    
+    // Format avec indicatif pays sans préfixe (ex: 23777653118)
+    if (digits.length >= 10 && digits.length <= 15) {
+      return true;
+    }
+    
+    return false;
   }
 
   private isValidCountry(country: string): boolean {

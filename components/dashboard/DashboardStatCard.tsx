@@ -17,6 +17,7 @@ const DashboardStatCard = React.memo<DashboardStatCardProps>(
       green: "bg-green-100 text-green-600",
       purple: "bg-purple-100 text-purple-600",
       red: "bg-red-100 text-red-600",
+      yellow: "bg-yellow-100 text-yellow-600",
     };
 
     return (

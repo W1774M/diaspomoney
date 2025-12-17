@@ -1,8 +1,5 @@
 import { auth } from '@/auth';
-// Désactiver le prerendering pour cette route API
-export const dynamic = 'force-dynamic';
 
-// Désactiver le prerendering pour cette route API
 ;
 
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';

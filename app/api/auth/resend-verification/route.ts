@@ -1,5 +1,4 @@
 /**
-// Désactiver le prerendering pour cette route API
 
 
  * API Route - Resend Verification
@@ -57,7 +56,9 @@ export async function POST(request: NextRequest) {
     );
 
     // Envoyer l'email de bienvenue avec lien de vérification
-    const verificationUrl = `${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}`;
+    const { cleanUrl } = await import('@/lib/utils');
+    const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+    const verificationUrl = `${baseUrl}/verify-email?token=${emailVerificationToken}`;
     const emailSent = await sendWelcomeEmail(
       user.email,
       `${user.firstName} ${user.lastName}`,

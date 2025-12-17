@@ -1,5 +1,4 @@
 /**
-// Désactiver le prerendering pour cette route API
 ;
 
  * API Route pour les utilisateurs
@@ -11,7 +10,7 @@
  * - Validation Pattern (via CreateUserSchema, UserFiltersSchema)
  */
 
-import { handleApiRoute, validateBody, validateQuery } from '@/lib/api/error-handler';
+import { handleApiRoute, validateBody, validateQuery, ApiError } from '@/lib/api/error-handler';
 import { createPaginatedResponse, createResourceResponse } from '@/lib/api/response';
 import { CreateUserSchema, UserFiltersSchema } from '@/lib/validations/user.schema';
 import type { z } from 'zod';
@@ -115,11 +114,20 @@ export async function POST(request: NextRequest) {
 
     // Préparer les données pour la création
     // Gérer le cas où name est fourni mais pas firstName/lastName, ou vice versa
+    // Pour les entreprises (INSTITUTION), firstName/lastName ne sont pas requis
+    const extendedData = body as ExtendedUserData;
+    const isInstitutionProvider = extendedData.providerInfo?.type === 'INSTITUTION';
+    
     let firstName: string;
     let lastName: string;
     let name: string;
 
-    if (data.firstName && data.lastName) {
+    if (isInstitutionProvider && extendedData.providerInfo?.institution?.legalName) {
+      // Pour les entreprises, utiliser le nom de l'entreprise
+      name = extendedData.providerInfo.institution.legalName.trim();
+      firstName = name; // Utiliser le nom de l'entreprise comme firstName
+      lastName = ''; // Vide pour les entreprises
+    } else if (data.firstName && data.lastName) {
       firstName = data.firstName.trim();
       lastName = data.lastName.trim();
       name = data.name || `${firstName} ${lastName}`.trim();
@@ -135,9 +143,13 @@ export async function POST(request: NextRequest) {
       name = `${firstName} ${lastName}`.trim() || '';
     }
 
-    // Validation finale
-    if (!firstName || !lastName) {
+    // Validation finale - ne pas exiger firstName/lastName pour les entreprises
+    if (!isInstitutionProvider && (!firstName || !lastName)) {
       throw new Error('Le prénom et le nom sont obligatoires');
+    }
+    
+    if (!name) {
+      throw new Error('Le nom est obligatoire');
     }
 
     // Type pour les champs supplémentaires non validés par le schéma
@@ -160,11 +172,38 @@ export async function POST(request: NextRequest) {
         }>;
       };
       sendWelcomeNotification?: boolean;
+      providerInfo?: {
+        type: 'INDIVIDUAL' | 'INSTITUTION';
+        category: 'HEALTH' | 'BTP' | 'EDUCATION';
+        specialties?: string[];
+        recommended?: boolean;
+        individual?: {
+          firstName: string;
+          lastName: string;
+          rcs?: string;
+          tva?: string;
+          siret?: string;
+          siren?: string;
+        };
+        institution?: {
+          legalName: string;
+          registrationNumber?: string;
+          taxId?: string;
+          rcs?: string;
+          siret?: string;
+          siren?: string;
+        };
+        professionalAddress: {
+          street: string;
+          city: string;
+          country: string;
+          postalCode: string;
+        };
+      };
     };
 
-    const extendedData = body as ExtendedUserData;
-
     // Utiliser UserFacade pour créer l'utilisateur (Facade Pattern)
+    // Le statut doit être PENDING pour activation via email
     const facadeData = {
       email: data.email.toLowerCase(),
       name: name,
@@ -172,27 +211,150 @@ export async function POST(request: NextRequest) {
       lastName: lastName,
       ...(data.phone?.trim() && { phone: data.phone.trim() }),
       roles: data.roles || [ROLES.CUSTOMER],
-      status: extendedData.status || USER_STATUSES.ACTIVE,
+      status: extendedData.status || USER_STATUSES.PENDING, // Toujours PENDING pour activation via email
       ...(extendedData.kycData && { kycData: extendedData.kycData }),
-      sendWelcomeNotification: extendedData.sendWelcomeNotification ?? true,
+      sendWelcomeNotification: false, // On enverra un email d'activation personnalisé
       metadata: {
         ...(extendedData.company?.trim() && { company: extendedData.company.trim() }),
         ...(extendedData.address?.trim() && { address: extendedData.address.trim() }),
         ...(extendedData.specialty?.trim() && { specialty: extendedData.specialty.trim() }),
         ...(extendedData.clientNotes && { clientNotes: extendedData.clientNotes }),
         ...(extendedData.preferences && { preferences: extendedData.preferences }),
+        ...(extendedData.recommended !== undefined && { recommended: extendedData.recommended }),
       },
     };
 
     const result = await userFacade.execute(facadeData);
 
     if (!result.success || !result.user) {
-      throw new Error(result.error || 'Erreur lors de la création de l\'utilisateur');
+      const errorMessage = result.error || 'Erreur lors de la création de l\'utilisateur';
+      
+      // Détecter les erreurs de duplication et retourner un statut 409 (Conflict)
+      if (errorMessage.includes('existe déjà') || errorMessage.includes('duplicate')) {
+        throw new ApiError(409, errorMessage, 'DUPLICATE_EMAIL');
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    // Créer le providerInfo si fourni
+    const createdUser = result.user;
+    if (extendedData.providerInfo && createdUser) {
+      try {
+        const { getUserRepository } = await import('@/repositories');
+        const userRepository = getUserRepository();
+        const userId = createdUser.id || createdUser._id || '';
+        
+        // Construire le providerInfo selon le modèle
+        const providerInfoData: any = {
+          type: extendedData.providerInfo.type,
+          category: extendedData.providerInfo.category,
+          specialties: extendedData.providerInfo.specialties || [],
+          recommended: extendedData.providerInfo.recommended || false,
+          professionalAddress: extendedData.providerInfo.professionalAddress,
+        };
+
+        if (extendedData.providerInfo.type === 'INDIVIDUAL' && extendedData.providerInfo.individual) {
+          providerInfoData.individual = {
+            firstName: extendedData.providerInfo.individual.firstName,
+            lastName: extendedData.providerInfo.individual.lastName,
+            // Stocker les numéros dans qualifications (champ existant dans le modèle) ou dans un objet personnalisé
+            qualifications: [
+              ...(extendedData.providerInfo.individual.rcs ? [`RCS: ${extendedData.providerInfo.individual.rcs}`] : []),
+              ...(extendedData.providerInfo.individual.tva ? [`TVA: ${extendedData.providerInfo.individual.tva}`] : []),
+              ...(extendedData.providerInfo.individual.siret ? [`SIRET: ${extendedData.providerInfo.individual.siret}`] : []),
+              ...(extendedData.providerInfo.individual.siren ? [`SIREN: ${extendedData.providerInfo.individual.siren}`] : []),
+            ],
+            // Stocker aussi dans un objet personnalisé pour faciliter l'accès
+            registrationNumbers: {
+              rcs: extendedData.providerInfo.individual.rcs,
+              tva: extendedData.providerInfo.individual.tva,
+              siret: extendedData.providerInfo.individual.siret,
+              siren: extendedData.providerInfo.individual.siren,
+            },
+          };
+        } else if (extendedData.providerInfo.type === 'INSTITUTION' && extendedData.providerInfo.institution) {
+          providerInfoData.institution = {
+            legalName: extendedData.providerInfo.institution.legalName,
+            registrationNumber: extendedData.providerInfo.institution.registrationNumber || extendedData.providerInfo.institution.rcs || extendedData.providerInfo.institution.siret || extendedData.providerInfo.institution.siren || '',
+            taxId: extendedData.providerInfo.institution.taxId || '',
+            // Stocker les numéros supplémentaires dans certifications (champ existant)
+            certifications: [
+              ...(extendedData.providerInfo.institution.rcs ? [`RCS: ${extendedData.providerInfo.institution.rcs}`] : []),
+              ...(extendedData.providerInfo.institution.siret ? [`SIRET: ${extendedData.providerInfo.institution.siret}`] : []),
+              ...(extendedData.providerInfo.institution.siren ? [`SIREN: ${extendedData.providerInfo.institution.siren}`] : []),
+            ],
+            // Stocker aussi dans un objet personnalisé pour faciliter l'accès
+            registrationNumbers: {
+              rcs: extendedData.providerInfo.institution.rcs,
+              siret: extendedData.providerInfo.institution.siret,
+              siren: extendedData.providerInfo.institution.siren,
+            },
+          };
+        }
+
+        // Mettre à jour l'utilisateur avec le providerInfo
+        await userRepository.update(userId, {
+          providerInfo: providerInfoData,
+          recommended: extendedData.providerInfo.recommended || false,
+          specialties: extendedData.providerInfo.specialties || [],
+        } as any);
+      } catch (providerError) {
+        const { logger } = await import('@/lib/logger');
+        logger.warn(
+          { error: providerError, userId: createdUser.id || createdUser._id },
+          'Failed to create providerInfo, but user was created',
+        );
+      }
+    }
+
+    // Générer un token d'activation et envoyer un email
+    const { getUserRepository } = await import('@/repositories');
+    const userRepository = getUserRepository();
+    const fullUser = await userRepository.findById(createdUser.id || createdUser._id || '');
+    
+    // Générer un token d'activation (valide 7 jours)
+    if (fullUser) {
+      try {
+        const jwt = (await import('jsonwebtoken')).default;
+        
+        // Générer un token d'activation (pour définir le mot de passe et activer le compte)
+        const activationToken = jwt.sign(
+          {
+            userId: createdUser.id || createdUser._id,
+            type: 'account_activation',
+          },
+          process.env['JWT_SECRET']!,
+          { expiresIn: '7d' },
+        );
+
+        // Construire l'URL d'activation
+        const { cleanUrl } = await import('@/lib/utils');
+        const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+        const activationUrl = `${baseUrl}/activate-account?token=${activationToken}`;
+
+        // Envoyer l'email d'activation avec le lien
+        // Utiliser sendAccountActivationEmail pour les comptes créés par un admin
+        const { sendAccountActivationEmail } = await import('@/lib/email/resend');
+        const userName = createdUser.name || `${createdUser.firstName || ''} ${createdUser.lastName || ''}`.trim();
+        await sendAccountActivationEmail(
+          createdUser.email,
+          userName,
+          activationUrl, // URL d'activation
+        );
+      } catch (emailError) {
+        // Logger l'erreur mais ne pas faire échouer la création de l'utilisateur
+        const { logger } = await import('@/lib/logger');
+        logger.warn(
+          { error: emailError, userId: createdUser.id || createdUser._id, email: createdUser.email },
+          'Failed to send activation email, but user was created',
+        );
+      }
     }
 
     // Mapper vers le format attendu par le frontend
-    const user = result.user;
-    const userRecord = user as Record<string, unknown>;
+    const userToMap = result.user;
+    const userRecord = userToMap as Record<string, unknown>;
     
     type UserResponse = {
       id: string;
@@ -216,26 +378,36 @@ export async function POST(request: NextRequest) {
       updatedAt: string;
     };
 
+    // Convertir les dates en string de manière sécurisée
+    const createdAt = userToMap.createdAt 
+      ? (userToMap.createdAt instanceof Date ? userToMap.createdAt.toISOString() : String(userToMap.createdAt))
+      : new Date().toISOString();
+    
+    const updatedAt = userToMap.updatedAt 
+      ? (userToMap.updatedAt instanceof Date ? userToMap.updatedAt.toISOString() : String(userToMap.updatedAt))
+      : new Date().toISOString();
+
+    // Créer l'objet utilisateur mappé de manière sécurisée
     const mappedUser: UserResponse = {
-      id: user.id || user._id || '',
-      _id: user.id || user._id || '',
-      email: user.email,
-      name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      phone: user.phone || '',
-      company: userRecord['company'] as string | undefined,
-      address: userRecord['address'] as string | undefined,
-      roles: user.roles || [],
-      status: user.status || USER_STATUSES.ACTIVE,
-      specialty: userRecord['specialty'] as string | undefined,
+      id: String(userToMap.id || userToMap._id || ''),
+      _id: String(userToMap.id || userToMap._id || ''),
+      email: String(userToMap.email || ''),
+      name: String(userToMap.name || `${userToMap.firstName || ''} ${userToMap.lastName || ''}`.trim() || ''),
+      firstName: String(userToMap.firstName || ''),
+      lastName: String(userToMap.lastName || ''),
+      phone: String(userToMap.phone || ''),
+      company: userRecord['company'] ? String(userRecord['company']) : undefined,
+      address: userRecord['address'] ? String(userRecord['address']) : undefined,
+      roles: Array.isArray(userToMap.roles) ? userToMap.roles.map(String) : [],
+      status: String(userToMap.status || USER_STATUSES.PENDING),
+      specialty: userRecord['specialty'] ? String(userRecord['specialty']) : undefined,
       preferences: (userRecord['preferences'] as UserResponse['preferences']) || {
         language: LANGUAGES.FR.code,
         timezone: TIMEZONES.PARIS,
         notifications: true,
       },
-      createdAt: user.createdAt?.toISOString() || new Date().toISOString(),
-      updatedAt: user.updatedAt?.toISOString() || new Date().toISOString(),
+      createdAt,
+      updatedAt,
     };
 
     return createResourceResponse(

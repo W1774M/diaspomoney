@@ -13,10 +13,12 @@ import {
   Send,
   User,
 } from "lucide-react";
+import { PhoneInput } from "react-international-phone";
 import { useState } from "react";
 
 export default function SupportPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userPhone, setUserPhone] = useState("");
   const { addNotification } = useNotificationStore();
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -25,6 +27,10 @@ export default function SupportPage() {
     if (isSubmitting) return;
 
     const formData = new FormData(e.currentTarget);
+    // Ajouter le téléphone depuis l'état contrôlé
+    if (userPhone) {
+      formData.set('userPhone', userPhone);
+    }
     const data = Object.fromEntries(formData);
 
     // Validation
@@ -45,6 +51,7 @@ export default function SupportPage() {
       });
 
       e.currentTarget.reset();
+      setUserPhone(""); // Réinitialiser le téléphone
     } catch (_error) {
       addNotification({
         type: "error",
@@ -363,11 +370,12 @@ export default function SupportPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Téléphone (optionnel)
                   </label>
-                  <input
-                    type="tel"
-                    name="userPhone"
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-[hsl(25,100%,53%)] focus:ring-2 focus:ring-[hsl(25,100%,53%)]/20 transition-all"
-                    placeholder="+33 6 XX XX XX XX"
+                  <PhoneInput
+                    defaultCountry="fr"
+                    value={userPhone}
+                    onChange={(phone) => setUserPhone(phone)}
+                    className="w-full"
+                    inputClassName="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-[hsl(25,100%,53%)] focus:ring-2 focus:ring-[hsl(25,100%,53%)]/20 transition-all"
                   />
                 </div>
 

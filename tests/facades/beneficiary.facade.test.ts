@@ -73,7 +73,11 @@ describe('BeneficiaryFacade', () => {
         firstName: 'John',
         lastName: 'Doe',
         relationship: 'SPOUSE',
-        country: 'FR',
+        location: {
+          address: '123 Main St',
+          city: 'Paris',
+          country: 'FR',
+        },
       };
 
       const mockBeneficiary = {
@@ -106,7 +110,11 @@ describe('BeneficiaryFacade', () => {
         firstName: 'Jane',
         lastName: 'Doe',
         relationship: 'SPOUSE',
-        country: 'FR',
+        location: {
+          address: '123 Main St',
+          city: 'Paris',
+          country: 'FR',
+        },
         sendNotification: true,
       };
 
@@ -137,7 +145,11 @@ describe('BeneficiaryFacade', () => {
         firstName: 'John',
         lastName: 'Doe',
         relationship: 'SPOUSE',
-        country: 'FR',
+        location: {
+          address: '123 Main St',
+          city: 'Paris',
+          country: 'FR',
+        },
         email: 'john@example.com',
         sendEmail: true,
       };

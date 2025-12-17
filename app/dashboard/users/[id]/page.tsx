@@ -18,10 +18,12 @@ import {
 } from '@/lib/utils/user-utils';
 import { UserRole } from '@/lib/types';
 import { AuthorizedRoute } from '@/components/auth';
-import { ArrowLeft, Edit, Mail, Phone, Star } from 'lucide-react';
+import { ArrowLeft, Edit, Mail, Phone, Star, Send } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useNotificationManager } from '@/components/ui/Notification';
+import { USER_STATUSES } from '@/lib/constants';
 
 /**
  * Contenu de la page de détail d'un utilisateur
@@ -30,12 +32,43 @@ function UserDetailPageContent() {
   const params = useParams();
   const userId = params.id as string;
   const { user, loading, error, fetchUser } = useUser();
+  const { addSuccess, addError } = useNotificationManager();
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     if (userId) {
       fetchUser(userId);
     }
   }, [userId, fetchUser]);
+
+  const handleResendActivation = async () => {
+    if (!userId || !user) return;
+
+    setIsResending(true);
+    try {
+      const response = await fetch(`/api/users/${encodeURIComponent(userId)}/resend-activation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Erreur lors de l'envoi du lien d'activation");
+      }
+
+      addSuccess('Lien d\'activation renvoyé avec succès', 5000);
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Erreur lors de l'envoi du lien d'activation. Veuillez réessayer.";
+      addError(errorMessage, 8000);
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -67,20 +100,13 @@ function UserDetailPageContent() {
     <>
       {/* Page Header */}
       <div className='mb-8'>
-        <div className='flex items-center justify-between mb-4'>
+        <div className='flex items-center mb-4'>
           <Link
             href='/dashboard/users'
             className='flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Retour aux utilisateurs
-          </Link>
-          <Link
-            href={`/dashboard/users/${user._id}/edit`}
-            className='flex items-center px-3 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors'
-          >
-            <Edit className='h-4 w-4 mr-2' />
-            Modifier
           </Link>
         </div>
         <div className='flex items-center justify-between'>
@@ -189,35 +215,264 @@ function UserDetailPageContent() {
 
           {/* Informations spécifiques aux prestataires */}
           {user.roles.includes(UserRole.PROVIDER) && (
-            <div className='bg-white rounded-lg shadow border border-gray-200 p-6'>
+            <div className='bg-white rounded-lg shadow border border-gray-200 p-6 space-y-6'>
               <h2 className='text-lg font-semibold text-gray-900 mb-4'>
                 Informations prestataire
               </h2>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                {user.specialty && (
+              
+              {/* Type et Catégorie */}
+              {(user.providerInfo as any)?.type && (
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
                     <label className='block text-sm font-medium text-gray-700 mb-1'>
-                      Spécialité
+                      Type
                     </label>
-                    <p className='text-gray-900'>{user.specialty}</p>
+                    <p className='text-gray-900'>
+                      {(user.providerInfo as any)?.type === 'INSTITUTION' ? 'Entreprise' : 'Individuel'}
+                    </p>
                   </div>
-                )}
+                  {(user.providerInfo as any)?.category && (
+                    <div>
+                      <label className='block text-sm font-medium text-gray-700 mb-1'>
+                        Catégorie
+                      </label>
+                      <p className='text-gray-900'>
+                        {(user.providerInfo as any)?.category === 'HEALTH' ? 'Santé' :
+                         (user.providerInfo as any)?.category === 'BTP' ? 'BTP' :
+                         (user.providerInfo as any)?.category === 'EDUCATION' ? 'Éducation' :
+                         (user.providerInfo as any)?.category}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Recommandé - Vérifier à la fois user.recommended et providerInfo.recommended */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Recommandé
+                </label>
+                <div className='flex items-center'>
+                  {(user.recommended || (user.providerInfo as any)?.recommended) ? (
+                    <>
+                      <Star className='h-4 w-4 text-yellow-500 mr-2 fill-current' />
+                      <span className='text-gray-900 font-medium'>Oui</span>
+                    </>
+                  ) : (
+                    <span className='text-gray-500'>Non</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Spécialités */}
+              {((user.specialties && user.specialties.length > 0) || 
+                ((user.providerInfo as any)?.specialties && (user.providerInfo as any).specialties.length > 0)) && (
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Spécialités
+                  </label>
+                  <div className='flex flex-wrap gap-2'>
+                    {((user.providerInfo as any)?.specialties || user.specialties || []).map((specialty: string, index: number) => (
+                      <span
+                        key={index}
+                        className='inline-flex items-center px-3 py-1 rounded-full text-sm bg-[hsl(25,100%,53%)]/10 text-[hsl(25,100%,53%)]'
+                      >
+                        {specialty}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Spécialité (ancien champ) */}
+              {user.specialty && !user.specialties && (
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    Recommandé
+                    Spécialité
                   </label>
-                  <div className='flex items-center'>
-                    {user.recommended ? (
+                  <p className='text-gray-900'>{user.specialty}</p>
+                </div>
+              )}
+
+              {/* Informations Institution */}
+              {(user.providerInfo as any)?.type === 'INSTITUTION' && (user.providerInfo as any)?.institution && (
+                <div className='border-t border-gray-200 pt-4'>
+                  <h3 className='text-md font-semibold text-gray-800 mb-3'>Informations entreprise</h3>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    {(user.providerInfo as any).institution.legalName && (
+                      <div className='md:col-span-2'>
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
+                          Nom légal
+                        </label>
+                        <p className='text-gray-900 font-medium'>
+                          {(user.providerInfo as any).institution.legalName}
+                        </p>
+                      </div>
+                    )}
+                    {(user.providerInfo as any).institution.registrationNumber && (
+                      <div>
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
+                          Numéro d'enregistrement
+                        </label>
+                        <p className='text-gray-900'>
+                          {(user.providerInfo as any).institution.registrationNumber}
+                        </p>
+                      </div>
+                    )}
+                    {(user.providerInfo as any).institution.taxId && (
+                      <div>
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
+                          Numéro TVA
+                        </label>
+                        <p className='text-gray-900'>
+                          {(user.providerInfo as any).institution.taxId}
+                        </p>
+                      </div>
+                    )}
+                    {/* Numéros d'enregistrement depuis registrationNumbers */}
+                    {(user.providerInfo as any).institution.registrationNumbers && (
                       <>
-                        <Star className='h-4 w-4 text-yellow-500 mr-2' />
-                        <span className='text-gray-900'>Oui</span>
+                        {(user.providerInfo as any).institution.registrationNumbers.rcs && (
+                          <div>
+                            <label className='block text-sm font-medium text-gray-700 mb-1'>
+                              RCS
+                            </label>
+                            <p className='text-gray-900 font-mono text-sm'>
+                              {(user.providerInfo as any).institution.registrationNumbers.rcs}
+                            </p>
+                          </div>
+                        )}
+                        {(user.providerInfo as any).institution.registrationNumbers.siret && (
+                          <div>
+                            <label className='block text-sm font-medium text-gray-700 mb-1'>
+                              SIRET
+                            </label>
+                            <p className='text-gray-900 font-mono text-sm'>
+                              {(user.providerInfo as any).institution.registrationNumbers.siret}
+                            </p>
+                          </div>
+                        )}
+                        {(user.providerInfo as any).institution.registrationNumbers.siren && (
+                          <div>
+                            <label className='block text-sm font-medium text-gray-700 mb-1'>
+                              SIREN
+                            </label>
+                            <p className='text-gray-900 font-mono text-sm'>
+                              {(user.providerInfo as any).institution.registrationNumbers.siren}
+                            </p>
+                          </div>
+                        )}
                       </>
-                    ) : (
-                      <span className='text-gray-500'>Non</span>
+                    )}
+                    {/* Certifications */}
+                    {(user.providerInfo as any).institution.certifications && 
+                     (user.providerInfo as any).institution.certifications.length > 0 && (
+                      <div className='md:col-span-2'>
+                        <label className='block text-sm font-medium text-gray-700 mb-2'>
+                          Certifications
+                        </label>
+                        <ul className='list-disc list-inside space-y-1'>
+                          {(user.providerInfo as any).institution.certifications.map((cert: string, index: number) => (
+                            <li key={index} className='text-gray-700 text-sm'>{cert}</li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Informations Individuel */}
+              {(user.providerInfo as any)?.type === 'INDIVIDUAL' && (user.providerInfo as any)?.individual && (
+                <div className='border-t border-gray-200 pt-4'>
+                  <h3 className='text-md font-semibold text-gray-800 mb-3'>Informations individuelles</h3>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    {(user.providerInfo as any).individual.firstName && (
+                      <div>
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
+                          Prénom
+                        </label>
+                        <p className='text-gray-900'>
+                          {(user.providerInfo as any).individual.firstName}
+                        </p>
+                      </div>
+                    )}
+                    {(user.providerInfo as any).individual.lastName && (
+                      <div>
+                        <label className='block text-sm font-medium text-gray-700 mb-1'>
+                          Nom
+                        </label>
+                        <p className='text-gray-900'>
+                          {(user.providerInfo as any).individual.lastName}
+                        </p>
+                      </div>
+                    )}
+                    {/* Numéros d'enregistrement depuis registrationNumbers */}
+                    {(user.providerInfo as any).individual.registrationNumbers && (
+                      <>
+                        {(user.providerInfo as any).individual.registrationNumbers.rcs && (
+                          <div>
+                            <label className='block text-sm font-medium text-gray-700 mb-1'>
+                              RCS
+                            </label>
+                            <p className='text-gray-900 font-mono text-sm'>
+                              {(user.providerInfo as any).individual.registrationNumbers.rcs}
+                            </p>
+                          </div>
+                        )}
+                        {(user.providerInfo as any).individual.registrationNumbers.tva && (
+                          <div>
+                            <label className='block text-sm font-medium text-gray-700 mb-1'>
+                              TVA
+                            </label>
+                            <p className='text-gray-900 font-mono text-sm'>
+                              {(user.providerInfo as any).individual.registrationNumbers.tva}
+                            </p>
+                          </div>
+                        )}
+                        {(user.providerInfo as any).individual.registrationNumbers.siret && (
+                          <div>
+                            <label className='block text-sm font-medium text-gray-700 mb-1'>
+                              SIRET
+                            </label>
+                            <p className='text-gray-900 font-mono text-sm'>
+                              {(user.providerInfo as any).individual.registrationNumbers.siret}
+                            </p>
+                          </div>
+                        )}
+                        {(user.providerInfo as any).individual.registrationNumbers.siren && (
+                          <div>
+                            <label className='block text-sm font-medium text-gray-700 mb-1'>
+                              SIREN
+                            </label>
+                            <p className='text-gray-900 font-mono text-sm'>
+                              {(user.providerInfo as any).individual.registrationNumbers.siren}
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Adresse professionnelle */}
+              {(user.providerInfo as any)?.professionalAddress && (
+                <div className='border-t border-gray-200 pt-4'>
+                  <h3 className='text-md font-semibold text-gray-800 mb-3'>Adresse professionnelle</h3>
+                  <div className='bg-gray-50 p-4 rounded-lg'>
+                    <p className='text-gray-900'>
+                      {(user.providerInfo as any).professionalAddress.street}
+                    </p>
+                    <p className='text-gray-700'>
+                      {(user.providerInfo as any).professionalAddress.postalCode} {(user.providerInfo as any).professionalAddress.city}
+                    </p>
+                    <p className='text-gray-700'>
+                      {(user.providerInfo as any).professionalAddress.country}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -231,7 +486,7 @@ function UserDetailPageContent() {
                 <label className='block text-sm font-medium text-gray-700 mb-2'>
                   Notes client
                 </label>
-                <p className='text-gray-700 bg-gray-50 p-3 rounded-lg'>
+                <p className='text-gray-700 bg-gray-50 p-3 rounded-lg whitespace-pre-wrap'>
                   {user.clientNotes}
                 </p>
               </div>
@@ -253,7 +508,9 @@ function UserDetailPageContent() {
                     ? 'Français'
                     : user.preferences?.language === 'en'
                     ? 'English'
-                    : 'Español'}
+                    : user.preferences?.language === 'es'
+                    ? 'Español'
+                    : user.preferences?.language || 'Français'}
                 </p>
               </div>
               <div>
@@ -289,6 +546,16 @@ function UserDetailPageContent() {
                 <Edit className='h-4 w-4 mr-2' />
                 Modifier l'utilisateur
               </Link>
+              {user.status === USER_STATUSES.PENDING && (
+                <button
+                  onClick={handleResendActivation}
+                  disabled={isResending}
+                  className='w-full flex items-center justify-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  <Send className='h-4 w-4 mr-2' />
+                  {isResending ? 'Envoi...' : 'Renvoyer le lien d\'activation'}
+                </button>
+              )}
               {user.email && (
                 <a
                   href={`mailto:${user.email}`}

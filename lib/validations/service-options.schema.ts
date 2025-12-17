@@ -52,3 +52,11 @@ export const DissociateServiceOptionSchema = z.object({
   optionId: z.string().min(1, 'L\'ID de l\'option est requis'),
 });
 
+/**
+ * Types TypeScript dérivés des schémas
+ */
+export type CreateServiceOptionInput = z.infer<typeof CreateServiceOptionSchema>;
+export type UpdateServiceOptionInput = z.infer<typeof UpdateServiceOptionSchema>;
+export type AssociateServiceOptionInput = z.infer<typeof AssociateServiceOptionSchema>;
+export type DissociateServiceOptionInput = z.infer<typeof DissociateServiceOptionSchema>;
+

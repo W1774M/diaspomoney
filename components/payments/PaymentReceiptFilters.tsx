@@ -1,6 +1,7 @@
 'use client';
 
 import type { PaymentReceiptFiltersProps } from '@/lib/types';
+import { getPaymentStatusDisplay } from '@/lib/bookings/utils';
 import { Search, SortAsc, SortDesc } from 'lucide-react';
 
 export function PaymentReceiptFilters({
@@ -38,10 +39,10 @@ export function PaymentReceiptFilters({
               aria-label='Filtrer par statut'
             >
               <option value='all'>Tous les statuts</option>
-              <option value='paid'>Payé</option>
-              <option value='pending'>En attente</option>
-              <option value='failed'>Échec</option>
-              <option value='refunded'>Remboursé</option>
+              <option value='paid'>{getPaymentStatusDisplay('paid')}</option>
+              <option value='pending'>{getPaymentStatusDisplay('pending')}</option>
+              <option value='failed'>{getPaymentStatusDisplay('failed')}</option>
+              <option value='refunded'>{getPaymentStatusDisplay('refunded')}</option>
             </select>
           </div>
 

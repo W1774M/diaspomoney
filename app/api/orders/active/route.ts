@@ -62,17 +62,38 @@ export async function GET(request: NextRequest) {
     // Note: Le repository ne retourne pas toutes les données du modèle MongoDB
     // On utilise donc directement le modèle pour les données complètes
     const Booking = (await import('@/models/Booking')).default;
-    const bookingIds = activeBookings.map(b => b.id || b._id);
-    const bookingDocs = (await (Booking as any)
-      .find({
-        _id: {
-          $in: bookingIds.map((id: string) => new mongoose.Types.ObjectId(id)),
-        },
-      })
-      .lean()) as BookingDocument[];
+    const bookingIds = activeBookings
+      .map(b => b.id || b._id)
+      .filter((id): id is string => Boolean(id) && typeof id === 'string');
+    
+    let bookingDocs: BookingDocument[] = [];
+    if (bookingIds.length > 0) {
+      try {
+        // Valider et convertir les IDs en ObjectId
+        const validObjectIds = bookingIds
+          .filter(id => mongoose.Types.ObjectId.isValid(id))
+          .map(id => new mongoose.Types.ObjectId(id));
+        
+        if (validObjectIds.length > 0) {
+          bookingDocs = (await (Booking as any)
+            .find({
+              _id: { $in: validObjectIds },
+            })
+            .lean()) as BookingDocument[];
+        }
+      } catch (error) {
+        log.warn({ error, bookingIds, msg: 'Error fetching booking documents from MongoDB' });
+        bookingDocs = [];
+      }
+    }
 
     const bookingDocMap = new Map<string, BookingDocument>(
-      bookingDocs.map((doc: BookingDocument) => [doc._id.toString(), doc]),
+      bookingDocs
+        .filter((doc: BookingDocument) => doc._id != null)
+        .map((doc: BookingDocument) => [
+          doc._id?.toString() || (doc._id as any)?.toHexString() || String(doc._id),
+          doc,
+        ]),
     );
 
     // Récupérer les informations des prestataires séparément via Repository Pattern
@@ -253,30 +274,43 @@ export async function GET(request: NextRequest) {
             },
           ],
           estimatedDeliveryDate: estimatedDeliveryDate,
-          beneficiary:
-            bookingDoc?.['beneficiary'] || booking.recipient
-              ? {
-                  firstName:
-                    bookingDoc?.['beneficiary']?.['firstName'] ||
-                    booking.recipient?.firstName ||
-                    '',
-                  lastName:
-                    bookingDoc?.['beneficiary']?.['lastName'] ||
-                    booking.recipient?.lastName ||
-                    '',
-                  phone:
-                    bookingDoc?.['beneficiary']?.['phone'] ||
-                    booking.recipient?.phone ||
-                    '',
-                }
-              : undefined,
+          beneficiary: (() => {
+            const beneficiaryData = bookingDoc?.['beneficiary'] || booking.recipient;
+            if (!beneficiaryData) {
+              return undefined;
+            }
+            const firstName = beneficiaryData?.firstName || '';
+            const lastName = beneficiaryData?.lastName || '';
+            const phone = beneficiaryData?.phone || '';
+            
+            // Ne retourner que si au moins firstName ou lastName est présent
+            if (!firstName && !lastName) {
+              return undefined;
+            }
+            
+            return {
+              firstName,
+              lastName,
+              phone,
+            };
+          })(),
           amount: bookingDoc?.['selectedService']?.['price'] || 0,
           currency: 'EUR',
-          paymentStatus: 'pending',
+          paymentStatus: (bookingDoc?.['metadata']?.['paymentStatus'] || 
+                         booking['metadata']?.['paymentStatus'] || 
+                         'pending') as string,
           chatEnabled: true,
-          conversationId: conversationMap.get(booking.id || booking._id || ''),
-          createdAt: booking.createdAt,
-          updatedAt: booking.updatedAt,
+          conversationId: conversationMap.get(booking.id || booking._id || '') || undefined,
+          createdAt: booking.createdAt instanceof Date 
+            ? booking.createdAt.toISOString() 
+            : typeof booking.createdAt === 'string' 
+              ? booking.createdAt 
+              : new Date().toISOString(),
+          updatedAt: booking.updatedAt instanceof Date 
+            ? booking.updatedAt.toISOString() 
+            : typeof booking.updatedAt === 'string' 
+              ? booking.updatedAt 
+              : new Date().toISOString(),
         };
       }),
     );
@@ -292,13 +326,24 @@ export async function GET(request: NextRequest) {
       orders,
     });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     log.error({
-      error,
+      error: {
+        message: errorMessage,
+        stack: errorStack,
+        name: error instanceof Error ? error.name : undefined,
+        ...(error && typeof error === 'object' && 'code' in error ? { code: (error as any).code } : {}),
+      },
       msg: 'Error fetching active orders',
     });
 
     return NextResponse.json(
-      { error: 'Erreur lors de la récupération des commandes actives' },
+      { 
+        error: 'Erreur lors de la récupération des commandes actives',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      },
       { status: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR },
     );
   }

@@ -6,21 +6,27 @@ import { useSignOut } from '@/hooks/auth/useSignOut';
 import imageLoader from '@/lib/image-loader';
 import { ROLES } from '@/lib/constants';
 import type { UINotification } from '@/lib/types';
-import { Bell, ChevronDown, Mail, MessageSquare } from 'lucide-react';
+import { Bell, ChevronDown, Mail, MessageSquare, Menu } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { useSidebar } from '@/components/layout/SidebarContext';
+import { childLogger } from '@/lib/logger';
 
-export default function DashboardHeader() {
+const logger = childLogger({ component: 'DashboardHeader' });
+
+export default function DashboardHeader({ className = '' }: { className?: string }) {
   const { user, isAuthenticated } = useAuth();
   const { signOut, isSigningOut } = useSignOut();
   const router = useRouter();
+  const { open: openSidebar } = useSidebar();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<UINotification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   // Récupérer le nombre de notifications non lues depuis l'API
   const fetchUnreadCount = useCallback(async () => {
@@ -37,7 +43,7 @@ export default function DashboardHeader() {
         setNotifications(data.notifications || []);
       }
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      logger.error({ error }, 'Error fetching unread count');
     }
   }, [isAuthenticated]);
 
@@ -63,7 +69,7 @@ export default function DashboardHeader() {
           }
         })
         .catch(error => {
-          console.error('Error fetching notifications:', error);
+          logger.error({ error }, 'Error fetching notifications');
         })
         .finally(() => {
           setLoadingNotifications(false);
@@ -89,7 +95,7 @@ export default function DashboardHeader() {
         fetchUnreadCount();
       }
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      logger.error({ error }, 'Error marking notification as read');
     }
   };
 
@@ -172,22 +178,36 @@ export default function DashboardHeader() {
 
   const avatarUrl = getAvatarUrl();
 
+  // Réinitialiser l'erreur d'avatar si l'URL change
+  useEffect(() => {
+    setAvatarError(false);
+  }, [avatarUrl]);
+
   if (!user) {
     return null;
   }
 
   return (
-    <header className='bg-black shadow-sm border-b border-gray-800'>
+    <header className={`bg-black shadow-sm border-b border-gray-800 ${className}`}>
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='flex justify-between items-center h-16'>
-          {/* Logo */}
-          <div className='flex items-center'>
+          {/* Logo et bouton hamburger */}
+          <div className='flex items-center space-x-3'>
+            {/* Bouton hamburger pour mobile/tablette */}
+            <button
+              onClick={openSidebar}
+              className='lg:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition-colors'
+              aria-label='Ouvrir le menu'
+            >
+              <Menu className='h-6 w-6' />
+            </button>
             <Link href='/' className='flex-shrink-0'>
               <Logo
                 src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
                 width={200}
                 height={100}
                 alt='Diaspomoney'
+                className='h-8 sm:h-10 w-auto'
               />
             </Link>
           </div>
@@ -235,24 +255,30 @@ export default function DashboardHeader() {
 
               {/* Dropdown des notifications */}
               {isNotificationMenuOpen && (
-                <div className='absolute right-0 mt-2 w-80 bg-gray-800 rounded-md shadow-lg border border-gray-700 py-2 z-50 max-h-96 overflow-y-auto'>
-                  <div className='px-4 py-2 border-b border-gray-700 flex justify-between items-center'>
-                    <h3 className='text-sm font-semibold text-white'>
-                      Notifications
-                    </h3>
-                    {unreadCount > 0 && (
-                      <span className='text-xs text-gray-400'>
-                        {unreadCount} non {unreadCount === 1 ? 'lue' : 'lues'}
-                      </span>
-                    )}
-                  </div>
+                <>
+                  {/* Overlay pour fermer en cliquant à l'extérieur sur mobile */}
+                  <div
+                    className='fixed inset-0 z-40 sm:hidden'
+                    onClick={() => setIsNotificationMenuOpen(false)}
+                  />
+                  <div className='fixed sm:absolute right-4 sm:right-0 top-20 sm:top-auto sm:mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-gray-800 rounded-md shadow-lg border border-gray-700 py-2 z-50 max-h-[calc(100vh-7rem)] sm:max-h-96 overflow-y-auto'>
+                    <div className='px-3 sm:px-4 py-2 border-b border-gray-700 flex justify-between items-center gap-2'>
+                      <h3 className='text-sm font-semibold text-white flex-shrink-0'>
+                        Notifications
+                      </h3>
+                      {unreadCount > 0 && (
+                        <span className='text-xs text-gray-400 whitespace-nowrap flex-shrink-0'>
+                          {unreadCount} non {unreadCount === 1 ? 'lue' : 'lues'}
+                        </span>
+                      )}
+                    </div>
 
                   {loadingNotifications ? (
-                    <div className='px-4 py-8 text-center'>
+                    <div className='px-3 sm:px-4 py-8 text-center'>
                       <div className='animate-spin rounded-full h-6 w-6 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
                     </div>
                   ) : notifications.length === 0 ? (
-                    <div className='px-4 py-8 text-center text-sm text-gray-400'>
+                    <div className='px-3 sm:px-4 py-8 text-center text-sm text-gray-400'>
                       Aucune notification
                     </div>
                   ) : (
@@ -260,7 +286,7 @@ export default function DashboardHeader() {
                       {notifications.slice(0, 5).map(notification => (
                         <div
                           key={notification.id}
-                          className={`px-4 py-3 hover:bg-gray-700 transition-colors cursor-pointer ${
+                          className={`px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-gray-700 transition-colors cursor-pointer ${
                             !notification.read ? 'bg-gray-700/50' : ''
                           }`}
                           onClick={() => {
@@ -271,11 +297,11 @@ export default function DashboardHeader() {
                             setIsNotificationMenuOpen(false);
                           }}
                         >
-                          <div className='flex items-start justify-between'>
+                          <div className='flex items-start justify-between gap-2'>
                             <div className='flex-1 min-w-0'>
-                              <div className='flex items-center space-x-2 mb-1'>
+                              <div className='flex items-start gap-2 mb-1'>
                                 <h4
-                                  className={`text-sm font-medium truncate ${
+                                  className={`text-xs sm:text-sm font-medium break-words flex-1 min-w-0 ${
                                     !notification.read
                                       ? 'text-white'
                                       : 'text-gray-300'
@@ -284,23 +310,23 @@ export default function DashboardHeader() {
                                   {notification.subject}
                                 </h4>
                                 {!notification.read && (
-                                  <span className='h-1.5 w-1.5 bg-[hsl(25,100%,53%)] rounded-full flex-shrink-0'></span>
+                                  <span className='h-1.5 w-1.5 bg-[hsl(25,100%,53%)] rounded-full flex-shrink-0 mt-1.5'></span>
                                 )}
                               </div>
-                              <p className='text-xs text-gray-400 line-clamp-2 mb-2'>
+                              <p className='text-xs text-gray-400 line-clamp-2 mb-2 break-words overflow-hidden'>
                                 {notification.content}
                               </p>
-                              <div className='flex items-center space-x-3 text-xs text-gray-500'>
-                                <span>
+                              <div className='flex items-center flex-wrap gap-2 sm:gap-3 text-xs text-gray-500'>
+                                <span className='whitespace-nowrap flex-shrink-0'>
                                   {formatDate(notification.createdAt)}
                                 </span>
-                                <div className='flex items-center space-x-1'>
+                                <div className='flex items-center gap-1 flex-shrink-0'>
                                   {notification.channels
                                     .slice(0, 2)
                                     .map((channel, idx) => (
                                       <div
                                         key={idx}
-                                        className='text-gray-500'
+                                        className='text-gray-500 flex-shrink-0'
                                         title={channel.type}
                                       >
                                         {getChannelIcon(channel.type)}
@@ -316,17 +342,18 @@ export default function DashboardHeader() {
                   )}
 
                   {notifications.length > 0 && (
-                    <div className='px-4 py-2 border-t border-gray-700'>
+                    <div className='px-3 sm:px-4 py-2 border-t border-gray-700'>
                       <Link
                         href='/dashboard/notifications'
                         onClick={() => setIsNotificationMenuOpen(false)}
-                        className='block text-center text-sm text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,58%)] transition-colors'
+                        className='block text-center text-xs sm:text-sm text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,58%)] transition-colors font-medium'
                       >
                         Voir toutes les notifications
                       </Link>
                     </div>
                   )}
                 </div>
+                </>
               )}
             </div>
 
@@ -341,7 +368,7 @@ export default function DashboardHeader() {
               >
                 {/* Avatar */}
                 <div className='w-10 h-10 bg-[hsl(25,100%,53%)] rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden'>
-                  {avatarUrl ? (
+                  {avatarUrl && !avatarError ? (
                     <Image
                       src={avatarUrl}
                       alt={user.name || 'User'}
@@ -350,6 +377,10 @@ export default function DashboardHeader() {
                       className='rounded-full object-cover'
                       loader={imageLoader}
                       unoptimized
+                      onError={() => {
+                        // En cas d'erreur (404, etc.), afficher les initiales
+                        setAvatarError(true);
+                      }}
                     />
                   ) : (
                     <span className='text-sm font-semibold text-white'>

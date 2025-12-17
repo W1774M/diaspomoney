@@ -8,6 +8,8 @@ export {
   CardHeader,
   CardTitle,
 } from "./Card";
+export { default as ConfirmDialog } from "./ConfirmDialog";
+export type { ConfirmDialogProps } from "./ConfirmDialog";
 export { Form, FormDescription, FormField, FormLabel } from "./Form";
 export { Input } from "./Input";
 export { default as Logo } from "./Logo";

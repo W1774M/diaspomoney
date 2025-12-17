@@ -8,7 +8,6 @@
  * - Validation Pattern (via CreateProviderSchema, ProviderFiltersSchema)
  */
 
-// Désactiver le prerendering pour cette route API
 // Elle nécessite une connexion MongoDB qui n'est pas disponible pendant le build
 ;
 
@@ -22,10 +21,6 @@ import { getUserRepository } from '@/repositories';
 import { userService } from '@/services/user/user.service';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-
-// Désactiver le prerendering pour cette route API
-export const dynamic = 'force-dynamic';
-
 /**
  * GET /api/providers - Récupérer les providers
  * 

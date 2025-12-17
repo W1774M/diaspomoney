@@ -1,6 +1,8 @@
 "use client";
 import { Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNotificationManager } from "@/components/ui/Notification";
+import { PhoneInput } from "react-international-phone";
 
 interface BookingData {
   requester: {
@@ -30,6 +32,7 @@ export function PopupRegisterForm({
   onClose,
   onSuccess,
 }: PopupRegisterFormProps) {
+  const { addSuccess } = useNotificationManager();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -122,6 +125,11 @@ export function PopupRegisterForm({
       if (res.ok) {
         // Nettoyer les données de booking du localStorage
         localStorage.removeItem("bookingData");
+        // Afficher une notification de succès avec l'emoji 🔔
+        addSuccess(
+          "🔔 Compte créé avec succès ! Vérifiez votre email pour activer votre compte.",
+          6000,
+        );
         // Appeler le callback de succès
         onSuccess();
         // Fermer la popup
@@ -231,12 +239,12 @@ export function PopupRegisterForm({
               <label className="block mb-1 font-semibold text-gray-700 text-sm">
                 Téléphone <span className="text-red-500">*</span>
               </label>
-              <input
-                type="tel"
+              <PhoneInput
+                defaultCountry="fr"
                 value={formData.phone}
-                onChange={e => handleInputChange("phone", e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
-                placeholder="Votre numéro"
+                onChange={(phone) => handleInputChange("phone", phone)}
+                className="w-full"
+                inputClassName="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
               />
             </div>
 

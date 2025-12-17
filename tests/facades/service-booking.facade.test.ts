@@ -61,7 +61,12 @@ describe('ServiceBookingFacade', () => {
       lastName: 'Doe',
       phone: '+33987654321',
       email: 'jane.doe@example.com',
-      country: 'FR',
+      relationship: 'OTHER',
+      location: {
+        address: '123 Main St',
+        city: 'Paris',
+        country: 'FR',
+      },
     },
     selectedService: {
       serviceId: 'service123',
@@ -723,7 +728,12 @@ describe('ServiceBookingFacade', () => {
           firstName: '',
           lastName: '',
           phone: '',
-          country: 'FR',
+          relationship: 'OTHER',
+          location: {
+            address: '',
+            city: '',
+            country: 'FR',
+          },
         },
         selectedService: {
           serviceId: '',

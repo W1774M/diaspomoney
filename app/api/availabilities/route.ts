@@ -1,5 +1,4 @@
 /**
-// Désactiver le prerendering pour cette route API
 ;
 
  * API Route - Availability Rules

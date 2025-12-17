@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
 
     // Statistiques des bookings
     const totalBookings = allBookings.length;
-    const completedBookings = allBookings.filter(b => b.status === BOOKING_STATUSES.COMPLETED).length;
+    const completedBookings = allBookings.filter(b => b.status === BOOKING_STATUSES.FINISHED).length;
     const pendingBookings = allBookings.filter(b => b.status === BOOKING_STATUSES.PENDING).length;
     const cancelledBookings = allBookings.filter(b => b.status === BOOKING_STATUSES.CANCELLED).length;
 

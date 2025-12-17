@@ -1,14 +1,33 @@
+/**
+ * UsersPage - Page de gestion des utilisateurs
+ * 
+ * Implémente les design patterns :
+ * - Custom Hooks Pattern (via useUsers, useUserFilters, useUserActions)
+ * - Authorization Pattern (via useAuthorization)
+ * - Notification Pattern (via useUserActions qui utilise useNotificationManager)
+ * - Logger Pattern (structured logging)
+ * 
+ * Architecture :
+ * - Le composant utilise useUsers qui appelle /api/users (GET)
+ * - /api/users utilise le Facade Pattern (userFacade.getUsers)
+ * - useUserActions utilise /api/users/[id] (DELETE) qui utilise userService
+ * - Service Layer Pattern : userService utilise userRepository
+ * - Repository Pattern : abstraction de l'accès aux données
+ */
 "use client";
 
 import { useUsers, useAuthorization } from "@/hooks";
-import { useUserFilters } from "@/hooks/users";
+import { useUserFilters, useUserActions } from "@/hooks/users";
 import { ROLES, USER_STATUSES } from "@/lib/constants";
 import { logger } from "@/lib/logger";
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import CreateUserModal from "./CreateUserModal";
 import UsersFilters from "./UsersFilters";
 import UsersHeader from "./UsersHeader";
-import UsersTable from "./UsersTable";
+import UsersTableModern from "./UsersTableModern";
+import UsersStatsCards from "./UsersStatsCards";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 function UsersPage() {
   const router = useRouter();
@@ -35,11 +54,68 @@ function UsersPage() {
     return opts;
   }, [roleFilter, statusFilter]);
 
-  const { users = [], loading, error } = useUsers(usersOptions);
+  const { users = [], loading, error, refetch } = useUsers(usersOptions);
   
   // Utiliser directement users au lieu de localUsers pour éviter les mises à jour inutiles
   // localUsers n'est nécessaire que pour les suppressions locales
   const [deletedUserIds, setDeletedUserIds] = useState<Set<string>>(new Set());
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+
+  // Calculer les statistiques
+  const stats = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const usersToday = users.filter((user: any) => {
+      const createdAt = user.createdAt ? new Date(user.createdAt) : null;
+      if (!createdAt) return false;
+      createdAt.setHours(0, 0, 0, 0);
+      return createdAt.getTime() === today.getTime();
+    }).length;
+
+    // Pour l'instant, on simule les requêtes REST et Auth
+    // TODO: Intégrer avec les vraies statistiques API
+    const restRequests = 0; // À remplacer par les vraies données
+    const authRequests = 0; // À remplacer par les vraies données
+
+    // Calculer le nombre d'utilisateurs du mois précédent (simulation)
+    const previousMonthUsers = Math.floor(users.length * 0.9); // Approximation
+
+    return {
+      totalUsers: users.length,
+      usersToday,
+      restRequests,
+      authRequests,
+      previousMonthUsers,
+    };
+  }, [users]);
+
+  // Hook d'actions pour la suppression (conforme au pattern)
+  const handleUserCreated = useCallback(() => {
+    logger.debug({}, '[UsersPage] Utilisateur créé, rafraîchissement de la liste');
+    // Forcer le rafraîchissement immédiatement
+    if (refetch) {
+      refetch();
+    }
+  }, [refetch]);
+
+  const handleDeleteSuccess = useCallback(() => {
+    // Callback de succès : rafraîchir la liste et marquer comme supprimé localement
+    if (userToDelete) {
+      setDeletedUserIds(prev => new Set([...prev, userToDelete]));
+      if (refetch) {
+        setTimeout(() => {
+          refetch();
+        }, 300);
+      }
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+    }
+  }, [userToDelete, refetch]);
+
+  const { deleteUser, isDeleting } = useUserActions(handleDeleteSuccess);
   
   // Logger les erreurs de récupération des utilisateurs
   useEffect(() => {
@@ -60,18 +136,27 @@ function UsersPage() {
     if (deletedUserIds.size === 0) {
       return users;
     }
-    return users.filter(user => !deletedUserIds.has(user._id));
+    return users.filter(user => {
+      const userId = user._id || user["id"];
+      return userId && !deletedUserIds.has(userId);
+    });
   }, [users, deletedUserIds]);
 
   const { filteredUsers, updateFilter, clearFilters, hasActiveFilters } =
     useUserFilters(localUsers as any);
 
-  const handleDelete = useCallback(async (id: string) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
-      logger.info({ userId: id }, '[UsersPage] Suppression d\'utilisateur demandée');
-      setDeletedUserIds(prev => new Set([...prev, id]));
-    }
+  const handleDelete = useCallback((id: string) => {
+    logger.debug({ userId: id }, '[UsersPage] Ouverture dialog de confirmation de suppression');
+    setUserToDelete(id);
+    setDeleteDialogOpen(true);
   }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!userToDelete) return;
+    
+    // Utiliser le hook d'actions pour la suppression
+    await deleteUser(userToDelete);
+  }, [userToDelete, deleteUser]);
 
   const handleEdit = useCallback(
     (id: string) => {
@@ -104,9 +189,14 @@ function UsersPage() {
   }, []);
 
   const handleAddUser = useCallback(() => {
-    logger.debug({}, '[UsersPage] Navigation vers création utilisateur');
-    router.push("/dashboard/users/new");
-  }, [router]);
+    logger.debug({}, '[UsersPage] Ouverture modal création utilisateur');
+    setIsCreateModalOpen(true);
+  }, []);
+
+  const handleCloseCreateModal = useCallback(() => {
+    setIsCreateModalOpen(false);
+  }, []);
+
 
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -146,10 +236,19 @@ function UsersPage() {
   }
 
   return (
+    <>
     <div className="space-y-6">
       <UsersHeader
-        totalUsers={filteredUsers.length}
         onAddUser={handleAddUser}
+      />
+
+      {/* Statistiques */}
+      <UsersStatsCards
+        totalUsers={stats.totalUsers}
+        usersToday={stats.usersToday}
+        restRequests={stats.restRequests}
+        authRequests={stats.authRequests}
+        previousMonthUsers={stats.previousMonthUsers}
       />
 
       <UsersFilters
@@ -172,7 +271,8 @@ function UsersPage() {
         </div>
       )}
 
-      <UsersTable
+      {/* Tableau moderne */}
+      <UsersTableModern
         users={filteredUsers}
         loading={loading}
         onDelete={handleDelete}
@@ -182,6 +282,30 @@ function UsersPage() {
         onCall={handleCall}
       />
     </div>
+
+      <CreateUserModal
+        isOpen={isCreateModalOpen}
+        onClose={handleCloseCreateModal}
+        onSuccess={handleUserCreated}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          if (!isDeleting) {
+            setDeleteDialogOpen(false);
+            setUserToDelete(null);
+          }
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Supprimer l'utilisateur"
+        message="Êtes-vous sûr de vouloir supprimer définitivement cet utilisateur ?\n\nCette action est irréversible et supprimera toutes les données associées à cet utilisateur."
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="danger"
+        isLoading={isDeleting}
+      />
+    </>
   );
 }
 

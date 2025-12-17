@@ -1,9 +1,11 @@
 "use client";
 
 import type { BookingsTableProps } from "@/lib/types";
-import { Calendar, Loader2 } from "lucide-react";
+import { Calendar, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import React from "react";
 import BookingCard from "./BookingCard";
+import { AuthorizedContent } from "@/components/auth";
+import { ROLES } from "@/lib/constants";
 
 const BookingsTable = React.memo<BookingsTableProps>(function BookingsTable({
   bookings,
@@ -12,7 +14,46 @@ const BookingsTable = React.memo<BookingsTableProps>(function BookingsTable({
   onView,
   onEdit,
   onCancel,
+  sortBy,
+  sortOrder,
+  onSort,
 }) {
+  
+  // Fonction helper pour rendre un en-tête de colonne triable
+  const renderSortableHeader = (field: string, label: string) => {
+    if (!onSort) {
+      return (
+        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {label}
+        </th>
+      );
+    }
+
+    const isActive = sortBy === field;
+    const isAsc = isActive && sortOrder === 'asc';
+
+    return (
+      <th
+        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+        onClick={() => onSort(field)}
+      >
+        <div className="flex items-center gap-1">
+          <span>{label}</span>
+          {isActive ? (
+            isAsc ? (
+              <ArrowUp className="h-4 w-4" />
+            ) : (
+              <ArrowDown className="h-4 w-4" />
+            )
+          ) : (
+            <div className="h-4 w-4 opacity-30">
+              <ArrowUp className="h-4 w-4" />
+            </div>
+          )}
+        </div>
+      </th>
+    );
+  };
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -71,34 +112,27 @@ const BookingsTable = React.memo<BookingsTableProps>(function BookingsTable({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Réservation
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Prestataire
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Montant
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Statut
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Paiement
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            {renderSortableHeader('reservationNumber', 'Réservation')}
+            {renderSortableHeader('appointmentDate', 'Date')}
+            {renderSortableHeader('amount', 'Montant')}
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Statut
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Paiement
+            </th>
+            <AuthorizedContent roles={[ROLES.ADMIN, ROLES.CSM]}>
+              {renderSortableHeader('completionRate', 'Taux de remplissage')}
+            </AuthorizedContent>
+            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {bookings.map(booking => (
               <BookingCard
@@ -107,13 +141,13 @@ const BookingsTable = React.memo<BookingsTableProps>(function BookingsTable({
                 onView={onView}
                 onEdit={onEdit}
                 onCancel={onCancel}
+                showProgress={true}
               />
             ))}
           </tbody>
         </table>
       </div>
-    </div>
-  );
+    );
 });
 
 BookingsTable.displayName = "BookingsTable";

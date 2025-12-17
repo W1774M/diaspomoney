@@ -12,14 +12,14 @@
  * - Logger Pattern (structured logging avec childLogger)
  */
 
-import { LOCALE } from '@/lib/constants';
+import { ROLES, USER_STATUSES, KYC_STATUSES } from '@/lib/constants';
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
 import { RateLimit } from '@/lib/decorators/rate-limit.decorator';
 import { Audit } from '@/lib/decorators/audit.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
-import { sendPasswordResetEmail, sendWelcomeEmail } from '@/lib/email/resend';
+import { sendPasswordResetEmail } from '@/lib/email/resend';
 import { childLogger } from '@/lib/logger';
 import { RegisterSchema, LoginSchema } from '@/lib/validations/auth.schema';
 import dbConnect from '@/lib/mongodb';
@@ -40,7 +40,6 @@ import jwt from 'jsonwebtoken';
 import QRCode from 'qrcode';
 import * as speakeasy from 'speakeasy';
 import { z } from 'zod';
-import { notificationService } from '../notification/notification.service';
 
 class AuthService {
   private static instance: AuthService;
@@ -89,7 +88,7 @@ class AuthService {
         email: credentials.email.toLowerCase(),
       });
 
-      if (!user || user.status !== 'ACTIVE') {
+      if (!user || user.status !== USER_STATUSES.ACTIVE) {
         log.warn(
           { email: credentials.email.toLowerCase() },
           'Login failed: invalid credentials or inactive user',
@@ -163,7 +162,7 @@ class AuthService {
       const tokens = securityManager.generateTokens({
         id: user.id,
         email: user.email,
-        role: user.roles?.[0] || 'CUSTOMER',
+        role: user.roles?.[0] || ROLES.CUSTOMER,
       });
 
       // Mise à jour de la dernière connexion via le repository
@@ -180,7 +179,7 @@ class AuthService {
         'AUTH_SYSTEM',
         {
           email: user.email,
-          role: user.roles?.[0] || 'CUSTOMER',
+          role: user.roles?.[0] || ROLES.CUSTOMER,
         },
         {
           userId: user.id,
@@ -201,9 +200,9 @@ class AuthService {
         user: {
           id: user.id,
           email: user.email,
-          role: user.roles?.[0] || 'CUSTOMER',
+          role: user.roles?.[0] || ROLES.CUSTOMER,
           isVerified: (user as any)['isEmailVerified'] || false,
-          kycStatus: 'PENDING',
+          kycStatus: KYC_STATUSES.PENDING,
         },
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
@@ -255,17 +254,75 @@ class AuthService {
         throw new Error('Le mot de passe doit contenir au moins 8 caractères');
       }
 
-      // Vérifier si l'utilisateur existe déjà via le repository
-      const existingUser = await this.userRepository.findOne({
+      // Utiliser UserFacade pour créer l'utilisateur (Facade Pattern)
+      // La facade gère la vérification de duplication, la création, l'audit, etc.
+      const { userFacade } = await import('@/facades');
+      
+      // Construire les données pour la facade avec gestion correcte des types optionnels
+      const facadeData: {
+        email: string;
+        name: string;
+        firstName: string;
+        lastName: string;
+        phone?: string | undefined;
+        roles: string[];
+        status: string;
+        password?: string | undefined;
+        sendWelcomeNotification: boolean;
+        metadata: {
+          country?: string | undefined;
+          countryOfResidence?: string | undefined;
+          dateOfBirth?: Date | undefined;
+          targetCountry?: string | undefined;
+          targetCity?: string | undefined;
+          monthlyBudget?: number | undefined;
+          securityQuestion?: string | undefined;
+          securityAnswer?: string | undefined;
+          selectedServices?: string[] | undefined;
+          isEmailVerified?: boolean | undefined;
+          marketingConsent?: boolean | undefined;
+          kycConsent?: boolean | undefined;
+          kycStatus?: string | undefined;
+          oauth?: any;
+        };
+      } = {
         email: data.email.toLowerCase(),
-      });
+        name: `${data.firstName} ${data.lastName}`,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        ...(data.phone && { phone: String(data.phone).trim() }),
+        roles: [ROLES.CUSTOMER], // Rôle par défaut
+        status: USER_STATUSES.PENDING, // PENDING pour activation via email
+        sendWelcomeNotification: false, // On enverra un email personnalisé après
+        metadata: {
+          ...(data.country && { country: data.country }),
+          ...(data.country && { countryOfResidence: data.country }),
+          ...(data.dateOfBirth && { 
+            dateOfBirth: (data.dateOfBirth as unknown as Date) instanceof Date 
+              ? (data.dateOfBirth as unknown as Date)
+              : new Date(data.dateOfBirth as unknown as string | number | Date) 
+          }),
+          ...(data.targetCountry && { targetCountry: data.targetCountry }),
+          ...(data.targetCity && { targetCity: data.targetCity }),
+          ...(data.monthlyBudget !== undefined && typeof data.monthlyBudget === 'number' && { monthlyBudget: data.monthlyBudget }),
+          ...(data.securityQuestion && { securityQuestion: data.securityQuestion }),
+          ...(data.securityAnswer && { securityAnswer: data.securityAnswer }),
+          ...(data.selectedServices && Array.isArray(data.selectedServices) && { selectedServices: data.selectedServices }),
+          isEmailVerified: false,
+          marketingConsent: data.marketingConsent || false,
+          ...(data.termsAccepted !== undefined && { kycConsent: data.termsAccepted }),
+          kycStatus: KYC_STATUSES.PENDING,
+          ...(data.oauth && { oauth: data.oauth }),
+        },
+      };
 
-      if (existingUser) {
-        log.warn(
-          { email: data.email.toLowerCase() },
-          'Registration failed: email already exists',
-        );
-        // Enregistrer l'audit log
+      const facadeResult = await userFacade.execute(facadeData);
+
+      if (!facadeResult.success || !facadeResult.user) {
+        const errorMessage = facadeResult.error || 'Erreur lors de la création de l\'utilisateur';
+        
+        // Si c'est une erreur de duplication, enregistrer l'audit log spécifique
+        if (errorMessage.includes('existe déjà') || errorMessage.includes('duplicate')) {
         await auditLogging.createAuditLog(
           'REGISTER_FAILED',
           'AUTH_SYSTEM',
@@ -281,73 +338,50 @@ class AuthService {
             userAgent: options?.userAgent || 'unknown',
           },
         );
-        throw new Error('Un compte avec cet email existe déjà');
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      // Créer l'utilisateur via le repository avec hashage automatique du mot de passe
-      const user = await this.userRepository.createWithPassword({
-        email: data.email.toLowerCase(),
-        password: data.password || undefined, // Le hook pre('save') hash le mot de passe
-        name: `${data.firstName} ${data.lastName}`,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phone: data.phone ? String(data.phone).trim() : undefined,
-        country: data.country,
-        countryOfResidence: data.country,
-        dateOfBirth: data.dateOfBirth,
-        targetCountry: data.targetCountry,
-        targetCity: data.targetCity,
-        monthlyBudget: data.monthlyBudget,
-        securityQuestion: data.securityQuestion,
-        securityAnswer: data.securityAnswer,
-        selectedServices: data.selectedServices,
-        roles: ['CUSTOMER'], // Rôle par défaut
-        status: 'ACTIVE',
-        isEmailVerified: false,
-        marketingConsent: data.marketingConsent || false,
-        kycConsent: data.termsAccepted,
-        kycStatus: 'PENDING',
-        oauth: data.oauth,
-      } as any);
+      const user = facadeResult.user;
 
-      // Générer le token de vérification email
-      const emailVerificationToken = jwt.sign(
-        { userId: user._id?.toString() || user.id, type: 'email_verification' },
+      // Générer le token d'activation de compte (pour définir le mot de passe et activer)
+      // Ce token sert aussi de vérification d'email
+      const activationToken = jwt.sign(
+        { userId: user._id?.toString() || user.id, type: 'account_activation' },
         process.env['JWT_SECRET']!,
-        { expiresIn: '24h' },
+        { expiresIn: '1d' },
       );
 
-      // Envoyer l'email de bienvenue avec lien de vérification
-      const verificationUrl = `${
-        process.env['NEXTAUTH_URL'] || 'http://localhost:3000'
-      }/verify-email?token=${emailVerificationToken}`;
+      // Envoyer l'email d'activation avec lien pour définir le mot de passe
+      const { cleanUrl } = await import('@/lib/utils');
+      const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+      const activationUrl = `${baseUrl}/activate-account?token=${activationToken}`;
+      
+      // Envoyer l'email d'activation avec lien pour définir le mot de passe
+      const { sendWelcomeEmail } = await import('@/lib/email/resend');
       const emailSent = await sendWelcomeEmail(
         user.email,
         `${user.firstName} ${user.lastName}`,
-        verificationUrl,
+        activationUrl,
       );
 
       if (!emailSent) {
         log.warn(
           { email: user.email },
-          "⚠️ Échec de l'envoi de l'email de bienvenue",
+          "⚠️ Échec de l'envoi de l'email d'activation",
         );
         // Ne pas faire échouer l'inscription à cause de l'email
-        // L'utilisateur peut toujours se connecter et demander un renvoi
+        // L'utilisateur peut toujours demander un renvoi du lien d'activation
       } else {
-        log.info({ email: user.email }, '✅ Email de bienvenue envoyé');
-        await notificationService.sendWelcomeNotification(
-          user.email,
-          `${user.firstName} ${user.lastName}`,
-          LOCALE.DEFAULT,
-        );
+        log.info({ email: user.email }, '✅ Email d\'activation envoyé');
       }
 
       // Génération des tokens
       const tokens = securityManager.generateTokens({
         id: user._id?.toString() || user.id,
         email: user.email,
-        role: (user.roles?.[0] || 'CUSTOMER') as string,
+        role: (user.roles?.[0] || ROLES.CUSTOMER) as string,
       });
 
       // Enregistrer l'audit log de registration réussie
@@ -377,16 +411,51 @@ class AuthService {
         user: {
           id: user._id?.toString() || user.id,
           email: user.email,
-          role: user.roles?.[0] || 'CUSTOMER',
+          role: user.roles?.[0] || ROLES.CUSTOMER,
           isVerified: false,
-          kycStatus: 'PENDING',
+          kycStatus: KYC_STATUSES.PENDING,
         },
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresIn: 15 * 60,
       };
-    } catch (error) {
+    } catch (error: any) {
       const log = childLogger({ route: 'AuthService:register' });
+      
+      // Si l'erreur est déjà une erreur de duplication, la relancer telle quelle
+      if (error.message?.includes('existe déjà')) {
+        log.warn(
+          { error, email: data.email.toLowerCase() },
+          'Registration failed: duplicate email',
+        );
+        throw error;
+      }
+      
+      // Si c'est une erreur MongoDB de duplication, la transformer
+      if (error.code === 11000 || error.code === 11001) {
+        log.warn(
+          { error, email: data.email.toLowerCase() },
+          'Registration failed: MongoDB duplicate key error',
+        );
+        // Enregistrer l'audit log d'échec
+        await auditLogging.createAuditLog(
+          'REGISTER_FAILED',
+          'AUTH_SYSTEM',
+          {
+            email: data.email.toLowerCase(),
+            reason: 'email_already_exists',
+          },
+          {
+            category: 'AUTHENTICATION',
+            severity: 'LOW',
+            outcome: 'FAILURE',
+            ipAddress: options?.ipAddress || 'unknown',
+            userAgent: options?.userAgent || 'unknown',
+          },
+        );
+        throw new Error('Un compte avec cet email existe déjà');
+      }
+      
       log.error(
         { error, msg: 'Error during registration' },
         'Registration error',
@@ -422,7 +491,7 @@ class AuthService {
       // Récupérer l'utilisateur via le repository
       const user = await this.userRepository.findById(decoded.userId);
 
-      if (!user || user.status !== 'ACTIVE') {
+      if (!user || user.status !== USER_STATUSES.ACTIVE) {
         log.warn(
           { userId: decoded.userId },
           'Token refresh failed: user not found or inactive',
@@ -434,7 +503,7 @@ class AuthService {
       const tokens = securityManager.generateTokens({
         id: user.id,
         email: user.email,
-        role: user.roles?.[0] || 'CUSTOMER',
+        role: user.roles?.[0] || ROLES.CUSTOMER,
       });
 
       log.info(
@@ -446,9 +515,9 @@ class AuthService {
         user: {
           id: user.id,
           email: user.email,
-          role: user.roles?.[0] || 'CUSTOMER',
+          role: user.roles?.[0] || ROLES.CUSTOMER,
           isVerified: (user as any)['isEmailVerified'] || false,
-          kycStatus: 'PENDING',
+          kycStatus: KYC_STATUSES.PENDING,
         },
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
@@ -540,7 +609,7 @@ class AuthService {
       // Récupérer l'utilisateur via le repository
       const user = await this.userRepository.findById(decoded.userId);
 
-      if (!user || user.status !== 'ACTIVE') {
+      if (!user || user.status !== USER_STATUSES.ACTIVE) {
         log.warn(
           { userId: decoded.userId },
           'Token verification failed: user not found or inactive',
@@ -556,9 +625,9 @@ class AuthService {
       return {
         id: user.id,
         email: user.email,
-        role: user.roles?.[0] || 'CUSTOMER',
+        role: user.roles?.[0] || ROLES.CUSTOMER,
         isVerified: (user as any)['isEmailVerified'] || false,
-        kycStatus: 'PENDING',
+        kycStatus: KYC_STATUSES.PENDING,
       };
     } catch (error) {
       const log = childLogger({ route: 'AuthService:verifyToken' });
@@ -810,9 +879,9 @@ class AuthService {
       );
 
       // Construire l'URL de réinitialisation
-      const resetUrl = `${
-        process.env['NEXTAUTH_URL'] || 'http://localhost:3000'
-      }/reset-password?token=${resetToken}`;
+      const { cleanUrl } = await import('@/lib/utils');
+      const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+      const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
       // Envoyer l'email de reset (seulement si Resend est configuré)
       if (process.env['RESEND_API_KEY']) {

@@ -11,6 +11,9 @@
 import { useMemo } from 'react';
 import { useAuth } from './useAuth';
 import { ROLES } from '@/lib/constants';
+import { childLogger } from '@/lib/logger';
+
+const logger = childLogger({ component: 'useAuthorization' });
 
 export interface AuthorizationOptions {
   /**
@@ -77,19 +80,19 @@ export function useAuthorization(options: AuthorizationOptions = {}): Authorizat
     enabled = true,
   } = options;
 
-  console.log('[useAuthorization] Appelé', {
+  logger.debug({
     roles,
     isAuthenticated,
     isLoading,
     userId: user?.id,
-  });
+  }, 'useAuthorization appelé');
 
   const result = useMemo((): AuthorizationResult => {
-    console.log('[useAuthorization] useMemo recalculé', {
+    logger.debug({
       isLoading,
       isAuthenticated,
       userId: user?.id,
-    });
+    }, 'useAuthorization useMemo recalculé');
     // Si désactivé, autoriser
     if (!enabled) {
       return { isAuthorized: true };

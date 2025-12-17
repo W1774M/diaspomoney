@@ -90,10 +90,10 @@ function mapStatus(status: string | undefined): Booking['status'] {
   const statusMap: Record<string, Booking['status']> = {
     pending: BOOKING_STATUSES.PENDING,
     confirmed: BOOKING_STATUSES.CONFIRMED,
-    in_progress: BOOKING_STATUSES.IN_PROGRESS,
+    in_progress: BOOKING_STATUSES.CONFIRMED, // Migration: IN_PROGRESS -> CONFIRMED
     cancelled: BOOKING_STATUSES.CANCELLED,
-    completed: BOOKING_STATUSES.COMPLETED,
-    no_show: BOOKING_STATUSES.NO_SHOW,
+    completed: BOOKING_STATUSES.FINISHED, // Migration: COMPLETED -> FINISHED
+    no_show: BOOKING_STATUSES.CANCELLED, // Migration: NO_SHOW -> CANCELLED
   };
   
   const normalizedStatus = status.toLowerCase();

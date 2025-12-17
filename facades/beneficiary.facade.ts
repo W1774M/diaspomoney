@@ -45,8 +45,12 @@ export interface UpdateBeneficiaryFacadeData {
   email?: string;
   phone?: string;
   relationship?: BeneficiaryRelationship;
-  country?: string;
-  address?: string;
+  location?: {
+    address?: string;
+    city?: string;
+    country?: string;
+    postalCode?: string;
+  };
 }
 
 /**
@@ -109,8 +113,7 @@ export class BeneficiaryFacade {
         email: data.email || '',
         phone: data.phone || '',
         relationship: data.relationship,
-        country: data.country,
-        address: data.address || '',
+        location: data.location,
       });
 
       // Mapper le résultat avec BeneficiaryMapper
@@ -292,8 +295,25 @@ export class BeneficiaryFacade {
       if (data.phone !== undefined) updateData.phone = data.phone;
       if (data.relationship !== undefined)
         updateData.relationship = data.relationship;
-      if (data.country !== undefined) updateData.country = data.country;
-      if (data.address !== undefined) updateData.address = data.address;
+      if (data.location !== undefined) {
+        // Fusionner les données existantes avec les nouvelles pour la mise à jour partielle
+        const existingLocation = existingBeneficiary.location || {
+          address: '',
+          city: '',
+          country: '',
+        };
+        const locationUpdate: Beneficiary['location'] = {
+          address: data.location.address ?? existingLocation.address,
+          city: data.location.city ?? existingLocation.city,
+          country: data.location.country ?? existingLocation.country,
+        };
+        // Ajouter postalCode seulement s'il est défini
+        const postalCode = data.location.postalCode ?? existingLocation.postalCode;
+        if (postalCode !== undefined) {
+          locationUpdate.postalCode = postalCode;
+        }
+        updateData.location = locationUpdate;
+      }
 
       // Mettre à jour via le repository
       const updatedBeneficiary = await this.beneficiaryRepository.update(

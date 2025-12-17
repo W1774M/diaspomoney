@@ -35,10 +35,10 @@ export default function NotificationContainer() {
   };
 
   return (
-    <div className='fixed bottom-0 right-0 p-4 space-y-4 z-50'>
+    <div className='fixed bottom-0 right-0 p-2 sm:p-4 space-y-2 sm:space-y-4 z-50 max-w-[calc(100vw-1rem)] sm:max-w-md'>
       {notifications.length > 0 && (
-        <div className='flex justify-between items-center mb-2'>
-          <span className='text-sm text-gray-600'>
+        <div className='flex justify-between items-center mb-1 sm:mb-2 px-2 sm:px-0'>
+          <span className='text-xs sm:text-sm text-gray-600'>
             {notifications.length} notification
             {notifications.length > 1 ? 's' : ''}
           </span>
@@ -69,16 +69,16 @@ export default function NotificationContainer() {
               initial='initial'
               animate='animate'
               exit='exit'
-              className={`rounded-lg shadow-lg p-4 min-w-[300px] max-w-md ${notificationStyles[type]}`}
+              className={`rounded-lg shadow-lg p-3 sm:p-4 w-full min-w-0 max-w-full sm:min-w-[280px] sm:max-w-md ${notificationStyles[type]}`}
             >
-              <div className='flex items-start justify-between'>
-                <p className='text-sm font-medium'>{notification.message}</p>
+              <div className='flex items-start justify-between gap-2 sm:gap-3'>
+                <p className='text-xs sm:text-sm font-medium break-words flex-1 min-w-0'>{notification.message}</p>
                 <button
                   onClick={() => removeNotification(notification.id)}
-                  className='ml-4 text-white hover:text-gray-200 transition-colors'
+                  className='flex-shrink-0 text-white hover:text-gray-200 transition-colors'
                   aria-label='close'
                 >
-                  <X size={16} />
+                  <X size={16} className='sm:w-4 sm:h-4' />
                 </button>
               </div>
             </motion.div>

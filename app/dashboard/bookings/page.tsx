@@ -1,7 +1,12 @@
 'use client';
 
 import { BookingsPage } from '@/components/bookings';
+import { BookingsPaginationProvider } from '@/contexts/BookingsPaginationContext';
 
 export default function Bookings() {
-  return <BookingsPage />;
+  return (
+    <BookingsPaginationProvider>
+      <BookingsPage />
+    </BookingsPaginationProvider>
+  );
 }

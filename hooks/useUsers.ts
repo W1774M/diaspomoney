@@ -76,7 +76,7 @@ export const useUsers = (options: UseUsersOptions = {}) => {
       search, 
       limit, 
       offset, 
-      page 
+      page, 
     }, '[useUsers] optionsKey changé');
     optionsKeyRef.current = currentOptionsKey;
   }
@@ -185,7 +185,7 @@ export const useUsers = (options: UseUsersOptions = {}) => {
         logger.info({ 
           count: newUsers.length, 
           total: data.total || 0,
-          keyToUse 
+          keyToUse, 
         }, '[useUsers] Fetch terminé avec succès');
       } else {
         throw new Error(data.error || 'Failed to fetch users');
@@ -236,7 +236,7 @@ export const useUsers = (options: UseUsersOptions = {}) => {
     
     // Appeler fetchUsers directement sans délai pour éviter les problèmes de timing
     fetchUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [currentOptionsKey, fetchUsers]);
 
   // Fonction refetch stable qui force un nouveau fetch

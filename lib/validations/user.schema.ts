@@ -7,6 +7,7 @@ import { z } from 'zod';
 /**
  * Schéma pour créer un utilisateur
  * Accepte soit name, soit firstName/lastName
+ * Pour les institutions (providerInfo.type === 'INSTITUTION'), name seul est suffisant
  */
 export const CreateUserSchema = z
   .object({
@@ -30,13 +31,40 @@ export const CreateUserSchema = z
         notifications: z.boolean().optional(),
       })
       .optional(),
+    providerInfo: z
+      .object({
+        type: z.enum(['INDIVIDUAL', 'INSTITUTION']).optional(),
+        institution: z
+          .object({
+            legalName: z.string().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
   })
   .refine(
     data => {
-      // Soit name est fourni, soit firstName ET lastName sont fournis
+      // Si c'est une institution, name seul est suffisant
+      const isInstitution = data.providerInfo?.type === 'INSTITUTION';
+      if (isInstitution) {
+        // Pour les institutions, on accepte name seul ou legalName dans providerInfo
+        return (
+          (data.name && data.name.trim().length > 0) ||
+          (data.providerInfo?.institution?.legalName && data.providerInfo.institution.legalName.trim().length > 0)
+        );
+      }
+      
+      // Si name est fourni, c'est suffisant (même si firstName/lastName sont vides)
+      if (data.name && data.name.trim().length > 0) {
+        return true;
+      }
+      
+      // Sinon, firstName ET lastName doivent être fournis
       return (
-        (data.name && data.name.trim().length > 0) ||
-        (data.firstName && data.firstName.trim().length > 0 && data.lastName && data.lastName.trim().length > 0)
+        data.firstName && 
+        data.firstName.trim().length > 0 && 
+        data.lastName && 
+        data.lastName.trim().length > 0
       );
     },
     {

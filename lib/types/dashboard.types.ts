@@ -9,9 +9,9 @@ export interface DashboardStats {
 
 export interface DashboardStatCardProps {
   title: string;
-  value: number;
-  icon: React.ComponentType<{ className?: string }>;
-  color: "blue" | "orange" | "green" | "purple" | "red";
+  value: string | number;
+  icon: React.ComponentType<{ className?: string }> | React.ForwardRefExoticComponent<any> | any;
+  color: "blue" | "orange" | "green" | "purple" | "red" | "yellow";
   description?: string;
 }
 

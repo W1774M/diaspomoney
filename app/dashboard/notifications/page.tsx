@@ -190,88 +190,92 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-4 sm:space-y-6 px-4 sm:px-0'>
       {/* Header */}
-      <div className='flex justify-between items-center'>
+      <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
         <div>
-          <h1 className='text-3xl font-bold text-gray-900'>
+          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>
             Centre de notifications
           </h1>
-          <p className='text-gray-600 mt-1'>
+          <p className='text-sm sm:text-base text-gray-600 mt-1'>
             Gérez vos notifications et restez informé
           </p>
         </div>
         {unreadCount > 0 && (
           <button
             onClick={markAllAsRead}
-            className='flex items-center space-x-2 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors'
+            className='flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors text-sm sm:text-base w-full sm:w-auto'
           >
-            <CheckCheck className='h-5 w-5' />
-            <span>Tout marquer comme lu</span>
+            <CheckCheck className='h-4 w-4 sm:h-5 sm:w-5' />
+            <span className='whitespace-nowrap'>Tout marquer comme lu</span>
           </button>
         )}
       </div>
 
       {/* Onglets */}
-      <div className='bg-white rounded-lg shadow-sm border border-gray-200'>
-        <div className='flex border-b border-gray-200'>
+      <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
+        <div className='flex overflow-x-auto border-b border-gray-200 scrollbar-hide'>
           <button
             onClick={() => setActiveTab('realtime')}
-            className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
+            className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 ${
               activeTab === 'realtime'
                 ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
             }`}
           >
-            <Clock className='h-4 w-4' />
+            <Clock className='h-3 w-3 sm:h-4 sm:w-4' />
             <span>Temps réel</span>
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
+            className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 ${
               activeTab === 'history'
                 ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
             }`}
           >
-            <History className='h-4 w-4' />
+            <History className='h-3 w-3 sm:h-4 sm:w-4' />
             <span>Historique</span>
           </button>
           <button
             onClick={() => setActiveTab('personalized')}
-            className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
+            className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 ${
               activeTab === 'personalized'
                 ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
             }`}
           >
-            <User className='h-4 w-4' />
-            <span>Personnalisées par rôle</span>
+            <User className='h-3 w-3 sm:h-4 sm:w-4' />
+            <span className='hidden sm:inline'>Personnalisées par rôle</span>
+            <span className='sm:hidden'>Personnalisées</span>
           </button>
           <button
             onClick={() => setActiveTab('preferences')}
-            className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
+            className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 ${
               activeTab === 'preferences'
                 ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
             }`}
           >
-            <Settings className='h-4 w-4' />
+            <Settings className='h-3 w-3 sm:h-4 sm:w-4' />
             <span>Préférences</span>
           </button>
         </div>
 
         {/* Contenu des onglets */}
-        <div className='p-6'>
+        <div className='p-4 sm:p-6'>
           {activeTab === 'realtime' && (
             <div className='space-y-4'>
               {/* Filtres pour Temps réel */}
-              <div className='flex items-center space-x-4'>
-                <Filter className='h-5 w-5 text-gray-500' />
-                <div className='flex space-x-2'>
+              <div className='flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4'>
+                <div className='flex items-center space-x-2'>
+                  <Filter className='h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0' />
+                  <span className='text-xs sm:text-sm text-gray-700 font-medium'>Filtres:</span>
+                </div>
+                <div className='flex flex-wrap gap-2'>
                   <button
                     onClick={() => setFilter('all')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                       filter === 'all'
                         ? 'bg-[hsl(25,100%,53%)] text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -281,7 +285,7 @@ export default function NotificationsPage() {
                   </button>
                   <button
                     onClick={() => setFilter('unread')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                       filter === 'unread'
                         ? 'bg-[hsl(25,100%,53%)] text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -291,7 +295,7 @@ export default function NotificationsPage() {
                   </button>
                   <button
                     onClick={() => setFilter('read')}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                       filter === 'read'
                         ? 'bg-[hsl(25,100%,53%)] text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -322,10 +326,10 @@ export default function NotificationsPage() {
             <div className='space-y-4'>
               <div className='flex items-center justify-between mb-4'>
                 <div>
-                  <h3 className='text-lg font-semibold text-gray-900'>
+                  <h3 className='text-base sm:text-lg font-semibold text-gray-900'>
                     Historique complet
                   </h3>
-                  <p className='text-sm text-gray-600 mt-1'>
+                  <p className='text-xs sm:text-sm text-gray-600 mt-1'>
                     Toutes vos notifications depuis le début
                   </p>
                 </div>
@@ -358,12 +362,12 @@ export default function NotificationsPage() {
             <div className='space-y-4'>
               <div className='flex items-center justify-between mb-4'>
                 <div>
-                  <h3 className='text-lg font-semibold text-gray-900'>
+                  <h3 className='text-base sm:text-lg font-semibold text-gray-900'>
                     Notifications personnalisées par rôle
                   </h3>
-                  <p className='text-sm text-gray-600 mt-1'>
+                  <p className='text-xs sm:text-sm text-gray-600 mt-1 break-words'>
                     Notifications filtrées selon vos rôles:{' '}
-                    {user?.roles?.join(', ') || 'Aucun rôle'}
+                    <span className='font-medium'>{user?.roles?.join(', ') || 'Aucun rôle'}</span>
                   </p>
                 </div>
               </div>
@@ -454,14 +458,14 @@ function NotificationsList({
   }
 
   return (
-    <div className='bg-white rounded-lg shadow-sm border border-gray-200'>
+    <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
       {notifications.length === 0 ? (
-        <div className='p-12 text-center'>
-          <Bell className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-          <h3 className='text-lg font-medium text-gray-900 mb-2'>
+        <div className='p-6 sm:p-12 text-center'>
+          <Bell className='h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4' />
+          <h3 className='text-base sm:text-lg font-medium text-gray-900 mb-2'>
             Aucune notification
           </h3>
-          <p className='text-gray-600'>
+          <p className='text-sm sm:text-base text-gray-600'>
             {filter === 'unread'
               ? "Vous n'avez aucune notification non lue"
               : "Vous n'avez aucune notification"}
@@ -472,39 +476,40 @@ function NotificationsList({
           {notifications.map(notification => (
             <div
               key={notification.id}
-              className={`p-6 hover:bg-gray-50 transition-colors ${
+              className={`p-4 sm:p-6 hover:bg-gray-50 transition-colors ${
                 !notification.read ? 'bg-blue-50' : ''
               }`}
             >
-              <div className='flex items-start justify-between'>
-                <div className='flex-1'>
-                  <div className='flex items-center space-x-3 mb-2'>
+              <div className='flex items-start justify-between gap-3 sm:gap-4'>
+                <div className='flex-1 min-w-0'>
+                  <div className='flex items-start gap-2 sm:gap-3 mb-2'>
                     <h3
-                      className={`text-lg font-semibold ${
+                      className={`text-base sm:text-lg font-semibold break-words ${
                         !notification.read ? 'text-gray-900' : 'text-gray-700'
                       }`}
                     >
                       {notification.subject}
                     </h3>
                     {!notification.read && (
-                      <span className='h-2 w-2 bg-[hsl(25,100%,53%)] rounded-full'></span>
+                      <span className='h-2 w-2 bg-[hsl(25,100%,53%)] rounded-full flex-shrink-0 mt-2'></span>
                     )}
                   </div>
-                  <p className='text-gray-600 mb-3'>{notification.content}</p>
-                  <div className='flex items-center space-x-4 text-sm text-gray-500'>
-                    <span>{formatDate(notification.createdAt)}</span>
+                  <p className='text-sm sm:text-base text-gray-600 mb-3 break-words'>{notification.content}</p>
+                  <div className='flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500'>
+                    <span className='whitespace-nowrap'>{formatDate(notification.createdAt)}</span>
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                      className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(
                         notification.status,
                       )}`}
                     >
                       {notification.status}
                     </span>
-                    <div className='flex items-center space-x-2'>
+                    <div className='flex items-center gap-1 sm:gap-2'>
                       {notification.channels.map((channel, idx) => (
                         <div
                           key={idx}
-                          className='flex items-center space-x-1 text-gray-400'
+                          className='flex items-center text-gray-400'
+                          title={channel.type}
                         >
                           {getChannelIcon(channel.type)}
                         </div>
@@ -515,10 +520,10 @@ function NotificationsList({
                 {!notification.read && (
                   <button
                     onClick={() => markAsRead(notification.id)}
-                    className='ml-4 p-2 text-gray-400 hover:text-[hsl(25,100%,53%)] transition-colors'
+                    className='ml-2 sm:ml-4 p-2 text-gray-400 hover:text-[hsl(25,100%,53%)] transition-colors flex-shrink-0'
                     title='Marquer comme lu'
                   >
-                    <Check className='h-5 w-5' />
+                    <Check className='h-4 w-4 sm:h-5 sm:w-5' />
                   </button>
                 )}
               </div>
@@ -529,21 +534,21 @@ function NotificationsList({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className='p-4 border-t border-gray-200 flex justify-center space-x-2'>
+        <div className='p-3 sm:p-4 border-t border-gray-200 flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-0 sm:space-x-2'>
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className='px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
+            className='w-full sm:w-auto px-3 sm:px-4 py-2 rounded-md border border-gray-300 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
           >
             Précédent
           </button>
-          <span className='px-4 py-2 text-sm text-gray-700'>
+          <span className='px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 whitespace-nowrap'>
             Page {page} sur {totalPages}
           </span>
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
-            className='px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
+            className='w-full sm:w-auto px-3 sm:px-4 py-2 rounded-md border border-gray-300 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
           >
             Suivant
           </button>

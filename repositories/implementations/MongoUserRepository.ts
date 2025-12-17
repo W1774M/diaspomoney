@@ -129,11 +129,40 @@ export class MongoUserRepository implements IUserRepository {
       };
       const userDataTyped = data as UserDataWithExtras;
       const { _id, id: _idUnused, ...dataWithoutIds } = userDataTyped;
+      
+      // Valider et convertir _id seulement si c'est un ObjectId valide
+      let validObjectId: ObjectId | undefined;
+      if (data._id) {
+        try {
+          const _idValue = data._id as any;
+          // Vérifier si c'est déjà un ObjectId
+          if (_idValue && typeof _idValue === 'object' && _idValue.constructor === ObjectId) {
+            validObjectId = _idValue as ObjectId;
+          } else if (typeof _idValue === 'string' && ObjectId.isValid(_idValue)) {
+            validObjectId = new ObjectId(_idValue);
+          } else {
+            // Ignorer _id invalide plutôt que de lever une erreur
+            this.log.warn(
+              { _id: data._id, email: data.email },
+              'Invalid _id provided, ignoring it',
+            );
+          }
+        } catch (error) {
+          // Ignorer _id invalide
+          this.log.warn(
+            { _id: data._id, email: data.email, error },
+            'Error converting _id to ObjectId, ignoring it',
+          );
+        }
+      }
+      
+      // S'assurer que le statut est défini (PENDING par défaut si non fourni)
       const userData: OptionalId<Document> = {
         ...dataWithoutIds,
+        status: data.status || USER_STATUSES.PENDING, // PENDING par défaut si non fourni
         createdAt: now,
         updatedAt: now,
-        ...(data._id ? { _id: new ObjectId(data._id) } : {}),
+        ...(validObjectId ? { _id: validObjectId } : {}),
       };
       const result = await collection.insertOne(
         userData as OptionalId<Document>,
@@ -148,7 +177,23 @@ export class MongoUserRepository implements IUserRepository {
         'User created successfully',
       );
       return mappedUser;
-    } catch (error) {
+    } catch (error: any) {
+      // Gérer les erreurs de duplication MongoDB (E11000)
+      if (error.code === 11000 || error.code === 11001) {
+        const duplicateField = error.keyPattern
+          ? Object.keys(error.keyPattern)[0]
+          : 'email';
+        this.log.warn(
+          { error, email: data.email, duplicateField },
+          `Duplicate key error in create: ${duplicateField}`,
+        );
+        throw new Error(
+          duplicateField === 'email'
+            ? 'Un compte avec cet email existe déjà'
+            : `Un compte avec ce ${duplicateField} existe déjà`,
+        );
+      }
+
       this.log.error({ error, email: data.email }, 'Error in create');
       Sentry.captureException(error as Error, {
         tags: { component: 'MongoUserRepository', action: 'create' },
@@ -170,6 +215,33 @@ export class MongoUserRepository implements IUserRepository {
     try {
       // Dynamically import UserModel to guarantee correct schema/hook use
       const UserModel = (await import('@/models/User')).default;
+      
+      // Exclure _id et id invalides du spread pour éviter les erreurs BSON
+      const { _id, id, ...dataWithoutIds } = data;
+      
+      // Valider _id seulement si c'est un ObjectId valide
+      let validObjectId: any = undefined;
+      if (_id) {
+        try {
+          const _idValue = _id as any;
+          if (typeof _idValue === 'string' && ObjectId.isValid(_idValue)) {
+            validObjectId = _idValue;
+          } else if (_idValue && typeof _idValue === 'object' && _idValue.constructor === ObjectId) {
+            validObjectId = _idValue;
+          } else {
+            this.log.warn(
+              { _id, email: data.email },
+              'Invalid _id provided in createWithPassword, ignoring it',
+            );
+          }
+        } catch (error) {
+          this.log.warn(
+            { _id, email: data.email, error },
+            'Error validating _id in createWithPassword, ignoring it',
+          );
+        }
+      }
+      
       const user = new UserModel({
         email: data.email?.toLowerCase(),
         password: data.password || undefined,
@@ -187,19 +259,36 @@ export class MongoUserRepository implements IUserRepository {
         securityAnswer: data['securityAnswer'],
         selectedServices: data['selectedServices'],
         roles: data.roles || [ROLES.CUSTOMER],
-        status: data.status || USER_STATUSES.ACTIVE,
+        status: data.status || USER_STATUSES.PENDING,
         emailVerified: data['isEmailVerified'] ?? data['emailVerified'] ?? false,
         marketingConsent: data['marketingConsent'] || false,
         kycConsent: data['kycConsent'],
         kycStatus: data['kycStatus'] || KYC_STATUSES.PENDING,
         oauth: data['oauth'],
-        ...data,
+        ...dataWithoutIds,
+        ...(validObjectId ? { _id: validObjectId } : {}),
       });
 
       await user.save();
 
       return this.mapToUser(user.toObject());
-    } catch (error) {
+    } catch (error: any) {
+      // Gérer les erreurs de duplication MongoDB (E11000)
+      if (error.code === 11000 || error.code === 11001) {
+        const duplicateField = error.keyPattern
+          ? Object.keys(error.keyPattern)[0]
+          : 'email';
+        this.log.warn(
+          { error, email: data.email, duplicateField },
+          `Duplicate key error in createWithPassword: ${duplicateField}`,
+        );
+        throw new Error(
+          duplicateField === 'email'
+            ? 'Un compte avec cet email existe déjà'
+            : `Un compte avec ce ${duplicateField} existe déjà`,
+        );
+      }
+
       this.log.error(
         { error, email: data.email },
         'Error in createWithPassword',

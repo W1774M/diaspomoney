@@ -4,9 +4,6 @@ const require = createRequire(import.meta.url);
 const webpack = require('next/dist/compiled/webpack/webpack-lib');
 
 const nextConfig = {
-  // Note: Le prerendering est désactivé via export const dynamic dans app/layout.tsx
-  // Cela évite les erreurs MongoDB pendant le build
-  
   // Optimisation des images
   images: {
     formats: ['image/webp', 'image/avif'], // Seulement webp et avif sont supportés par Next.js

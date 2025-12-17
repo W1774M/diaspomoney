@@ -2,17 +2,18 @@ import { userService } from '@/services/user/user.service';
 import { ROLES, USER_STATUSES, HTTP_STATUS_CODES } from '@/lib/constants';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
-    console.log('API Provider [id] - ID:', params.id); // Debug
+    logger.debug({ providerId: params.id }, 'API Provider [id] - Récupération');
 
     // Vérifier que l'ID est un ObjectId valide
     if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      console.log('ID invalide:', params.id); // Debug
+      logger.warn({ providerId: params.id }, 'ID invalide');
       return NextResponse.json(
         { error: 'ID de prestataire invalide' },
         { status: HTTP_STATUS_CODES.BAD_REQUEST },
@@ -22,12 +23,12 @@ export async function GET(
     // Récupérer l'utilisateur par ID
     const provider = await userService.getUserProfile(params.id);
 
-    console.log('Provider trouvé:', {
+    logger.debug({
       id: provider._id,
       email: provider.email,
       roles: provider.roles,
       status: provider.status,
-    }); // Debug
+    }, 'Provider trouvé');
 
     // Vérifier que l'utilisateur a le rôle PROVIDER
     if (
@@ -35,7 +36,7 @@ export async function GET(
       !Array.isArray(provider.roles) ||
       !provider.roles.includes(ROLES.PROVIDER)
     ) {
-      console.log('Provider non trouvé - roles:', provider.roles); // Debug
+      logger.warn({ roles: provider.roles }, 'Provider non trouvé - rôle PROVIDER manquant');
       return NextResponse.json(
         { error: 'Prestataire non trouvé' },
         { status: HTTP_STATUS_CODES.NOT_FOUND },
@@ -44,7 +45,7 @@ export async function GET(
 
     // Vérifier que le provider est actif
     if (provider.status !== USER_STATUSES.ACTIVE) {
-      console.log('Provider inactif - status:', provider.status); // Debug
+      logger.warn({ status: provider.status }, 'Provider inactif');
       return NextResponse.json(
         { error: 'Prestataire non disponible' },
         { status: HTTP_STATUS_CODES.NOT_FOUND },
@@ -56,7 +57,7 @@ export async function GET(
       data: provider,
     });
   } catch (error) {
-    console.error('Erreur lors de la récupération du prestataire:', error);
+    logger.error({ error }, 'Erreur lors de la récupération du prestataire');
 
     // Gérer le cas où l'utilisateur n'est pas trouvé
     if (error instanceof Error && error.message === 'Utilisateur non trouvé') {

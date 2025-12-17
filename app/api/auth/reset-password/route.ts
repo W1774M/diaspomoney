@@ -1,9 +1,4 @@
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
-// Désactiver le prerendering pour cette route API
-export const dynamic = 'force-dynamic';
-
-// Désactiver le prerendering pour cette route API
-
 
 import { ResetPasswordSchema, type ResetPasswordInput } from '@/lib/validations/auth.schema';
 import { NextRequest, NextResponse } from "next/server";

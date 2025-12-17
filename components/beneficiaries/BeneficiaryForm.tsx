@@ -2,7 +2,8 @@
 
 import { Beneficiary, BeneficiaryFormData, BeneficiaryRelationship } from "@/lib/types";
 import { Loader2 } from "lucide-react";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
+import { PhoneInput } from "react-international-phone";
 
 interface BeneficiaryFormProps {
   beneficiary?: Beneficiary | null;
@@ -13,6 +14,8 @@ interface BeneficiaryFormProps {
 
 const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
   function BeneficiaryForm({ beneficiary, onSubmit, onCancel, isSubmitting }: BeneficiaryFormProps) {
+    const [phone, setPhone] = useState(beneficiary?.phone || "");
+
     const handleSubmit = useCallback(
       (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -33,11 +36,23 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
         
         // Construire l'objet en n'incluant les propriétés optionnelles que si elles sont définies
         // (exactOptionalPropertyTypes: true)
+        const postalCodeValue = (formData.get("postalCode") as string)?.trim();
+        const location: BeneficiaryFormData['location'] = {
+          address: (formData.get("address") as string) || "",
+          city: (formData.get("city") as string) || "",
+          country: (formData.get("country") as string) || "",
+        };
+        
+        // Ajouter postalCode seulement s'il est défini et non vide
+        if (postalCodeValue) {
+          location.postalCode = postalCodeValue;
+        }
+        
         const data: BeneficiaryFormData = {
           firstName: (formData.get("firstName") as string) || "",
           lastName: (formData.get("lastName") as string) || "",
-          country: (formData.get("country") as string) || "",
           relationship: relationship as BeneficiaryRelationship,
+          location,
         };
         
         // Ajouter les propriétés optionnelles seulement si elles sont définies
@@ -46,19 +61,14 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
           data.email = email;
         }
         
-        const phone = (formData.get("phone") as string)?.trim();
-        if (phone) {
-          data.phone = phone;
-        }
-        
-        const address = (formData.get("address") as string)?.trim();
-        if (address) {
-          data.address = address;
+        const phoneValue = phone?.trim();
+        if (phoneValue) {
+          data.phone = phoneValue;
         }
         
         onSubmit(data);
       },
-      [onSubmit],
+      [onSubmit, phone],
     );
 
     return (
@@ -118,13 +128,55 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Téléphone
                 </label>
+                <PhoneInput
+                  defaultCountry="fr"
+                  value={phone}
+                  onChange={(phoneValue) => setPhone(phoneValue)}
+                  className="w-full"
+                  inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Adresse *
+                </label>
                 <input
-                  title="Téléphone"
-                  type="tel"
-                  name="phone"
-                  defaultValue={beneficiary?.phone || ""}
+                  title="Adresse"
+                  type="text"
+                  name="address"
+                  required
+                  defaultValue={beneficiary?.location?.address || ""}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Ville *
+                  </label>
+                  <input
+                    title="Ville"
+                    type="text"
+                    name="city"
+                    required
+                    defaultValue={beneficiary?.location?.city || ""}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Code postal
+                  </label>
+                  <input
+                    title="Code postal"
+                    type="text"
+                    name="postalCode"
+                    defaultValue={beneficiary?.location?.postalCode || ""}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  />
+                </div>
               </div>
 
               <div>
@@ -136,20 +188,7 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
                   type="text"
                   name="country"
                   required
-                  defaultValue={beneficiary?.country || ""}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Adresse
-                </label>
-                <input
-                  title="Adresse"
-                  type="text"
-                  name="address"
-                  defaultValue={beneficiary?.address || ""}
+                  defaultValue={beneficiary?.location?.country || ""}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
                 />
               </div>

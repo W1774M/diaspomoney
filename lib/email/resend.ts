@@ -11,6 +11,7 @@ import { childLogger } from '@/lib/logger';
 import type { EmailOptions, EmailTemplate } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Resend } from 'resend';
+import { welcomeTemplate, passwordResetTemplate, accountActivationTemplate, loginSuccessTemplate, paymentConfirmationTemplate, bookingTakeChargeTemplate, paymentLinkTemplate } from './templates';
 
 const log = childLogger({ component: 'EmailService' });
 
@@ -19,197 +20,29 @@ const resend = process.env['RESEND_API_KEY']
   ? new Resend(process.env['RESEND_API_KEY'])
   : null;
 
-// Templates d'emails
+// Templates d'emails (utilisant les templates séparés)
 export const emailTemplates = {
   // Email de bienvenue
-  welcome: (name: string, verificationUrl: string): EmailTemplate => ({
-    subject: `Bienvenue sur DiaspoMoney, ${name} !`,
-    html: `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Bienvenue sur DiaspoMoney</title>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #2563eb; color: white; padding: 20px; text-align: center; }
-            .content { padding: 20px; background: #f8fafc; }
-            .button { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-            .footer { text-align: center; padding: 20px; color: #64748b; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🎉 Bienvenue sur DiaspoMoney !</h1>
-            </div>
-            <div class="content">
-              <h2>Bonjour ${name},</h2>
-              <p>Merci de vous être inscrit sur DiaspoMoney, la plateforme qui connecte les résidents européens aux services africains.</p>
-              <p>Pour activer votre compte, veuillez cliquer sur le bouton ci-dessous :</p>
-              <a href="${verificationUrl}" class="button">Vérifier mon email</a>
-              <p>Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>
-              <p><a href="${verificationUrl}">${verificationUrl}</a></p>
-              <p>Ce lien expire dans 24 heures.</p>
-            </div>
-            <div class="footer">
-              <p>DiaspoMoney - Connecter l'Europe à l'Afrique</p>
-              <p>Si vous n'avez pas créé de compte, ignorez cet email.</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `,
-    text: `
-      Bienvenue sur DiaspoMoney, ${name} !
-      
-      Merci de vous être inscrit sur DiaspoMoney, la plateforme qui connecte les résidents européens aux services africains.
-      
-      Pour activer votre compte, veuillez cliquer sur ce lien :
-      ${verificationUrl}
-      
-      Ce lien expire dans 24 heures.
-      
-      Si vous n'avez pas créé de compte, ignorez cet email.
-      
-      --
-      DiaspoMoney - Connecter l'Europe à l'Afrique
-    `,
-  }),
-
+  welcome: (name: string, verificationUrl: string, loginUrl?: string): EmailTemplate => 
+    welcomeTemplate(name, verificationUrl, loginUrl),
+  
   // Email de réinitialisation de mot de passe
-  passwordReset: (name: string, resetUrl: string): EmailTemplate => ({
-    subject: 'Réinitialisation de votre mot de passe DiaspoMoney',
-    html: `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Réinitialisation de mot de passe</title>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #dc2626; color: white; padding: 20px; text-align: center; }
-            .content { padding: 20px; background: #f8fafc; }
-            .button { display: inline-block; padding: 12px 24px; background: #dc2626; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-            .footer { text-align: center; padding: 20px; color: #64748b; font-size: 14px; }
-            .warning { background: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 6px; margin: 20px 0; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🔒 Réinitialisation de mot de passe</h1>
-            </div>
-            <div class="content">
-              <h2>Bonjour ${name},</h2>
-              <p>Vous avez demandé la réinitialisation de votre mot de passe DiaspoMoney.</p>
-              <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :</p>
-              <a href="${resetUrl}" class="button">Réinitialiser mon mot de passe</a>
-              <p>Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>
-              <p><a href="${resetUrl}">${resetUrl}</a></p>
-              <div class="warning">
-                <strong>⚠️ Important :</strong> Ce lien expire dans 1 heure. Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
-              </div>
-            </div>
-            <div class="footer">
-              <p>DiaspoMoney - Connecter l'Europe à l'Afrique</p>
-              <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `,
-    text: `
-      Réinitialisation de votre mot de passe DiaspoMoney
-      
-      Bonjour ${name},
-      
-      Vous avez demandé la réinitialisation de votre mot de passe DiaspoMoney.
-      
-      Cliquez sur ce lien pour créer un nouveau mot de passe :
-      ${resetUrl}
-      
-      ⚠️ Important : Ce lien expire dans 1 heure.
-      
-      Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
-      
-      --
-      DiaspoMoney - Connecter l'Europe à l'Afrique
-    `,
-  }),
-
+  passwordReset: (name: string, resetUrl: string): EmailTemplate => 
+    passwordResetTemplate(name, resetUrl),
+  
+  // Email d'activation de compte
+  accountActivation: (name: string, activationUrl: string): EmailTemplate => 
+    accountActivationTemplate(name, activationUrl),
+  
+  // Templates existants (à migrer progressivement vers des fichiers séparés)
   // Email de confirmation de paiement
   paymentConfirmation: (
     name: string,
     amount: number,
     currency: string,
     service: string,
-  ): EmailTemplate => ({
-    subject: `Confirmation de paiement - ${service}`,
-    html: `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Confirmation de paiement</title>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #059669; color: white; padding: 20px; text-align: center; }
-            .content { padding: 20px; background: #f8fafc; }
-            .receipt { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0; }
-            .amount { font-size: 24px; font-weight: bold; color: #059669; }
-            .footer { text-align: center; padding: 20px; color: #64748b; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>✅ Paiement confirmé</h1>
-            </div>
-            <div class="content">
-              <h2>Bonjour ${name},</h2>
-              <p>Votre paiement a été traité avec succès !</p>
-              <div class="receipt">
-                <h3>Détails du paiement</h3>
-                <p><strong>Service :</strong> ${service}</p>
-                <p><strong>Montant :</strong> <span class="amount">${amount} ${currency}</span></p>
-                <p><strong>Date :</strong> ${new Date().toLocaleDateString(
-                  'fr-FR',
-                )}</p>
-                <p><strong>Statut :</strong> ✅ Confirmé</p>
-              </div>
-              <p>Vous pouvez maintenant accéder à votre service. Merci de votre confiance !</p>
-            </div>
-            <div class="footer">
-              <p>DiaspoMoney - Connecter l'Europe à l'Afrique</p>
-              <p>Pour toute question, contactez notre support.</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `,
-    text: `
-      Confirmation de paiement - ${service}
-      
-      Bonjour ${name},
-      
-      Votre paiement a été traité avec succès !
-      
-      Détails du paiement :
-      - Service : ${service}
-      - Montant : ${amount} ${currency}
-      - Date : ${new Date().toLocaleDateString('fr-FR')}
-      - Statut : ✅ Confirmé
-      
-      Vous pouvez maintenant accéder à votre service. Merci de votre confiance !
-      
-      --
-      DiaspoMoney - Connecter l'Europe à l'Afrique
-    `,
-  }),
+  ): EmailTemplate =>
+    paymentConfirmationTemplate(name, amount, currency, service),
 
   // Email de notification de rendez-vous
   appointmentNotification: (
@@ -303,6 +136,27 @@ export const emailTemplates = {
       DiaspoMoney - Connecter l'Europe à l'Afrique
     `,
   }),
+
+  // Email de confirmation de prise en charge
+  bookingTakeCharge: (
+    name: string,
+    reservationNumber: string,
+    serviceName: string,
+    amount?: string | number,
+    currency?: string,
+  ): EmailTemplate =>
+    bookingTakeChargeTemplate(name, reservationNumber, serviceName, amount, currency),
+
+  // Email de lien de paiement
+  paymentLink: (
+    name: string,
+    reservationNumber: string,
+    serviceName: string,
+    amount: string | number,
+    currency: string,
+    paymentUrl: string,
+  ): EmailTemplate =>
+    paymentLinkTemplate(name, reservationNumber, serviceName, amount, currency, paymentUrl),
 };
 
 // Fonction pour nettoyer les valeurs des tags (ASCII uniquement)
@@ -427,7 +281,7 @@ async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
 export async function sendWelcomeEmail(
   email: string,
   name: string,
-  verificationUrl: string,
+  activationUrl: string,
 ): Promise<boolean> {
   // En développement, utiliser l'email autorisé par Resend
   // En production, utiliser l'email original
@@ -438,18 +292,19 @@ export async function sendWelcomeEmail(
 
   log.debug({ targetEmail, originalEmail: email }, 'Sending welcome email');
 
-  // Test avec un template simple
-  const simpleTemplate = {
-    subject: `Bienvenue sur DiaspoMoney, ${name} !`,
-    html: `<p>Bonjour ${name},</p><p>Bienvenue sur DiaspoMoney !</p><p><a href="${verificationUrl}">Vérifier mon email</a></p>`,
-    text: `Bonjour ${name},\n\nBienvenue sur DiaspoMoney !\n\nVérifiez votre email : ${verificationUrl}`,
-  };
+  const { cleanUrl } = await import('@/lib/utils');
+  // Construire l'URL de dashboard
+  const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+  const dashboardUrl = `${baseUrl}/dashboard`;
+
+  // Utiliser le template complet avec le bouton vers Connexion/Dashboard
+  const template = emailTemplates.welcome(name, activationUrl, dashboardUrl);
 
   return await sendEmail({
     to: targetEmail,
-    subject: simpleTemplate.subject,
-    html: simpleTemplate.html,
-    text: simpleTemplate.text,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
     tags: [
       { name: 'type', value: 'welcome' },
       { name: 'user_email', value: sanitizeTagValue(email) },
@@ -472,6 +327,88 @@ export async function sendPasswordResetEmail(
     tags: [
       { name: 'type', value: 'password_reset' },
       { name: 'user', value: sanitizeTagValue(email) },
+    ],
+  });
+}
+
+/**
+ * Envoyer un email d'activation de compte
+ * Utilisé pour les comptes créés par un admin
+ */
+export async function sendAccountActivationEmail(
+  email: string,
+  name: string,
+  activationUrl: string,
+): Promise<boolean> {
+  // En développement, utiliser l'email autorisé par Resend
+  // En production, utiliser l'email original
+  const targetEmail =
+    process.env.NODE_ENV === 'development'
+      ? 'malarbillaudrey@gmail.com'
+      : email;
+
+  log.debug({ targetEmail, originalEmail: email }, 'Sending account activation email');
+
+  // Nettoyer l'URL pour éviter les guillemets
+  const { cleanUrl } = await import('@/lib/utils');
+  const cleanedActivationUrl = cleanUrl(activationUrl);
+
+  const template = emailTemplates.accountActivation(name, cleanedActivationUrl);
+
+  return await sendEmail({
+    to: targetEmail,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+    tags: [
+      { name: 'type', value: 'account_activation' },
+      { name: 'user_email', value: sanitizeTagValue(email) },
+    ],
+  });
+}
+
+/**
+ * Envoyer un email de notification de connexion réussie
+ */
+export async function sendLoginSuccessEmail(
+  email: string,
+  name: string,
+): Promise<boolean> {
+  // En développement, utiliser l'email autorisé par Resend
+  // En production, utiliser l'email original
+  const targetEmail =
+    process.env.NODE_ENV === 'development'
+      ? 'malarbillaudrey@gmail.com'
+      : email;
+
+  log.debug({ targetEmail, originalEmail: email }, 'Sending login success email');
+
+  // Construire l'URL de dashboard
+  const { cleanUrl } = await import('@/lib/utils');
+  const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+  const dashboardUrl = `${baseUrl}/dashboard`;
+
+  // Formater la date et l'heure
+  const loginTime = new Date().toLocaleString('fr-FR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Paris',
+  });
+
+  const template = loginSuccessTemplate(name, loginTime, dashboardUrl);
+
+  return await sendEmail({
+    to: targetEmail,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+    tags: [
+      { name: 'type', value: 'login_success' },
+      { name: 'user_email', value: sanitizeTagValue(email) },
     ],
   });
 }
@@ -528,6 +465,66 @@ export async function sendAppointmentNotificationEmail(
       { name: 'type', value: sanitizeTagValue(`appointment_${type}`) },
       { name: 'user', value: sanitizeTagValue(email) },
       { name: 'provider', value: sanitizeTagValue(provider) },
+    ],
+  });
+}
+
+export async function sendBookingTakeChargeEmail(
+  email: string,
+  name: string,
+  reservationNumber: string,
+  serviceName: string,
+  amount?: string | number,
+  currency?: string,
+): Promise<boolean> {
+  const template = emailTemplates.bookingTakeCharge(
+    name,
+    reservationNumber,
+    serviceName,
+    amount,
+    currency,
+  );
+
+  return await sendEmail({
+    to: email,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+    tags: [
+      { name: 'type', value: 'booking_take_charge' },
+      { name: 'user', value: sanitizeTagValue(email) },
+      { name: 'reservation', value: sanitizeTagValue(reservationNumber) },
+    ],
+  });
+}
+
+export async function sendPaymentLinkEmail(
+  email: string,
+  name: string,
+  reservationNumber: string,
+  serviceName: string,
+  amount: string | number,
+  currency: string,
+  paymentUrl: string,
+): Promise<boolean> {
+  const template = emailTemplates.paymentLink(
+    name,
+    reservationNumber,
+    serviceName,
+    amount,
+    currency,
+    paymentUrl,
+  );
+
+  return await sendEmail({
+    to: email,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+    tags: [
+      { name: 'type', value: 'payment_link' },
+      { name: 'user', value: sanitizeTagValue(email) },
+      { name: 'reservation', value: sanitizeTagValue(reservationNumber) },
     ],
   });
 }

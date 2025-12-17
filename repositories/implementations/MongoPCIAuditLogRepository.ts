@@ -46,9 +46,19 @@ export class MongoPCIAuditLogRepository implements IPCIAuditLogRepository {
       const collection = await this.getCollection();
       const now = new Date();
 
+      // Générer un ID unique pour l'audit log
+      const auditLogId = data.id && ObjectId.isValid(data.id)
+        ? data.id
+        : new ObjectId().toString();
+      
+      // Créer un ObjectId valide pour _id (MongoDB)
+      const mongoId = ObjectId.isValid(auditLogId)
+        ? new ObjectId(auditLogId)
+        : new ObjectId();
+
       const document = {
-        _id: data.id ? new ObjectId(data.id) : new ObjectId(),
-        id: data.id || new ObjectId().toString(),
+        _id: mongoId,
+        id: auditLogId,
         timestamp: data.timestamp || now,
         event: data.event || '',
         userId: data.userId || null,

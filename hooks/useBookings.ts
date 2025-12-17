@@ -8,8 +8,12 @@ export interface UseBookingsOptions {
   userId?: string | undefined;
   providerId?: string | undefined;
   status?: string | undefined;
+  paymentStatus?: string | undefined;
   limit?: number | undefined;
   offset?: number | undefined;
+  sortBy?: string | undefined;
+  sortOrder?: 'asc' | 'desc' | undefined;
+  viewMode?: 'customer' | 'provider' | undefined;
 }
 
 export const useBookings = (options: UseBookingsOptions = {}) => {
@@ -35,9 +39,13 @@ export const useBookings = (options: UseBookingsOptions = {}) => {
       if (memoizedOptions.providerId)
         searchParams.append("providerId", memoizedOptions.providerId);
       if (memoizedOptions.status) searchParams.append("status", memoizedOptions.status);
+      if (memoizedOptions.paymentStatus) searchParams.append("paymentStatus", memoizedOptions.paymentStatus);
       if (memoizedOptions.limit) searchParams.append("limit", memoizedOptions.limit.toString());
       if (memoizedOptions.offset)
         searchParams.append("offset", memoizedOptions.offset.toString());
+      if (memoizedOptions.sortBy) searchParams.append("sortBy", memoizedOptions.sortBy);
+      if (memoizedOptions.sortOrder) searchParams.append("sortOrder", memoizedOptions.sortOrder);
+      if (memoizedOptions.viewMode) searchParams.append("viewMode", memoizedOptions.viewMode);
 
       const response = await fetch(`/api/bookings?${searchParams.toString()}`);
 

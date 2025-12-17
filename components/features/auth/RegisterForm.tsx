@@ -1,17 +1,17 @@
 'use client';
-import { Eye, EyeOff } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { SimplifiedRegisterForm } from './SimplifiedRegisterForm';
 import Link from 'next/link';
+import { useNotificationManager } from '@/components/ui/Notification';
+import { PhoneInput } from 'react-international-phone';
 
 export function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { addSuccess } = useNotificationManager();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -22,8 +22,6 @@ export function RegisterForm() {
     phone: '',
     dateOfBirth: '',
     countryOfResidence: '',
-    password: '',
-    confirmPassword: '',
     termsAccepted: false,
     marketingConsent: false,
   });
@@ -83,12 +81,7 @@ export function RegisterForm() {
       return basicFields;
     }
 
-    return (
-      basicFields &&
-      formData.password.trim() !== '' &&
-      formData.password === formData.confirmPassword &&
-      formData.password.length >= 8
-    );
+    return basicFields;
   };
 
   const handleSubmit = async () => {
@@ -110,10 +103,6 @@ export function RegisterForm() {
               providerAccountId: oauthProviderAccountId,
             }
           : undefined,
-        // Si OAuth, on n'envoie pas le mot de passe
-        ...(oauthProvider
-          ? { password: undefined, confirmPassword: undefined }
-          : {}),
       };
 
       const res = await fetch('/api/auth/register', {
@@ -126,6 +115,11 @@ export function RegisterForm() {
 
       if (res.ok && result.success) {
         setIsSuccess(true);
+        // Afficher une notification de succès avec l'emoji 🔔
+        addSuccess(
+          '🔔 Compte créé avec succès ! Vérifiez votre email pour activer votre compte.',
+          6000,
+        );
         // Rediriger automatiquement après 2 secondes
         setTimeout(() => {
           router.push('/dashboard');
@@ -217,81 +211,6 @@ export function RegisterForm() {
             suppressHydrationWarning
           />
         </div>
-
-        {/* Mot de passe (si pas OAuth) */}
-        {!oauthProvider && (
-          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-            <div>
-              <label className='block mb-2 text-sm font-medium text-gray-700'>
-                Mot de passe <span className='text-red-500'>*</span>
-              </label>
-              <div className='relative'>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={e =>
-                    handleInputChange('password', e.target.value)
-                  }
-                  className='w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-[hsl(25,100%,53%)] transition-all duration-200 text-base'
-                  placeholder='••••••••'
-                  required
-                  minLength={8}
-                  suppressHydrationWarning
-                />
-                <button
-                  type='button'
-                  onClick={() => setShowPassword(!showPassword)}
-                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors'
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <EyeOff className='w-5 h-5' />
-                  ) : (
-                    <Eye className='w-5 h-5' />
-                  )}
-                </button>
-              </div>
-              <p className='text-xs text-gray-500 mt-1.5'>
-                Minimum 8 caractères
-              </p>
-            </div>
-            <div>
-              <label className='block mb-2 text-sm font-medium text-gray-700'>
-                Confirmer <span className='text-red-500'>*</span>
-              </label>
-              <div className='relative'>
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={e =>
-                    handleInputChange(
-                      'confirmPassword',
-                      e.target.value,
-                    )
-                  }
-                  className='w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-[hsl(25,100%,53%)] transition-all duration-200 text-base'
-                  placeholder='••••••••'
-                  required
-                  suppressHydrationWarning
-                />
-                <button
-                  type='button'
-                  onClick={() =>
-                    setShowConfirmPassword(!showConfirmPassword)
-                  }
-                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors'
-                  tabIndex={-1}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className='w-5 h-5' />
-                  ) : (
-                    <Eye className='w-5 h-5' />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Champs optionnels - Progressive Disclosure */}
@@ -302,14 +221,12 @@ export function RegisterForm() {
               <label className='block mb-2 text-sm font-medium text-gray-700'>
                 Téléphone
               </label>
-              <input
-                type='tel'
+              <PhoneInput
+                defaultCountry="fr"
                 value={formData.phone}
-                onChange={e =>
-                  handleInputChange('phone', e.target.value)
-                }
-                className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-[hsl(25,100%,53%)] transition-all duration-200 text-base'
-                placeholder='+33 6 12 34 56 78'
+                onChange={(phone) => handleInputChange('phone', phone)}
+                className="w-full"
+                inputClassName="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-[hsl(25,100%,53%)] transition-all duration-200 text-base"
               />
             </div>
             <div>

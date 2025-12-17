@@ -40,11 +40,11 @@ export async function GET(
 
     // Gérer params qui peut être une Promise dans Next.js 15+
     const resolvedParams = await Promise.resolve(params);
-    const userId = resolvedParams.id;
+    const userId = resolvedParams?.id;
 
     // Validation de l'ID
-    if (!userId || userId === 'null' || userId === 'undefined') {
-      log.warn({ userId }, 'Invalid user ID provided');
+    if (!userId || userId === 'null' || userId === 'undefined' || userId === 'undefined' || typeof userId !== 'string' || userId.trim() === '') {
+      log.warn({ userId: userId || 'undefined', params: resolvedParams }, 'Invalid user ID provided');
       return NextResponse.json(
         { error: 'ID utilisateur invalide' },
         { status: 400 },
@@ -68,8 +68,9 @@ export async function GET(
     });
   } catch (error: any) {
     const resolvedParams = await Promise.resolve(params);
+    const userId = resolvedParams?.id || 'undefined';
     log.error(
-      { error, userId: resolvedParams.id, msg: 'Error fetching user' },
+      { error, userId, msg: 'Error fetching user' },
       'Error fetching user',
     );
 
@@ -109,16 +110,20 @@ export async function PUT(
 
     // Gérer params qui peut être une Promise dans Next.js 15+
     const resolvedParams = await Promise.resolve(params);
-    const targetUserId = resolvedParams.id;
+    const targetUserId = resolvedParams?.id;
 
     // Validation de l'ID
-    if (!targetUserId || targetUserId === 'null' || targetUserId === 'undefined') {
-      log.warn({ targetUserId }, 'Invalid user ID provided');
+    if (!targetUserId || targetUserId === 'null' || targetUserId === 'undefined' || typeof targetUserId !== 'string' || targetUserId.trim() === '') {
+      log.warn({ targetUserId: targetUserId || 'undefined', params: resolvedParams }, 'Invalid user ID provided');
       return NextResponse.json(
         { error: 'ID utilisateur invalide' },
         { status: 400 },
       );
     }
+
+    // Décoder l'ID si nécessaire (en cas d'encodage URL)
+    const decodedUserId = decodeURIComponent(targetUserId);
+    log.debug({ targetUserId, decodedUserId }, 'Processing user update');
 
     // Vérifier les permissions (seuls ADMIN et SUPERADMIN peuvent modifier d'autres utilisateurs)
     const currentUserId = session.user.id;
@@ -147,7 +152,7 @@ export async function PUT(
     // Validation avec Zod
     const data = validateBody(body, UpdateUserSchema);
     
-    const userId = targetUserId;
+    const userId = decodedUserId;
 
     log.debug({ userId, fields: Object.keys(data) }, 'Updating user');
 
@@ -172,6 +177,7 @@ export async function PUT(
     if (data.clientNotes !== undefined)
       updateData.clientNotes = data.clientNotes;
     if (data.preferences) updateData.preferences = data.preferences;
+    if (data.providerInfo) updateData.providerInfo = data.providerInfo;
 
     // Utiliser le service avec décorateurs (@Log, @InvalidateCache)
     const updatedUser = await userService.updateUserProfile(userId, updateData);
@@ -191,8 +197,9 @@ export async function PUT(
     });
   } catch (error: any) {
     const resolvedParams = await Promise.resolve(params);
+    const userId = resolvedParams?.id || 'undefined';
     log.error(
-      { error, userId: resolvedParams.id, msg: 'Error updating user' },
+      { error, userId, msg: 'Error updating user' },
       'Error updating user',
     );
 
@@ -205,6 +212,96 @@ export async function PUT(
 
     return NextResponse.json(
       { error: "Erreur lors de la mise à jour de l'utilisateur" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * DELETE /api/users/[id] - Supprimer un utilisateur (anonymisation GDPR)
+ * Implémente les design patterns :
+ * - Service Layer Pattern (via userService.deleteUserAccount)
+ * - Repository Pattern (via userService qui utilise les repositories)
+ * - Decorator Pattern (@Log, @Audit, @Transaction dans userService)
+ * - Middleware Pattern (authentification)
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> | { id: string } },
+) {
+  const reqId = request.headers.get('x-request-id') || undefined;
+  const log = childLogger({
+    requestId: reqId,
+    route: 'api/users/[id]',
+  });
+
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      log.warn({ msg: 'Unauthorized access attempt' });
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    // Gérer params qui peut être une Promise dans Next.js 15+
+    const resolvedParams = await Promise.resolve(params);
+    const targetUserId = resolvedParams?.id;
+
+    // Validation de l'ID
+    if (!targetUserId || targetUserId === 'null' || targetUserId === 'undefined' || typeof targetUserId !== 'string' || targetUserId.trim() === '') {
+      log.warn({ targetUserId: targetUserId || 'undefined', params: resolvedParams }, 'Invalid user ID provided');
+      return NextResponse.json(
+        { error: 'ID utilisateur invalide' },
+        { status: 400 },
+      );
+    }
+
+    // Vérifier les permissions (seuls ADMIN et SUPERADMIN peuvent supprimer des utilisateurs)
+    const currentUserId = session.user.id;
+    const currentUser = await userService.getUserProfile(currentUserId);
+    const isAdmin =
+      currentUser.roles?.includes(ROLES.ADMIN) ||
+      currentUser.roles?.includes(ROLES.SUPERADMIN);
+
+    if (!isAdmin) {
+      log.warn(
+        { currentUserId, targetUserId, msg: 'Insufficient permissions' },
+        'User attempted to delete another user without admin rights',
+      );
+      return NextResponse.json(
+        { error: 'Permissions insuffisantes. Seuls les administrateurs peuvent supprimer des utilisateurs.' },
+        { status: 403 },
+      );
+    }
+
+    log.info({ targetUserId, deletedBy: currentUserId }, 'Deleting user account');
+
+    // Utiliser le service avec décorateurs (@Log, @Audit, @Transaction, @InvalidateCache)
+    // Le service anonymise l'utilisateur (GDPR compliance) au lieu de le supprimer complètement
+    await userService.deleteUserAccount(targetUserId);
+
+    log.info({ targetUserId, deletedBy: currentUserId }, 'User account deleted successfully');
+
+    return NextResponse.json({
+      success: true,
+      message: 'Utilisateur supprimé avec succès (anonymisé conformément au RGPD)',
+    });
+  } catch (error: any) {
+    const resolvedParams = await Promise.resolve(params);
+    const userId = resolvedParams?.id || 'undefined';
+    log.error(
+      { error, userId, msg: 'Error deleting user' },
+      'Error deleting user',
+    );
+
+    if (error.message === 'Utilisateur non trouvé') {
+      return NextResponse.json(
+        { error: 'Utilisateur non trouvé' },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Erreur lors de la suppression de l'utilisateur" },
       { status: 500 },
     );
   }

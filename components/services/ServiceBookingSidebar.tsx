@@ -212,18 +212,18 @@ export function ServiceBookingSidebar({
         </h4>
         <div className="space-y-2">
           <a
-            href="tel:+33123456789"
+            href="tel:+33651275570"
             className="flex items-center gap-2 text-sm text-gray-600 hover:text-[hsl(25,100%,53%)] transition"
           >
             <Phone className="w-4 h-4" />
-            <span>+33 1 23 45 67 89</span>
+            <span>+33 6 51 27 55 70</span>
           </a>
           <a
-            href="mailto:support@diaspomoney.com"
+            href="mailto:contact@diaspomoney.fr"
             className="flex items-center gap-2 text-sm text-gray-600 hover:text-[hsl(25,100%,53%)] transition"
           >
             <Mail className="w-4 h-4" />
-            <span>support@diaspomoney.com</span>
+            <span>contact@diaspomoney.fr</span>
           </a>
         </div>
       </div>

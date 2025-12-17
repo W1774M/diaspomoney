@@ -33,13 +33,6 @@ spec:
           value: "1"
         - name: LOG_LEVEL
           value: "debug"
-        # URLs publiques
-        - name: APP_URL
-          value: "https://dev.diaspomoney.fr"
-        - name: API_URL
-          value: "https://dev.diaspomoney.fr/api"
-        - name: NEXTAUTH_URL
-          value: "https://dev.diaspomoney.fr"
         # URLs publiques Next.js (nécessaires pour le client)
         - name: NEXT_PUBLIC_APP_URL
           value: "https://dev.diaspomoney.fr"

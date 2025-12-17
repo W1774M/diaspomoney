@@ -21,6 +21,8 @@ import {
 import {
   CreateServiceOptionSchema,
   UpdateServiceOptionSchema,
+  type CreateServiceOptionInput,
+  type UpdateServiceOptionInput,
 } from '@/lib/validations/service-options.schema';
 import { getServiceRepository, getServiceOptionRepository, IServiceRepository, IServiceOptionRepository } from '@/repositories';
 import { z } from 'zod';
@@ -166,7 +168,7 @@ export class ServiceService {
   @Audit({ eventType: 'SERVICE_OPTION_CREATED', includeArgs: true })
   @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
   @InvalidateCache('ServiceOptionRepository:*')
-  async createServiceOption(data: z.infer<typeof CreateServiceOptionSchema>) {
+  async createServiceOption(data: CreateServiceOptionInput) {
     try {
       // Générer un ID basé sur le label (sans catégorie car une option peut être multi-catégories)
       const optionId = data.label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -222,7 +224,7 @@ export class ServiceService {
   @Audit({ eventType: 'SERVICE_OPTION_UPDATED', includeArgs: true })
   @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
   @InvalidateCache('ServiceOptionRepository:*')
-  async updateServiceOption(id: string, data: z.infer<typeof UpdateServiceOptionSchema>) {
+  async updateServiceOption(id: string, data: UpdateServiceOptionInput) {
     try {
       const option = await this.serviceOptionRepository.update(id, data as any);
       logger.info({ optionId: id }, 'Service option updated successfully');

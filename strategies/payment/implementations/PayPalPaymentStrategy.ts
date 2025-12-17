@@ -80,6 +80,12 @@ export class PayPalPaymentStrategy implements IPaymentStrategy {
 
       const accessToken = await this.getAccessToken();
 
+      // Calculer les URLs de retour et d'annulation
+      const { cleanUrl } = await import('@/lib/utils');
+      const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+      const returnUrl = data.returnUrl || `${baseUrl}/payment/success`;
+      const cancelUrl = data.cancelUrl || `${baseUrl}/payment/cancel`;
+
       // Créer une commande PayPal
       const orderResponse = await fetch(`${this.apiUrl}/v2/checkout/orders`, {
         method: 'POST',
@@ -99,8 +105,8 @@ export class PayPalPaymentStrategy implements IPaymentStrategy {
             },
           ],
           application_context: {
-            return_url: data.returnUrl || `${process.env['NEXTAUTH_URL'] || process.env['NEXT_PUBLIC_APP_URL'] || ''}/payment/success`,
-            cancel_url: data.cancelUrl || `${process.env['NEXTAUTH_URL'] || process.env['NEXT_PUBLIC_APP_URL'] || ''}/payment/cancel`,
+            return_url: returnUrl,
+            cancel_url: cancelUrl,
           },
         }),
       });

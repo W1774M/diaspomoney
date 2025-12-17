@@ -22,13 +22,18 @@ export function useUserEdit() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/users/${userId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
+      // Valider l'ID avant de faire l'appel
+      if (!userId || userId === 'undefined' || userId === 'null' || typeof userId !== 'string' || userId.trim() === '') {
+        throw new Error('ID utilisateur invalide');
+      }
+
+      const response = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));

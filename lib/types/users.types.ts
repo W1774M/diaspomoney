@@ -7,6 +7,7 @@ export interface UserFilters {
 
 export interface UserCardProps {
   user: {
+    [x: string]: any;
     _id: string;
     name?: string;
     email?: string;
@@ -50,6 +51,5 @@ export interface UsersTableProps {
 }
 
 export interface UsersHeaderProps {
-  totalUsers: number;
   onAddUser: () => void;
 }

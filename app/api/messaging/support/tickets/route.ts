@@ -1,3 +1,4 @@
+
 import { auth } from '@/auth';
 import SupportTicket from '@/models/SupportTicket';
 import mongoose from 'mongoose';

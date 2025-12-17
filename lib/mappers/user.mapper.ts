@@ -104,7 +104,7 @@ export function mapUserToResponse(
     company: userDoc.company || '',
     address: userDoc.address || '',
     roles: userDoc['roles'] || [ROLES.CUSTOMER],
-    status: userDoc['status'] || USER_STATUSES.ACTIVE,
+    status: userDoc['status'] || USER_STATUSES.PENDING,
     avatar,
     oauth: {
       google: oauth.google || { linked: false, providerAccountId: 'google-pierre' },

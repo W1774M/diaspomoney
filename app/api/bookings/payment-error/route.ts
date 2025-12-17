@@ -37,7 +37,9 @@ export async function POST(request: NextRequest) {
         }),
       ).toString('base64');
 
-      const retryUrl = `${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/retry-payment?token=${retryToken}`;
+      const { cleanUrl } = await import('@/lib/utils');
+      const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+      const retryUrl = `${baseUrl}/retry-payment?token=${retryToken}`;
 
       // Formatage de la date
       const formattedDate = appointment.timeslot

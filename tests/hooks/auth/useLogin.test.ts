@@ -14,15 +14,23 @@ import { useLogin } from '@/hooks/auth/useLogin';
 import { signIn } from 'next-auth/react';
 
 // Mock de next-auth/react
+const mockUpdate = vi.fn();
 vi.mock('next-auth/react', () => ({
   signIn: vi.fn(),
+  useSession: () => ({
+    status: 'unauthenticated',
+    update: mockUpdate,
+  }),
 }));
 
 // Mock de useRouter
-const mockPush = vi.fn();
+const mockReplace = vi.fn();
+const mockRefresh = vi.fn();
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
-    push: mockPush,
+    push: mockReplace,
+    replace: mockReplace,
+    refresh: mockRefresh,
   }),
 }));
 
@@ -70,6 +78,9 @@ global.fetch = vi.fn();
 describe('useLogin', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUpdate.mockResolvedValue({
+      user: { id: 'user123', email: 'test@example.com' },
+    });
     Object.defineProperty(window, 'location', {
       value: { origin: 'http://localhost:3000' },
       writable: true,
@@ -112,7 +123,8 @@ describe('useLogin', () => {
       callbackUrl: 'http://localhost:3000/dashboard',
     });
     expect(mockAddSuccess).toHaveBeenCalled();
-    expect(mockPush).toHaveBeenCalledWith('/dashboard');
+    expect(mockUpdate).toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith('/dashboard');
   });
 
   it('devrait gérer les erreurs CredentialsSignin', async () => {
@@ -285,7 +297,7 @@ describe('useLogin', () => {
       });
     });
 
-    expect(mockPush).toHaveBeenCalledWith('/dashboard');
+    expect(mockReplace).toHaveBeenCalledWith('/dashboard');
   });
 
   it('devrait rediriger vers callbackUrl depuis sessionStorage', async () => {
@@ -321,7 +333,7 @@ describe('useLogin', () => {
       });
     });
 
-    expect(mockPush).toHaveBeenCalledWith('/custom-page');
+    expect(mockReplace).toHaveBeenCalledWith('/custom-page');
     expect(mockSessionStorage.removeItem).toHaveBeenCalledWith('authCallbackUrl');
   });
 
@@ -414,7 +426,7 @@ describe('useLogin', () => {
     });
 
     // Le hook devrait ignorer l'URL localhost et utiliser router.push
-    expect(mockPush).toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalled();
   });
 
   it('devrait gérer les redirections vers /api/auth/error', async () => {

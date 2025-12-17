@@ -1,5 +1,4 @@
 import { auth } from '@/auth';
-// Désactiver le prerendering pour cette route API
 ;
 
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';

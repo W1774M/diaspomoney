@@ -80,8 +80,14 @@ describe('useBeneficiaries', () => {
 
     await act(async () => {
       const created = await result.current.createBeneficiary({
-        name: 'New Beneficiary',
+        firstName: 'New',
+        lastName: 'Beneficiary',
         relationship: 'FAMILY',
+        location: {
+          address: '123 Main St',
+          city: 'Paris',
+          country: 'FR',
+        },
       });
 
       expect(created).toEqual(mockNewBeneficiary);

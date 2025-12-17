@@ -344,23 +344,33 @@ export interface UseBookingPaymentReturn {
  * === BENEFICIARIES HOOKS ===
  */
 export interface CreateBeneficiaryData {
-  name: string;
+  name?: string; // Legacy, pour compatibilité
   email?: string;
   phone?: string;
   relationship: string;
-  firstName?: string;
-  lastName?: string;
-  country?: string;
+  firstName: string;
+  lastName: string;
+  location: {
+    address: string;
+    city: string;
+    country: string;
+    postalCode?: string;
+  };
 }
 
 export interface UpdateBeneficiaryData {
-  name?: string;
+  name?: string; // Legacy, pour compatibilité
   email?: string;
   phone?: string;
   relationship?: string;
   firstName?: string;
   lastName?: string;
-  country?: string;
+  location?: {
+    address?: string;
+    city?: string;
+    country?: string;
+    postalCode?: string;
+  };
 }
 
 export interface UseBeneficiariesReturn {

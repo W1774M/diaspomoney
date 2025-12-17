@@ -310,7 +310,7 @@ PROD_DOMAIN=app.diaspomoney.fr
 ```bash
 NODE_ENV=development
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-MONGODB_URI=mongodb://localhost:27017/diaspomoney_dev
+MONGODB_URI=mongodb://localhost:27017/diaspomoney-dev
 REDIS_URL=redis://localhost:6379
 LOG_LEVEL=debug
 ```
@@ -320,7 +320,7 @@ LOG_LEVEL=debug
 ```bash
 NODE_ENV=recette
 NEXT_PUBLIC_APP_URL=https://rct.diaspomoney.fr
-MONGODB_URI=mongodb://localhost:27017/diaspomoney_rct
+MONGODB_URI=mongodb://localhost:27017/diaspomoney-rct
 REDIS_URL=redis://localhost:6379
 LOG_LEVEL=info
 ```
@@ -329,8 +329,8 @@ LOG_LEVEL=info
 
 ```bash
 NODE_ENV=production
-NEXT_PUBLIC_APP_URL=https://app.diaspomoney.fr
-MONGODB_URI=mongodb://localhost:27017/diaspomoney_prod
+NEXT_PUBLIC_APP_URL=https://diaspomoney.fr
+MONGODB_URI=mongodb://localhost:27017/diaspomoney
 REDIS_URL=redis://localhost:6379
 LOG_LEVEL=error
 ```

@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
  * Implémente le Service Layer Pattern via les repositories
  */
 
-// Désactiver le prerendering pour cette route API
 // Elle nécessite une connexion MongoDB qui n'est pas disponible pendant le build
 ;
 

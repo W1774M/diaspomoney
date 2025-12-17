@@ -1,8 +1,10 @@
 "use client";
 
 import { useBeneficiaries } from "@/hooks/beneficiaries/useBeneficiaries";
+import { CreateBeneficiaryData } from "@/lib/types";
 import { AlertCircle, Check, Loader2, User, UserPlus } from "lucide-react";
 import { useState } from "react";
+import { PhoneInput } from "react-international-phone";
 
 interface BeneficiarySelectorProps {
   selectedBeneficiaries: string[];
@@ -17,6 +19,7 @@ export default function BeneficiarySelector({
 }: BeneficiarySelectorProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phone, setPhone] = useState("");
 
   const { beneficiaries, loading, error, createBeneficiary } =
     useBeneficiaries();
@@ -35,11 +38,45 @@ export default function BeneficiarySelector({
   const handleAddBeneficiary = async (formData: any) => {
     setIsSubmitting(true);
     try {
+      // Parser le nom complet en firstName et lastName
+      const nameParts = (formData.name || "").trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+      
+      // Construire location
+      const location: CreateBeneficiaryData['location'] = {
+        address: formData.address || "",
+        city: formData.city || "",
+        country: formData.country || "",
+      };
+      
+      // Ajouter postalCode seulement s'il est défini
+      if (formData.postalCode?.trim()) {
+        location.postalCode = formData.postalCode.trim();
+      }
+      
+      // Mapper la relation
+      const relationshipMap: Record<string, string> = {
+        'Époux/Épouse': 'SPOUSE',
+        'Enfant': 'CHILD',
+        'Parent': 'PARENT',
+        'Frère/Sœur': 'SIBLING',
+        'Ami(e)': 'FRIEND',
+        'Autre': 'OTHER',
+      };
+      const relationship = relationshipMap[formData.relationship] || 'OTHER';
+      
+      // Préparer les données avec gestion conditionnelle des propriétés optionnelles
+      const trimmedPhone = phone?.trim();
+      const trimmedEmail = formData.email?.trim();
+      
       const result = await createBeneficiary({
-        name: formData.name,
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
-        relationship: formData.relationship,
+        firstName,
+        lastName,
+        ...(trimmedEmail && { email: trimmedEmail }),
+        ...(trimmedPhone && { phone: trimmedPhone }),
+        relationship,
+        location,
       });
 
       if (result) {
@@ -50,6 +87,7 @@ export default function BeneficiarySelector({
         }
         if (onAddNew) onAddNew(result);
         setShowAddForm(false);
+        setPhone(""); // Reset phone state
         // Reset form
         const form = document.querySelector("form") as HTMLFormElement;
         if (form) form.reset();
@@ -199,6 +237,55 @@ export default function BeneficiarySelector({
                     type="text"
                     name="name"
                     required
+                    placeholder="Prénom Nom"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Adresse *
+                  </label>
+                  <input
+                    type="text"
+                    name="address"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ville *
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Code postal
+                    </label>
+                    <input
+                      type="text"
+                      name="postalCode"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Pays *
+                  </label>
+                  <input
+                    type="text"
+                    name="country"
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
                   />
                 </div>
@@ -218,19 +305,22 @@ export default function BeneficiarySelector({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Téléphone
                   </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  <PhoneInput
+                    defaultCountry="fr"
+                    value={phone}
+                    onChange={(phoneValue) => setPhone(phoneValue)}
+                    className="w-full"
+                    inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Relation
+                    Relation *
                   </label>
                   <select
                     name="relationship"
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
                   >
                     <option value="">Sélectionner une relation</option>

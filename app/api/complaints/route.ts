@@ -1,5 +1,4 @@
 /**
-// Désactiver le prerendering pour cette route API
 ;
 
  * API Route pour les réclamations
@@ -25,10 +24,6 @@ import { CreateComplaintSchema } from '@/lib/validations/complaint.schema';
 import { getComplaintRepository } from '@/repositories';
 import { complaintService } from '@/services/complaint/complaint.service';
 import { NextRequest } from 'next/server';
-
-// Désactiver le prerendering pour cette route API
-export const dynamic = 'force-dynamic';
-
 /**
  * GET /api/complaints - Récupérer les réclamations
  */

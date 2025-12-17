@@ -3,7 +3,7 @@
  * Étend QueryBuilder avec des méthodes spécifiques aux réservations
  */
 
-import { BOOKING_STATUSES } from '@/lib/constants';
+import { BOOKING_STATUSES, TRANSACTION_STATUSES } from '@/lib/constants';
 import { QueryBuilder } from './QueryBuilder';
 
 export class BookingQueryBuilder extends QueryBuilder {
@@ -38,7 +38,7 @@ export class BookingQueryBuilder extends QueryBuilder {
   /**
    * Filtrer par statut
    */
-  byStatus(status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'): this {
+  byStatus(status: 'DRAFT' | 'PENDING' | 'CONFIRMED' | 'FINISHED' | 'CANCELLED'): this {
     return this.where('status', status);
   }
 
@@ -57,10 +57,10 @@ export class BookingQueryBuilder extends QueryBuilder {
   }
 
   /**
-   * Filtrer les réservations complétées
+   * Filtrer les réservations terminées
    */
-  completed(): this {
-    return this.where('status', BOOKING_STATUSES.COMPLETED);
+  finished(): this {
+    return this.where('status', BOOKING_STATUSES.FINISHED);
   }
 
   /**
@@ -127,6 +127,46 @@ export class BookingQueryBuilder extends QueryBuilder {
    */
   orderByCreatedAt(direction: 'asc' | 'desc' = 'desc'): this {
     return this.orderBy('createdAt', direction);
+  }
+
+  /**
+   * Trier par numéro de réservation
+   */
+  orderByReservationNumber(direction: 'asc' | 'desc' = 'asc'): this {
+    return this.orderBy('reservationNumber', direction);
+  }
+
+  /**
+   * Trier par montant (via metadata.totalAmount)
+   */
+  orderByAmount(direction: 'asc' | 'desc' = 'desc'): this {
+    return this.orderBy('metadata.totalAmount', direction);
+  }
+
+  /**
+   * Trier par taux de progression (via metadata.currentStep)
+   */
+  orderByCompletionRate(direction: 'asc' | 'desc' = 'desc'): this {
+    return this.orderBy('metadata.currentStep', direction);
+  }
+
+  /**
+   * Filtrer par statut de paiement (via metadata.paymentStatus)
+   * Convertit les constantes TRANSACTION_STATUSES vers les valeurs stockées
+   */
+  byPaymentStatus(paymentStatus: string): this {
+    // Mapping des constantes TRANSACTION_STATUSES vers les valeurs stockées
+    const paymentStatusMap: Record<string, string> = {
+      [TRANSACTION_STATUSES.PENDING]: 'pending',
+      [TRANSACTION_STATUSES.PROCESSING]: 'processing',
+      [TRANSACTION_STATUSES.COMPLETED]: 'confirmed', // COMPLETED -> confirmed (mappé depuis Stripe 'succeeded')
+      [TRANSACTION_STATUSES.FAILED]: 'failed',
+      [TRANSACTION_STATUSES.CANCELLED]: 'cancelled',
+      [TRANSACTION_STATUSES.REFUNDED]: 'refunded',
+    };
+    
+    const storedPaymentStatus = paymentStatusMap[paymentStatus] || paymentStatus.toLowerCase();
+    return this.where('metadata.paymentStatus', storedPaymentStatus);
   }
 }
 

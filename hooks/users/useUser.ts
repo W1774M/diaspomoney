@@ -19,10 +19,17 @@ export function useUser() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchUser = useCallback(async (userId: string) => {
+    // Valider l'ID avant de faire l'appel
+    if (!userId || userId === 'undefined' || userId === 'null' || typeof userId !== 'string' || userId.trim() === '') {
+      setError('ID utilisateur invalide');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/users/${userId}`);
+      const response = await fetch(`/api/users/${encodeURIComponent(userId)}`);
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error('Utilisateur non trouvé');

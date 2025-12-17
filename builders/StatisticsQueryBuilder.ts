@@ -97,7 +97,7 @@ export class StatisticsQueryBuilder extends QueryBuilder {
    * Filtrer les réservations complétées
    */
   completedBookings(): this {
-    return this.where('status', BOOKING_STATUSES.COMPLETED);
+    return this.where('status', BOOKING_STATUSES.FINISHED);
   }
 
   /**

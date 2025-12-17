@@ -13,7 +13,7 @@ import { Log } from '@/lib/decorators/log.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
 import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
-import type { AuditLog, AuditQuery } from '@/lib/security/audit-logging';
+import type { AuditLog, AuditLogWithId, AuditQuery } from '@/lib/security/audit-logging';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import type { IAuditLogRepository } from '../interfaces/IAuditLogRepository';
@@ -36,11 +36,11 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'AuditLogRepository:findById' }) // Cache 5 minutes
-  async findById(id: string): Promise<AuditLog | null> {
+  async findById(id: string): Promise<AuditLogWithId | null> {
     try {
       const collection = await this.getCollection();
       const auditLog = await collection.findOne({ _id: new ObjectId(id) });
-      const result = auditLog ? this.mapToAuditLog(auditLog) : null;
+      const result = auditLog ? (this.mapToAuditLog(auditLog) as AuditLogWithId) : null;
       if (result) {
         this.log.debug({ auditLogId: id }, 'Audit log found');
       } else {
@@ -56,11 +56,11 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'AuditLogRepository:findAll' }) // Cache 5 minutes
-  async findAll(filters?: Record<string, any>): Promise<AuditLog[]> {
+  async findAll(filters?: Record<string, any>): Promise<AuditLogWithId[]> {
     try {
       const collection = await this.getCollection();
       const auditLogs = await collection.find(filters || {}).toArray();
-      const result = auditLogs.map(a => this.mapToAuditLog(a));
+      const result = auditLogs.map(a => this.mapToAuditLog(a) as AuditLogWithId);
       this.log.debug({ count: result.length, filters }, 'Audit logs found');
       return result;
     } catch (error) {
@@ -72,11 +72,11 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'AuditLogRepository:findOne' }) // Cache 5 minutes
-  async findOne(filters: Record<string, any>): Promise<AuditLog | null> {
+  async findOne(filters: Record<string, any>): Promise<AuditLogWithId | null> {
     try {
       const collection = await this.getCollection();
       const auditLog = await collection.findOne(filters);
-      const result = auditLog ? this.mapToAuditLog(auditLog) : null;
+      const result = auditLog ? (this.mapToAuditLog(auditLog) as AuditLogWithId) : null;
       this.log.debug({ filters, found: !!result }, 'findOne completed');
       return result;
     } catch (error) {
@@ -89,16 +89,25 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('AuditLogRepository:*') // Invalider le cache après création
-  async create(data: Partial<AuditLog>): Promise<AuditLog> {
+  async create(data: Partial<AuditLog>): Promise<AuditLogWithId> {
     try {
       const collection = await this.getCollection();
       const now = new Date();
+      
+      // Générer un ID unique pour l'audit log
+      const auditLogId = data.id && ObjectId.isValid(data.id)
+        ? data.id
+        : `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Créer un ObjectId valide pour _id (MongoDB)
+      const mongoId = ObjectId.isValid(auditLogId) 
+        ? new ObjectId(auditLogId) 
+        : new ObjectId();
+      
       const auditLogData: OptionalId<Document> = {
         ...data,
-        _id: data.id ? new ObjectId(data.id) : new ObjectId(),
-        id:
-          data.id ||
-          `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        _id: mongoId,
+        id: auditLogId,
         timestamp: data.timestamp || now,
         createdAt: now,
         updatedAt: now,
@@ -108,7 +117,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
       if (!auditLog) {
         throw new Error('Failed to create audit log');
       }
-      const mapped = this.mapToAuditLog(auditLog);
+      const mapped = this.mapToAuditLog(auditLog) as AuditLogWithId;
       this.log.info(
         { auditLogId: mapped.id, userId: mapped.userId },
         'Audit log created successfully',
@@ -123,7 +132,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
 
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @InvalidateCache('AuditLogRepository:*') // Invalider le cache après mise à jour
-  async update(id: string, data: Partial<AuditLog>): Promise<AuditLog | null> {
+  async update(id: string, data: Partial<AuditLog>): Promise<AuditLogWithId | null> {
     try {
       const collection = await this.getCollection();
       const updateData: Partial<AuditLog> = {
@@ -135,7 +144,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
         { returnDocument: 'after' },
       );
       const updated = result?.['value']
-        ? this.mapToAuditLog(result['value'])
+        ? (this.mapToAuditLog(result['value']) as AuditLogWithId)
         : null;
       if (updated) {
         this.log.info({ auditLogId: id }, 'Audit log updated successfully');
@@ -206,7 +215,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   async findWithPagination(
     filters?: Record<string, any>,
     options?: PaginationOptions,
-  ): Promise<PaginatedFindResult<AuditLog>> {
+  ): Promise<PaginatedFindResult<AuditLogWithId>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit || 50;
@@ -227,7 +236,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
       cursor = cursor.skip(offset).limit(limit);
 
       const data = await cursor.toArray();
-      const auditLogs = data.map(doc => this.mapToAuditLog(doc));
+      const auditLogs = data.map(doc => this.mapToAuditLog(doc) as AuditLogWithId);
 
       const result = {
         data: auditLogs,
@@ -271,7 +280,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   async searchAuditLogs(
     query: AuditQuery,
     options?: PaginationOptions,
-  ): Promise<PaginatedFindResult<AuditLog>> {
+  ): Promise<PaginatedFindResult<AuditLogWithId>> {
     try {
       const collection = await this.getCollection();
       const limit = options?.limit || query.limit || 50;
@@ -319,7 +328,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
       cursor = cursor.skip(offset).limit(limit);
 
       const data = await cursor.toArray();
-      const auditLogs = data.map(doc => this.mapToAuditLog(doc));
+      const auditLogs = data.map(doc => this.mapToAuditLog(doc) as AuditLogWithId);
 
       const result = {
         data: auditLogs,
@@ -578,7 +587,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   async findByUserId(
     userId: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedFindResult<AuditLog>> {
+  ): Promise<PaginatedFindResult<AuditLogWithId>> {
     try {
       const result = await this.findWithPagination({ userId }, options);
       this.log.debug(
@@ -598,7 +607,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   async findByAction(
     action: string,
     options?: PaginationOptions,
-  ): Promise<PaginatedFindResult<AuditLog>> {
+  ): Promise<PaginatedFindResult<AuditLogWithId>> {
     try {
       const result = await this.findWithPagination({ action }, options);
       this.log.debug(
@@ -618,7 +627,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   async findByCategory(
     category: AuditLog['category'],
     options?: PaginationOptions,
-  ): Promise<PaginatedFindResult<AuditLog>> {
+  ): Promise<PaginatedFindResult<AuditLogWithId>> {
     try {
       const result = await this.findWithPagination({ category }, options);
       this.log.debug(
@@ -638,7 +647,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
   async findBySeverity(
     severity: AuditLog['severity'],
     options?: PaginationOptions,
-  ): Promise<PaginatedFindResult<AuditLog>> {
+  ): Promise<PaginatedFindResult<AuditLogWithId>> {
     try {
       const result = await this.findWithPagination({ severity }, options);
       this.log.debug(

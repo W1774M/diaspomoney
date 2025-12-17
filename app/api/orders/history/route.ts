@@ -1,4 +1,5 @@
 import { auth } from '@/auth';
+import { BOOKING_STATUSES } from '@/lib/constants';
 import { getMongoClient } from '@/lib/database/mongodb';
 import { childLogger } from '@/lib/logger';
 import { getBookingRepository, getInvoiceRepository } from '@/repositories';
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
     // Utiliser le repository (Repository Pattern)
     const bookingRepository = getBookingRepository();
 
-    // Récupérer les bookings terminés ou annulés (COMPLETED, CANCELLED)
+    // Récupérer les bookings terminés ou annulés (FINISHED, CANCELLED)
     const historicalBookingsResult =
       await bookingRepository.findBookingsWithFilters(
         {
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     // Filtrer pour avoir seulement les statuts terminés ou annulés
     const historicalBookings = historicalBookingsResult.data.filter(
-      b => b.status === 'COMPLETED' || b.status === 'CANCELLED',
+      (b: any) => b.status === BOOKING_STATUSES.FINISHED || b.status === BOOKING_STATUSES.CANCELLED,
     );
 
     // Récupérer les données brutes depuis MongoDB pour avoir selectedService, beneficiary, etc.
@@ -161,7 +162,7 @@ export async function GET(request: NextRequest) {
 
         // Vérifier si on peut réserver à nouveau (seulement si terminé, pas annulé)
         const canReorder =
-          booking.status === 'COMPLETED' || docStatus === 'completed';
+          booking.status === BOOKING_STATUSES.FINISHED || docStatus === 'completed' || docStatus === 'finished';
 
         return {
           _id: booking.id || booking._id || '',
@@ -175,12 +176,12 @@ export async function GET(request: NextRequest) {
           providerName,
           providerAvatar: provider?.avatar,
           status:
-            booking.status === 'COMPLETED' || docStatus === 'completed'
+            booking.status === BOOKING_STATUSES.FINISHED || docStatus === 'completed'
               ? 'completed'
               : 'cancelled',
           completedDate: booking.updatedAt || booking.createdAt,
           cancelledDate:
-            booking.status === 'CANCELLED' || docStatus === 'cancelled'
+            booking.status === BOOKING_STATUSES.CANCELLED || docStatus === 'cancelled'
               ? booking.updatedAt
               : undefined,
           amount: (bookingDoc as any)?.selectedService?.price || 0,

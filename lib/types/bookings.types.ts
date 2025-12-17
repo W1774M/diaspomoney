@@ -182,6 +182,7 @@ export interface BookingCardProps {
   onView: (booking: BookingResponseType) => void;
   onEdit: (booking: BookingResponseType) => void;
   onCancel: (booking: BookingResponseType) => void;
+  showProgress?: boolean;
 }
 
 export interface BookingFormProps {
@@ -227,6 +228,9 @@ export interface BookingsTableProps {
   onView: (booking: BookingResponseType) => void;
   onEdit: (booking: BookingResponseType) => void;
   onCancel: (booking: BookingResponseType) => void;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  onSort?: (field: string) => void;
 }
 
 export interface BookingsPageProps {

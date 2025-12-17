@@ -15,10 +15,17 @@ export const RegisterSchema = z
     firstName: z.string().min(1, 'First name is required').max(50),
     lastName: z.string().min(1, 'Last name is required').max(50),
     phone: z.string().max(20, 'Phone number is too long').optional(),
-    countryOfResidence: z.string().min(1, 'Country of residence is required').max(100),
+    countryOfResidence: z.string().max(100).optional(),
     targetCountry: z.string().max(100).optional(),
     targetCity: z.string().max(100).optional(),
-    dateOfBirth: z.string().datetime().optional().or(z.date().optional()),
+    dateOfBirth: z
+      .union([
+        z.string().datetime(),
+        z.string().date(),
+        z.date(),
+        z.string().optional(),
+      ])
+      .optional(),
     monthlyBudget: z.string().optional(),
     securityQuestion: z.string().optional(),
     securityAnswer: z.string().optional(),
@@ -36,29 +43,6 @@ export const RegisterSchema = z
       })
       .optional(),
   })
-  .refine(
-    (data) => {
-      // Soit password est fourni, soit oauth est fourni
-      return data.password || data.oauth;
-    },
-    {
-      message: 'Either password or OAuth credentials must be provided',
-      path: ['password'],
-    },
-  )
-  .refine(
-    (data) => {
-      // Si phone est fourni, il ne doit pas être trop long (vérification anti-erreur)
-      if (data.phone && data.phone.length > 20) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: 'Phone number format is invalid',
-      path: ['phone'],
-    },
-  );
 
 /**
  * Schéma pour la réinitialisation de mot de passe

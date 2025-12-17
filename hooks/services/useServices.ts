@@ -162,7 +162,7 @@ export function useServices(options: UseServicesOptions = {}): UseServicesReturn
     }
     
     fetchServices();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [optionsKey, fetchServices]);
 
   return {

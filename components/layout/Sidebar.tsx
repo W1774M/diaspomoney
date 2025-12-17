@@ -51,6 +51,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useSidebar } from './SidebarContext';
+import { X } from 'lucide-react';
+import { childLogger } from '@/lib/logger';
+
+const logger = childLogger({ component: 'Sidebar' });
 
 // ============================================================================
 // FONCTIONS UTILITAIRES
@@ -195,14 +200,14 @@ function buildNavigationSections(
         key: 'support-chat',
         href: '/dashboard/messaging/support',
         icon: Headphones,
-        show: true,
+        show: false,
       },
       {
         name: 'Messages utilisateurs',
         key: 'user-messages',
         href: '/dashboard/messaging/users',
         icon: Users,
-        show: true,
+        show: false,
       },
       {
         name: 'Notifications',
@@ -220,7 +225,7 @@ function buildNavigationSections(
         key: 'attachments',
         href: '/dashboard/messaging/attachments',
         icon: Paperclip,
-        show: true,
+        show: false,
       },
     ],
   };
@@ -254,7 +259,7 @@ function buildNavigationSections(
       key: 'agencies',
       href: '/dashboard/agencies',
       icon: Building,
-      show: true,
+      show: false,
     });
 
     // Prestataires
@@ -263,7 +268,7 @@ function buildNavigationSections(
       key: 'providers',
       href: '/dashboard/providers',
       icon: User,
-      show: true,
+      show: false,
     });
 
     // Commandes
@@ -326,7 +331,7 @@ function buildNavigationSections(
           name: '📅 Calendrier',
           key: 'calendar-health',
           icon: Calendar,
-          show: true,
+          show: false,
           values: [
             {
               name: 'Mes disponibilités',
@@ -364,7 +369,7 @@ function buildNavigationSections(
           name: '📅 Calendrier',
           key: 'calendar-btp',
           icon: Calendar,
-          show: true,
+          show: false,
           values: [
             {
               name: 'Mes disponibilités',
@@ -402,7 +407,7 @@ function buildNavigationSections(
           name: '📅 Calendrier',
           key: 'calendar-education',
           icon: Calendar,
-          show: true,
+          show: false,
           values: [
             {
               name: 'Mes disponibilités',
@@ -440,7 +445,7 @@ function buildNavigationSections(
           name: '📅 Calendrier',
           key: 'calendar-default',
           icon: Calendar,
-          show: true,
+          show: false,
           values: [
             {
               name: 'Mes disponibilités',
@@ -481,7 +486,7 @@ function buildNavigationSections(
           name: '🏥 Institution',
           key: 'institution-health',
           icon: Building,
-          show: true,
+          show: false,
           values: [
             {
               name: 'Mes médecins',
@@ -519,7 +524,7 @@ function buildNavigationSections(
           name: '🏗️ Institution',
           key: 'institution-btp',
           icon: Building,
-          show: true,
+          show: false,
           values: [
             {
               name: 'Mes indépendants',
@@ -550,7 +555,7 @@ function buildNavigationSections(
           name: '🎓 Institution',
           key: 'institution-education',
           icon: Building,
-          show: true,
+          show: false,
           values: [
             {
               name: 'Mes professeurs',
@@ -581,7 +586,7 @@ function buildNavigationSections(
           name: '🏢 Institution',
           key: 'institution-default',
           icon: Building,
-          show: true,
+          show: false,
           values: [
             {
               name: 'Mes équipes',
@@ -626,28 +631,13 @@ function buildNavigationSections(
       show: true,
     });
 
-    // Commandes - Menu déroulant pour les clients
+    // Réservations
     gestionItems.push({
-      name: 'Commandes',
-      key: 'orders',
-      icon: ShoppingCart,
+      name: 'Mes réservations',
+      key: 'bookings',
+      href: '/dashboard/bookings',
+      icon: Package,
       show: true,
-      values: [
-        {
-          name: 'Commandes Actives',
-          key: 'active-orders',
-          href: '/dashboard/orders/active',
-          icon: Package,
-          show: true,
-        },
-        {
-          name: 'Historique',
-          key: 'order-history',
-          href: '/dashboard/orders/history',
-          icon: History,
-          show: true,
-        },
-      ],
     });
   }
 
@@ -679,28 +669,28 @@ function buildNavigationSections(
         key: 'transactions',
         href: '/dashboard/payments/transactions',
         icon: History,
-        show: true,
+        show: false,
       },
       {
         name: 'Factures',
         key: 'invoices',
         href: '/dashboard/invoices',
         icon: FileText,
-        show: true,
+        show: false,
       },
       {
         name: 'Mes Devis',
         key: 'quotes',
         href: '/dashboard/quotes',
         icon: FileText,
-        show: isAuthorizedCustomer || isAuthorizedProvider,
+        show: false,
       },
       {
         name: 'Bon de paiement',
         key: 'payment-receipts',
         href: '/dashboard/payment-receipts',
         icon: FileText,
-        show: isAuthorizedCustomer,
+        show: false,
       },
     ],
   });
@@ -720,6 +710,8 @@ function buildNavigationSections(
 // ============================================================================
 
 function NavigationLink({ item, pathname }: NavigationLinkProps) {
+  const { close } = useSidebar();
+  
   if (!item.href) return null;
 
   const isActive =
@@ -729,6 +721,12 @@ function NavigationLink({ item, pathname }: NavigationLinkProps) {
   return (
     <Link
       href={item.href}
+      onClick={() => {
+        // Fermer la sidebar sur mobile/tablette après un clic
+        if (window.innerWidth < 1024) {
+          close();
+        }
+      }}
       className={`relative flex items-center px-4 py-3 transition-colors group ${
         isActive
           ? 'bg-slate-700 text-white'
@@ -765,6 +763,8 @@ function NavigationMenu({
   isExpanded,
   onToggle,
 }: NavigationMenuProps) {
+  const { close } = useSidebar();
+  
   if (!item.values || item.values.length === 0) return null;
 
   const visibleSubItems = item.values.filter(
@@ -819,6 +819,12 @@ function NavigationMenu({
               <Link
                 key={subItem.key}
                 href={subItem.href}
+                onClick={() => {
+                  // Fermer la sidebar sur mobile/tablette après un clic
+                  if (window.innerWidth < 1024) {
+                    close();
+                  }
+                }}
                 className={`relative flex items-center px-4 py-2.5 pl-12 transition-colors text-sm ${
                   isActive
                     ? 'bg-slate-700 text-white'
@@ -857,6 +863,8 @@ function NavigationMenu({
 }
 
 function UserSection({ user }: UserSectionProps) {
+  const [avatarError, setAvatarError] = useState(false);
+
   const getInitials = () => {
     if (user?.name) {
       const names = user.name.split(' ').filter(n => n && n.length > 0);
@@ -885,31 +893,40 @@ function UserSection({ user }: UserSectionProps) {
 
   const avatarUrl = getAvatarUrl();
 
+  // Réinitialiser l'erreur d'avatar si l'URL change
+  useEffect(() => {
+    setAvatarError(false);
+  }, [avatarUrl]);
+
   return (
-    <div className='p-4 sm:p-6 border-b border-slate-700 bg-slate-800'>
+    <div className='p-4 sm:p-5 lg:p-6 border-b border-slate-700 bg-slate-800'>
       <div className='flex items-start space-x-3'>
-        <div className='flex-shrink-0 w-10 h-10 bg-[hsl(25,100%,53%)] rounded-full flex items-center justify-center overflow-hidden'>
-          {avatarUrl ? (
+        <div className='flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-[hsl(25,100%,53%)] rounded-full flex items-center justify-center overflow-hidden'>
+          {avatarUrl && !avatarError ? (
             <Image
               src={avatarUrl}
               alt={user?.name || 'Utilisateur'}
-              width={40}
-              height={40}
+              width={48}
+              height={48}
               className='rounded-full object-cover'
               loader={imageLoader}
               unoptimized
+              onError={() => {
+                // En cas d'erreur (404, etc.), afficher les initiales
+                setAvatarError(true);
+              }}
             />
           ) : (
-            <span className='text-sm font-semibold text-white'>
+            <span className='text-sm sm:text-base font-semibold text-white'>
               {getInitials()}
             </span>
           )}
         </div>
         <div className='flex-1 min-w-0 overflow-hidden'>
-          <p className='text-sm font-medium text-white truncate'>
+          <p className='text-sm sm:text-base font-medium text-white truncate'>
             {user?.name || 'Utilisateur'}
           </p>
-          <p className='text-xs text-slate-400 truncate'>{user?.email || ''}</p>
+          <p className='text-xs sm:text-sm text-slate-400 truncate'>{user?.email || ''}</p>
           <div className='flex flex-wrap items-center gap-1 mt-1.5'>
             {user?.roles?.map((role: string) => (
               <span
@@ -935,6 +952,8 @@ function FooterActions({
   tabsEnabled = true,
   onToggleTabs,
 }: FooterActionsProps) {
+  const { close } = useSidebar();
+  
   const settingsItems = [
     {
       name: 'Configuration',
@@ -948,35 +967,35 @@ function FooterActions({
       key: 'tickets',
       href: '/dashboard/settings/tickets',
       icon: Ticket,
-      show: true,
+      show: false,
     },
     {
       name: 'FAQ par rôle',
       key: 'faq',
       href: '/dashboard/settings/faq',
       icon: HelpCircle,
-      show: true,
+      show: false,
     },
     {
       name: 'Tutoriels vidéo',
       key: 'tutorials',
       href: '/dashboard/settings/tutorials',
       icon: Video,
-      show: true,
+      show: false,
     },
     {
       name: 'Contact support',
       key: 'support',
       href: '/dashboard/settings/support',
-      icon: Mail,
-      show: true,
+      icon: Mail, 
+      show: false,
     },
     {
       name: 'Documentation',
       key: 'documentation',
       href: '/dashboard/settings/documentation',
       icon: Book,
-      show: true,
+      show: false,
     },
   ];
 
@@ -1015,6 +1034,12 @@ function FooterActions({
                 <Link
                   key={item.key}
                   href={item.href || ''}
+                  onClick={() => {
+                    // Fermer la sidebar sur mobile/tablette après un clic
+                    if (window.innerWidth < 1024) {
+                      close();
+                    }
+                  }}
                   className={`relative flex items-center px-4 py-2.5 pl-12 transition-colors text-sm ${
                     isActive
                       ? 'bg-slate-700 text-white'
@@ -1088,6 +1113,7 @@ function FooterActions({
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { isOpen, close } = useSidebar();
   const {
     user,
     isAuthenticated,
@@ -1128,6 +1154,21 @@ export default function Sidebar() {
       localStorage.setItem('sidebar-tabs-enabled', String(tabsEnabled));
     }
   }, [tabsEnabled]);
+
+  // Sur desktop, la sidebar est toujours visible (gérée par CSS lg:translate-x-0)
+  // On ne ferme automatiquement que sur mobile/tablette lors du redimensionnement
+  useEffect(() => {
+    const handleResize = () => {
+      // Si on passe de desktop à mobile/tablette, fermer la sidebar
+      if (window.innerWidth < 1024 && isOpen) {
+        // La sidebar se fermera automatiquement via CSS sur mobile
+        // On garde juste l'état pour la cohérence
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isOpen]);
 
   // Gestion de l'expansion automatique selon le pathname
   useEffect(() => {
@@ -1230,7 +1271,7 @@ export default function Sidebar() {
           setUnreadNotificationsCount(data.unreadCount || 0);
         }
       } catch (error) {
-        console.error('Error fetching unread notifications count:', error);
+        logger.error({ error }, 'Error fetching unread notifications count');
         // En cas d'erreur, ne pas afficher de badge
         setUnreadNotificationsCount(undefined);
       }
@@ -1267,7 +1308,7 @@ export default function Sidebar() {
           setPendingBookingsCount(data.pendingCount || 0);
         }
       } catch (error) {
-        console.error('Error fetching pending bookings count:', error);
+        logger.error({ error }, 'Error fetching pending bookings count');
         // En cas d'erreur, ne pas afficher de badge
         setPendingBookingsCount(undefined);
       }
@@ -1298,10 +1339,48 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className='w-64 bg-slate-900 min-h-screen flex flex-col border-r border-slate-800'>
-      <UserSection user={user} />
+    <>
+      {/* Overlay pour mobile et tablette */}
+      {isOpen && (
+        <div
+          className='fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm'
+          onClick={close}
+          aria-hidden='true'
+        />
+      )}
 
-      <nav className='flex flex-col flex-1 overflow-y-auto'>
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed lg:static
+          top-0 left-0
+          w-64 md:w-72 lg:w-64
+          h-screen
+          lg:h-full
+          bg-slate-900
+          flex flex-col
+          flex-shrink-0
+          border-r border-slate-800
+          z-50 lg:z-auto
+          transform transition-transform duration-300 ease-in-out
+          shadow-xl lg:shadow-none
+          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
+        {/* Bouton de fermeture pour mobile et tablette */}
+        <button
+          onClick={close}
+          className='lg:hidden absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-md transition-colors z-10'
+          aria-label='Fermer le menu'
+        >
+          <X className='h-5 w-5' />
+        </button>
+
+        <div className='flex-shrink-0'>
+          <UserSection user={user} />
+        </div>
+
+      <nav className='flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-contain pb-2'>
         {sections.map((section, sectionIndex) => (
           <div key={section.title} className={sectionIndex > 0 ? 'mt-6' : ''}>
             {/* En-tête de section */}
@@ -1314,7 +1393,7 @@ export default function Sidebar() {
             {/* Items de la section */}
             <div className='space-y-1'>
               {section.items
-                .filter((item: NavigationItem) => item.show && (tabsEnabled || !item.values))
+                .filter((item: NavigationItem) => item.show)
                 .map((item: NavigationItem) => {
                   // Lien simple
                   if (item.href) {
@@ -1381,15 +1460,18 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <FooterActions
-        onSignOut={signOut}
-        isSigningOut={isSigningOut}
-        pathname={pathname}
-        isSettingsExpanded={isSettingsExpanded}
-        onToggleSettings={() => setIsSettingsExpanded(!isSettingsExpanded)}
-        tabsEnabled={tabsEnabled}
-        onToggleTabs={() => setTabsEnabled(!tabsEnabled)}
-      />
-    </aside>
+      <div className='flex-shrink-0'>
+        <FooterActions
+          onSignOut={signOut}
+          isSigningOut={isSigningOut}
+          pathname={pathname}
+          isSettingsExpanded={isSettingsExpanded}
+          onToggleSettings={() => setIsSettingsExpanded(!isSettingsExpanded)}
+          tabsEnabled={tabsEnabled}
+          onToggleTabs={() => setTabsEnabled(!tabsEnabled)}
+        />
+      </div>
+      </aside>
+    </>
   );
 }

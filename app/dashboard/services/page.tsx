@@ -18,6 +18,7 @@ import {
   Package,
   Link2,
   X,
+  Ticket,
 } from 'lucide-react';
 import { useEffect, useState, useMemo, FormEvent } from 'react';
 
@@ -37,7 +38,7 @@ function ServicesManagementPageContent() {
   const notificationManager = useNotificationManager();
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'services' | 'options' | 'associations'>('services');
+  const [activeTab, setActiveTab] = useState<'services' | 'options' | 'associations' | 'promotion-codes'>('services');
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedOption, setSelectedOption] = useState<ServiceOption | null>(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
@@ -45,6 +46,19 @@ function ServicesManagementPageContent() {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [editingOption, setEditingOption] = useState<ServiceOption | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // États pour les codes promotionnels
+  const [promotionCodes, setPromotionCodes] = useState<any[]>([]);
+  const [loadingCodes, setLoadingCodes] = useState(false);
+  const [showPromotionCodeForm, setShowPromotionCodeForm] = useState(false);
+  const [editingPromotionCode, setEditingPromotionCode] = useState<any | null>(null);
+  const [promotionCodeFormData, setPromotionCodeFormData] = useState({
+    label: '',
+    percentage: 10,
+    validFrom: new Date().toISOString().split('T')[0],
+    validUntil: '',
+    maxUsage: '',
+  });
 
   // Mémoriser le statut admin basé sur les rôles de l'utilisateur
   const isAdminValue = useMemo(() => {
@@ -74,6 +88,32 @@ function ServicesManagementPageContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error]);
+
+  // Charger les codes promotionnels
+  useEffect(() => {
+    if (activeTab === 'promotion-codes' && isAdminValue) {
+      fetchPromotionCodes();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, isAdminValue]);
+
+  const fetchPromotionCodes = async () => {
+    setLoadingCodes(true);
+    try {
+      const response = await fetch('/api/promotion-codes');
+      const data = await response.json();
+      if (data.success) {
+        setPromotionCodes(data.codes || []);
+      } else {
+        notificationManager.addError('Erreur lors du chargement des codes promotionnels');
+      }
+    } catch (error) {
+      logger.error({ error }, 'Error fetching promotion codes');
+      notificationManager.addError('Erreur lors du chargement des codes promotionnels');
+    } finally {
+      setLoadingCodes(false);
+    }
+  };
 
   // Filtrer les services
   const filteredServices = useMemo(() => {
@@ -566,6 +606,19 @@ function ServicesManagementPageContent() {
               Associations
             </div>
           </button>
+          <button
+            onClick={() => setActiveTab('promotion-codes')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'promotion-codes'
+                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Ticket className="h-5 w-5" />
+              Codes promotionnels
+            </div>
+          </button>
         </nav>
       </div>
 
@@ -996,6 +1049,144 @@ function ServicesManagementPageContent() {
         </div>
       )}
 
+      {/* Onglet Codes promotionnels */}
+      {activeTab === 'promotion-codes' && (
+        <div className="space-y-6">
+          {/* En-tête avec bouton d'ajout */}
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Codes promotionnels</h2>
+              <p className="text-gray-600 mt-1">Gérez les codes de réduction pour les services</p>
+            </div>
+            <button
+              onClick={() => {
+                setEditingPromotionCode(null);
+                setPromotionCodeFormData({
+                  label: '',
+                  percentage: 10,
+                  validFrom: new Date().toISOString().split('T')[0],
+                  validUntil: '',
+                  maxUsage: '',
+                });
+                setShowPromotionCodeForm(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+              Nouveau code
+            </button>
+          </div>
+
+          {/* Liste des codes promotionnels */}
+          {loadingCodes ? (
+            <div className="p-12 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
+              <p className="mt-4 text-gray-600">Chargement des codes...</p>
+            </div>
+          ) : promotionCodes.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-lg shadow">
+              <Ticket className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Aucun code promotionnel</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Réduction</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validité</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {promotionCodes.map((code: any) => {
+                    const now = new Date();
+                    const validUntil = code.validUntil ? new Date(code.validUntil) : new Date(0);
+                    const isValid = code.calculatedStatus === 'valid' || 
+                      (code.status === 'valid' && validUntil >= now && (!code.maxUsage || code.usageCount < code.maxUsage));
+                    const statusColor = isValid ? 'bg-green-100 text-green-800' : 
+                      code.calculatedStatus === 'expired' ? 'bg-red-100 text-red-800' : 
+                      'bg-gray-100 text-gray-800';
+                    
+                    return (
+                      <tr key={code._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{code.label}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{code.percentage}%</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {code.validFrom ? new Date(code.validFrom).toLocaleDateString('fr-FR') : 'N/A'} - {code.validUntil ? new Date(code.validUntil).toLocaleDateString('fr-FR') : 'N/A'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {code.usageCount} {code.maxUsage ? `/ ${code.maxUsage}` : '(illimité)'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}`}>
+                            {isValid ? 'Valide' : code.calculatedStatus === 'expired' ? 'Expiré' : 'Invalide'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setEditingPromotionCode(code);
+                                setPromotionCodeFormData({
+                                  label: code.label || '',
+                                  percentage: code.percentage || 10,
+                                  validFrom: code.validFrom ? new Date(code.validFrom).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                                  validUntil: code.validUntil ? new Date(code.validUntil).toISOString().split('T')[0] as string : '',
+                                  maxUsage: code.maxUsage?.toString() || '',
+                                });
+                                setShowPromotionCodeForm(true);
+                              }}
+                              className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (confirm('Êtes-vous sûr de vouloir supprimer ce code ?')) {
+                                  try {
+                                    const response = await fetch(`/api/promotion-codes/${code._id}`, {
+                                      method: 'DELETE',
+                                    });
+                                    const data = await response.json();
+                                    if (data.success) {
+                                      notificationManager.addSuccess('Code promotionnel supprimé');
+                                      fetchPromotionCodes();
+                                    } else {
+                                      notificationManager.addError(data.error || 'Erreur lors de la suppression');
+                                    }
+                                  } catch (error) {
+                                    notificationManager.addError('Erreur lors de la suppression');
+                                  }
+                                }
+                              }}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Modal de formulaire pour créer/modifier un service */}
       {showServiceForm && (
         <ServiceFormModal
@@ -1014,6 +1205,206 @@ function ServicesManagementPageContent() {
           onCancel={handleCloseOptionForm}
           isSubmitting={isSubmitting}
         />
+      )}
+
+      {/* Modal de formulaire pour créer/modifier un code promotionnel */}
+      {showPromotionCodeForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-900">
+                  {editingPromotionCode ? 'Modifier le code' : 'Nouveau code promotionnel'}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowPromotionCodeForm(false);
+                    setEditingPromotionCode(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setIsSubmitting(true);
+                  try {
+                    const payload: any = {
+                      percentage: Number(promotionCodeFormData.percentage),
+                      validUntil: new Date(promotionCodeFormData.validUntil).toISOString(),
+                    };
+                    
+                    if (promotionCodeFormData.label) {
+                      payload.label = promotionCodeFormData.label;
+                    }
+                    
+                    if (promotionCodeFormData.validFrom && promotionCodeFormData.validFrom.trim()) {
+                      payload.validFrom = new Date(promotionCodeFormData.validFrom).toISOString();
+                    }
+                    
+                    if (promotionCodeFormData.maxUsage) {
+                      payload.maxUsage = Number(promotionCodeFormData.maxUsage);
+                    }
+
+                    const url = editingPromotionCode && editingPromotionCode._id
+                      ? `/api/promotion-codes/${editingPromotionCode._id}`
+                      : '/api/promotion-codes';
+                    const method = editingPromotionCode ? 'PATCH' : 'POST';
+
+                    const response = await fetch(url, {
+                      method,
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(payload),
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                      notificationManager.addSuccess(
+                        editingPromotionCode 
+                          ? 'Code promotionnel modifié avec succès'
+                          : 'Code promotionnel créé avec succès'
+                      );
+                      setShowPromotionCodeForm(false);
+                      setEditingPromotionCode(null);
+                      fetchPromotionCodes();
+                    } else {
+                      notificationManager.addError(data.error || 'Erreur lors de la sauvegarde');
+                    }
+                  } catch (error) {
+                    logger.error({ error }, 'Error saving promotion code');
+                    notificationManager.addError('Erreur lors de la sauvegarde');
+                  } finally {
+                    setIsSubmitting(false);
+                  }
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Label (optionnel - généré automatiquement si vide)
+                  </label>
+                  <input
+                    type="text"
+                    value={promotionCodeFormData.label}
+                    onChange={(e) => setPromotionCodeFormData({ ...promotionCodeFormData, label: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    placeholder="Ex: PROMO2024"
+                    maxLength={50}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Pourcentage de réduction *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={promotionCodeFormData.percentage}
+                    onChange={(e) => setPromotionCodeFormData({ ...promotionCodeFormData, percentage: Number(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date de début (optionnel)
+                  </label>
+                  <input
+                    type="date"
+                    value={promotionCodeFormData.validFrom}
+                    onChange={(e) => setPromotionCodeFormData({ ...promotionCodeFormData, validFrom: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date de fin *
+                  </label>
+                  <input
+                    type="date"
+                    value={promotionCodeFormData.validUntil}
+                    onChange={(e) => setPromotionCodeFormData({ ...promotionCodeFormData, validUntil: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Usage maximum (optionnel - laisser vide pour illimité)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={promotionCodeFormData.maxUsage}
+                    onChange={(e) => setPromotionCodeFormData({ ...promotionCodeFormData, maxUsage: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    placeholder="Illimité"
+                  />
+                </div>
+
+                {editingPromotionCode && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Statut
+                    </label>
+                    <select
+                      value={editingPromotionCode.status}
+                      onChange={async (e) => {
+                        try {
+                          const response = await fetch(`/api/promotion-codes/${editingPromotionCode._id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: e.target.value }),
+                          });
+                          const data = await response.json();
+                          if (data.success) {
+                            notificationManager.addSuccess('Statut mis à jour');
+                            fetchPromotionCodes();
+                          }
+                        } catch (error) {
+                          notificationManager.addError('Erreur lors de la mise à jour');
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    >
+                      <option value="valid">Valide</option>
+                      <option value="expired">Expiré</option>
+                      <option value="invalid">Invalide</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPromotionCodeForm(false);
+                      setEditingPromotionCode(null);
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? 'Enregistrement...' : editingPromotionCode ? 'Modifier' : 'Créer'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

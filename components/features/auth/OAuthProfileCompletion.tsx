@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/Button";
 import { useNotificationManager } from "@/components/ui/Notification";
 import { useState } from "react";
+import { PhoneInput } from "react-international-phone";
 
 interface OAuthProfileCompletionProps {
   user: {
@@ -121,14 +122,14 @@ export function OAuthProfileCompletion({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Téléphone (optionnel)
               </label>
-              <input
-                type="tel"
+              <PhoneInput
+                defaultCountry="fr"
                 value={formData.phone}
-                onChange={e =>
-                  setFormData(prev => ({ ...prev, phone: e.target.value }))
+                onChange={(phone) =>
+                  setFormData(prev => ({ ...prev, phone: phone }))
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-                placeholder="+33 6 12 34 56 78"
+                className="w-full"
+                inputClassName="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
               />
             </div>
 

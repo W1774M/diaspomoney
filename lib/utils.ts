@@ -219,3 +219,12 @@ export function deepClone<T>(obj: T): T {
   }
   return obj;
 }
+
+/**
+ * Nettoie une URL en supprimant les guillemets et espaces
+ * Utile pour nettoyer les variables d'environnement qui peuvent contenir des guillemets
+ */
+export function cleanUrl(url: string | undefined): string {
+  if (!url) return 'http://localhost:3000';
+  return url.trim().replace(/^["']|["']$/g, '');
+}

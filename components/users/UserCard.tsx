@@ -29,10 +29,11 @@ const UserCard = React.memo<UserCardProps>(function UserCard({
 
   const handleImageError = React.useCallback(() => {
     if (!imageError) {
-      logger.debug({ userId: user._id, avatar: user.avatar?.image }, '[UserCard] Erreur de chargement de l\'avatar');
+      const userId = user._id || user['id'] || 'unknown';
+      logger.debug({ userId, avatar: user.avatar?.image }, '[UserCard] Erreur de chargement de l\'avatar');
       setImageError(true);
     }
-  }, [user._id, user.avatar?.image, imageError]);
+  }, [user._id, user['id'], user.avatar?.image, imageError]);
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -118,9 +119,9 @@ const UserCard = React.memo<UserCardProps>(function UserCard({
 
             {/* Actions */}
             <UserActions
-              onView={() => onView(user._id)}
-              onEdit={() => onEdit(user._id)}
-              onDelete={() => onDelete(user._id)}
+              onView={() => onView(user._id || user['id'] || '')}
+              onEdit={() => onEdit(user._id || user['id'] || '')}
+              onDelete={() => onDelete(user._id || user['id'] || '')}
             />
           </div>
         </div>

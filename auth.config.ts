@@ -173,7 +173,6 @@ export const authConfig: NextAuthOptions = {
   pages: {
     signIn: '/login',
   },
-
   callbacks: {
     async signIn({
       user,
@@ -569,36 +568,46 @@ export const authConfig: NextAuthOptions = {
 
       log.debug({ url, baseUrl }, 'Processing redirect');
 
-      // STRATÉGIE: Toujours retourner des chemins relatifs
-      // Kubernetes/Traefik gère le routage entre les environnements
-      // Next.js ne doit utiliser que des redirections internes (chemins relatifs)
-
-      // Si l'URL est déjà relative, la retourner telle quelle
-      if (url && url.startsWith('/')) {
-        log.debug({ url }, 'Relative URL, returning as-is');
-          return url;
-      }
-
-      // Si l'URL est absolue, extraire uniquement le chemin
-      // Ignorer complètement le domaine - Kubernetes gère le routage
       try {
+        // IMPORTANT: NextAuth côté client (next-auth/react) fait `new URL(data.url)`.
+        // Si on renvoie un chemin relatif (ex: "/dashboard"), ça lève "Invalid URL".
+        // Donc ici on renvoie TOUJOURS une URL ABSOLUE, tout en restant safe.
+
+        // Cas de fallback
         if (!url || url.trim() === '') {
-          log.warn('Empty URL, redirecting to /dashboard');
-          return '/dashboard';
+          log.warn('Empty URL, redirecting to baseUrl/dashboard');
+          return `${baseUrl}/dashboard`;
         }
 
-        const urlObj = new URL(url);
-        const relativePath = urlObj.pathname + urlObj.search;
+        // URL relative -> la rendre absolue avec baseUrl (même host)
+        if (url.startsWith('/')) {
+          const absolute = new URL(url, baseUrl).toString();
+          log.debug({ url, absolute }, 'Relative URL, converted to absolute');
+          return absolute;
+        }
 
-        log.debug(
-          { originalUrl: url, relativePath },
-          'Extracted relative path from absolute URL',
+        // URL absolue
+        const urlObj = new URL(url);
+
+        // Si même origin que baseUrl, on renvoie telle quelle
+        if (urlObj.origin === new URL(baseUrl).origin) {
+          log.debug({ url }, 'Same-origin URL, returning as-is');
+          return url;
+        }
+
+        // Sinon, on évite l’open redirect: on garde uniquement le path+query, sur baseUrl
+        const safePath = urlObj.pathname + urlObj.search + urlObj.hash;
+        const absoluteSafe = new URL(safePath, baseUrl).toString();
+        log.warn(
+          { originalUrl: url, safePath, absoluteSafe, baseUrl },
+          'Cross-origin redirect blocked, returning safe same-origin URL',
         );
-        
-        // Retourner uniquement le chemin relatif
-        return relativePath || '/dashboard';
+        return absoluteSafe;
       } catch (error) {
-        log.warn({ error, url }, 'Invalid URL, redirecting to /dashboard');
+        log.warn(
+          { error, url, baseUrl },
+          'Invalid URL, redirecting to baseUrl/dashboard',
+        );
         Sentry.captureException(error, {
           tags: {
             component: 'NextAuth',
@@ -606,7 +615,7 @@ export const authConfig: NextAuthOptions = {
           },
           extra: { url, baseUrl },
         });
-        return '/dashboard';
+        return `${baseUrl}/dashboard`;
       }
     },
   },

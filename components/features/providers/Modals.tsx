@@ -22,6 +22,7 @@ import {
   Service,
 } from '@/lib/types';
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { PhoneInput } from 'react-international-phone';
 
 interface ModalSelectServiceProps {
   setModalOpen: (open: boolean) => void;
@@ -514,17 +515,24 @@ export const ModalSelectService = ({
                       Téléphone *
                     </label>
                     <div className='relative'>
-                      <input
-                        type='tel'
-                        name='requester.phone'
-                        value={appointment.requester?.phone}
-                        onChange={handleChange}
-                        className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
+                      <PhoneInput
+                        defaultCountry="fr"
+                        value={appointment.requester?.phone || ""}
+                        onChange={(phone) => {
+                          const processedValue = formatPhoneNumber(phone);
+                          setAppointment({
+                            ...appointment,
+                            requester: {
+                              ...appointment.requester,
+                              phone: processedValue,
+                            } as any,
+                          });
+                        }}
+                        className="w-full"
+                        inputClassName={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
                           'requester',
                           'phone',
                         )}`}
-                        placeholder='01 23 45 67 89'
-                        pattern='[0-9\s\+\-\(\)]{10,}'
                         required
                       />
                       {appointment.requester?.phone && (
@@ -534,7 +542,7 @@ export const ModalSelectService = ({
                       )}
                     </div>
                     <p className='text-xs text-gray-500 mt-1'>
-                      Format français : 01 23 45 67 89 ou +33 1 23 45 67 89
+                      Format international accepté
                     </p>
                   </div>
 
@@ -633,17 +641,24 @@ export const ModalSelectService = ({
                       Téléphone *
                     </label>
                     <div className='relative'>
-                      <input
-                        type='tel'
-                        name='recipient.phone'
-                        value={appointment.recipient?.phone}
-                        onChange={handleChange}
-                        className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
+                      <PhoneInput
+                        defaultCountry="fr"
+                        value={appointment.recipient?.phone || ""}
+                        onChange={(phone) => {
+                          const processedValue = formatPhoneNumber(phone);
+                          setAppointment({
+                            ...appointment,
+                            recipient: {
+                              ...appointment.recipient,
+                              phone: processedValue,
+                            } as any,
+                          });
+                        }}
+                        className="w-full"
+                        inputClassName={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
                           'recipient',
                           'phone',
                         )}`}
-                        placeholder='01 23 45 67 89'
-                        pattern='[0-9\s\+\-\(\)]{10,}'
                         required
                       />
                       {appointment.recipient?.phone && (
@@ -653,7 +668,7 @@ export const ModalSelectService = ({
                       )}
                     </div>
                     <p className='text-xs text-gray-500 mt-1'>
-                      Format français : 01 23 45 67 89 ou +33 1 23 45 67 89
+                      Format international accepté
                     </p>
                   </div>
                 </div>

@@ -64,8 +64,8 @@ export type {
   ServiceBookingFacadeResult,
   ServiceType,
   ClientInfo,
-  BeneficiaryInfo,
   SelectedService,
 } from '@/lib/types/service-booking.types';
+export type { BeneficiaryData } from '@/lib/types/beneficiaries.types';
 export type { ServiceOption } from '@/lib/types/service-options.types';
 

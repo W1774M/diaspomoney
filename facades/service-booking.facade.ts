@@ -112,11 +112,34 @@ export class ServiceBookingFacade
 
       // Calculer le montant total
       const basePrice = data.selectedService.price;
-      const optionsPrice = data.additionalOptions.reduce(
-        (sum, option) => sum + option.price,
+      
+      // S'assurer que additionalOptions est un tableau valide
+      const additionalOptions = Array.isArray(data.additionalOptions) ? data.additionalOptions : [];
+      
+      const optionsPrice = additionalOptions.reduce(
+        (sum, option) => {
+          const price = typeof option.price === 'number' ? option.price : parseFloat(String(option.price)) || 0;
+          return sum + price;
+        },
         0,
       );
       const totalAmount = basePrice + optionsPrice;
+      
+      // Logger pour vérifier que les options sont bien prises en compte
+      logger.info(
+        {
+          basePrice,
+          optionsCount: additionalOptions.length,
+          options: additionalOptions.map(opt => ({
+            id: opt.id,
+            label: opt.label,
+            price: typeof opt.price === 'number' ? opt.price : parseFloat(String(opt.price)) || 0,
+          })),
+          optionsPrice,
+          totalAmount,
+        },
+        'Calcul du montant total avec options',
+      );
 
       // Vérifier que le paiement a été effectué
       // Note: En production, vous devriez vérifier le statut du payment intent
@@ -135,10 +158,22 @@ export class ServiceBookingFacade
       
       // Si l'utilisateur n'est pas connecté, générer un ID unique basé sur l'email
       // Cela permettra de lier la réservation à un compte créé ultérieurement
-      const requesterId = data.metadata?.['userId'] as string || generateGuestId(data.clientInfo.email);
+      const userIdFromMetadata = data.metadata?.['userId'] as string | undefined;
+      const requesterId = userIdFromMetadata || generateGuestId(data.clientInfo.email);
+      
+      logger.info(
+        {
+          userIdFromMetadata,
+          requesterId,
+          isAuthenticated: !!userIdFromMetadata,
+          isGuestId: requesterId.startsWith('guest-'),
+          clientEmail: data.clientInfo.email,
+        },
+        'Détermination du requesterId pour la réservation',
+      );
       
       const bookingData: BookingFacadeData = {
-        requesterId, // ID unique pour les utilisateurs non connectés
+        requesterId, // ID de l'utilisateur connecté ou guest ID pour les utilisateurs non connectés
         providerId: data.selectedService.serviceId, // À adapter selon votre modèle de providers
         serviceId: data.selectedService.serviceId,
         serviceType: this.mapServiceTypeToBookingType(data.serviceType),
@@ -162,6 +197,15 @@ export class ServiceBookingFacade
           // Convertir le tableau en JSON string
           additionalOptions: JSON.stringify(data.additionalOptions || []),
           paymentIntentId: data.paymentIntentId,
+          // Stocker les informations client et bénéficiaire pour les notifications
+          clientEmail: data.clientInfo.email,
+          clientFirstName: data.clientInfo.firstName,
+          clientLastName: data.clientInfo.lastName,
+          clientPhone: data.clientInfo.phone,
+          beneficiaryFirstName: data.beneficiaryInfo.firstName,
+          beneficiaryLastName: data.beneficiaryInfo.lastName,
+          beneficiaryPhone: data.beneficiaryInfo.phone || '',
+          beneficiaryEmail: data.beneficiaryInfo.email || '',
         },
         payment: {
           amount: totalAmount,
@@ -171,8 +215,34 @@ export class ServiceBookingFacade
         },
       };
 
+      // Si un draftBookingId existe dans les métadonnées, on le mettra à jour après création
+      const draftBookingId = data.metadata?.['draftBookingId'] as string | undefined;
+
       // Créer la réservation directement (logique fusionnée de BookingFacade)
       const bookingResult = await this.createBookingWithPayment(bookingData);
+
+      // Si un draft existe, le marquer comme finalisé
+      if (draftBookingId && bookingResult.success && bookingResult.booking) {
+        try {
+          await bookingService.updateBooking(draftBookingId, {
+            metadata: {
+              ...(data.metadata || {}),
+              isDraft: false,
+              finalizedAt: new Date().toISOString(),
+              finalBookingId: bookingResult.booking.id || (bookingResult.booking as any)._id?.toString(),
+            },
+          } as any);
+          logger.info(
+            { draftBookingId, finalBookingId: bookingResult.booking.id },
+            'Draft booking marked as finalized',
+          );
+        } catch (error) {
+          logger.warn(
+            { error, draftBookingId },
+            'Failed to update draft booking, but final booking was created',
+          );
+        }
+      }
 
       if (!bookingResult.success || !bookingResult.booking) {
         return {
@@ -192,11 +262,7 @@ export class ServiceBookingFacade
       
       // Envoyer un email de récapitulatif de commande avec tous les détails
       try {
-        // Construire le récapitulatif détaillé
-        const optionsList = data.additionalOptions.length > 0
-          ? data.additionalOptions.map(opt => `- ${opt.label}: +${opt.price}€`).join('\n')
-          : 'Aucune option supplémentaire';
-        
+        // Construire les informations de rendez-vous (utilisé pour le client et le bénéficiaire)
         const appointmentInfo = data.appointmentDate && data.appointmentTime
           ? `Date: ${new Date(data.appointmentDate).toLocaleDateString('fr-FR', { 
               weekday: 'long', 
@@ -206,7 +272,26 @@ export class ServiceBookingFacade
             })}\nHeure: ${data.appointmentTime}`
           : 'À définir';
         
-        const summaryMessage = `
+        // Vérifier que l'email du client est présent et valide
+        const clientEmail = data.clientInfo.email;
+        
+        if (!clientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+          logger.warn(
+            {
+              bookingId: bookingResult.booking.id,
+              clientEmail,
+              hasClientEmail: !!clientEmail,
+              isValidEmail: clientEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail) : false,
+            },
+            'Cannot send booking confirmation email: client email is missing or invalid',
+          );
+        } else {
+          // Construire le récapitulatif détaillé
+          const optionsList = data.additionalOptions.length > 0
+            ? data.additionalOptions.map(opt => `- ${opt.label}: +${opt.price}€`).join('\n')
+            : 'Aucune option supplémentaire';
+          
+          const summaryMessage = `
 Récapitulatif de votre réservation :
 
 Service: ${data.selectedService.label}
@@ -228,28 +313,50 @@ ${appointmentInfo}
 Numéro de réservation: ${bookingResult.booking.reservationNumber || bookingResult.booking.id}
 
 Votre réservation a été confirmée. Vous serez recontacté rapidement pour le suivi de votre rendez-vous.
-        `.trim();
+          `.trim();
 
-        await notificationService.sendNotification({
-          recipient: data.clientInfo.email,
-          type: 'SERVICE_BOOKING_CONFIRMED',
-          template: 'service-booking-confirmed',
-          data: {
-            title: 'Réservation confirmée - Récapitulatif de commande',
-            message: summaryMessage,
-            bookingId: bookingResult.booking.id,
-            reservationNumber: bookingResult.booking.reservationNumber || bookingResult.booking.id,
-            serviceType: data.serviceType,
-            serviceLabel: data.selectedService.label,
-            totalAmount: totalAmount,
-            appointmentDate: data.appointmentDate,
-            appointmentTime: data.appointmentTime,
-            beneficiaryName: `${data.beneficiaryInfo.firstName} ${data.beneficiaryInfo.lastName}`,
-          },
-          channels: [{ type: 'EMAIL' as const, enabled: true, priority: 'HIGH' as const }],
-          locale: 'fr',
-          priority: 'HIGH',
-        });
+          try {
+            await notificationService.sendNotification({
+              recipient: clientEmail,
+              type: 'SERVICE_BOOKING_CONFIRMED',
+              template: 'service-booking-confirmed',
+              data: {
+                title: 'Réservation confirmée - Récapitulatif de commande',
+                message: summaryMessage,
+                bookingId: bookingResult.booking.id,
+                reservationNumber: bookingResult.booking.reservationNumber || bookingResult.booking.id,
+                serviceType: data.serviceType,
+                serviceLabel: data.selectedService.label,
+                totalAmount: totalAmount,
+                appointmentDate: data.appointmentDate,
+                appointmentTime: data.appointmentTime,
+                beneficiaryName: `${data.beneficiaryInfo.firstName} ${data.beneficiaryInfo.lastName}`,
+              },
+              channels: [{ type: 'EMAIL' as const, enabled: true, priority: 'HIGH' as const }],
+              locale: 'fr',
+              priority: 'HIGH',
+            });
+            
+            logger.info(
+              {
+                bookingId: bookingResult.booking.id,
+                clientEmail,
+                reservationNumber: bookingResult.booking.reservationNumber || bookingResult.booking.id,
+              },
+              'Email de confirmation de réservation envoyé au client avec succès',
+            );
+          } catch (emailError) {
+            logger.error(
+              {
+                error: emailError,
+                bookingId: bookingResult.booking.id,
+                clientEmail,
+              },
+              'Erreur lors de l\'envoi de l\'email de confirmation au client',
+            );
+            // Ne pas faire échouer la création de réservation si l'email échoue
+          }
+        }
         
         // Envoyer également au bénéficiaire si un email est fourni
         if (data.beneficiaryInfo.email && data.beneficiaryInfo.email !== data.clientInfo.email) {
@@ -453,10 +560,49 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
 
       const booking = await bookingService.createBooking(bookingData);
       
+      // Extraire l'ID de manière robuste avant le mapping
+      const bookingId = booking.id || 
+                       (booking as any)._id?.toString() || 
+                       String((booking as any)._id) || 
+                       '';
+      
+      if (!bookingId) {
+        logger.error(
+          { booking: JSON.stringify(booking, null, 2) },
+          'Booking created but ID is missing',
+        );
+        throw new Error('Failed to create booking: ID is missing');
+      }
+      
+      logger.info(
+        { bookingId, hasId: !!booking.id, has_id: !!(booking as any)._id },
+        'Booking created with ID',
+      );
+      
       // Mapper le résultat avec BookingMapper
       const mappedBooking = bookingMapper.map(booking as any);
 
-      let paymentResult;
+      let paymentResult: PaymentFacadeResult | undefined;
+
+      // Mapper les statuts Stripe vers nos statuts de paiement
+      // Selon https://docs.stripe.com/api/payment_intents/object#payment_intent_object-status
+      const mapStripeStatusToPaymentStatus = (status: string | undefined): string => {
+        if (!status) return 'pending';
+        switch (status) {
+          case 'succeeded':
+            return 'confirmed';
+          case 'processing':
+            return 'processing';
+          case 'requires_action':
+          case 'requires_confirmation':
+          case 'requires_payment_method':
+            return 'pending';
+          case 'canceled':
+            return 'cancelled';
+          default:
+            return 'pending';
+        }
+      };
 
       // Étape 2: Traiter le paiement si fourni
       if (data.payment) {
@@ -464,6 +610,8 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
           // Vérifier si paymentMethodId est en fait un Payment Intent ID (commence par "pi_")
           // Si c'est le cas, le paiement a déjà été confirmé côté client, on vérifie juste son statut
           const isPaymentIntentId = data.payment.paymentMethodId?.startsWith('pi_');
+          
+          let stripeStatusForMetadata: string | undefined;
           
           if (isPaymentIntentId) {
             // Le paiement a déjà été confirmé côté client, on vérifie juste son statut
@@ -476,11 +624,31 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
               data.payment.paymentMethodId,
             );
             
-            if (!paymentStatus.success) {
-              await bookingService.updateBookingStatus(
-                booking.id || booking._id?.toString() || '',
-                BOOKING_STATUSES.CANCELLED,
-              );
+            // Récupérer le statut réel depuis Stripe (dans les métadonnées)
+            stripeStatusForMetadata = paymentStatus.metadata?.['status'] as string | undefined;
+            
+            const mappedPaymentStatus = mapStripeStatusToPaymentStatus(stripeStatusForMetadata);
+            
+            if (!paymentStatus.success && stripeStatusForMetadata !== 'processing') {
+              // Enregistrer la réservation même si le paiement échoue pour l'historique
+              // Utiliser l'ID extrait précédemment
+              if (!bookingId) {
+                logger.error(
+                  { booking, paymentStatus },
+                  'Cannot update booking: ID is missing',
+                );
+                throw new Error('Booking ID is missing, cannot update booking');
+              }
+              
+              await bookingService.updateBooking(bookingId, {
+                metadata: {
+                  ...booking.metadata,
+                  paymentStatus: mappedPaymentStatus,
+                  stripeStatus: stripeStatusForMetadata || 'unknown',
+                  paymentFailedAt: new Date().toISOString(),
+                  paymentError: paymentStatus.error || 'Payment verification failed',
+                },
+              } as any);
               
               return {
                 success: false,
@@ -490,13 +658,13 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
               };
             }
             
-            // Le paiement est confirmé, créer la transaction et la facture
+            // Le paiement est confirmé ou en cours, créer la transaction et la facture
             // Simuler un PaymentFacadeResult pour la compatibilité
             paymentResult = {
               success: true,
               transactionId: paymentStatus.transactionId || data.payment.paymentMethodId,
               paymentIntentId: paymentStatus.paymentIntentId || data.payment.paymentMethodId,
-            };
+            } as PaymentFacadeResult;
             
             // Créer la transaction
             // Pour les réservations de service, le bénéficiaire est le même que le payeur
@@ -509,10 +677,10 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
                 currency: data.payment.currency,
                 serviceType: data.serviceType,
                 serviceId: data.serviceId,
-                description: `Payment for booking ${booking.id || booking._id?.toString() || ''}`,
+                description: `Payment for booking ${bookingId}`,
                 metadata: {
                   ...data.metadata,
-                  bookingId: booking.id || booking._id?.toString() || '',
+                  bookingId,
                   paymentIntentId: data.payment.paymentMethodId,
                   serviceLabel: data.metadata?.['serviceLabel'] || '',
                 },
@@ -529,7 +697,7 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
               try {
                 await invoiceService.createInvoice({
                   userId: data.requesterId,
-                  bookingId: booking.id || booking._id?.toString() || '',
+                  bookingId,
                   amount: data.payment.amount,
                   currency: data.payment.currency,
                   items: [{
@@ -562,12 +730,10 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
               beneficiaryId: data.requesterId, // Le bénéficiaire est le payeur pour les services
               serviceType: data.serviceType,
               serviceId: data.serviceId,
-              description: `Payment for booking ${
-                booking.id || booking._id?.toString()
-              }`,
+              description: `Payment for booking ${bookingId}`,
               metadata: {
                 ...data.metadata,
-                bookingId: booking.id || booking._id?.toString() || '',
+                bookingId,
               },
               createInvoice: data.payment.createInvoice !== false,
               sendNotification: false, // On enverra une notification combinée après
@@ -579,8 +745,16 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
           // Si le paiement nécessite une action (3D Secure, etc.)
           if (paymentResult.requiresAction) {
             // Mettre à jour le statut de la réservation
+            if (!bookingId) {
+              logger.error(
+                { booking, paymentResult },
+                'Cannot update booking status: ID is missing',
+              );
+              throw new Error('Booking ID is missing, cannot update booking status');
+            }
+            
             await bookingService.updateBookingStatus(
-              booking.id || booking._id?.toString() || '',
+              bookingId,
               BOOKING_STATUSES.PENDING,
             );
 
@@ -591,12 +765,25 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
             };
           }
 
-          // Si le paiement a échoué, mettre à jour le statut
+          // Si le paiement a échoué, enregistrer la réservation avec le statut de paiement dans les métadonnées
           if (!paymentResult.success) {
-            await bookingService.updateBookingStatus(
-              booking.id || booking._id?.toString() || '',
-              BOOKING_STATUSES.CANCELLED,
-            );
+            // Enregistrer la réservation même si le paiement échoue pour l'historique
+            if (!bookingId) {
+              logger.error(
+                { booking, paymentResult },
+                'Cannot update booking: ID is missing',
+              );
+              throw new Error('Booking ID is missing, cannot update booking');
+            }
+            
+            await bookingService.updateBooking(bookingId, {
+              metadata: {
+                ...booking.metadata,
+                paymentStatus: 'failed',
+                paymentFailedAt: new Date().toISOString(),
+                paymentError: paymentResult.error || 'Payment failed',
+              },
+            } as any);
 
             return {
               success: false,
@@ -606,21 +793,53 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
             };
           }
 
-          // Paiement réussi, mettre à jour le statut
-          await bookingService.updateBookingStatus(
-            booking.id || booking._id?.toString() || '',
-            BOOKING_STATUSES.CONFIRMED,
-          );
+          // Utiliser le statut Stripe récupéré précédemment
+          const finalPaymentStatus = mapStripeStatusToPaymentStatus(stripeStatusForMetadata);
+          
+          // Paiement réussi, mais le statut de commande reste PENDING pour que l'admin puisse le modifier
+          // Le statut de paiement (retourné par Stripe) est enregistré dans les métadonnées
+          if (!bookingId) {
+            logger.error(
+              { booking, paymentResult },
+              'Cannot update booking: ID is missing',
+            );
+            throw new Error('Booking ID is missing, cannot update booking');
+          }
+          
+          await bookingService.updateBooking(bookingId, {
+            metadata: {
+              ...booking.metadata,
+              paymentStatus: finalPaymentStatus,
+              stripeStatus: stripeStatusForMetadata || 'succeeded',
+              paymentConfirmedAt: new Date().toISOString(),
+              transactionId: paymentResult.transactionId,
+            },
+          } as any);
         } catch (paymentError: any) {
           logger.error(
             { error: paymentError },
             'Payment processing failed in ServiceBookingFacade',
           );
 
-          // Mettre à jour le statut de la réservation
-          const bookingId =
-            booking.id || (booking as any)._id?.toString() || '';
-          await bookingService.updateBookingStatus(bookingId, BOOKING_STATUSES.CANCELLED);
+          // Enregistrer la réservation même si le paiement échoue pour l'historique
+          // Le statut reste PENDING et le statut de paiement est enregistré dans les métadonnées
+          // Utiliser l'ID extrait précédemment (défini au début de la fonction)
+          if (!bookingId) {
+            logger.error(
+              { booking, paymentError },
+              'Cannot update booking: ID is missing',
+            );
+            throw new Error('Booking ID is missing, cannot update booking');
+          }
+          
+          await bookingService.updateBooking(bookingId, {
+            metadata: {
+              ...booking.metadata,
+              paymentStatus: 'failed',
+              paymentFailedAt: new Date().toISOString(),
+              paymentError: paymentError.message || 'Payment processing failed',
+            },
+          } as any);
 
           paymentResult = {
             success: false,
@@ -631,37 +850,80 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
 
       // Étape 3: Envoyer les notifications de confirmation
       try {
-        await notificationService.sendNotification({
-          recipient: data.requesterId,
-          type: 'BOOKING_CONFIRMED',
-          template: 'booking_confirmation',
-          channels: [
-            { type: 'EMAIL', enabled: true, priority: 'HIGH' },
-            { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
-          ],
-          locale: LANGUAGES.FR.code,
-          priority: 'HIGH',
-          data: {
-            booking: {
-              id: booking.id || (booking as any)._id?.toString(),
-              providerId: data.providerId,
-              serviceId: data.serviceId,
-              appointmentDate: data.appointmentDate,
-              timeslot: data.timeslot,
-            },
-            payment: paymentResult?.success
-              ? {
-                  transactionId: paymentResult.transactionId,
-                  amount: data.payment?.amount,
-                  currency: data.payment?.currency,
-                }
-              : undefined,
+        // Récupérer l'email du client depuis les métadonnées
+        const clientEmail = data.metadata?.['clientEmail'] as string | undefined;
+        
+        logger.info(
+          {
+            bookingId,
+            clientEmail,
+            hasMetadata: !!data.metadata,
+            metadataKeys: data.metadata ? Object.keys(data.metadata) : [],
           },
-        });
+          'Envoi de la notification de confirmation de réservation',
+        );
+        
+        if (clientEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+          try {
+            await notificationService.sendNotification({
+              recipient: clientEmail,
+              type: 'BOOKING_CONFIRMED',
+              template: 'booking_confirmation',
+              channels: [
+                { type: 'EMAIL', enabled: true, priority: 'HIGH' },
+                { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
+              ],
+              locale: LANGUAGES.FR.code,
+              priority: 'HIGH',
+              data: {
+                booking: {
+                  id: bookingId,
+                  providerId: data.providerId,
+                  serviceId: data.serviceId,
+                  appointmentDate: data.appointmentDate,
+                  timeslot: data.timeslot,
+                },
+                payment: paymentResult?.success
+                  ? {
+                      transactionId: paymentResult.transactionId,
+                      amount: data.payment?.amount,
+                      currency: data.payment?.currency,
+                    }
+                  : undefined,
+              },
+            });
+            
+            logger.info(
+              { bookingId, clientEmail },
+              'Notification de confirmation envoyée au client avec succès',
+            );
+          } catch (notificationError) {
+            logger.error(
+              { error: notificationError, bookingId, clientEmail },
+              'Erreur lors de l\'envoi de la notification de confirmation au client',
+            );
+            // Ne pas faire échouer la création de réservation si la notification échoue
+          }
+        } else {
+          logger.warn(
+            {
+              requesterId: data.requesterId,
+              clientEmail,
+              hasClientEmail: !!clientEmail,
+              isValidEmail: clientEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail) : false,
+            },
+            'Cannot send booking confirmation email: client email not available or invalid',
+          );
+        }
 
-        // Notifier aussi le prestataire
+        // Notifier l'admin de la nouvelle réservation
+        const adminEmail = process.env['EMAIL_CONTACT'] || 'contact@diaspomoney.fr';
+        const beneficiaryFirstName = data.metadata?.['beneficiaryFirstName'] as string | undefined;
+        const beneficiaryLastName = data.metadata?.['beneficiaryLastName'] as string | undefined;
+        const beneficiaryPhone = data.metadata?.['beneficiaryPhone'] as string | undefined;
+        
         await notificationService.sendNotification({
-          recipient: data.providerId,
+          recipient: adminEmail,
           type: 'BOOKING_RECEIVED',
           template: 'booking_received',
           channels: [
@@ -674,9 +936,27 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
             booking: {
               id: booking.id || (booking as any)._id?.toString(),
               requesterId: data.requesterId,
+              clientEmail: clientEmail,
+              clientName: data.metadata?.['clientFirstName'] && data.metadata?.['clientLastName']
+                ? `${data.metadata['clientFirstName']} ${data.metadata['clientLastName']}`
+                : undefined,
+              serviceType: data.serviceType,
+              serviceId: data.serviceId,
+              serviceLabel: data.metadata?.['serviceLabel'] as string | undefined,
               appointmentDate: data.appointmentDate,
               timeslot: data.timeslot,
+              beneficiaryName: beneficiaryFirstName && beneficiaryLastName
+                ? `${beneficiaryFirstName} ${beneficiaryLastName}`
+                : undefined,
+              beneficiaryPhone: beneficiaryPhone,
             },
+            payment: paymentResult?.success
+              ? {
+                  transactionId: paymentResult.transactionId,
+                  amount: data.payment?.amount,
+                  currency: data.payment?.currency,
+                }
+              : undefined,
           },
         });
       } catch (notificationError) {
@@ -689,7 +969,7 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
 
       logger.info(
         {
-          bookingId: booking.id || (booking as any)._id?.toString(),
+          bookingId,
           paymentSuccess: paymentResult?.success,
         },
         'Booking created successfully via ServiceBookingFacade',
@@ -734,4 +1014,5 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
 
 // Export singleton instance
 export const serviceBookingFacade = ServiceBookingFacade.getInstance();
+
 

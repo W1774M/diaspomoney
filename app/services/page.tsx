@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Check, ArrowRight, Heart, GraduationCap, Home } from "lucide-react";
+import { Check, Heart, GraduationCap, Home } from "lucide-react";
+import HowItWorks from "@/components/common/HowItWorks";
 
 interface ServiceOffer {
   id: string;
@@ -97,61 +98,6 @@ export default function ServicesPage() {
         "Support jusqu'à la signature du contrat",
       ],
       cta: "Demander un devis",
-    },
-  ];
-
-  const steps = [
-    {
-      number: "01",
-      title: "Avant le paiement",
-      subtitle: "Préparation et sélection",
-      description:
-        "Choisissez le service, sélectionnez le prestataire et préparez votre dossier.",
-      items: [
-        "Conseils d'orientation & sélection de prestataire",
-        "Vérification des pièces justificatives",
-        "Estimation des coûts & préparation du paiement",
-        "Validation du dossier",
-      ],
-    },
-    {
-      number: "02",
-      title: "Paiement sécurisé",
-      subtitle: "Transaction garantie",
-      description:
-        "Effectuez le paiement via notre plateforme sécurisée avec garantie de remboursement.",
-      items: [
-        "Paiement sécurisé par carte ou virement",
-        "Garantie DiaspoMoney (remboursement si non exécuté)",
-        "Confirmation immédiate de paiement",
-        "Suivi en temps réel de la transaction",
-      ],
-    },
-    {
-      number: "03",
-      title: "Exécution du service",
-      subtitle: "Suivi et coordination",
-      description:
-        "Notre équipe coordonne avec le prestataire pour garantir l'exécution du service.",
-      items: [
-        "Coordination avec le prestataire",
-        "Suivi de l'exécution en temps réel",
-        "Notifications à chaque étape",
-        "Vérification de la qualité du service",
-      ],
-    },
-    {
-      number: "04",
-      title: "Après le service",
-      subtitle: "Confirmation et support",
-      description:
-        "Recevez la confirmation d'exécution et bénéficiez de notre support continu.",
-      items: [
-        "Confirmation d'exécution avec preuves",
-        "Rapport détaillé du service rendu",
-        "Support post-service (Pack Premium)",
-        "Assistance pour démarches administratives",
-      ],
     },
   ];
 
@@ -294,55 +240,7 @@ export default function ServicesPage() {
         </div>
       </section>
 
-      {/* How it works Section */}
-      <section id="how-it-works" className="bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(41,86%,46%)] text-white py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Un accompagnement simple, étape par étape
-            </h2>
-            <p className="text-lg text-white max-w-3xl mx-auto">
-              Avant et après le paiement, avant le service et après
-              l&apos;exécution | on est là à chaque moment clé.
-            </p>
-          </div>
-
-          <div className="space-y-12 max-w-5xl mx-auto">
-            {steps.map((step, idx) => (
-              <div
-                key={idx}
-                className="flex flex-col md:flex-row gap-8 items-start"
-              >
-                <div className="flex-shrink-0">
-                  <div className="w-20 h-20 rounded-full bg-white text-black flex items-center justify-center text-2xl font-bold">
-                    {step.number}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="mb-2">
-                    <h3 className="text-2xl font-bold text-gray-900">
-                      {step.title}
-                    </h3>
-                    <p className="text-lg text-black italic">
-                      {step.subtitle}
-                    </p>
-                  </div>
-                  <p className="text-black mb-4">{step.description}</p>
-                  <ul className="space-y-2">
-                    {step.items.map((item, itemIdx) => (
-                      <li key={itemIdx} className="flex items-start gap-2">
-                        <ArrowRight className="w-5 h-5 text-[hsl(25,100%,53%)] flex-shrink-0 mt-0.5" />
-                        <span className="text-black">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
+      <HowItWorks className="bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(41,86%,46%)] text-white py-16 md:py-24" bgColor="bg-white" textColor="text-white"/>
       {/* CTA Section */}
       <section className="py-16 bg-white text-black">
         <div className="container mx-auto px-4 text-center">

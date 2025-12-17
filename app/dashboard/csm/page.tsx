@@ -1,7 +1,6 @@
 'use client';
 
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import DashboardQuickActions from '@/components/dashboard/DashboardQuickActions';
 import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
 import { useAuth } from '@/hooks';
 import { ROLES } from '@/lib/constants';
@@ -19,8 +18,8 @@ function CSMDashboardPageContent() {
         userName={user?.name || 'CSM'}
         subtitle='Tableau de bord CSM - Suivez et gérez les prestataires et clients'
       />
-      <RoleSpecificStats userId={user?.id} />
-      <DashboardQuickActions isAdmin={false} isCSM={true} />
+      <RoleSpecificStats {...(user?.id && { userId: user.id })} />
+      {/* <DashboardQuickActions isAdmin={false} isCSM={true} /> */}
     </div>
   );
 }

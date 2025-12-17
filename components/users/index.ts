@@ -1,6 +1,7 @@
 // Users Components Exports
 export { default as UserActions } from "./UserActions";
 export { default as UserCard } from "./UserCard";
+export { default as CreateUserModal } from "./CreateUserModal";
 export { default as UsersFilters } from "./UsersFilters";
 export { default as UsersHeader } from "./UsersHeader";
 export { default as UsersPage } from "./UsersPage";

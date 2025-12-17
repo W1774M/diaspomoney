@@ -339,7 +339,10 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
         query['relationship'] = filters.relationship;
       }
       if (filters.country) {
-        query['country'] = filters.country;
+        query['location.country'] = filters.country;
+      }
+      if (filters.city) {
+        query['location.city'] = filters.city;
       }
       if (filters.searchTerm) {
         query['$or'] = [
@@ -445,16 +448,15 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
       email: mapped.email ?? '',
       phone: mapped.phone ?? '',
       relationship: mapped.relationship,
-      country: mapped.country,
+      location: mapped.location || {
+        address: '',
+        city: '',
+        country: '',
+      },
       isActive: mapped.isActive,
       createdAt: new Date(mapped.createdAt),
       updatedAt: new Date(mapped.updatedAt),
     };
-    
-    // Ajouter address seulement s'il existe
-    if (mapped.address) {
-      result.address = mapped.address;
-    }
     
     return result;
   }

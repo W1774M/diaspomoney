@@ -16,6 +16,16 @@ export type BeneficiaryRelationship =
   | 'OTHER';
 
 /**
+ * Données de localisation pour un bénéficiaire
+ */
+export interface BeneficiaryLocation {
+  address: string;
+  city: string;
+  country: string;
+  postalCode?: string;
+}
+
+/**
  * Données pour créer un bénéficiaire
  */
 export interface BeneficiaryData {
@@ -24,8 +34,7 @@ export interface BeneficiaryData {
   email?: string;
   phone?: string;
   relationship: BeneficiaryRelationship;
-  country: string;
-  address?: string;
+  location: BeneficiaryLocation;
 }
 
 /**
@@ -51,6 +60,7 @@ export interface BeneficiaryFilters {
   isActive?: boolean;
   relationship?: BeneficiaryRelationship;
   country?: string;
+  city?: string;
   searchTerm?: string;
   hasAccount?: boolean; // Filtrer par présence de compte
 }
@@ -64,8 +74,7 @@ export interface BeneficiaryFormData {
   email?: string;
   phone?: string;
   relationship: BeneficiaryRelationship;
-  country: string;
-  address?: string;
+  location: BeneficiaryLocation;
 }
 
 /**
@@ -114,4 +123,5 @@ export interface BeneficiaryStats {
   withoutAccount: number;
   byRelationship: Record<string, number>;
   byCountry: Record<string, number>;
+  byCity: Record<string, number>;
 }

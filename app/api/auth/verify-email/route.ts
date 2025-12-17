@@ -1,5 +1,4 @@
 /**
-// Désactiver le prerendering pour cette route API
 
 
  * API Route - Verify Email
@@ -8,6 +7,7 @@
 
 import dbConnect from '@/lib/mongodb';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import { USER_STATUSES } from '@/lib/constants';
 import User from '@/models/User';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
@@ -66,11 +66,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Marquer l'email comme vérifié
-    await (User as any).findByIdAndUpdate(decoded.userId, {
+    // Marquer l'email comme vérifié et activer le compte si l'utilisateur a un mot de passe
+    const updateData: any = {
       isEmailVerified: true,
       emailVerified: true,
-    });
+    };
+
+    // Si l'utilisateur a un mot de passe, activer automatiquement le compte
+    if (user.password && user.status === USER_STATUSES.PENDING) {
+      updateData.status = USER_STATUSES.ACTIVE;
+    }
+
+    await (User as any).findByIdAndUpdate(decoded.userId, updateData);
 
     // Enregistrer les métriques
     monitoringManager.recordMetric({

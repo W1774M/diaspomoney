@@ -12,10 +12,6 @@ import { CreateSpecialitySchema } from '@/lib/validations/speciality.schema';
 import { specialityService } from '@/services/speciality/speciality.service';
 import { auth } from '@/auth';
 import { NextRequest } from 'next/server';
-
-// Désactiver le prerendering pour cette route API
-export const dynamic = 'force-dynamic';
-
 /**
  * GET /api/specialities - Liste toutes les spécialités
  */

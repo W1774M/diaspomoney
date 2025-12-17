@@ -5,6 +5,7 @@ import {
 // import NotificationContainer from "@/components/ui/Notification";
 import { EventSystemProvider } from '@/app/providers/EventSystemProvider';
 import '@/styles/globals.css';
+import 'react-international-phone/style.css';
 import { DefaultTemplate } from '@/template/DefaultTemplate';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
@@ -25,9 +26,9 @@ export const metadata: Metadata = {
   description: 'Le lieu parfait pour acheter vos services pour la diaspora',
 };
 
-// Désactiver le prerendering globalement pour toutes les pages
+// Désactiver le prerendering globalement pour toutes les pages et routes API
 // Cela évite les erreurs MongoDB pendant le build
-// Note: Les routes API nécessitent toujours export const dynamic individuellement
+// Cette configuration s'applique à toutes les routes, y compris les routes API
 export const dynamic = 'force-dynamic';
 
 export default function RootLayout({

@@ -23,7 +23,7 @@ import { getAuditLogRepository } from '@/repositories';
 import * as Sentry from '@sentry/nextjs';
 
 export interface AuditLog extends Omit<BaseEntity, '_id' | 'createdAt' | 'updatedAt'> {
-  _id: string; // Requis pour BaseEntity
+  _id?: string; // Optionnel, généré par le repository MongoDB
   id: string;
   timestamp: Date;
   createdAt: Date; // Requis pour BaseEntity
@@ -57,6 +57,13 @@ export interface AuditLog extends Omit<BaseEntity, '_id' | 'createdAt' | 'update
   riskScore: number; // 0-100
   complianceFlags: string[];
   retentionPeriod: number; // days
+}
+
+/**
+ * AuditLog avec _id requis (pour les résultats de requête depuis MongoDB)
+ */
+export interface AuditLogWithId extends Omit<AuditLog, '_id'> {
+  _id: string; // Requis pour les résultats de requête
 }
 
 export interface AuditQuery {
@@ -130,7 +137,7 @@ export class AuditLoggingSystem {
       const now = new Date();
       const auditLogId = `audit_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
       const auditLog: AuditLog = {
-        _id: auditLogId,
+        // Ne pas définir _id ici, il sera généré par le repository MongoDB
         id: auditLogId,
         timestamp: now,
         createdAt: now,
@@ -591,7 +598,7 @@ export class AuditLoggingSystem {
    * Sauvegarder un log d'audit
    */
   @Log({ level: 'debug', logArgs: false, logExecutionTime: true })
-  private async saveAuditLog(auditLog: AuditLog): Promise<void> {
+  private async saveAuditLog(auditLog: Partial<AuditLog>): Promise<void> {
     try {
       await this.auditLogRepository.create(auditLog);
       this.log.debug(

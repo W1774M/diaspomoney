@@ -73,13 +73,28 @@ const BeneficiariesPage = React.memo(function BeneficiariesPage() {
             setEditingBeneficiary(null);
           }
         } else {
-          const { firstName, lastName, country, relationship, email, phone } = formData;
+          const { firstName, lastName, relationship, email, phone, location } = formData;
+          if (!location || !location.address || !location.city || !location.country) {
+            console.error("Localisation incomplète");
+            return;
+          }
+          // Construire location sans postalCode si undefined
+          const beneficiaryLocation: CreateBeneficiaryData['location'] = {
+            address: location.address,
+            city: location.city,
+            country: location.country,
+          };
+          
+          // Ajouter postalCode seulement s'il est défini
+          if (location.postalCode) {
+            beneficiaryLocation.postalCode = location.postalCode;
+          }
+          
           const beneficiaryData: CreateBeneficiaryData = {
-            name: `${firstName || ''} ${lastName || ''}`.trim() || 'Bénéficiaire',
             firstName: firstName ?? "",
             lastName: lastName ?? "",
-            country: country ?? "",
             relationship: relationship ?? "OTHER",
+            location: beneficiaryLocation,
           };
           // Ajouter email et phone seulement s'ils sont définis
           if (email) {

@@ -2,6 +2,7 @@
  * Interface du repository pour les réservations/bookings
  */
 
+import { BOOKING_STATUSES } from '@/lib/constants';
 import { IPaginatedRepository, PaginatedResult, PaginationOptions } from './IRepository';
 
 export interface Booking {
@@ -26,13 +27,7 @@ export interface Booking {
   updatedAt: Date;
 }
 
-export type BookingStatus =
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'IN_PROGRESS'
-  | 'COMPLETED'
-  | 'CANCELLED'
-  | 'NO_SHOW';
+export type BookingStatus = typeof BOOKING_STATUSES[keyof typeof BOOKING_STATUSES];
 
 export interface BookingFilters {
   requesterId?: string;

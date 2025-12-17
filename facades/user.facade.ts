@@ -13,7 +13,7 @@ import { Performance } from '@/lib/decorators/performance.decorator';
 import { Transaction } from '@/lib/decorators/transaction.decorator';
 import { Cacheable } from '@/lib/decorators/cache.decorator';
 import { logger } from '@/lib/logger';
-import { LANGUAGES, USER_STATUSES } from '@/lib/constants';
+import { LANGUAGES, USER_STATUSES, KYC_STATUSES } from '@/lib/constants';
 import { notificationService } from '@/services/notification/notification.service';
 import { userService } from '@/services/user/user.service';
 import { userMapper } from '@/lib/mappers';
@@ -114,7 +114,7 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
         lastName: data.lastName,
         phone: data.phone,
         roles: data.roles || [],
-        status: data.status || USER_STATUSES.ACTIVE,
+        status: data.status || USER_STATUSES.PENDING, // Respecter le statut passé ou PENDING par défaut
         metadata: data.metadata,
       };
 
@@ -127,14 +127,20 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
         email: userData.email,
         name: userData.name,
         roles: (userData.roles || []) as UserRole[],
-        status: (userData.status || USER_STATUSES.ACTIVE) as UserStatus,
+        status: (userData.status || USER_STATUSES.PENDING) as UserStatus, // Respecter le statut passé ou PENDING par défaut
         ...(userData.firstName && { firstName: userData.firstName }),
         ...(userData.lastName && { lastName: userData.lastName }),
         ...(userData.phone && { phone: userData.phone }),
         ...(userData.metadata && { metadata: userData.metadata }),
       };
       
-      const user = await userRepository.create(userDataToCreate);
+      // Utiliser createWithPassword si un password est fourni (pour l'inscription)
+      const user = data.password
+        ? await userRepository.createWithPassword({
+            ...userDataToCreate,
+            password: data.password,
+          })
+        : await userRepository.create(userDataToCreate);
       const mappedUser = userMapper.map(user);
 
       // Créer les données KYC si fournies
@@ -146,7 +152,7 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
             data.kycData.documents.map((doc) => ({
               type: doc.type as any,
               fileUrl: doc.fileUrl,
-              status: 'PENDING' as const,
+              status: KYC_STATUSES.PENDING,
               uploadedAt: new Date(),
             })),
           );

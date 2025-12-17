@@ -17,6 +17,9 @@ import {
   RefundData,
   RefundResult,
 } from '../interfaces/IPaymentStrategy';
+import { childLogger } from '@/lib/logger';
+
+const logger = childLogger({ component: 'StripePaymentStrategy' });
 
 export class StripePaymentStrategy implements IPaymentStrategy {
   readonly name = 'STRIPE';
@@ -106,7 +109,7 @@ export class StripePaymentStrategy implements IPaymentStrategy {
         },
       };
     } catch (error: any) {
-      console.error('[StripePaymentStrategy] Error in processPayment:', error);
+      logger.error({ error }, 'Error in processPayment');
       Sentry.captureException(error);
 
       return {
@@ -133,8 +136,7 @@ export class StripePaymentStrategy implements IPaymentStrategy {
       if (data.customerId && data.customerId.startsWith('cus_')) {
         // C'est déjà un ID Stripe valide
         stripeCustomerId = data.customerId;
-        // eslint-disable-next-line no-console
-        console.log('[StripePaymentStrategy] Using existing Stripe customer:', stripeCustomerId);
+        logger.debug({ stripeCustomerId }, 'Using existing Stripe customer');
       } else if (data.metadata?.['customerEmail']) {
         // Chercher un customer existant par email
         const customers = await this.stripe.customers.list({
@@ -144,8 +146,7 @@ export class StripePaymentStrategy implements IPaymentStrategy {
         
         if (customers.data.length > 0) {
           stripeCustomerId = customers.data[0]?.id || undefined;
-          // eslint-disable-next-line no-console
-          console.log('[StripePaymentStrategy] Found existing Stripe customer:', stripeCustomerId);
+          logger.debug({ stripeCustomerId }, 'Found existing Stripe customer');
         } else {
           // Créer un nouveau customer
           const customer = await this.stripe.customers.create({
@@ -156,12 +157,10 @@ export class StripePaymentStrategy implements IPaymentStrategy {
             },
           });
           stripeCustomerId = customer.id;
-          // eslint-disable-next-line no-console
-          console.log('[StripePaymentStrategy] Created new Stripe customer:', stripeCustomerId);
+          logger.debug({ stripeCustomerId }, 'Created new Stripe customer');
         }
       } else {
-        // eslint-disable-next-line no-console
-        console.log('[StripePaymentStrategy] No customer email provided, creating PaymentIntent without customer');
+        logger.debug({}, 'No customer email provided, creating PaymentIntent without customer');
       }
 
       const paymentIntentParams: StripePaymentIntentCreateParams = {
@@ -190,7 +189,7 @@ export class StripePaymentStrategy implements IPaymentStrategy {
       try {
         paymentIntent = await this.stripe.paymentIntents.create(paymentIntentParams);
       } catch (stripeError: any) {
-        console.error('[StripePaymentStrategy] Error creating PaymentIntent:', {
+        logger.error({
           error: stripeError.message,
           type: stripeError.type,
           code: stripeError.code,
@@ -199,7 +198,7 @@ export class StripePaymentStrategy implements IPaymentStrategy {
             ...paymentIntentParams,
             customer: paymentIntentParams.customer ? `${paymentIntentParams.customer.substring(0, 10)}...` : undefined,
           },
-        });
+        }, 'Error creating PaymentIntent');
         Sentry.captureException(stripeError, {
           tags: { component: 'StripePaymentStrategy', method: 'createPaymentIntent' },
           extra: { paymentIntentParams, stripeError },
@@ -215,12 +214,12 @@ export class StripePaymentStrategy implements IPaymentStrategy {
           `Stripe n'a pas retourné de client_secret pour le PaymentIntent ${paymentIntent.id}. ` +
           `Status: ${paymentIntent.status}, Confirmation method: ${paymentIntentParams.confirmation_method}`,
         );
-        console.error('[StripePaymentStrategy] Missing client_secret:', {
+        logger.error({
           paymentIntentId: paymentIntent.id,
           status: paymentIntent.status,
           confirmation_method: paymentIntentParams.confirmation_method,
           capture_method: paymentIntentParams.capture_method,
-        });
+        }, 'Missing client_secret');
         Sentry.captureException(error, {
           tags: { component: 'StripePaymentStrategy', method: 'createPaymentIntent' },
           extra: { paymentIntentId: paymentIntent.id, paymentIntent },
@@ -250,7 +249,7 @@ export class StripePaymentStrategy implements IPaymentStrategy {
         },
       };
     } catch (error: any) {
-      console.error('[StripePaymentStrategy] Error in createPaymentIntent:', error);
+      logger.error({ error }, 'Error in createPaymentIntent');
       Sentry.captureException(error);
 
       return {
@@ -288,7 +287,7 @@ export class StripePaymentStrategy implements IPaymentStrategy {
         },
       };
     } catch (error: any) {
-      console.error('[StripePaymentStrategy] Error in confirmPaymentIntent:', error);
+      logger.error({ error }, 'Error in confirmPaymentIntent');
       Sentry.captureException(error);
 
       return {
@@ -330,7 +329,7 @@ export class StripePaymentStrategy implements IPaymentStrategy {
         amount: refund.amount / 100,
       };
     } catch (error: any) {
-      console.error('[StripePaymentStrategy] Error in refund:', error);
+      logger.error({ error }, 'Error in refund');
       Sentry.captureException(error);
 
       return {
@@ -355,7 +354,7 @@ export class StripePaymentStrategy implements IPaymentStrategy {
         },
       };
     } catch (error: any) {
-      console.error('[StripePaymentStrategy] Error in getTransactionStatus:', error);
+      logger.error({ error }, 'Error in getTransactionStatus');
       Sentry.captureException(error);
 
       return {

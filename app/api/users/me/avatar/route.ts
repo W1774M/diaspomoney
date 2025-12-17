@@ -5,6 +5,12 @@ import { mkdir, unlink, writeFile } from 'fs/promises';
 import { ObjectId } from 'mongodb';
 import { NextRequest, NextResponse } from 'next/server';
 import { join } from 'path';
+import { logger } from '@/lib/logger';
+
+// Configuration pour désactiver le body parsing automatique de Next.js
+// et permettre le parsing manuel du FormData
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/users/me/avatar - Upload une photo de profil
@@ -16,18 +22,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const file = formData.get('avatar') as File;
+    // Vérifier le Content-Type
+    const contentType = request.headers.get('content-type');
+    if (!contentType || !contentType.includes('multipart/form-data')) {
+      // Next.js peut ne pas inclure le Content-Type dans les headers
+      // mais on peut quand même essayer de parser le FormData
+    }
 
-    if (!file) {
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        `Erreur de parsing FormData: ${errorMessage}`
+      );
       return NextResponse.json(
-        { error: 'Aucun fichier fourni' },
+        { 
+          error: 'Format de requête invalide. Veuillez utiliser FormData.',
+          details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        },
+        { status: 400 },
+      );
+    }
+
+    const file = formData.get('avatar') as File | null;
+
+    if (!file || !(file instanceof File)) {
+      return NextResponse.json(
+        { error: 'Aucun fichier fourni ou format invalide' },
         { status: 400 },
       );
     }
 
     // Vérifier le type de fichier
-    if (!file.type.startsWith('image/')) {
+    if (!file.type || !file.type.startsWith('image/')) {
       return NextResponse.json(
         { error: 'Le fichier doit être une image' },
         { status: 400 },
@@ -77,7 +106,14 @@ export async function POST(request: NextRequest) {
         try {
           await unlink(oldAvatarPath);
         } catch (error) {
-          console.warn("Impossible de supprimer l'ancien avatar:", error);
+          logger.warn(
+            {
+              msg: 'Impossible de supprimer l\'ancien avatar',
+              type: 'warning',
+              error: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : undefined,
+            }
+          );
         }
       }
     }
@@ -97,9 +133,19 @@ export async function POST(request: NextRequest) {
       avatar: avatarUrl,
     });
   } catch (error) {
-    console.error('[API][users/me/avatar][POST] Erreur:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error({
+      msg: `Erreur lors de l'upload de la photo de profil: ${errorMessage}`,
+      type: 'error',
+      error: errorMessage,
+      stack: errorStack,
+    });
     return NextResponse.json(
-      { error: "Erreur lors de l'upload de la photo de profil" },
+      { 
+        error: "Erreur lors de l'upload de la photo de profil",
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      },
       { status: 500 },
     );
   }
@@ -130,9 +176,9 @@ export async function DELETE() {
         try {
           await unlink(avatarPath);
         } catch (error) {
-          console.warn(
-            "Impossible de supprimer l'avatar du système de fichiers:",
-            error,
+          logger.warn(
+            `Impossible de supprimer l'avatar du système de fichiers: ${error instanceof Error ? error.message : String(error)}` +
+            (error instanceof Error && error.stack ? `\nStack: ${error.stack}` : '')
           );
         }
       }
@@ -153,7 +199,14 @@ export async function DELETE() {
       message: 'Photo de profil supprimée',
     });
   } catch (error) {
-    console.error('[API][users/me/avatar][DELETE] Erreur:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error({
+      msg: `Erreur lors de la suppression de la photo de profil: ${errorMessage}`,
+      type: 'error',
+      error: errorMessage,
+      stack: errorStack,
+    });
     return NextResponse.json(
       { error: 'Erreur lors de la suppression de la photo de profil' },
       { status: 500 },

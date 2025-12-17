@@ -1,5 +1,4 @@
 /**
-// Désactiver le prerendering pour cette route API
 ;
 
  * API Route - Beneficiaries
@@ -17,10 +16,6 @@ import {
   type CreateBeneficiaryApiInput,
 } from '@/lib/validations/beneficiary.schema';
 import { NextRequest } from 'next/server';
-
-// Désactiver le prerendering pour cette route API
-export const dynamic = 'force-dynamic';
-
 /**
  * GET /api/beneficiaries - Récupérer tous les bénéficiaires de l'utilisateur
  */
@@ -101,31 +96,27 @@ export async function POST(request: NextRequest) {
 
       const userId = user.id || (user as any)._id?.toString() || '';
 
-      // Parser le nom si fourni comme "firstName lastName" ou utiliser firstName/lastName
-      let finalFirstName: string;
-      let finalLastName: string;
-
-      if (validatedData.firstName && validatedData.lastName) {
-        finalFirstName = validatedData.firstName.trim();
-        finalLastName = validatedData.lastName.trim();
-      } else if (validatedData.name) {
-        const nameParts = validatedData.name.trim().split(' ');
-        finalFirstName = nameParts[0] || '';
-        finalLastName = nameParts.slice(1).join(' ') || '';
-      } else {
-        throw ApiErrors.VALIDATION_ERROR('Le nom (ou prénom et nom) est obligatoire');
-      }
-
-      if (!finalFirstName || !finalLastName) {
-        throw ApiErrors.VALIDATION_ERROR('Le prénom et le nom sont obligatoires');
+      // Valider et normaliser la localisation
+      if (!validatedData.location) {
+        throw ApiErrors.VALIDATION_ERROR('La localisation est requise');
       }
 
       // Utiliser BeneficiaryFacade pour créer le bénéficiaire
       const facadeData: any = {
-        firstName: finalFirstName,
-        lastName: finalLastName,
-        relationship: validatedData.relationship as any,
-        country: validatedData.country || (user as any)['countryOfResidence'] || 'FR', // Utiliser le pays de l'utilisateur par défaut
+        firstName: validatedData.firstName.trim(),
+        lastName: validatedData.lastName.trim(),
+        relationship: validatedData.relationship,
+        location: (() => {
+          const loc: any = {
+            address: validatedData.location.address.trim(),
+            city: validatedData.location.city.trim(),
+            country: validatedData.location.country.trim(),
+          };
+          if (validatedData.location.postalCode?.trim()) {
+            loc.postalCode = validatedData.location.postalCode.trim();
+          }
+          return loc;
+        })(),
         sendNotification: true,
         sendEmail: !!validatedData.email,
       };
@@ -148,8 +139,35 @@ export async function POST(request: NextRequest) {
 
       const beneficiary = result.beneficiary;
 
+      if (!beneficiary) {
+        throw ApiErrors.VALIDATION_ERROR('Bénéficiaire non créé');
+      }
+
+      // Nettoyer location pour enlever postalCode si undefined
+      const cleanLocation: any = {
+        address: beneficiary.location?.address || '',
+        city: beneficiary.location?.city || '',
+        country: beneficiary.location?.country || '',
+      };
+      if (beneficiary.location?.postalCode) {
+        cleanLocation.postalCode = beneficiary.location.postalCode;
+      }
+
+      // Convertir les dates en string de manière sécurisée
+      const createdAt = beneficiary.createdAt instanceof Date 
+        ? beneficiary.createdAt.toISOString() 
+        : typeof beneficiary.createdAt === 'string' 
+          ? beneficiary.createdAt 
+          : new Date().toISOString();
+      
+      const updatedAt = beneficiary.updatedAt instanceof Date 
+        ? beneficiary.updatedAt.toISOString() 
+        : typeof beneficiary.updatedAt === 'string' 
+          ? beneficiary.updatedAt 
+          : new Date().toISOString();
+
       // Mapper vers le format attendu par le frontend (compatibilité)
-      const mappedBeneficiary = {
+      const mappedBeneficiary: any = {
         _id: beneficiary.id || (beneficiary as any)._id?.toString(),
         id: beneficiary.id || (beneficiary as any)._id?.toString(),
         name: `${beneficiary.firstName} ${beneficiary.lastName}`,
@@ -158,10 +176,11 @@ export async function POST(request: NextRequest) {
         email: beneficiary.email || '',
         phone: beneficiary.phone || '',
         relationship: beneficiary.relationship,
+        location: cleanLocation,
         hasAccount: false,
         status: beneficiary.isActive ? 'active' : 'inactive',
-        createdAt: beneficiary.createdAt?.toISOString() || new Date().toISOString(),
-        updatedAt: beneficiary.updatedAt?.toISOString() || new Date().toISOString(),
+        createdAt,
+        updatedAt,
       };
 
       return createResourceResponse(

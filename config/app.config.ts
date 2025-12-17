@@ -15,7 +15,7 @@ const environments: Record<Environment, EnvironmentConfig> = {
     database: {
       uri:
         process.env['MONGODB_URI'] ||
-        'mongodb://217.154.22.202:27017/diaspomoney_dev',
+        'mongodb://217.154.22.202:27017/diaspomoney-dev',
       options: {
         maxPoolSize: DATABASE.POOL_SIZE.DEFAULT,
         serverSelectionTimeoutMS: API.TIMEOUT.DATABASE,
@@ -48,7 +48,7 @@ const environments: Record<Environment, EnvironmentConfig> = {
     database: {
       uri:
         process.env['MONGODB_URI'] ||
-        'mongodb://217.154.22.202:27017/diaspomoney_rct',
+        'mongodb://217.154.22.202:27017/diaspomoney-rct',
       options: {
         maxPoolSize: DATABASE.POOL_SIZE.MEDIUM,
         serverSelectionTimeoutMS: API.TIMEOUT.DATABASE,
@@ -76,12 +76,12 @@ const environments: Record<Environment, EnvironmentConfig> = {
   },
   production: {
     nodeEnv: ENVIRONMENTS.PRODUCTION as Environment,
-    appUrl: 'https://app.diaspomoney.fr',
-    apiUrl: 'https://app.diaspomoney.fr/api',
+    appUrl: 'https://diaspomoney.fr',
+    apiUrl: 'https://diaspomoney.fr/api',
     database: {
       uri:
         process.env['MONGODB_URI'] ||
-        'mongodb://217.154.22.202:27017/diaspomoney_prod',
+        'mongodb://217.154.22.202:27017/diaspomoney',
       options: {
         maxPoolSize: DATABASE.POOL_SIZE.LARGE,
         serverSelectionTimeoutMS: API.TIMEOUT.DATABASE,

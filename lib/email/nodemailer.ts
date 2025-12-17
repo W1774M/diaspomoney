@@ -23,7 +23,9 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
 };
 
 export const sendEmailVerification = async (email: string, token: string) => {
-  const verificationUrl = `${process.env['NEXT_PUBLIC_URL']}/verify-email?token=${token}`;
+  const { cleanUrl } = await import('@/lib/utils');
+  const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL'] || process.env['NEXT_PUBLIC_URL']);
+  const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
   const html = `
     <h1>Vérification de votre email</h1>
     <p>Cliquez sur le lien ci-dessous pour vérifier votre email :</p>

@@ -1,12 +1,10 @@
 /**
-// Désactiver le prerendering pour cette route API
 ;
 
  * API Route - Transactions
  * Endpoint de gestion des transactions
  */
 
-// Désactiver le prerendering pour cette route API
 // Elle nécessite une connexion MongoDB qui n'est pas disponible pendant le build
 ;
 
@@ -20,10 +18,6 @@ import {
 } from '@/services/transaction/transaction.service';
 import type { TransactionData, TransactionFilters } from '@/lib/types';
 import { NextRequest } from 'next/server';
-
-// Désactiver le prerendering pour cette route API
-export const dynamic = 'force-dynamic';
-
 /**
  * GET /api/transactions - Récupérer les transactions
  */

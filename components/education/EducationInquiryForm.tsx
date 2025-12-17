@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
+import { PhoneInput } from 'react-international-phone';
 import {
   Badge,
   BookOpen,
@@ -534,16 +535,17 @@ export default function EducationInquiryForm({
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div className='space-y-2'>
                       <label className='text-sm font-medium'>Téléphone</label>
-                      <Input
-                        type='tel'
-                        placeholder='+221 33 123 45 67'
+                      <PhoneInput
+                        defaultCountry="fr"
                         value={formData.contact.phone}
-                        onChange={e =>
+                        onChange={(phone) =>
                           setFormData(prev => ({
                             ...prev,
-                            contact: { ...prev.contact, phone: e.target.value },
+                            contact: { ...prev.contact, phone: phone },
                           }))
                         }
+                        className="w-full"
+                        inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
                       />
                     </div>
                     <div className='space-y-2'>
