@@ -14,6 +14,7 @@
  */
 
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
+import { getPublicBaseUrl } from '@/lib/api/public-url';
 import { childLogger } from '@/lib/logger';
 import { RegisterSchema, type RegisterInput } from '@/lib/validations/auth.schema';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
         request.headers.get('x-real-ip') ||
         'unknown';
       const userAgent = request.headers.get('user-agent') || 'unknown';
+      const publicBaseUrl = getPublicBaseUrl(request);
 
       log.debug(
         {
@@ -76,6 +78,7 @@ export async function POST(request: NextRequest) {
       const result = await authService.register(sanitizedData as any, {
         ipAddress,
         userAgent,
+        baseUrl: publicBaseUrl,
       });
 
       // Enregistrer les métriques

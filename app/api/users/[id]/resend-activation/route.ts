@@ -11,6 +11,7 @@ import { childLogger } from '@/lib/logger';
 import { ROLES, USER_STATUSES } from '@/lib/constants';
 import { userService } from '@/services/user/user.service';
 import { NextRequest, NextResponse } from 'next/server';
+import { getPublicBaseUrl } from '@/lib/api/public-url';
 
 /**
  * POST /api/users/[id]/resend-activation - Renvoyer le lien d'activation
@@ -101,10 +102,8 @@ export async function POST(
       { expiresIn: '7d' },
     );
 
-    // Construire l'URL d'activation
-    const { cleanUrl } = await import('@/lib/utils');
-    const rawBaseUrl = process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000';
-    const baseUrl = cleanUrl(rawBaseUrl);
+    // Construire l'URL d'activation depuis l'URL publique (host/proto) de la requête
+    const baseUrl = getPublicBaseUrl(request);
     const activationUrl = `${baseUrl}/activate-account?token=${activationToken}`;
 
     // Envoyer l'email d'activation

@@ -28,7 +28,6 @@ import {
   GraduationCap,
   Headphones,
   HelpCircle,
-  History,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -51,7 +50,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useSidebar } from './SidebarContext';
+import { useSidebar } from '../../contexts/SidebarContext';
 import { X } from 'lucide-react';
 import { childLogger } from '@/lib/logger';
 
@@ -73,75 +72,351 @@ function getAvailableDashboards(userRoles: string[] = []): Dashboard[] {
   }
 
   // Ajouter les dashboards selon l'ordre de priorité
-  // Super Admin : ADMIN avec plusieurs autres rôles
-  if (userRoles.includes(ROLES.ADMIN) && userRoles.length > 1) {
+  const hasAdmin = userRoles.includes(ROLES.ADMIN);
+  if (hasAdmin) {
     dashboards.push({
-      name: 'Super Admin',
+      name: userRoles.length > 1 ? 'Super Admin' : 'Admin',
       href: '/dashboard/admin',
       role: ROLES.ADMIN,
     });
   }
 
-  // Admin (si pas déjà ajouté comme Super Admin)
-  if (userRoles.includes(ROLES.ADMIN) && userRoles.length === 1) {
-    dashboards.push({
-      name: 'Admin',
-      href: '/dashboard/admin',
-      role: ROLES.ADMIN,
-    });
-  }
-
-  // CSM
-  if (userRoles.includes(ROLES.CSM)) {
-    dashboards.push({
-      name: 'CSM',
-      href: '/dashboard/csm',
-      role: ROLES.CSM,
-    });
-  }
-
-  // Provider
-  if (userRoles.includes(ROLES.PROVIDER)) {
-    dashboards.push({
-      name: 'Prestataire',
-      href: '/dashboard/provider',
-      role: ROLES.PROVIDER,
-    });
-  }
-
-  // Customer
-  if (userRoles.includes(ROLES.CUSTOMER)) {
-    dashboards.push({
-      name: 'Client',
-      href: '/dashboard/customer',
-      role: ROLES.CUSTOMER,
-    });
-  }
-
-  // Beneficiary
-  if (userRoles.includes(ROLES.BENEFICIARY)) {
-    dashboards.push({
+  const roleDashboards: Array<{ role: string; name: string; href: string }> = [
+    { role: ROLES.CSM, name: 'CSM', href: '/dashboard/csm' },
+    { role: ROLES.PROVIDER, name: 'Prestataire', href: '/dashboard/provider' },
+    { role: ROLES.CUSTOMER, name: 'Client', href: '/dashboard/customer' },
+    {
+      role: ROLES.BENEFICIARY,
       name: 'Dashboard Bénéficiaire',
       href: '/dashboard/beneficiary',
-      role: ROLES.BENEFICIARY,
-    });
+    },
+  ];
+
+  for (const cfg of roleDashboards) {
+    if (userRoles.includes(cfg.role)) {
+      dashboards.push({ name: cfg.name, href: cfg.href, role: cfg.role });
+    }
   }
 
-  // Si aucun dashboard spécifique, utiliser le dashboard par défaut
-  if (dashboards.length === 0) {
-    dashboards.push({
-      name: 'Dashboard',
-      href: '/dashboard',
-      role: 'default',
-    });
-  }
-
-  return dashboards;
+  return dashboards.length > 0
+    ? dashboards
+    : [{ name: 'Dashboard', href: '/dashboard', role: 'default' }];
 }
 
 /**
  * Construit les sections de navigation organisées
  */
+function buildProviderToolsItems(user?: any): NavigationItem[] {
+  const items: NavigationItem[] = [];
+
+  const providerType = user?.providerInfo?.type; // 'INDIVIDUAL' | 'INSTITUTION'
+  const providerCategory = user?.providerInfo?.category; // 'HEALTH' | 'BTP' | 'EDUCATION'
+
+  // Sous-catégories dynamiques selon le type et la catégorie
+  switch (providerType) {
+    case 'INDIVIDUAL': {
+      // Providers INDIVIDUAL
+      switch (providerCategory) {
+        case 'HEALTH':
+          // Santé - INDIVIDUAL
+          items.push({
+            name: '📅 Calendrier',
+            key: 'calendar-health',
+            icon: Calendar,
+            show: true,
+            values: [
+              {
+                name: 'Mes disponibilités',
+                key: 'availabilities',
+                href: '/dashboard/availabilities',
+                icon: Clock,
+                show: true,
+              },
+              {
+                name: 'Mes patients',
+                key: 'patients',
+                href: '/dashboard/patients',
+                icon: Users,
+                show: true,
+              },
+              {
+                name: 'Mes rendez-vous',
+                key: 'appointments',
+                href: '/dashboard/appointments',
+                icon: Calendar,
+                show: true,
+              },
+              {
+                name: 'Planning des missions',
+                key: 'mission-planning',
+                href: '/dashboard/calendar/missions',
+                icon: Stethoscope,
+                show: true,
+              },
+            ],
+          });
+          break;
+        case 'BTP':
+          // BTP - INDIVIDUAL
+          items.push({
+            name: '📅 Calendrier',
+            key: 'calendar-btp',
+            icon: Calendar,
+            show: false,
+            values: [
+              {
+                name: 'Mes disponibilités',
+                key: 'availabilities',
+                href: '/dashboard/availabilities',
+                icon: Clock,
+                show: true,
+              },
+              {
+                name: 'Mes missions',
+                key: 'missions',
+                href: '/dashboard/calendar/missions',
+                icon: Wrench,
+                show: true,
+              },
+              {
+                name: 'Mes clients',
+                key: 'clients',
+                href: '/dashboard/clients',
+                icon: Users,
+                show: true,
+              },
+              {
+                name: 'Réservations clients',
+                key: 'client-bookings',
+                href: '/dashboard/calendar/bookings',
+                icon: ShoppingCart,
+                show: true,
+              },
+            ],
+          });
+          break;
+        case 'EDUCATION':
+          // Éducation - INDIVIDUAL
+          items.push({
+            name: '📅 Calendrier',
+            key: 'calendar-education',
+            icon: Calendar,
+            show: false,
+            values: [
+              {
+                name: 'Mes disponibilités',
+                key: 'availabilities',
+                href: '/dashboard/availabilities',
+                icon: Clock,
+                show: true,
+              },
+              {
+                name: 'Mes élèves',
+                key: 'students',
+                href: '/dashboard/students',
+                icon: GraduationCap,
+                show: true,
+              },
+              {
+                name: 'Mes relevés',
+                key: 'reports',
+                href: '/dashboard/reports',
+                icon: FileText,
+                show: true,
+              },
+              {
+                name: 'Planning des missions',
+                key: 'mission-planning',
+                href: '/dashboard/calendar/missions',
+                icon: Book,
+                show: true,
+              },
+            ],
+          });
+          break;
+        default:
+          // INDIVIDUAL sans catégorie spécifique - menu par défaut
+          items.push({
+            name: '📅 Calendrier',
+            key: 'calendar-default',
+            icon: Calendar,
+            show: false,
+            values: [
+              {
+                name: 'Mes disponibilités',
+                key: 'availabilities',
+                href: '/dashboard/availabilities',
+                icon: Clock,
+                show: true,
+              },
+              {
+                name: 'Planning des missions',
+                key: 'mission-planning',
+                href: '/dashboard/calendar/missions',
+                icon: Calendar,
+                show: true,
+              },
+              {
+                name: 'Réservations clients',
+                key: 'client-bookings',
+                href: '/dashboard/calendar/bookings',
+                icon: ShoppingCart,
+                show: true,
+              },
+              {
+                name: 'Rappels importants',
+                key: 'reminders',
+                href: '/dashboard/calendar/reminders',
+                icon: Bell,
+                show: true,
+              },
+            ],
+          });
+          break;
+      }
+      break;
+    }
+    case 'INSTITUTION': {
+      // Providers INSTITUTION
+      switch (providerCategory) {
+        case 'HEALTH':
+          // Santé - INSTITUTION
+          items.push({
+            name: '🏥 Institution',
+            key: 'institution-health',
+            icon: Building,
+            show: false,
+            values: [
+              {
+                name: 'Mes médecins',
+                key: 'doctors',
+                href: '/dashboard/institution/doctors',
+                icon: Stethoscope,
+                show: true,
+              },
+              {
+                name: 'Mes infirmiers',
+                key: 'nurses',
+                href: '/dashboard/institution/nurses',
+                icon: Users,
+                show: true,
+              },
+              {
+                name: 'Mes patients',
+                key: 'patients',
+                href: '/dashboard/institution/patients',
+                icon: Users,
+                show: true,
+              },
+              {
+                name: 'Mes rendez-vous',
+                key: 'appointments',
+                href: '/dashboard/institution/appointments',
+                icon: Calendar,
+                show: true,
+              },
+            ],
+          });
+          break;
+        case 'BTP':
+          // BTP - INSTITUTION
+          items.push({
+            name: '🏗️ Institution',
+            key: 'institution-btp',
+            icon: Building,
+            show: false,
+            values: [
+              {
+                name: 'Mes indépendants',
+                key: 'freelancers',
+                href: '/dashboard/institution/freelancers',
+                icon: User,
+                show: true,
+              },
+              {
+                name: 'Mes clients',
+                key: 'clients',
+                href: '/dashboard/institution/clients',
+                icon: Users,
+                show: true,
+              },
+              {
+                name: 'Mes missions',
+                key: 'missions',
+                href: '/dashboard/institution/missions',
+                icon: Wrench,
+                show: true,
+              },
+            ],
+          });
+          break;
+        case 'EDUCATION':
+          // Éducation - INSTITUTION
+          items.push({
+            name: '🎓 Institution',
+            key: 'institution-education',
+            icon: Building,
+            show: false,
+            values: [
+              {
+                name: 'Mes professeurs',
+                key: 'teachers',
+                href: '/dashboard/institution/teachers',
+                icon: GraduationCap,
+                show: true,
+              },
+              {
+                name: 'Mes élèves',
+                key: 'students',
+                href: '/dashboard/institution/students',
+                icon: Users,
+                show: true,
+              },
+              {
+                name: 'Mes classes',
+                key: 'classes',
+                href: '/dashboard/institution/classes',
+                icon: Book,
+                show: true,
+              },
+            ],
+          });
+          break;
+        default:
+          // INSTITUTION sans catégorie spécifique - menu par défaut
+          items.push({
+            name: '🏢 Institution',
+            key: 'institution-default',
+            icon: Building,
+            show: false,
+            values: [
+              {
+                name: 'Mes équipes',
+                key: 'teams',
+                href: '/dashboard/institution/teams',
+                icon: Users,
+                show: true,
+              },
+              {
+                name: 'Mes clients',
+                key: 'clients',
+                href: '/dashboard/institution/clients',
+                icon: Users,
+                show: true,
+              },
+            ],
+          });
+          break;
+      }
+      break;
+    }
+    default:
+      break;
+  }
+
+  return items;
+}
+
 function buildNavigationSections(
   dashboards: Dashboard[],
   isAuthorizedAdmin: boolean,
@@ -232,20 +507,47 @@ function buildNavigationSections(
 
   principalItems.push(messagingItem);
 
-  if (principalItems.some(item => item.show)) {
-    sections.push({
-      title: 'PRINCIPAL',
-      items: principalItems,
-    });
-  }
+  // ----------------------------
+  // PRINCIPAL : onglets accessibles par au moins un des rôles listés (Admin/CSM/Provider/Customer)
+  // ----------------------------
+  const canSeeBookings =
+    isAuthorizedAdmin || isAuthorizedCSM || isAuthorizedProvider || isAuthorizedCustomer;
 
-  // Section GESTION - Regroupée par rôle du plus important au moins important
-  const gestionItems: NavigationItem[] = [];
+  const bookingsLabel =
+    isAuthorizedCustomer && !(isAuthorizedAdmin || isAuthorizedCSM || isAuthorizedProvider)
+      ? 'Mes réservations'
+      : 'Commandes';
+  const bookingsIcon =
+    isAuthorizedCustomer && !(isAuthorizedAdmin || isAuthorizedCSM || isAuthorizedProvider)
+      ? Package
+      : ShoppingCart;
 
-  // ===== ADMIN (Priorité 1 - Le plus important) =====
+  principalItems.push({
+    name: bookingsLabel,
+    key: 'bookings',
+    href: '/dashboard/bookings',
+    icon: bookingsIcon,
+    show: canSeeBookings,
+    ...(pendingBookingsCount !== undefined && pendingBookingsCount > 0
+      ? { badge: pendingBookingsCount }
+      : {}),
+  });
+
+  // Mes bénéficiaires (Customer uniquement)
+  principalItems.push({
+    name: 'Mes bénéficiaires',
+    key: 'beneficiaries',
+    href: '/dashboard/beneficiaries',
+    icon: Users,
+    show: isAuthorizedCustomer,
+  });
+
+  // ----------------------------
+  // ADMIN GESTION : uniquement Admin/SuperAdmin
+  // ----------------------------
+  const adminGestionItems: NavigationItem[] = [];
   if (isAuthorizedAdmin) {
-    // Utilisateurs
-    gestionItems.push({
+    adminGestionItems.push({
       name: 'Utilisateurs',
       key: 'users',
       href: '/dashboard/users',
@@ -253,8 +555,7 @@ function buildNavigationSections(
       show: true,
     });
 
-    // Agences
-    gestionItems.push({
+    adminGestionItems.push({
       name: 'Agences',
       key: 'agencies',
       href: '/dashboard/agencies',
@@ -262,8 +563,7 @@ function buildNavigationSections(
       show: false,
     });
 
-    // Prestataires
-    gestionItems.push({
+    adminGestionItems.push({
       name: 'Prestataires',
       key: 'providers',
       href: '/dashboard/providers',
@@ -271,21 +571,7 @@ function buildNavigationSections(
       show: false,
     });
 
-    // Commandes
-    gestionItems.push({
-      name: 'Commandes',
-      key: 'bookings',
-      href: '/dashboard/bookings',
-      icon: ShoppingCart,
-      show: true,
-      badge:
-        pendingBookingsCount !== undefined && pendingBookingsCount > 0
-          ? pendingBookingsCount
-          : 0,
-    });
-
-    // Gestion de service (Admin uniquement)
-    gestionItems.push({
+    adminGestionItems.push({
       name: 'Gestion de service',
       key: 'services',
       href: '/dashboard/services',
@@ -293,412 +579,54 @@ function buildNavigationSections(
       show: true,
     });
   }
-  // ===== CSM (Priorité 2) =====
-  else if (isAuthorizedCSM) {
-    // Prestataires
-    gestionItems.push({
+
+  // ----------------------------
+  // GESTION CSM : uniquement CSM
+  // ----------------------------
+  const csmGestionItems: NavigationItem[] = [];
+  if (isAuthorizedCSM) {
+    csmGestionItems.push({
       name: 'Prestataires',
       key: 'providers',
       href: '/dashboard/providers',
       icon: User,
       show: true,
     });
-
-    // Commandes
-    gestionItems.push({
-      name: 'Commandes',
-      key: 'bookings',
-      href: '/dashboard/bookings',
-      icon: ShoppingCart,
-      show: true,
-      badge:
-        pendingBookingsCount !== undefined && pendingBookingsCount > 0
-          ? pendingBookingsCount
-          : 0,
-    });
-  }
-  // ===== PROVIDER (Priorité 3) =====
-  else if (isAuthorizedProvider) {
-    const providerType = user?.providerInfo?.type; // 'INDIVIDUAL' | 'INSTITUTION'
-    const providerCategory = user?.providerInfo?.category; // 'HEALTH' | 'BTP' | 'EDUCATION'
-    
-    // Sous-catégories dynamiques selon le type et la catégorie
-    if (providerType === 'INDIVIDUAL') {
-      // Providers INDIVIDUAL
-      if (providerCategory === 'HEALTH') {
-        // Santé - INDIVIDUAL
-        gestionItems.push({
-          name: '📅 Calendrier',
-          key: 'calendar-health',
-          icon: Calendar,
-          show: false,
-          values: [
-            {
-              name: 'Mes disponibilités',
-              key: 'availabilities',
-              href: '/dashboard/availabilities',
-              icon: Clock,
-              show: true,
-            },
-            {
-              name: 'Mes patients',
-              key: 'patients',
-              href: '/dashboard/patients',
-              icon: Users,
-              show: true,
-            },
-            {
-              name: 'Mes rendez-vous',
-              key: 'appointments',
-              href: '/dashboard/appointments',
-              icon: Calendar,
-              show: true,
-            },
-            {
-              name: 'Planning des missions',
-              key: 'mission-planning',
-              href: '/dashboard/calendar/missions',
-              icon: Stethoscope,
-              show: true,
-            },
-          ],
-        });
-      } else if (providerCategory === 'BTP') {
-        // BTP - INDIVIDUAL
-        gestionItems.push({
-          name: '📅 Calendrier',
-          key: 'calendar-btp',
-          icon: Calendar,
-          show: false,
-          values: [
-            {
-              name: 'Mes disponibilités',
-              key: 'availabilities',
-              href: '/dashboard/availabilities',
-              icon: Clock,
-              show: true,
-            },
-            {
-              name: 'Mes missions',
-              key: 'missions',
-              href: '/dashboard/calendar/missions',
-              icon: Wrench,
-              show: true,
-            },
-            {
-              name: 'Mes clients',
-              key: 'clients',
-              href: '/dashboard/clients',
-              icon: Users,
-              show: true,
-            },
-            {
-              name: 'Réservations clients',
-              key: 'client-bookings',
-              href: '/dashboard/calendar/bookings',
-              icon: ShoppingCart,
-              show: true,
-            },
-          ],
-        });
-      } else if (providerCategory === 'EDUCATION') {
-        // Éducation - INDIVIDUAL
-        gestionItems.push({
-          name: '📅 Calendrier',
-          key: 'calendar-education',
-          icon: Calendar,
-          show: false,
-          values: [
-            {
-              name: 'Mes disponibilités',
-              key: 'availabilities',
-              href: '/dashboard/availabilities',
-              icon: Clock,
-              show: true,
-            },
-            {
-              name: 'Mes élèves',
-              key: 'students',
-              href: '/dashboard/students',
-              icon: GraduationCap,
-              show: true,
-            },
-            {
-              name: 'Mes relevés',
-              key: 'reports',
-              href: '/dashboard/reports',
-              icon: FileText,
-              show: true,
-            },
-            {
-              name: 'Planning des missions',
-              key: 'mission-planning',
-              href: '/dashboard/calendar/missions',
-              icon: Book,
-              show: true,
-            },
-          ],
-        });
-      } else {
-        // INDIVIDUAL sans catégorie spécifique - menu par défaut
-        gestionItems.push({
-          name: '📅 Calendrier',
-          key: 'calendar-default',
-          icon: Calendar,
-          show: false,
-          values: [
-            {
-              name: 'Mes disponibilités',
-              key: 'availabilities',
-              href: '/dashboard/availabilities',
-              icon: Clock,
-              show: true,
-            },
-            {
-              name: 'Planning des missions',
-              key: 'mission-planning',
-              href: '/dashboard/calendar/missions',
-              icon: Calendar,
-              show: true,
-            },
-            {
-              name: 'Réservations clients',
-              key: 'client-bookings',
-              href: '/dashboard/calendar/bookings',
-              icon: ShoppingCart,
-              show: true,
-            },
-            {
-              name: 'Rappels importants',
-              key: 'reminders',
-              href: '/dashboard/calendar/reminders',
-              icon: Bell,
-              show: true,
-            },
-          ],
-        });
-      }
-    } else if (providerType === 'INSTITUTION') {
-      // Providers INSTITUTION
-      if (providerCategory === 'HEALTH') {
-        // Santé - INSTITUTION
-        gestionItems.push({
-          name: '🏥 Institution',
-          key: 'institution-health',
-          icon: Building,
-          show: false,
-          values: [
-            {
-              name: 'Mes médecins',
-              key: 'doctors',
-              href: '/dashboard/institution/doctors',
-              icon: Stethoscope,
-              show: true,
-            },
-            {
-              name: 'Mes infirmiers',
-              key: 'nurses',
-              href: '/dashboard/institution/nurses',
-              icon: Users,
-              show: true,
-            },
-            {
-              name: 'Mes patients',
-              key: 'patients',
-              href: '/dashboard/institution/patients',
-              icon: Users,
-              show: true,
-            },
-            {
-              name: 'Mes rendez-vous',
-              key: 'appointments',
-              href: '/dashboard/institution/appointments',
-              icon: Calendar,
-              show: true,
-            },
-          ],
-        });
-      } else if (providerCategory === 'BTP') {
-        // BTP - INSTITUTION
-        gestionItems.push({
-          name: '🏗️ Institution',
-          key: 'institution-btp',
-          icon: Building,
-          show: false,
-          values: [
-            {
-              name: 'Mes indépendants',
-              key: 'freelancers',
-              href: '/dashboard/institution/freelancers',
-              icon: User,
-              show: true,
-            },
-            {
-              name: 'Mes clients',
-              key: 'clients',
-              href: '/dashboard/institution/clients',
-              icon: Users,
-              show: true,
-            },
-            {
-              name: 'Mes missions',
-              key: 'missions',
-              href: '/dashboard/institution/missions',
-              icon: Wrench,
-              show: true,
-            },
-          ],
-        });
-      } else if (providerCategory === 'EDUCATION') {
-        // Éducation - INSTITUTION
-        gestionItems.push({
-          name: '🎓 Institution',
-          key: 'institution-education',
-          icon: Building,
-          show: false,
-          values: [
-            {
-              name: 'Mes professeurs',
-              key: 'teachers',
-              href: '/dashboard/institution/teachers',
-              icon: GraduationCap,
-              show: true,
-            },
-            {
-              name: 'Mes élèves',
-              key: 'students',
-              href: '/dashboard/institution/students',
-              icon: Users,
-              show: true,
-            },
-            {
-              name: 'Mes classes',
-              key: 'classes',
-              href: '/dashboard/institution/classes',
-              icon: Book,
-              show: true,
-            },
-          ],
-        });
-      } else {
-        // INSTITUTION sans catégorie spécifique - menu par défaut
-        gestionItems.push({
-          name: '🏢 Institution',
-          key: 'institution-default',
-          icon: Building,
-          show: false,
-          values: [
-            {
-              name: 'Mes équipes',
-              key: 'teams',
-              href: '/dashboard/institution/teams',
-              icon: Users,
-              show: true,
-            },
-            {
-              name: 'Mes clients',
-              key: 'clients',
-              href: '/dashboard/institution/clients',
-              icon: Users,
-              show: true,
-            },
-          ],
-        });
-      }
-    }
-
-    // Commandes (toujours présent)
-    gestionItems.push({
-      name: 'Commandes',
-      key: 'bookings',
-      href: '/dashboard/bookings',
-      icon: ShoppingCart,
-      show: true,
-      badge:
-        pendingBookingsCount !== undefined && pendingBookingsCount > 0
-          ? pendingBookingsCount
-          : 0,
-    });
-  }
-  // ===== CUSTOMER (Priorité 4 - Le moins important) =====
-  else if (isAuthorizedCustomer) {
-    // Mes bénéficiaires
-    gestionItems.push({
-      name: 'Mes bénéficiaires',
-      key: 'beneficiaries',
-      href: '/dashboard/beneficiaries',
-      icon: Users,
-      show: true,
-    });
-
-    // Réservations
-    gestionItems.push({
-      name: 'Mes réservations',
-      key: 'bookings',
-      href: '/dashboard/bookings',
-      icon: Package,
-      show: true,
-    });
   }
 
-  if (gestionItems.some(item => item.show)) {
+  // ----------------------------
+  // PROVIDERS TOOLS : uniquement Provider
+  // ----------------------------
+  const providerToolsItems: NavigationItem[] = isAuthorizedProvider
+    ? buildProviderToolsItems(user)
+    : [];
+
+  // Sections finales
+  if (principalItems.some(item => item.show)) {
     sections.push({
-      title: 'GESTION',
-      items: gestionItems,
+      title: 'PRINCIPAL',
+      items: principalItems,
     });
   }
 
-  // Section FACTURATION
-  const facturationItems: NavigationItem[] = [];
-
-  facturationItems.push({
-    name: 'Paiements & Facturation',
-    key: 'billing',
-    icon: CreditCard,
-    show: true,
-    values: [
-      {
-        name: 'Moyens de paiement',
-        key: 'payment-methods',
-        href: '/dashboard/payments',
-        icon: CreditCard,
-        show: true,
-      },
-      {
-        name: 'Historique des transactions',
-        key: 'transactions',
-        href: '/dashboard/payments/transactions',
-        icon: History,
-        show: false,
-      },
-      {
-        name: 'Factures',
-        key: 'invoices',
-        href: '/dashboard/invoices',
-        icon: FileText,
-        show: false,
-      },
-      {
-        name: 'Mes Devis',
-        key: 'quotes',
-        href: '/dashboard/quotes',
-        icon: FileText,
-        show: false,
-      },
-      {
-        name: 'Bon de paiement',
-        key: 'payment-receipts',
-        href: '/dashboard/payment-receipts',
-        icon: FileText,
-        show: false,
-      },
-    ],
-  });
-
-  if (facturationItems.some(item => item.show)) {
+  if (adminGestionItems.some(item => item.show)) {
     sections.push({
-      title: 'FACTURATION',
-      items: facturationItems,
+      title: 'ADMIN GESTION',
+      items: adminGestionItems,
+    });
+  }
+
+  if (csmGestionItems.some(item => item.show)) {
+    sections.push({
+      title: 'OUTILS CSM',
+      items: csmGestionItems,
+    });
+  }
+
+  if (providerToolsItems.some(item => item.show)) {
+    sections.push({
+      title: 'OUTILS PRESTATAIRE',
+      items: providerToolsItems,
     });
   }
 
@@ -956,6 +884,13 @@ function FooterActions({
   
   const settingsItems = [
     {
+      name: 'Paiements & Facturation',
+      key: 'billing',
+      href: '/dashboard/payments',
+      icon: CreditCard,
+      show: true,
+    },
+    {
       name: 'Configuration',
       key: 'configuration',
       href: '/dashboard/settings/configuration',
@@ -1127,7 +1062,6 @@ export default function Sidebar() {
   const { isAuthorized: isAuthorizedProvider } = useAuthorization({ roles: [ROLES.PROVIDER] });
   const { isAuthorized: isAuthorizedCustomer } = useAuthorization({ roles: [ROLES.CUSTOMER] });
 
-  const [isBillingExpanded, setIsBillingExpanded] = useState(false);
   const [isDashboardsExpanded, setIsDashboardsExpanded] = useState(false);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
   const [isMessagingExpanded, setIsMessagingExpanded] = useState(false);
@@ -1172,14 +1106,8 @@ export default function Sidebar() {
 
   // Gestion de l'expansion automatique selon le pathname
   useEffect(() => {
-    const billingPaths = [
-      '/dashboard/invoices',
-      '/dashboard/quotes',
-      '/dashboard/payment-receipts',
-    ];
-    if (billingPaths.some(path => pathname.startsWith(path))) {
-      setIsBillingExpanded(true);
-    }
+    // Facturation est maintenant dans "Paramètres" (FooterActions),
+    // donc on n'a plus besoin d'auto-expansion du menu "billing".
   }, [pathname]);
 
   useEffect(() => {
@@ -1187,14 +1115,17 @@ export default function Sidebar() {
     const expandedKeys = new Set<string>();
     
     // Calendrier (providers INDIVIDUAL)
-    if (pathname.startsWith('/dashboard/calendar') || 
-        pathname.startsWith('/dashboard/availabilities') ||
-        pathname.startsWith('/dashboard/patients') ||
-        pathname.startsWith('/dashboard/appointments') ||
-        pathname.startsWith('/dashboard/missions') ||
-        pathname.startsWith('/dashboard/clients') ||
-        pathname.startsWith('/dashboard/students') ||
-        pathname.startsWith('/dashboard/reports')) {
+    const calendarPaths = [
+      '/dashboard/calendar',
+      '/dashboard/availabilities',
+      '/dashboard/patients',
+      '/dashboard/appointments',
+      '/dashboard/missions',
+      '/dashboard/clients',
+      '/dashboard/students',
+      '/dashboard/reports',
+    ];
+    if (calendarPaths.some(path => pathname.startsWith(path))) {
       expandedKeys.add('calendar-health');
       expandedKeys.add('calendar-btp');
       expandedKeys.add('calendar-education');
@@ -1234,6 +1165,11 @@ export default function Sidebar() {
       '/dashboard/settings/tutorials',
       '/dashboard/settings/support',
       '/dashboard/settings/documentation',
+      '/dashboard/payments',
+      '/dashboard/payments/transactions',
+      '/dashboard/invoices',
+      '/dashboard/quotes',
+      '/dashboard/payment-receipts',
     ];
     if (settingsPaths.some(path => pathname.startsWith(path))) {
       setIsSettingsExpanded(true);
@@ -1408,37 +1344,66 @@ export default function Sidebar() {
 
                   // Menu avec sous-éléments
                   if (item.values && Array.isArray(item.values)) {
-                    const isDashboards = item.key === 'dashboards';
-                    const isSettings = item.key === 'settings';
-                    const isMessaging = item.key === 'messaging';
-                    // Vérifier si c'est un sous-menu de provider (calendrier ou institution)
-                    const isProviderSubMenu = item.key?.startsWith('calendar-') || item.key?.startsWith('institution-');
-                    const isExpanded = isDashboards
-                      ? isDashboardsExpanded
-                      : isSettings
-                      ? isSettingsExpanded
-                      : isMessaging
-                      ? isMessagingExpanded
-                      : isProviderSubMenu
-                      ? expandedProviderItems.has(item.key || '')
-                      : isBillingExpanded;
+                    const isProviderSubMenu =
+                      item.key?.startsWith('calendar-') ||
+                      item.key?.startsWith('institution-');
+
+                    type MenuKind =
+                      | 'dashboards'
+                      | 'settings'
+                      | 'messaging'
+                      | 'provider-submenu'
+                      | 'unknown';
+
+                    const menuKind: MenuKind = (() => {
+                      switch (item.key) {
+                        case 'dashboards':
+                        case 'settings':
+                        case 'messaging':
+                          return item.key;
+                        default:
+                          return isProviderSubMenu ? 'provider-submenu' : 'unknown';
+                      }
+                    })();
+
+                    const isExpanded = (() => {
+                      switch (menuKind) {
+                        case 'dashboards':
+                          return isDashboardsExpanded;
+                        case 'settings':
+                          return isSettingsExpanded;
+                        case 'messaging':
+                          return isMessagingExpanded;
+                        case 'provider-submenu':
+                          return expandedProviderItems.has(item.key || '');
+                        default:
+                          return false;
+                      }
+                    })();
                     const onToggle = () => {
-                      if (isDashboards) {
-                        setIsDashboardsExpanded(!isDashboardsExpanded);
-                      } else if (isSettings) {
-                        setIsSettingsExpanded(!isSettingsExpanded);
-                      } else if (isMessaging) {
-                        setIsMessagingExpanded(!isMessagingExpanded);
-                      } else if (isProviderSubMenu) {
-                        const newExpanded = new Set(expandedProviderItems);
-                        if (newExpanded.has(item.key || '')) {
-                          newExpanded.delete(item.key || '');
-                        } else {
-                          newExpanded.add(item.key || '');
+                      switch (menuKind) {
+                        case 'dashboards':
+                          setIsDashboardsExpanded(!isDashboardsExpanded);
+                          break;
+                        case 'settings':
+                          setIsSettingsExpanded(!isSettingsExpanded);
+                          break;
+                        case 'messaging':
+                          setIsMessagingExpanded(!isMessagingExpanded);
+                          break;
+                        case 'provider-submenu': {
+                          const newExpanded = new Set(expandedProviderItems);
+                          const key = item.key || '';
+                          if (newExpanded.has(key)) {
+                            newExpanded.delete(key);
+                          } else {
+                            newExpanded.add(key);
+                          }
+                          setExpandedProviderItems(newExpanded);
+                          break;
                         }
-                        setExpandedProviderItems(newExpanded);
-                      } else {
-                        setIsBillingExpanded(!isBillingExpanded);
+                        default:
+                          break;
                       }
                     };
 

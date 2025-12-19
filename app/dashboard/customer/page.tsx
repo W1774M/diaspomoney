@@ -2,9 +2,12 @@
 
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
+import CustomerDashboardCharts from '@/components/dashboard/customer/CustomerDashboardCharts';
 import { useAuth } from '@/hooks';
 import { ROLES } from '@/lib/constants';
 import { AuthorizedRoute } from '@/components/auth';
+import Link from 'next/link';
+import { Calendar } from 'lucide-react';
 
 /**
  * Contenu de la page Dashboard Customer
@@ -19,24 +22,26 @@ function CustomerDashboardPageContent() {
         subtitle='Tableau de bord client - Gérez vos services et bénéficiaires'
       />
       <RoleSpecificStats {...(user?.id && { userId: user.id })} />
+      <CustomerDashboardCharts />
       
       {/* Actions rapides spécifiques aux clients */}
-      {/* <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
         <Link
-          href='/dashboard/services'
+          href='/services'
           className='bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow'
         >
           <div className='flex items-center justify-between mb-4'>
             <Calendar className='h-8 w-8 text-blue-500' />
           </div>
           <h3 className='text-lg font-semibold text-gray-900 mb-2'>
-            Prendre rendez-vous
+            Services disponibles
           </h3>
           <p className='text-sm text-gray-600'>
-            Réservez un service pour vos bénéficiaires
+            Découvrez les services disponibles
           </p>
         </Link>
-
+      </div>
+      {/* <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
         <Link
           href='/dashboard/beneficiaries'
           className='bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow'

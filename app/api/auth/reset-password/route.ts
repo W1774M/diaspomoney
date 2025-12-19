@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
+      logger.error({ token }, 'Invalid token');
       return NextResponse.json(
         { 
           error: "Token de réinitialisation invalide",
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
 
     // Vérification de l'expiration du token
     if (user['passwordResetExpires'] && new Date() > user['passwordResetExpires']) {
+      logger.error({ user }, 'Expired token');
       return NextResponse.json(
         { 
           error: "Le lien de réinitialisation a expiré",
@@ -65,13 +67,14 @@ export async function POST(request: NextRequest) {
     );
 
     if (updateResult.modifiedCount === 0) {
+      logger.error({ user }, 'Error updating password');
       return NextResponse.json(
         { error: "Erreur lors de la mise à jour du mot de passe" },
         { status: 500 },
       );
     }
 
-    logger.info({ email: user['email'] }, 'Password reset successfully');
+    logger.info({ user }, 'Password reset successfully');
 
     return NextResponse.json(
       {

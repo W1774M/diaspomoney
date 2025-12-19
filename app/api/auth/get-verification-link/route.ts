@@ -10,6 +10,7 @@ import User from '@/models/User';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { getPublicBaseUrl } from '@/lib/api/public-url';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,8 +44,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Créer le lien de vérification
-    const { cleanUrl } = await import('@/lib/utils');
-    const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+    const baseUrl = getPublicBaseUrl(request);
     const verificationUrl = `${baseUrl}/verify-email?token=${emailVerificationToken}`;
 
     logger.info({ email, verificationUrl }, 'Lien de vérification généré');

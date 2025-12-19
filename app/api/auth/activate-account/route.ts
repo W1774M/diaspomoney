@@ -10,6 +10,7 @@ import { USER_STATUSES } from '@/lib/constants';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const ActivateAccountSchema = z.object({
   token: z.string().min(1, 'Token requis'),
@@ -30,10 +31,12 @@ export async function POST(request: NextRequest) {
     try {
       decoded = jwt.verify(token, process.env['JWT_SECRET']!);
     } catch (error) {
+      logger.error({ error }, 'Error verifying token');
       throw new ApiError(400, 'Token invalide ou expiré', 'INVALID_TOKEN');
     }
 
     if (decoded.type !== 'account_activation') {
+      logger.error({ decoded }, 'Invalid token type');
       throw new ApiError(400, 'Type de token invalide', 'INVALID_TOKEN_TYPE');
     }
 
@@ -42,11 +45,13 @@ export async function POST(request: NextRequest) {
     const user = await userRepository.findById(decoded.userId);
 
     if (!user) {
+      logger.error({ decoded }, 'User not found');
       throw new ApiError(404, 'Utilisateur non trouvé', 'USER_NOT_FOUND');
     }
 
     // Vérifier que le compte n'est pas déjà activé
     if (user.status === USER_STATUSES.ACTIVE && (user as any)['password']) {
+      logger.error({ user }, 'Account already activated');
       throw new ApiError(400, 'Ce compte est déjà activé', 'ALREADY_ACTIVATED');
     }
 

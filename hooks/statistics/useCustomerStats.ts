@@ -26,7 +26,8 @@ interface UseCustomerStatsParams {
 
 export function useCustomerStats({ userId, enabled }: UseCustomerStatsParams) {
   const { bookings = [] } = useBookings({
-    userId: enabled ? userId : undefined,
+    enabled,
+    userId,
     limit: 100,
   });
 

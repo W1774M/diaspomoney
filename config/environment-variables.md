@@ -300,7 +300,7 @@ DOMAIN=diaspomoney.fr
 # Subdomains
 DEV_DOMAIN=dev.diaspomoney.fr
 RCT_DOMAIN=rct.diaspomoney.fr
-PROD_DOMAIN=app.diaspomoney.fr
+PROD_DOMAIN=diaspomoney.fr
 ```
 
 ## 🔧 **CONFIGURATION PAR ENVIRONNEMENT**

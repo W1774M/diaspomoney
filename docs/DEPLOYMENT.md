@@ -4,7 +4,7 @@
 
 - **dev** : Environnement de développement (`https://dev.diaspomoney.fr`)
 - **rct** : Environnement de recette (`https://rct.diaspomoney.fr`)
-- **prod** : Environnement de production (`https://app.diaspomoney.fr`)
+- **prod** : Environnement de production (`https://diaspomoney.fr`)
 
 ## 🚀 Workflow de Déploiement
 

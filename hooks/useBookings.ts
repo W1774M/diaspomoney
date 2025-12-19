@@ -5,6 +5,7 @@ import type { BookingResponse } from '@/lib/mappers/booking.mapper';
 export type Booking = BookingResponse;
 
 export interface UseBookingsOptions {
+  enabled?: boolean | undefined;
   userId?: string | undefined;
   providerId?: string | undefined;
   status?: string | undefined;
@@ -29,6 +30,14 @@ export const useBookings = (options: UseBookingsOptions = {}) => {
   const memoizedOptions = useMemo(() => options, [optionsString]);
 
   const fetchBookings = useCallback(async () => {
+    if (memoizedOptions.enabled === false) {
+      setLoading(false);
+      setError(null);
+      setBookings([]);
+      setTotal(0);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 

@@ -11,6 +11,7 @@ import { USER_STATUSES } from '@/lib/constants';
 import User from '@/models/User';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
     try {
       decoded = jwt.verify(token, process.env['JWT_SECRET']!) as any;
     } catch (_error) {
+      logger.error({ error: _error }, 'Error verifying email');
       return NextResponse.json(
         { error: 'Token invalide ou expiré', reason: 'expired' },
         { status: 400 },
@@ -39,6 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (decoded.type !== 'email_verification') {
+      logger.error({ decoded }, 'Invalid token type');
       return NextResponse.json(
         { error: 'Type de token invalide' },
         { status: 400 },
@@ -48,6 +51,7 @@ export async function POST(request: NextRequest) {
     // Trouver l'utilisateur
     const user = await (User as any).findById(decoded.userId);
     if (!user) {
+      logger.error({ decoded }, 'User not found');
       return NextResponse.json(
         { error: 'Utilisateur non trouvé' },
         { status: 404 },
@@ -56,6 +60,7 @@ export async function POST(request: NextRequest) {
 
     // Vérifier si l'email est déjà vérifié
     if (user.isEmailVerified) {
+      logger.error({ user }, 'Email already verified');
       return NextResponse.json(
         {
           success: true,
@@ -99,7 +104,7 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error('Erreur verify-email API:', error);
+    logger.error({ error }, 'Error verifying email');
 
     // Enregistrer les métriques d'échec
     monitoringManager.recordMetric({

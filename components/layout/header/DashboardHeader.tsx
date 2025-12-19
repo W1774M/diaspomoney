@@ -11,7 +11,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { useSidebar } from '@/components/layout/SidebarContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { childLogger } from '@/lib/logger';
 
 const logger = childLogger({ component: 'DashboardHeader' });

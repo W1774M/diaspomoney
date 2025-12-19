@@ -67,7 +67,7 @@ echo "✅ Clé Stripe récupérée et nettoyée (${STRIPE_KEY:0:20}...)"
 if [ "${ENV}" = "rct" ]; then
   APP_URL="https://rct.diaspomoney.fr"
 elif [ "${ENV}" = "prod" ]; then
-  APP_URL="https://app.diaspomoney.fr"
+  APP_URL="https://diaspomoney.fr"
 elif [ "${ENV}" = "dev" ]; then
   APP_URL="https://dev.diaspomoney.fr"
 else
@@ -147,8 +147,22 @@ echo "📋 Nom du deployment: ${DEPLOYMENT_NAME_FROM_YAML}"
 # Check if deployment exists
 if kubectl get deployment ${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE} &>/dev/null; then
   echo "🔄 Mise à jour du déploiement existant..."
-  # Utiliser LATEST_TAG pour que le déploiement utilise toujours la dernière image
-  kubectl set image deployment/${DEPLOYMENT_NAME_FROM_YAML} ${DEPLOYMENT_NAME_FROM_YAML}=${LATEST_TAG} -n ${NAMESPACE}
+  # IMPORTANT:
+  # - kubectl set image met à jour UNIQUEMENT l'image. Si des env vars changent dans le YAML
+  #   (ex: NEXT_PUBLIC_APP_URL), elles ne seront PAS prises en compte.
+  # - On applique donc le deployment.yaml (avec l'image taggée) pour garantir que la spec complète
+  #   est synchronisée (image + env + resources + etc.).
+
+  # Créer une copie temporaire du fichier pour modification
+  TEMP_DEPLOYMENT_FILE=$(mktemp)
+  cp "${DEPLOYMENT_FILE}" "${TEMP_DEPLOYMENT_FILE}"
+
+  # Update image in deployment file temporarily (tag immuable pour forcer le rollout)
+  sed -i "s|image: localhost:5000/diaspomoney:.*|image: ${IMAGE_TAG}|g" "${TEMP_DEPLOYMENT_FILE}"
+  kubectl apply -f "${TEMP_DEPLOYMENT_FILE}"
+
+  # Nettoyer le fichier temporaire
+  rm -f "${TEMP_DEPLOYMENT_FILE}"
 else
   echo "📦 Création du déploiement (première fois)..."
   
@@ -184,26 +198,26 @@ kubectl rollout status deployment/${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE} -
 echo "🔍 Vérification que les pods utilisent la nouvelle image..."
 sleep 10
 POD_IMAGES=$(kubectl get pods -n ${NAMESPACE} -l app=${DEPLOYMENT_NAME_FROM_YAML} -o jsonpath='{.items[*].status.containerStatuses[0].image}' 2>/dev/null | tr ' ' '\n' | sort -u)
+POD_IMAGE_IDS=$(kubectl get pods -n ${NAMESPACE} -l app=${DEPLOYMENT_NAME_FROM_YAML} -o jsonpath='{.items[*].status.containerStatuses[0].imageID}' 2>/dev/null | tr ' ' '\n' | sort -u)
 
-# Extraire le tag de l'image (sans le préfixe localhost:5000/)
-LATEST_TAG_SHORT=$(echo "${LATEST_TAG}" | sed 's|localhost:5000/diaspomoney:||')
 IMAGE_TAG_SHORT=$(echo "${IMAGE_TAG}" | sed 's|localhost:5000/diaspomoney:||')
 
-# Vérifier si au moins un pod utilise la nouvelle image
-POD_USES_NEW_IMAGE=false
+# Vérifier que l'image attendue (tag immuable) est bien utilisée
+POD_USES_EXPECTED_IMAGE=false
 for pod_image in ${POD_IMAGES}; do
-  if echo "${pod_image}" | grep -qE "(${LATEST_TAG_SHORT}|${IMAGE_TAG_SHORT})"; then
-    POD_USES_NEW_IMAGE=true
+  if echo "${pod_image}" | grep -q "${IMAGE_TAG_SHORT}"; then
+    POD_USES_EXPECTED_IMAGE=true
     break
   fi
 done
 
-if [ "${POD_USES_NEW_IMAGE}" = "true" ]; then
-  echo "✅ Les pods utilisent bien la nouvelle image: ${LATEST_TAG}"
+if [ "${POD_USES_EXPECTED_IMAGE}" = "true" ]; then
+  echo "✅ Les pods utilisent bien la nouvelle image: ${IMAGE_TAG}"
 else
   echo "⚠️  Attention: Les pods peuvent ne pas utiliser la dernière image"
   echo "   Images des pods: ${POD_IMAGES}"
-  echo "   Image attendue: ${LATEST_TAG} (tag: ${LATEST_TAG_SHORT})"
+  echo "   Image attendue: ${IMAGE_TAG} (tag: ${IMAGE_TAG_SHORT})"
+  echo "   imageID observés: ${POD_IMAGE_IDS}"
   echo "   Forcer un redémarrage..."
   kubectl rollout restart deployment/${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE}
   echo "   Attente du redémarrage..."

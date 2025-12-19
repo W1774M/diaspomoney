@@ -5,5 +5,5 @@ import Image, { type ImageProps } from "next/image";
 type ExternalImageProps = Omit<ImageProps, "loader">;
 
 export default function ExternalImage(props: ExternalImageProps) {
-  return <Image loader={({ src }) => src} unoptimized {...props} />;
+  return <Image loader={({ src }) => src} unoptimized {...props} alt={props.alt || 'Image'} />;
 }

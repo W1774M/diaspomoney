@@ -17,6 +17,7 @@ import type { z } from 'zod';
 import type { UserFilters, UserStatus } from '@/lib/types';
 import { LANGUAGES, TIMEZONES, USER_STATUSES, ROLES } from '@/lib/constants';
 import { NextRequest } from 'next/server';
+import { getPublicBaseUrl } from '@/lib/api/public-url';
 
 type CreateUserInput = z.infer<typeof CreateUserSchema>;
 
@@ -329,8 +330,7 @@ export async function POST(request: NextRequest) {
         );
 
         // Construire l'URL d'activation
-        const { cleanUrl } = await import('@/lib/utils');
-        const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+        const baseUrl = getPublicBaseUrl(request);
         const activationUrl = `${baseUrl}/activate-account?token=${activationToken}`;
 
         // Envoyer l'email d'activation avec le lien

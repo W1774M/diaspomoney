@@ -23,8 +23,6 @@ spec:
       labels:
         app: diaspomoney-rct
         env: rct
-      annotations:
-        kubectl.kubernetes.io/restartedAt: $(date +%Y-%m-%dT%H:%M:%SZ)
     spec:
       containers:
       - name: diaspomoney-rct

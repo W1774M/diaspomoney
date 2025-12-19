@@ -23,8 +23,6 @@ spec:
       labels:
         app: diaspomoney-prod
         env: prod
-      annotations:
-        kubectl.kubernetes.io/restartedAt: $(date +%Y-%m-%dT%H:%M:%SZ)
     spec:
       containers:
       - name: diaspomoney-prod
