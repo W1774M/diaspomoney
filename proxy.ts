@@ -58,7 +58,7 @@ export default function proxy(request: NextRequest) {
     isAllowedHost,
     url: request.nextUrl.toString(),
     nextPublicAppUrl: process.env['NEXT_PUBLIC_APP_URL'],
-    nextAuthUrl: process.env['NEXT_PUBLIC_APP_URL'],
+    nextAuthUrl: process.env['NEXTAUTH_URL'],
   });
 
   // ---- ACCESS CONTROL & SESSION CHECKS ----

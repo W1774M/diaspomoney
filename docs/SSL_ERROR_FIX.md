@@ -72,7 +72,7 @@ NEXTAUTH_URL=http://localhost:3000
 
 ## 📝 Note
 
-Le middleware `proxy.ts` ne redirige **PAS** localhost vers HTTPS. Il ne redirige que les domaines de production (`app.diaspomoney.fr`, `dev.diaspomoney.fr`, `rct.diaspomoney.fr`) vers HTTPS.
+Le middleware `proxy.ts` ne redirige **PAS** localhost vers HTTPS. Il ne redirige que les domaines (`diaspomoney.fr`, `dev.diaspomoney.fr`, `rct.diaspomoney.fr`) vers HTTPS.
 
 Si vous voyez toujours une redirection HTTPS sur localhost, c'est probablement :
 - Le navigateur qui force HTTPS (HSTS)

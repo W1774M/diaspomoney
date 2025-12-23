@@ -7,6 +7,18 @@ import type { NextRequest } from 'next/server';
  * Exemple: https://diaspomoney.fr
  */
 export function getPublicBaseUrl(request: NextRequest): string {
+  // En prod, on DOIT éviter de dériver le domaine depuis Host/X-Forwarded-Host
+  // (ex: si l'app est accessible via plusieurs domaines, ou si un sous-domaine
+  // est utilisé côté client). On préfère donc une source de vérité configurée.
+  const configuredBaseUrl = normalizeBaseUrl(
+    process.env['NEXTAUTH_URL'] ||
+      process.env['NEXT_PUBLIC_APP_URL'] ||
+      process.env['APP_URL'] ||
+      process.env['NEXT_PUBLIC_URL'] ||
+      '',
+  );
+  if (configuredBaseUrl) return configuredBaseUrl;
+
   const url = new URL(request.url);
 
   const xfProtoRaw = request.headers.get('x-forwarded-proto');
@@ -20,6 +32,18 @@ export function getPublicBaseUrl(request: NextRequest): string {
     (xfHostRaw?.split(',')[0] || hostRaw || url.host).trim();
 
   return `${proto}://${host}`;
+}
+
+function normalizeBaseUrl(value: string): string | null {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return null;
+
+  try {
+    const u = new URL(trimmed);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return null;
+  }
 }
 
 

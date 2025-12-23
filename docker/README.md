@@ -6,7 +6,7 @@ L'infrastructure est organisée en trois réseaux distincts :
 
 1. **`traefik`** : Réseau partagé pour le reverse proxy Traefik
 2. **`diaspomoney-dev`** : Réseau pour l'environnement de développement (`dev.diaspomoney.fr`)
-3. **`diaspomoney-prod`** : Réseau pour l'environnement de production (`app.diaspomoney.fr`)
+3. **`diaspomoney-prod`** : Réseau pour l'environnement de production (`diaspomoney.fr`)
 
 ## Fichiers Docker Compose
 
@@ -25,7 +25,7 @@ docker-compose -f docker-compose.traefik.yml -f docker-compose.dev.yml up -d
 ```
 
 ### 3. `docker-compose.prod.yml`
-Environnement de production avec le domaine `app.diaspomoney.fr`.
+Environnement de production avec le domaine `diaspomoney.fr`.
 
 ```bash
 docker-compose -f docker-compose.traefik.yml -f docker-compose.prod.yml up -d
@@ -87,8 +87,8 @@ docker network inspect diaspomoney-prod
 - Application : `https://dev.diaspomoney.fr`
 - Mongo Express : `https://mongo.dev.diaspomoney.fr`
 
-### Production (`app.diaspomoney.fr`)
-- Application : `https://app.diaspomoney.fr`
+### Production (`diaspomoney.fr`)
+- Application : `https://diaspomoney.fr`
 - Mongo Express : `https://mongo.diaspomoney.fr`
 
 ### Commun
@@ -115,8 +115,8 @@ TRAEFIK_DASHBOARD_AUTH=admin:$apr1$...
 
 # Application
 NODE_ENV=development|production
-NEXT_PUBLIC_API_URL=https://dev.diaspomoney.fr|https://app.diaspomoney.fr
-NEXTAUTH_URL=https://dev.diaspomoney.fr|https://app.diaspomoney.fr
+NEXT_PUBLIC_API_URL=https://dev.diaspomoney.fr|https://diaspomoney.fr
+NEXTAUTH_URL=https://dev.diaspomoney.fr|https://diaspomoney.fr
 ```
 
 ## Certificats SSL

@@ -5,4 +5,5 @@ metadata:
   namespace: diaspomoney
 spec:
   basicAuth:
-    secret: mongo-express-basicauth
+    # Secret Traefik attendu: clé `users` (format htpasswd)
+    secret: mongo-express-traefik-auth

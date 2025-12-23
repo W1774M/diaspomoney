@@ -30,7 +30,7 @@ Les certificats seront générés automatiquement lors des premières requêtes 
 1. **DNS configuré** : Les domaines doivent pointer vers votre serveur
    - `dev.diaspomoney.fr`
    - `rct.diaspomoney.fr`
-   - `app.diaspomoney.fr`
+   - `diaspomoney.fr`
 
 2. **Ports ouverts** : Les ports 80 et 443 doivent être accessibles depuis Internet
 
@@ -181,7 +181,7 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=traefik | grep -i certific
 # Tester la connexion HTTPS
 curl -v https://dev.diaspomoney.fr
 curl -v https://rct.diaspomoney.fr
-curl -v https://app.diaspomoney.fr
+curl -v https://diaspomoney.fr
 ```
 
 ---

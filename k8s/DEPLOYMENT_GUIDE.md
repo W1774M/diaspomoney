@@ -22,6 +22,21 @@ Ce guide vous accompagne pour déployer DiaspoMoney sur Kubernetes (K3s) de mani
 - Namespace `diaspomoney` créé
 - MongoDB et Redis déployés dans le cluster
 
+## 🔐 Secrets (obligatoire)
+
+Le fichier `k8s/secrets.yaml` contient les définitions Kubernetes de :
+- `app-secrets` (JWT, NextAuth, OAuth, Resend, Stripe, Sentry…)
+- `mongodb-secret` (username/password + connection-string*)
+- `redis-secret` (password)
+
+**Important :** le fichier est fourni avec des valeurs `CHANGE_ME_*`. Remplace-les par tes vraies valeurs avant déploiement.
+
+Déploiement des secrets :
+
+```bash
+kubectl apply -f k8s/secrets.yaml
+```
+
 ### Configuration initiale
 
 #### 1. Configurer kubectl pour K3s

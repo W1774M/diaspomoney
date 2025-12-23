@@ -24,12 +24,31 @@ BUILD_DATE=$(date +'%Y%m%d-%H%M%S')
 IMAGE_TAG="localhost:5000/diaspomoney:${ENV}-${BUILD_DATE}"
 LATEST_TAG="localhost:5000/diaspomoney:${ENV}-latest"
 NAMESPACE="diaspomoney"
+SECRETS_FILE="k8s/secrets.yaml"
 
 echo "==============================================="
 echo "🚀 Déploiement ${ENV}"
 echo "📦 Image : ${IMAGE_TAG}"
 echo "📁 Namespace : ${NAMESPACE}"
 echo "==============================================="
+
+# S'assurer que le namespace existe avant d'appliquer quoi que ce soit
+echo "🧩 Vérification du namespace ${NAMESPACE}..."
+if ! kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
+  echo "📦 Création du namespace ${NAMESPACE}..."
+  kubectl create namespace "${NAMESPACE}"
+fi
+
+# Appliquer les secrets Kubernetes (si le fichier existe)
+# NOTE: ce fichier contient des placeholders "CHANGE_ME_*" par défaut.
+# Il doit être rempli avant usage (ou remplacé via un mécanisme interne de ton infra).
+if [ -f "${SECRETS_FILE}" ]; then
+  echo "🔐 Application des secrets depuis ${SECRETS_FILE}..."
+  kubectl apply -f "${SECRETS_FILE}" -n "${NAMESPACE}"
+else
+  echo "⚠️  Aucun fichier de secrets trouvé (${SECRETS_FILE})."
+  echo "   Le déploiement continuera, mais les secrets doivent exister dans Kubernetes."
+fi
 
 # Récupérer la clé Stripe depuis le secret Kubernetes
 echo "🔑 Récupération de la clé Stripe depuis le secret Kubernetes..."
@@ -159,7 +178,7 @@ if kubectl get deployment ${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE} &>/dev/nu
 
   # Update image in deployment file temporarily (tag immuable pour forcer le rollout)
   sed -i "s|image: localhost:5000/diaspomoney:.*|image: ${IMAGE_TAG}|g" "${TEMP_DEPLOYMENT_FILE}"
-  kubectl apply -f "${TEMP_DEPLOYMENT_FILE}"
+  kubectl apply -f "${TEMP_DEPLOYMENT_FILE}" -n "${NAMESPACE}"
 
   # Nettoyer le fichier temporaire
   rm -f "${TEMP_DEPLOYMENT_FILE}"
@@ -172,17 +191,17 @@ else
   
     # Update image in deployment file temporarily
   sed -i "s|image: localhost:5000/diaspomoney:.*|image: ${IMAGE_TAG}|g" "${TEMP_DEPLOYMENT_FILE}"
-  kubectl apply -f "${TEMP_DEPLOYMENT_FILE}"
+  kubectl apply -f "${TEMP_DEPLOYMENT_FILE}" -n "${NAMESPACE}"
   
   # Nettoyer le fichier temporaire
   rm -f "${TEMP_DEPLOYMENT_FILE}"
   
   if [ -f "${SERVICE_FILE}" ]; then
-    kubectl apply -f "${SERVICE_FILE}"
+    kubectl apply -f "${SERVICE_FILE}" -n "${NAMESPACE}"
   fi
   
   if [ -f "${INGRESS_FILE}" ]; then
-    kubectl apply -f "${INGRESS_FILE}"
+    kubectl apply -f "${INGRESS_FILE}" -n "${NAMESPACE}"
   fi
 fi
 
