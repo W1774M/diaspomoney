@@ -53,6 +53,9 @@ export interface UserDocument extends Omit<Partial<User>, 'preferences' | '_id' 
     language?: string;
     timezone?: string;
     notifications?: boolean;
+    emailNotifications?: boolean;
+    smsNotifications?: boolean;
+    notificationEmailByType?: Record<string, boolean>;
   };
 
   // OAuth
@@ -194,6 +197,9 @@ export interface UserResponse {
     language: string;
     timezone: string;
     notifications: boolean;
+    emailNotifications: boolean;
+    smsNotifications: boolean;
+    notificationEmailByType?: Record<string, boolean>;
   };
   dateOfBirth: string | null;
   countryOfResidence: string;

@@ -31,6 +31,7 @@ export function useNotificationPreferences(): UseNotificationPreferencesReturn {
     notifications: true,
     emailNotifications: true,
     smsNotifications: false,
+    notificationEmailByType: {},
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -48,6 +49,11 @@ export function useNotificationPreferences(): UseNotificationPreferencesReturn {
           notifications: userPreferences.notifications !== false,
           emailNotifications: userPreferences.emailNotifications !== false,
           smsNotifications: userPreferences.smsNotifications === true,
+          notificationEmailByType:
+            (userPreferences.notificationEmailByType &&
+              typeof userPreferences.notificationEmailByType === 'object')
+              ? userPreferences.notificationEmailByType
+              : {},
         });
       }
       setLoading(false);

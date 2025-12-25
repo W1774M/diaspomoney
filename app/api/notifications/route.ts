@@ -16,7 +16,7 @@ import { NotificationFiltersSchema, MarkNotificationReadSchema, MarkAllNotificat
 import { UINotification } from '@/lib/types';
 import { ObjectId } from 'mongodb';
 import { NextRequest } from 'next/server';
-import { NotificationChannel } from '@/lib/types/notifications.types';
+import type { NotificationChannel } from '@/lib/types/notifications.types';
 import { API } from '@/lib/constants';
 
 /**
@@ -29,7 +29,16 @@ interface MongoNotification {
   subject?: string;
   content?: string;
   status?: string;
-  channels?: string[];
+  // Dans la DB, `channels` est un tableau d'objets { type, enabled, priority }
+  // (mais on reste compatible si certains anciens documents stockent des strings).
+  channels?: Array<
+    | string
+    | {
+        type?: string;
+        enabled?: boolean;
+        priority?: string;
+      }
+  >;
   read?: boolean;
   createdAt?: Date | string;
   sentAt?: Date | string;
@@ -68,13 +77,39 @@ function toISOString(date: unknown): string {
  * @returns Notification UI
  */
 function mapNotificationToUI(notif: MongoNotification): UINotification {
+  const channels: NotificationChannel[] = Array.isArray(notif.channels)
+    ? notif.channels
+        .map((ch): NotificationChannel | null => {
+          // Compat: ancien format string (ex: "EMAIL")
+          if (typeof ch === 'string') {
+            return {
+              type: ch as NotificationChannel['type'],
+              enabled: true,
+              priority: 'MEDIUM',
+            };
+          }
+
+          // Format normal: { type, enabled, priority }
+          if (ch && typeof ch === 'object') {
+            return {
+              type: (ch.type || 'EMAIL') as NotificationChannel['type'],
+              enabled: ch.enabled ?? true,
+              priority: (ch.priority || 'MEDIUM') as NotificationChannel['priority'],
+            };
+          }
+
+          return null;
+        })
+        .filter((x): x is NotificationChannel => x !== null)
+    : [];
+
   const mapped: UINotification = {
     id: notif._id?.toString() || notif.id || '',
     type: notif.type || '',
     subject: notif.subject || '',
     content: notif.content || '',
     status: (notif.status || 'PENDING') as UINotification['status'],
-    channels: Array.isArray(notif.channels) ? notif.channels.map(channel => channel as unknown as NotificationChannel) : [],
+    channels,
     read: notif.read === true,
     createdAt: toISOString(notif.createdAt),
     metadata: (notif.metadata && typeof notif.metadata === 'object') ? notif.metadata as Record<string, unknown> : {},

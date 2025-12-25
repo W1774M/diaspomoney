@@ -24,7 +24,7 @@ spec:
           name: http
         env:
         - name: NODE_ENV
-          value: "development"
+          value: "production"
         - name: PORT
           value: "3000"
         - name: HOSTNAME
@@ -32,7 +32,10 @@ spec:
         - name: NEXT_TELEMETRY_DISABLED
           value: "1"
         - name: LOG_LEVEL
-          value: "debug"
+          value: "info"
+        # NextAuth URL (source de vérité pour les URLs publiques côté serveur)
+        - name: NEXTAUTH_URL
+          value: "https://dev.diaspomoney.fr"
         # URLs publiques Next.js (nécessaires pour le client)
         - name: NEXT_PUBLIC_APP_URL
           value: "https://dev.diaspomoney.fr"

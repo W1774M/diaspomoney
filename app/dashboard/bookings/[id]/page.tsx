@@ -12,7 +12,7 @@ import { AuthorizedContent, AuthorizedRoute } from '@/components/auth';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useBookingsPagination, BookingsPaginationProvider } from '@/contexts/BookingsPaginationContext';
 import BookingNavigation from '@/components/bookings/BookingNavigation';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -29,6 +29,7 @@ import BookingInfoSidebar from '@/components/bookings/BookingInfoSidebar';
 import BookingActions from '@/components/bookings/BookingActions';
 import BookingEditModal from '@/components/bookings/BookingEditModal';
 import { useBookingEdit } from '@/hooks/bookings/useBookingEdit';
+import AssignProviderModal from '@/components/bookings/AssignProviderModal';
 
 /**
  * Contenu de la page de détail d'une réservation
@@ -133,6 +134,8 @@ function BookingDetailPageContent() {
     bookingId,
     refetch,
   });
+
+  const [isAssignProviderOpen, setIsAssignProviderOpen] = useState(false);
 
   // Marquer la commande comme vue quand elle est chargée
   useEffect(() => {
@@ -302,6 +305,7 @@ function BookingDetailPageContent() {
               onTakeCharge={handleTakeChargeClick}
               onDelete={handleDeleteBookingClick}
               onEdit={openEditModal}
+              onAssignProvider={() => setIsAssignProviderOpen(true)}
             />
           </div>
         </div>
@@ -366,6 +370,21 @@ function BookingDetailPageContent() {
         promoCodeError={promoCodeError}
         onValidatePromoCode={validatePromotionCode}
         isPaymentCompleted={isPaymentCompleted}
+      />
+
+      {/* Modal d'attribution prestataire */}
+      <AssignProviderModal
+        isOpen={isAssignProviderOpen}
+        onClose={() => setIsAssignProviderOpen(false)}
+        bookingId={bookingId}
+        currentProviderId={booking.providerId}
+        {...(booking.metadata?.['assignedProviderType'] === 'EXTERNAL' &&
+        booking.metadata?.['assignedProviderEmail']
+          ? { currentAssignedProviderEmail: booking.metadata['assignedProviderEmail'] as string }
+          : {})}
+        onAssigned={async () => {
+          await refetch();
+        }}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, UserCheck, Trash2, Edit } from 'lucide-react';
+import { FileText, UserCheck, Trash2, Edit, UserPlus } from 'lucide-react';
 import { AuthorizedContent } from '@/components/auth';
 import { BOOKING_STATUSES, ROLES } from '@/lib/constants';
 import type { BookingResponse } from '@/lib/mappers/booking.mapper';
@@ -15,6 +15,7 @@ interface BookingActionsProps {
   onTakeCharge: () => void;
   onDelete: () => void;
   onEdit?: () => void;
+  onAssignProvider?: () => void;
 }
 
 export default function BookingActions({
@@ -27,6 +28,7 @@ export default function BookingActions({
   onTakeCharge,
   onDelete,
   onEdit,
+  onAssignProvider,
 }: BookingActionsProps) {
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200 p-4 sm:p-6">
@@ -43,6 +45,19 @@ export default function BookingActions({
               <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Éditer la réservation</span>
               <span className="sm:hidden">Éditer</span>
+            </button>
+          )}
+
+          {/* Bouton Attribuer un prestataire */}
+          {onAssignProvider && (
+            <button
+              onClick={onAssignProvider}
+              className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs sm:text-sm font-medium"
+              title="Attribuer la réservation à un prestataire (enregistré ou externe)"
+            >
+              <UserPlus className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Attribuer un prestataire</span>
+              <span className="sm:hidden">Attribuer</span>
             </button>
           )}
 

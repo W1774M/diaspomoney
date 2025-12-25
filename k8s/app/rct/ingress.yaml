@@ -12,6 +12,9 @@ spec:
       services:
         - name: diaspomoney-rct-service
           port: 80
+      middlewares:
+        - name: internal-basic-auth
+        - name: security-headers
   tls:
     certResolver: le
 ---

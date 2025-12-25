@@ -94,12 +94,18 @@ else
 fi
 
 # Build with proper build args
-# Note: Ne pas mettre de guillemets autour de STRIPE_KEY car Docker les inclurait dans la valeur
+# Note: ne PAS entourer les build-args d'URL avec des guillemets "..." :
+# - Docker inclurait ces guillemets dans la valeur
+# - Next.js peut ensuite "baker" ces valeurs dans les bundles (emails/liens)
+# STRIPE_KEY ne doit pas non plus être quoté.
 echo "🏗️  Construction de l'image Docker..."
 BUILD_ARGS="--build-arg ENV=${ENV} \
   --build-arg NODE_ENV=production \
-  --build-arg NEXT_PUBLIC_APP_URL=\"${APP_URL}\" \
-  --build-arg NEXT_PUBLIC_API_URL=\"${APP_URL}/api\" \
+  --build-arg NEXTAUTH_URL=${APP_URL} \
+  --build-arg APP_URL=${APP_URL} \
+  --build-arg API_URL=${APP_URL}/api \
+  --build-arg NEXT_PUBLIC_APP_URL=${APP_URL} \
+  --build-arg NEXT_PUBLIC_API_URL=${APP_URL}/api \
   --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${STRIPE_KEY} \
   -t ${IMAGE_TAG} \
   -t ${LATEST_TAG} \

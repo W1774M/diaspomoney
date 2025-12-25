@@ -117,6 +117,10 @@ export function mapUserToResponse(
         language: preferences.language || LOCALE.DEFAULT,
         timezone: preferences.timezone || TIMEZONES.PARIS,
         notifications: preferences.notifications !== false,
+        emailNotifications: (preferences as any).emailNotifications !== false,
+        smsNotifications: (preferences as any).smsNotifications === true,
+        ...(((preferences as any).notificationEmailByType &&
+          typeof (preferences as any).notificationEmailByType === 'object') ? { notificationEmailByType: (preferences as any).notificationEmailByType } : {}),
       },
     dateOfBirth: userDoc.dateOfBirth ? toISOString(userDoc.dateOfBirth) : null,
     countryOfResidence: userDoc.countryOfResidence || '',

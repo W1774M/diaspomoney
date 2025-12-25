@@ -9,6 +9,7 @@ export default function proxy(request: NextRequest) {
   const xForwardedFor = request.headers.get('x-forwarded-for');
   const xRealIp = request.headers.get('x-real-ip');
   const xfProto = request.headers.get('x-forwarded-proto');
+  const contentType = request.headers.get('content-type') || '';
   
   // Check if host is an IP address or localhost (internal request)
   const isIpAddress = /^\d+\.\d+\.\d+\.\d+(:\d+)?$/.test(host);
@@ -48,18 +49,17 @@ export default function proxy(request: NextRequest) {
   // If host is not in allowed list, just continue (don't redirect)
   
   // Log for debugging (can be removed in production)
-  // Log toujours pour diagnostiquer les problèmes de redirection
-  logger.info('[MIDDLEWARE] Request:', {
-    host,
-    xForwardedFor,
-    xRealIp,
-    xfProto,
-    isInternalRequest,
-    isAllowedHost,
-    url: request.nextUrl.toString(),
-    nextPublicAppUrl: process.env['NEXT_PUBLIC_APP_URL'],
-    nextAuthUrl: process.env['NEXTAUTH_URL'],
-  });
+  if (process.env['NODE_ENV'] !== 'production') {
+    logger.info('[MIDDLEWARE] Request:', {
+      host,
+      xForwardedFor,
+      xRealIp,
+      xfProto,
+      isInternalRequest,
+      isAllowedHost,
+      url: request.nextUrl.toString(),
+    });
+  }
 
   // ---- ACCESS CONTROL & SESSION CHECKS ----
   // Attach a request-id (existing or generated) to the response
@@ -70,6 +70,21 @@ export default function proxy(request: NextRequest) {
     `${Date.now()}-${Math.random()}`;
 
   const { pathname } = request.nextUrl;
+
+  // --- TEMPORARY HARDENING (CVE-2025-55182 / RSC multipart vectors) ---
+  // Bloquer multipart/form-data en POST sur les routes non-API.
+  // (Les uploads doivent passer par /api/*, ex: /api/users/me/avatar)
+  if (
+    request.method === 'POST' &&
+    contentType.toLowerCase().includes('multipart/form-data') &&
+    !pathname.startsWith('/api/')
+  ) {
+    logger.warn('[MIDDLEWARE] Blocked multipart/form-data POST on non-API route', {
+      host,
+      pathname,
+    });
+    return NextResponse.json({ error: 'Unsupported content type' }, { status: 415 });
+  }
 
   // Check if this is a protected path
   const protectedPaths = ["/dashboard"];

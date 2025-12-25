@@ -39,6 +39,7 @@ export function useSettings() {
     notifications: true,
     emailNotifications: true,
     smsNotifications: false,
+    notificationEmailByType: {},
   });
 
   const [securityData, setSecurityData] = useState<SecurityData>({
@@ -91,6 +92,11 @@ export function useSettings() {
         notifications: prefs.notifications !== false,
         emailNotifications: prefs.emailNotifications !== false,
         smsNotifications: prefs.smsNotifications === true,
+        notificationEmailByType:
+          prefs.notificationEmailByType &&
+          typeof prefs.notificationEmailByType === 'object'
+            ? prefs.notificationEmailByType
+            : {},
       });
 
       // Initialiser les consentements
@@ -146,6 +152,7 @@ export function useSettings() {
                 notifications: preferencesData.notifications,
                 emailNotifications: preferencesData.emailNotifications,
                 smsNotifications: preferencesData.smsNotifications,
+                notificationEmailByType: preferencesData.notificationEmailByType || {},
               },
             }),
           });

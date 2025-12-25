@@ -29,6 +29,9 @@ export const CreateUserSchema = z
         language: z.string().optional(),
         timezone: z.string().optional(),
         notifications: z.boolean().optional(),
+        emailNotifications: z.boolean().optional(),
+        smsNotifications: z.boolean().optional(),
+        notificationEmailByType: z.record(z.boolean()).optional(),
       })
       .optional(),
     providerInfo: z
@@ -98,6 +101,9 @@ export const UpdateUserSchema = z.object({
     language: z.string().optional(),
     timezone: z.string().optional(),
     notifications: z.boolean().optional(),
+    emailNotifications: z.boolean().optional(),
+    smsNotifications: z.boolean().optional(),
+    notificationEmailByType: z.record(z.boolean()).optional(),
   }).optional(),
   providerInfo: z.any().optional(),
   roles: z.array(z.string()).optional(),

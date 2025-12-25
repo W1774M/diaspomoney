@@ -15,6 +15,15 @@ export function getPublicBaseUrl(request: NextRequest): string {
       process.env['NEXT_PUBLIC_APP_URL'] ||
       process.env['APP_URL'] ||
       process.env['NEXT_PUBLIC_URL'] ||
+      process.env['NEXT_PUBLIC_BASE_URL'] ||
+      process.env['PUBLIC_URL'] ||
+      // Certains environnements exposent un domaine nu (sans schéma)
+      // via DOMAIN/PROD_DOMAIN. On le transforme en URL HTTPS valide.
+      (process.env['NODE_ENV'] === 'production'
+        ? toHttpsUrlFromDomain(
+            process.env['PROD_DOMAIN'] || process.env['DOMAIN'] || '',
+          )
+        : '') ||
       '',
   );
   if (configuredBaseUrl) return configuredBaseUrl;
@@ -39,11 +48,18 @@ function normalizeBaseUrl(value: string): string | null {
   if (!trimmed) return null;
 
   try {
-    const u = new URL(trimmed);
+    // Autoriser des valeurs sans schéma, ex: "diaspomoney.fr"
+    const u = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
     return `${u.protocol}//${u.host}`;
   } catch {
     return null;
   }
+}
+
+function toHttpsUrlFromDomain(domain: string): string {
+  const d = (domain || '').trim();
+  if (!d) return '';
+  return d.includes('://') ? d : `https://${d}`;
 }
 
 

@@ -397,7 +397,14 @@ class AuthService {
       // Envoyer l'email d'activation avec lien pour définir le mot de passe
       const { cleanUrl } = await import('@/lib/utils');
       const resolvedBaseUrl = cleanUrl(
-        options?.baseUrl || process.env['NEXT_PUBLIC_APP_URL'],
+        options?.baseUrl ||
+          process.env['NEXTAUTH_URL'] ||
+          process.env['NEXT_PUBLIC_APP_URL'] ||
+          process.env['APP_URL'] ||
+          process.env['NEXT_PUBLIC_URL'] ||
+          process.env['PUBLIC_URL'] ||
+          (process.env['PROD_DOMAIN'] ? `https://${process.env['PROD_DOMAIN']}` : '') ||
+          (process.env['DOMAIN'] ? `https://${process.env['DOMAIN']}` : ''),
       );
       const activationUrl = `${resolvedBaseUrl}/activate-account?token=${activationToken}`;
       

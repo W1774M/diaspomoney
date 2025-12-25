@@ -27,13 +27,21 @@ import {
   MessageSquare,
   Phone,
   Settings,
-  User,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
+type NotificationCategory =
+  | 'all'
+  | 'payments'
+  | 'kyc'
+  | 'security'
+  | 'services'
+  | 'support'
+  | 'system';
+
 export default function NotificationsPage() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const {
     notifications,
@@ -55,8 +63,10 @@ export default function NotificationsPage() {
   } = useNotificationPreferences();
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [activeTab, setActiveTab] = useState<
-    'realtime' | 'history' | 'personalized' | 'preferences'
+    'realtime' | 'actions' | 'history' | 'preferences'
   >('realtime');
+  const [categoryFilter, setCategoryFilter] =
+    useState<NotificationCategory>('all');
 
   // États pour l'historique et les notifications personnalisées
   const [historyPage, setHistoryPage] = useState(1);
@@ -107,23 +117,51 @@ export default function NotificationsPage() {
     }
   }, [isAuthenticated, activeTab, fetchHistoryNotifications]);
 
-  // Filtrer les notifications par rôle de l'utilisateur
-  const getPersonalizedNotifications = () => {
-    if (!user?.roles || user.roles.length === 0) return [];
+  const getCategory = (notificationType: string): NotificationCategory => {
+    const t = (notificationType || '').toUpperCase();
+    if (t.startsWith('PAYMENT_')) return 'payments';
+    if (t.startsWith('KYC_')) return 'kyc';
+    if (t.startsWith('LOGIN_') || t.startsWith('TWO_FACTOR_')) return 'security';
+    if (
+      t.startsWith('BOOKING_') ||
+      t.startsWith('APPOINTMENT_') ||
+      t.startsWith('INVOICE_') ||
+      t.startsWith('QUOTE_') ||
+      t.startsWith('ORDER_')
+    )
+      return 'services';
+    if (t.startsWith('TICKET_') || t.startsWith('COMPLAINT_')) return 'support';
+    return 'system';
+  };
 
-    // Filtrer les notifications qui correspondent aux rôles de l'utilisateur
-    // On suppose que le type de notification contient le rôle (ex: "BOOKING_CUSTOMER", "INVOICE_PROVIDER")
-    return notifications.filter(notification => {
-      const notificationType = notification.type?.toUpperCase() || '';
-      return user.roles.some(role => {
-        const roleUpper = role.toUpperCase();
-        // Vérifier si le type de notification contient le rôle
-        return (
-          notificationType.includes(roleUpper) ||
-          notificationType.includes(roleUpper.replace('SUPERADMIN', 'ADMIN'))
-        );
-      });
-    });
+  const isActionRequired = (n: UINotification) => {
+    const t = (n.type || '').toUpperCase();
+    return (
+      (!n.read &&
+        (t === 'PAYMENT_FAILED' ||
+          t === 'KYC_REQUIRED_REMINDER' ||
+          t === 'KYC_REJECTED')) ||
+      t === 'DISPUTE_CREATED'
+    );
+  };
+
+  const getPrimaryAction = (
+    n: UINotification,
+  ): { label: string; href: string } | null => {
+    const t = (n.type || '').toUpperCase();
+    if (t.startsWith('PAYMENT_')) {
+      return { label: 'Voir mes transactions', href: '/dashboard/payments/transactions' };
+    }
+    if (t.startsWith('APPOINTMENT_') || t.startsWith('BOOKING_')) {
+      return { label: 'Voir mes réservations', href: '/dashboard/bookings' };
+    }
+    if (t.startsWith('KYC_')) {
+      return { label: 'Voir mon compte', href: '/dashboard/customer' };
+    }
+    if (t.startsWith('TICKET_') || t.startsWith('COMPLAINT_')) {
+      return { label: 'Contacter le support', href: '/dashboard/settings/support' };
+    }
+    return null;
   };
 
   const getChannelIcon = (channelType: string) => {
@@ -200,6 +238,9 @@ export default function NotificationsPage() {
           <p className='text-sm sm:text-base text-gray-600 mt-1'>
             Gérez vos notifications et restez informé
           </p>
+          <p className='text-xs sm:text-sm text-gray-500 mt-2'>
+            Les emails importants (paiements, KYC) sont envoyés automatiquement. Le reste reste disponible ici.
+          </p>
         </div>
         {unreadCount > 0 && (
           <button
@@ -227,6 +268,17 @@ export default function NotificationsPage() {
             <span>Temps réel</span>
           </button>
           <button
+            onClick={() => setActiveTab('actions')}
+            className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 ${
+              activeTab === 'actions'
+                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
+                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+            }`}
+          >
+            <Bell className='h-3 w-3 sm:h-4 sm:w-4' />
+            <span>À faire</span>
+          </button>
+          <button
             onClick={() => setActiveTab('history')}
             className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 ${
               activeTab === 'history'
@@ -236,18 +288,6 @@ export default function NotificationsPage() {
           >
             <History className='h-3 w-3 sm:h-4 sm:w-4' />
             <span>Historique</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('personalized')}
-            className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'personalized'
-                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
-                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-            }`}
-          >
-            <User className='h-3 w-3 sm:h-4 sm:w-4' />
-            <span className='hidden sm:inline'>Personnalisées par rôle</span>
-            <span className='sm:hidden'>Personnalisées</span>
           </button>
           <button
             onClick={() => setActiveTab('preferences')}
@@ -306,18 +346,93 @@ export default function NotificationsPage() {
                 </div>
               </div>
 
+              {/* Catégories (customer-friendly) */}
+              <div className='flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4'>
+                <div className='flex items-center space-x-2'>
+                  <Filter className='h-4 w-4 sm:h-5 sm:w-5 text-gray-500 flex-shrink-0' />
+                  <span className='text-xs sm:text-sm text-gray-700 font-medium'>Catégories:</span>
+                </div>
+                <div className='flex flex-wrap gap-2'>
+                  {(
+                    [
+                      { key: 'all', label: 'Tout' },
+                      { key: 'payments', label: 'Paiements' },
+                      { key: 'kyc', label: 'KYC' },
+                      { key: 'security', label: 'Sécurité' },
+                      { key: 'services', label: 'Services' },
+                      { key: 'support', label: 'Support' },
+                      { key: 'system', label: 'Système' },
+                    ] as const
+                  ).map(item => {
+                    const count =
+                      item.key === 'all'
+                        ? notifications.length
+                        : notifications.filter(n => getCategory(n.type) === item.key).length;
+                    return (
+                      <button
+                        key={item.key}
+                        onClick={() => setCategoryFilter(item.key)}
+                        className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                          categoryFilter === item.key
+                            ? 'bg-[hsl(25,100%,53%)] text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {item.label} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Liste des notifications en temps réel */}
               <NotificationsList
-                notifications={notifications}
+                notifications={
+                  categoryFilter === 'all'
+                    ? notifications
+                    : notifications.filter(n => getCategory(n.type) === categoryFilter)
+                }
                 loading={loading}
                 filter={filter}
                 markAsRead={markAsRead}
                 formatDate={formatDate}
                 getChannelIcon={getChannelIcon}
                 getStatusColor={getStatusColor}
+                getPrimaryAction={getPrimaryAction}
+                onNavigate={(href: string) => router.push(href)}
                 totalPages={totalPages}
                 page={page}
                 setPage={setPage}
+              />
+            </div>
+          )}
+
+          {activeTab === 'actions' && (
+            <div className='space-y-4'>
+              <div className='flex items-center justify-between mb-4'>
+                <div>
+                  <h3 className='text-base sm:text-lg font-semibold text-gray-900'>
+                    À faire
+                  </h3>
+                  <p className='text-xs sm:text-sm text-gray-600 mt-1'>
+                    Les notifications qui nécessitent une action de votre part
+                  </p>
+                </div>
+              </div>
+
+              <NotificationsList
+                notifications={notifications.filter(isActionRequired)}
+                loading={loading}
+                filter='unread'
+                markAsRead={markAsRead}
+                formatDate={formatDate}
+                getChannelIcon={getChannelIcon}
+                getStatusColor={getStatusColor}
+                getPrimaryAction={getPrimaryAction}
+                onNavigate={(href: string) => router.push(href)}
+                totalPages={1}
+                page={1}
+                setPage={() => {}}
               />
             </div>
           )}
@@ -349,52 +464,13 @@ export default function NotificationsPage() {
                     formatDate={formatDate}
                     getChannelIcon={getChannelIcon}
                     getStatusColor={getStatusColor}
+                    getPrimaryAction={getPrimaryAction}
+                    onNavigate={(href: string) => router.push(href)}
                     totalPages={historyTotalPages}
                     page={historyPage}
                     setPage={setHistoryPage}
                   />
                 </>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'personalized' && (
-            <div className='space-y-4'>
-              <div className='flex items-center justify-between mb-4'>
-                <div>
-                  <h3 className='text-base sm:text-lg font-semibold text-gray-900'>
-                    Notifications personnalisées par rôle
-                  </h3>
-                  <p className='text-xs sm:text-sm text-gray-600 mt-1 break-words'>
-                    Notifications filtrées selon vos rôles:{' '}
-                    <span className='font-medium'>{user?.roles?.join(', ') || 'Aucun rôle'}</span>
-                  </p>
-                </div>
-              </div>
-
-              {getPersonalizedNotifications().length === 0 ? (
-                <div className='text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200'>
-                  <User className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-                  <h3 className='text-lg font-medium text-gray-900 mb-2'>
-                    Aucune notification personnalisée
-                  </h3>
-                  <p className='text-gray-600'>
-                    Aucune notification ne correspond à vos rôles actuels
-                  </p>
-                </div>
-              ) : (
-                <NotificationsList
-                  notifications={getPersonalizedNotifications()}
-                  loading={loading}
-                  filter='all'
-                  markAsRead={markAsRead}
-                  formatDate={formatDate}
-                  getChannelIcon={getChannelIcon}
-                  getStatusColor={getStatusColor}
-                  totalPages={1}
-                  page={1}
-                  setPage={() => {}}
-                />
               )}
             </div>
           )}
@@ -434,6 +510,8 @@ function NotificationsList({
   formatDate,
   getChannelIcon,
   getStatusColor,
+  getPrimaryAction,
+  onNavigate,
   totalPages,
   page,
   setPage,
@@ -445,6 +523,10 @@ function NotificationsList({
   formatDate: (dateString: string) => string;
   getChannelIcon: (channelType: string) => JSX.Element;
   getStatusColor: (status: string) => string;
+  getPrimaryAction: (
+    n: UINotification,
+  ) => { label: string; href: string } | null;
+  onNavigate: (href: string) => void;
   totalPages: number;
   page: number;
   setPage: (page: number) => void;
@@ -516,6 +598,25 @@ function NotificationsList({
                       ))}
                     </div>
                   </div>
+
+                  {getPrimaryAction(notification) && (
+                    <div className='mt-3 flex flex-wrap gap-2'>
+                      <button
+                        onClick={() => onNavigate(getPrimaryAction(notification)!.href)}
+                        className='px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors'
+                      >
+                        {getPrimaryAction(notification)!.label}
+                      </button>
+                      {!notification.read && (
+                        <button
+                          onClick={() => markAsRead(notification.id)}
+                          className='px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors'
+                        >
+                          Marquer comme lu
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {!notification.read && (
                   <button

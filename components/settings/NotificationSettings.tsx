@@ -5,6 +5,82 @@ import { Bell, Globe, Save } from "lucide-react";
 import React, { useCallback } from "react";
 
 function NotificationSettingsComponent({ data, setData, onSave, saving }: NotificationSettingsProps) {
+    const emailByType = data.notificationEmailByType || {};
+
+    const setEmailTypePref = useCallback(
+      (type: string, enabled: boolean) => {
+        setData({
+          ...data,
+          notificationEmailByType: {
+            ...(data.notificationEmailByType || {}),
+            [type.toUpperCase()]: enabled,
+          },
+        });
+      },
+      [data, setData],
+    );
+
+    const FORCED_EMAIL_TYPES = new Set([
+      "PAYMENT_SUCCESS",
+      "PAYMENT_FAILED",
+      "PAYMENT_REFUNDED",
+      "KYC_REQUIRED_REMINDER",
+      "KYC_APPROVED",
+      "KYC_REJECTED",
+    ]);
+
+    const EMAIL_TYPES_CATALOG: Array<{
+      type: string;
+      label: string;
+      description: string;
+    }> = [
+      {
+        type: "PAYMENT_SUCCESS",
+        label: "Paiement reçu (confirmé)",
+        description: "Reçu de paiement envoyé à chaque transaction",
+      },
+      {
+        type: "PAYMENT_FAILED",
+        label: "Paiement échoué",
+        description: "Important si une action est nécessaire",
+      },
+      {
+        type: "PAYMENT_REFUNDED",
+        label: "Remboursement confirmé",
+        description: "Confirmation d'un remboursement",
+      },
+      {
+        type: "KYC_REQUIRED_REMINDER",
+        label: "Rappel KYC (action requise)",
+        description: "Rappels J+1, J+2, J+7 tant que le KYC est en attente",
+      },
+      {
+        type: "KYC_APPROVED",
+        label: "KYC approuvé",
+        description: "Confirmation de vérification d'identité",
+      },
+      {
+        type: "KYC_REJECTED",
+        label: "KYC refusé",
+        description: "Rejet + prochaines étapes",
+      },
+      {
+        type: "APPOINTMENT_REMINDER",
+        label: "Rappel de rendez-vous",
+        description: "Rappels liés aux réservations/rendez-vous",
+      },
+      {
+        type: "LOGIN_SUCCESS",
+        label: "Connexion réussie",
+        description: "Email de sécurité après connexion",
+      },
+      {
+        type: "WELCOME_EMAIL",
+        label: "Bienvenue",
+        description: "Email de bienvenue lors de la création du compte",
+      },
+    ];
+
     const handleChange = useCallback(
       (field: keyof typeof data, value: string | boolean) => {
         setData({ ...data, [field]: value });
@@ -117,6 +193,9 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
                     <p className="text-sm text-gray-600">
                       Recevoir des notifications par email
                     </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Les emails transactionnels (paiements, KYC) restent envoyés pour votre sécurité.
+                    </p>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -131,6 +210,76 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
+              </div>
+
+              {/* Préférences fines par type (EMAIL) */}
+              <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      Emails par type de notification
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Active/désactive les emails pour chaque type (hors paiements/KYC qui restent obligatoires).
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next: Record<string, boolean> = { ...(data.notificationEmailByType || {}) };
+                        EMAIL_TYPES_CATALOG.forEach(item => {
+                          if (!FORCED_EMAIL_TYPES.has(item.type)) next[item.type] = true;
+                        });
+                        setData({ ...data, notificationEmailByType: next });
+                      }}
+                      className="px-3 py-1.5 rounded-md text-xs font-medium bg-white border border-gray-200 hover:bg-gray-100"
+                    >
+                      Tout activer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next: Record<string, boolean> = { ...(data.notificationEmailByType || {}) };
+                        EMAIL_TYPES_CATALOG.forEach(item => {
+                          if (!FORCED_EMAIL_TYPES.has(item.type)) next[item.type] = false;
+                        });
+                        setData({ ...data, notificationEmailByType: next });
+                      }}
+                      className="px-3 py-1.5 rounded-md text-xs font-medium bg-white border border-gray-200 hover:bg-gray-100"
+                    >
+                      Tout désactiver
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {EMAIL_TYPES_CATALOG.map(item => {
+                    const forced = FORCED_EMAIL_TYPES.has(item.type);
+                    const checked = forced ? true : (emailByType[item.type] ?? true);
+                    return (
+                      <div key={item.type} className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900">
+                            {item.label}
+                            <span className="ml-2 text-[11px] text-gray-500 font-mono">{item.type}</span>
+                          </p>
+                          <p className="text-xs text-gray-600">{item.description}</p>
+                        </div>
+                        <label className={`relative inline-flex items-center cursor-pointer ${forced ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                          <input
+                            type="checkbox"
+                            disabled={forced || !data.emailNotifications}
+                            checked={checked}
+                            onChange={e => setEmailTypePref(item.type, e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="flex items-center justify-between">

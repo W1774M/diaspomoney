@@ -152,6 +152,11 @@ export interface NotificationSettingsData {
   notifications: boolean;
   emailNotifications: boolean;
   smsNotifications: boolean;
+  /**
+   * Préférences fines email par type de notification.
+   * Clé = type (ex: "APPOINTMENT_REMINDER"), valeur = true/false.
+   */
+  notificationEmailByType?: Record<string, boolean>;
 }
 
 export interface NotificationSettingsProps {
@@ -182,8 +187,21 @@ export interface Notification extends Omit<BaseEntity, '_id'> {
   status: NotificationStatus;
   subject: string;
   content: string;
+  /**
+   * Indique si la notification a été lue (pour l'in-app).
+   * Stocké en base pour permettre "non lues" / "lues".
+   */
+  read?: boolean;
   metadata?: Record<string, any>;
+  /**
+   * Date de planification (si la notification doit être envoyée plus tard).
+   * NOTE: nécessite un job/cron pour traiter les notifications dues.
+   */
   scheduledAt?: Date;
+  /**
+   * Date d'expiration (après laquelle on ne doit plus tenter d'envoyer).
+   */
+  expiresAt?: Date;
   sentAt?: Date;
   deliveredAt?: Date;
   failedAt?: Date;

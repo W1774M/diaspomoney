@@ -26,4 +26,19 @@ spec:
     stsIncludeSubdomains: true
     stsPreload: true
 
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: internal-basic-auth
+  namespace: diaspomoney
+spec:
+  basicAuth:
+    # IMPORTANT:
+    # - Crée le secret "internal-basic-auth" (clé: users) dans le namespace diaspomoney
+    # - Format attendu: htpasswd (une ou plusieurs lignes)
+    secret: internal-basic-auth
+    # Améliore la compatibilité (retire l'en-tête Authorization vers l'app)
+    removeHeader: true
+
 
