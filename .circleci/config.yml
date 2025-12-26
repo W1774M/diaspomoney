@@ -1,0 +1,429 @@
+version: 2.1
+
+# Orbs réutilisables
+orbs:
+  node: circleci/node@5.0.0
+  docker: circleci/docker@2.0.0
+
+# Paramètres réutilisables
+parameters:
+  deploy-environment:
+    type: string
+    default: "dev"
+
+# Jobs réutilisables
+jobs:
+  # ============================================
+  # INSTALLATION DES DÉPENDANCES
+  # ============================================
+  install-dependencies:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: pnpm
+          cache-version: v1
+      - persist_to_workspace:
+          root: ~/project
+          paths:
+            - node_modules
+            - .pnpm-store
+
+  # ============================================
+  # TESTS
+  # ============================================
+  tests:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: 🔍 Lint
+          command: pnpm lint
+      - run:
+          name: 📝 TypeScript Check
+          command: pnpm tsc:check
+      - run:
+          name: 🧪 Unit Tests (Client)
+          command: pnpm test:unit:client
+      - run:
+          name: 🧪 Unit Tests (Server)
+          command: pnpm test:unit:server
+      - run:
+          name: 🐳 Start MongoDB
+          command: |
+            docker run -d \
+              --name mongodb-test \
+              -p 27018:27017 \
+              -e MONGO_INITDB_DATABASE=diaspomoney_test \
+              mongo:7
+            # Attendre que MongoDB soit prêt
+            timeout=60
+            elapsed=0
+            while ! docker exec mongodb-test mongosh --quiet --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
+              if [ $elapsed -ge $timeout ]; then
+                echo "❌ MongoDB n'a pas démarré"
+                exit 1
+              fi
+              echo "⏳ Attente de MongoDB... ($elapsed/$timeout secondes)"
+              sleep 2
+              elapsed=$((elapsed + 2))
+            done
+            echo "✅ MongoDB est prêt!"
+      - run:
+          name: 🔗 Integration Tests
+          command: pnpm test:integration
+          environment:
+            MONGODB_URI: mongodb://localhost:27018/diaspomoney_test
+            NODE_ENV: test
+      - run:
+          name: 🧹 Stop MongoDB
+          command: docker stop mongodb-test && docker rm mongodb-test || true
+      - run:
+          name: 🎭 Install Playwright
+          command: pnpm exec playwright install --with-deps
+      - run:
+          name: 🏗️ Build for E2E
+          command: pnpm build
+          environment:
+            NODE_ENV: production
+      - run:
+          name: 🎭 E2E Tests
+          command: pnpm test:e2e
+          environment:
+            NODE_ENV: test
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+          destination: test-results
+      - store_artifacts:
+          path: playwright-report
+          destination: playwright-report
+
+  # ============================================
+  # COUVERTURE DE CODE
+  # ============================================
+  coverage:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: 🐳 Start MongoDB
+          command: |
+            docker run -d \
+              --name mongodb-coverage \
+              -p 27018:27017 \
+              -e MONGO_INITDB_DATABASE=diaspomoney_test \
+              mongo:7
+            timeout=60
+            elapsed=0
+            while ! docker exec mongodb-coverage mongosh --quiet --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
+              if [ $elapsed -ge $timeout ]; then
+                echo "❌ MongoDB n'a pas démarré"
+                exit 1
+              fi
+              sleep 2
+              elapsed=$((elapsed + 2))
+            done
+      - run:
+          name: 📊 Générer couverture
+          command: |
+            pnpm test:unit:coverage
+            pnpm test:integration --coverage
+          environment:
+            MONGODB_URI: mongodb://localhost:27018/diaspomoney_test
+            NODE_ENV: test
+      - run:
+          name: 🧹 Stop MongoDB
+          command: docker stop mongodb-coverage && docker rm mongodb-coverage || true
+      - run:
+          name: 📈 Vérifier seuil de couverture (95%)
+          command: |
+            COVERAGE_FILE="./coverage/coverage-summary.json"
+            if [ ! -f "$COVERAGE_FILE" ]; then
+              echo "❌ Fichier de couverture non trouvé"
+              exit 1
+            fi
+            
+            TOTAL_COVERAGE=$(node -e "
+              const fs = require('fs');
+              const cov = JSON.parse(fs.readFileSync('./coverage/coverage-summary.json', 'utf8'));
+              console.log(cov.total.lines.pct.toFixed(2));
+            ")
+            
+            echo "📊 Couverture actuelle: ${TOTAL_COVERAGE}%"
+            echo "🎯 Seuil minimum requis: 95%"
+            
+            THRESHOLD=95
+            PASSED=$(node -e "console.log(${TOTAL_COVERAGE} >= ${THRESHOLD} ? 'true' : 'false')")
+            
+            if [ "$PASSED" = "false" ]; then
+              echo "❌ La couverture (${TOTAL_COVERAGE}%) est inférieure au seuil requis (95%)"
+              exit 1
+            else
+              echo "✅ Couverture suffisante: ${TOTAL_COVERAGE}% >= 95%"
+            fi
+      - store_artifacts:
+          path: coverage
+          destination: coverage
+      - store_test_results:
+          path: coverage
+
+  # ============================================
+  # BUILD
+  # ============================================
+  build:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: 🏗️ Build application
+          command: pnpm build
+          environment:
+            NODE_ENV: production
+      - store_artifacts:
+          path: .next
+          destination: build-artifacts
+
+  # ============================================
+  # DÉPLOIEMENT
+  # ============================================
+  deploy-dev:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: medium
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: 🔧 Install kubectl
+          command: |
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            sudo mv kubectl /usr/local/bin/
+      - run:
+          name: 🔐 Configure kubectl
+          command: |
+            echo "$KUBE_CONFIG_DEV" | base64 -d > kubeconfig
+            export KUBECONFIG=kubeconfig
+            kubectl cluster-info
+      - run:
+          name: 🚀 Déployer sur Dev
+          command: |
+            export KUBECONFIG=kubeconfig
+            chmod +x ./scripts/deploy.sh
+            ./scripts/deploy.sh dev
+          environment:
+            KUBECONFIG: kubeconfig
+      - run:
+          name: ✅ Vérifier le déploiement
+          command: |
+            export KUBECONFIG=kubeconfig
+            kubectl rollout status deployment/diaspomoney-app -n diaspomoney --timeout=300s || true
+            kubectl get pods -n diaspomoney -l app=diaspomoney-app
+      - run:
+          name: 🧪 Smoke Tests
+          command: |
+            sleep 10
+            curl -f https://dev.diaspomoney.fr/api/health || echo "⚠️ Smoke test échoué"
+
+  deploy-rct:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: medium
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: 🔧 Install kubectl
+          command: |
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            sudo mv kubectl /usr/local/bin/
+      - run:
+          name: 🔐 Configure kubectl
+          command: |
+            echo "$KUBE_CONFIG_RCT" | base64 -d > kubeconfig
+            export KUBECONFIG=kubeconfig
+            kubectl cluster-info
+      - run:
+          name: 🚀 Déployer sur Recette
+          command: |
+            export KUBECONFIG=kubeconfig
+            chmod +x ./scripts/deploy.sh
+            ./scripts/deploy.sh rct
+          environment:
+            KUBECONFIG: kubeconfig
+      - run:
+          name: ✅ Vérifier le déploiement
+          command: |
+            export KUBECONFIG=kubeconfig
+            kubectl rollout status deployment/diaspomoney-app -n diaspomoney --timeout=300s || true
+            kubectl get pods -n diaspomoney -l app=diaspomoney-app
+      - run:
+          name: 🧪 Smoke Tests
+          command: |
+            sleep 10
+            curl -f https://rct.diaspomoney.fr/api/health || echo "⚠️ Smoke test échoué"
+
+  deploy-prod:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: medium
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/project
+      - run:
+          name: 🔧 Install kubectl
+          command: |
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            sudo mv kubectl /usr/local/bin/
+      - run:
+          name: 🔐 Configure kubectl
+          command: |
+            echo "$KUBE_CONFIG_PROD" | base64 -d > kubeconfig
+            export KUBECONFIG=kubeconfig
+            kubectl cluster-info
+      - run:
+          name: 📋 Afficher informations de déploiement
+          command: |
+            echo "🚀 Déploiement en production"
+            echo "📦 Commit: $CIRCLE_SHA1"
+            echo "👤 Auteur: $CIRCLE_USERNAME"
+            echo "🌿 Branche: $CIRCLE_BRANCH"
+            echo "📅 Date: $(date)"
+      - run:
+          name: 🚀 Déployer sur Production
+          command: |
+            export KUBECONFIG=kubeconfig
+            chmod +x ./scripts/deploy.sh
+            ./scripts/deploy.sh prod
+          environment:
+            KUBECONFIG: kubeconfig
+      - run:
+          name: ✅ Vérifier le déploiement
+          command: |
+            export KUBECONFIG=kubeconfig
+            kubectl rollout status deployment/diaspomoney-app -n diaspomoney --timeout=600s || true
+            kubectl get pods -n diaspomoney -l app=diaspomoney-app
+      - run:
+          name: 🧪 Smoke Tests
+          command: |
+            sleep 15
+            curl -f https://diaspomoney.fr/api/health || echo "⚠️ Smoke test échoué"
+
+# ============================================
+# WORKFLOWS
+# ============================================
+workflows:
+  version: 2
+  
+  # Workflow pour la branche dev
+  deploy-dev-workflow:
+    when:
+      and:
+        - equal: [ dev, << pipeline.git.branch >> ]
+    jobs:
+      - install-dependencies
+      - tests:
+          requires:
+            - install-dependencies
+      - coverage:
+          requires:
+            - tests
+      - build:
+          requires:
+            - coverage
+      - deploy-dev:
+          requires:
+            - build
+          filters:
+            branches:
+              only: dev
+
+  # Workflow pour la branche rct
+  deploy-rct-workflow:
+    when:
+      and:
+        - equal: [ rct, << pipeline.git.branch >> ]
+    jobs:
+      - install-dependencies
+      - tests:
+          requires:
+            - install-dependencies
+      - coverage:
+          requires:
+            - tests
+      - build:
+          requires:
+            - coverage
+      - deploy-rct:
+          requires:
+            - build
+          filters:
+            branches:
+              only: rct
+
+  # Workflow pour la branche main (production)
+  deploy-prod-workflow:
+    when:
+      and:
+        - equal: [ main, << pipeline.git.branch >> ]
+    jobs:
+      - install-dependencies
+      - tests:
+          requires:
+            - install-dependencies
+      - coverage:
+          requires:
+            - tests
+      - build:
+          requires:
+            - coverage
+      - hold-production:
+          type: approval
+          requires:
+            - build
+      - deploy-prod:
+          requires:
+            - hold-production
+          filters:
+            branches:
+              only: main
+
+  # Workflow pour les pull requests
+  pr-workflow:
+    when:
+      and:
+        - not:
+            equal: [ << pipeline.git.branch >>, main ]
+        - not:
+            equal: [ << pipeline.git.branch >>, rct ]
+        - not:
+            equal: [ << pipeline.git.branch >>, dev ]
+    jobs:
+      - install-dependencies
+      - tests:
+          requires:
+            - install-dependencies
+      - coverage:
+          requires:
+            - tests
+      - build:
+          requires:
+            - coverage
+
