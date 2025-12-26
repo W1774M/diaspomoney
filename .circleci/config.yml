@@ -18,13 +18,15 @@ jobs:
   install-dependencies:
     docker:
       - image: cimg/node:20.0
+    environment:
+      PNPM_HOME: ~/.local/share/pnpm
+      PATH: ~/.local/share/pnpm:$PATH
     steps:
       - checkout
       - run:
           name: 📦 Install pnpm
           command: |
-            corepack enable
-            corepack prepare pnpm@10.18.3 --activate
+            curl -fsSL https://get.pnpm.io/install.sh | sh -
             pnpm --version
       - restore_cache:
           keys:
@@ -50,8 +52,16 @@ jobs:
   tests:
     docker:
       - image: cimg/node:20.0
+    environment:
+      PNPM_HOME: ~/.local/share/pnpm
+      PATH: ~/.local/share/pnpm:$PATH
     steps:
       - checkout
+      - run:
+          name: 📦 Install pnpm
+          command: |
+            curl -fsSL https://get.pnpm.io/install.sh | sh -
+            pnpm --version
       - attach_workspace:
           at: ~/project
       - run:
@@ -124,13 +134,15 @@ jobs:
   coverage:
     docker:
       - image: cimg/node:20.0
+    environment:
+      PNPM_HOME: ~/.local/share/pnpm
+      PATH: ~/.local/share/pnpm:$PATH
     steps:
       - checkout
       - run:
           name: 📦 Install pnpm
           command: |
-            corepack enable
-            corepack prepare pnpm@10.18.3 --activate
+            curl -fsSL https://get.pnpm.io/install.sh | sh -
             pnpm --version
       - restore_cache:
           keys:
@@ -209,13 +221,15 @@ jobs:
   build:
     docker:
       - image: cimg/node:20.0
+    environment:
+      PNPM_HOME: ~/.local/share/pnpm
+      PATH: ~/.local/share/pnpm:$PATH
     steps:
       - checkout
       - run:
           name: 📦 Install pnpm
           command: |
-            corepack enable
-            corepack prepare pnpm@10.18.3 --activate
+            curl -fsSL https://get.pnpm.io/install.sh | sh -
             pnpm --version
       - restore_cache:
           keys:
