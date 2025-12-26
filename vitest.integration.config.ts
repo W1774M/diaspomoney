@@ -7,7 +7,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
-    setupFiles: ['./tests/setup.integration.ts'],
+    setupFiles: ['./tests/setup.integration.ts', './tests/setup.mongo.ts'],
+    hookTimeout: 60000,
     testTimeout: 30000, // 30 secondes pour les tests d'intégration
     include: ['tests/integration/**/*.test.ts'],
     coverage: {

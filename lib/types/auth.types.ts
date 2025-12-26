@@ -38,6 +38,10 @@ export interface AuthUser {
   role: string;
   isVerified: boolean;
   kycStatus: string;
+  // Champs optionnels utiles côté UI/tests (ex: retour de /api/auth/register)
+  firstName?: string;
+  lastName?: string;
+  name?: string;
 }
 
 /**

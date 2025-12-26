@@ -93,7 +93,7 @@ describe('GET /api/bookings/[id]', () => {
     bookingMapper = (await import('@/lib/mappers')).bookingMapper;
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValue({
-      user: { id: 'user123' },
+      user: { id: 'user123', roles: ['CUSTOMER'] },
     } as any);
   });
 
@@ -173,7 +173,7 @@ describe('GET /api/bookings/[id]', () => {
     expect(data.success).toBe(true);
   });
 
-  it('should return 404 if booking does not exist (GET does not check auth)', async () => {
+  it('should return 404 if booking does not exist', async () => {
     vi.mocked(bookingService.getBookingById).mockResolvedValueOnce(null as any);
 
     const validId = new mongoose.Types.ObjectId().toString();
@@ -198,14 +198,14 @@ describe('PUT /api/bookings/[id]', () => {
     bookingMapper = (await import('@/lib/mappers')).bookingMapper;
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValue({
-      user: { id: 'user123' },
+      user: { id: 'user123', roles: ['ADMIN'] },
     } as any);
   });
 
   it('should update a booking successfully', async () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce({
-      user: { id: 'user123' },
+      user: { id: 'user123', roles: ['ADMIN'] },
     } as any);
 
     const mockUpdatedBooking = createMockBooking({

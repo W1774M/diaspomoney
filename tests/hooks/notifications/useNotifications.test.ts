@@ -218,5 +218,51 @@ describe('useNotifications', () => {
 
     expect(result.current.error).toBe('Network error');
   });
+
+  it('devrait gérer les erreurs avec data.error lors de la récupération', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: false,
+        error: 'Erreur personnalisée',
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useNotifications());
+
+    await act(async () => {
+      await result.current.fetchNotifications();
+    });
+
+    expect(result.current.error).toBe('Erreur personnalisée');
+  });
+
+  it('devrait gérer les erreurs lors du marquage comme lu', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+    } as Response);
+
+    const { result } = renderHook(() => useNotifications());
+
+    await act(async () => {
+      await result.current.markAsRead('n1');
+    });
+
+    expect(result.current.error).toBe('Erreur lors de la mise à jour');
+  });
+
+  it('devrait gérer les erreurs lors du marquage de toutes les notifications comme lues', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+    } as Response);
+
+    const { result } = renderHook(() => useNotifications());
+
+    await act(async () => {
+      await result.current.markAllAsRead();
+    });
+
+    expect(result.current.error).toBe('Erreur lors de la mise à jour');
+  });
 });
 

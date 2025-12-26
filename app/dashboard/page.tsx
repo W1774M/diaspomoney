@@ -15,9 +15,9 @@ function getHighestPriorityDashboard(userRoles: string[] = []): string {
     return '/dashboard';
   }
 
-  // Super Admin : ADMIN avec plusieurs autres rôles
-  if (userRoles.includes(ROLES.ADMIN) && userRoles.length > 1) {
-    return '/dashboard/admin';
+  // Super Admin 
+  if (userRoles.includes(ROLES.SUPERADMIN)) {
+    return '/dashboard/superadmin';
   }
 
   // Admin

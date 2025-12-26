@@ -184,15 +184,16 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
       }
 
       // Planifier les rappels KYC (anti-spam: 3 emails max J+1, J+2, J+7)
-      // - uniquement si l'utilisateur est un CUSTOMER
+      // - uniquement si l'utilisateur est un CUSTOMER ou un PROVIDER
       // - uniquement si le statut KYC est PENDING (pas de documents soumis)
       try {
         const roles = (user.roles || []) as string[];
         const isCustomer = roles.includes(ROLES.CUSTOMER);
+        const isProvider = roles.includes(ROLES.PROVIDER);
         const kycStatus = ((user as any).kycStatus as string | undefined) || KYC_STATUSES.PENDING;
         const hasKycData = !!kycData;
 
-        if (isCustomer && !hasKycData && kycStatus === KYC_STATUSES.PENDING) {
+        if ((isCustomer || isProvider) && !hasKycData && kycStatus === KYC_STATUSES.PENDING) {
           const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
           const dashboardUrl = `${baseUrl}/dashboard/notifications`;
           const userName =
@@ -200,12 +201,13 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
 
           const now = Date.now();
           const reminderOffsetsDays = [1, 2, 7];
+          const reminderType = isProvider ? 'PROVIDER_KYC_REQUIRED_REMINDER' : 'KYC_REQUIRED_REMINDER';
 
           await Promise.all(
             reminderOffsetsDays.map((days, idx) =>
               notificationService.sendNotification({
                 recipient: user.id || user._id?.toString() || '',
-                type: 'KYC_REQUIRED_REMINDER',
+                type: reminderType,
                 template: 'kyc_required_reminder',
                 data: {
                   userName,

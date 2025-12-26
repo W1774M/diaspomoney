@@ -81,7 +81,13 @@ export function Audit(options: AuditDecoratorOptions) {
 
       try {
         // Récupérer la session utilisateur pour l'audit
-        const session = await auth();
+        let session: any = null;
+        try {
+          session = await auth();
+        } catch {
+          // Hors request-scope (tests, scripts), `auth()` peut throw → fail-open.
+          session = null;
+        }
         const userId = session?.user?.id || 'system';
         // userRoles is used in auditData below
         const userRoles = session?.user?.roles || [];
@@ -169,7 +175,12 @@ export function Audit(options: AuditDecoratorOptions) {
         const executionTime = Date.now() - startTime;
 
         // Récupérer la session pour l'audit d'erreur
-        const session = await auth();
+        let session: any = null;
+        try {
+          session = await auth();
+        } catch {
+          session = null;
+        }
         const userId = session?.user?.id || 'system';
 
         // Enregistrer l'audit d'erreur

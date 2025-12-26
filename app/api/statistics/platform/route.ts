@@ -33,12 +33,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    // Vérifier que l'utilisateur est super admin (ADMIN + au moins un autre rôle)
+    // Vérifier que l'utilisateur est super admin (SUPERADMIN explicite, ou legacy: ADMIN + au moins un autre rôle)
     const userRoles = session.user.roles || [];
+    const isExplicitSuperAdmin = userRoles.includes(ROLES.SUPERADMIN);
     const hasAdmin = userRoles.includes(ROLES.ADMIN);
     const hasMultipleRoles = userRoles.length > 1;
-    
-    if (!hasAdmin || !hasMultipleRoles) {
+
+    if (!isExplicitSuperAdmin && (!hasAdmin || !hasMultipleRoles)) {
       log.warn({ userId: session.user.id, roles: userRoles }, 'Access denied: not super admin');
       return NextResponse.json({ error: 'Accès refusé: Super Admin requis' }, { status: 403 });
     }

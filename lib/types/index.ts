@@ -105,6 +105,7 @@ export enum Environment {
   DEVELOPMENT = 'development',
   RECETTE = 'recette',
   PRODUCTION = 'production',
+  TEST = 'test',
 }
 
 export interface EnvironmentConfig {

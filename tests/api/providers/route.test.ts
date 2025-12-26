@@ -13,6 +13,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET, POST } from '@/app/api/providers/route';
 import { NextRequest } from 'next/server';
 
+const { ApiErrors, ApiError } = vi.hoisted(() => {
+  class ApiError extends Error {
+    status: number;
+    statusCode: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.name = 'ApiError';
+      this.status = status;
+      this.statusCode = status;
+    }
+  }
+  const make = (status: number, message: string) => new ApiError(status, message) as any;
+  const ApiErrors = {
+    UNAUTHORIZED: make(401, 'Non autorisé'),
+    FORBIDDEN: make(403, 'Accès non autorisé'),
+    NOT_FOUND: make(404, 'Ressource non trouvée'),
+    VALIDATION_ERROR: (msg: string) => make(400, msg || 'Erreur de validation'),
+  };
+  return { ApiErrors, ApiError };
+});
+
 // Mock de ProviderQueryBuilder - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
 const { mockProviderQueryBuilderSpy } = vi.hoisted(() => {
   class MockProviderQueryBuilder {
@@ -54,25 +75,39 @@ vi.mock('@/services/user/user.service', () => ({
   },
 }));
 
+// Mock de auth
+vi.mock('@/auth', () => ({
+  auth: vi.fn(),
+}));
+
 // Mock de handleApiRoute
 vi.mock('@/lib/api/error-handler', () => ({
   handleApiRoute: vi.fn(async (_request, handler) => {
-    const result = await handler();
-    // Si le résultat a déjà une méthode json(), le retourner tel quel avec status
-    if (result && typeof result === 'object' && 'json' in result) {
+    try {
+      const result = await handler();
+      // Si le résultat a déjà une méthode json(), le retourner tel quel avec status
+      if (result && typeof result === 'object' && 'json' in result) {
+        return {
+          ...result,
+          status: result.status || 200,
+        };
+      }
+      // Sinon, envelopper dans un objet avec json() et status
       return {
-        ...result,
-        status: result.status || 200,
+        json: async () => result,
+        status: 200,
+      };
+    } catch (error: any) {
+      return {
+        json: async () => ({ success: false, error: error?.message || 'Erreur' }),
+        status: error?.status || error?.statusCode || 500,
       };
     }
-    // Sinon, envelopper dans un objet avec json() et status
-    return {
-      json: async () => result,
-      status: 200,
-    };
   }),
   validateBody: vi.fn((body) => body),
   validateQuery: vi.fn((params) => Object.fromEntries(params)),
+  ApiErrors,
+  ApiError,
 }));
 
 // Mock de createPaginatedResponse et createResourceResponse
@@ -95,8 +130,13 @@ vi.mock('@/lib/api/response', () => ({
 }));
 
 describe('GET /api/providers', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    // Par défaut, utilisateur admin authentifié
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'admin123', roles: ['ADMIN'] },
+    } as any);
   });
 
   it('devrait récupérer les providers avec succès', async () => {
@@ -185,8 +225,12 @@ describe('GET /api/providers', () => {
 });
 
 describe('POST /api/providers', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'admin123', roles: ['ADMIN'] },
+    } as any);
   });
 
   it('devrait créer un provider avec succès', async () => {

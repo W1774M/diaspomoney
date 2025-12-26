@@ -109,91 +109,69 @@ export class MongoUserRepository implements IUserRepository {
     try {
       const collection = await this.getCollection();
       const now = new Date();
-      // Exclure _id et id du spread pour éviter les conflits avec OptionalId
-      type UserDataWithExtras = Partial<User> & {
-        country?: string;
-        countryOfResidence?: string;
-        dateOfBirth?: string;
-        targetCountry?: string;
-        targetCity?: string;
-        monthlyBudget?: string;
-        securityQuestion?: string;
-        securityAnswer?: string;
-        selectedServices?: string[];
-        isEmailVerified?: boolean;
-        emailVerified?: boolean;
-        marketingConsent?: boolean;
-        kycConsent?: boolean;
-        kycStatus?: string;
-        oauth?: unknown;
-      };
-      const userDataTyped = data as UserDataWithExtras;
-      const { _id, id: _idUnused, ...dataWithoutIds } = userDataTyped;
-      
-      // Valider et convertir _id seulement si c'est un ObjectId valide
+
+      // Ensure unique email before attempting insert (safety for tests/non-strict envs)
+      const email = typeof data.email === 'string' ? data.email.trim().toLowerCase() : '';
+      if (email) {
+        const existing = await collection.findOne({ email });
+        if (existing) {
+          this.log.warn({ email }, 'Duplicate email detected before insert');
+          throw new Error('Un compte avec cet email existe déjà');
+        }
+      }
+      // Remove _id/id for insert to avoid conflicts, but allow _id override if provided/valid
+      const { _id, id: _idUnused, ...dataWithoutIds } = data as Partial<User> & Record<string, any>;
       let validObjectId: ObjectId | undefined;
       if (data._id) {
         try {
           const _idValue = data._id as any;
-          // Vérifier si c'est déjà un ObjectId
           if (_idValue && typeof _idValue === 'object' && _idValue.constructor === ObjectId) {
-            validObjectId = _idValue as ObjectId;
+            validObjectId = _idValue;
           } else if (typeof _idValue === 'string' && ObjectId.isValid(_idValue)) {
             validObjectId = new ObjectId(_idValue);
           } else {
-            // Ignorer _id invalide plutôt que de lever une erreur
-            this.log.warn(
-              { _id: data._id, email: data.email },
-              'Invalid _id provided, ignoring it',
-            );
+            this.log.warn({ _id: data._id, email: data.email }, 'Invalid _id provided, ignoring it');
           }
         } catch (error) {
-          // Ignorer _id invalide
           this.log.warn(
             { _id: data._id, email: data.email, error },
-            'Error converting _id to ObjectId, ignoring it',
+            'Error converting _id to ObjectId, ignoring it'
           );
         }
       }
-      
-      // S'assurer que le statut est défini (PENDING par défaut si non fourni)
+
       const userData: OptionalId<Document> = {
         ...dataWithoutIds,
-        status: data.status || USER_STATUSES.PENDING, // PENDING par défaut si non fourni
+        ...(email ? { email } : {}),
+        status: data.status || USER_STATUSES.PENDING,
         createdAt: now,
         updatedAt: now,
         ...(validObjectId ? { _id: validObjectId } : {}),
       };
-      const result = await collection.insertOne(
-        userData as OptionalId<Document>,
-      );
+      const result = await collection.insertOne(userData as OptionalId<Document>);
       const user = await collection.findOne({ _id: result.insertedId });
-      if (!user) {
-        throw new Error('Failed to create user');
-      }
+      if (!user) throw new Error('Failed to create user');
       const mappedUser = this.mapToUser(user);
       this.log.info(
         { userId: mappedUser.id, email: mappedUser.email },
-        'User created successfully',
+        'User created successfully'
       );
       return mappedUser;
     } catch (error: any) {
-      // Gérer les erreurs de duplication MongoDB (E11000)
       if (error.code === 11000 || error.code === 11001) {
         const duplicateField = error.keyPattern
           ? Object.keys(error.keyPattern)[0]
           : 'email';
         this.log.warn(
           { error, email: data.email, duplicateField },
-          `Duplicate key error in create: ${duplicateField}`,
+          `Duplicate key error in create: ${duplicateField}`
         );
         throw new Error(
           duplicateField === 'email'
             ? 'Un compte avec cet email existe déjà'
-            : `Un compte avec ce ${duplicateField} existe déjà`,
+            : `Un compte avec ce ${duplicateField} existe déjà`
         );
       }
-
       this.log.error({ error, email: data.email }, 'Error in create');
       Sentry.captureException(error as Error, {
         tags: { component: 'MongoUserRepository', action: 'create' },
@@ -215,11 +193,42 @@ export class MongoUserRepository implements IUserRepository {
     try {
       // Dynamically import UserModel to guarantee correct schema/hook use
       const UserModel = (await import('@/models/User')).default;
-      
-      // Exclure _id et id invalides du spread pour éviter les erreurs BSON
+
+      // Ensure unique email before save (mirror create logic)
+      // Use native collection to ensure we see uncommitted changes in transactions
+      const email = typeof data.email === 'string' ? data.email.trim().toLowerCase() : '';
+      if (email) {
+        const collection = await this.getCollection();
+        // Vérifier avec la collection native MongoDB
+        const existing = await collection.findOne({ email });
+        if (existing) {
+          this.log.warn(
+            { 
+              email, 
+              existingUserId: existing._id?.toString() || (existing as any)['id'],
+            }, 
+            'Duplicate email detected before save'
+          );
+          throw new Error('Un compte avec cet email existe déjà');
+        }
+        // Double vérification avec le modèle Mongoose pour être sûr
+        const UserModel = (await import('@/models/User')).default;
+        const mongooseExisting = await (UserModel as any)
+          .findOne({ email }).select('_id').lean().exec();
+        if (mongooseExisting) {
+          this.log.warn(
+            { 
+              email, 
+              existingUserId: mongooseExisting._id?.toString(),
+            }, 
+            'Duplicate email detected via Mongoose before save'
+          );
+          throw new Error('Un compte avec cet email existe déjà');
+        }
+      }
+
+      // Remove _id/id for insert to avoid BSON errors, but allow _id override if valid
       const { _id, id, ...dataWithoutIds } = data;
-      
-      // Valider _id seulement si c'est un ObjectId valide
       let validObjectId: any = undefined;
       if (_id) {
         try {
@@ -229,24 +238,20 @@ export class MongoUserRepository implements IUserRepository {
           } else if (_idValue && typeof _idValue === 'object' && _idValue.constructor === ObjectId) {
             validObjectId = _idValue;
           } else {
-            this.log.warn(
-              { _id, email: data.email },
-              'Invalid _id provided in createWithPassword, ignoring it',
-            );
+            this.log.warn({ _id, email: data.email }, 'Invalid _id provided in createWithPassword, ignoring it');
           }
         } catch (error) {
           this.log.warn(
             { _id, email: data.email, error },
-            'Error validating _id in createWithPassword, ignoring it',
+            'Error validating _id in createWithPassword, ignoring it'
           );
         }
       }
-      
+
       const user = new UserModel({
-        email: data.email?.toLowerCase(),
+        email,
         password: data.password || undefined,
-        name:
-          data.name || `${data.firstName ?? ''} ${data.lastName ?? ''}`.trim(),
+        name: data.name || `${data.firstName ?? ''} ${data.lastName ?? ''}`.trim(),
         firstName: data.firstName,
         lastName: data.lastName,
         phone: data.phone ? String(data.phone).trim() : undefined,
@@ -269,29 +274,50 @@ export class MongoUserRepository implements IUserRepository {
         ...(validObjectId ? { _id: validObjectId } : {}),
       });
 
-      await user.save();
-
+      try {
+        await user.save();
+      } catch (saveError: any) {
+        // Si c'est une erreur de duplication MongoDB, la transformer
+        if (saveError.code === 11000 || saveError.code === 11001) {
+          const duplicateField = saveError.keyPattern
+            ? Object.keys(saveError.keyPattern)[0]
+            : 'email';
+          this.log.warn(
+            { error: saveError, email: data.email, duplicateField },
+            `Duplicate key error in createWithPassword save: ${duplicateField}`
+          );
+          throw new Error(
+            duplicateField === 'email'
+              ? 'Un compte avec cet email existe déjà'
+              : `Un compte avec ce ${duplicateField} existe déjà`
+          );
+        }
+        // Relancer les autres erreurs
+        throw saveError;
+      }
       return this.mapToUser(user.toObject());
     } catch (error: any) {
-      // Gérer les erreurs de duplication MongoDB (E11000)
+      // Si l'erreur a déjà été transformée, la relancer
+      if (error.message?.includes('existe déjà')) {
+        throw error;
+      }
       if (error.code === 11000 || error.code === 11001) {
         const duplicateField = error.keyPattern
           ? Object.keys(error.keyPattern)[0]
           : 'email';
         this.log.warn(
           { error, email: data.email, duplicateField },
-          `Duplicate key error in createWithPassword: ${duplicateField}`,
+          `Duplicate key error in createWithPassword: ${duplicateField}`
         );
         throw new Error(
           duplicateField === 'email'
             ? 'Un compte avec cet email existe déjà'
-            : `Un compte avec ce ${duplicateField} existe déjà`,
+            : `Un compte avec ce ${duplicateField} existe déjà`
         );
       }
-
       this.log.error(
         { error, email: data.email },
-        'Error in createWithPassword',
+        'Error in createWithPassword'
       );
       Sentry.captureException(error as Error, {
         tags: {
@@ -451,7 +477,6 @@ export class MongoUserRepository implements IUserRepository {
 
   async findByEmail(email: string): Promise<User | null> {
     if (!email) return null;
-    // Utiliser directement la collection pour findByEmail
     const collection = await this.getCollection();
     const user = await collection.findOne({ email: email.toLowerCase() });
     return user ? this.mapToUser(user) : null;
@@ -481,27 +506,7 @@ export class MongoUserRepository implements IUserRepository {
         this.log.warn({ userId }, 'Invalid userId in updatePassword');
         return false;
       }
-      type UserUpdateData = Partial<User> & {
-        country?: string;
-        countryOfResidence?: string;
-        dateOfBirth?: string;
-        targetCountry?: string;
-        targetCity?: string;
-        monthlyBudget?: string;
-        securityQuestion?: string;
-        securityAnswer?: string;
-        selectedServices?: string[];
-        isEmailVerified?: boolean;
-        emailVerified?: boolean;
-        marketingConsent?: boolean;
-        kycConsent?: boolean;
-        kycStatus?: string;
-        oauth?: unknown;
-        twoFactorSecret?: string;
-        twoFactorBackupCodes?: string[];
-        twoFactorEnabled?: boolean;
-      };
-      const updateData: UserUpdateData = {
+      const updateData: Partial<User> & { [key: string]: any } = {
         password: hashedPassword,
       };
       if (updatePasswordChangedAt) {
@@ -534,8 +539,6 @@ export class MongoUserRepository implements IUserRepository {
       if (!userDoc || !userDoc.password) {
         return false;
       }
-
-      // Use the model's comparePassword method
       return await userDoc.comparePassword(password);
     } catch (error) {
       this.log.error({ error, userId }, 'Error in verifyPassword');
@@ -736,7 +739,6 @@ export class MongoUserRepository implements IUserRepository {
     try {
       const queryBuilder = this.buildUserQuery(filters, options);
       const query = queryBuilder.build();
-      // Normaliser pagination pour s'assurer que limit et page sont présents
       const pagination: PaginationOptions = {
         limit: query.pagination.limit ?? 50,
         page: query.pagination.page ?? 1,
@@ -776,7 +778,6 @@ export class MongoUserRepository implements IUserRepository {
       builder.whereIn('roles', filters.roles);
     }
     if (filters.status) {
-      // byStatus attend un string, mais filters.status peut être un array
       if (Array.isArray(filters.status)) {
         builder.whereIn('status', filters.status);
       } else {
@@ -838,23 +839,19 @@ export class MongoUserRepository implements IUserRepository {
    * This handles _id/id normalization, field mapping, booleans, role defaults, etc.
    */
   private mapToUser(doc: Document): User {
-    if (!doc) return doc;
+    if (!doc) return doc as any;
 
-    // _id handling: Accept either native ObjectId, string, etc.
     let idStr: string | undefined = undefined;
     if (doc['_id'] && typeof doc['_id'].toString === 'function') {
       idStr = doc['_id'].toString();
     } else if (typeof doc['_id'] === 'string') {
       idStr = doc['_id'];
     }
-
-    if (!idStr) {
-      throw new Error('Unable to extract _id from document');
-    }
+    if (!idStr) throw new Error('Unable to extract _id from document');
 
     return {
       _id: idStr,
-      id: idStr ?? doc['id'],
+      id: idStr ?? (doc as any)['id'],
       email: doc['email'],
       firstName: doc['firstName'],
       lastName: doc['lastName'],
@@ -868,7 +865,7 @@ export class MongoUserRepository implements IUserRepository {
         doc['emailVerified'] !== undefined
           ? doc['emailVerified']
           : doc['isEmailVerified'] ?? false,
-      kycStatus: doc['kycStatus'] || 'PENDING', // TODO: Créer KYC_STATUSES constant
+      kycStatus: doc['kycStatus'] || KYC_STATUSES.PENDING,
       createdAt: doc['createdAt'],
       updatedAt: doc['updatedAt'],
       ...doc,

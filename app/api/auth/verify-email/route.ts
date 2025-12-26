@@ -34,6 +34,15 @@ export async function POST(request: NextRequest) {
       decoded = jwt.verify(token, process.env['JWT_SECRET']!) as any;
     } catch (_error) {
       logger.error({ error: _error }, 'Error verifying email');
+
+      // Enregistrer les métriques d'échec (token invalide/expiré)
+      monitoringManager.recordMetric({
+        name: 'auth_email_verifications_failed',
+        value: 1,
+        timestamp: new Date(),
+        type: 'counter',
+      });
+
       return NextResponse.json(
         { error: 'Token invalide ou expiré', reason: 'expired' },
         { status: 400 },

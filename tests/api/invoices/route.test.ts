@@ -18,6 +18,27 @@ import { GET as GET_DOWNLOAD } from '@/app/api/invoices/[id]/download/route';
 import { POST as POST_SEND_EMAIL } from '@/app/api/invoices/[id]/send-email/route';
 import { NextRequest } from 'next/server';
 
+const { ApiErrors, ApiError } = vi.hoisted(() => {
+  class ApiError extends Error {
+    status: number;
+    statusCode: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.name = 'ApiError';
+      this.status = status;
+      this.statusCode = status;
+    }
+  }
+  const make = (status: number, message: string) => new ApiError(status, message) as any;
+  const ApiErrors = {
+    UNAUTHORIZED: make(401, 'Non autorisé'),
+    FORBIDDEN: make(403, 'Accès non autorisé'),
+    NOT_FOUND: make(404, 'Ressource non trouvée'),
+    VALIDATION_ERROR: (msg: string) => make(400, msg || 'Erreur de validation'),
+  };
+  return { ApiErrors, ApiError };
+});
+
 // Mock de auth
 vi.mock('@/auth', () => ({
   auth: vi.fn(),
@@ -84,17 +105,8 @@ vi.mock('@/lib/api/error-handler', () => ({
     }
   }),
   validateBody: vi.fn((body) => body),
-  ApiError: class ApiError extends Error {
-    constructor(public status: number, message: string) {
-      super(message);
-      this.name = 'ApiError';
-    }
-  },
-  ApiErrors: {
-    UNAUTHORIZED: new Error('Unauthorized'),
-    FORBIDDEN: new Error('Forbidden'),
-    NOT_FOUND: new Error('Not Found'),
-  },
+  ApiError,
+  ApiErrors,
 }));
 
 // Mock de createPaginatedResponse et createResourceResponse
@@ -460,7 +472,10 @@ describe('POST /api/invoices', () => {
       }),
     });
 
-    await expect(POST(request)).rejects.toThrow();
+    const response = await POST(request);
+    const data = await response.json();
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
   });
 });
 

@@ -17,6 +17,9 @@ import { UpdateBookingSchema, type UpdateBookingInput } from '@/lib/validations/
 import { bookingService } from '@/services/booking/booking.service';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
+import { DATABASE, ROLES } from '@/lib/constants';
+import { getMongoClient } from '@/lib/database/mongodb';
+import { ObjectId } from 'mongodb';
 
 /**
  * GET /api/bookings/[id] - Récupérer une réservation par ID
@@ -32,6 +35,11 @@ export async function GET(
   });
 
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
     // Gérer params qui peut être une Promise dans Next.js 15+
     const resolvedParams = await Promise.resolve(params);
     const bookingId = resolvedParams.id;
@@ -61,6 +69,40 @@ export async function GET(
     // Mapper le booking avec bookingMapper pour garantir un format cohérent
     const { bookingMapper } = await import('@/lib/mappers');
     const mappedBooking = bookingMapper.map(booking as any);
+
+    // Authorization: Admin -> ok ; Provider/Customer -> seulement leurs bookings ; CSM -> seulement portfolio
+    const roles = session.user.roles || [];
+    const isAdmin = roles.includes(ROLES.ADMIN) || roles.includes(ROLES.SUPERADMIN);
+    const isProvider = roles.includes(ROLES.PROVIDER);
+    const isCustomer = roles.includes(ROLES.CUSTOMER);
+    const isCSM = roles.includes(ROLES.CSM);
+
+    if (!isAdmin) {
+      const uid = session.user.id;
+      const providerId = (mappedBooking as any).providerId;
+      const requesterId = (mappedBooking as any).requesterId;
+
+      if (isProvider && providerId === uid) {
+        // ok
+      } else if (isCustomer && requesterId === uid) {
+        // ok
+      } else if (isCSM) {
+        const client = await getMongoClient();
+        const db = client.db();
+        const users = db.collection(DATABASE.COLLECTIONS.USERS);
+        const csm = await users.findOne(
+          { _id: new ObjectId(uid) },
+          { projection: { csmPortfolioProviderIds: 1 } },
+        );
+        const ids =
+          (csm?.['csmPortfolioProviderIds'] as string[] | undefined) || [];
+        if (!providerId || !ids.includes(providerId)) {
+          return NextResponse.json({ error: 'Accès interdit' }, { status: 403 });
+        }
+      } else {
+        return NextResponse.json({ error: 'Accès interdit' }, { status: 403 });
+      }
+    }
 
     log.info(
       { bookingId, status: mappedBooking.status },
@@ -131,6 +173,13 @@ export async function PUT(
     if (!session?.user?.id) {
       log.warn({ msg: 'Unauthorized access attempt' });
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    const roles = session.user.roles || [];
+    const isAdmin = roles.includes(ROLES.ADMIN) || roles.includes(ROLES.SUPERADMIN);
+    const isCSM = roles.includes(ROLES.CSM);
+    if (isCSM && !isAdmin) {
+      return NextResponse.json({ error: 'Accès interdit' }, { status: 403 });
     }
 
     // Vérifier que l'ID est un ObjectId valide

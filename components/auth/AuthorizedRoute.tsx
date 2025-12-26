@@ -154,10 +154,89 @@ export default function AuthorizedRoute({
  */
 export function AdminRoute({ children, ...props }: Omit<AuthorizedRouteProps, 'roles'>) {
   return (
-    <AuthorizedRoute roles={[ROLES.ADMIN]} {...props}>
+    <AuthorizedRoute roles={[ROLES.ADMIN, ROLES.SUPERADMIN]} {...props}>
       {children}
     </AuthorizedRoute>
   );
+}
+
+/**
+ * Route Super Admin :
+ * - rôle explicite SUPERADMIN
+ * - ou compat legacy: ADMIN + plusieurs rôles (ancien "Super Admin")
+ */
+export function SuperAdminRoute({
+  children,
+  redirectTo,
+  fallback,
+  showError = true,
+}: Omit<AuthorizedRouteProps, 'roles' | 'permissions' | 'checkOwnership' | 'resourceOwnerId'>) {
+  const router = useRouter();
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  const userRoles = user?.roles || [];
+  const isExplicit = userRoles.includes(ROLES.SUPERADMIN);
+  const isLegacy = userRoles.includes(ROLES.ADMIN) && userRoles.length > 1;
+  const isAllowed = isExplicit || isLegacy;
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      router.push(redirectTo || '/login');
+      return;
+    }
+    if (!isAllowed && redirectTo) {
+      router.push(redirectTo);
+    }
+  }, [isLoading, isAuthenticated, isAllowed, redirectTo, router]);
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
+        <p className="mt-4 text-gray-600">Vérification des autorisations...</p>
+      </div>
+    );
+  }
+
+  if (!isAllowed && fallback) {
+    return <>{fallback}</>;
+  }
+
+  if (!isAllowed && showError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="mb-4">
+            <svg
+              className="mx-auto h-12 w-12 text-red-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Accès non autorisé</h1>
+          <p className="text-gray-600 mb-4">Accès refusé: Super Admin requis.</p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors"
+          >
+            Retour au tableau de bord
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAllowed) return null;
+  return <>{children}</>;
 }
 
 /**

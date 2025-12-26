@@ -10,7 +10,9 @@ import { getBookingRepository } from "@/repositories";
 import { serviceBookingFacade } from "@/facades";
 import { NextRequest } from "next/server";
 import { auth } from '@/auth';
-import { ROLES } from '@/lib/constants';
+import { DATABASE, ROLES } from '@/lib/constants';
+import { getMongoClient } from '@/lib/database/mongodb';
+import { ObjectId } from 'mongodb';
 
 // ---------------------------------------------
 // CONSTANTS
@@ -52,6 +54,7 @@ export async function GET(request: NextRequest) {
     const isAdmin = userRoles.includes(ROLES.ADMIN) || userRoles.includes(ROLES.SUPERADMIN);
     const isProvider = userRoles.includes(ROLES.PROVIDER);
     const isCustomer = userRoles.includes(ROLES.CUSTOMER);
+    const isCSM = userRoles.includes(ROLES.CSM);
     const userId = session.user.id;
 
     const { searchParams } = new URL(request.url);
@@ -101,6 +104,21 @@ export async function GET(request: NextRequest) {
       } else if (isCustomer) {
         // Customer uniquement : voir uniquement ses propres commandes (où il est le requester)
         bookingFilters["requesterId"] = userId;
+      } else if (isCSM) {
+        // CSM : voir uniquement les commandes liées aux providers de son portefeuille
+        const client = await getMongoClient();
+        const db = client.db();
+        const users = db.collection(DATABASE.COLLECTIONS.USERS);
+        const csm = await users.findOne(
+          { _id: new ObjectId(userId) },
+          { projection: { csmPortfolioProviderIds: 1 } },
+        );
+        const ids =
+          (csm?.['csmPortfolioProviderIds'] as string[] | undefined) || [];
+        if (ids.length === 0) {
+          return createPaginatedResponse([], { page: 1, limit: 50, total: 0 });
+        }
+        bookingFilters["providerIds"] = ids;
       } else {
         // Aucun rôle valide : refuser l'accès
         throw ApiErrors.FORBIDDEN;
@@ -108,7 +126,7 @@ export async function GET(request: NextRequest) {
       
       // SÉCURITÉ : S'assurer qu'un filtre est toujours appliqué pour les non-admins
       // Si aucun filtre n'est défini, c'est une erreur de sécurité
-      if (!bookingFilters["requesterId"] && !bookingFilters["providerId"]) {
+      if (!bookingFilters["requesterId"] && !bookingFilters["providerId"] && !bookingFilters["providerIds"]) {
         logger.warn(
           { userId, roles: userRoles, viewMode, isProvider, isCustomer },
           'No booking filter applied for non-admin user - security issue',
@@ -146,6 +164,9 @@ export async function GET(request: NextRequest) {
     }
     if (bookingFilters["providerId"]) {
       queryBuilder.byProvider(bookingFilters["providerId"]);
+    }
+    if (Array.isArray(bookingFilters["providerIds"])) {
+      queryBuilder.byProviders(bookingFilters["providerIds"]);
     }
     if (bookingFilters["status"]) {
       queryBuilder.byStatus(bookingFilters["status"] as ValidStatus);

@@ -88,6 +88,13 @@ export interface UserDocument extends Omit<Partial<User>, 'preferences' | '_id' 
   kycConsent?: boolean;
   kycStatus?: string;
 
+  /**
+   * Portefeuille CSM: liste des prestataires suivis par ce CSM (IDs provider).
+   * Aujourd'hui: utilisé pour restreindre la visibilité "CSM ne voit que son portefeuille".
+   * Demain: pourra être enrichi (zones) et supporter exclusivité/partage.
+   */
+  csmPortfolioProviderIds?: string[];
+
   // Sécurité
   password?: string;
   securityQuestion?: string;

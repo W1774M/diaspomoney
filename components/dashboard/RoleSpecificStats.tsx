@@ -43,7 +43,7 @@ const RoleSpecificStats = React.memo<RoleSpecificStatsProps>(function RoleSpecif
   const userRoles = user?.roles || [];
   const hasAdmin = userRoles.includes(ROLES.ADMIN);
   const hasMultipleRoles = userRoles.length > 1;
-  const isSuperAdmin = isAdmin() && hasAdmin && hasMultipleRoles;
+  const isSuperAdmin = userRoles.includes(ROLES.SUPERADMIN) || (isAdmin() && hasAdmin && hasMultipleRoles);
 
   // Récupérer les statistiques selon le rôle
   const customerStats = useCustomerStats({

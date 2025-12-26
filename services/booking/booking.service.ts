@@ -12,7 +12,7 @@ import {
 import { Audit } from '@/lib/decorators/audit.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
 import { Transaction } from '@/lib/decorators/transaction.decorator';
-import { BOOKING_STATUSES } from '@/lib/constants';
+import { BOOKING_STATUSES, DATABASE, ROLES } from '@/lib/constants';
 import { logger } from '@/lib/logger';
 import { Booking, getBookingRepository } from '@/repositories';
 import type { PaginatedFindResult } from '@/lib/types';
@@ -21,6 +21,8 @@ import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 import { createCheckoutSession } from '@/lib/stripe-checkout';
 import { sendPaymentLinkEmail } from '@/lib/email/resend';
+import { notificationService } from '@/services/notification/notification.service';
+import { cleanUrl } from '@/lib/utils';
 
 /**
  * BookingService refactoré utilisant le Repository Pattern
@@ -262,6 +264,130 @@ export class BookingService {
         metadata: data.metadata,
       } as Partial<Booking>);
 
+      // Notification provider (in-app): mission assignée
+      try {
+        const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+        const bookingsUrl = `${baseUrl}/dashboard/bookings`;
+        const providerName =
+          (data.metadata?.['providerName'] as string | undefined) || 'Prestataire';
+        const reservationNumber =
+          (booking as any).reservationNumber || booking.id?.slice(-8)?.toUpperCase() || booking._id?.toString?.() || '';
+        const serviceName =
+          (data.metadata?.['serviceLabel'] as string | undefined) ||
+          (booking as any).serviceId ||
+          'Service';
+
+        const apptDate = booking.appointmentDate
+          ? new Date(booking.appointmentDate).toLocaleDateString('fr-FR')
+          : 'à confirmer';
+        const apptTime =
+          (booking as any).timeslot ||
+          (booking.appointmentDate
+            ? new Date(booking.appointmentDate).toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : '');
+
+        await notificationService.sendNotification({
+          recipient: booking.providerId,
+          type: 'PROVIDER_BOOKING_ASSIGNED',
+          template: 'provider_booking_assigned',
+          data: {
+            providerName,
+            reservationNumber,
+            serviceName,
+            appointmentDate: apptDate,
+            appointmentTime: apptTime,
+            bookingsUrl,
+          },
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
+          locale: 'fr',
+          priority: 'HIGH',
+          userId: booking.providerId,
+        } as any);
+
+        // Notification CSM(s) (in-app): nouvelle réservation sur le portefeuille
+        try {
+          const { mongoClient } = await import('@/lib/mongodb');
+          const mClient = await mongoClient;
+          const db = mClient.db();
+          const users = db.collection(DATABASE.COLLECTIONS.USERS);
+
+          const csms = await users
+            .find(
+              {
+                roles: { $in: [ROLES.CSM] },
+                csmPortfolioProviderIds: booking.providerId,
+              },
+              { projection: { _id: 1 } },
+            )
+            .toArray();
+
+          if (csms.length > 0) {
+            const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+            const bookingsUrl = `${baseUrl}/dashboard/bookings`;
+
+            await Promise.all(
+              csms.map((csm: any) =>
+                notificationService.sendNotification({
+                  recipient: csm._id.toString(),
+                  type: 'CSM_BOOKING_CREATED',
+                  template: 'csm_booking_created',
+                  data: {
+                    reservationNumber,
+                    providerName,
+                    serviceName,
+                    appointmentDate: apptDate,
+                    appointmentTime: apptTime,
+                    bookingsUrl,
+                  },
+                  channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+                  locale: 'fr',
+                  priority: 'MEDIUM',
+                  userId: csm._id.toString(),
+                } as any),
+              ),
+            );
+          }
+        } catch (csmError) {
+          logger.warn(
+            { error: csmError, bookingId: booking.id },
+            'Failed to notify CSM portfolio for booking creation',
+          );
+        }
+
+        // Programmer un rappel in-app 24h avant si appointmentDate existe
+        if (booking.appointmentDate) {
+          const scheduledAt = new Date(
+            new Date(booking.appointmentDate).getTime() - 24 * 60 * 60 * 1000,
+          );
+          await notificationService.sendNotification({
+            recipient: booking.providerId,
+            type: 'PROVIDER_BOOKING_REMINDER',
+            template: 'provider_booking_reminder',
+            data: {
+              providerName,
+              reservationNumber,
+              serviceName,
+              appointmentDate: apptDate,
+              appointmentTime: apptTime,
+              bookingsUrl,
+            },
+            channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+            locale: 'fr',
+            priority: 'MEDIUM',
+            scheduledAt,
+            expiresAt: new Date(
+              new Date(booking.appointmentDate).getTime() + 6 * 60 * 60 * 1000,
+            ),
+            userId: booking.providerId,
+          } as any);
+        }
+      } catch (notifError) {
+        logger.warn({ error: notifError, bookingId: booking.id }, 'Failed to notify provider for booking creation');
+      }
+
       return booking;
     } catch (error) {
       logger.error({ error, data }, 'Erreur createBooking');
@@ -355,6 +481,99 @@ export class BookingService {
         'Booking updated successfully',
       );
 
+      // Notification provider (in-app): mission mise à jour / (ré)assignée
+      try {
+        const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+        const bookingsUrl = `${baseUrl}/dashboard/bookings`;
+        const providerId = (updatedBooking as any).providerId || (existingBooking as any).providerId;
+        if (providerId) {
+          const providerName =
+            (updatedBooking.metadata?.['providerName'] as string | undefined) ||
+            (data.metadata?.['providerName'] as string | undefined) ||
+            'Prestataire';
+          const reservationNumber =
+            (updatedBooking as any).reservationNumber ||
+            (existingBooking as any).reservationNumber ||
+            id.slice(-8).toUpperCase();
+          const serviceName =
+            (updatedBooking.metadata?.['serviceLabel'] as string | undefined) ||
+            (existingBooking.metadata?.['serviceLabel'] as string | undefined) ||
+            (updatedBooking as any).serviceId ||
+            'Service';
+
+          const appointmentDateValue =
+            (updatedBooking as any).appointmentDate || (existingBooking as any).appointmentDate;
+          const apptDate = appointmentDateValue
+            ? new Date(appointmentDateValue).toLocaleDateString('fr-FR')
+            : 'à confirmer';
+          const apptTime =
+            (updatedBooking as any).timeslot ||
+            (existingBooking as any).timeslot ||
+            (appointmentDateValue
+              ? new Date(appointmentDateValue).toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : '');
+
+          const wasReassigned =
+            typeof (data as any).providerId === 'string' &&
+            (data as any).providerId &&
+            (data as any).providerId !== (existingBooking as any).providerId;
+
+          await notificationService.sendNotification({
+            recipient: wasReassigned ? (data as any).providerId : providerId,
+            type: wasReassigned ? 'PROVIDER_BOOKING_ASSIGNED' : 'PROVIDER_BOOKING_UPDATED',
+            template: wasReassigned ? 'provider_booking_assigned' : 'provider_booking_updated',
+            data: {
+              providerName,
+              reservationNumber,
+              serviceName,
+              appointmentDate: apptDate,
+              appointmentTime: apptTime,
+              bookingsUrl,
+            },
+            channels: [{ type: 'IN_APP', enabled: true, priority: wasReassigned ? 'HIGH' : 'MEDIUM' }],
+            locale: 'fr',
+            priority: wasReassigned ? 'HIGH' : 'MEDIUM',
+            userId: wasReassigned ? (data as any).providerId : providerId,
+          } as any);
+
+          // Reprogrammer un rappel 24h avant si appointmentDate a changé
+          const appointmentChanged =
+            (data as any).appointmentDate &&
+            String((data as any).appointmentDate) !== String((existingBooking as any).appointmentDate);
+          if (appointmentChanged && (data as any).appointmentDate) {
+            const newAppt = new Date((data as any).appointmentDate);
+            const scheduledAt = new Date(newAppt.getTime() - 24 * 60 * 60 * 1000);
+            await notificationService.sendNotification({
+              recipient: wasReassigned ? (data as any).providerId : providerId,
+              type: 'PROVIDER_BOOKING_REMINDER',
+              template: 'provider_booking_reminder',
+              data: {
+                providerName,
+                reservationNumber,
+                serviceName,
+                appointmentDate: newAppt.toLocaleDateString('fr-FR'),
+                appointmentTime: newAppt.toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+                bookingsUrl,
+              },
+              channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+              locale: 'fr',
+              priority: 'MEDIUM',
+              scheduledAt,
+              expiresAt: new Date(newAppt.getTime() + 6 * 60 * 60 * 1000),
+              userId: wasReassigned ? (data as any).providerId : providerId,
+            } as any);
+          }
+        }
+      } catch (notifError) {
+        logger.warn({ error: notifError, bookingId: id }, 'Failed to notify provider for booking update');
+      }
+
       return updatedBooking;
     } catch (error) {
       logger.error({ error, id, updateData: data }, 'Erreur updateBooking');
@@ -430,6 +649,102 @@ export class BookingService {
       const cancelledBooking = await this.bookingRepository.findById(id);
       if (!cancelledBooking) {
         throw new Error('Réservation non trouvée après annulation');
+      }
+
+      // Notification provider (in-app): mission annulée
+      try {
+        const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+        const bookingsUrl = `${baseUrl}/dashboard/bookings`;
+        const providerName =
+          (cancelledBooking.metadata?.['providerName'] as string | undefined) || 'Prestataire';
+        const reservationNumber =
+          (cancelledBooking as any).reservationNumber || id.slice(-8).toUpperCase();
+        const serviceName =
+          (cancelledBooking.metadata?.['serviceLabel'] as string | undefined) ||
+          (cancelledBooking as any).serviceId ||
+          'Service';
+
+        const apptDate = cancelledBooking.appointmentDate
+          ? new Date(cancelledBooking.appointmentDate).toLocaleDateString('fr-FR')
+          : 'à confirmer';
+        const apptTime =
+          (cancelledBooking as any).timeslot ||
+          (cancelledBooking.appointmentDate
+            ? new Date(cancelledBooking.appointmentDate).toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : '');
+
+        await notificationService.sendNotification({
+          recipient: cancelledBooking.providerId,
+          type: 'PROVIDER_BOOKING_CANCELLED',
+          template: 'provider_booking_cancelled',
+          data: {
+            providerName,
+            reservationNumber,
+            serviceName,
+            appointmentDate: apptDate,
+            appointmentTime: apptTime,
+            bookingsUrl,
+          },
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
+          locale: 'fr',
+          priority: 'HIGH',
+          userId: cancelledBooking.providerId,
+        } as any);
+
+        // Notification CSM(s) (in-app): annulation sur le portefeuille
+        try {
+          const { mongoClient } = await import('@/lib/mongodb');
+          const mClient = await mongoClient;
+          const db = mClient.db();
+          const users = db.collection(DATABASE.COLLECTIONS.USERS);
+
+          const csms = await users
+            .find(
+              {
+                roles: { $in: [ROLES.CSM] },
+                csmPortfolioProviderIds: cancelledBooking.providerId,
+              },
+              { projection: { _id: 1 } },
+            )
+            .toArray();
+
+          if (csms.length > 0) {
+            const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+            const bookingsUrl = `${baseUrl}/dashboard/bookings`;
+
+            await Promise.all(
+              csms.map((csm: any) =>
+                notificationService.sendNotification({
+                  recipient: csm._id.toString(),
+                  type: 'CSM_BOOKING_CANCELLED',
+                  template: 'csm_booking_cancelled',
+                  data: {
+                    reservationNumber,
+                    providerName,
+                    serviceName,
+                    appointmentDate: apptDate,
+                    appointmentTime: apptTime,
+                    bookingsUrl,
+                  },
+                  channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
+                  locale: 'fr',
+                  priority: 'HIGH',
+                  userId: csm._id.toString(),
+                } as any),
+              ),
+            );
+          }
+        } catch (csmError) {
+          logger.warn(
+            { error: csmError, bookingId: id },
+            'Failed to notify CSM portfolio for booking cancellation',
+          );
+        }
+      } catch (notifError) {
+        logger.warn({ error: notifError, bookingId: id }, 'Failed to notify provider for booking cancellation');
       }
 
       return cancelledBooking;

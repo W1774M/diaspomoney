@@ -8,6 +8,8 @@
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import { GET, POST } from '@/app/api/transactions/route';
 import { NextRequest } from 'next/server';
+import { ObjectId, type MongoClient } from 'mongodb';
+import { DATABASE } from '@/lib/constants';
 
 // Mock de auth pour les tests d'intégration
 vi.mock('@/auth', () => ({
@@ -15,6 +17,8 @@ vi.mock('@/auth', () => ({
 }));
 
 describe('Integration: /api/transactions', () => {
+  let userObjectId: ObjectId;
+
   beforeAll(() => {
     // Vérifier que MongoDB est disponible
     if (!process.env['MONGODB_URI']) {
@@ -23,11 +27,30 @@ describe('Integration: /api/transactions', () => {
   });
 
   beforeEach(async () => {
+    userObjectId = new ObjectId();
+
     // Mock par défaut pour tous les tests
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValue({
-      user: { id: 'test-user-id', roles: ['CUSTOMER'] },
+      user: { id: userObjectId.toString(), roles: ['CUSTOMER'] },
     } as any);
+
+    // Seed un user minimal (TransactionService vérifie le profil du payerId)
+    const client = (globalThis as any).__DIASPOMONEY_TEST_MONGO__ as MongoClient | undefined;
+    if (client) {
+      const db = client.db(process.env['MONGODB_DB']);
+      await db.collection(DATABASE.COLLECTIONS.USERS).insertOne({
+        _id: userObjectId,
+        email: `integration-${userObjectId.toString()}@example.com`,
+        name: 'Integration User',
+        firstName: 'Integration',
+        lastName: 'User',
+        roles: ['CUSTOMER'],
+        status: 'ACTIVE',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
   });
 
   afterAll(() => {
@@ -44,7 +67,8 @@ describe('Integration: /api/transactions', () => {
       const data = await response.json();
       expect(data.success).toBe(true);
       expect(Array.isArray(data.data)).toBe(true);
-      expect(data.pagination).toBeDefined();
+      // La route utilise createListResponse (pas de pagination), avec metadata.count
+      expect(data.metadata?.count).toBeDefined();
     });
 
     it('devrait appliquer les filtres de type', async () => {
@@ -87,11 +111,13 @@ describe('Integration: /api/transactions', () => {
   describe('POST /api/transactions', () => {
     it('devrait créer une transaction dans la base de données', async () => {
       const transactionData = {
-        userId: 'test-user-id',
-        type: 'PAYMENT',
+        // Le service vérifie aussi l'existence du bénéficiaire, on utilise donc un user seedé.
+        beneficiaryId: userObjectId.toString(),
         amount: 100,
         currency: 'EUR',
-        status: 'PENDING',
+        serviceType: 'HEALTH',
+        serviceId: 'test-service-id',
+        description: 'Transaction de test (integration)',
         metadata: {
           bookingId: 'test-booking-id',
         },
@@ -112,9 +138,11 @@ describe('Integration: /api/transactions', () => {
       
       const data = await response.json();
       expect(data.success).toBe(true);
-      if (data.transaction) {
-        expect(data.transaction.type).toBe(transactionData.type);
-        expect(data.transaction.amount).toBe(transactionData.amount);
+      expect(data.data).toBeDefined();
+      if (data.data) {
+        expect(data.data.amount).toBe(transactionData.amount);
+        expect(data.data.currency).toBe(transactionData.currency);
+        expect(data.data.serviceType).toBe(transactionData.serviceType);
       }
     });
   });

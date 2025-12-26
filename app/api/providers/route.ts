@@ -12,15 +12,18 @@
 ;
 
 import { ProviderQueryBuilder } from '@/builders';
-import { handleApiRoute, validateBody, validateQuery } from '@/lib/api/error-handler';
+import { auth } from '@/auth';
+import { handleApiRoute, validateBody, validateQuery, ApiErrors } from '@/lib/api/error-handler';
 import { createPaginatedResponse, createResourceResponse } from '@/lib/api/response';
-import { PROVIDER_CONSTANTS, USER_STATUSES } from '@/lib/constants/index';
+import { PROVIDER_CONSTANTS, USER_STATUSES, ROLES, DATABASE } from '@/lib/constants/index';
 import type { PaginationOptions, ProviderInfo, UserFilters, UserStatus } from '@/lib/types';
 import { CreateProviderSchema, ProviderFiltersSchema } from '@/lib/validations/provider.schema';
 import { getUserRepository } from '@/repositories';
 import { userService } from '@/services/user/user.service';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { ObjectId } from 'mongodb';
+import { getMongoClient } from '@/lib/database/mongodb';
 /**
  * GET /api/providers - Récupérer les providers
  * 
@@ -29,6 +32,15 @@ import { z } from 'zod';
  */
 export async function GET(request: NextRequest) {
   return handleApiRoute(request, async () => {
+    // Auth + authorization (CSM ne doit voir que son portefeuille)
+    const session = await auth();
+    const userId = session?.user?.id;
+    const userRoles = session?.user?.roles || [];
+    if (!userId) throw ApiErrors.UNAUTHORIZED;
+    const isAdmin = userRoles.includes(ROLES.ADMIN) || userRoles.includes(ROLES.SUPERADMIN);
+    const isCSM = userRoles.includes(ROLES.CSM);
+    if (!isAdmin && !isCSM) throw ApiErrors.FORBIDDEN;
+
     const { searchParams } = new URL(request.url);
 
     // Validation des paramètres de requête
@@ -48,8 +60,13 @@ export async function GET(request: NextRequest) {
     // Appliquer les filtres de base
     queryBuilder.providers(); // Filtrer uniquement les providers
     // Par défaut, ne récupérer que les providers ACTIFS
+    // Exception: status=ALL => ne pas filtrer par statut (utile pour un portefeuille CSM)
+    const requestedStatusRaw = (filters.status || '').trim().toUpperCase();
+    const shouldFilterStatus = requestedStatusRaw !== 'ALL';
     const status = (filters.status || USER_STATUSES.ACTIVE) as typeof USER_STATUSES[keyof typeof USER_STATUSES];
-    queryBuilder.byStatus(status);
+    if (shouldFilterStatus) {
+      queryBuilder.byStatus(status);
+    }
     if (filters.city) {
       queryBuilder.byCity(filters.city);
     }
@@ -65,6 +82,23 @@ export async function GET(request: NextRequest) {
     const query = queryBuilder.getFilters();
     const sort = queryBuilder.getSort();
     const pagination = queryBuilder.getPagination();
+
+    // Si CSM: restreindre aux providers de son portefeuille
+    if (isCSM) {
+      const client = await getMongoClient();
+      const db = client.db();
+      const users = db.collection(DATABASE.COLLECTIONS.USERS);
+      const csm = await users.findOne(
+        { _id: new ObjectId(userId) },
+        { projection: { csmPortfolioProviderIds: 1 } },
+      );
+      const ids = (csm?.['csmPortfolioProviderIds'] as string[] | undefined) || [];
+      if (ids.length === 0) {
+        return createPaginatedResponse([], { page: 1, limit, total: 0 });
+      }
+      // Injecter le filtre _id (ObjectId) dans la requête Mongo
+      query['_id'] = { $in: ids.map((id) => new ObjectId(id)) };
+    }
 
     // Utiliser le repository avec les filtres du builder
     const userRepository = getUserRepository();
@@ -87,11 +121,13 @@ export async function GET(request: NextRequest) {
     if (role) {
       serviceFilters.role = role;
     }
-    // Par défaut, ne récupérer que les providers ACTIFS
+    // Par défaut, ne récupérer que les providers ACTIFS (status=ALL => pas de filtre statut)
     const statusForService = filters.status || USER_STATUSES.ACTIVE;
-    serviceFilters.status = Array.isArray(statusForService)
-      ? (statusForService as any[]).map(s => s as any) as UserStatus[]
-      : [statusForService as any] as UserStatus[];
+    if (((statusForService as any) || '').toString().trim().toUpperCase() !== 'ALL') {
+      serviceFilters.status = Array.isArray(statusForService)
+        ? (statusForService as any[]).map(s => s as any) as UserStatus[]
+        : [statusForService as any] as UserStatus[];
+    }
     if (limit !== undefined) {
       serviceFilters.limit = limit;
     }
@@ -103,6 +139,17 @@ export async function GET(request: NextRequest) {
     // Appliquer les filtres supplémentaires côté serveur si nécessaire
     // Utiliser les données du repository (plus complètes) ou du service (fallback)
     let filteredProviders: ProviderInfo[] = (result?.data || serviceResult?.data || []) as ProviderInfo[];
+
+    // Re-filtrer en sécurité côté application pour CSM (au cas où le fallback serviceResult contiendrait plus)
+    if (isCSM) {
+      const portfolioSet = new Set(
+        (query['_id']?.$in || []).map((x: any) => x.toString()),
+      );
+      filteredProviders = filteredProviders.filter((p: any) => {
+        const id = p?.id || p?._id?.toString?.();
+        return id && portfolioSet.has(String(id));
+      });
+    }
 
     // Filtrage par catégorie (si les prestataires ont une propriété category)
     if (filters.category) {

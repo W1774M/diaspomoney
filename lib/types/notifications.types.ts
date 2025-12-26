@@ -56,6 +56,11 @@ export interface NotificationData {
   channels: NotificationChannel[];
   locale: string;
   priority: NotificationPriority;
+  /**
+   * Optionnel: permet de renseigner explicitement l'utilisateur lié à la notification
+   * (utile quand recipient est un email).
+   */
+  userId?: string;
   scheduledAt?: Date;
   expiresAt?: Date;
 }

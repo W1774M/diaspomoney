@@ -59,10 +59,13 @@ export class NotificationService {
   private isForcedEmailType(type: string): boolean {
     const t = (type || '').toUpperCase();
     return (
-      t === 'PAYMENT_SUCCESS' ||
-      t === 'PAYMENT_REFUNDED' ||
-      t === 'PAYMENT_FAILED' ||
-      t.startsWith('KYC_')
+      // Argent / transactionnel (y compris variantes PROVIDER_*)
+      t.includes('PAYMENT_') ||
+      // KYC / conformité (y compris variantes PROVIDER_*)
+      t.includes('KYC_') ||
+      // Sécurité
+      t.startsWith('LOGIN_') ||
+      t.includes('SECURITY_')
     );
   }
 
@@ -679,6 +682,166 @@ export class NotificationService {
             'Bonjour, vous vous êtes connecté avec succès à votre compte DiaspoMoney le {{timestamp}}. Si ce n\'était pas vous, veuillez contacter {{supportEmail}} immédiatement.',
           variables: ['email', 'timestamp', 'supportEmail'],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'LOW' }, { type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        provider_booking_assigned: {
+          _id: 'provider_booking_assigned',
+          id: 'provider_booking_assigned',
+          name: 'provider_booking_assigned',
+          subject: 'Nouvelle mission assignée - {{serviceName}}',
+          content:
+            'Bonjour {{providerName}},\n\nUne nouvelle mission vous a été assignée.\n\n- Réservation: {{reservationNumber}}\n- Service: {{serviceName}}\n- Date: {{appointmentDate}}\n- Heure: {{appointmentTime}}\n\nAccédez à vos réservations: {{bookingsUrl}}',
+          variables: [
+            'providerName',
+            'reservationNumber',
+            'serviceName',
+            'appointmentDate',
+            'appointmentTime',
+            'bookingsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        provider_booking_updated: {
+          _id: 'provider_booking_updated',
+          id: 'provider_booking_updated',
+          name: 'provider_booking_updated',
+          subject: 'Mission mise à jour - {{reservationNumber}}',
+          content:
+            'Bonjour {{providerName}},\n\nUne mission a été mise à jour.\n\n- Réservation: {{reservationNumber}}\n- Service: {{serviceName}}\n- Date: {{appointmentDate}}\n- Heure: {{appointmentTime}}\n\nVoir les détails: {{bookingsUrl}}',
+          variables: [
+            'providerName',
+            'reservationNumber',
+            'serviceName',
+            'appointmentDate',
+            'appointmentTime',
+            'bookingsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        provider_booking_cancelled: {
+          _id: 'provider_booking_cancelled',
+          id: 'provider_booking_cancelled',
+          name: 'provider_booking_cancelled',
+          subject: 'Mission annulée - {{reservationNumber}}',
+          content:
+            'Bonjour {{providerName}},\n\nLa mission {{reservationNumber}} a été annulée.\n\nService: {{serviceName}}\nDate: {{appointmentDate}} {{appointmentTime}}\n\nConsultez vos réservations: {{bookingsUrl}}',
+          variables: [
+            'providerName',
+            'reservationNumber',
+            'serviceName',
+            'appointmentDate',
+            'appointmentTime',
+            'bookingsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        provider_booking_reminder: {
+          _id: 'provider_booking_reminder',
+          id: 'provider_booking_reminder',
+          name: 'provider_booking_reminder',
+          subject: 'Rappel mission - {{reservationNumber}}',
+          content:
+            'Bonjour {{providerName}},\n\nRappel: vous avez une mission à venir.\n\n- Réservation: {{reservationNumber}}\n- Service: {{serviceName}}\n- Date: {{appointmentDate}}\n- Heure: {{appointmentTime}}\n\nVoir vos réservations: {{bookingsUrl}}',
+          variables: [
+            'providerName',
+            'reservationNumber',
+            'serviceName',
+            'appointmentDate',
+            'appointmentTime',
+            'bookingsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        provider_complaint_created: {
+          _id: 'provider_complaint_created',
+          id: 'provider_complaint_created',
+          name: 'provider_complaint_created',
+          subject: 'Nouvelle réclamation - {{complaintNumber}}',
+          content:
+            'Bonjour,\n\nUne nouvelle réclamation a été créée.\n\n- Réclamation: {{complaintNumber}}\n- Titre: {{title}}\n- Type: {{type}}\n- Priorité: {{priority}}\n\n{{actionLine}}\n\nAccédez aux réclamations: {{complaintsUrl}}',
+          variables: [
+            'complaintNumber',
+            'title',
+            'type',
+            'priority',
+            'actionLine',
+            'complaintsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        csm_complaint_created: {
+          _id: 'csm_complaint_created',
+          id: 'csm_complaint_created',
+          name: 'csm_complaint_created',
+          subject: 'Conflit à suivre (portefeuille) - {{complaintNumber}}',
+          content:
+            'Bonjour,\n\nUn conflit/réclamation concerne un prestataire de votre portefeuille.\n\n- Réclamation: {{complaintNumber}}\n- Titre: {{title}}\n- Type: {{type}}\n- Priorité: {{priority}}\n\n{{actionLine}}\n\nOuvrir les réclamations: {{complaintsUrl}}',
+          variables: [
+            'complaintNumber',
+            'title',
+            'type',
+            'priority',
+            'actionLine',
+            'complaintsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        csm_booking_created: {
+          _id: 'csm_booking_created',
+          id: 'csm_booking_created',
+          name: 'csm_booking_created',
+          subject: 'Nouvelle réservation (portefeuille) - {{reservationNumber}}',
+          content:
+            'Bonjour,\n\nUne nouvelle réservation concerne un prestataire de votre portefeuille.\n\n- Réservation: {{reservationNumber}}\n- Prestataire: {{providerName}}\n- Service: {{serviceName}}\n- Date: {{appointmentDate}} {{appointmentTime}}\n\nVoir les réservations: {{bookingsUrl}}',
+          variables: [
+            'reservationNumber',
+            'providerName',
+            'serviceName',
+            'appointmentDate',
+            'appointmentTime',
+            'bookingsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        csm_booking_cancelled: {
+          _id: 'csm_booking_cancelled',
+          id: 'csm_booking_cancelled',
+          name: 'csm_booking_cancelled',
+          subject: 'Réservation annulée (portefeuille) - {{reservationNumber}}',
+          content:
+            'Bonjour,\n\nUne réservation a été annulée sur votre portefeuille.\n\n- Réservation: {{reservationNumber}}\n- Prestataire: {{providerName}}\n- Service: {{serviceName}}\n- Date: {{appointmentDate}} {{appointmentTime}}\n\nVoir les réservations: {{bookingsUrl}}',
+          variables: [
+            'reservationNumber',
+            'providerName',
+            'serviceName',
+            'appointmentDate',
+            'appointmentTime',
+            'bookingsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
           locale,
           createdAt: new Date(),
           updatedAt: new Date(),

@@ -32,6 +32,8 @@ const CreateTransactionFacadeSchema = z.object({
   description: z.string().optional(),
   serviceId: z.string().optional(),
   serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']).optional(),
+  metadata: z.record(z.any()).optional(),
+  status: z.string().optional(),
   sendNotification: z.boolean().optional(),
 });
 

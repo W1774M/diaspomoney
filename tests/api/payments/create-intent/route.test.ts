@@ -11,6 +11,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '@/app/api/payments/create-intent/route';
 import { NextRequest } from 'next/server';
 
+const { ApiErrors, ApiError } = vi.hoisted(() => {
+  class ApiError extends Error {
+    status: number;
+    statusCode: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.name = 'ApiError';
+      this.status = status;
+      this.statusCode = status;
+    }
+  }
+  const make = (status: number, message: string) => new ApiError(status, message) as any;
+  const ApiErrors = {
+    UNAUTHORIZED: make(401, 'Non autorisé'),
+    FORBIDDEN: make(403, 'Accès non autorisé'),
+    NOT_FOUND: make(404, 'Ressource non trouvée'),
+    VALIDATION_ERROR: (msg: string) => make(400, msg || 'Erreur de validation'),
+  };
+  return { ApiErrors, ApiError };
+});
+
 // Mock de auth
 vi.mock('@/auth', () => ({
   auth: vi.fn(),
@@ -26,13 +47,26 @@ vi.mock('@/services/payment/payment.service.strategy', () => ({
 // Mock de handleApiRoute
 vi.mock('@/lib/api/error-handler', () => ({
   handleApiRoute: vi.fn(async (_request, handler) => {
-    const result = await handler();
-    return {
-      json: async () => result,
-      status: 200,
-    };
+    try {
+      const result = await handler();
+      return {
+        json: async () => result,
+        status: 200,
+      };
+    } catch (error: any) {
+      const status = error?.status || error?.statusCode || 500;
+      return {
+        json: async () => ({
+          success: false,
+          error: error?.message || 'Erreur interne du serveur',
+        }),
+        status,
+      };
+    }
   }),
   validateBody: vi.fn((body) => body),
+  ApiErrors,
+  ApiError,
 }));
 
 // Mock de childLogger
@@ -118,7 +152,7 @@ describe('POST /api/payments/create-intent', () => {
     vi.mocked(validateBody).mockImplementation((body) => {
       const bodyTyped = body as any;
       if (!bodyTyped.amount || bodyTyped.amount <= 0) {
-        throw new Error('Amount is required and must be positive');
+        throw ApiErrors.VALIDATION_ERROR('Amount is required and must be positive');
       }
       return body;
     });
@@ -134,7 +168,7 @@ describe('POST /api/payments/create-intent', () => {
     const response = await POST(request);
     const data = await response.json();
 
-    expect([400, 500]).toContain(response.status);
+    expect(response.status).toBe(400);
     expect(data.success).toBe(false);
   });
 

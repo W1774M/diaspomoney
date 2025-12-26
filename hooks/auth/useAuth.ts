@@ -269,7 +269,8 @@ export function useAuth() {
     await signOut();
   };
 
-  const isAdmin = () => user?.roles.includes(ROLES.ADMIN) || false;
+  const isAdmin = () =>
+    user?.roles.includes(ROLES.ADMIN) || user?.roles.includes(ROLES.SUPERADMIN) || false;
   const isProvider = () => user?.roles.includes(ROLES.PROVIDER) || false;
   const isCSM = () => user?.roles.includes(ROLES.CSM) || false;
   const isCustomer = () => user?.roles.includes(ROLES.CUSTOMER) || false;

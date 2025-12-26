@@ -74,7 +74,8 @@ describe('Integration: /api/invoices', () => {
   describe('POST /api/invoices', () => {
     it('devrait créer une facture dans la base de données', async () => {
       const invoiceData = {
-        clientId: 'test-client-id',
+        // Aligner le payload sur CreateInvoiceSchema (lib/validations/invoice.schema.ts)
+        customerId: 'test-customer-id',
         items: [
           {
             description: 'Service test',
@@ -83,6 +84,9 @@ describe('Integration: /api/invoices', () => {
           },
         ],
         dueDate: new Date(Date.now() + 86400000).toISOString(),
+        // Éviter les side-effects (email/notifications) en intégration
+        sendEmail: false,
+        sendNotification: false,
       };
 
       const request = new NextRequest('http://localhost:3000/api/invoices', {
@@ -100,8 +104,10 @@ describe('Integration: /api/invoices', () => {
       
       const data = await response.json();
       expect(data.success).toBe(true);
-      if (data.invoice) {
-        expect(data.invoice.clientId).toBe(invoiceData.clientId);
+      expect(data.data).toBeDefined();
+      if (data.data) {
+        // La route mappe customerId -> userId dans la facture
+        expect(data.data.userId).toBe(invoiceData.customerId);
       }
     });
   });

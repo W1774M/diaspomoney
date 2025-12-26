@@ -14,6 +14,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET, POST } from '@/app/api/complaints/route';
 import { NextRequest } from 'next/server';
 
+const { ApiErrors, ApiError } = vi.hoisted(() => {
+  class ApiError extends Error {
+    status: number;
+    statusCode: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.name = 'ApiError';
+      this.status = status;
+      this.statusCode = status;
+    }
+  }
+  const make = (status: number, message: string) => new ApiError(status, message) as any;
+  const ApiErrors = {
+    UNAUTHORIZED: make(401, 'Non autorisé'),
+    FORBIDDEN: make(403, 'Accès non autorisé'),
+    NOT_FOUND: make(404, 'Ressource non trouvée'),
+    VALIDATION_ERROR: (msg: string) => make(400, msg || 'Erreur de validation'),
+  };
+  return { ApiErrors, ApiError };
+});
+
 // Mock de auth
 vi.mock('@/auth', () => ({
   auth: vi.fn(),
@@ -112,17 +133,8 @@ vi.mock('@/lib/api/error-handler', () => ({
     }
   }),
   validateBody: vi.fn((body) => body),
-  ApiErrors: {
-    UNAUTHORIZED: new Error('Unauthorized'),
-    NOT_FOUND: new Error('Not Found'),
-  },
-  ApiError: class ApiError extends Error {
-    constructor(public status: number, message: string) {
-      super(message);
-      this.statusCode = status;
-    }
-    statusCode?: number;
-  },
+  ApiErrors,
+  ApiError,
 }));
 
 // Mock de createPaginatedResponse et createResourceResponse

@@ -15,6 +15,7 @@ import {
   UserSectionProps,
 } from '@/lib/types';
 import {
+  Activity,
   Bell,
   Book,
   Building,
@@ -72,10 +73,24 @@ function getAvailableDashboards(userRoles: string[] = []): Dashboard[] {
   }
 
   // Ajouter les dashboards selon l'ordre de priorité
+  const hasSuperAdmin = userRoles.includes(ROLES.SUPERADMIN);
   const hasAdmin = userRoles.includes(ROLES.ADMIN);
-  if (hasAdmin) {
+  if (hasSuperAdmin) {
     dashboards.push({
-      name: userRoles.length > 1 ? 'Super Admin' : 'Admin',
+      name: 'Super Admin',
+      href: '/dashboard/superadmin',
+      role: ROLES.SUPERADMIN,
+    });
+  } else if (hasAdmin && userRoles.length > 1) {
+    // Compat legacy : ADMIN + plusieurs rôles => Super Admin
+    dashboards.push({
+      name: 'Super Admin',
+      href: '/dashboard/superadmin',
+      role: ROLES.ADMIN,
+    });
+  } else if (hasAdmin) {
+    dashboards.push({
+      name: 'Admin',
       href: '/dashboard/admin',
       role: ROLES.ADMIN,
     });
@@ -423,6 +438,7 @@ function buildNavigationSections(
   isAuthorizedProvider: boolean,
   isAuthorizedCSM: boolean,
   isAuthorizedCustomer: boolean,
+  isAuthorizedSuperAdmin: boolean,
   unreadNotificationsCount?: number,
   pendingBookingsCount?: number,
   user?: any,
@@ -500,7 +516,7 @@ function buildNavigationSections(
         key: 'attachments',
         href: '/dashboard/messaging/attachments',
         icon: Paperclip,
-        show: false,
+        show: true,
       },
     ],
   };
@@ -568,7 +584,7 @@ function buildNavigationSections(
       key: 'providers',
       href: '/dashboard/providers',
       icon: User,
-      show: false,
+      show: true,
     });
 
     adminGestionItems.push({
@@ -576,6 +592,20 @@ function buildNavigationSections(
       key: 'services',
       href: '/dashboard/services',
       icon: Settings2,
+      show: true,
+    });
+  }
+
+  // ----------------------------
+  // SUPER ADMIN : Observabilité / plateforme
+  // ----------------------------
+  const superAdminItems: NavigationItem[] = [];
+  if (isAuthorizedSuperAdmin) {
+    superAdminItems.push({
+      name: "Santé & métriques",
+      key: "superadmin-health",
+      href: "/dashboard/superadmin",
+      icon: Activity,
       show: true,
     });
   }
@@ -590,6 +620,13 @@ function buildNavigationSections(
       key: 'providers',
       href: '/dashboard/providers',
       icon: User,
+      show: true,
+    });
+    csmGestionItems.push({
+      name: 'Mon portefeuille',
+      key: 'csm-portfolio',
+      href: '/dashboard/csm/portfolio',
+      icon: Users,
       show: true,
     });
   }
@@ -613,6 +650,13 @@ function buildNavigationSections(
     sections.push({
       title: 'ADMIN GESTION',
       items: adminGestionItems,
+    });
+  }
+
+  if (superAdminItems.some(item => item.show)) {
+    sections.push({
+      title: 'OUTILS SUPER ADMIN',
+      items: superAdminItems,
     });
   }
 
@@ -1057,10 +1101,13 @@ export default function Sidebar() {
   } = useAuth();
   
   // Utiliser useAuthorization pour les vérifications d'autorisation
-  const { isAuthorized: isAuthorizedAdmin } = useAuthorization({ roles: [ROLES.ADMIN] });
+  const { isAuthorized: isAuthorizedAdmin } = useAuthorization({
+    roles: [ROLES.ADMIN, ROLES.SUPERADMIN],
+  });
   const { isAuthorized: isAuthorizedCSM } = useAuthorization({ roles: [ROLES.CSM] });
   const { isAuthorized: isAuthorizedProvider } = useAuthorization({ roles: [ROLES.PROVIDER] });
   const { isAuthorized: isAuthorizedCustomer } = useAuthorization({ roles: [ROLES.CUSTOMER] });
+  const { isAuthorized: isAuthorizedSuperAdmin } = useAuthorization({ roles: [ROLES.SUPERADMIN] });
 
   const [isDashboardsExpanded, setIsDashboardsExpanded] = useState(false);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
@@ -1269,6 +1316,7 @@ export default function Sidebar() {
     isAuthorizedProvider,
     isAuthorizedCSM,
     isAuthorizedCustomer,
+    isAuthorizedSuperAdmin,
     unreadNotificationsCount,
     pendingBookingsCount,
     user,

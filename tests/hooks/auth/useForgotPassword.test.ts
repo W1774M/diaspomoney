@@ -193,5 +193,20 @@ describe('useForgotPassword', () => {
       body: JSON.stringify({ email: 'invalid-email' }),
     });
   });
+
+  it('devrait utiliser data.error si présent lors d\'une erreur', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: 'Email introuvable' }),
+    } as Response);
+
+    const { result } = renderHook(() => useForgotPassword());
+
+    await act(async () => {
+      await result.current.sendResetEmail('test@example.com');
+    });
+
+    expect(result.current.error).toBe('Email introuvable');
+  });
 });
 

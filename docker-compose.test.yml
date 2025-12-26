@@ -1,0 +1,20 @@
+services:
+  mongodb_test:
+    image: mongo:7
+    container_name: diaspomoney-mongodb-test
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_DATABASE: diaspomoney_test
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "mongodb://127.0.0.1:27017/diaspomoney_test", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - diaspomoney_mongo_test_data:/data/db
+
+volumes:
+  diaspomoney_mongo_test_data:
+
+

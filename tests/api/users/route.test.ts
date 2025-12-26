@@ -12,6 +12,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET, POST } from '@/app/api/users/route';
 import { NextRequest } from 'next/server';
 
+const { ApiErrors, ApiError } = vi.hoisted(() => {
+  class ApiError extends Error {
+    status: number;
+    statusCode: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.name = 'ApiError';
+      this.status = status;
+      this.statusCode = status;
+    }
+  }
+  const make = (status: number, message: string) => new ApiError(status, message) as any;
+  const ApiErrors = {
+    UNAUTHORIZED: make(401, 'Non autorisé'),
+    FORBIDDEN: make(403, 'Accès non autorisé'),
+    NOT_FOUND: make(404, 'Ressource non trouvée'),
+    VALIDATION_ERROR: (msg: string) => make(400, msg || 'Erreur de validation'),
+  };
+  return { ApiErrors, ApiError };
+});
+
 // Mock de userFacade
 vi.mock('@/facades', () => ({
   userFacade: {
@@ -52,18 +73,8 @@ vi.mock('@/lib/api/error-handler', () => ({
     });
     return result;
   }),
-  ApiError: class ApiError extends Error {
-    constructor(public status: number, message: string) {
-      super(message);
-      this.name = 'ApiError';
-    }
-  },
-  ApiErrors: {
-    UNAUTHORIZED: new Error('Unauthorized'),
-    FORBIDDEN: new Error('Forbidden'),
-    NOT_FOUND: new Error('Not Found'),
-    VALIDATION_ERROR: () => new Error('Validation Error'),
-  },
+  ApiError,
+  ApiErrors,
 }));
 
 describe('GET /api/users', () => {
@@ -189,6 +200,11 @@ describe('POST /api/users', () => {
   });
 
   it('devrait valider les données d\'entrée', async () => {
+    const { validateBody } = await import('@/lib/api/error-handler');
+    vi.mocked(validateBody).mockImplementation(() => {
+      throw ApiErrors.VALIDATION_ERROR('Email invalide');
+    });
+
     const request = new NextRequest('http://localhost:3000/api/users', {
       method: 'POST',
       body: JSON.stringify({

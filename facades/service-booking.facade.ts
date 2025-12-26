@@ -649,6 +649,12 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
                   paymentError: paymentStatus.error || 'Payment verification failed',
                 },
               } as any);
+
+              // Annuler la réservation si le paiement est invalide/échoué
+              await bookingService.updateBookingStatus(
+                bookingId,
+                BOOKING_STATUSES.CANCELLED,
+              );
               
               return {
                 success: false,

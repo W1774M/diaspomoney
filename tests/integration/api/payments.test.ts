@@ -16,6 +16,44 @@ vi.mock('@/auth', () => ({
   auth: vi.fn(),
 }));
 
+// Mock PaymentService (Stripe) : en intégration on veut une DB réelle,
+// mais on ne veut pas dépendre d'un vrai STRIPE_SECRET_KEY.
+vi.mock('@/services/payment/payment.service.strategy', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/payment/payment.service.strategy')>();
+
+  const mockInstance = {
+    createPaymentIntent: vi.fn(async (amount: number, currency: string, customerId: string, metadata: any) => ({
+      id: 'pi_test_mock_123',
+      clientSecret: 'pi_test_mock_123_secret_abc',
+      currency: currency.toLowerCase(),
+      amount,
+      status: 'requires_payment_method',
+      metadata: metadata || {},
+    })),
+    // Stubs pour les autres appels potentiels (Command/Facade)
+    processPayment: vi.fn(async () => ({
+      success: false,
+      error: 'Mock: processPayment not configured',
+    })),
+    confirmPaymentIntent: vi.fn(async () => ({
+      success: false,
+      error: 'Mock: confirmPaymentIntent not configured',
+    })),
+  };
+
+  class MockPaymentService {
+    static getInstance() {
+      return mockInstance as any;
+    }
+  }
+
+  return {
+    ...actual,
+    PaymentService: MockPaymentService as any,
+    paymentService: mockInstance as any,
+  };
+});
+
 describe('Integration: /api/payments', () => {
   beforeAll(() => {
     // Vérifier que MongoDB est disponible
@@ -61,10 +99,9 @@ describe('Integration: /api/payments', () => {
       expect([200, 201]).toContain(response.status);
       
       const data = await response.json();
-      expect(data.success).toBe(true);
-      if (data.clientSecret || data.paymentIntent) {
-        expect(data.clientSecret || data.paymentIntent.client_secret).toBeDefined();
-      }
+      // Cette route retourne un objet "brut" (handleApiRoute enveloppe juste en JSON)
+      expect(data.clientSecret).toBeDefined();
+      expect(data.paymentIntentId).toBeDefined();
     });
   });
 

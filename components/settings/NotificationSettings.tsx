@@ -27,6 +27,13 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
       "KYC_REQUIRED_REMINDER",
       "KYC_APPROVED",
       "KYC_REJECTED",
+      "PROVIDER_PAYMENT_SUCCESS",
+      "PROVIDER_PAYMENT_FAILED",
+      "PROVIDER_PAYMENT_REFUNDED",
+      "PROVIDER_KYC_REQUIRED_REMINDER",
+      "PROVIDER_KYC_APPROVED",
+      "PROVIDER_KYC_REJECTED",
+      "PROVIDER_SECURITY_LOGIN_ALERT",
     ]);
 
     const EMAIL_TYPES_CATALOG: Array<{
@@ -78,6 +85,46 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
         type: "WELCOME_EMAIL",
         label: "Bienvenue",
         description: "Email de bienvenue lors de la création du compte",
+      },
+      {
+        type: "PROVIDER_PAYMENT_SUCCESS",
+        label: "Provider - Paiement reçu (confirmé)",
+        description: "Confirmation d'encaissement côté prestataire",
+      },
+      {
+        type: "PROVIDER_PAYMENT_FAILED",
+        label: "Provider - Paiement échoué",
+        description: "Important si une action est nécessaire",
+      },
+      {
+        type: "PROVIDER_PAYMENT_REFUNDED",
+        label: "Provider - Remboursement",
+        description: "Ajustement financier lié à une mission",
+      },
+      {
+        type: "PROVIDER_KYC_REQUIRED_REMINDER",
+        label: "Provider - Rappel KYC (action requise)",
+        description: "Rappels J+1, J+2, J+7 tant que le KYC est en attente",
+      },
+      {
+        type: "PROVIDER_KYC_APPROVED",
+        label: "Provider - KYC approuvé",
+        description: "Confirmation de vérification d'identité",
+      },
+      {
+        type: "PROVIDER_KYC_REJECTED",
+        label: "Provider - KYC refusé",
+        description: "Rejet + prochaines étapes",
+      },
+      {
+        type: "PROVIDER_SECURITY_LOGIN_ALERT",
+        label: "Provider - Alerte sécurité (connexion)",
+        description: "Alerte de sécurité liée aux connexions",
+      },
+      {
+        type: "CSM_COMPLAINT_CREATED",
+        label: "CSM - Conflit/réclamation sur mon portefeuille",
+        description: "Email envoyé uniquement si priorité HIGH (sinon dashboard)",
       },
     ];
 

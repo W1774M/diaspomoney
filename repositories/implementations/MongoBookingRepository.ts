@@ -14,6 +14,7 @@ import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import { BOOKING_STATUSES } from '@/lib/constants';
 import { mongoClient } from '@/lib/mongodb';
+import { mapBookingToResponse } from '@/lib/mappers/booking.mapper';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
 import type {
@@ -650,8 +651,6 @@ export class MongoBookingRepository implements IBookingRepository {
    * Utilise maintenant le BookingMapper centralisé
    */
   private mapToBooking(doc: any): Booking {
-    // Import dynamique pour éviter les dépendances circulaires
-    const { mapBookingToResponse } = require('@/lib/mappers/booking.mapper');
     const mapped = mapBookingToResponse(doc);
     
     // Convertir les dates string en Date pour compatibilité avec l'interface Booking
@@ -664,10 +663,20 @@ export class MongoBookingRepository implements IBookingRepository {
       serviceId: mapped.serviceId,
       serviceType: mapped.serviceType,
       status: mapped.status,
-      timeslot: mapped.timeslot,
-      consultationMode: mapped.consultationMode,
-      recipient: mapped.recipient,
-      metadata: mapped.metadata,
+      // NOTE: avec `exactOptionalPropertyTypes`, une propriété optionnelle doit être ABSENTE
+      // si on n'a pas de valeur (pas `undefined`).
+      ...(mapped.timeslot ? { timeslot: mapped.timeslot } : {}),
+      ...(mapped.consultationMode ? { consultationMode: mapped.consultationMode } : {}),
+      ...(mapped.recipient
+        ? {
+            recipient: {
+              firstName: mapped.recipient.firstName ?? '',
+              lastName: mapped.recipient.lastName ?? '',
+              phone: mapped.recipient.phone ?? '',
+            },
+          }
+        : {}),
+      ...(mapped.metadata ? { metadata: mapped.metadata } : {}),
       createdAt: new Date(mapped.createdAt),
       updatedAt: new Date(mapped.updatedAt),
     };

@@ -13,6 +13,32 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET, POST } from '@/app/api/bookings/route';
 import { NextRequest } from 'next/server';
 
+// Mock de auth (GET /api/bookings exige une session)
+vi.mock('@/auth', () => ({
+  auth: vi.fn(),
+}));
+
+const { ApiErrors, ApiError } = vi.hoisted(() => {
+  class ApiError extends Error {
+    status: number;
+    statusCode: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.name = 'ApiError';
+      this.status = status;
+      this.statusCode = status;
+    }
+  }
+  const make = (status: number, message: string) => new ApiError(status, message) as any;
+  const ApiErrors = {
+    UNAUTHORIZED: make(401, 'Non autorisé'),
+    FORBIDDEN: make(403, 'Accès non autorisé'),
+    NOT_FOUND: make(404, 'Ressource non trouvée'),
+    VALIDATION_ERROR: (msg: string) => make(400, msg || 'Erreur de validation'),
+  };
+  return { ApiErrors, ApiError };
+});
+
 // Mock de serviceBookingFacade
 vi.mock('@/facades', () => ({
   serviceBookingFacade: {
@@ -65,39 +91,25 @@ vi.mock('@/lib/api/error-handler', () => ({
       };
     }
   }),
-  validateBody: vi.fn(async (body, schema) => {
-    // Simuler la validation Zod - lancer une erreur si requesterId est manquant
-    // Vérifier si le schéma est CreateBookingSchema en vérifiant si c'est un objet avec des méthodes Zod
+  validateBody: vi.fn((body, schema) => {
+    // IMPORTANT: la route utilise validateBody de manière SYNCHRONE
     if (schema && typeof schema === 'object' && 'parse' in schema) {
       try {
-        // Essayer de parser avec le schéma réel
-        const parsed = await (schema as any).parseAsync(body);
-        return parsed;
+        return (schema as any).parse(body);
       } catch (error: any) {
-        // Si la validation échoue, lancer une erreur de validation
-        const { ApiErrors } = await import('@/lib/api/error-handler');
-        throw ApiErrors.VALIDATION_ERROR(error.errors || [{ path: ['requesterId'], message: 'L\'ID du demandeur est requis' }]);
+        const issues = error?.issues || error?.errors;
+        throw ApiErrors.VALIDATION_ERROR(
+          typeof issues === 'string' ? issues : 'Erreur de validation',
+        );
       }
     }
-    // Si pas de schéma ou schéma simple, vérifier manuellement
     if (schema && !body.requesterId && !body.providerId) {
-      const { ApiErrors } = await import('@/lib/api/error-handler');
-      throw ApiErrors.VALIDATION_ERROR({ issues: [{ path: ['requesterId'], message: 'L\'ID du demandeur est requis' }, { path: ['providerId'], message: 'L\'ID du fournisseur est requis' }] });
+      throw ApiErrors.VALIDATION_ERROR('Erreur de validation');
     }
-    // Retourner le body tel quel pour permettre la construction de BookingFacadeData
     return body;
   }),
-  ApiError: class ApiError extends Error {
-    constructor(public status: number, message: string) {
-      super(message);
-      this.name = 'ApiError';
-    }
-  },
-  ApiErrors: {
-    UNAUTHORIZED: new Error('Unauthorized'),
-    FORBIDDEN: new Error('Forbidden'),
-    NOT_FOUND: new Error('Not Found'),
-  },
+  ApiError,
+  ApiErrors,
 }));
 
 // Mock de createPaginatedResponse et createResourceResponse
@@ -108,6 +120,7 @@ vi.mock('@/lib/api/response', () => ({
       data,
       pagination,
     }),
+    status: 200,
   })),
   createResourceResponse: vi.fn((data, options) => ({
     json: async () => ({
@@ -116,20 +129,21 @@ vi.mock('@/lib/api/response', () => ({
       ...(options?.message && { message: options.message }),
       ...(options?.metadata && { metadata: options.metadata }),
     }),
+    status: 200,
   })),
 }));
 
-// Mock de logger
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-  debug: vi.fn(),
-};
-
-vi.mock('@/lib/logger', () => ({
-  logger: mockLogger,
+// Mock de logger (hoisted car utilisé dans un factory vi.mock)
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
 }));
+
+vi.mock('@/lib/logger', () => ({ logger: mockLogger }));
 
 // Mock de initializeDI
 vi.mock('@/lib/di/initialize', () => ({
@@ -137,8 +151,12 @@ vi.mock('@/lib/di/initialize', () => ({
 }));
 
 describe('GET /api/bookings', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'admin123', roles: ['ADMIN'] },
+    } as any);
   });
 
   it('devrait récupérer les réservations avec succès', async () => {

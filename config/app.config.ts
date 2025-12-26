@@ -3,13 +3,13 @@
  * Utilise les constantes et types centralisés
  */
 
-import type { Environment, EnvironmentConfig } from '@/lib/types';
-import { API, DATABASE, ENVIRONMENTS } from '@/lib/constants';
+import type { EnvironmentConfig } from '@/lib/types';
+import { API, DATABASE } from '@/lib/constants';
 
 // === CONFIGURATION PAR ENVIRONNEMENT ===
-const environments: Record<Environment, EnvironmentConfig> = {
+const environments: Record<'development' | 'recette' | 'production', EnvironmentConfig> = {
   development: {
-    nodeEnv: ENVIRONMENTS.DEVELOPMENT as Environment,
+    nodeEnv: 'development' as any,
     appUrl: 'https://dev.diaspomoney.fr',
     apiUrl: 'https://dev.diaspomoney.fr/api',
     database: {
@@ -42,7 +42,7 @@ const environments: Record<Environment, EnvironmentConfig> = {
     },
   },
   recette: {
-    nodeEnv: ENVIRONMENTS.RECETTE as Environment,
+    nodeEnv: 'recette' as any,
     appUrl: 'https://rct.diaspomoney.fr',
     apiUrl: 'https://rct.diaspomoney.fr/api',
     database: {
@@ -75,7 +75,7 @@ const environments: Record<Environment, EnvironmentConfig> = {
     },
   },
   production: {
-    nodeEnv: ENVIRONMENTS.PRODUCTION as Environment,
+    nodeEnv: 'production' as any,
     appUrl: 'https://diaspomoney.fr',
     apiUrl: 'https://diaspomoney.fr/api',
     database: {
@@ -111,7 +111,13 @@ const environments: Record<Environment, EnvironmentConfig> = {
 
 // === FONCTION DE CONFIGURATION ===
 export function getConfig(): EnvironmentConfig {
-  const env = (process.env.NODE_ENV as Environment) || 'development';
+  // `process.env.NODE_ENV` est typé côté Node comme "development" | "production" | "test" (et n'inclut pas "recette").
+  // On valide donc l'env **au runtime** via les clés de `environments` pour éviter les comparaisons impossibles au type-check.
+  const envRaw = process.env.NODE_ENV;
+  const env: keyof typeof environments =
+    envRaw && Object.prototype.hasOwnProperty.call(environments, envRaw)
+      ? (envRaw as keyof typeof environments)
+      : 'development';
   return environments[env];
 }
 

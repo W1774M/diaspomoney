@@ -363,25 +363,36 @@ class AuthService {
         const errorMessage = facadeResult.error || 'Erreur lors de la création de l\'utilisateur';
         
         // Si c'est une erreur de duplication, enregistrer l'audit log spécifique
-        if (errorMessage.includes('existe déjà') || errorMessage.includes('duplicate')) {
-        await auditLogging.createAuditLog(
-          'REGISTER_FAILED',
-          'AUTH_SYSTEM',
-          {
-            email: data.email.toLowerCase(),
-            reason: 'email_already_exists',
-          },
-          {
-            category: 'AUTHENTICATION',
-            severity: 'LOW',
-            outcome: 'FAILURE',
-            ipAddress: options?.ipAddress || 'unknown',
-            userAgent: options?.userAgent || 'unknown',
-          },
-        );
+        const isDuplicateError = 
+          errorMessage.includes('existe déjà') || 
+          errorMessage.includes('duplicate') ||
+          errorMessage.includes('already exists') ||
+          facadeResult.errorCode === 'DUPLICATE_EMAIL';
+        
+        if (isDuplicateError) {
+          await auditLogging.createAuditLog(
+            'REGISTER_FAILED',
+            'AUTH_SYSTEM',
+            {
+              email: data.email.toLowerCase(),
+              reason: 'email_already_exists',
+            },
+            {
+              category: 'AUTHENTICATION',
+              severity: 'LOW',
+              outcome: 'FAILURE',
+              ipAddress: options?.ipAddress || 'unknown',
+              userAgent: options?.userAgent || 'unknown',
+            },
+          );
         }
         
-        throw new Error(errorMessage);
+        // Créer une erreur avec le message, en préservant les informations de duplication
+        const error = new Error(errorMessage);
+        if (isDuplicateError) {
+          (error as any).isDuplicate = true;
+        }
+        throw error;
       }
 
       const user = facadeResult.user;
@@ -462,6 +473,9 @@ class AuthService {
           id: user._id?.toString() || user.id,
           email: user.email,
           role: user.roles?.[0] || ROLES.CUSTOMER,
+          firstName: (user as any).firstName || undefined,
+          lastName: (user as any).lastName || undefined,
+          name: (user as any).name || undefined,
           isVerified: false,
           kycStatus: KYC_STATUSES.PENDING,
         },

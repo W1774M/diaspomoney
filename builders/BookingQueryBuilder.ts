@@ -22,6 +22,13 @@ export class BookingQueryBuilder extends QueryBuilder {
   }
 
   /**
+   * Filtrer par plusieurs providers (utile pour CSM portefeuille)
+   */
+  byProviders(providerIds: string[]): this {
+    return this.whereIn('providerId', providerIds);
+  }
+
+  /**
    * Filtrer par service
    */
   byService(serviceId: string): this {

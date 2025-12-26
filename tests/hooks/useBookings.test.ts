@@ -132,5 +132,61 @@ describe('useBookings', () => {
     );
     expect(result.current.total).toBe(50);
   });
+
+  it('devrait ne pas récupérer les réservations si enabled est false', async () => {
+    const { result } = renderHook(() => useBookings({ enabled: false }));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(result.current.bookings).toHaveLength(0);
+    expect(result.current.error).toBeNull();
+    expect(result.current.total).toBe(0);
+  });
+
+  it('devrait inclure providerId dans les paramètres de recherche', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: [],
+        pagination: { total: 0, page: 1, limit: 20 },
+      }),
+    } as Response);
+
+    const { result } = renderHook(() =>
+      useBookings({ providerId: 'provider123' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('providerId=provider123'),
+    );
+  });
+
+  it('devrait gérer les erreurs avec data.error', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: false,
+        error: 'Erreur personnalisée',
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useBookings());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.error).toBe('Erreur personnalisée');
+    expect(result.current.bookings).toHaveLength(0);
+    expect(result.current.total).toBe(0);
+  });
 });
 
