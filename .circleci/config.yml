@@ -22,7 +22,12 @@ jobs:
       PNPM_HOME: ~/.local/share/pnpm
       PATH: ~/.local/share/pnpm:$PATH
     steps:
-      - checkout
+      - run:
+          name: 🔧 Install SSH client
+          command: |
+            sudo apt-get update && sudo apt-get install -y openssh-client
+      - checkout:
+          path: ~/project
       - run:
           name: 📦 Install pnpm
           command: |
@@ -56,7 +61,12 @@ jobs:
       PNPM_HOME: ~/.local/share/pnpm
       PATH: ~/.local/share/pnpm:$PATH
     steps:
-      - checkout
+      - run:
+          name: 🔧 Install SSH client
+          command: |
+            sudo apt-get update && sudo apt-get install -y openssh-client
+      - checkout:
+          path: ~/project
       - run:
           name: 📦 Install pnpm
           command: |
@@ -138,7 +148,12 @@ jobs:
       PNPM_HOME: ~/.local/share/pnpm
       PATH: ~/.local/share/pnpm:$PATH
     steps:
-      - checkout
+      - run:
+          name: 🔧 Install SSH client
+          command: |
+            sudo apt-get update && sudo apt-get install -y openssh-client
+      - checkout:
+          path: ~/project
       - run:
           name: 📦 Install pnpm
           command: |
@@ -225,7 +240,12 @@ jobs:
       PNPM_HOME: ~/.local/share/pnpm
       PATH: ~/.local/share/pnpm:$PATH
     steps:
-      - checkout
+      - run:
+          name: 🔧 Install SSH client
+          command: |
+            sudo apt-get update && sudo apt-get install -y openssh-client
+      - checkout:
+          path: ~/project
       - run:
           name: 📦 Install pnpm
           command: |
@@ -257,7 +277,14 @@ jobs:
       image: ubuntu-2004:current
     resource_class: medium
     steps:
-      - checkout
+      - run:
+          name: 🔧 Install SSH client (if needed)
+          command: |
+            if ! command -v ssh &> /dev/null; then
+              sudo apt-get update && sudo apt-get install -y openssh-client
+            fi
+      - checkout:
+          path: ~/project
       - attach_workspace:
           at: ~/project
       - run:
@@ -297,7 +324,14 @@ jobs:
       image: ubuntu-2004:current
     resource_class: medium
     steps:
-      - checkout
+      - run:
+          name: 🔧 Install SSH client (if needed)
+          command: |
+            if ! command -v ssh &> /dev/null; then
+              sudo apt-get update && sudo apt-get install -y openssh-client
+            fi
+      - checkout:
+          path: ~/project
       - attach_workspace:
           at: ~/project
       - run:
@@ -337,7 +371,14 @@ jobs:
       image: ubuntu-2004:current
     resource_class: medium
     steps:
-      - checkout
+      - run:
+          name: 🔧 Install SSH client (if needed)
+          command: |
+            if ! command -v ssh &> /dev/null; then
+              sudo apt-get update && sudo apt-get install -y openssh-client
+            fi
+      - checkout:
+          path: ~/project
       - attach_workspace:
           at: ~/project
       - run:
