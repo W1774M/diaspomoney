@@ -17,15 +17,17 @@ jobs:
   # ============================================
   install-dependencies:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/base:stable
     environment:
       PNPM_HOME: ~/.local/share/pnpm
       PATH: ~/.local/share/pnpm:$PATH
     steps:
       - run:
-          name: 🔧 Install SSH client
+          name: 🔧 Install Node.js and pnpm dependencies
           command: |
-            sudo apt-get update && sudo apt-get install -y openssh-client
+            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+            apt-get install -y nodejs
+            node --version
       - checkout
       - run:
           name: 📦 Install pnpm
@@ -55,15 +57,17 @@ jobs:
   # ============================================
   tests:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/base:stable
     environment:
       PNPM_HOME: ~/.local/share/pnpm
       PATH: ~/.local/share/pnpm:$PATH
     steps:
       - run:
-          name: 🔧 Install SSH client
+          name: 🔧 Install Node.js
           command: |
-            sudo apt-get update && sudo apt-get install -y openssh-client
+            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+            apt-get install -y nodejs
+            node --version
       - checkout
       - run:
           name: 📦 Install pnpm
@@ -141,15 +145,17 @@ jobs:
   # ============================================
   coverage:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/base:stable
     environment:
       PNPM_HOME: ~/.local/share/pnpm
       PATH: ~/.local/share/pnpm:$PATH
     steps:
       - run:
-          name: 🔧 Install SSH client
+          name: 🔧 Install Node.js
           command: |
-            sudo apt-get update && sudo apt-get install -y openssh-client
+            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+            apt-get install -y nodejs
+            node --version
       - checkout
       - run:
           name: 📦 Install pnpm
@@ -232,15 +238,17 @@ jobs:
   # ============================================
   build:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/base:stable
     environment:
       PNPM_HOME: ~/.local/share/pnpm
       PATH: ~/.local/share/pnpm:$PATH
     steps:
       - run:
-          name: 🔧 Install SSH client
+          name: 🔧 Install Node.js
           command: |
-            sudo apt-get update && sudo apt-get install -y openssh-client
+            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+            apt-get install -y nodejs
+            node --version
       - checkout
       - run:
           name: 📦 Install pnpm
