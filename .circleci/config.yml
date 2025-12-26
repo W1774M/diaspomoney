@@ -26,8 +26,7 @@ jobs:
           name: 🔧 Install SSH client
           command: |
             sudo apt-get update && sudo apt-get install -y openssh-client
-      - checkout:
-          path: ~/project
+      - checkout
       - run:
           name: 📦 Install pnpm
           command: |
@@ -46,7 +45,7 @@ jobs:
             - ~/.pnpm-store
             - node_modules
       - persist_to_workspace:
-          root: ~/project
+          root: .
           paths:
             - node_modules
             - .pnpm-store
@@ -65,15 +64,14 @@ jobs:
           name: 🔧 Install SSH client
           command: |
             sudo apt-get update && sudo apt-get install -y openssh-client
-      - checkout:
-          path: ~/project
+      - checkout
       - run:
           name: 📦 Install pnpm
           command: |
             curl -fsSL https://get.pnpm.io/install.sh | sh -
             pnpm --version
       - attach_workspace:
-          at: ~/project
+          at: .
       - run:
           name: 🔍 Lint
           command: pnpm lint
@@ -152,8 +150,7 @@ jobs:
           name: 🔧 Install SSH client
           command: |
             sudo apt-get update && sudo apt-get install -y openssh-client
-      - checkout:
-          path: ~/project
+      - checkout
       - run:
           name: 📦 Install pnpm
           command: |
@@ -167,7 +164,7 @@ jobs:
           name: 📚 Install dependencies
           command: pnpm install --frozen-lockfile
       - attach_workspace:
-          at: ~/project
+          at: .
       - run:
           name: 🐳 Start MongoDB
           command: |
@@ -244,8 +241,7 @@ jobs:
           name: 🔧 Install SSH client
           command: |
             sudo apt-get update && sudo apt-get install -y openssh-client
-      - checkout:
-          path: ~/project
+      - checkout
       - run:
           name: 📦 Install pnpm
           command: |
@@ -259,7 +255,7 @@ jobs:
           name: 📚 Install dependencies
           command: pnpm install --frozen-lockfile
       - attach_workspace:
-          at: ~/project
+          at: .
       - run:
           name: 🏗️ Build application
           command: pnpm build
@@ -277,16 +273,9 @@ jobs:
       image: ubuntu-2004:current
     resource_class: medium
     steps:
-      - run:
-          name: 🔧 Install SSH client (if needed)
-          command: |
-            if ! command -v ssh &> /dev/null; then
-              sudo apt-get update && sudo apt-get install -y openssh-client
-            fi
-      - checkout:
-          path: ~/project
+      - checkout
       - attach_workspace:
-          at: ~/project
+          at: .
       - run:
           name: 🔧 Install kubectl
           command: |
@@ -324,16 +313,9 @@ jobs:
       image: ubuntu-2004:current
     resource_class: medium
     steps:
-      - run:
-          name: 🔧 Install SSH client (if needed)
-          command: |
-            if ! command -v ssh &> /dev/null; then
-              sudo apt-get update && sudo apt-get install -y openssh-client
-            fi
-      - checkout:
-          path: ~/project
+      - checkout
       - attach_workspace:
-          at: ~/project
+          at: .
       - run:
           name: 🔧 Install kubectl
           command: |
@@ -371,16 +353,9 @@ jobs:
       image: ubuntu-2004:current
     resource_class: medium
     steps:
-      - run:
-          name: 🔧 Install SSH client (if needed)
-          command: |
-            if ! command -v ssh &> /dev/null; then
-              sudo apt-get update && sudo apt-get install -y openssh-client
-            fi
-      - checkout:
-          path: ~/project
+      - checkout
       - attach_workspace:
-          at: ~/project
+          at: .
       - run:
           name: 🔧 Install kubectl
           command: |
