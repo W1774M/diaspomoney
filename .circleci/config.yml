@@ -2,7 +2,6 @@ version: 2.1
 
 # Orbs réutilisables
 orbs:
-  node: circleci/node@5.0.0
   docker: circleci/docker@2.0.0
 
 # Paramètres réutilisables
@@ -21,9 +20,23 @@ jobs:
       - image: cimg/node:20.0
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: pnpm
-          cache-version: v1
+      - run:
+          name: 📦 Install pnpm
+          command: |
+            npm install -g pnpm@10.18.3
+            pnpm --version
+      - restore_cache:
+          keys:
+            - v1-pnpm-{{ checksum "pnpm-lock.yaml" }}
+            - v1-pnpm-
+      - run:
+          name: 📚 Install dependencies
+          command: pnpm install --frozen-lockfile
+      - save_cache:
+          key: v1-pnpm-{{ checksum "pnpm-lock.yaml" }}
+          paths:
+            - ~/.pnpm-store
+            - node_modules
       - persist_to_workspace:
           root: ~/project
           paths:
@@ -112,6 +125,18 @@ jobs:
       - image: cimg/node:20.0
     steps:
       - checkout
+      - run:
+          name: 📦 Install pnpm
+          command: |
+            npm install -g pnpm@10.18.3
+            pnpm --version
+      - restore_cache:
+          keys:
+            - v1-pnpm-{{ checksum "pnpm-lock.yaml" }}
+            - v1-pnpm-
+      - run:
+          name: 📚 Install dependencies
+          command: pnpm install --frozen-lockfile
       - attach_workspace:
           at: ~/project
       - run:
@@ -184,6 +209,18 @@ jobs:
       - image: cimg/node:20.0
     steps:
       - checkout
+      - run:
+          name: 📦 Install pnpm
+          command: |
+            npm install -g pnpm@10.18.3
+            pnpm --version
+      - restore_cache:
+          keys:
+            - v1-pnpm-{{ checksum "pnpm-lock.yaml" }}
+            - v1-pnpm-
+      - run:
+          name: 📚 Install dependencies
+          command: pnpm install --frozen-lockfile
       - attach_workspace:
           at: ~/project
       - run:
