@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: jenkins
+  labels:
+    app: jenkins
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      serviceAccountName: jenkins
+      containers:
+      - name: jenkins
+        image: jenkins/jenkins:lts
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http-port
+        - containerPort: 50000
+          name: jnlp-port
+        env:
+        - name: JAVA_OPTS
+          value: "-Xmx2048m -Xms512m"
+        - name: JENKINS_OPTS
+          value: "--httpPort=8080"
+        volumeMounts:
+        - name: jenkins-home
+          mountPath: /var/jenkins_home
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+        - name: kubeconfig-dev
+          mountPath: /root/.kube/config-dev
+          subPath: config-dev
+          readOnly: true
+        - name: kubeconfig-rct
+          mountPath: /root/.kube/config-rct
+          subPath: config-rct
+          readOnly: true
+        - name: kubeconfig-prod
+          mountPath: /root/.kube/config-prod
+          subPath: config-prod
+          readOnly: true
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /login
+            port: 8080
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /login
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: jenkins-home
+        persistentVolumeClaim:
+          claimName: jenkins-pvc
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
+      - name: kubeconfig-dev
+        secret:
+          secretName: jenkins-kubeconfigs
+      - name: kubeconfig-rct
+        secret:
+          secretName: jenkins-kubeconfigs
+      - name: kubeconfig-prod
+        secret:
+          secretName: jenkins-kubeconfigs
+

@@ -24,7 +24,34 @@ Ce guide vous explique comment configurer CircleCI pour automatiser vos déploie
 4. Choisissez **"Use an existing config"** (le fichier `.circleci/config.yml` est déjà présent)
 5. Cliquez sur **"Start Building"**
 
-## 🔐 Étape 3 : Configurer les variables d'environnement
+## 🔐 Étape 3 : Configurer SSH pour le Checkout (IMPORTANT)
+
+**⚠️ Problème** : CircleCI essaie d'utiliser SSH pour cloner le repository, mais l'image `cimg/node:20.0` n'a pas le client SSH.
+
+**Solution** : Ajoutez votre clé SSH dans CircleCI Project Settings :
+
+1. **Récupérez votre clé SSH locale** :
+```bash
+cat ~/.ssh/id_rsa  # ou id_ed25519
+```
+
+2. **Vérifiez que la clé publique est sur GitHub** :
+```bash
+cat ~/.ssh/id_rsa.pub
+```
+   - Vérifiez que cette clé est dans GitHub → Settings → SSH and GPG keys
+
+3. **Ajoutez la clé privée dans CircleCI** :
+   - Allez sur [app.circleci.com](https://app.circleci.com)
+   - Sélectionnez votre projet `diaspomoney`
+   - Allez dans **Project Settings → SSH Keys**
+   - Cliquez sur **"Add SSH Key"**
+   - Collez votre clé privée (contenu de `~/.ssh/id_rsa`)
+   - Sauvegardez
+
+**Alternative** : Vérifiez que votre projet est correctement connecté à GitHub dans **Project Settings → GitHub** pour utiliser HTTPS automatiquement.
+
+## 🔐 Étape 4 : Configurer les variables d'environnement
 
 Dans CircleCI, allez dans **Project Settings → Environment Variables** et ajoutez :
 

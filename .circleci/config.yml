@@ -17,17 +17,11 @@ jobs:
   # ============================================
   install-dependencies:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/node:20.0
     environment:
       PNPM_HOME: ~/.local/share/pnpm
       PATH: ~/.local/share/pnpm:$PATH
     steps:
-      - run:
-          name: 🔧 Install Node.js and pnpm dependencies
-          command: |
-            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-            apt-get install -y nodejs
-            node --version
       - checkout
       - run:
           name: 📦 Install pnpm
@@ -57,17 +51,11 @@ jobs:
   # ============================================
   tests:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/node:20.0
     environment:
       PNPM_HOME: ~/.local/share/pnpm
       PATH: ~/.local/share/pnpm:$PATH
     steps:
-      - run:
-          name: 🔧 Install Node.js
-          command: |
-            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-            apt-get install -y nodejs
-            node --version
       - checkout
       - run:
           name: 📦 Install pnpm
@@ -145,17 +133,11 @@ jobs:
   # ============================================
   coverage:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/node:20.0
     environment:
       PNPM_HOME: ~/.local/share/pnpm
       PATH: ~/.local/share/pnpm:$PATH
     steps:
-      - run:
-          name: 🔧 Install Node.js
-          command: |
-            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-            apt-get install -y nodejs
-            node --version
       - checkout
       - run:
           name: 📦 Install pnpm
@@ -238,17 +220,11 @@ jobs:
   # ============================================
   build:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/node:20.0
     environment:
       PNPM_HOME: ~/.local/share/pnpm
       PATH: ~/.local/share/pnpm:$PATH
     steps:
-      - run:
-          name: 🔧 Install Node.js
-          command: |
-            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-            apt-get install -y nodejs
-            node --version
       - checkout
       - run:
           name: 📦 Install pnpm

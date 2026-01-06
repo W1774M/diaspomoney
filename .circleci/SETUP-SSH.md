@@ -1,6 +1,10 @@
 # 🔐 Configuration SSH pour CircleCI
 
-Si vous préférez utiliser SSH au lieu de HTTPS pour le checkout, suivez ces étapes :
+**⚠️ IMPORTANT** : CircleCI essaie d'utiliser SSH par défaut, mais l'image `cimg/node:20.0` n'a pas le client SSH. Vous avez deux options :
+
+## ✅ Solution Recommandée : Ajouter la clé SSH dans CircleCI Project Settings
+
+Cette méthode permet à CircleCI d'utiliser SSH automatiquement sans modifier la configuration.
 
 ## Option 1 : Ajouter la clé SSH dans CircleCI (Recommandé)
 

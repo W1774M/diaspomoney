@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jenkins-ingress
+  namespace: jenkins
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Ajustez selon votre setup
+spec:
+  ingressClassName: nginx  # Ajustez selon votre Ingress Controller
+  tls:
+  - hosts:
+    - jenkins.diaspomoney.fr  # Ajustez selon votre domaine
+    secretName: jenkins-tls
+  rules:
+  - host: jenkins.diaspomoney.fr
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: jenkins
+            port:
+              number: 8080
+

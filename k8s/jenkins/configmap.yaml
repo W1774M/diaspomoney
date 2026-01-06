@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jenkins-config
+  namespace: jenkins
+data:
+  JENKINS_OPTS: "--httpPort=8080"
+  JAVA_OPTS: "-Xmx2048m -Xms512m"
+
