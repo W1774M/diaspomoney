@@ -153,17 +153,22 @@ spec:
           valueFrom:
             secretKeyRef:
               name: app-secrets
-              key: STRIPE_SECRET_KEY
-        - name: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+              key: STRIPE_SECRET_KEY_PROD
+        - name: STRIPE_SECRET_KEY_PROD
           valueFrom:
             secretKeyRef:
               name: app-secrets
-              key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-        - name: STRIPE_WEBHOOK_SECRET
+              key: STRIPE_SECRET_KEY_PROD
+        - name: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD
           valueFrom:
             secretKeyRef:
               name: app-secrets
-              key: STRIPE_WEBHOOK_SECRET
+              key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD
+        - name: STRIPE_WEBHOOK_SECRET_PROD  
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: STRIPE_WEBHOOK_SECRET_PROD
         # Monitoring
         - name: SENTRY_DSN
           valueFrom:

@@ -30,9 +30,10 @@ function Header() {
             <Link href='/' className='flex-shrink-0'>
               <Logo
                 src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
-                width={200}
-                height={100}
+                width={440}
+                height={220}
                 alt='Diaspomoney'
+                className='h-9 sm:h-11 w-auto'
               />
             </Link>
           </div>

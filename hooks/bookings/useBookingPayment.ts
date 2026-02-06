@@ -82,13 +82,19 @@ export function useBookingPayment(): UseBookingPaymentReturn {
           'Payment confirmed successfully via useBookingPayment',
         );
 
+        // Récupérer le provider depuis le résultat de l'API ou utiliser une valeur par défaut
+        // Le provider peut être retourné par l'API ou déduit du contexte
+        const paymentProvider = (result.paymentProvider as 'STRIPE' | 'PAYPAL' | 'MOBILE_MONEY' | undefined) ||
+          (paymentData as any).provider ||
+          'STRIPE'; // Valeur par défaut car Stripe est le provider principal utilisé
+
         // Émettre un événement de paiement réussi (EventObserver Pattern)
         await paymentEvents.emitPaymentSucceeded({
           transactionId: result.reservationNumber || '',
           amount: paymentData.amount,
           currency: paymentData.currency,
           userId: appointment.id || (appointment as any)._id || '',
-          provider: 'STRIPE', // TODO: Récupérer le vrai provider
+          provider: paymentProvider,
           timestamp: new Date(),
         });
 

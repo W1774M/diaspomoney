@@ -2,12 +2,20 @@
 
 import { CreditCard } from 'lucide-react';
 import type { BookingResponse } from '@/lib/mappers/booking.mapper';
+import { useBookingSharedElements } from '@/hooks/bookings/useBookingSharedElements';
 
 interface BookingPaymentInfoProps {
   booking: BookingResponse;
 }
 
 export default function BookingPaymentInfo({ booking }: BookingPaymentInfoProps) {
+  const { isElementAllowed } = useBookingSharedElements(booking);
+  
+  // Vérifier si l'élément est autorisé
+  if (!isElementAllowed('paymentInfo')) {
+    return null;
+  }
+  
   if (!booking.metadata?.['paymentIntentId']) {
     return null;
   }

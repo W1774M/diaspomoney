@@ -1,12 +1,20 @@
 'use client';
 
 import type { BookingResponse } from '@/lib/mappers/booking.mapper';
+import { useBookingSharedElements } from '@/hooks/bookings/useBookingSharedElements';
 
 interface BookingAdditionalOptionsProps {
   booking: BookingResponse;
 }
 
 export default function BookingAdditionalOptions({ booking }: BookingAdditionalOptionsProps) {
+  const { isElementAllowed } = useBookingSharedElements(booking);
+  
+  // Vérifier si l'élément est autorisé
+  if (!isElementAllowed('additionalOptions')) {
+    return null;
+  }
+  
   if (!booking.metadata?.['additionalOptions']) {
     return null;
   }

@@ -15,6 +15,7 @@ export interface UseBookingsOptions {
   sortBy?: string | undefined;
   sortOrder?: 'asc' | 'desc' | undefined;
   viewMode?: 'customer' | 'provider' | undefined;
+  roleFilter?: string | undefined; // 'ALL', 'ADMIN', 'CSM', 'PROVIDER', 'CUSTOMER'
 }
 
 export const useBookings = (options: UseBookingsOptions = {}) => {
@@ -55,6 +56,7 @@ export const useBookings = (options: UseBookingsOptions = {}) => {
       if (memoizedOptions.sortBy) searchParams.append("sortBy", memoizedOptions.sortBy);
       if (memoizedOptions.sortOrder) searchParams.append("sortOrder", memoizedOptions.sortOrder);
       if (memoizedOptions.viewMode) searchParams.append("viewMode", memoizedOptions.viewMode);
+      if (memoizedOptions.roleFilter) searchParams.append("roleFilter", memoizedOptions.roleFilter);
 
       const response = await fetch(`/api/bookings?${searchParams.toString()}`);
 

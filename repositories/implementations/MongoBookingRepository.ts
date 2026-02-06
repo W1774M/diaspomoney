@@ -189,6 +189,11 @@ export class MongoBookingRepository implements IBookingRepository {
         ...data,
         updatedAt: new Date(),
       };
+      this.log.debug(
+        { id, updateData, statusInUpdateData: updateData.status },
+        'MongoDB update: before findOneAndUpdate',
+      );
+
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
@@ -201,8 +206,27 @@ export class MongoBookingRepository implements IBookingRepository {
         return null;
       }
       
+      this.log.debug(
+        {
+          id,
+          rawStatus: result['value']?.status,
+          requestedStatus: updateData.status,
+          fullRawDocument: result['value'],
+        },
+        'MongoDB update: after findOneAndUpdate',
+      );
+      
       try {
         const mapped = this.mapToBooking(result['value']);
+        this.log.debug(
+          {
+            id,
+            mappedStatus: mapped.status,
+            rawStatus: result['value']?.status,
+            requestedStatus: updateData.status,
+          },
+          'MongoDB update: after mapping',
+        );
         return mapped;
       } catch (mappingError) {
         this.log.error(

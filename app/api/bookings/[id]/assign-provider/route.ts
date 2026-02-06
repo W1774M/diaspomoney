@@ -6,16 +6,27 @@ import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
+const SharedElementsSchema = z.object({
+  clientInfo: z.boolean().optional(),
+  beneficiaryInfo: z.boolean().optional(),
+  serviceDetails: z.boolean().optional(),
+  paymentInfo: z.boolean().optional(),
+  appointmentInfo: z.boolean().optional(),
+  additionalOptions: z.boolean().optional(),
+}).optional();
+
 const AssignProviderSchema = z.discriminatedUnion('mode', [
   z.object({
     mode: z.literal('registered'),
     providerId: z.string().min(1),
+    sharedElements: SharedElementsSchema,
   }),
   z.object({
     mode: z.literal('external'),
     providerEmail: z.string().email(),
     providerName: z.string().min(1).optional(),
     sendEmail: z.boolean().optional().default(true),
+    sharedElements: SharedElementsSchema,
   }),
 ]);
 
@@ -105,6 +116,16 @@ export async function POST(
       assignedProviderName = parsed.data.providerName;
     }
 
+    // Récupérer les éléments partagés si fournis
+    const sharedElements = parsed.data.sharedElements || {
+      clientInfo: true,
+      beneficiaryInfo: true,
+      serviceDetails: true,
+      paymentInfo: false,
+      appointmentInfo: true,
+      additionalOptions: true,
+    };
+
     const updatedMetadata: Record<string, any> = {
       ...prevMetadata,
       assignedProviderType,
@@ -113,6 +134,7 @@ export async function POST(
       assignedProviderEmail: assignedProviderEmail || undefined,
       assignedProviderAssignedAt: assignedAt,
       assignedProviderAssignedBy: assignedBy,
+      sharedElements, // Stocker les éléments autorisés pour ce prestataire
     };
 
     // Nettoyer les champs si on change de mode
@@ -254,4 +276,113 @@ export async function POST(
   }
 }
 
+/**
+ * DELETE /api/bookings/[id]/assign-provider
+ * Permet à un admin de retirer le prestataire assigné à une réservation
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> | { id: string } },
+) {
+  const reqId = request.headers.get('x-request-id') || undefined;
+  const log = childLogger({
+    requestId: reqId,
+    route: 'api/bookings/[id]/assign-provider',
+  });
+
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      log.warn({ msg: 'Unauthorized access attempt' });
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    const userRoles = session.user.roles || [];
+    const isAdmin = userRoles.includes(ROLES.ADMIN) || userRoles.includes(ROLES.SUPERADMIN);
+    if (!isAdmin) {
+      log.warn({ userId: session.user.id, roles: userRoles }, 'Access denied: not admin');
+      return NextResponse.json(
+        { error: 'Accès refusé. Seuls les administrateurs peuvent retirer un prestataire.' },
+        { status: 403 },
+      );
+    }
+
+    const resolvedParams = await Promise.resolve(params);
+    const bookingId = resolvedParams.id;
+
+    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
+      log.warn({ bookingId }, 'Invalid booking ID format');
+      return NextResponse.json({ error: 'ID de réservation invalide' }, { status: 400 });
+    }
+
+    log.debug({ bookingId, userId: session.user.id }, 'Removing provider from booking');
+
+    const booking = await bookingService.getBookingById(bookingId);
+    if (!booking) {
+      log.warn({ bookingId }, 'Booking not found');
+      return NextResponse.json({ error: 'Réservation non trouvée' }, { status: 404 });
+    }
+
+    const prevMetadata = (booking as any).metadata || {};
+    const updatedMetadata: Record<string, any> = {
+      ...prevMetadata,
+      assignedProviderType: undefined,
+      assignedProviderId: undefined,
+      assignedProviderName: undefined,
+      assignedProviderEmail: undefined,
+      assignedProviderAssignedAt: undefined,
+      assignedProviderAssignedBy: undefined,
+      assignedProviderExternalEmailSentAt: undefined,
+      assignedProviderExternalEmailStatus: undefined,
+    };
+
+    const updatedBooking = await bookingService.updateBooking(bookingId, {
+      providerId: '',
+      metadata: updatedMetadata,
+    } as any);
+
+    const { bookingMapper } = await import('@/lib/mappers');
+    const bookingDoc: any = {
+      _id: updatedBooking._id,
+      id: updatedBooking.id,
+      reservationNumber: updatedBooking.reservationNumber,
+      requesterId: updatedBooking.requesterId,
+      providerId: updatedBooking.providerId,
+      serviceId: updatedBooking.serviceId,
+      serviceType: updatedBooking.serviceType,
+      status: updatedBooking.status,
+      timeslot: updatedBooking.timeslot,
+      consultationMode: updatedBooking.consultationMode,
+      recipient: updatedBooking.recipient,
+      metadata: updatedBooking.metadata,
+      createdAt: updatedBooking.createdAt,
+      updatedAt: updatedBooking.updatedAt,
+      ...(updatedBooking.appointmentDate && { appointmentDate: updatedBooking.appointmentDate }),
+    };
+
+    const mappedBooking = bookingMapper.map(bookingDoc);
+
+    log.info({ bookingId, userId: session.user.id }, 'Provider removed from booking');
+
+    return NextResponse.json({
+      success: true,
+      message: 'Prestataire retiré avec succès',
+      booking: mappedBooking,
+    });
+  } catch (error) {
+    let bookingId: string;
+    try {
+      const resolvedParams = await Promise.resolve(params);
+      bookingId = resolvedParams.id;
+    } catch {
+      bookingId = 'unknown';
+    }
+
+    log.error({ error, bookingId, msg: 'Error removing provider from booking' }, 'Error removing provider');
+    return NextResponse.json(
+      { error: 'Erreur lors de la suppression du prestataire' },
+      { status: 500 },
+    );
+  }
+}
 

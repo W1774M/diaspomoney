@@ -167,7 +167,7 @@ export default function ServiceDetailPage() {
               onComplete={(bookingId) => {
                 // Ne pas rediriger automatiquement - laisser l'utilisateur voir l'étape 4 de confirmation
                 // La redirection se fera via les boutons dans l'étape 4
-                logger.info({ bookingId: bookingId as string }, 'Booking completed');
+                logger.info({ bookingId: bookingId as string }, 'Booking finished');
               }}
               onCancel={() => setShowBookingWizard(false)}
             />

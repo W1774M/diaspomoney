@@ -99,7 +99,7 @@ export interface HistoricalOrder extends BaseEntity {
   providerId: string;
   providerName: string;
   providerAvatar?: string;
-  status: 'completed' | 'cancelled';
+  status: 'finished' | 'cancelled';
   completedDate: Date;
   cancelledDate?: Date;
   amount: number;

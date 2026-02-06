@@ -41,6 +41,7 @@ export interface InvoiceData {
     phone?: string;
     siret?: string;
     vatNumber?: string;
+    website?: string;
   };
 }
 
@@ -236,13 +237,19 @@ function generateInvoiceHTML(data: InvoiceData): string {
           .company-brand {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
             margin-bottom: 12px;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            margin-left: -20px;
+            margin-right: -20px;
+            margin-top: -20px;
           }
           .company-logo {
             font-size: 28px;
             font-weight: 900;
-            color: #000000;
+            color: #FFFFFF;
             letter-spacing: -1px;
           }
           .company-dot {
@@ -253,16 +260,17 @@ function generateInvoiceHTML(data: InvoiceData): string {
             margin-top: 4px;
           }
           .company-name {
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 600;
             letter-spacing: 2px;
-            color: #000000;
+            color: #FFFFFF;
             text-transform: uppercase;
           }
           .company-info {
-            font-size: 8px;
+            font-size: 9px;
             line-height: 1.8;
-            color: #000000;
+            color: #6B7280;
+            margin-top: 8px;
           }
           .invoice-title-section {
             text-align: right;
@@ -612,6 +620,16 @@ function generateInvoiceHTML(data: InvoiceData): string {
                 ` : ''}
               </div>
             </div>
+          </div>
+          
+          <!-- Branding Footer -->
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #667eea; text-align: center;">
+            <p style="font-size: 10px; color: #667eea; font-weight: 600; margin-bottom: 5px;">
+              ${companyInfo.name} - ${companyInfo.name === 'DiaspoMoney' ? 'Plateforme de services pour la diaspora' : ''}
+            </p>
+            <p style="font-size: 8px; color: #6B7280;">
+              ${companyInfo.email} | ${companyInfo.website || 'www.diaspomoney.fr'}
+            </p>
           </div>
         </div>
       </body>

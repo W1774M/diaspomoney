@@ -33,39 +33,47 @@ export default function PublicHeader() {
         <div className='flex justify-between items-center h-16'>
           {/* Logo */}
           <div className='flex items-center'>
-            <Link href='/' className='flex-shrink-0'>
+            <Link href='/' className='flex-shrink-0 flex items-center space-x-2'>
               <Logo
                 src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
-                width={200}
-                height={100}
+                width={440}
+                height={220}
                 alt='Diaspomoney'
+                className='h-9 sm:h-11 w-auto'
               />
             </Link>
           </div>
 
-          {/* Actions côté droit */}
-          <div className='flex items-center space-x-4'>
-            {/* Bouton Transférer un service - masqué en mobile */}
+          {/* Navigation centrale - masquée en mobile */}
+          <nav className='hidden md:flex items-center space-x-8'>
+            <Link
+              href='/#how-it-works'
+              className='text-white hover:text-[hsl(25,100%,53%)] transition-colors text-sm font-medium'
+            >
+              Comment ça marche
+            </Link>
             <Link
               href='/services'
-              className='hidden md:inline-flex items-center px-4 py-2 border border-[hsl(25,100%,53%)] text-sm font-medium rounded-md text-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,53%)] hover:text-white transition-colors'
+              className='text-white hover:text-[hsl(25,100%,53%)] transition-colors text-sm font-medium'
             >
-              <svg
-                className='w-4 h-4 mr-2'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'
-                />
-              </svg>
-              Transférer un service
+              Nos services
             </Link>
+            <Link
+              href='/#testimonials'
+              className='text-white hover:text-[hsl(25,100%,53%)] transition-colors text-sm font-medium'
+            >
+              Témoignages
+            </Link>
+            <Link
+              href='/#partners'
+              className='text-white hover:text-[hsl(25,100%,53%)] transition-colors text-sm font-medium'
+            >
+              Partenaires
+            </Link>
+          </nav>
 
+          {/* Actions côté droit */}
+          <div className='flex items-center space-x-4'>
             {/* Menu utilisateur (si connecté) - masqué en mobile */}
             {user ? (
               <div className='hidden md:block relative'>
@@ -83,24 +91,24 @@ export default function PublicHeader() {
 
                 {/* Dropdown menu */}
                 {isUserMenuOpen && (
-                  <div className='absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-700'>
+                  <div className='absolute right-0 mt-2 w-48 bg-gray-900 rounded-md shadow-lg py-1 z-50 border border-gray-800'>
                     <Link
                       href='/dashboard'
-                      className='block px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-[hsl(25,100%,53%)]'
+                      className='block px-4 py-2 text-sm text-white hover:bg-gray-800 hover:text-[hsl(25,100%,53%)]'
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       Dashboard
                     </Link>
                     <Link
                       href='/dashboard/settings'
-                      className='block px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-[hsl(25,100%,53%)]'
+                      className='block px-4 py-2 text-sm text-white hover:bg-gray-800 hover:text-[hsl(25,100%,53%)]'
                       onClick={() => setIsUserMenuOpen(false)}
                     >
                       Paramètres
                     </Link>
                     <button
                       onClick={handleSignOut}
-                      className='block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-[hsl(25,100%,53%)]'
+                      className='block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-800 hover:text-[hsl(25,100%,53%)]'
                     >
                       Déconnexion
                     </button>
@@ -108,13 +116,22 @@ export default function PublicHeader() {
                 )}
               </div>
             ) : (
-              /* Bouton "Se connecter" si non connecté - masqué en mobile */
-              <Link
-                href='/login'
-                className='hidden md:inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,45%)] transition-colors'
-              >
-                Se connecter
-              </Link>
+              <>
+                {/* Lien "Se connecter" - masqué en mobile */}
+                <Link
+                  href='/login'
+                  className='hidden md:inline-flex items-center text-sm font-medium text-white hover:text-[hsl(25,100%,53%)] transition-colors'
+                >
+                  Se connecter
+                </Link>
+                {/* Bouton "Commencer" - masqué en mobile */}
+                <Link
+                  href='/services'
+                  className='hidden md:inline-flex items-center px-6 py-2.5 text-sm font-medium text-white rounded-full bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,48%)] hover:from-[hsl(25,100%,50%)] hover:to-[hsl(25,100%,45%)] transition-all shadow-lg hover:shadow-xl'
+                >
+                  Commencer
+                </Link>
+              </>
             )}
 
             {/* Menu mobile */}
@@ -122,7 +139,7 @@ export default function PublicHeader() {
               aria-label={isMenuOpen ? 'Fermer le menu mobile' : 'Ouvrir le menu mobile'}
               title={isMenuOpen ? 'Fermer le menu mobile' : 'Ouvrir le menu mobile'}
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className='md:hidden p-2 text-gray-400 hover:text-[hsl(25,100%,53%)] transition-colors'
+              className='md:hidden p-2 text-white hover:text-[hsl(25,100%,53%)] transition-colors'
             >
               <Menu className='h-5 w-5' />
             </button>
@@ -132,30 +149,57 @@ export default function PublicHeader() {
         {/* Menu mobile */}
         {isMenuOpen && (
           <div className='md:hidden'>
-            <div className='px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-700'>
+            <div className='px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-800 bg-gray-900'>
               {/* Accueil */}
               <Link
                 href='/'
-                className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700'
+                className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800'
                 onClick={() => setIsMenuOpen(false)}
               >
                 Accueil
               </Link>
               
-              {/* Transférer un service */}
+              {/* Comment ça marche */}
               <Link
-                href='/services'
-                className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700'
+                href='/how-it-works'
+                className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800'
                 onClick={() => setIsMenuOpen(false)}
               >
-                Transférer un service
+                Comment ça marche
+              </Link>
+              
+              {/* Nos services */}
+              <Link
+                href='/services'
+                className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800'
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Nos services
+              </Link>
+              
+              {/* Témoignages */}
+              <Link
+                href='/testimonials'
+                className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800'
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Témoignages
+              </Link>
+              
+              {/* Partenaires */}
+              <Link
+                href='/partners'
+                className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800'
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Partenaires
               </Link>
               
               {/* Dashboard - seulement si connecté */}
               {user && (
                 <Link
                   href='/dashboard'
-                  className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700'
+                  className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800'
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Dashboard
@@ -164,13 +208,22 @@ export default function PublicHeader() {
               
               {/* Se connecter - seulement si NON connecté */}
               {!user && (
-                <Link
-                  href='/login'
-                  className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700'
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Se connecter
-                </Link>
+                <>
+                  <Link
+                    href='/login'
+                    className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800'
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Se connecter
+                  </Link>
+                  <Link
+                    href='/services'
+                    className='block px-3 py-2 rounded-md text-base font-medium text-white bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,48%)] hover:from-[hsl(25,100%,50%)] hover:to-[hsl(25,100%,45%)] transition-all'
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Commencer
+                  </Link>
+                </>
               )}
               
               {/* Se déconnecter - seulement si connecté */}
@@ -180,7 +233,7 @@ export default function PublicHeader() {
                     handleSignOut();
                     setIsMenuOpen(false);
                   }}
-                  className='block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700'
+                  className='block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800'
                 >
                   Se déconnecter
                 </button>

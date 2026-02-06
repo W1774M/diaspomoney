@@ -17,7 +17,7 @@ import { UpdateBookingSchema, type UpdateBookingInput } from '@/lib/validations/
 import { bookingService } from '@/services/booking/booking.service';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
-import { DATABASE, ROLES } from '@/lib/constants';
+import { DATABASE, ROLES, BOOKING_STATUSES } from '@/lib/constants';
 import { getMongoClient } from '@/lib/database/mongodb';
 import { ObjectId } from 'mongodb';
 
@@ -193,17 +193,94 @@ export async function PUT(
 
     const body = await request.json();
     
+    log.info(
+      { bookingId, body, bodyStatus: body.status, bodyKeys: Object.keys(body) },
+      'PUT request body received',
+    );
+    
     // Validation avec Zod
     const data: UpdateBookingInput = validateBody(body, UpdateBookingSchema);
     
-    log.debug(
-      { bookingId, fields: Object.keys(data) },
-      'Updating booking',
+    log.info(
+      { 
+        bookingId, 
+        fields: Object.keys(data), 
+        status: data.status, 
+        statusType: typeof data.status,
+        statusUndefined: data.status === undefined,
+        bodyStatus: body.status,
+        validatedData: data,
+      },
+      'After Zod validation',
     );
+
+    // Récupérer le booking existant pour vérifier le statut précédent
+    const existingBooking = await bookingService.getBookingById(bookingId);
+    if (!existingBooking) {
+      log.warn({ bookingId }, 'Booking not found before update');
+      return NextResponse.json(
+        { error: 'Réservation non trouvée' },
+        { status: 404 },
+      );
+    }
 
     // Construire l'objet de mise à jour avec seulement les propriétés définies
     const updateData: any = {};
-    if (data.status !== undefined) updateData.status = data.status;
+    if (data.status !== undefined) {
+      updateData.status = data.status;
+      
+      const existingMetadata = existingBooking.metadata || {};
+      const metadataUpdates: Record<string, any> = { ...existingMetadata };
+      
+      // Si le statut passe à CONFIRMED, enregistrer qui a pris en charge
+      if (data.status === BOOKING_STATUSES.CONFIRMED && existingBooking.status !== BOOKING_STATUSES.CONFIRMED) {
+        metadataUpdates['takenChargeBy'] = session.user.id;
+        metadataUpdates['takenChargeAt'] = new Date().toISOString();
+        log.info({ bookingId, userId: session.user.id }, 'Recording who took charge of booking');
+      }
+      
+      // Si le statut passe à CONFIRMED ou FINISHED, mettre à jour le paymentStatus
+      if ((data.status === BOOKING_STATUSES.CONFIRMED || data.status === BOOKING_STATUSES.FINISHED) &&
+          existingBooking.status !== data.status) {
+        const currentPaymentStatus = existingMetadata['paymentStatus'] as string | undefined;
+        
+        // Si le paiement n'est pas déjà confirmé, le marquer comme confirmé
+        if (currentPaymentStatus !== 'confirmed' && 
+            currentPaymentStatus !== 'completed' && 
+            currentPaymentStatus !== 'succeeded') {
+          log.info(
+            { 
+              bookingId, 
+              previousStatus: existingBooking.status,
+              newStatus: data.status,
+              previousPaymentStatus: currentPaymentStatus,
+            },
+            'Updating paymentStatus to confirmed because booking status changed to CONFIRMED or FINISHED',
+          );
+          
+          metadataUpdates['paymentStatus'] = 'confirmed';
+          metadataUpdates['paymentPending'] = false;
+        }
+      }
+      
+      // Appliquer les mises à jour de métadonnées si nécessaire
+      if (Object.keys(metadataUpdates).length > 0) {
+        updateData.metadata = metadataUpdates;
+      }
+      
+      log.info({ bookingId, requestedStatus: data.status, updateData }, 'Status update requested');
+    } else {
+      log.warn(
+        { 
+          bookingId, 
+          bodyStatus: body.status, 
+          dataStatus: data.status,
+          dataKeys: Object.keys(data),
+          bodyKeys: Object.keys(body),
+        },
+        'Status is undefined after validation - check Zod schema',
+      );
+    }
     if (data.appointmentDate !== undefined) {
       updateData.appointmentDate = typeof data.appointmentDate === 'string' 
         ? new Date(data.appointmentDate) 
@@ -213,7 +290,6 @@ export async function PUT(
     if (data.consultationMode !== undefined) updateData.consultationMode = data.consultationMode;
     if (data.metadata !== undefined) updateData.metadata = data.metadata;
 
-    // Utiliser le service avec décorateurs (@Log, @InvalidateCache)
     const updatedBooking = await bookingService.updateBooking(bookingId, updateData);
 
     if (!updatedBooking) {
@@ -224,13 +300,8 @@ export async function PUT(
       );
     }
 
-    // Le booking retourné par updateBooking est déjà un Booking mappé
-    // On doit le convertir en BookingResponse pour l'API
-    // Utiliser le mapper pour garantir la cohérence avec les autres endpoints
     const { bookingMapper } = await import('@/lib/mappers');
     
-    // Convertir le Booking en BookingDocument pour le mapper
-    // Le mapper attend un BookingDocument (document MongoDB), pas un Booking déjà mappé
     const bookingDoc: any = {
       _id: updatedBooking._id,
       id: updatedBooking.id,
@@ -239,7 +310,7 @@ export async function PUT(
       providerId: updatedBooking.providerId,
       serviceId: updatedBooking.serviceId,
       serviceType: updatedBooking.serviceType,
-      status: updatedBooking.status, // Le statut est déjà au bon format depuis le repository
+      status: updatedBooking.status,
       timeslot: updatedBooking.timeslot,
       consultationMode: updatedBooking.consultationMode,
       recipient: updatedBooking.recipient,

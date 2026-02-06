@@ -19,6 +19,7 @@ import type { Invoice } from '@/repositories/interfaces/IInvoiceRepository';
 import type { User } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import PDFDocument from 'pdfkit';
+import { DIASPOMONEY_BRANDING, generatePDFKitHeader } from '@/lib/pdf/branding';
 
 /**
  * Type pour les informations d'adresse d'un utilisateur
@@ -98,16 +99,22 @@ export class PDFGeneratorService {
         size: 'A4',
         margins: {
           top: 50,
-          bottom: 50,
+          bottom: 80, // Plus d'espace pour le footer avec branding
           left: 50,
           right: 50,
         },
       });
 
-      // En-tête
+      // Header avec branding DiaspoMoney
+      const headerEndY = generatePDFKitHeader(doc, { includeLogo: false });
+      doc.y = headerEndY;
+      doc.moveDown(1);
+
+      // En-tête de facture
       doc
         .fontSize(24)
         .font('Helvetica-Bold')
+        .fillColor(DIASPOMONEY_BRANDING.colors.text)
         .text('FACTURE', { align: 'right' })
         .moveDown(0.5);
 
@@ -115,16 +122,23 @@ export class PDFGeneratorService {
         .fontSize(14)
         .font('Helvetica')
         .text(`N° ${invoice.invoiceNumber}`, { align: 'right' })
-        .moveDown(2);
+        .moveDown(1);
 
       // Informations de l'entreprise (DiaspoMoney)
       doc
         .fontSize(12)
         .font('Helvetica-Bold')
-        .text('DiaspoMoney', { align: 'left' })
+        .fillColor(DIASPOMONEY_BRANDING.colors.primary)
+        .text(DIASPOMONEY_BRANDING.company.name, { align: 'left' })
         .font('Helvetica')
         .fontSize(10)
-        .text('Plateforme de services pour la diaspora', { align: 'left' })
+        .fillColor(DIASPOMONEY_BRANDING.colors.textLight)
+        .text(DIASPOMONEY_BRANDING.company.tagline, { align: 'left' })
+        .fillColor(DIASPOMONEY_BRANDING.colors.text)
+        .fontSize(9)
+        .text(`${DIASPOMONEY_BRANDING.company.email}`, { align: 'left' })
+        .text(`${DIASPOMONEY_BRANDING.company.address}`, { align: 'left' })
+        .text(`${DIASPOMONEY_BRANDING.company.postalCode} ${DIASPOMONEY_BRANDING.company.city}, ${DIASPOMONEY_BRANDING.company.country}`, { align: 'left' })
         .moveDown(1);
 
       // Informations du client
@@ -330,22 +344,52 @@ export class PDFGeneratorService {
           .text(invoice.metadata['notes'], { align: 'left' });
       }
 
-      // Pied de page
-      const pageHeight = doc.page.height;
-      const footerY = pageHeight - 50;
+      // Ajouter un message de remerciement avec branding
+      doc.moveDown(2);
       doc
-        .fontSize(8)
+        .fontSize(10)
         .font('Helvetica')
-        .text('Merci pour votre confiance !', tableStartX, footerY, {
-          align: 'center',
-          width: tableWidth,
-        })
-        .text(
-          'DiaspoMoney - Plateforme de services pour la diaspora',
-          tableStartX,
-          footerY + 15,
-          { align: 'center', width: tableWidth },
-        );
+        .fillColor(DIASPOMONEY_BRANDING.colors.primary)
+        .text('Merci pour votre confiance !', { align: 'center' })
+        .fillColor(DIASPOMONEY_BRANDING.colors.text);
+
+      // Ajouter le footer sur chaque page
+      let pageCount = 0;
+      doc.on('pageAdded', () => {
+        pageCount++;
+        const page = doc.page;
+        const footerY = page.height - 50;
+        
+        // Sauvegarder l'état actuel
+        doc.save();
+        
+        // Footer avec branding
+        doc
+          .fontSize(8)
+          .font('Helvetica')
+          .fillColor(DIASPOMONEY_BRANDING.colors.textLight)
+          .text(
+            `${DIASPOMONEY_BRANDING.company.name} - ${DIASPOMONEY_BRANDING.company.tagline}`,
+            page.margins.left,
+            footerY,
+            {
+              align: 'center',
+              width: page.width - page.margins.left - page.margins.right,
+            },
+          )
+          .text(
+            `${DIASPOMONEY_BRANDING.company.email} | ${DIASPOMONEY_BRANDING.company.website}`,
+            page.margins.left,
+            footerY + 12,
+            {
+              align: 'center',
+              width: page.width - page.margins.left - page.margins.right,
+            },
+          );
+        
+        // Restaurer l'état
+        doc.restore();
+      });
 
       // Finaliser le PDF et collecter le buffer
       return new Promise<Buffer>((resolve, reject) => {

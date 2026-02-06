@@ -163,6 +163,49 @@ export async function handleApiRoute<T>(
       );
     }
 
+    // Vérifier les erreurs réseau spécifiques
+    if (error instanceof Error) {
+      const errorCode = (error as any).code;
+      const isNetworkError = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED', 'EAI_AGAIN'].includes(errorCode);
+      
+      if (isNetworkError) {
+        log.error(
+          { 
+            error: error.message, 
+            code: errorCode,
+            route: routeName,
+          }, 
+          'Network error in API route',
+        );
+        
+        Sentry.captureException(error, {
+          tags: {
+            component: 'API',
+            route: routeName,
+            errorType: 'network',
+            errorCode: errorCode,
+          },
+          extra: {
+            requestId: reqId,
+          },
+        });
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Erreur de connexion réseau. Veuillez réessayer dans quelques instants.',
+            code: 'NETWORK_ERROR',
+            details: {
+              code: errorCode,
+              message: error.message,
+            },
+            ...(reqId && { requestId: reqId }),
+          },
+          { status: 503 }, // Service Unavailable pour les erreurs réseau
+        );
+      }
+    }
+
     // Erreur inattendue
     log.error({ error }, 'Unexpected error in API route');
     

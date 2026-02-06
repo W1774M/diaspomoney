@@ -2,6 +2,7 @@
 
 import type { SpecialityType } from '@/lib/types/constants.types';
 import type { BookingResponse } from '@/lib/mappers/booking.mapper';
+import { useBookingSharedElements } from '@/hooks/bookings/useBookingSharedElements';
 
 interface BookingServiceInfoProps {
   booking: BookingResponse;
@@ -9,6 +10,12 @@ interface BookingServiceInfoProps {
 }
 
 export default function BookingServiceInfo({ booking, getServiceTypeLabel }: BookingServiceInfoProps) {
+  const { isElementAllowed } = useBookingSharedElements(booking);
+  
+  // Vérifier si l'élément est autorisé
+  if (!isElementAllowed('serviceDetails')) {
+    return null;
+  }
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200 p-4 sm:p-6">
       <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Informations du service</h2>

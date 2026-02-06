@@ -1,9 +1,10 @@
 'use client';
 
 import { X, Loader2, Tag, CheckCircle, AlertCircle } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { BookingEditData } from '@/hooks/bookings/useBookingEdit';
 import { PhoneInput } from 'react-international-phone';
+import { useServices, useServiceOptions } from '@/hooks/services';
 
 interface BookingEditModalProps {
   isOpen: boolean;
@@ -32,6 +33,29 @@ export default function BookingEditModal({
   onValidatePromoCode,
   isPaymentCompleted,
 }: BookingEditModalProps) {
+  // Récupérer les services et options disponibles
+  const { services, loading: servicesLoading } = useServices({ isActive: true });
+  const { options: allOptions, loading: optionsLoading } = useServiceOptions({ isActive: true });
+
+  // Trouver le service sélectionné
+  const selectedService = useMemo(() => {
+    if (!editData.serviceId && !editData.serviceLabel) return null;
+    return services.find(
+      (s) => s.id === editData.serviceId || s.label === editData.serviceLabel
+    ) || null;
+  }, [services, editData.serviceId, editData.serviceLabel]);
+
+  // Filtrer les options disponibles pour le service sélectionné
+  const availableOptions = useMemo(() => {
+    if (!selectedService) return [];
+    return allOptions.filter(
+      (opt) =>
+        !opt.associatedServices ||
+        opt.associatedServices.length === 0 ||
+        opt.associatedServices.includes(selectedService.id)
+    );
+  }, [allOptions, selectedService]);
+
   // Fermer avec Escape
   useEffect(() => {
     if (!isOpen) return;
@@ -58,12 +82,63 @@ export default function BookingEditModal({
     };
   }, [isOpen]);
 
+  // Mettre à jour automatiquement le prix et la description quand le service change
+  useEffect(() => {
+    if (selectedService) {
+      setEditData((prev) => {
+        const updated: BookingEditData = {
+          ...prev,
+          serviceId: selectedService.id,
+          serviceLabel: selectedService.label,
+          servicePrice: selectedService.price,
+        };
+        if (selectedService.description) {
+          updated.serviceDescription = selectedService.description;
+        } else if (prev.serviceDescription) {
+          updated.serviceDescription = prev.serviceDescription;
+        }
+        return updated;
+      });
+    }
+  }, [selectedService, setEditData]);
+
   if (!isOpen) return null;
 
   const handlePromoCodeChange = (value: string) => {
     setEditData((prev) => ({ ...prev, promotionCode: value }));
     if (value.trim()) {
       onValidatePromoCode(value);
+    }
+  };
+
+  const handleServiceChange = (serviceId: string) => {
+    const service = services.find((s) => s.id === serviceId);
+    if (service) {
+      setEditData((prev) => ({
+        ...prev,
+        serviceId: service.id,
+        serviceLabel: service.label,
+        servicePrice: service.price,
+        serviceDescription: service.description || '',
+        // Réinitialiser les options supplémentaires quand on change de service
+        additionalOptions: [],
+      }));
+    }
+  };
+
+  const handleAddOption = (optionId: string) => {
+    const option = availableOptions.find((opt) => opt.id === optionId);
+    if (option) {
+      const newOptions = [...(editData.additionalOptions || [])];
+      // Vérifier si l'option n'est pas déjà ajoutée
+      if (!newOptions.find((opt: any) => opt.id === optionId)) {
+        newOptions.push({
+          id: option.id,
+          label: option.label,
+          price: option.price,
+        });
+        setEditData((prev) => ({ ...prev, additionalOptions: newOptions }));
+      }
     }
   };
 
@@ -230,54 +305,62 @@ export default function BookingEditModal({
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Libellé du service
+                    Service <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={editData.serviceLabel || ''}
-                    onChange={(e) =>
-                      setEditData((prev) => ({ ...prev, serviceLabel: e.target.value }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-                  />
+                  {servicesLoading ? (
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                      <span className="text-sm text-gray-500">Chargement des services...</span>
+                    </div>
+                  ) : (
+                    <select
+                      value={editData.serviceId || ''}
+                      onChange={(e) => handleServiceChange(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      required
+                    >
+                      <option value="">Sélectionner un service</option>
+                      {services.map((service) => (
+                        <option key={service.id} value={service.id}>
+                          {service.label} - {service.price}€
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Prix (€)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={editData.servicePrice || ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setEditData((prev) => {
-                        const updated = { ...prev };
-                        if (value) {
-                          updated.servicePrice = parseFloat(value);
-                        } else {
-                          delete updated.servicePrice;
-                        }
-                        return updated;
-                      });
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={editData.serviceDescription || ''}
-                    onChange={(e) =>
-                      setEditData((prev) => ({ ...prev, serviceDescription: e.target.value }))
-                    }
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-                  />
-                </div>
+                {selectedService && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Prix (€)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={editData.servicePrice || selectedService.price || ''}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                        title="Le prix est automatiquement défini selon le service sélectionné"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Prix automatique basé sur le service sélectionné
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description
+                      </label>
+                      <textarea
+                        value={editData.serviceDescription || selectedService.description || ''}
+                        disabled
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                        title="La description est automatiquement définie selon le service sélectionné"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </section>
 
@@ -285,71 +368,110 @@ export default function BookingEditModal({
             <section>
               <h4 className="text-lg font-semibold text-gray-900 mb-4">Options supplémentaires</h4>
               <div className="space-y-3">
-                {editData.additionalOptions && editData.additionalOptions.length > 0 ? (
-                  editData.additionalOptions.map((opt: any, index: number) => (
-                    <div key={index} className="flex gap-2 items-start p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">
-                            Libellé
-                          </label>
-                          <input
-                            type="text"
-                            value={opt.label || opt.id || ''}
-                            onChange={(e) => {
-                              const newOptions = [...(editData.additionalOptions || [])];
-                              newOptions[index] = { ...opt, label: e.target.value, id: e.target.value };
-                              setEditData((prev) => ({ ...prev, additionalOptions: newOptions }));
-                            }}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-                            placeholder="Nom de l'option"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">
-                            Prix (€)
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={opt.price || ''}
-                            onChange={(e) => {
-                              const newOptions = [...(editData.additionalOptions || [])];
-                              newOptions[index] = { ...opt, price: parseFloat(e.target.value) || 0 };
-                              setEditData((prev) => ({ ...prev, additionalOptions: newOptions }));
-                            }}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-                            placeholder="0.00"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newOptions = editData.additionalOptions?.filter((_, i) => i !== index) || [];
-                          setEditData((prev) => ({ ...prev, additionalOptions: newOptions }));
-                        }}
-                        className="mt-6 px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Supprimer cette option"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))
+                {!selectedService ? (
+                  <p className="text-sm text-gray-500 italic">
+                    Veuillez d'abord sélectionner un service pour voir les options disponibles
+                  </p>
+                ) : optionsLoading ? (
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    <span className="text-sm text-gray-500">Chargement des options...</span>
+                  </div>
+                ) : availableOptions.length === 0 ? (
+                  <p className="text-sm text-gray-500 italic">
+                    Aucune option supplémentaire disponible pour ce service
+                  </p>
                 ) : (
-                  <p className="text-sm text-gray-500 italic">Aucune option supplémentaire</p>
+                  <>
+                    {/* Options déjà sélectionnées */}
+                    {editData.additionalOptions && editData.additionalOptions.length > 0 && (
+                      <div className="space-y-2">
+                        {editData.additionalOptions.map((opt: any, index: number) => {
+                          const optionData = availableOptions.find((o) => o.id === opt.id);
+                          return (
+                            <div
+                              key={index}
+                              className="flex gap-2 items-center p-3 bg-gray-50 rounded-lg border border-gray-200"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      {optionData?.label || opt.label}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {optionData?.description || ''}
+                                    </p>
+                                  </div>
+                                  <p className="text-sm font-semibold text-gray-900">
+                                    {optionData?.price || opt.price || 0}€
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newOptions =
+                                    editData.additionalOptions?.filter((_, i) => i !== index) || [];
+                                  setEditData((prev) => ({ ...prev, additionalOptions: newOptions }));
+                                }}
+                                className="px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Supprimer cette option"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Sélecteur pour ajouter une nouvelle option */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Ajouter une option
+                      </label>
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            handleAddOption(e.target.value);
+                            e.target.value = '';
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      >
+                        <option value="">
+                          {editData.additionalOptions && editData.additionalOptions.length > 0
+                            ? 'Ajouter une autre option...'
+                            : 'Sélectionner une option...'}
+                        </option>
+                        {availableOptions
+                          .filter(
+                            (opt) =>
+                              !editData.additionalOptions?.find(
+                                (selectedOpt: any) => selectedOpt.id === opt.id
+                              )
+                          )
+                          .map((option) => (
+                            <option key={option.id} value={option.id}>
+                              {option.label} - {option.price}€
+                            </option>
+                          ))}
+                      </select>
+                      {availableOptions.filter(
+                        (opt) =>
+                          !editData.additionalOptions?.find(
+                            (selectedOpt: any) => selectedOpt.id === opt.id
+                          )
+                      ).length === 0 && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Toutes les options disponibles ont été ajoutées
+                        </p>
+                      )}
+                    </div>
+                  </>
                 )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newOptions = [...(editData.additionalOptions || []), { label: '', price: 0 }];
-                    setEditData((prev) => ({ ...prev, additionalOptions: newOptions }));
-                  }}
-                  className="w-full px-4 py-2 text-sm font-medium text-[hsl(25,100%,53%)] border border-[hsl(25,100%,53%)] rounded-lg hover:bg-[hsl(25,100%,95%)] transition-colors"
-                >
-                  + Ajouter une option
-                </button>
               </div>
             </section>
 

@@ -37,6 +37,23 @@ export default function AssignProviderModal({
   const [externalEmail, setExternalEmail] = useState<string>(currentAssignedProviderEmail || '');
   const [externalName, setExternalName] = useState<string>('');
   const [sendEmail, setSendEmail] = useState<boolean>(true);
+  
+  // Éléments à transmettre au prestataire
+  const [sharedElements, setSharedElements] = useState<{
+    clientInfo: boolean;
+    beneficiaryInfo: boolean;
+    serviceDetails: boolean;
+    paymentInfo: boolean;
+    appointmentInfo: boolean;
+    additionalOptions: boolean;
+  }>({
+    clientInfo: true,
+    beneficiaryInfo: true,
+    serviceDetails: true,
+    paymentInfo: false,
+    appointmentInfo: true,
+    additionalOptions: true,
+  });
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -49,6 +66,14 @@ export default function AssignProviderModal({
     setExternalName('');
     setSendEmail(true);
     setSearch('');
+    setSharedElements({
+      clientInfo: true,
+      beneficiaryInfo: true,
+      serviceDetails: true,
+      paymentInfo: false,
+      appointmentInfo: true,
+      additionalOptions: true,
+    });
   }, [isOpen, currentAssignedProviderEmail, currentProviderId]);
 
   // Load providers (best-effort, paginated)
@@ -66,13 +91,23 @@ export default function AssignProviderModal({
         const all: ProviderInfo[] = [];
 
         while (offset < maxTotal) {
-          const res = await fetch(`/api/providers?limit=${limit}&offset=${offset}`, {
+          const res = await fetch(`/api/providers?limit=${limit}&offset=${offset}&status=ALL`, {
             method: 'GET',
           });
           const json = await res.json().catch(() => ({}));
-          if (!res.ok || !json?.success) break;
+          if (!res.ok || !json?.success) {
+            logger.error({ 
+              status: res.status, 
+              json,
+              url: `/api/providers?limit=${limit}&offset=${offset}&status=ALL`
+            }, 'Error fetching providers');
+            break;
+          }
 
           const pageItems = (json.data as ProviderInfo[]) || [];
+          if (pageItems.length === 0 && offset === 0) {
+            logger.warn({ json }, 'No providers found in first page');
+          }
           all.push(...pageItems);
 
           if (pageItems.length < limit) break;
@@ -110,14 +145,18 @@ export default function AssignProviderModal({
     return !!externalEmail && externalEmail.includes('@');
   }, [mode, selectedProviderId, externalEmail]);
 
+  const canRemoveProvider = useMemo(() => {
+    return !!(currentProviderId || currentAssignedProviderEmail);
+  }, [currentProviderId, currentAssignedProviderEmail]);
+
   const submit = async () => {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
       const payload =
         mode === 'registered'
-          ? { mode: 'registered', providerId: selectedProviderId }
-          : { mode: 'external', providerEmail: externalEmail.trim(), providerName: externalName.trim() || undefined, sendEmail };
+          ? { mode: 'registered', providerId: selectedProviderId, sharedElements }
+          : { mode: 'external', providerEmail: externalEmail.trim(), providerName: externalName.trim() || undefined, sendEmail, sharedElements };
 
       const res = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}/assign-provider`, {
         method: 'POST',
@@ -131,6 +170,30 @@ export default function AssignProviderModal({
       }
 
       notificationManager.addSuccess('Prestataire attribué avec succès');
+      await onAssigned?.();
+      onClose();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      notificationManager.addError(message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const removeProvider = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}/assign-provider`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || 'Erreur lors de la suppression du prestataire');
+      }
+
+      notificationManager.addSuccess('Prestataire retiré avec succès');
       await onAssigned?.();
       onClose();
     } catch (error) {
@@ -261,30 +324,107 @@ export default function AssignProviderModal({
               </label>
             </div>
           )}
+
+          {/* Section de sélection des éléments à transmettre */}
+          <div className="border-t border-gray-200 pt-4 mt-4">
+            <h4 className="text-sm font-semibold text-gray-900 mb-3">Éléments à transmettre au prestataire</h4>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={sharedElements.clientInfo}
+                  onChange={(e) => setSharedElements({ ...sharedElements, clientInfo: e.target.checked })}
+                />
+                Informations client
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={sharedElements.beneficiaryInfo}
+                  onChange={(e) => setSharedElements({ ...sharedElements, beneficiaryInfo: e.target.checked })}
+                />
+                Informations bénéficiaire
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={sharedElements.serviceDetails}
+                  onChange={(e) => setSharedElements({ ...sharedElements, serviceDetails: e.target.checked })}
+                />
+                Détails du service
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={sharedElements.paymentInfo}
+                  onChange={(e) => setSharedElements({ ...sharedElements, paymentInfo: e.target.checked })}
+                />
+                Informations de paiement
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={sharedElements.appointmentInfo}
+                  onChange={(e) => setSharedElements({ ...sharedElements, appointmentInfo: e.target.checked })}
+                />
+                Informations de rendez-vous
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={sharedElements.additionalOptions}
+                  onChange={(e) => setSharedElements({ ...sharedElements, additionalOptions: e.target.checked })}
+                />
+                Options supplémentaires
+              </label>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={onClose}
-            disabled={submitting}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Annuler
-          </button>
-          <button
-            onClick={submit}
-            disabled={submitting || !canSubmit}
-            className="px-4 py-2 text-sm font-medium text-white bg-[hsl(25,100%,53%)] rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Attribution...
-              </>
-            ) : (
-              'Attribuer'
+        <div className="flex items-center justify-between gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          <div>
+            {canRemoveProvider && (
+              <button
+                onClick={removeProvider}
+                disabled={submitting}
+                className="px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Suppression...
+                  </>
+                ) : (
+                  <>
+                    Retirer le prestataire
+                  </>
+                )}
+              </button>
             )}
-          </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onClose}
+              disabled={submitting}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={submit}
+              disabled={submitting || !canSubmit}
+              className="px-4 py-2 text-sm font-medium text-white bg-[hsl(25,100%,53%)] rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Attribution...
+                </>
+              ) : (
+                'Attribuer'
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

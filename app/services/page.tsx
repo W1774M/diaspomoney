@@ -240,7 +240,7 @@ export default function ServicesPage() {
         </div>
       </section>
 
-      <HowItWorks className="bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(41,86%,46%)] text-white py-16 md:py-24" bgColor="bg-white" textColor="text-white"/>
+      <HowItWorks className="bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(41,86%,46%)] text-white py-16 md:py-24" />
       {/* CTA Section */}
       <section className="py-16 bg-white text-black">
         <div className="container mx-auto px-4 text-center">

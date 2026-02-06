@@ -34,7 +34,14 @@ export async function createCheckoutSession(
   params: CreateCheckoutSessionParams,
 ): Promise<CheckoutSessionResult> {
   try {
-    const stripe = getStripeInstance();
+    let stripe;
+    try {
+      stripe = getStripeInstance();
+    } catch (stripeError) {
+      const errorMessage = stripeError instanceof Error ? stripeError.message : 'Erreur de configuration Stripe';
+      log.error({ error: errorMessage, stripeError }, 'Stripe instance initialization failed');
+      throw new Error(`Configuration Stripe invalide: ${errorMessage}. Vérifiez que STRIPE_SECRET_KEY est correctement configurée.`);
+    }
     const {
       amount,
       currency,

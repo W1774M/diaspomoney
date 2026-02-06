@@ -24,9 +24,6 @@ import { SPECIALITY_TYPES, CURRENCIES } from "@/lib/constants";
 // Créer un logger avec contexte pour ce composant
 const logger = childLogger({ component: 'ServiceBookingWizard' });
 
-// ServiceBookingWizardProps est maintenant importé depuis lib/types/service-booking.types
-// Les services et options sont maintenant récupérés depuis la base de données via les hooks useServices et useServiceOptions
-
 // Clé pour le localStorage
 const STORAGE_KEY = 'serviceBookingData';
 
@@ -225,42 +222,8 @@ export function ServiceBookingWizard({
     }
   }, []);
 
-  // Utiliser un debounce pour éviter trop d'écritures
-  // Ne pas sauvegarder si on est à l'étape 4 (confirmation) pour éviter de sauvegarder l'état réinitialisé
-  useEffect(() => {
-    // Ne pas sauvegarder si on est à l'étape de confirmation (étape 4)
-    // car le cache a déjà été nettoyé après la soumission réussie
-    if (currentStep === 4) {
-      return;
-    }
-    
-    const timeoutId = setTimeout(() => {
-      // S'assurer que additionalOptions est toujours un tableau
-      const stateToSave = {
-        ...state,
-        additionalOptions: Array.isArray(state.additionalOptions) ? state.additionalOptions : [],
-        currentStep, // Inclure l'étape actuelle dans la sauvegarde
-        draftBookingId, // Inclure le draftBookingId
-      } as ServiceBookingState & { draftBookingId?: string | null };
-      
-      logger.debug(
-        {
-          currentStep,
-          additionalOptionsCount: stateToSave.additionalOptions.length,
-          additionalOptions: stateToSave.additionalOptions.map(opt => ({
-            id: opt.id,
-            label: opt.label,
-            price: opt.price,
-          })),
-        },
-        'Sauvegarde dans localStorage',
-      );
-      
-      saveToStorage(stateToSave);
-    }, 300); // Debounce de 300ms
-
-    return () => clearTimeout(timeoutId);
-  }, [state, currentStep, draftBookingId]);
+  // Ne plus sauvegarder automatiquement à chaque modification
+  // La sauvegarde se fera uniquement lors de la validation d'étape (handleNext)
 
   // Calculer le montant total
   useEffect(() => {
@@ -401,6 +364,25 @@ export function ServiceBookingWizard({
         3: 'Paiement',
         4: 'Confirmation',
       };
+
+      // Sauvegarder les données dans localStorage lors de la validation de l'étape
+      const stateToSave = {
+        ...state,
+        additionalOptions: Array.isArray(state.additionalOptions) ? state.additionalOptions : [],
+        currentStep, // Inclure l'étape actuelle dans la sauvegarde
+        draftBookingId, // Inclure le draftBookingId
+      } as ServiceBookingState & { draftBookingId?: string | null };
+      
+      logger.debug(
+        {
+          currentStep,
+          stepName: stepNames[currentStep] || `Étape ${currentStep}`,
+          additionalOptionsCount: stateToSave.additionalOptions.length,
+        },
+        'Sauvegarde lors de la validation de l\'étape',
+      );
+      
+      saveToStorage(stateToSave);
 
       // Enregistrer la progression de l'étape actuelle avant de passer à la suivante
       await trackProgress(currentStep, stepNames[currentStep] || `Étape ${currentStep}`);

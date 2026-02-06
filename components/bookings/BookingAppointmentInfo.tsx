@@ -2,6 +2,7 @@
 
 import { Calendar } from 'lucide-react';
 import type { BookingResponse } from '@/lib/mappers/booking.mapper';
+import { useBookingSharedElements } from '@/hooks/bookings/useBookingSharedElements';
 
 interface BookingAppointmentInfoProps {
   booking: BookingResponse;
@@ -12,6 +13,13 @@ export default function BookingAppointmentInfo({
   booking,
   appointmentDate,
 }: BookingAppointmentInfoProps) {
+  const { isElementAllowed } = useBookingSharedElements(booking);
+  
+  // Vérifier si l'élément est autorisé
+  if (!isElementAllowed('appointmentInfo')) {
+    return null;
+  }
+  
   if (!appointmentDate && !booking.timeslot) {
     return null;
   }

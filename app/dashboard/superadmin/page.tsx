@@ -2,6 +2,7 @@
 
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
+import DashboardSwitcher from '@/components/dashboard/DashboardSwitcher';
 import { SuperAdminRoute } from '@/components/auth';
 import { useAuth } from '@/hooks';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -180,7 +181,7 @@ function SuperAdminDashboardContent() {
         userName={user?.name || 'Super Admin'}
         subtitle="Observabilité & pilotage plateforme (santé, alertes, métriques, graphes d'activité)"
       />
-
+      <DashboardSwitcher />
       <SuperAdminHealthPanel />
 
       {/* Graphes plateforme (déjà existants) */}

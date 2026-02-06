@@ -1,35 +1,106 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import {
   HeroSection,
   BenefitsSection,
   PartnersSection,
-  // ExpertsSection,
+  RoadmapSection,
+  TestimonialsSection,
+  CareForLovedOnesSection,
+  PhotoTestimonialsSection,
 } from "@/components/features/home";
 import HowItWorks from "@/components/common/HowItWorks";
 
+
+
+// interface VideoTestimonial {
+//   id: string;
+//   thumbnail: string;
+//   duration: string;
+//   userName: string;
+//   userInitial: string;
+//   affiliation?: string;
+//   location?: string;
+//   role: string;
+//   videoUrl?: string;
+// }
+
 export default function HomePage() {
-  const router = useRouter();
 
-  const handleServiceClick = (serviceId: string) => {
-    router.push(`/services/${serviceId}`);
-  };
+  
+// const VIDEO_TESTIMONIALS: VideoTestimonial[] = [
+//   {
+//     id: '1',
+//     thumbnail: '/img/testimonials/video-1.jpg', // À remplacer par l'image réelle
+//     duration: '1:45',
+//     userName: 'Ibrahima Diop',
+//     userInitial: 'I',
+//     location: 'Toulouse, France',
+//     role: 'Utilisateur',
+//   },
+//   {
+//     id: '2',
+//     thumbnail: '/img/testimonials/video-2.jpg', // À remplacer par l'image réelle
+//     duration: '1:45',
+//     userName: 'Ibrahima Diop',
+//     userInitial: 'I',
+//     location: 'Toulouse, France',
+//     role: 'Utilisateur',
+//   },
+//   {
+//     id: '3',
+//     thumbnail: '/img/testimonials/video-3.jpg', // À remplacer par l'image réelle
+//     duration: '1:45',
+//     userName: 'Ibrahima Diop',
+//     userInitial: 'I',
+//     location: 'Toulouse, France',
+//     role: 'Utilisateur',
+//   },
+// ];
 
-  const handleExploreClick = () => {
-    router.push("/services");
-  };
+// const VIDEO_TESTIMONIALS_2: VideoTestimonial[] = [
+//   {
+//     id: '1',
+//     thumbnail: '/img/testimonials/video-provider-1.jpg',
+//     duration: '3:12',
+//     userName: 'Dr. Mariama Camara',
+//     userInitial: 'M',
+//     affiliation: 'Centre Médical Excellence, Conakry',
+//     role: 'Directrice médicale',
+//   },
+//   {
+//     id: '2',
+//     thumbnail: '/img/testimonials/video-provider-2.jpg',
+//     duration: '3:12',
+//     userName: 'Dr. Mariama Camara',
+//     userInitial: 'M',
+//     affiliation: 'Centre Médical Excellence, Conakry',
+//     role: 'Directrice médicale',
+//   },
+//   {
+//     id: '3',
+//     thumbnail: '/img/testimonials/video-provider-3.jpg',
+//     duration: '3:12',
+//     userName: 'Dr. Mariama Camara',
+//     userInitial: 'M',
+//     affiliation: 'Centre Médical Excellence, Conakry',
+//     role: 'Directrice médicale',
+//   },
+// ];
+
 
   return (
     <div className="flex flex-col">
-      <HeroSection
-        onServiceClick={handleServiceClick}
-        onExploreClick={handleExploreClick}
-      />
-      <HowItWorks className="py-20 md:py-24 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden" bgColor="bg-[hsl(25,100%,53%)]" textColor="text-black"/>
+      <HeroSection />
+      <HowItWorks className="py-20 md:py-24 bg-white relative overflow-hidden" />
       <BenefitsSection />
-      {/* <ExpertsSection /> */}
+      {/* <VideoTestimonialsSection videoTestimonials={VIDEO_TESTIMONIALS} />
+      <VideoTestimonialsSection videoTestimonials={VIDEO_TESTIMONIALS_2} /> */}
+      <TestimonialsSection />
+      <PhotoTestimonialsSection />
       <PartnersSection />
+      <CareForLovedOnesSection />
+      <RoadmapSection />
     </div>
   );
 }

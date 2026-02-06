@@ -92,6 +92,7 @@ function mapStatus(status: string | undefined): Booking['status'] {
     confirmed: BOOKING_STATUSES.CONFIRMED,
     in_progress: BOOKING_STATUSES.CONFIRMED, // Migration: IN_PROGRESS -> CONFIRMED
     cancelled: BOOKING_STATUSES.CANCELLED,
+    finished: BOOKING_STATUSES.FINISHED,
     completed: BOOKING_STATUSES.FINISHED, // Migration: COMPLETED -> FINISHED
     no_show: BOOKING_STATUSES.CANCELLED, // Migration: NO_SHOW -> CANCELLED
   };

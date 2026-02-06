@@ -1,22 +1,122 @@
 #!/bin/bash
 
-set -e
+# Ne pas arrêter immédiatement en cas d'erreur pour pouvoir afficher les détails
+set +e
 
 ENV=$1
-NO_CACHE=${2:-""}  # Option pour forcer un rebuild sans cache
+NO_CACHE=${2:-""}
+
+# Variables globales pour la progression
+TOTAL_STEPS=8
+CURRENT_STEP=0
+
+# Variable pour le spinner
+SPINNER_COUNTER=0
+
+# Fonction pour afficher une barre de progression dynamique avec animation
+show_progress() {
+  local step_name="$1"
+  # Calculer le pourcentage pour l'étape en cours (CURRENT_STEP + 1)
+  local step_num=$((CURRENT_STEP + 1))
+  local percent=$((step_num * 100 / TOTAL_STEPS))
+  
+  # Calculer le nombre de caractères remplis
+  local filled=$((percent / 5))
+  local empty=$((20 - filled))
+  
+  # Animation spinner avec caractères ASCII simples (compatibles avec tous les terminaux)
+  local spinner_chars=("|" "/" "-" "\\")
+  SPINNER_COUNTER=$((SPINNER_COUNTER + 1))
+  local spinner_idx=$((SPINNER_COUNTER % ${#spinner_chars[@]}))
+  local spinner=${spinner_chars[$spinner_idx]}
+  
+  # Afficher sur la même ligne avec retour chariot
+  printf "\r%s [%3d%%] %-35s [" "$spinner" "$percent" "$step_name"
+  # Utiliser des caractères ASCII simples pour la barre
+  printf "%${filled}s" | tr ' ' '#'
+  printf "%${empty}s" | tr ' ' '.'
+  printf "]"
+  
+  # Forcer l'affichage immédiat
+  printf ""
+}
+
+# Fonction pour compléter la barre et passer à la ligne suivante
+complete_step() {
+  CURRENT_STEP=$((CURRENT_STEP + 1))
+  local step_name="$1"
+  local percent=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+  
+  # Compléter la barre avec un checkmark
+  printf "\r✓ [%3d%%] %-35s [" "$percent" "$step_name"
+  printf "%20s" | tr ' ' '#'
+  printf "]"
+  echo ""
+}
+
+show_success() {
+  echo "✅ $1"
+}
+
+show_error() {
+  echo "❌ $1" >&2
+}
+
+# Fonction pour afficher les détails d'une erreur
+show_error_details() {
+  local error_msg="$1"
+  local exit_code="${2:-1}"
+  local command="${3:-}"
+  local output="${4:-}"
+  
+  echo "" >&2
+  echo "═══════════════════════════════════════════════════════════" >&2
+  echo "❌ ERREUR: $error_msg" >&2
+  echo "═══════════════════════════════════════════════════════════" >&2
+  echo "Code de sortie: $exit_code" >&2
+  
+  if [ -n "$command" ]; then
+    echo "Commande exécutée: $command" >&2
+  fi
+  
+  if [ -n "$output" ]; then
+    echo "" >&2
+    echo "Sortie de la commande:" >&2
+    echo "───────────────────────────────────────────────────────────" >&2
+    echo "$output" >&2
+    echo "───────────────────────────────────────────────────────────" >&2
+  fi
+  
+  echo "═══════════════════════════════════════════════════════════" >&2
+  echo "" >&2
+}
+
+show_warning() {
+  echo "⚠️  $1"
+}
+
+show_info() {
+  echo "ℹ️  $1"
+}
 
 # Vérifier que l'environnement est fourni
 if [ -z "$ENV" ]; then
-  echo "❌ Erreur: Vous devez spécifier un environnement"
+  show_error "Vous devez spécifier un environnement"
+  echo ""
   echo "   Usage: $0 <env> [--no-cache]"
-  echo "   Exemples: $0 rct, $0 prod, $0 dev"
+  echo "   Exemples: $0 rct | $0 prod | $0 dev"
   exit 1
 fi
 
-# Vérifier que l'environnement est valide
+# Valider le format de l'environnement
+if [[ ! "$ENV" =~ ^[a-z0-9-]+$ ]]; then
+  show_error "Format d'environnement invalide: '${ENV}'"
+  exit 1
+fi
+
+# Vérifier que l'environnement existe
 if [ ! -d "k8s/app/${ENV}" ]; then
-  echo "❌ Erreur: L'environnement ${ENV} n'existe pas"
-  echo "   Environnements disponibles: $(ls -1 k8s/app/ 2>/dev/null | tr '\n' ' ' || echo 'aucun')"
+  show_error "L'environnement '${ENV}' n'existe pas"
   exit 1
 fi
 
@@ -24,63 +124,102 @@ BUILD_DATE=$(date +'%Y%m%d-%H%M%S')
 IMAGE_TAG="localhost:5000/diaspomoney:${ENV}-${BUILD_DATE}"
 LATEST_TAG="localhost:5000/diaspomoney:${ENV}-latest"
 NAMESPACE="diaspomoney"
-SECRETS_FILE="k8s/secrets.yaml"
+SECRETS_FILE="k8s/app/secrets.yaml"
 
 echo "==============================================="
 echo "🚀 Déploiement ${ENV}"
-echo "📦 Image : ${IMAGE_TAG}"
-echo "📁 Namespace : ${NAMESPACE}"
+echo "📦 ${IMAGE_TAG}"
 echo "==============================================="
+echo ""
 
-# S'assurer que le namespace existe avant d'appliquer quoi que ce soit
-echo "🧩 Vérification du namespace ${NAMESPACE}..."
-if ! kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
-  echo "📦 Création du namespace ${NAMESPACE}..."
-  kubectl create namespace "${NAMESPACE}"
+# Étape 1: Vérification du namespace
+show_progress "Vérification du namespace"
+KUBECTL_OUTPUT=$(kubectl get namespace "${NAMESPACE}" 2>&1)
+KUBECTL_EXIT=$?
+
+if [ $KUBECTL_EXIT -ne 0 ]; then
+  CREATE_OUTPUT=$(kubectl create namespace "${NAMESPACE}" 2>&1)
+  CREATE_EXIT=$?
+  if [ $CREATE_EXIT -ne 0 ]; then
+    complete_step "Vérification du namespace"
+    show_error_details "Impossible de créer le namespace ${NAMESPACE}" "$CREATE_EXIT" "kubectl create namespace ${NAMESPACE}" "$CREATE_OUTPUT"
+    exit 1
+  fi
 fi
+complete_step "Vérification du namespace"
+show_success "Namespace ${NAMESPACE} prêt"
 
-# Appliquer les secrets Kubernetes (si le fichier existe)
-# NOTE: ce fichier contient des placeholders "CHANGE_ME_*" par défaut.
-# Il doit être rempli avant usage (ou remplacé via un mécanisme interne de ton infra).
+# Étape 2: Application des secrets
+show_progress "Application des secrets"
 if [ -f "${SECRETS_FILE}" ]; then
-  echo "🔐 Application des secrets depuis ${SECRETS_FILE}..."
-  kubectl apply -f "${SECRETS_FILE}" -n "${NAMESPACE}"
+  KUBECTL_OUTPUT=$(kubectl apply -f "${SECRETS_FILE}" -n "${NAMESPACE}" 2>&1)
+  KUBECTL_EXIT=$?
+  if [ $KUBECTL_EXIT -ne 0 ]; then
+    complete_step "Application des secrets"
+    show_error_details "Échec de l'application des secrets" "$KUBECTL_EXIT" "kubectl apply -f ${SECRETS_FILE} -n ${NAMESPACE}" "$KUBECTL_OUTPUT"
+    exit 1
+  fi
+  complete_step "Application des secrets"
+  show_success "Secrets appliqués"
 else
-  echo "⚠️  Aucun fichier de secrets trouvé (${SECRETS_FILE})."
-  echo "   Le déploiement continuera, mais les secrets doivent exister dans Kubernetes."
+  complete_step "Application des secrets"
+  show_warning "Fichier de secrets non trouvé (continuation)"
 fi
 
-# Récupérer la clé Stripe depuis le secret Kubernetes
-echo "🔑 Récupération de la clé Stripe depuis le secret Kubernetes..."
-STRIPE_KEY=$(kubectl get secret app-secrets -n ${NAMESPACE} -o jsonpath='{.data.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}' 2>/dev/null | base64 -d 2>/dev/null)
+# Déterminer quelle clé Stripe utiliser
+if [ "${ENV}" = "prod" ]; then
+  STRIPE_KEY_NAME="NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD"
+  EXPECTED_PREFIX="pk_live_"
+  ENV_TYPE="production"
+else
+  STRIPE_KEY_NAME="NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+  EXPECTED_PREFIX="pk_test_"
+  ENV_TYPE="test"
+fi
+
+# Étape 3: Récupération de la clé Stripe
+show_progress "Récupération de la clé Stripe (${ENV_TYPE})"
+STRIPE_KEY=$(kubectl get secret app-secrets -n ${NAMESPACE} -o jsonpath="{.data.${STRIPE_KEY_NAME}}" 2>/dev/null | base64 -d 2>/dev/null)
 
 if [ -z "$STRIPE_KEY" ]; then
-  echo "⚠️  Attention: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY non trouvée dans le secret Kubernetes"
-  echo "   Vérifiez que le secret app-secrets existe et contient NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
-  echo "   Tentative de récupération depuis .env.local ou .env..."
-  
-  # Essayer de récupérer depuis un fichier .env local
   if [ -f ".env" ]; then
-    STRIPE_KEY=$(grep "^NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=" ".env" | cut -d '=' -f2- | tr -d '"' | tr -d "'")
+    STRIPE_KEY=$(grep "^${STRIPE_KEY_NAME}=" ".env" | cut -d '=' -f2- | tr -d '"' | tr -d "'" 2>/dev/null || true)
+  fi
+  
+  if [ -z "$STRIPE_KEY" ] && [ "${ENV}" != "prod" ]; then
+    if [ -f ".env" ]; then
+      STRIPE_KEY=$(grep "^NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=" ".env" | cut -d '=' -f2- | tr -d '"' | tr -d "'" 2>/dev/null || true)
+    fi
   fi
 fi
 
 if [ -z "$STRIPE_KEY" ]; then
-  echo "❌ Erreur: Impossible de récupérer NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
-  echo "   Veuillez la définir dans le secret Kubernetes ou dans un fichier .env"
+  complete_step "Récupération de la clé Stripe (${ENV_TYPE})"
+  show_error "Impossible de récupérer ${STRIPE_KEY_NAME}"
   exit 1
 fi
 
-# Nettoyer la clé (enlever les guillemets et espaces)
 STRIPE_KEY=$(echo "$STRIPE_KEY" | tr -d '"' | tr -d "'" | xargs)
+complete_step "Récupération de la clé Stripe (${ENV_TYPE})"
 
 # Vérifier le format de la clé
-if [[ ! "$STRIPE_KEY" =~ ^pk_(test_|live_) ]]; then
-  echo "⚠️  Avertissement: La clé Stripe ne commence pas par pk_test_ ou pk_live_"
-  echo "   Préfixe actuel: ${STRIPE_KEY:0:10}..."
+if [[ ! "$STRIPE_KEY" =~ ^${EXPECTED_PREFIX} ]]; then
+  if [ "${ENV}" = "prod" ] && [[ "$STRIPE_KEY" =~ ^pk_test_ ]]; then
+    show_error "ERREUR: Clé TEST en PRODUCTION!"
+    read -p "   Continuer? (oui/non): " -r
+    if [[ ! $REPLY =~ ^[Oo][Uu][Ii]$ ]]; then
+      exit 1
+    fi
+  elif [ "${ENV}" != "prod" ] && [[ "$STRIPE_KEY" =~ ^pk_live_ ]]; then
+    show_warning "Clé LIVE en ${ENV_TYPE}!"
+    read -p "   Continuer? (oui/non): " -r
+    if [[ ! $REPLY =~ ^[Oo][Uu][Ii]$ ]]; then
+      exit 1
+    fi
+  fi
 fi
 
-echo "✅ Clé Stripe récupérée et nettoyée (${STRIPE_KEY:0:20}...)"
+show_success "Clé Stripe récupérée (${STRIPE_KEY:0:20}...)"
 
 # Construire l'URL selon l'environnement
 if [ "${ENV}" = "rct" ]; then
@@ -93,12 +232,8 @@ else
   APP_URL="https://${ENV}.diaspomoney.fr"
 fi
 
-# Build with proper build args
-# Note: ne PAS entourer les build-args d'URL avec des guillemets "..." :
-# - Docker inclurait ces guillemets dans la valeur
-# - Next.js peut ensuite "baker" ces valeurs dans les bundles (emails/liens)
-# STRIPE_KEY ne doit pas non plus être quoté.
-echo "🏗️  Construction de l'image Docker..."
+# Étape 4: Construction de l'image Docker
+show_progress "Construction de l'image Docker"
 BUILD_ARGS="--build-arg ENV=${ENV} \
   --build-arg NODE_ENV=production \
   --build-arg NEXTAUTH_URL=${APP_URL} \
@@ -111,123 +246,192 @@ BUILD_ARGS="--build-arg ENV=${ENV} \
   -t ${LATEST_TAG} \
   -f Dockerfile"
 
-# Ajouter --no-cache si demandé
 if [ "${NO_CACHE}" = "--no-cache" ] || [ "${NO_CACHE}" = "no-cache" ]; then
-  echo "⚠️  Rebuild sans cache (--no-cache activé)"
   BUILD_ARGS="--no-cache ${BUILD_ARGS}"
 fi
 
-# Vérifier les fichiers modifiés récemment avant le build
-echo "🔍 Vérification des fichiers modifiés récemment..."
-ONE_HOUR_AGO=$(date -d '1 hour ago' +'%Y-%m-%d %H:%M:%S' 2>/dev/null || date -v-1H +'%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "")
-if [ -n "$ONE_HOUR_AGO" ]; then
-  RECENT_FILES=$(find app components -type f \( -name "*.tsx" -o -name "*.ts" \) -exec stat -c "%y %n" {} \; 2>/dev/null | awk -v cutoff="$ONE_HOUR_AGO" '$1 " " $2 > cutoff' | wc -l)
-  if [ "$RECENT_FILES" -gt 0 ]; then
-    echo "⚠️  ${RECENT_FILES} fichier(s) modifié(s) récemment - le build inclura ces modifications"
+# Construire l'image avec progression dynamique
+# Afficher une animation pendant le build
+(
+  docker build --progress=plain ${BUILD_ARGS} . >/tmp/docker-build.log 2>&1 &
+  DOCKER_PID=$!
+  
+  # Animation pendant le build
+  while kill -0 $DOCKER_PID 2>/dev/null; do
+    show_progress "Construction de l'image Docker"
+    sleep 0.3
+  done
+  
+  wait $DOCKER_PID
+  BUILD_EXIT=$?
+  
+  if [ $BUILD_EXIT -ne 0 ]; then
+    complete_step "Construction de l'image Docker"
+    BUILD_LOG=$(cat /tmp/docker-build.log 2>/dev/null || echo "Impossible de lire le log de build")
+    # Afficher la commande sur une seule ligne pour éviter les répétitions
+    BUILD_CMD="docker build --build-arg ENV=${ENV} --build-arg NODE_ENV=production --build-arg NEXTAUTH_URL=${APP_URL} --build-arg APP_URL=${APP_URL} --build-arg API_URL=${APP_URL}/api --build-arg NEXT_PUBLIC_APP_URL=${APP_URL} --build-arg NEXT_PUBLIC_API_URL=${APP_URL}/api --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=\${STRIPE_KEY} -t ${IMAGE_TAG} -t ${LATEST_TAG} -f Dockerfile ."
+    show_error_details "Échec de la construction de l'image Docker" "$BUILD_EXIT" "$BUILD_CMD" "$BUILD_LOG"
+    exit 1
   fi
-fi
+)
 
-docker build --progress=plain ${BUILD_ARGS} .
-
-# Vérifier que l'image a été créée avec succès
-if ! docker images ${IMAGE_TAG} --format "{{.Repository}}:{{.Tag}}" | grep -q "${ENV}-${BUILD_DATE}"; then
-  echo "❌ Erreur: L'image ${IMAGE_TAG} n'a pas été créée"
+DOCKER_IMAGES_OUTPUT=$(docker images ${IMAGE_TAG} --format "{{.Repository}}:{{.Tag}}" 2>&1)
+DOCKER_IMAGES_EXIT=$?
+if [ $DOCKER_IMAGES_EXIT -ne 0 ] || ! echo "$DOCKER_IMAGES_OUTPUT" | grep -q "${ENV}-${BUILD_DATE}"; then
+  complete_step "Construction de l'image Docker"
+  ALL_IMAGES=$(docker images localhost:5000/diaspomoney --format "{{.Repository}}:{{.Tag}}" 2>&1)
+  show_error_details "L'image ${IMAGE_TAG} n'a pas été créée" "$DOCKER_IMAGES_EXIT" "docker images ${IMAGE_TAG}" "$DOCKER_IMAGES_OUTPUT\n\nImages disponibles:\n$ALL_IMAGES"
   exit 1
 fi
 
-echo "✅ Image créée avec succès: ${IMAGE_TAG}"
+complete_step "Construction de l'image Docker"
+show_success "Image créée: ${IMAGE_TAG}"
 
-# Push images
-docker push ${IMAGE_TAG}
-docker push ${LATEST_TAG}
-
-# Vérifier que les images ont été poussées
-if ! docker images ${LATEST_TAG} --format "{{.Repository}}:{{.Tag}}" | grep -q "${ENV}-latest"; then
-  echo "❌ Erreur: L'image ${LATEST_TAG} n'a pas été trouvée localement"
+# Étape 5: Push des images
+show_progress "Envoi des images vers le registry"
+(
+  docker push ${IMAGE_TAG} >/tmp/docker-push1.log 2>&1 &
+  PUSH1_PID=$!
+  while kill -0 $PUSH1_PID 2>/dev/null; do
+    show_progress "Envoi de l'image (tagged)"
+    sleep 0.3
+  done
+  wait $PUSH1_PID
+  PUSH1_EXIT=$?
+  
+  if [ $PUSH1_EXIT -ne 0 ]; then
+    PUSH1_LOG=$(cat /tmp/docker-push1.log 2>/dev/null || echo "Impossible de lire le log")
+    complete_step "Envoi des images vers le registry"
+    show_error_details "Échec de l'envoi de l'image ${IMAGE_TAG}" "$PUSH1_EXIT" "docker push ${IMAGE_TAG}" "$PUSH1_LOG"
   exit 1
 fi
 
-echo "✅ Images poussées vers le registry"
+  docker push ${LATEST_TAG} >/tmp/docker-push2.log 2>&1 &
+  PUSH2_PID=$!
+  while kill -0 $PUSH2_PID 2>/dev/null; do
+    show_progress "Envoi de l'image (latest)"
+    sleep 0.3
+  done
+  wait $PUSH2_PID
+  PUSH2_EXIT=$?
+  
+  if [ $PUSH2_EXIT -ne 0 ]; then
+    PUSH2_LOG=$(cat /tmp/docker-push2.log 2>/dev/null || echo "Impossible de lire le log")
+    complete_step "Envoi des images vers le registry"
+    show_error_details "Échec de l'envoi de l'image ${LATEST_TAG}" "$PUSH2_EXIT" "docker push ${LATEST_TAG}" "$PUSH2_LOG"
+    exit 1
+  fi
+)
+complete_step "Envoi des images vers le registry"
+show_success "Images envoyées"
 
-# Vérifier que les fichiers de déploiement existent
+# Étape 6: Préparation du déploiement
+show_progress "Préparation du déploiement"
 DEPLOYMENT_FILE="k8s/app/${ENV}/deployment.yaml"
 SERVICE_FILE="k8s/app/${ENV}/service.yaml"
 INGRESS_FILE="k8s/app/${ENV}/ingress.yaml"
 
 if [ ! -f "${DEPLOYMENT_FILE}" ]; then
-  echo "❌ Erreur: Le fichier ${DEPLOYMENT_FILE} n'existe pas"
-  echo "   Vérifiez que l'environnement ${ENV} est correct (rct, prod, dev)"
+  complete_step "Préparation du déploiement"
+  show_error_details "Le fichier ${DEPLOYMENT_FILE} n'existe pas" "1" "test -f ${DEPLOYMENT_FILE}" "Fichier introuvable: ${DEPLOYMENT_FILE}"
   exit 1
 fi
 
-# Extraire le nom du deployment depuis le fichier YAML
-DEPLOYMENT_NAME_FROM_YAML=$(grep "^  name:" "${DEPLOYMENT_FILE}" | head -1 | awk '{print $2}' || echo "")
+DEPLOYMENT_NAME_FROM_YAML=$(grep "^  name:" "${DEPLOYMENT_FILE}" 2>&1 | head -1 | awk '{print $2}' || echo "")
 if [ -z "$DEPLOYMENT_NAME_FROM_YAML" ]; then
-  echo "❌ Erreur: Impossible d'extraire le nom du deployment depuis ${DEPLOYMENT_FILE}"
+  complete_step "Préparation du déploiement"
+  FILE_CONTENT=$(head -20 "${DEPLOYMENT_FILE}" 2>&1 || echo "Impossible de lire le fichier")
+  show_error_details "Impossible d'extraire le nom du deployment" "1" "grep '^  name:' ${DEPLOYMENT_FILE}" "Contenu du fichier (20 premières lignes):\n$FILE_CONTENT"
   exit 1
 fi
 
-echo "📋 Nom du deployment: ${DEPLOYMENT_NAME_FROM_YAML}"
+complete_step "Préparation du déploiement"
+show_success "Deployment: ${DEPLOYMENT_NAME_FROM_YAML}"
 
-# Check if deployment exists
-if kubectl get deployment ${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE} &>/dev/null; then
-  echo "🔄 Mise à jour du déploiement existant..."
-  # IMPORTANT:
-  # - kubectl set image met à jour UNIQUEMENT l'image. Si des env vars changent dans le YAML
-  #   (ex: NEXT_PUBLIC_APP_URL), elles ne seront PAS prises en compte.
-  # - On applique donc le deployment.yaml (avec l'image taggée) pour garantir que la spec complète
-  #   est synchronisée (image + env + resources + etc.).
-
-  # Créer une copie temporaire du fichier pour modification
+# Étape 7: Application du déploiement
+show_progress "Application du déploiement"
   TEMP_DEPLOYMENT_FILE=$(mktemp)
   cp "${DEPLOYMENT_FILE}" "${TEMP_DEPLOYMENT_FILE}"
-
-  # Update image in deployment file temporarily (tag immuable pour forcer le rollout)
   sed -i "s|image: localhost:5000/diaspomoney:.*|image: ${IMAGE_TAG}|g" "${TEMP_DEPLOYMENT_FILE}"
-  kubectl apply -f "${TEMP_DEPLOYMENT_FILE}" -n "${NAMESPACE}"
 
-  # Nettoyer le fichier temporaire
+KUBECTL_GET_OUTPUT=$(kubectl get deployment ${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE} 2>&1)
+KUBECTL_GET_EXIT=$?
+
+if [ $KUBECTL_GET_EXIT -eq 0 ]; then
+  # Déploiement existe, mise à jour
+  KUBECTL_APPLY_OUTPUT=$(kubectl apply -f "${TEMP_DEPLOYMENT_FILE}" -n "${NAMESPACE}" 2>&1)
+  KUBECTL_APPLY_EXIT=$?
+  if [ $KUBECTL_APPLY_EXIT -ne 0 ]; then
+    complete_step "Application du déploiement"
+    show_error_details "Échec de la mise à jour du déploiement" "$KUBECTL_APPLY_EXIT" "kubectl apply -f ${TEMP_DEPLOYMENT_FILE} -n ${NAMESPACE}" "$KUBECTL_APPLY_OUTPUT"
   rm -f "${TEMP_DEPLOYMENT_FILE}"
+    exit 1
+  fi
+  complete_step "Application du déploiement"
+  show_success "Déploiement mis à jour"
 else
-  echo "📦 Création du déploiement (première fois)..."
-  
-  # Créer une copie temporaire du fichier pour modification
-  TEMP_DEPLOYMENT_FILE=$(mktemp)
-  cp "${DEPLOYMENT_FILE}" "${TEMP_DEPLOYMENT_FILE}"
-  
-    # Update image in deployment file temporarily
-  sed -i "s|image: localhost:5000/diaspomoney:.*|image: ${IMAGE_TAG}|g" "${TEMP_DEPLOYMENT_FILE}"
-  kubectl apply -f "${TEMP_DEPLOYMENT_FILE}" -n "${NAMESPACE}"
-  
-  # Nettoyer le fichier temporaire
+  # Nouveau déploiement
+  KUBECTL_APPLY_OUTPUT=$(kubectl apply -f "${TEMP_DEPLOYMENT_FILE}" -n "${NAMESPACE}" 2>&1)
+  KUBECTL_APPLY_EXIT=$?
+  if [ $KUBECTL_APPLY_EXIT -ne 0 ]; then
+    complete_step "Application du déploiement"
+    show_error_details "Échec de la création du déploiement" "$KUBECTL_APPLY_EXIT" "kubectl apply -f ${TEMP_DEPLOYMENT_FILE} -n ${NAMESPACE}" "$KUBECTL_APPLY_OUTPUT"
   rm -f "${TEMP_DEPLOYMENT_FILE}"
+    exit 1
+  fi
   
   if [ -f "${SERVICE_FILE}" ]; then
-    kubectl apply -f "${SERVICE_FILE}" -n "${NAMESPACE}"
+    KUBECTL_SVC_OUTPUT=$(kubectl apply -f "${SERVICE_FILE}" -n "${NAMESPACE}" 2>&1)
+    KUBECTL_SVC_EXIT=$?
+    if [ $KUBECTL_SVC_EXIT -ne 0 ]; then
+      show_warning "Échec de l'application du service: $KUBECTL_SVC_OUTPUT"
   fi
-  
+  fi
   if [ -f "${INGRESS_FILE}" ]; then
-    kubectl apply -f "${INGRESS_FILE}" -n "${NAMESPACE}"
+    KUBECTL_ING_OUTPUT=$(kubectl apply -f "${INGRESS_FILE}" -n "${NAMESPACE}" 2>&1)
+    KUBECTL_ING_EXIT=$?
+    if [ $KUBECTL_ING_EXIT -ne 0 ]; then
+      show_warning "Échec de l'application de l'ingress: $KUBECTL_ING_OUTPUT"
+    fi
   fi
+  complete_step "Application du déploiement"
+  show_success "Déploiement créé"
 fi
 
-# Verify rollout
-echo "⏳ Attente du déploiement..."
-kubectl rollout status deployment/${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE} --timeout=300s || {
-  echo "⚠️  Le déploiement prend plus de temps que prévu"
-  echo "   Vérifiez le statut avec: kubectl get pods -n ${NAMESPACE}"
+# Nettoyer le fichier temporaire
+rm -f "${TEMP_DEPLOYMENT_FILE}"
+
+# Étape 8: Attente du rollout avec progression dynamique
+show_progress "Attente du déploiement"
+# Afficher la progression du rollout avec animation
+(
+  kubectl rollout status deployment/${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE} --timeout=300s >/dev/null 2>&1 &
+  ROLLOUT_PID=$!
+  
+  # Animation pendant l'attente
+  while kill -0 $ROLLOUT_PID 2>/dev/null; do
+    show_progress "Attente du déploiement"
+    sleep 0.5
+  done
+  
+  wait $ROLLOUT_PID
+  ROLLOUT_EXIT=$?
+  
+  if [ $ROLLOUT_EXIT -ne 0 ]; then
+    complete_step "Attente du déploiement"
+    ROLLOUT_DESCRIBE=$(kubectl describe deployment/${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE} 2>&1 | tail -30)
+    ROLLOUT_PODS=$(kubectl get pods -n ${NAMESPACE} -l app=${DEPLOYMENT_NAME_FROM_YAML} 2>&1)
+    ROLLOUT_EVENTS=$(kubectl get events -n ${NAMESPACE} --sort-by='.lastTimestamp' 2>&1 | tail -10)
+    show_error_details "Le déploiement a échoué ou a pris trop de temps" "$ROLLOUT_EXIT" "kubectl rollout status deployment/${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE}" "Description du déploiement:\n$ROLLOUT_DESCRIBE\n\nPods:\n$ROLLOUT_PODS\n\nÉvénements récents:\n$ROLLOUT_EVENTS"
   exit 1
-}
+  fi
+)
+complete_step "Attente du déploiement"
 
-# Vérifier que les pods utilisent bien la nouvelle image
-echo "🔍 Vérification que les pods utilisent la nouvelle image..."
-sleep 10
+# Vérification rapide de l'image
+sleep 5
 POD_IMAGES=$(kubectl get pods -n ${NAMESPACE} -l app=${DEPLOYMENT_NAME_FROM_YAML} -o jsonpath='{.items[*].status.containerStatuses[0].image}' 2>/dev/null | tr ' ' '\n' | sort -u)
-POD_IMAGE_IDS=$(kubectl get pods -n ${NAMESPACE} -l app=${DEPLOYMENT_NAME_FROM_YAML} -o jsonpath='{.items[*].status.containerStatuses[0].imageID}' 2>/dev/null | tr ' ' '\n' | sort -u)
-
 IMAGE_TAG_SHORT=$(echo "${IMAGE_TAG}" | sed 's|localhost:5000/diaspomoney:||')
-
-# Vérifier que l'image attendue (tag immuable) est bien utilisée
 POD_USES_EXPECTED_IMAGE=false
 for pod_image in ${POD_IMAGES}; do
   if echo "${pod_image}" | grep -q "${IMAGE_TAG_SHORT}"; then
@@ -236,23 +440,16 @@ for pod_image in ${POD_IMAGES}; do
   fi
 done
 
-if [ "${POD_USES_EXPECTED_IMAGE}" = "true" ]; then
-  echo "✅ Les pods utilisent bien la nouvelle image: ${IMAGE_TAG}"
-else
-  echo "⚠️  Attention: Les pods peuvent ne pas utiliser la dernière image"
-  echo "   Images des pods: ${POD_IMAGES}"
-  echo "   Image attendue: ${IMAGE_TAG} (tag: ${IMAGE_TAG_SHORT})"
-  echo "   imageID observés: ${POD_IMAGE_IDS}"
-  echo "   Forcer un redémarrage..."
-  kubectl rollout restart deployment/${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE}
-  echo "   Attente du redémarrage..."
-  kubectl rollout status deployment/${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE} --timeout=120s || true
+if [ "${POD_USES_EXPECTED_IMAGE}" != "true" ]; then
+  show_warning "Redémarrage des pods pour forcer la nouvelle image"
+  kubectl rollout restart deployment/${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE} >/dev/null 2>&1
+  kubectl rollout status deployment/${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE} --timeout=120s >/dev/null 2>&1 || true
 fi
 
-# Afficher le statut final
 echo ""
-echo "📊 Statut final des pods:"
-kubectl get pods -n ${NAMESPACE} -l app=${DEPLOYMENT_NAME_FROM_YAML} -o wide
-
+echo "==============================================="
+show_success "Déploiement terminé: ${IMAGE_TAG}"
+echo "==============================================="
 echo ""
-echo "✅ Déploiement terminé: ${IMAGE_TAG}"
+show_info "Statut des pods:"
+kubectl get pods -n ${NAMESPACE} -l app=${DEPLOYMENT_NAME_FROM_YAML} --no-headers 2>/dev/null | head -3 || true

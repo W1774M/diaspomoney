@@ -1,15 +1,16 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useAuth } from '@/hooks';
 import { useBookings } from '@/hooks/useBookings';
+import { useStatistics } from '@/hooks/statistics/useStatistics';
 import { BOOKING_STATUSES } from '@/lib/constants';
 import BookingsByStatusChart from '@/components/dashboard/charts/BookingsByStatusChart';
 import TransactionsChart from '@/components/dashboard/charts/TransactionsChart';
 import TopServicesChart from '@/components/dashboard/charts/TopServicesChart';
 import type { BookingResponse } from '@/lib/mappers/booking.mapper';
 import DashboardStatCard from '@/components/dashboard/DashboardStatCard';
-import { DollarSign, CalendarClock, Percent, ShoppingCart } from 'lucide-react';
+import { DollarSign, CalendarClock, ShoppingCart } from 'lucide-react';
 
 type MonthlyPoint = {
   month: string;
@@ -21,16 +22,48 @@ type MonthlyPoint = {
 
 function getBookingAmount(b: BookingResponse): number {
   const anyB = b as any;
+  const metadata = anyB?.metadata || {};
+  
+  // Essayer d'abord les champs directs
   const candidates = [
     anyB?.totalAmount,
     anyB?.price,
     anyB?.amount,
-    anyB?.metadata?.totalAmount,
-    anyB?.metadata?.price,
-    anyB?.metadata?.amount,
+    metadata?.totalAmount,
+    metadata?.price,
+    metadata?.amount,
   ];
-  const value = candidates.find((v) => typeof v === 'number' && Number.isFinite(v));
-  return value ?? 0;
+  const directValue = candidates.find((v) => typeof v === 'number' && Number.isFinite(v) && v > 0);
+  if (directValue) return directValue;
+  
+  // Si pas de valeur directe, calculer à partir de basePrice + optionsPrice - discountAmount
+  const basePrice = 
+    (typeof metadata?.basePrice === 'number' ? metadata.basePrice : 0) ||
+    (typeof metadata?.servicePrice === 'number' ? metadata.servicePrice : 0);
+  
+  const optionsPrice = (() => {
+    if (metadata?.additionalOptions) {
+      try {
+        const options = typeof metadata.additionalOptions === 'string' 
+          ? JSON.parse(metadata.additionalOptions) 
+          : metadata.additionalOptions;
+        if (Array.isArray(options)) {
+          return options.reduce((sum: number, opt: any) => {
+            const optPrice = typeof opt.price === 'number' ? opt.price : parseFloat(opt.price) || 0;
+            return sum + optPrice;
+          }, 0);
+        }
+      } catch {
+        // Ignorer les erreurs de parsing
+      }
+    }
+    return typeof metadata?.optionsPrice === 'number' ? metadata.optionsPrice : 0;
+  })();
+  
+  const discountAmount = typeof metadata?.discountAmount === 'number' ? metadata.discountAmount : 0;
+  
+  const calculatedAmount = basePrice + optionsPrice - discountAmount;
+  return calculatedAmount > 0 ? calculatedAmount : 0;
 }
 
 function getBookingDate(b: BookingResponse): Date | null {
@@ -56,12 +89,21 @@ export default function CustomerDashboardCharts() {
   const { user } = useAuth();
   const userId = user?.id;
 
-  const { bookings = [], loading, error } = useBookings({
+  const { bookings = [], loading: bookingsLoading, error: bookingsError } = useBookings({
     enabled: Boolean(userId),
     userId: userId || undefined,
     limit: 250,
     viewMode: 'customer',
   });
+
+  const { statistics, loading: statsLoading, error: statsError, fetchStatistics } = useStatistics();
+
+  // Charger les statistiques au montage
+  useEffect(() => {
+    if (userId) {
+      fetchStatistics();
+    }
+  }, [userId, fetchStatistics]);
 
   const { statusData, monthlyData, topServices, kpis } = useMemo(() => {
     const completed = bookings.filter((b: BookingResponse) => b.status === BOOKING_STATUSES.FINISHED);
@@ -73,17 +115,49 @@ export default function CustomerDashboardCharts() {
     const others =
       bookings.length - completed.length - pending.length - cancelled.length;
 
-    const totalSpent = completed.reduce((sum, b) => sum + getBookingAmount(b), 0);
-    const avgOrderValue = completed.length > 0 ? totalSpent / completed.length : 0;
-    const completionRate = bookings.length > 0 ? (completed.length / bookings.length) * 100 : 0;
+    // Utiliser les données de l'API pour les commandes terminées, le montant total et le panier moyen
+    const completedFromAPI = statistics?.bookings?.completed ?? completed.length;
+    const totalSpentFromAPI = statistics?.bookings?.totalSpent;
+    const avgOrderValueFromAPI = statistics?.bookings?.averageBasketValue;
+    
+    // Fallback sur les bookings si l'API ne retourne pas de valeurs
+    const totalSpent = totalSpentFromAPI !== undefined 
+      ? totalSpentFromAPI 
+      : completed.reduce((sum, b) => sum + getBookingAmount(b), 0);
+    const avgOrderValue = avgOrderValueFromAPI !== undefined 
+      ? avgOrderValueFromAPI 
+      : (completedFromAPI > 0 ? totalSpent / completedFromAPI : 0);
 
     const now = new Date();
     const monthStart = startOfMonth(now);
-    const spentThisMonth = completed.reduce((sum, b) => {
+    
+    // Calculer les dépenses depuis les bookings terminés du mois en cours
+    // Inclure aussi les bookings avec statut CONFIRMED qui ont un montant (car ils peuvent être payés)
+    const bookingsThisMonth = bookings.filter((b: BookingResponse) => {
       const dt = getBookingDate(b);
-      if (!dt) return sum;
-      return dt >= monthStart ? sum + getBookingAmount(b) : sum;
+      if (!dt) return false;
+      const isInMonth = dt >= monthStart;
+      const isCompletedOrConfirmed = 
+        b.status === BOOKING_STATUSES.FINISHED || 
+        b.status === BOOKING_STATUSES.CONFIRMED;
+      const hasAmount = getBookingAmount(b) > 0;
+      return isInMonth && isCompletedOrConfirmed && hasAmount;
+    });
+    
+    const spentThisMonthFromBookings = bookingsThisMonth.reduce((sum, b) => {
+      return sum + getBookingAmount(b);
     }, 0);
+    
+    // Utiliser les données de l'API si disponibles ET non nulles
+    // Sinon utiliser le fallback sur les bookings (plus fiable car basé sur les données réelles)
+    const spentThisMonthFromAPI = statistics?.budget?.monthly?.spent;
+    
+    // Si l'API retourne une valeur > 0, l'utiliser
+    // Sinon, utiliser les bookings comme source de vérité (car les transactions peuvent ne pas être créées)
+    const finalSpentThisMonth = 
+      (spentThisMonthFromAPI !== undefined && spentThisMonthFromAPI > 0) 
+        ? spentThisMonthFromAPI 
+        : spentThisMonthFromBookings;
 
     const nextBookingDate = pending
       .map((b) => getBookingDate(b))
@@ -95,9 +169,18 @@ export default function CustomerDashboardCharts() {
     const first = addMonths(startOfMonth(now), -11);
     const months: Date[] = Array.from({ length: 12 }, (_, i) => addMonths(first, i));
 
+    // Créer un map des dépenses mensuelles depuis l'API (budget.trends)
+    const trendsMap = new Map<string, number>();
+    if (statistics?.budget?.trends) {
+      statistics.budget.trends.forEach((trend: { period: string; budget: number; spent: number }) => {
+        trendsMap.set(trend.period, trend.spent);
+      });
+    }
+
     const series: MonthlyPoint[] = months.map((m) => {
       const y = m.getFullYear();
       const mo = m.getMonth();
+      const periodKey = `${y}-${String(mo + 1).padStart(2, '0')}`;
 
       const inMonth = (b: BookingResponse) => {
         const dt = getBookingDate(b);
@@ -108,7 +191,9 @@ export default function CustomerDashboardCharts() {
       const monthBookings = bookings.filter(inMonth);
       const monthCompleted = completed.filter(inMonth);
 
-      const revenue = monthCompleted.reduce((sum, b) => sum + getBookingAmount(b), 0);
+      const revenueFromAPI = trendsMap.get(periodKey);
+      const revenueFromBookings = monthCompleted.reduce((sum, b) => sum + getBookingAmount(b), 0);
+      const revenue = revenueFromAPI !== undefined ? revenueFromAPI : revenueFromBookings;
 
       return {
         month: monthLabel(m),
@@ -146,25 +231,28 @@ export default function CustomerDashboardCharts() {
       monthlyData: series,
       topServices: top,
       kpis: {
-        spentThisMonth,
+        spentThisMonth: finalSpentThisMonth,
         nextBookingDate,
-        completionRate,
         avgOrderValue,
+        completedOrders: completedFromAPI,
       },
     };
-  }, [bookings]);
+  }, [bookings, statistics]);
 
   if (!userId) return null;
 
+  const loading = bookingsLoading || statsLoading;
+  const error = bookingsError || statsError;
+
   return (
     <div className="space-y-6">
-      {error && (
+      {(error || statsError) && (
         <div className="bg-white rounded-lg shadow-sm border border-red-200 p-4 text-sm text-red-700">
-          {error}
+          {error || statsError || 'Erreur lors du chargement des données'}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <DashboardStatCard
           title="Dépenses (mois)"
           value={`${kpis.spentThisMonth.toFixed(2)} €`}
@@ -188,12 +276,6 @@ export default function CustomerDashboardCharts() {
                 }),
               }
             : {})}
-        />
-        <DashboardStatCard
-          title="Taux de complétion"
-          value={`${kpis.completionRate.toFixed(0)}%`}
-          icon={Percent}
-          color="green"
         />
         <DashboardStatCard
           title="Panier moyen"

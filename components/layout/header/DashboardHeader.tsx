@@ -196,18 +196,18 @@ export default function DashboardHeader({ className = '' }: { className?: string
             {/* Bouton hamburger pour mobile/tablette */}
             <button
               onClick={openSidebar}
-              className='lg:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition-colors'
+              className='lg:hidden p-2 text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800 rounded-md transition-colors'
               aria-label='Ouvrir le menu'
             >
               <Menu className='h-6 w-6' />
             </button>
-            <Link href='/' className='flex-shrink-0'>
+            <Link href='/' className='flex-shrink-0 flex items-center space-x-2'>
               <Logo
                 src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
-                width={200}
-                height={100}
+                width={640}
+                height={320}
                 alt='Diaspomoney'
-                className='h-8 sm:h-10 w-auto'
+                className='h-9 sm:h-11 w-auto'
               />
             </Link>
           </div>
@@ -217,21 +217,8 @@ export default function DashboardHeader({ className = '' }: { className?: string
             {/* Bouton Transférer un service */}
             <Link
               href='/services'
-              className='hidden md:inline-flex items-center px-4 py-2 border border-[hsl(25,100%,53%)] text-sm font-medium rounded-md text-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,53%)] hover:text-white transition-colors'
+              className='hidden md:inline-flex items-center px-6 py-2.5 text-sm font-medium text-white rounded-full bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,48%)] hover:from-[hsl(25,100%,50%)] hover:to-[hsl(25,100%,45%)] transition-all shadow-lg hover:shadow-xl'
             >
-              <svg
-                className='w-4 h-4 mr-2'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'
-                />
-              </svg>
               Transférer un service
             </Link>
 
@@ -242,7 +229,7 @@ export default function DashboardHeader({ className = '' }: { className?: string
                   setIsNotificationMenuOpen(!isNotificationMenuOpen);
                   setIsUserMenuOpen(false);
                 }}
-                className='relative p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-md transition-colors'
+                className='relative p-2 text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800 rounded-md transition-colors'
                 aria-label='Notifications'
               >
                 <Bell className='h-5 w-5' />
@@ -261,13 +248,13 @@ export default function DashboardHeader({ className = '' }: { className?: string
                     className='fixed inset-0 z-40 sm:hidden'
                     onClick={() => setIsNotificationMenuOpen(false)}
                   />
-                  <div className='fixed sm:absolute right-4 sm:right-0 top-20 sm:top-auto sm:mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-gray-800 rounded-md shadow-lg border border-gray-700 py-2 z-50 max-h-[calc(100vh-7rem)] sm:max-h-96 overflow-y-auto'>
-                    <div className='px-3 sm:px-4 py-2 border-b border-gray-700 flex justify-between items-center gap-2'>
+                  <div className='fixed sm:absolute right-4 sm:right-0 top-20 sm:top-auto sm:mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-gray-900 rounded-md shadow-lg border border-gray-800 py-2 z-50 max-h-[calc(100vh-7rem)] sm:max-h-96 overflow-y-auto'>
+                    <div className='px-3 sm:px-4 py-2 border-b border-gray-800 flex justify-between items-center gap-2'>
                       <h3 className='text-sm font-semibold text-white flex-shrink-0'>
                         Notifications
                       </h3>
                       {unreadCount > 0 && (
-                        <span className='text-xs text-gray-400 whitespace-nowrap flex-shrink-0'>
+                        <span className='text-xs text-gray-300 whitespace-nowrap flex-shrink-0'>
                           {unreadCount} non {unreadCount === 1 ? 'lue' : 'lues'}
                         </span>
                       )}
@@ -282,12 +269,12 @@ export default function DashboardHeader({ className = '' }: { className?: string
                       Aucune notification
                     </div>
                   ) : (
-                    <div className='divide-y divide-gray-700'>
+                    <div className='divide-y divide-gray-800'>
                       {notifications.slice(0, 5).map(notification => (
                         <div
                           key={notification.id}
-                          className={`px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-gray-700 transition-colors cursor-pointer ${
-                            !notification.read ? 'bg-gray-700/50' : ''
+                          className={`px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-gray-800 transition-colors cursor-pointer ${
+                            !notification.read ? 'bg-gray-800' : ''
                           }`}
                           onClick={() => {
                             if (!notification.read) {
@@ -326,7 +313,7 @@ export default function DashboardHeader({ className = '' }: { className?: string
                                     .map((channel, idx) => (
                                       <div
                                         key={idx}
-                                        className='text-gray-500 flex-shrink-0'
+                                        className='text-gray-400 flex-shrink-0'
                                         title={channel.type}
                                       >
                                         {getChannelIcon(channel.type)}
@@ -342,7 +329,7 @@ export default function DashboardHeader({ className = '' }: { className?: string
                   )}
 
                   {notifications.length > 0 && (
-                    <div className='px-3 sm:px-4 py-2 border-t border-gray-700'>
+                    <div className='px-3 sm:px-4 py-2 border-t border-gray-800'>
                       <Link
                         href='/dashboard/notifications'
                         onClick={() => setIsNotificationMenuOpen(false)}
@@ -395,14 +382,14 @@ export default function DashboardHeader({ className = '' }: { className?: string
                     {getPrimaryRole()}
                   </p>
                   {getSecondaryRole() && (
-                    <p className='text-xs text-gray-400'>
+                    <p className='text-xs text-gray-300'>
                       {getSecondaryRole()}
                     </p>
                   )}
                 </div>
 
                 <ChevronDown
-                  className={`h-4 w-4 text-gray-400 transition-transform ${
+                  className={`h-4 w-4 text-white transition-transform ${
                     isUserMenuOpen ? 'rotate-180' : ''
                   }`}
                 />
@@ -410,37 +397,37 @@ export default function DashboardHeader({ className = '' }: { className?: string
 
               {/* Dropdown menu utilisateur */}
               {isUserMenuOpen && (
-                <div className='absolute right-0 mt-2 w-56 bg-gray-800 rounded-md shadow-lg border border-gray-700 py-1 z-50'>
-                  <div className='px-4 py-3 border-b border-gray-700'>
+                <div className='absolute right-0 mt-2 w-56 bg-gray-900 rounded-md shadow-lg border border-gray-800 py-1 z-50'>
+                  <div className='px-4 py-3 border-b border-gray-800'>
                     <p className='text-sm font-medium text-white'>
                       {user?.name || 'Utilisateur'}
                     </p>
-                    <p className='text-xs text-gray-400 truncate'>
+                    <p className='text-xs text-gray-300 truncate'>
                       {user?.email || ''}
                     </p>
                   </div>
                   <Link
                     href='/dashboard/settings'
-                    className='block px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-[hsl(25,100%,53%)]'
+                    className='block px-4 py-2 text-sm text-white hover:bg-gray-800 hover:text-[hsl(25,100%,53%)]'
                     onClick={() => setIsUserMenuOpen(false)}
                   >
                     Paramètres
                   </Link>
                   <Link
                     href='/dashboard'
-                    className='block px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-[hsl(25,100%,53%)]'
+                    className='block px-4 py-2 text-sm text-white hover:bg-gray-800 hover:text-[hsl(25,100%,53%)]'
                     onClick={() => setIsUserMenuOpen(false)}
                   >
                     Dashboard
                   </Link>
-                  <div className='border-t border-gray-700 my-1' />
+                  <div className='border-t border-gray-800 my-1' />
                   <button
                     onClick={() => {
                       setIsUserMenuOpen(false);
                       signOut();
                     }}
                     disabled={isSigningOut}
-                    className='block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-[hsl(25,100%,53%)] disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-800 hover:text-[hsl(25,100%,53%)] disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     {isSigningOut ? 'Déconnexion...' : 'Déconnexion'}
                   </button>
