@@ -29,9 +29,11 @@ const UpdatePromotionCodeSchema = z.object({
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> | { id: string } },
 ) {
   return handleApiRoute(request, async () => {
+    const { id } = await Promise.resolve(params);
+
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json(
@@ -54,7 +56,7 @@ export async function PATCH(
     await dbConnect();
 
     const PromotionCodeModel = PromotionCode as any;
-    const code = await PromotionCodeModel.findById(params.id);
+    const code = await PromotionCodeModel.findById(id);
     if (!code) {
       return NextResponse.json(
         { error: 'Code promotionnel non trouvé' },
@@ -67,7 +69,7 @@ export async function PATCH(
       const label = data.label.toUpperCase().trim();
       const existing = await PromotionCodeModel.findOne({
         label,
-        _id: { $ne: params.id },
+        _id: { $ne: id },
       });
       if (existing) {
         return NextResponse.json(
@@ -137,9 +139,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> | { id: string } },
 ) {
   return handleApiRoute(request, async () => {
+    const { id } = await Promise.resolve(params);
+
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json(
@@ -159,7 +163,7 @@ export async function DELETE(
     await dbConnect();
 
     const PromotionCodeModel = PromotionCode as any;
-    const code = await PromotionCodeModel.findByIdAndDelete(params.id);
+    const code = await PromotionCodeModel.findByIdAndDelete(id);
     if (!code) {
       return NextResponse.json(
         { error: 'Code promotionnel non trouvé' },
@@ -167,7 +171,7 @@ export async function DELETE(
       );
     }
 
-    log.info({ codeId: params.id }, 'Promotion code deleted');
+    log.info({ codeId: id }, 'Promotion code deleted');
 
     return NextResponse.json({
       success: true,

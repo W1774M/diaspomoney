@@ -20,6 +20,7 @@ import type {
   ValidationError,
 } from "@/lib/types/service-booking.types";
 import { SPECIALITY_TYPES, CURRENCIES } from "@/lib/constants";
+import { ServiceDescription } from "@/components/common/ServiceDescription";
 
 // Créer un logger avec contexte pour ce composant
 const logger = childLogger({ component: 'ServiceBookingWizard' });
@@ -1237,28 +1238,38 @@ export function ServiceBookingWizard({
                         </button>
                       </div>
                     ) : availableServices && availableServices.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
                         {availableServices.map((service) => (
                           <button
                             key={service.id}
                             onClick={() => handleServiceSelect(service)}
-                            className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-md ${
+                            className={`flex h-96 max-h-96 flex-col overflow-hidden p-6 rounded-xl border-2 text-left transition-all hover:shadow-md ${
                               state.selectedService?.serviceId === service.id
                                 ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] shadow-md"
                                 : "border-gray-200 hover:border-gray-300 bg-white"
                             }`}
                             type="button"
                           >
-                            <div className="flex items-start justify-between mb-3">
-                              <h3 className="font-semibold text-lg mb-1">{service.label}</h3>
+                            {/* En-tête : titre aligné en haut sur toutes les cartes */}
+                            <div className="service-card-header flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 pb-3">
+                              <h3 className="font-semibold text-lg leading-snug text-gray-900">
+                                {service.label}
+                              </h3>
                               {state.selectedService?.serviceId === service.id && (
-                                <Check className="w-6 h-6 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                                <Check className="h-6 w-6 shrink-0 text-[hsl(25,100%,53%)]" aria-hidden />
                               )}
                             </div>
-                            <p className="text-sm text-gray-600 mb-4">
-                              {service.description}
-                            </p>
-                            <div className="flex items-center justify-between">
+                            {/* Corps : hauteur fixe implicite (flex-1), texte long → défilement */}
+                            <div className="service-card-body flex min-h-0 flex-1 flex-col overflow-hidden py-3">
+                              <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1 text-left [scrollbar-gutter:stable]">
+                                <ServiceDescription
+                                  content={service.description}
+                                  variant="compact"
+                                />
+                              </div>
+                            </div>
+                            {/* Pied : prix aligné en bas */}
+                            <div className="service-card-footer flex shrink-0 items-center justify-between gap-2 border-t border-gray-100 pt-4">
                               <p className="text-xl font-bold text-[hsl(25,100%,53%)]">
                                 {service.price === 0
                                   ? "Sur devis"
@@ -1307,44 +1318,74 @@ export function ServiceBookingWizard({
                             Réessayer
                           </button>
                         </div>
-                      ) : additionalOptions && additionalOptions.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {additionalOptions.map((option) => {
-                          const isSelected = state.additionalOptions.some(
-                            (opt) => opt.id === option.id,
-                          );
+                      ) : (() => {
+                        // Filtrer les options pour n'afficher que celles associées au service courant
+                        const serviceSpecificOptions = additionalOptions.filter((option) => {
+                          const associatedServices = (option as any).associatedServices as string[] | undefined;
+                          
+                          // Si aucune association n'est définie, considérer l'option comme globale
+                          if (!associatedServices || associatedServices.length === 0) {
+                            return true;
+                          }
+                          
+                          // Sinon, n'afficher que si l'option est liée au service sélectionné
+                          return associatedServices.includes(state.selectedService!.serviceId);
+                        });
+
+                        if (serviceSpecificOptions.length === 0) {
                           return (
-                            <button
-                              key={option.id}
-                              onClick={() => handleToggleOption(option)}
-                              className={`p-5 rounded-xl border-2 text-left transition-all hover:shadow-md ${
-                                isSelected
-                                  ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] shadow-md"
-                                  : "border-gray-200 hover:border-gray-300 bg-white"
-                              }`}
-                              type="button"
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <h3 className="font-semibold mb-1">{option.label}</h3>
-                                {isSelected && (
-                                  <Check className="w-5 h-5 text-[hsl(25,100%,53%)] flex-shrink-0" />
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-600 mb-3">
-                                {option.description}
+                            <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                              <p className="text-gray-500 text-sm">
+                                Aucune option supplémentaire disponible pour ce service
                               </p>
-                              <p className="text-lg font-bold text-[hsl(25,100%,53%)]">
-                                +{option.price}€
-                              </p>
-                            </button>
+                            </div>
                           );
-                        })}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                          <p className="text-gray-500 text-sm">Aucune option supplémentaire disponible</p>
-                        </div>
-                      )}
+                        }
+
+                        return (
+                          <div className="grid grid-cols-1 gap-4 items-stretch md:grid-cols-2">
+                            {serviceSpecificOptions.map((option) => {
+                              const isSelected = state.additionalOptions.some(
+                                (opt) => opt.id === option.id,
+                              );
+                              return (
+                                <button
+                                  key={option.id}
+                                  onClick={() => handleToggleOption(option)}
+                                  className={`flex h-96 max-h-96 flex-col overflow-hidden p-5 rounded-xl border-2 text-left transition-all hover:shadow-md ${
+                                    isSelected
+                                      ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] shadow-md"
+                                      : "border-gray-200 hover:border-gray-300 bg-white"
+                                  }`}
+                                  type="button"
+                                >
+                                  <div className="service-option-card-header flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 pb-2">
+                                    <h3 className="font-semibold leading-snug text-gray-900">
+                                      {option.label}
+                                    </h3>
+                                    {isSelected && (
+                                      <Check className="h-5 w-5 shrink-0 text-[hsl(25,100%,53%)]" aria-hidden />
+                                    )}
+                                  </div>
+                                  <div className="service-option-card-body flex min-h-0 flex-1 flex-col overflow-hidden py-2">
+                                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1 text-left [scrollbar-gutter:stable]">
+                                      <ServiceDescription
+                                        content={option.description}
+                                        variant="compact"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="service-option-card-footer shrink-0 border-t border-gray-100 pt-3">
+                                    <p className="text-lg font-bold text-[hsl(25,100%,53%)]">
+                                      +{option.price}€
+                                    </p>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
@@ -1433,7 +1474,12 @@ export function ServiceBookingWizard({
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="font-medium text-gray-900">{state.selectedService?.label}</p>
-                    <p className="text-sm text-gray-500">{state.selectedService?.description}</p>
+                    <div className="text-sm text-gray-600 max-h-32 overflow-y-auto mt-1">
+                      <ServiceDescription
+                        content={state.selectedService?.description || ""}
+                        variant="compact"
+                      />
+                    </div>
                   </div>
                   <span className="font-semibold text-gray-900 ml-4">
                     {state.selectedService?.price || 0}€
@@ -1609,9 +1655,12 @@ export function ServiceBookingWizard({
                               <p className="font-semibold text-gray-900">
                                 {state.selectedService.label}
                               </p>
-                              <p className="text-sm text-gray-600 mt-1">
-                                {state.selectedService.description}
-                              </p>
+                              <div className="mt-1 max-h-40 overflow-y-auto text-gray-600">
+                                <ServiceDescription
+                                  content={state.selectedService.description}
+                                  variant="compact"
+                                />
+                              </div>
                             </div>
                             <p className="text-lg font-semibold text-gray-900 ml-4">
                               {state.selectedService.price}€

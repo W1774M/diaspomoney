@@ -207,7 +207,7 @@ export default function DashboardHeader({ className = '' }: { className?: string
                 width={640}
                 height={320}
                 alt='Diaspomoney'
-                className='h-9 sm:h-11 w-auto'
+                className='h-20 w-auto'
               />
             </Link>
           </div>

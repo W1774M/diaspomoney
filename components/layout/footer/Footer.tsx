@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Mail, Phone, MapPin } from 'lucide-react';
+import { Mail, MapPin } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 
 // Facebook icon component (replacement for deprecated lucide-react Facebook)
@@ -136,7 +136,7 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
           {/* Colonne 1 : Logo et description avec réseaux sociaux */}
           <div className='lg:col-span-1'>
             {/* Logo */}
-            <Logo src='/img/diaspo/Logo_DispoMoney_horiz_CMJN.png' width={640} height={320} alt='Diaspomoney' className='h-9 sm:h-11 w-auto mb-4' />
+            <Logo src='/img/diaspo/Logo_DispoMoney_horiz_CMJN.png' width={640} height={320} alt='Diaspomoney' className='h-20 w-auto mb-4' />
             
             {/* Description */}
             <p 
@@ -218,9 +218,6 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
             label='Entreprise'
             links={[
               { href: '/about', text: 'À propos' },
-              { href: '/partners', text: 'Partenaires' },
-              { href: '/careers', text: 'Carrières' },
-              { href: '/blog', text: 'Blog' },
             ]}
           />
 
@@ -251,7 +248,7 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
                 </a>
               </div>
               
-              {/* Téléphone */}
+              {/* Téléphone
               <div className='flex items-center gap-3'>
                 <Phone size={18} style={{ color: '#F97015' }} />
                 <a
@@ -264,7 +261,7 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
                 >
                   +33 6 51 27 65 70
                 </a>
-              </div>
+              </div> */}
               
               {/* Adresse */}
               <div className='flex items-center gap-3'>
@@ -321,7 +318,7 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
             >
               Politique de confidentialité
             </Link>
-            <Link
+            {/* <Link
               href='/legal'
               className='text-xs transition-colors hover:opacity-80'
               style={{
@@ -330,7 +327,7 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
               }}
             >
               Mentions légales
-            </Link>
+            </Link> */}
           </div>
         </div>
       </div>

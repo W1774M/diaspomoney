@@ -2,6 +2,7 @@
 
 import { SPECIALITY_TYPES } from '@/lib/constants';
 import type { Service } from '@/hooks/services';
+import { MarkdownDescriptionField } from '@/components/common/MarkdownDescriptionField';
 import { X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
@@ -133,20 +134,25 @@ export default function ServiceFormModal({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-              placeholder="Description du service..."
-              rows={4}
-              required
-              maxLength={1000}
-            />
-          </div>
+          <MarkdownDescriptionField
+            label={
+              <>
+                Description <span className="text-red-500">*</span>
+              </>
+            }
+            value={formData.description}
+            onChange={(description) => setFormData({ ...formData, description })}
+            placeholder="Premier paragraphe (accroche).
+
+Deuxième paragraphe : détails, **points importants**, listes :
+- élément 1
+- élément 2
+
+Conditions : voir [nos CGU](https://diaspomoney.fr)."
+            required
+            maxLength={1000}
+            rows={12}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -4,11 +4,9 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 const PHOTO_TESTIMONIALS = [
-  { id: 1, src: '/img/partners/WhatsApp Image 2026-02-05 at 14.59.58.jpeg', alt: 'Partenaires DiaspoMoney' },
-  { id: 2, src: '/img/partners/WhatsApp Image 2026-02-05 at 14.59.59 (1).jpeg', alt: 'Partenaires DiaspoMoney' },
-  { id: 3, src: '/img/partners/WhatsApp Image 2026-02-05 at 14.59.59 (2).jpeg', alt: 'Partenaires DiaspoMoney' },
-  { id: 4, src: '/img/partners/WhatsApp Image 2026-02-05 at 14.59.59 (3).jpeg', alt: 'DiaspoMoney' },
-  { id: 5, src: '/img/partners/WhatsApp Image 2026-02-05 at 14.59.59.jpeg', alt: 'Partenaires DiaspoMoney' },
+  { id: 1, src: '/img/partners/WhatsApp Image 2026-02-05 at 14.59.59 (1).jpeg', alt: 'Partenaires DiaspoMoney' },
+  { id: 2, src: '/img/partners/WhatsApp Image 2026-02-25 at 12.18.54.jpeg', alt: 'Partenaires DiaspoMoney' },
+  { id: 3, src: '/img/partners/WhatsApp Image 2026-02-05 at 14.59.59.jpeg', alt: 'Partenaires DiaspoMoney' },
 ];
 
 const IMAGES_PER_SLIDE = 2;
@@ -91,7 +89,7 @@ export function PhotoTestimonialsSection() {
                   {slideItems.map((item) => (
                     <div
                       key={item.id}
-                      className={`relative aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden ${
+                      className={`relative aspect-[8/3] bg-gray-100 rounded-lg overflow-hidden ${
                         slideItems.length === 1 ? 'w-full' : 'flex-1 min-w-0'
                       }`}
                     >

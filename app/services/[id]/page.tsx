@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import type { ServiceType } from '@/lib/types/constants.types';
 import { logger } from '@/lib/logger';
+import { ServiceDescription } from '@/components/common/ServiceDescription';
 
 type PublicPack = {
   _id?: string;
@@ -349,8 +350,11 @@ export default function ServiceDetailPage() {
                             {p.label}
                           </div>
                           {p.description && (
-                            <div className="text-sm text-gray-600 mt-1">
-                              {p.description}
+                            <div className="text-sm text-gray-600 mt-2 max-h-44 overflow-y-auto pr-0.5">
+                              <ServiceDescription
+                                content={p.description}
+                                variant="compact"
+                              />
                             </div>
                           )}
                         </div>

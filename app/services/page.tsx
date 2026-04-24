@@ -61,7 +61,7 @@ export default function ServicesPage() {
       id: "consultation-general",
       title: "Santé",
       description: "Accès à un réseau de professionnels de santé certifiés",
-      price: "À partir de 30€",
+      price: "À partir de 10€",
       delivery: "Rendez-vous sous 24-48h",
       features: [
         "Réseau de médecins vérifiés",
@@ -100,7 +100,6 @@ export default function ServicesPage() {
       cta: "Demander un devis",
     },
   ];
-
 
   return (
     <div className="min-h-screen bg-white">

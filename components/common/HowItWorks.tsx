@@ -11,7 +11,7 @@ export default function HowItWorks({ className }: { className?: string }) {
       description:
         "Sélectionnez le service de santé et payez en toute sécurité depuis notre plateforme. Cartes, virements, tout est accepté.",
       icon: CreditCard,
-      image: "/img/diaspo/step-01.jpg",
+      image: "/img/diaspo/step-01.jpeg",
       width: 528,
       height: 528,
       showNextStep: true,
@@ -22,7 +22,7 @@ export default function HowItWorks({ className }: { className?: string }) {
       description:
         "L'argent est versé directement à la clinique ou au médecin. Aucun intermédiaire, aucun détournement possible.",
       icon: Building2,
-      image: "/img/diaspo/step-02.png",
+      image: "/img/diaspo/step-02.jpeg",
       width: 406,
       height: 409,
       showNextStep: true,
@@ -33,7 +33,7 @@ export default function HowItWorks({ className }: { className?: string }) {
       description:
         "Suivez le service en temps réel depuis votre dashboard. Recevez des confirmations à chaque étape.",
       icon: Heart,
-      image: "/img/diaspo/step-03.jpg",
+      image: "/img/diaspo/step-03.jpeg",
       width: 528,
       height: 396,
       showNextStep: false,

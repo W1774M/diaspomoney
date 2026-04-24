@@ -27,15 +27,46 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   weight: ['400', '500', '600', '700', '800'],
 });
 
-export const metadata: Metadata = {
-  title: 'DiaspoMoney',
-  description: 'Le lieu parfait pour acheter vos services pour la diaspora',
-};
+const baseUrl =
+  process.env['NEXT_PUBLIC_APP_URL'] || 'https://diaspomoney.fr';
 
-// Désactiver le prerendering globalement pour toutes les pages et routes API
-// Cela évite les erreurs MongoDB pendant le build
-// Cette configuration s'applique à toutes les routes, y compris les routes API
-export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  metadataBase: new URL(baseUrl),
+  title: {
+    default: 'DiaspoMoney – Services pour la diaspora',
+    template: '%s | DiaspoMoney',
+  },
+  description:
+    'Réservez et payez des services pour vos proches en Afrique : santé, éducation, immobilier. Paiement sécurisé, prestataires vérifiés.',
+  keywords: [
+    'diaspora',
+    'services Afrique',
+    'paiement diaspora',
+    'santé Afrique',
+    'éducation Afrique',
+    'immobilier Afrique',
+  ],
+  openGraph: {
+    type: 'website',
+    locale: 'fr_FR',
+    url: baseUrl,
+    siteName: 'DiaspoMoney',
+    title: 'DiaspoMoney – Services pour la diaspora',
+    description:
+      'Réservez et payez des services pour vos proches en Afrique : santé, éducation, immobilier. Paiement sécurisé, prestataires vérifiés.',
+    images: [{ url: '/img/og.png', width: 1200, height: 630, alt: 'DiaspoMoney' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'DiaspoMoney – Services pour la diaspora',
+    description:
+      'Réservez et payez des services pour vos proches en Afrique. Paiement sécurisé, prestataires vérifiés.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default function RootLayout({
   children,
@@ -43,7 +74,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang='en' suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning>
       <head>
         {/* Google Tag Manager */}
         <Script
@@ -51,12 +82,13 @@ export default function RootLayout({
           strategy='afterInteractive'
           dangerouslySetInnerHTML={{
             __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-                  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-                  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-                  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-                  })(window,document,'script','dataLayer','GTM-T5KW77GK');`,
+              new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+              'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer','GTM-N83PJN57');`,
           }}
         />
+
         {/* End Google Tag Manager */}
       </head>
       <body
@@ -64,14 +96,14 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         {/* Google Tag Manager (noscript) */}
-        <noscript>
-          <iframe
-            src='https://www.googletagmanager.com/ns.html?id=GTM-T5KW77GK'
-            height='0'
-            width='0'
-            style={{ display: 'none', visibility: 'hidden' }}
-          />
-        </noscript>
+        <Script
+          id='gtm-noscript'
+          strategy='afterInteractive'
+          dangerouslySetInnerHTML={{
+            __html: `<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T5KW77GK"
+              height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>`,
+          }}
+        />
         {/* End Google Tag Manager (noscript) */}
         <EventSystemProvider>
           <AuthProvider>

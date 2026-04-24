@@ -1,104 +1,84 @@
-"use client";
-
+import Link from "next/link";
+import HowItWorks from "@/components/common/HowItWorks";
 import {
-  HeroSection,
   BenefitsSection,
+  CareForLovedOnesSection,
+  HeroSection,
   PartnersSection,
+  PhotoTestimonialsSection,
   RoadmapSection,
   TestimonialsSection,
-  CareForLovedOnesSection,
-  PhotoTestimonialsSection,
 } from "@/components/features/home";
-import HowItWorks from "@/components/common/HowItWorks";
 
+/** Partie d'un message de bannière : texte simple ou lien */
+type BannerPart =
+  | { type: "text"; value: string }
+  | { type: "link"; href: string; label: string };
 
+interface BannerMessage {
+  id: string;
+  parts: BannerPart[];
+}
 
-// interface VideoTestimonial {
-//   id: string;
-//   thumbnail: string;
-//   duration: string;
-//   userName: string;
-//   userInitial: string;
-//   affiliation?: string;
-//   location?: string;
-//   role: string;
-//   videoUrl?: string;
-// }
+const BANNER_MESSAGES: BannerMessage[] = [
+  {
+    id: "1",
+    parts: [
+      { type: "text", value: "🎉 Nouvelle offre santé : " },
+      { type: "link", href: "/services/health", label: "consultez un médecin" },
+      { type: "text", value: " à partir de 10€." },
+    ],
+  },
+  {
+    id: "2",
+    parts: [
+      { type: "text", value: "🎒 Paiement des frais de scolarité sécurisé — " },
+      { type: "link", href: "/services/edu", label: "en savoir plus" },
+      { type: "text", value: "." },
+    ],
+  },
+  {
+    id: "3",
+    parts: [
+      { type: "text", value: "🏠 Travaux en Afrique ? " },
+      { type: "link", href: "/services/immo", label: "demandez un devis" },
+      { type: "text", value: "." },
+    ],
+  },
+];
 
 export default function HomePage() {
-
-  
-// const VIDEO_TESTIMONIALS: VideoTestimonial[] = [
-//   {
-//     id: '1',
-//     thumbnail: '/img/testimonials/video-1.jpg', // À remplacer par l'image réelle
-//     duration: '1:45',
-//     userName: 'Ibrahima Diop',
-//     userInitial: 'I',
-//     location: 'Toulouse, France',
-//     role: 'Utilisateur',
-//   },
-//   {
-//     id: '2',
-//     thumbnail: '/img/testimonials/video-2.jpg', // À remplacer par l'image réelle
-//     duration: '1:45',
-//     userName: 'Ibrahima Diop',
-//     userInitial: 'I',
-//     location: 'Toulouse, France',
-//     role: 'Utilisateur',
-//   },
-//   {
-//     id: '3',
-//     thumbnail: '/img/testimonials/video-3.jpg', // À remplacer par l'image réelle
-//     duration: '1:45',
-//     userName: 'Ibrahima Diop',
-//     userInitial: 'I',
-//     location: 'Toulouse, France',
-//     role: 'Utilisateur',
-//   },
-// ];
-
-// const VIDEO_TESTIMONIALS_2: VideoTestimonial[] = [
-//   {
-//     id: '1',
-//     thumbnail: '/img/testimonials/video-provider-1.jpg',
-//     duration: '3:12',
-//     userName: 'Dr. Mariama Camara',
-//     userInitial: 'M',
-//     affiliation: 'Centre Médical Excellence, Conakry',
-//     role: 'Directrice médicale',
-//   },
-//   {
-//     id: '2',
-//     thumbnail: '/img/testimonials/video-provider-2.jpg',
-//     duration: '3:12',
-//     userName: 'Dr. Mariama Camara',
-//     userInitial: 'M',
-//     affiliation: 'Centre Médical Excellence, Conakry',
-//     role: 'Directrice médicale',
-//   },
-//   {
-//     id: '3',
-//     thumbnail: '/img/testimonials/video-provider-3.jpg',
-//     duration: '3:12',
-//     userName: 'Dr. Mariama Camara',
-//     userInitial: 'M',
-//     affiliation: 'Centre Médical Excellence, Conakry',
-//     role: 'Directrice médicale',
-//   },
-// ];
-
-
   return (
     <div className="flex flex-col">
+      {/* Bannière défilante */}
+      <div className="relative w-full overflow-hidden bg-[hsl(25,100%,53%)] text-white py-3 text-sm font-medium">
+        <div className="flex animate-marquee whitespace-nowrap w-max">
+          {[...BANNER_MESSAGES, ...BANNER_MESSAGES].map((msg, index) => (
+            <span key={`${msg.id}-${index}`} className="inline-flex items-center gap-1 mx-8">
+              {msg.parts.map((part, i) =>
+                part.type === "text" ? (
+                  <span key={i}>{part.value}</span>
+                ) : (
+                  <Link
+                    key={i}
+                    href={part.href}
+                    className="underline underline-offset-2 hover:opacity-90 font-semibold"
+                  >
+                    {part.label}
+                  </Link>
+                ),
+              )}
+              <span className="text-white/70 mx-2" aria-hidden>•</span>
+            </span>
+          ))}
+        </div>
+      </div>
       <HeroSection />
+      <PartnersSection />
       <HowItWorks className="py-20 md:py-24 bg-white relative overflow-hidden" />
       <BenefitsSection />
-      {/* <VideoTestimonialsSection videoTestimonials={VIDEO_TESTIMONIALS} />
-      <VideoTestimonialsSection videoTestimonials={VIDEO_TESTIMONIALS_2} /> */}
       <TestimonialsSection />
       <PhotoTestimonialsSection />
-      <PartnersSection />
       <CareForLovedOnesSection />
       <RoadmapSection />
     </div>

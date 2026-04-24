@@ -1,5 +1,6 @@
 "use client";
 
+import { CM, CG, CI, SN, CD, RW } from "country-flag-icons/react/3x2";
 import { Shield, Clock, Tag, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -19,6 +20,19 @@ const FEATURES = [
   },
 ];
 
+/**
+ * Pays couverts — drapeaux en SVG (les emojis drapeaux ne s’affichent pas sous Windows
+ * sur Chrome/Edge : lettres « CM », « CI », etc. à la place).
+ */
+const PRESENCE_COUNTRIES: { Flag: typeof CM; iso: string; label: string }[] = [
+  { Flag: CM, iso: "CM", label: "Présent au Cameroun" },
+  { Flag: CG, iso: "CG", label: "Présent au Congo" },
+  { Flag: CI, iso: "CI", label: "Bientôt en Côte d’Ivoire" },
+  { Flag: SN, iso: "SN", label: "Bientôt au Sénégal" },
+  { Flag: CD, iso: "CD", label: "Bientôt en RDC" },
+  { Flag: RW, iso: "RW", label: "Bientôt au Rwanda" },
+];
+
 export function HeroSection() {
   const router = useRouter();
 
@@ -26,9 +40,10 @@ export function HeroSection() {
     router.push("/services");
   };
 
-  const handleHowItWorks = () => {
-    router.push("/#how-it-works");
+  const handleCreateAccount = () => {
+    router.push("/register");
   };
+
 
   return (
     <section className="relative bg-[#FDF8F3] overflow-hidden">
@@ -87,6 +102,31 @@ export function HeroSection() {
               France
             </h1>
 
+            {/* Pays couverts */}
+            <ul
+              className="flex flex-wrap gap-2 sm:gap-3 mb-2 list-none p-0 m-0"
+              style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
+              aria-label="Pays où DiaspoMoney est présent"
+            >
+              {PRESENCE_COUNTRIES.map(({ Flag, iso, label }) => (
+                <li
+                  key={iso}
+                  className="inline-flex items-center gap-2 rounded-full border border-stone-200/80 bg-white/80 px-3 py-1.5 text-sm text-stone-700 shadow-sm"
+                >
+                  <span
+                    className="relative h-[14px] w-[21px] shrink-0 overflow-hidden rounded-[2px] shadow-sm ring-1 ring-black/10"
+                    aria-hidden
+                  >
+                    <Flag
+                      title=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  </span>
+                  <span>{label}</span>
+                </li>
+              ))}
+            </ul>
+
             {/* Description */}
             <p
               className="text-lg md:text-xl text-gray-600 leading-relaxed mb-8 max-w-2xl"
@@ -95,9 +135,9 @@ export function HeroSection() {
                 color: "#555555",
               }}
             >
-              Payez directement les frais de santé de votre famille. Plus de
-              transferts d&apos;argent, plus de détournements. Suivi en temps
-              réel sur votre tableau de bord.
+              Payez directement les services essentiels pour vos proches : <a href="/services/health" className="text-[#F97015]">santé</a>, <a href="/services/edu" className="text-[#F97015]">éducation</a>, <a href="/services/immo" className="text-[#F97015]">immobilier</a>.
+              Fini les transferts d’argent et les détournements.
+              Suivez chaque dépense en temps réel depuis votre tableau de bord, en toute transparence.
             </p>
 
             {/* Action Buttons */}
@@ -114,14 +154,14 @@ export function HeroSection() {
                 <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
               </button>
               <button
-                onClick={handleHowItWorks}
+                onClick={handleCreateAccount}
                 className="border-2 border-[#F97015] text-[#F97015] bg-white px-8 py-4 rounded-xl font-semibold hover:bg-[#F97015]/10 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[#F97015]/50"
                 style={{
                   fontFamily: "Plus Jakarta Sans, sans-serif",
                 }}
-                aria-label="Découvrir comment ça marche"
+                aria-label="Je crée mon compte gratuitement"
               >
-                Découvrir comment ça marche
+                Je crée mon compte gratuitement
               </button>
             </div>
 

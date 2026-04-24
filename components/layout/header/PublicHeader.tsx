@@ -36,10 +36,10 @@ export default function PublicHeader() {
             <Link href='/' className='flex-shrink-0 flex items-center space-x-2'>
               <Logo
                 src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
-                width={440}
-                height={220}
+                width={640}
+                height={320}
                 alt='Diaspomoney'
-                className='h-9 sm:h-11 w-auto'
+                className='h-20 w-auto'
               />
             </Link>
           </div>
@@ -161,7 +161,7 @@ export default function PublicHeader() {
               
               {/* Comment ça marche */}
               <Link
-                href='/how-it-works'
+                href='/#how-it-works'
                 className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800'
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -179,7 +179,7 @@ export default function PublicHeader() {
               
               {/* Témoignages */}
               <Link
-                href='/testimonials'
+                href='/#testimonials'
                 className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800'
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -188,7 +188,7 @@ export default function PublicHeader() {
               
               {/* Partenaires */}
               <Link
-                href='/partners'
+                href='/#partners'
                 className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800'
                 onClick={() => setIsMenuOpen(false)}
               >

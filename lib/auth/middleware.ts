@@ -16,6 +16,24 @@ import jwt from 'jsonwebtoken';
 import { decode } from 'next-auth/jwt';
 import { NextRequest } from 'next/server';
 
+function isProductionEnvironment(): boolean {
+  return process.env['NODE_ENV'] === 'production' || process.env['VERCEL_ENV'] === 'production';
+}
+
+function getNextAuthSecret(): string | null {
+  const secret = process.env['AUTH_SECRET'] ?? process.env['NEXTAUTH_SECRET'];
+
+  if (secret) {
+    return secret;
+  }
+
+  if (isProductionEnvironment()) {
+    return null;
+  }
+
+  return 'fallback-secret-for-development';
+}
+
 /**
  * Authentifier un utilisateur depuis une requête
  * Essaie d'abord NextAuth (cookies), puis JWT (Bearer token)
@@ -40,10 +58,20 @@ export async function authenticateUser(
         request.cookies.get('__Secure-authjs.session-token')?.value;
 
       if (sessionToken) {
-        const secret =
-          process.env['AUTH_SECRET'] ??
-          process.env['NEXTAUTH_SECRET'] ??
-          'fallback-secret-for-development';
+        const secret = getNextAuthSecret();
+
+        if (!secret) {
+          log.error('AUTH_SECRET or NEXTAUTH_SECRET must be configured in production');
+          Sentry.captureMessage('Missing NextAuth secret in production', {
+            level: 'error',
+            tags: {
+              component: 'AuthMiddleware',
+              action: 'authenticateUser',
+              authMethod: 'NextAuth',
+            },
+          });
+          return null;
+        }
 
         try {
           const decoded = await decode({

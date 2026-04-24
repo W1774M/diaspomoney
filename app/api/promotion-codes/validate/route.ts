@@ -1,7 +1,8 @@
 /**
  * API Route - Validate Promotion Code
  * Endpoint pour valider un code promotionnel
- * Accessible à tous les utilisateurs authentifiés
+ * Accessible à tous (invités et utilisateurs connectés) pour permettre
+ * l'application d'un code lors du tunnel de réservation.
  */
 
 import { handleApiRoute } from '@/lib/api/error-handler';
@@ -17,17 +18,12 @@ const log = childLogger({ route: 'api/promotion-codes/validate' });
 
 /**
  * POST /api/promotion-codes/validate
- * Valider un code promotionnel
+ * Valider un code promotionnel (invités et utilisateurs connectés)
  */
 export async function POST(request: NextRequest) {
   return handleApiRoute(request, async () => {
     const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 },
-      );
-    }
+    const userId = session?.user?.id ?? 'guest';
 
     const body = await request.json();
     const { label, amount = 0 } = z
@@ -124,7 +120,7 @@ export async function POST(request: NextRequest) {
       { 
         codeId: (code as any)._id, 
         label: (code as any).label,
-        userId: session.user.id,
+        userId,
       },
       'Promotion code validated',
     );

@@ -6,6 +6,8 @@ import { logger } from '@/lib/logger';
 
 export interface Service {
   id: string;
+  /** Identifiant MongoDB — à privilégier pour PUT/DELETE afin d’éviter les id métier incorrects dans l’URL */
+  _id?: string;
   category: string;
   label: string;
   description: string;
@@ -113,6 +115,7 @@ export function useServices(options: UseServicesOptions = {}): UseServicesReturn
       if (data.success && Array.isArray(data.data)) {
         const mappedServices: Service[] = data.data.map((s: any) => ({
           id: s.id || s._id,
+          _id: s._id != null ? String(s._id) : undefined,
           category: s.category,
           label: s.label,
           description: s.description,

@@ -24,7 +24,7 @@ const ROADMAP_ITEMS: RoadmapItem[] = [
     icon: RefreshCw,
     title: 'API Développeurs',
     description: 'Intégrez Diaspomoney dans vos propres applications',
-    status: '2025',
+    status: '2027',
   },
   {
     icon: Globe,

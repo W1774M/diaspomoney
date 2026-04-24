@@ -1,6 +1,7 @@
 'use client';
 
 import type { ServiceOption } from '@/hooks/services';
+import { MarkdownDescriptionField } from '@/components/common/MarkdownDescriptionField';
 import { X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
@@ -95,20 +96,19 @@ export default function OptionFormModal({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-              placeholder="Description de l'option..."
-              rows={4}
-              required
-              maxLength={1000}
-            />
-          </div>
+          <MarkdownDescriptionField
+            label={
+              <>
+                Description <span className="text-red-500">*</span>
+              </>
+            }
+            value={formData.description}
+            onChange={(description) => setFormData({ ...formData, description })}
+            placeholder="Description courte + détails en **gras** ou listes si besoin."
+            required
+            maxLength={1000}
+            rows={10}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
