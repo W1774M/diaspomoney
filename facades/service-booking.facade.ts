@@ -24,7 +24,7 @@ import { CURRENCIES, LANGUAGES, BOOKING_STATUSES } from '@/lib/constants';
 import { notificationService } from '@/services/notification/notification.service';
 import { transactionService } from '@/services/transaction/transaction.service';
 import { invoiceService } from '@/services/invoice/invoice.service';
-import { PaymentService } from '@/services/payment/payment.service.strategy';
+import { PaymentService } from '@/services/payment/payment.service';
 import { bookingService } from '@/services/booking/booking.service';
 import { bookingMapper } from '@/lib/mappers';
 import { paymentFacade } from './payment.facade';

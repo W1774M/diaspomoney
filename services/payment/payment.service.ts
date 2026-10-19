@@ -1,66 +1,41 @@
 /**
- * Payment Gateway Service - DiaspoMoney
- * Service de gestion des paiements Company-Grade
+ * Payment Service - DiaspoMoney
  *
- * Implémente les design patterns :
- * - Singleton Pattern
- * - Repository Pattern
- * - Service Layer Pattern
- * - Logger Pattern (structured logging avec childLogger)
- * - Decorator Pattern (@Log, @Retry)
- * - Error Handling Pattern (Sentry)
- * - Dependency Injection
+ * Point d'entrée unique pour les paiements (Stripe / PayPal via Strategy Pattern).
+ * Remplace l'ancienne double stack (payment.service Stripe-direct + payment.service.strategy).
  */
 
-import { config } from '@/config/app.config';
-import { LOCALE, PAYMENT_METHODS } from '@/lib/constants';
+import { Cacheable } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
-import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
+import { CreatePaymentIntentServiceSchema, ProcessPaymentServiceSchema } from '@/lib/validations/payment-service.schema';
+import { paymentEvents } from '@/lib/events';
 import { childLogger } from '@/lib/logger';
-import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
-import type { ITransactionRepository } from '@/repositories';
-import { getTransactionRepository } from '@/repositories';
-import { notificationService } from '@/services/notification/notification.service';
+import { PAYMENT_METHODS, CURRENCIES } from '@/lib/constants';
+import type { PaymentIntent } from '@/lib/types';
 import type {
-  PaymentIntent,
+  IPaymentStrategy,
+  PaymentData,
   PaymentProvider,
   PaymentResult,
-  StripePaymentMethod,
-  StripePaymentIntent,
-  StripeDispute,
-  StripeRefundCreateParams,
-  StripeCharge,
-} from '@/lib/types';
-import { TransactionStatus } from '@/lib/types';
+  RefundData,
+  RefundResult,
+} from '@/strategies/payment';
+import { PaymentStrategyFactory } from '@/strategies/payment';
 import * as Sentry from '@sentry/nextjs';
-import Stripe from 'stripe';
-import { 
-  getStripeInstance, 
-  handleStripeError,
-  StripeErrorType,
-} from '@/lib/stripe-config';
-import { Cacheable } from '@/lib/decorators/cache.decorator';
-import { Audit } from '@/lib/decorators/audit.decorator';
-import { Performance } from '@/lib/decorators/performance.decorator';
+
+export type { PaymentIntent };
 
 /**
- * Utilise la configuration Stripe centralisée conforme à la documentation officielle
- * https://docs.stripe.com/api/authentication?lang=node
+ * PaymentService — orchestration multi-provider via PaymentStrategyFactory
  */
-function getStripeServiceInstance(): Stripe {
-  return getStripeInstance();
-}
-
 export class PaymentService {
   private static instance: PaymentService;
-  private transactionRepository: ITransactionRepository;
+  private currentStrategy: IPaymentStrategy | null = null;
+  private defaultProvider: PaymentProvider = PAYMENT_METHODS.STRIPE;
   private readonly log = childLogger({
     component: 'PaymentService',
   });
-
-  private constructor() {
-    this.transactionRepository = getTransactionRepository();
-  }
 
   static getInstance(): PaymentService {
     if (!PaymentService.instance) {
@@ -70,110 +45,171 @@ export class PaymentService {
   }
 
   /**
+   * Définir le provider de paiement à utiliser
+   */
+  setProvider(provider: PaymentProvider): void {
+    this.currentStrategy = PaymentStrategyFactory.getStrategy(provider);
+    this.defaultProvider = provider;
+  }
+
+  /**
+   * Obtenir la stratégie actuelle ou la stratégie par défaut
+   */
+  private getStrategy(): IPaymentStrategy {
+    if (!this.currentStrategy) {
+      this.currentStrategy = PaymentStrategyFactory.getStrategy(
+        this.defaultProvider,
+      );
+    }
+    return this.currentStrategy;
+  }
+
+  /**
+   * Obtenir automatiquement la meilleure stratégie pour un paiement
+   */
+  private getBestStrategy(
+    currency: string,
+    country?: string,
+  ): IPaymentStrategy {
+    const bestStrategy = PaymentStrategyFactory.getBestStrategy(
+      currency,
+      country,
+    );
+    if (!bestStrategy) {
+      // Fallback sur la stratégie par défaut
+      return this.getStrategy();
+    }
+    return bestStrategy;
+  }
+
+  /**
    * Créer un Payment Intent
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @Retry({
-    maxAttempts: 3,
-    delay: 1000,
-    backoff: 'exponential',
-    shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: CreatePaymentIntentServiceSchema.shape.amount,
+        paramName: 'amount',
+      },
+      {
+        paramIndex: 1,
+        schema: CreatePaymentIntentServiceSchema.shape.currency,
+        paramName: 'currency',
+      },
+      {
+        paramIndex: 2,
+        schema: CreatePaymentIntentServiceSchema.shape.customerId,
+        paramName: 'customerId',
+      },
+      {
+        paramIndex: 3,
+        schema: CreatePaymentIntentServiceSchema.shape.metadata.optional(),
+        paramName: 'metadata',
+      },
+      {
+        paramIndex: 4,
+        schema: CreatePaymentIntentServiceSchema.shape.provider.optional(),
+        paramName: 'provider',
+      },
+    ],
   })
-  @Audit({ eventType: 'PAYMENT_INTENT_CREATED', includeArgs: true })
-  @Performance({ warningThreshold: 2000, errorThreshold: 5000 })
   async createPaymentIntent(
     amount: number,
     currency: string,
     customerId: string,
     metadata: Record<string, string> = {},
+    provider?: string,
   ): Promise<PaymentIntent> {
     try {
-      // Validation des paramètres
-      if (amount <= 0) {
-        const error = new Error('Le montant doit être positif');
-        this.log.error({ amount }, 'Invalid amount');
+
+      // Sélectionner la stratégie
+      const strategy = provider
+        ? PaymentStrategyFactory.getStrategy(provider as PaymentProvider)
+        : this.getBestStrategy(currency);
+
+      // Préparer les données de paiement
+      const paymentData: PaymentData = {
+        amount,
+        currency,
+        customerId,
+        metadata,
+      };
+
+      // Créer le Payment Intent
+      const result = await strategy.createPaymentIntent(paymentData);
+
+      if (!result.success) {
+        throw new Error(
+          result.error || 'Erreur lors de la création du Payment Intent',
+        );
+      }
+
+      // Émettre l'événement de création de Payment Intent
+      if (result.success) {
+        paymentEvents
+          .emitPaymentCreated({
+            paymentIntentId:
+              result.paymentIntentId || result.transactionId || '',
+            amount,
+            currency,
+            userId: customerId,
+            provider: provider || this.defaultProvider,
+            timestamp: new Date(),
+          })
+          .catch(error => {
+            this.log.error({ error }, 'Error emitting payment created event');
+          });
+      }
+
+      // Vérifier que clientSecret est présent
+      if (!result.clientSecret) {
+        const error = new Error(
+          `Le PaymentIntent a été créé mais aucun clientSecret n'a été retourné. ` +
+          `PaymentIntentId: ${result.paymentIntentId || result.transactionId}`,
+        );
+        this.log.error(
+          {
+            result,
+            paymentIntentId: result.paymentIntentId,
+            transactionId: result.transactionId,
+            provider: provider || this.defaultProvider,
+          },
+          'PaymentIntent created but no clientSecret in result',
+        );
         throw error;
       }
 
-      if (!currency || currency.length !== 3) {
-        const error = new Error('Devise invalide');
-        this.log.error({ currency }, 'Invalid currency');
-        throw error;
-      }
-
-      // Créer le Payment Intent avec Stripe
-      const paymentIntent = await getStripeServiceInstance().paymentIntents.create({
-        amount: Math.round(amount * 100), // Convertir en centimes
-        currency: currency.toLowerCase(),
-        customer: customerId,
-        metadata: {
-          ...metadata,
-          source: 'diaspomoney',
-          created_at: new Date().toISOString(),
-        },
-        automatic_payment_methods: {
-          enabled: true,
-        },
-        confirmation_method: 'manual',
-        capture_method: 'automatic',
-      });
-
-      // Enregistrer les métriques
-      monitoringManager.recordMetric({
-        name: 'payment_intents_created',
-        value: 1,
-        timestamp: new Date(),
-        labels: {
-          currency: currency.toLowerCase(),
-          amount_range: this.getAmountRange(amount),
-        },
-        type: 'counter',
-      });
-
+      // Mapper le résultat vers PaymentIntent
+      const paymentIntent = {
+        id: result.paymentIntentId || result.transactionId || '',
+        amount,
+        currency,
+        status: this.mapStatus(result),
+        clientSecret: result.clientSecret,
+        metadata: result.metadata || {},
+      };
       this.log.info(
         {
           paymentIntentId: paymentIntent.id,
           amount,
           currency,
-          customerId,
+          provider: provider || this.defaultProvider,
+          hasClientSecret: !!paymentIntent.clientSecret,
         },
         'Payment intent created successfully',
       );
-
-      return {
-        id: paymentIntent.id,
-        amount: paymentIntent.amount / 100,
-        currency: paymentIntent.currency,
-        status: paymentIntent.status as PaymentIntent['status'],
-        clientSecret: paymentIntent.client_secret!,
-        metadata: paymentIntent.metadata,
-      };
+      return paymentIntent;
     } catch (error) {
-      const stripeError = handleStripeError(error);
       this.log.error(
-        { 
-          error: stripeError, 
-          amount, 
-          currency, 
-          customerId,
-          errorType: stripeError.type,
-          code: stripeError.code,
-        },
-        'Error creating payment intent',
+        { error, amount, currency, customerId },
+        'Error in createPaymentIntent',
       );
-      Sentry.captureException(error, {
-        tags: { 
-          component: 'PaymentService', 
-          method: 'createPaymentIntent',
-          stripeErrorType: stripeError.type,
-        },
-        extra: { amount, currency, customerId, stripeError },
+      Sentry.captureException(error as Error, {
+        tags: { component: 'PaymentService', action: 'createPaymentIntent' },
+        extra: { amount, currency, provider: provider || this.defaultProvider },
       });
-      
-      // Relancer avec un message plus descriptif selon le type d'erreur
-      if (stripeError.type === StripeErrorType.CARD_ERROR) {
-        throw new Error(stripeError.message);
-      }
       throw error;
     }
   }
@@ -182,639 +218,320 @@ export class PaymentService {
    * Confirmer un Payment Intent
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @Retry({
-    maxAttempts: 3,
-    delay: 1000,
-    backoff: 'exponential',
-    shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
-  })
   async confirmPaymentIntent(
     paymentIntentId: string,
     paymentMethodId?: string,
+    provider?: PaymentProvider,
   ): Promise<PaymentResult> {
     try {
-      const paymentIntent = await getStripeServiceInstance().paymentIntents.confirm(
+      const strategy = provider
+        ? PaymentStrategyFactory.getStrategy(provider)
+        : this.getStrategy();
+
+      const result = await strategy.confirmPaymentIntent(
         paymentIntentId,
-        paymentMethodId ? { payment_method: paymentMethodId } : undefined,
-      );
-
-      // Enregistrer les métriques
-      monitoringManager.recordMetric({
-        name: 'payment_intents_confirmed',
-        value: 1,
-        timestamp: new Date(),
-        labels: {
-          status: paymentIntent.status,
-          currency: paymentIntent.currency,
-        },
-        type: 'counter',
-      });
-
-      if (paymentIntent.status === 'succeeded') {
-        this.log.info(
-          { paymentIntentId, status: paymentIntent.status },
-          'Payment intent confirmed successfully',
-        );
-        return {
-          success: true,
-          transactionId: paymentIntent.id,
-        };
-      } else if (paymentIntent.status === 'requires_action') {
-        this.log.info(
-          { paymentIntentId, status: paymentIntent.status },
-          'Payment intent requires action',
-        );
-        const nextAction: PaymentResult['nextAction'] = paymentIntent.next_action && paymentIntent.next_action.redirect_to_url
-          ? {
-              type: 'redirect_to_url',
-              url: paymentIntent.next_action.redirect_to_url?.url || '',
-            }
-          : undefined;
-        return {
-          success: false,
-          requiresAction: true,
-          ...(nextAction !== undefined && { nextAction }),
-        };
-      } else {
-        this.log.warn(
-          { paymentIntentId, status: paymentIntent.status },
-          'Payment intent failed',
-        );
-        return {
-          success: false,
-          error: `Payment failed with status: ${paymentIntent.status}`,
-        };
-      }
-    } catch (error) {
-      this.log.error(
-        { error, paymentIntentId, paymentMethodId },
-        'Error confirming payment intent',
-      );
-      Sentry.captureException(error);
-
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Erreur inconnue',
-      };
-    }
-  }
-
-  /**
-   * Récupérer les méthodes de paiement d'un client
-   */
-  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
-  @Cacheable(300, { prefix: 'PaymentService:getPaymentMethods' })
-  async getPaymentMethods(customerId: string): Promise<StripePaymentMethod[]> {
-    try {
-      const customer = await getStripeServiceInstance().customers.retrieve(customerId);
-      const defaultPaymentMethodId =
-        typeof customer === 'object' && !('deleted' in customer && customer.deleted)
-          ? (customer.invoice_settings?.default_payment_method as string) ||
-            (customer.metadata?.['default_payment_method'] as string)
-          : null;
-
-      const paymentMethods = await getStripeServiceInstance().paymentMethods.list({
-        customer: customerId,
-        type: 'card',
-      });
-
-      const methods: StripePaymentMethod[] = paymentMethods.data.map((pm) => ({
-        id: pm.id,
-        type: pm.type as StripePaymentMethod['type'],
-        card: pm.card
-          ? {
-              brand: pm.card.brand,
-              last4: pm.card.last4,
-              expMonth: pm.card.exp_month,
-              expYear: pm.card.exp_year,
-            }
-          : {
-              brand: '',
-              last4: '',
-              expMonth: 0,
-              expYear: 0,
-            },
-        sepa_debit: pm.sepa_debit
-          ? {
-              last4: pm.sepa_debit.last4,
-              bank_code: pm.sepa_debit.bank_code || '',
-            }
-          : {
-              last4: '',
-              bank_code: '',
-            },
-        createdAt: new Date((pm.created ?? Date.now()) * 1000),
-      }));
-
-      this.log.debug(
-        { customerId, count: methods.length, defaultPaymentMethodId },
-        'Payment methods retrieved',
-      );
-
-      return methods;
-    } catch (error) {
-      this.log.error({ error, customerId }, 'Error getting payment methods');
-      Sentry.captureException(error);
-      throw error;
-    }
-  }
-
-  /**
-   * Ajouter une méthode de paiement
-   */
-  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  async addPaymentMethod(
-    customerId: string,
-    paymentMethodId: string,
-    setAsDefault: boolean = false,
-  ): Promise<StripePaymentMethod> {
-    try {
-      // Attacher la méthode de paiement au client
-      const paymentMethod = await getStripeServiceInstance().paymentMethods.attach(
         paymentMethodId,
-        {
-          customer: customerId,
-        },
       );
 
-      // Définir comme défaut si demandé
-      if (setAsDefault) {
-        await getStripeServiceInstance().customers.update(customerId, {
-          invoice_settings: {
-            default_payment_method: paymentMethodId,
-          },
-          metadata: {
-            default_payment_method: paymentMethodId,
-          },
-        });
-        this.log.info(
-          { customerId, paymentMethodId },
-          'Payment method set as default',
-        );
+      // Émettre les événements selon le résultat
+      if (result.success) {
+        paymentEvents
+          .emitPaymentSucceeded({
+            transactionId: result.transactionId || paymentIntentId,
+            amount: result.metadata?.['amount'] || 0,
+            currency: result.metadata?.['currency'] || CURRENCIES.EUR.code,
+            userId: result.metadata?.['userId'] || 'unknown',
+            provider: provider || this.defaultProvider,
+            timestamp: new Date(),
+          })
+          .catch(error => {
+            this.log.error({ error }, 'Error emitting payment succeeded event');
+          });
+      } else {
+        paymentEvents
+          .emitPaymentFailed(
+            result.transactionId || paymentIntentId,
+            result.error || 'Payment confirmation failed',
+          )
+          .catch(error => {
+            this.log.error({ error }, 'Error emitting payment failed event');
+          });
       }
-
-      const result: StripePaymentMethod = {
-        id: paymentMethod.id,
-        type: paymentMethod.type as StripePaymentMethod['type'],
-        card: paymentMethod.card
-          ? {
-              brand: paymentMethod.card.brand,
-              last4: paymentMethod.card.last4,
-              expMonth: paymentMethod.card.exp_month,
-              expYear: paymentMethod.card.exp_year,
-            }
-          : {
-              brand: '',
-              last4: '',
-              expMonth: 0,
-              expYear: 0,
-            },
-      };
 
       this.log.info(
-        { customerId, paymentMethodId, setAsDefault },
-        'Payment method added successfully',
+        {
+          paymentIntentId,
+          success: result.success,
+          provider: provider || this.defaultProvider,
+        },
+        'Payment intent confirmed',
       );
-
       return result;
     } catch (error) {
       this.log.error(
-        { error, customerId, paymentMethodId },
-        'Error adding payment method',
+        { error, paymentIntentId },
+        'Error in confirmPaymentIntent',
       );
-      Sentry.captureException(error);
+      Sentry.captureException(error as Error, {
+        tags: { component: 'PaymentService', action: 'confirmPaymentIntent' },
+        extra: { paymentIntentId, provider: provider || this.defaultProvider },
+      });
       throw error;
     }
   }
 
   /**
-   * Définir une méthode de paiement comme défaut
+   * Traiter un paiement
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  async setDefaultPaymentMethod(
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: ProcessPaymentServiceSchema.shape.amount,
+        paramName: 'amount',
+      },
+      {
+        paramIndex: 1,
+        schema: ProcessPaymentServiceSchema.shape.currency,
+        paramName: 'currency',
+      },
+      {
+        paramIndex: 2,
+        schema: ProcessPaymentServiceSchema.shape.customerId,
+        paramName: 'customerId',
+      },
+      {
+        paramIndex: 3,
+        schema: ProcessPaymentServiceSchema.shape.paymentMethodId,
+        paramName: 'paymentMethodId',
+      },
+      {
+        paramIndex: 4,
+        schema: ProcessPaymentServiceSchema.shape.metadata.optional(),
+        paramName: 'metadata',
+      },
+      {
+        paramIndex: 5,
+        schema: ProcessPaymentServiceSchema.shape.provider.optional(),
+        paramName: 'provider',
+      },
+    ],
+  })
+  async processPayment(
+    amount: number,
+    currency: string,
     customerId: string,
     paymentMethodId: string,
-  ): Promise<void> {
-    try {
-      await getStripeServiceInstance().customers.update(customerId, {
-        invoice_settings: {
-          default_payment_method: paymentMethodId,
-        },
-        metadata: {
-          default_payment_method: paymentMethodId,
-        },
-      });
-
-      this.log.info(
-        { customerId, paymentMethodId },
-        'Default payment method updated',
-      );
-    } catch (error) {
-      this.log.error(
-        { error, customerId, paymentMethodId },
-        'Error setting default payment method',
-      );
-      Sentry.captureException(error);
-      throw error;
-    }
-  }
-
-  /**
-   * Supprimer une méthode de paiement
-   */
-  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  async removePaymentMethod(paymentMethodId: string): Promise<void> {
-    try {
-      await getStripeServiceInstance().paymentMethods.detach(paymentMethodId);
-      this.log.info({ paymentMethodId }, 'Payment method removed successfully');
-    } catch (error) {
-      this.log.error(
-        { error, paymentMethodId },
-        'Error removing payment method',
-      );
-      Sentry.captureException(error);
-      throw error;
-    }
-  }
-
-  /**
-   * Rembourser un paiement
-   */
-  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  @Retry({
-    maxAttempts: 3,
-    delay: 1000,
-    backoff: 'exponential',
-    shouldRetry: RetryHelpers.retryOnNetworkOrServerError,
-  })
-  async refundPayment(
-    paymentIntentId: string,
-    amount?: number,
-    reason?: string,
+    metadata: Record<string, string> = {},
+    provider?: PaymentProvider,
   ): Promise<PaymentResult> {
     try {
-      const refundPayload: StripeRefundCreateParams = {
-        payment_intent: paymentIntentId,
-        metadata: {
-          source: 'diaspomoney',
-          refunded_at: new Date().toISOString(),
-        },
+      // Validation
+      if (amount <= 0) {
+        return {
+          success: false,
+          error: 'Le montant doit être positif',
+        };
+      }
+
+      // Sélectionner la stratégie
+      const strategy = provider
+        ? PaymentStrategyFactory.getStrategy(provider as PaymentProvider)
+        : this.getBestStrategy(currency);
+
+      // Préparer les données
+      const paymentData: PaymentData = {
+        amount,
+        currency,
+        customerId,
+        paymentMethodId,
+        metadata,
       };
-      if (typeof amount === 'number' && amount > 0) {
-        refundPayload.amount = Math.round(amount * 100);
-      }
-      if (reason) {
-        refundPayload.reason = reason as NonNullable<StripeRefundCreateParams['reason']>;
-      }
 
-      const refund = await getStripeServiceInstance().refunds.create(refundPayload);
+      // Traiter le paiement
+      const result = await strategy.processPayment(paymentData);
 
-      // Mettre à jour la transaction dans la base de données
-      const transaction =
-        await this.transactionRepository.findByPaymentIntentId(paymentIntentId);
-      if (transaction) {
-        await this.transactionRepository.updateWithMetadata(transaction.id, {
-          status: TransactionStatus.REFUNDED,
-          metadata: {
-            ...transaction.metadata,
-            refundId: refund.id,
-            refundAmount: amount || transaction.amount,
-            refundReason: reason,
-          },
-        });
-        this.log.info(
-          { transactionId: transaction.id, refundId: refund.id },
-          'Transaction updated with refund information',
-        );
+      // Émettre les événements selon le résultat
+      if (result.success) {
+        paymentEvents
+          .emitPaymentSucceeded({
+            transactionId: result.transactionId || '',
+            amount,
+            currency,
+            userId: customerId,
+            provider: provider || this.defaultProvider,
+            timestamp: new Date(),
+          })
+          .catch(error => {
+            this.log.error({ error }, 'Error emitting payment succeeded event');
+          });
+      } else {
+        paymentEvents
+          .emitPaymentFailed(
+            result.transactionId || 'unknown',
+            result.error || 'Payment processing failed',
+          )
+          .catch(error => {
+            this.log.error({ error }, 'Error emitting payment failed event');
+          });
       }
-
-      // Enregistrer les métriques
-      monitoringManager.recordMetric({
-        name: 'refunds_created',
-        value: 1,
-        timestamp: new Date(),
-        labels: {
-          reason: reason || 'requested_by_customer',
-        },
-        type: 'counter',
-      });
 
       this.log.info(
-        { paymentIntentId, refundId: refund.id, amount, reason },
-        'Refund created successfully',
+        {
+          transactionId: result.transactionId,
+          success: result.success,
+          amount,
+          currency,
+          provider: provider || this.defaultProvider,
+        },
+        'Payment processed',
       );
-
-      return {
-        success: true,
-        transactionId: refund.id,
-      };
-    } catch (error) {
+      return result;
+    } catch (error: any) {
       this.log.error(
-        { error, paymentIntentId, amount, reason },
-        'Error creating refund',
+        { error, amount, currency, customerId },
+        'Error in processPayment',
       );
-      Sentry.captureException(error);
+      Sentry.captureException(error as Error, {
+        tags: { component: 'PaymentService', action: 'processPayment' },
+        extra: { amount, currency, provider: provider || this.defaultProvider },
+      });
+
+      // Émettre l'événement d'erreur
+      paymentEvents
+        .emitPaymentFailed(
+          'unknown',
+          error.message || 'Erreur lors du traitement du paiement',
+        )
+        .catch(err => {
+          this.log.error({ error: err }, 'Error emitting payment failed event');
+        });
 
       return {
         success: false,
-        error:
-          error instanceof Error ? error.message : 'Erreur de remboursement',
+        error: error.message || 'Erreur lors du traitement du paiement',
       };
     }
   }
 
   /**
-   * Gérer les webhooks Stripe
+   * Rembourser une transaction
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  async handleWebhook(payload: string, signature: string): Promise<void> {
+  async refund(
+    transactionId: string,
+    amount?: number,
+    reason?: string,
+    provider?: PaymentProvider,
+  ): Promise<RefundResult> {
     try {
-      const webhookSecret = process.env['STRIPE_WEBHOOK_SECRET'];
-      if (!webhookSecret) {
-        throw new Error('Stripe webhook secret not configured');
-      }
-      const event = getStripeServiceInstance().webhooks.constructEvent(
-        payload,
-        signature,
-        webhookSecret,
-      );
+      const strategy = provider
+        ? PaymentStrategyFactory.getStrategy(provider)
+        : this.getStrategy();
 
-      this.log.info({ eventType: event.type }, 'Stripe webhook received');
+      const refundData: RefundData = {
+        transactionId,
+        amount: amount || 0,
+        reason: reason || '',
+      };
 
-      switch (event.type) {
-        case 'payment_intent.succeeded':
-          await this.handlePaymentSucceeded(
-            event.data.object as StripePaymentIntent,
-          );
-          break;
+      const result = await strategy.refund(refundData);
 
-        case 'payment_intent.payment_failed':
-          await this.handlePaymentFailed(
-            event.data.object as StripePaymentIntent,
-          );
-          break;
-
-        case 'charge.dispute.created':
-          await this.handleDisputeCreated(event.data.object as StripeDispute);
-          break;
-
-        default:
-          this.log.debug({ eventType: event.type }, 'Unhandled webhook event');
-      }
-    } catch (error) {
-      this.log.error({ error }, 'Error handling webhook');
-      Sentry.captureException(error);
-      throw error;
-    }
-  }
-
-  /**
-   * Gérer le succès d'un paiement
-   */
-  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  private async handlePaymentSucceeded(
-    paymentIntent: StripePaymentIntent,
-  ): Promise<void> {
-    try {
-      // Trouver la transaction par paymentIntentId
-      const transaction =
-        await this.transactionRepository.findByPaymentIntentId(
-          paymentIntent.id,
-        );
-
-      if (transaction) {
-        // Mettre à jour le statut de la transaction
-        await this.transactionRepository.updateWithMetadata(transaction.id, {
-          status: TransactionStatus.COMPLETED,
-          completedAt: new Date(),
-          metadata: {
-            ...transaction.metadata,
-            stripePaymentIntentId: paymentIntent.id,
-            stripeChargeId: paymentIntent.latest_charge as string,
-            processedAt: new Date().toISOString(),
-          },
-        });
-
+      // Émettre l'événement de remboursement
+      if (result.success) {
+        paymentEvents
+          .emitPaymentRefunded(transactionId, result.amount || amount || 0)
+          .catch(error => {
+            this.log.error({ error }, 'Error emitting payment refunded event');
+          });
         this.log.info(
           {
-            transactionId: transaction.id,
-            paymentIntentId: paymentIntent.id,
-            amount: paymentIntent.amount / 100,
-            currency: paymentIntent.currency,
+            transactionId,
+            amount: result.amount || amount,
+            provider: provider || this.defaultProvider,
           },
-          'Transaction status updated to COMPLETED',
-        );
-      } else {
-        this.log.warn(
-          { paymentIntentId: paymentIntent.id },
-          'Transaction not found for payment intent',
+          'Payment refunded successfully',
         );
       }
 
-      // Enregistrer les métriques de revenus
-      monitoringManager.recordMetric({
-        name: 'revenue_total',
-        value: paymentIntent.amount / 100,
-        timestamp: new Date(),
-        labels: {
-          currency: paymentIntent.currency,
-          payment_method: 'stripe',
-        },
-        type: 'counter',
+      return result;
+    } catch (error: any) {
+      this.log.error({ error, transactionId, amount }, 'Error in refund');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'PaymentService', action: 'refund' },
+        extra: { transactionId, provider: provider || this.defaultProvider },
       });
-    } catch (error) {
-      this.log.error(
-        { error, paymentIntentId: paymentIntent.id },
-        'Error handling payment succeeded',
-      );
-      Sentry.captureException(error);
+
+      return {
+        success: false,
+        error: error.message || 'Erreur lors du remboursement',
+      };
     }
   }
 
   /**
-   * Gérer l'échec d'un paiement
+   * Vérifier le statut d'une transaction
    */
-  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  private async handlePaymentFailed(
-    paymentIntent: StripePaymentIntent,
-  ): Promise<void> {
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(60, { prefix: 'PaymentService:getTransactionStatus' }) // Cache 1 minute
+  async getTransactionStatus(
+    transactionId: string,
+    provider?: PaymentProvider,
+  ): Promise<PaymentResult> {
     try {
-      // Trouver la transaction par paymentIntentId
-      const transaction =
-        await this.transactionRepository.findByPaymentIntentId(
-          paymentIntent.id,
-        );
+      const strategy = provider
+        ? PaymentStrategyFactory.getStrategy(provider)
+        : this.getStrategy();
 
-      if (transaction) {
-        // Mettre à jour le statut de la transaction
-        await this.transactionRepository.updateWithMetadata(transaction.id, {
-          status: TransactionStatus.FAILED,
-          failedAt: new Date(),
-          failureReason:
-            paymentIntent.last_payment_error?.message || 'Payment failed',
-          metadata: {
-            ...transaction.metadata,
-            stripePaymentIntentId: paymentIntent.id,
-            stripeError: paymentIntent.last_payment_error
-              ? JSON.stringify(paymentIntent.last_payment_error)
-              : undefined,
-          },
-        });
-
-        this.log.info(
-          {
-            transactionId: transaction.id,
-            paymentIntentId: paymentIntent.id,
-            failureReason: paymentIntent.last_payment_error?.message,
-          },
-          'Transaction status updated to FAILED',
-        );
-      } else {
-        this.log.warn(
-          { paymentIntentId: paymentIntent.id },
-          'Transaction not found for payment intent',
-        );
-      }
-    } catch (error) {
-      this.log.error(
-        { error, paymentIntentId: paymentIntent.id },
-        'Error handling payment failed',
+      const result = await strategy.getTransactionStatus(transactionId);
+      this.log.debug(
+        {
+          transactionId,
+          success: result.success,
+          provider: provider || this.defaultProvider,
+        },
+        'Transaction status retrieved',
       );
-      Sentry.captureException(error);
+      return result;
+    } catch (error: any) {
+      this.log.error({ error, transactionId }, 'Error in getTransactionStatus');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'PaymentService', action: 'getTransactionStatus' },
+        extra: { transactionId, provider: provider || this.defaultProvider },
+      });
+
+      return {
+        success: false,
+        error: error.message || 'Erreur lors de la récupération du statut',
+      };
     }
   }
 
   /**
-   * Gérer une dispute
-   */
-  @Log({ level: 'warn', logArgs: true, logExecutionTime: true })
-  private async handleDisputeCreated(dispute: StripeDispute): Promise<void> {
-    try {
-      // Trouver la transaction associée
-      const chargeId = dispute.charge as string;
-      const charge = (await getStripeServiceInstance().charges.retrieve(chargeId)) as StripeCharge;
-      // PaymentIntent peut être null (edge case); gestion de fallback
-      const paymentIntentId = typeof charge.payment_intent === 'string'
-        ? charge.payment_intent
-        : undefined;
-
-      if (!paymentIntentId) {
-        this.log.warn(
-          { chargeId, disputeId: dispute.id },
-          'PaymentIntent not found on charge for dispute',
-        );
-        return;
-      }
-
-      const transaction =
-        await this.transactionRepository.findByPaymentIntentId(paymentIntentId);
-
-      if (transaction) {
-        // Mettre en quarantaine la transaction (statut spécial)
-        await this.transactionRepository.updateWithMetadata(transaction.id, {
-          status: TransactionStatus.PENDING, // Peut créer un statut DISPUTED si nécessaire
-          metadata: {
-            ...transaction.metadata,
-            disputeId: dispute.id,
-            disputeAmount: dispute.amount / 100,
-            disputeCurrency: dispute.currency,
-            disputeReason: dispute.reason,
-            disputeStatus: dispute.status,
-            quarantined: true,
-            quarantinedAt: new Date().toISOString(),
-          },
-        });
-
-        this.log.warn(
-          {
-            transactionId: transaction.id,
-            disputeId: dispute.id,
-            amount: dispute.amount / 100,
-            currency: dispute.currency,
-            reason: dispute.reason,
-          },
-          'Transaction quarantined due to dispute',
-        );
-
-        // Notifier l'équipe de support
-        try {
-          const supportEmail = config.email?.replyTo;
-          if (supportEmail) {
-            await notificationService.sendNotification({
-              recipient: supportEmail,
-              type: 'DISPUTE_CREATED',
-              template: 'dispute_created',
-              data: {
-                disputeId: dispute.id,
-                transactionId: transaction.id,
-                amount: dispute.amount / 100,
-                currency: dispute.currency,
-                reason: dispute.reason,
-                customerId: transaction.payerId,
-              },
-              channels: [
-                { type: 'EMAIL', enabled: true, priority: 'URGENT' },
-                { type: 'IN_APP', enabled: true, priority: 'URGENT' },
-              ],
-              locale: LOCALE.DEFAULT,
-              priority: 'URGENT',
-            });
-            this.log.info(
-              {
-                disputeId: dispute.id,
-                transactionId: transaction.id,
-                supportEmail,
-              },
-              'Support team notified of dispute',
-            );
-          } else {
-            this.log.warn(
-              { disputeId: dispute.id },
-              'Support email not configured, cannot notify support',
-            );
-          }
-        } catch (notificationError) {
-          this.log.error(
-            { error: notificationError, disputeId: dispute.id },
-            'Error notifying support team',
-          );
-          // Ne pas faire échouer le traitement de la dispute si la notification échoue
-        }
-      } else {
-        this.log.warn(
-          { paymentIntentId, disputeId: dispute.id },
-          'Transaction not found for dispute',
-        );
-      }
-    } catch (error) {
-      this.log.error(
-        { error, disputeId: dispute.id },
-        'Error handling dispute created',
-      );
-      Sentry.captureException(error);
-    }
-  }
-
-  /**
-   * Obtenir les providers de paiement disponibles
+   * Obtenir les providers disponibles
    */
   @Log({ level: 'debug', logArgs: false, logExecutionTime: false })
-  getPaymentProviders(): PaymentProvider[] {
-    return [PAYMENT_METHODS.STRIPE, PAYMENT_METHODS.PAYPAL, PAYMENT_METHODS.MOBILE_MONEY] as PaymentProvider[];
+  @Cacheable(3600, { prefix: 'PaymentService:getAvailableProviders' }) // Cache 1 heure (rarement changé)
+  getAvailableProviders(): PaymentProvider[] {
+    const providers: PaymentProvider[] = [PAYMENT_METHODS.STRIPE, PAYMENT_METHODS.PAYPAL];
+    this.log.debug({ providers }, 'Available providers retrieved');
+    return providers;
   }
 
   /**
-   * Obtenir la plage de montant pour les métriques
+   * Mapper le statut du résultat vers le format PaymentIntent
    */
-  private getAmountRange(amount: number): string {
-    if (amount < 10) return '0-10';
-    if (amount < 50) return '10-50';
-    if (amount < 100) return '50-100';
-    if (amount < 500) return '100-500';
-    if (amount < 1000) return '500-1000';
-    return '1000+';
+  private mapStatus(result: PaymentResult): PaymentIntent['status'] {
+    if (result.success) {
+      return 'succeeded';
+    }
+    if (result.requiresAction) {
+      return 'requires_action';
+    }
+    return 'canceled';
   }
 }
 
-// Export de l'instance singleton
+// Export singleton
 export const paymentService = PaymentService.getInstance();

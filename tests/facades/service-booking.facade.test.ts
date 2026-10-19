@@ -24,7 +24,7 @@ const { mockPaymentServiceInstance } = vi.hoisted(() => {
 });
 
 vi.mock('@/services/booking/booking.service');
-vi.mock('@/services/payment/payment.service.strategy', () => ({
+vi.mock('@/services/payment/payment.service', () => ({
   PaymentService: {
     getInstance: vi.fn(() => mockPaymentServiceInstance),
   },
@@ -109,7 +109,7 @@ describe('ServiceBookingFacade', () => {
         ...mockBooking,
       } as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
@@ -171,7 +171,7 @@ describe('ServiceBookingFacade', () => {
         ...mockBooking,
       } as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
@@ -231,7 +231,7 @@ describe('ServiceBookingFacade', () => {
         ...mockBooking,
       } as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
@@ -304,7 +304,7 @@ describe('ServiceBookingFacade', () => {
         ...mockBooking,
       } as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
@@ -376,7 +376,7 @@ describe('ServiceBookingFacade', () => {
         ...mockBooking,
       } as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
@@ -443,7 +443,7 @@ describe('ServiceBookingFacade', () => {
         ...mockBooking,
       } as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
@@ -507,7 +507,7 @@ describe('ServiceBookingFacade', () => {
         ...mockBooking,
       } as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
@@ -576,7 +576,7 @@ describe('ServiceBookingFacade', () => {
         ...mockBooking,
       } as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
@@ -651,7 +651,7 @@ describe('ServiceBookingFacade', () => {
         ...mockBooking,
       } as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
@@ -774,7 +774,7 @@ describe('ServiceBookingFacade', () => {
         ...mockBooking,
       } as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
@@ -824,7 +824,7 @@ describe('ServiceBookingFacade', () => {
       vi.mocked(bookingService.createBooking).mockResolvedValue(mockBooking as any);
       vi.mocked(bookingService.updateBookingStatus).mockResolvedValue(mockBooking as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: false,
@@ -869,7 +869,7 @@ describe('ServiceBookingFacade', () => {
         ...mockBooking,
       } as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
@@ -942,7 +942,7 @@ describe('ServiceBookingFacade', () => {
         ...mockBooking,
       } as any);
 
-      const { PaymentService } = await import('@/services/payment/payment.service.strategy');
+      const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
       vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
         success: true,
