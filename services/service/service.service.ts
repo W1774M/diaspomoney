@@ -60,13 +60,33 @@ export class ServiceService {
   @InvalidateCache('ServiceRepository:*')
   async createService(data: CreateServiceInput) {
     try {
+      // Invariants Catalog (domaine)
+      const { CatalogService } = await import('@/domain/catalog');
+      const offer = CatalogService.create({
+        id: data.id,
+        name: data.label,
+        category: data.category,
+        price: data.price,
+        description: data.description,
+        isActive: data.isActive ?? true,
+      });
+
       // Vérifier si le service existe déjà
-      const existing = await this.serviceRepository.findByCustomId(data.id);
+      const existing = await this.serviceRepository.findByCustomId(offer.id);
       if (existing) {
-        throw new Error(`Service with id ${data.id} already exists`);
+        throw new Error(`Service with id ${offer.id} already exists`);
       }
 
-      const service = await this.serviceRepository.create(data as any);
+      const snapshot = offer.toCreateInput();
+      const service = await this.serviceRepository.create({
+        ...data,
+        id: snapshot.id,
+        label: snapshot.name,
+        category: snapshot.category,
+        price: snapshot.price,
+        isActive: snapshot.isActive,
+        description: snapshot.description ?? data.description,
+      } as any);
       logger.info({ serviceId: service.id }, 'Service created successfully');
       return service;
     } catch (error) {

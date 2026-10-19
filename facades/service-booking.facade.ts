@@ -141,9 +141,39 @@ export class ServiceBookingFacade
         'Calcul du montant total avec options',
       );
 
-      // Vérifier que le paiement a été effectué
-      // Note: En production, vous devriez vérifier le statut du payment intent
-      // via l'API Stripe pour confirmer que le paiement a bien été effectué
+      // Preuve Stripe serveur avant toute création / email
+      if (!data.paymentIntentId) {
+        return {
+          success: false,
+          error: 'Identifiant de paiement (paymentIntentId) requis',
+        };
+      }
+
+      const paymentProof = await this.paymentService.verifyPaymentProof(
+        data.paymentIntentId,
+        {
+          expectedAmount: totalAmount,
+          expectedCurrency: CURRENCIES.EUR.code,
+          acceptProcessing: true,
+        },
+      );
+
+      if (!paymentProof.success) {
+        logger.warn(
+          {
+            paymentIntentId: data.paymentIntentId,
+            error: paymentProof.error,
+            status: paymentProof.metadata?.['status'],
+          },
+          'Service booking rejected: Stripe payment proof failed',
+        );
+        return {
+          success: false,
+          error:
+            paymentProof.error ||
+            'Paiement non confirmé auprès de Stripe. Réservation non créée.',
+        };
+      }
 
       // Mapper ServiceBookingFacadeData vers BookingFacadeData
       // Générer un ID unique pour les utilisateurs non connectés

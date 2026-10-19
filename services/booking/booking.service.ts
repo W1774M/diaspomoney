@@ -378,6 +378,24 @@ export class BookingService {
     status: Booking['status'],
   ): Promise<boolean> {
     try {
+      const existing = await this.bookingRepository.findById(id);
+      if (!existing) {
+        throw new Error('Réservation non trouvée');
+      }
+
+      // Transitions validées via domaine (anti-corruption status)
+      const {
+        canTransitionBookingStatus,
+        toDomainBookingStatus,
+      } = await import('@/domain/booking');
+      const from = toDomainBookingStatus(String(existing.status));
+      const to = toDomainBookingStatus(String(status));
+      if (!canTransitionBookingStatus(from, to)) {
+        throw new Error(
+          `Transition de statut booking invalide: ${from} → ${to}`,
+        );
+      }
+
       return await this.bookingRepository.updateStatus(id, status);
     } catch (error) {
       logger.error({ error, id, status }, 'Erreur updateBookingStatus');

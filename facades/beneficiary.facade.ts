@@ -106,7 +106,17 @@ export class BeneficiaryFacade {
         'Creating beneficiary via BeneficiaryFacade',
       );
 
-      // Étape 1: Créer le bénéficiaire via UserService
+      // Invariants CRM (domaine) — ownership Client
+      const { Beneficiary: BeneficiaryAggregate } = await import('@/domain/crm');
+      BeneficiaryAggregate.create({
+        ownerClientId: userId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        ...(data.phone ? { phone: data.phone } : {}),
+        ...(data.email ? { email: data.email } : {}),
+      });
+
+      // Étape 1: Créer le bénéficiaire via UserService (persistence actuelle)
       const beneficiary = await userService.addBeneficiary(userId, {
         firstName: data.firstName,
         lastName: data.lastName,

@@ -77,18 +77,20 @@ export class InvoiceService {
   @InvalidateCache('InvoiceService:*')
   async createInvoice(data: InvoiceData): Promise<Invoice> {
     try {
-      // Validation
-      if (!data.userId || !data.amount || !data.currency) {
-        throw new Error('Données de facture incomplètes');
-      }
-
-      if (data.amount <= 0) {
-        throw new Error('Le montant doit être positif');
-      }
-
-      // Calculer le total avec taxe
-      const tax = data.tax || 0;
-      const totalAmount = data.amount + tax;
+      // Invariants Billing (domaine) — lignes recalculées, statut DRAFT
+      const { Invoice: InvoiceAggregate } = await import('@/domain/billing');
+      const draft = InvoiceAggregate.draft({
+        clientId: data.userId,
+        currency: data.currency,
+        items: (data.items || []).map((item) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        tax: data.tax || 0,
+        ...(data.dueDate ? { dueDate: data.dueDate } : {}),
+      });
+      const payload = draft.toCreatePayload();
 
       // Générer le numéro de facture
       const invoiceNumber =
@@ -97,16 +99,16 @@ export class InvoiceService {
       // Créer la facture via le repository
       const invoice = await this.invoiceRepository.create({
         invoiceNumber,
-        userId: data.userId,
+        userId: payload.userId,
         transactionId: data.transactionId,
         bookingId: data.bookingId,
-        amount: data.amount,
-        currency: data.currency,
-        tax,
-        totalAmount,
-        status: 'DRAFT',
-        dueDate: data.dueDate || this.calculateDueDate(),
-        items: data.items,
+        amount: payload.amount,
+        currency: payload.currency,
+        tax: payload.tax,
+        totalAmount: payload.totalAmount,
+        status: payload.status,
+        dueDate: payload.dueDate,
+        items: payload.items,
         billingAddress: data.billingAddress,
         metadata: data.metadata,
       } as Partial<Invoice>);

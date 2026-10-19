@@ -8,7 +8,6 @@
  */
 
 import { logger } from '@/lib/logger';
-import { paymentEvents, bookingEvents } from '@/lib/events';
 import { useCallback, useState } from 'react';
 import type { PaymentData, AppointmentData } from '@/lib/types';
 
@@ -53,6 +52,12 @@ export function useBookingPayment(): UseBookingPaymentReturn {
         setConfirming(true);
         setError(null);
 
+        if (!paymentData.paymentIntentId && !paymentData.checkoutSessionId) {
+          throw new Error(
+            'Identifiant Stripe manquant (paymentIntentId ou checkoutSessionId)',
+          );
+        }
+
         const response = await fetch('/api/bookings/confirm-payment', {
           method: 'POST',
           headers: {
@@ -73,28 +78,16 @@ export function useBookingPayment(): UseBookingPaymentReturn {
 
         const result = await response.json();
 
+        // Source de vérité : events domaine émis côté serveur (ConfirmBookingPayment)
         logger.info(
           {
             appointmentId: appointment.id || (appointment as any)._id,
             reservationNumber: result.reservationNumber,
+            paymentIntentId:
+              result.paymentIntentId || paymentData.paymentIntentId,
             amount: paymentData.amount,
           },
-          'Payment confirmed successfully via useBookingPayment',
-        );
-
-        // Émettre un événement de paiement réussi (EventObserver Pattern)
-        await paymentEvents.emitPaymentSucceeded({
-          transactionId: result.reservationNumber || '',
-          amount: paymentData.amount,
-          currency: paymentData.currency,
-          userId: appointment.id || (appointment as any)._id || '',
-          provider: 'STRIPE', // TODO: Récupérer le vrai provider
-          timestamp: new Date(),
-        });
-
-        // Émettre un événement de réservation confirmée
-        await bookingEvents.emitBookingConfirmed(
-          appointment.id || (appointment as any)._id || '',
+          'Payment confirmed successfully via useBookingPayment (Stripe-verified)',
         );
 
         return {
@@ -109,16 +102,9 @@ export function useBookingPayment(): UseBookingPaymentReturn {
             paymentData: {
               amount: paymentData.amount,
               currency: paymentData.currency,
-              // Ne pas logger les données sensibles
             },
           },
           'Error confirming payment via useBookingPayment',
-        );
-
-        // Émettre un événement de paiement échoué (EventObserver Pattern)
-        await paymentEvents.emitPaymentFailed(
-          appointment.id || (appointment as any)._id || '',
-          error instanceof Error ? error.message : 'Erreur inconnue',
         );
 
         const errorMessage =

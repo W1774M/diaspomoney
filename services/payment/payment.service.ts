@@ -5,6 +5,7 @@
  * Remplace l'ancienne double stack (payment.service Stripe-direct + payment.service.strategy).
  */
 
+import { Money, PaymentProof } from '@/domain/payment';
 import { Cacheable } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
@@ -12,6 +13,7 @@ import { CreatePaymentIntentServiceSchema, ProcessPaymentServiceSchema } from '@
 import { paymentEvents } from '@/lib/events';
 import { childLogger } from '@/lib/logger';
 import { PAYMENT_METHODS, CURRENCIES } from '@/lib/constants';
+import { getStripe } from '@/lib/stripe-server';
 import type { PaymentIntent } from '@/lib/types';
 import type {
   IPaymentStrategy,
@@ -23,6 +25,14 @@ import type {
 } from '@/strategies/payment';
 import { PaymentStrategyFactory } from '@/strategies/payment';
 import * as Sentry from '@sentry/nextjs';
+
+export interface VerifyPaymentProofOptions {
+  /** Montant attendu en unité majeure (ex: euros) */
+  expectedAmount?: number;
+  expectedCurrency?: string;
+  /** Autoriser le statut Stripe `processing` (virements, etc.) */
+  acceptProcessing?: boolean;
+}
 
 export type { PaymentIntent };
 
@@ -504,6 +514,115 @@ export class PaymentService {
       return {
         success: false,
         error: error.message || 'Erreur lors de la récupération du statut',
+      };
+    }
+  }
+
+  /**
+   * Preuve serveur Stripe : retrieve (infra) puis évaluation domaine (PaymentProof).
+   * Sans cache — utilisé avant confirmation / emails.
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  async verifyPaymentProof(
+    proofId: string,
+    options: VerifyPaymentProofOptions = {},
+  ): Promise<PaymentResult> {
+    const {
+      expectedAmount,
+      expectedCurrency,
+      acceptProcessing = false,
+    } = options;
+
+    try {
+      if (!proofId || typeof proofId !== 'string') {
+        return {
+          success: false,
+          error: 'Identifiant de paiement manquant',
+        };
+      }
+
+      const stripe = getStripe();
+      let expected: Money | undefined;
+      if (expectedAmount !== undefined) {
+        expected = Money.of(
+          expectedAmount,
+          expectedCurrency || CURRENCIES.EUR.code,
+        );
+      }
+
+      if (proofId.startsWith('cs_')) {
+        const session = await stripe.checkout.sessions.retrieve(proofId);
+        const paymentIntentId =
+          typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : session.payment_intent?.id;
+
+        const evaluation = PaymentProof.fromSnapshot({
+          source: 'checkout_session',
+          proofId,
+          paymentIntentId,
+          checkoutSessionId: session.id,
+          providerStatus: session.payment_status || 'unpaid',
+          amountMinor: session.amount_total ?? undefined,
+          currency: session.currency || undefined,
+        }).evaluate({ expected, acceptProcessing });
+
+        return {
+          success: evaluation.valid,
+          transactionId: evaluation.paymentIntentId || session.id,
+          paymentIntentId: evaluation.paymentIntentId,
+          metadata: {
+            status: evaluation.providerStatus,
+            sessionStatus: session.status,
+            amount: evaluation.amount,
+            currency: evaluation.currency,
+            checkoutSessionId: session.id,
+            paymentStatus: evaluation.paymentStatus,
+          },
+          ...(evaluation.error ? { error: evaluation.error } : {}),
+        };
+      }
+
+      if (proofId.startsWith('pi_')) {
+        const paymentIntent = await stripe.paymentIntents.retrieve(proofId);
+
+        const evaluation = PaymentProof.fromSnapshot({
+          source: 'payment_intent',
+          proofId,
+          paymentIntentId: paymentIntent.id,
+          providerStatus: paymentIntent.status,
+          amountMinor: paymentIntent.amount,
+          currency: paymentIntent.currency,
+        }).evaluate({ expected, acceptProcessing });
+
+        return {
+          success: evaluation.valid,
+          transactionId: paymentIntent.id,
+          paymentIntentId: paymentIntent.id,
+          metadata: {
+            status: evaluation.providerStatus,
+            amount: evaluation.amount,
+            currency: evaluation.currency,
+            paymentStatus: evaluation.paymentStatus,
+          },
+          ...(evaluation.error ? { error: evaluation.error } : {}),
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Identifiant de paiement invalide (attendu pi_… ou cs_…)',
+      };
+    } catch (error: any) {
+      this.log.error({ error, proofId }, 'Error in verifyPaymentProof');
+      Sentry.captureException(error as Error, {
+        tags: { component: 'PaymentService', action: 'verifyPaymentProof' },
+        extra: { proofId },
+      });
+
+      return {
+        success: false,
+        error: error.message || 'Erreur lors de la vérification du paiement Stripe',
       };
     }
   }
