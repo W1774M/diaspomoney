@@ -1,3 +1,5 @@
+# Traefik basicAuth — secret must contain key `users` (htpasswd lines).
+# Create from secrets.example.yaml / kubectl create secret generic …
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -5,4 +7,4 @@ metadata:
   namespace: diaspomoney
 spec:
   basicAuth:
-    secret: mongo-express-basicauth
+    secret: mongo-express-traefik-auth

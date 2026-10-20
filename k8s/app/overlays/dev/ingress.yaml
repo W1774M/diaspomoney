@@ -1,8 +1,9 @@
+# TLS: certResolver "le" (Let's Encrypt via Traefik), matching existing IngressRoutes.
+# Middleware https-redirect is defined in k8s/common/middlewares.yaml.
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: diaspomoney-dev-ingressroute-https
-  namespace: diaspomoney
 spec:
   entryPoints:
     - websecure
@@ -19,7 +20,6 @@ apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: diaspomoney-dev-ingressroute-http
-  namespace: diaspomoney
 spec:
   entryPoints:
     - web

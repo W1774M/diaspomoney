@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mongo-express-basicauth
-  namespace: diaspomoney
-type: Opaque
-stringData:
-  username: admin
-  password: diaspomoney123

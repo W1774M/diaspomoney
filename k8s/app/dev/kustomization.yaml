@@ -1,0 +1,6 @@
+# Thin wrapper — canonical path: kubectl apply -k k8s/app/overlays/dev
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../overlays/dev
