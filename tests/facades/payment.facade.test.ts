@@ -426,16 +426,21 @@ describe('PaymentFacade', () => {
       } as any);
 
       const { notificationService } = await import('@/services/notification/notification.service');
-      vi.mocked(notificationService.sendPaymentSuccessNotification).mockResolvedValue(undefined);
+      vi.mocked(notificationService.sendNotification).mockResolvedValue({} as any);
 
       await paymentFacade.execute(paymentData);
 
-      expect(notificationService.sendPaymentSuccessNotification).toHaveBeenCalledWith(
-        expect.any(String), // customerId peut être undefined ou string
-        paymentData.amount,
-        paymentData.currency,
-        paymentData.description,
-        'fr',
+      expect(notificationService.sendNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipient: expect.any(String),
+          type: 'PAYMENT_SUCCESS',
+          template: 'payment_success',
+          data: expect.objectContaining({
+            amount: paymentData.amount,
+            currency: paymentData.currency,
+            serviceName: paymentData.description,
+          }),
+        }),
       );
     });
 
@@ -601,7 +606,7 @@ describe('PaymentFacade', () => {
       } as any);
 
       const { notificationService } = await import('@/services/notification/notification.service');
-      vi.mocked(notificationService.sendPaymentSuccessNotification).mockRejectedValue(
+      vi.mocked(notificationService.sendNotification).mockRejectedValue(
         new Error('Erreur d\'envoi de notification'),
       );
 

@@ -1,5 +1,6 @@
 // Payments Hooks Exports
 export type { PaymentReceipt } from '@/lib/types';
+export { usePayments } from './usePayments';
 export { useBillingAddressCreate } from './useBillingAddressCreate';
 export type {
   BillingAddressFormData,

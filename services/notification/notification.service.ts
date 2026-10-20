@@ -75,6 +75,35 @@ export class NotificationService {
   @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   async sendNotification(data: NotificationData): Promise<Notification> {
     try {
+      // Invariants Comms (domaine) — intention avant infra
+      const { NotificationIntent } = await import('@/domain/comms');
+      const domainChannels = (data.channels || [])
+        .filter((ch) => ch.enabled)
+        .map((ch) => {
+          const t = String(ch.type).toUpperCase();
+          if (t === 'EMAIL') return 'EMAIL' as const;
+          if (t === 'SMS') return 'SMS' as const;
+          if (t === 'PUSH' || t === 'IN_APP') return 'PUSH' as const;
+          return null;
+        })
+        .filter((ch): ch is 'EMAIL' | 'PUSH' | 'SMS' => ch !== null);
+      const uniqueChannels = [...new Set(domainChannels)];
+      const priorityMap = {
+        LOW: 'LOW',
+        MEDIUM: 'NORMAL',
+        HIGH: 'HIGH',
+        NORMAL: 'NORMAL',
+      } as const;
+      NotificationIntent.of({
+        recipient: data.recipient,
+        template: data.template,
+        channels: uniqueChannels.length ? uniqueChannels : ['EMAIL'],
+        payload: (data.data || {}) as Record<string, unknown>,
+        priority:
+          priorityMap[
+            String(data.priority || 'NORMAL').toUpperCase() as keyof typeof priorityMap
+          ] || 'NORMAL',
+      });
 
       // Récupérer le template depuis le repository
       const template = await this.getTemplate(data.template, data.locale);

@@ -47,12 +47,19 @@ flowchart TB
 | CRM → Identity | Customer/Supplier | `ownerClientId` = UserAccount |
 | * → Comms | Published Language | Events / `NotificationIntent` ; pas d’import Resend dans le métier |
 
+## Entrées techniques (naming)
+
+| Concern | Canonique | Legacy |
+| --- | --- | --- |
+| Mongo | `@/lib/mongodb` (`dbConnect`, `getMongoClient`, `getCollection`) | `@/lib/database/mongodb` = re-export déprécié |
+| Stripe | Voir [`docs/stripe-integration.md`](../stripe-integration.md) | `lib/stripe.ts` (sim) **supprimé** |
+
 ## Fuites documentées (à éliminer)
 
 1. `booking.service.deleteBookingCompletely` → Stripe refund
-2. Facades CRM/BTP/Education → `notificationService` inline
+2. ~~Facades CRM/BTP/Education → `notificationService` inline~~ → `dispatchFacadeNotification` (**Done**)
 3. Beneficiary créé via `user.service` (Identity)
-4. Complaint.`appointmentId` au lieu de `bookingId`
+4. ~~Complaint.`appointmentId` seul~~ → dual-write `bookingId` + ACL facade/schema (**Done** call sites ; drop colonne legacy restant)
 5. Invoice status divergents schema vs types
 6. Catalog `group` vs `category` vs `SPECIALITY_TYPES`
 
@@ -61,9 +68,9 @@ flowchart TB
 | Priorité | Context | Wire call site |
 | --- | --- | --- |
 | Done | Payments + Booking | `verifyPaymentProof`, ConfirmBookingPayment |
-| P1 | Identity | `auth.service.register` |
-| P1 | Billing | `invoice.service.createInvoice` |
-| P1 | Catalog | `service.service.createService` |
-| P2 | CRM | `beneficiary.facade` ownership |
-| P2 | Comms | ports + retirer emails des facades métier |
-| P3 | Extraire refund Stripe hors Booking ; façade Quote unique |
+| Done | Identity | `auth.service.register` + `login` (`assertCanLogin`) |
+| Done | Billing | `createInvoice` + `updateInvoiceStatus` / `markInvoiceAsPaid` |
+| Done | Catalog | `createService` + `createBooking.assertBookable` — **forced migration** |
+| Done | CRM | `beneficiary.facade` ; `Complaint.open` / `updateComplaint.transitionTo` ; `quoteFacade` sur `api/btp/quote` + `api/education/inquiry` ; ACL `bookingId`\|\|`appointmentId` — **forced migration** |
+| Done | Comms | `notification.service` → `NotificationIntent` ; facades → `dispatchFacadeNotification` — **forced migration** |
+| P3 | Extraire refund Stripe hors Booking ; drop persistence legacy `appointmentId` |

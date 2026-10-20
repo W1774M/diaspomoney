@@ -28,4 +28,19 @@ describe('Invoice', () => {
     expect(invoice.status).toBe(INVOICE_STATUSES.PAID);
     expect(() => invoice.cancel()).toThrow(/PAID/);
   });
+
+  it('rehydrate mappe PENDING → SENT et applyTargetStatus PAID', () => {
+    const invoice = Invoice.rehydrate({
+      clientId: 'c1',
+      currency: 'EUR',
+      status: 'PENDING',
+      dueDate: new Date(),
+      items: [{ description: 'A', quantity: 1, unitPrice: 10 }],
+      tax: 0,
+    });
+    expect(invoice.status).toBe(INVOICE_STATUSES.SENT);
+    expect(invoice.toPersistenceStatus()).toBe('PENDING');
+    invoice.applyTargetStatus('PAID');
+    expect(invoice.status).toBe(INVOICE_STATUSES.PAID);
+  });
 });

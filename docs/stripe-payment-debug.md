@@ -1,5 +1,7 @@
 # Diagnostic des problèmes de paiement Stripe
 
+> Chemin produit Stripe : voir [`stripe-integration.md`](./stripe-integration.md) (doc canonique).
+
 ## 🔍 Problème : "Initialisation du paiement sécurisé" qui tourne indéfiniment
 
 ### Causes possibles

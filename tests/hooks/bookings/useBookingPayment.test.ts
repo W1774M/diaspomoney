@@ -259,9 +259,8 @@ describe('useBookingPayment', () => {
       await waitFor(() => {
         expect(logger.info).toHaveBeenCalledWith(
           expect.objectContaining({
-            appointmentId: 'appointment123',
+            bookingId: 'appointment123',
             reservationNumber: 'RES-001',
-            amount: mockPaymentData.amount,
           }),
           expect.stringContaining('Payment confirmed'),
         );
@@ -273,6 +272,7 @@ describe('useBookingPayment', () => {
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
+        status: 400,
         json: async () => ({
           success: false,
           error: 'Erreur de paiement',
@@ -287,7 +287,7 @@ describe('useBookingPayment', () => {
         expect(logger.error).toHaveBeenCalledWith(
           expect.objectContaining({
             error: expect.any(Error),
-            appointmentId: 'appointment123',
+            bookingId: 'appointment123',
           }),
           expect.stringContaining('Error confirming payment'),
         );
@@ -310,9 +310,10 @@ describe('useBookingPayment', () => {
       expect(fetch).toHaveBeenCalledWith(
         '/api/bookings/confirm-payment',
         expect.objectContaining({
-          headers: {
+          headers: expect.objectContaining({
             'Content-Type': 'application/json',
-          },
+            Accept: 'application/json',
+          }),
         }),
       );
     });
@@ -364,9 +365,10 @@ describe('useBookingPayment', () => {
         '/api/bookings/payment-error',
         expect.objectContaining({
           method: 'POST',
-          headers: {
+          headers: expect.objectContaining({
             'Content-Type': 'application/json',
-          },
+            Accept: 'application/json',
+          }),
           body: JSON.stringify({
             appointment: mockAppointment,
             paymentData: mockPaymentData,

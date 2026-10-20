@@ -30,6 +30,8 @@ export interface BookingProps {
   clientEmail?: string;
   serviceLabel?: string;
   confirmationEmailSent?: boolean;
+  /** Events domaine déjà émis (idempotence API ↔ webhook) */
+  paymentEventsEmitted?: boolean;
   metadata?: Record<string, unknown>;
 }
 
@@ -89,12 +91,17 @@ export class Booking {
       clientEmail: metadata['clientEmail'] as string | undefined,
       serviceLabel: metadata['serviceLabel'] as string | undefined,
       confirmationEmailSent: Boolean(metadata['confirmationEmailSent']),
+      paymentEventsEmitted: Boolean(metadata['paymentEventsEmitted']),
       metadata,
     });
   }
 
   get id(): string {
     return this.props.id;
+  }
+
+  get clientId(): string {
+    return this.props.clientId;
   }
 
   get reservationNumber(): string | undefined {
@@ -133,8 +140,45 @@ export class Booking {
     return Boolean(this.props.confirmationEmailSent);
   }
 
+  get paymentEventsEmitted(): boolean {
+    return Boolean(this.props.paymentEventsEmitted);
+  }
+
   get metadata(): Record<string, unknown> {
     return { ...(this.props.metadata || {}) };
+  }
+
+  /**
+   * True si ce booking est déjà confirmé pour la même preuve (pi_/cs_).
+   * False si pas encore confirmé. Throw si confirmé avec une autre preuve.
+   */
+  isIdempotentReplayFor(proofId: string, paymentIntentId?: string): boolean {
+    if (this.props.paymentStatus !== DOMAIN_PAYMENT_STATUSES.CONFIRMED) {
+      return false;
+    }
+    const known =
+      this.props.paymentIntentId ||
+      this.props.checkoutSessionId ||
+      (this.props.metadata?.['paymentConfirmationKey'] as string | undefined);
+    const candidates = [proofId, paymentIntentId].filter(Boolean) as string[];
+    if (!known) {
+      // Confirmé sans clé stockée : traiter comme replay safe
+      return true;
+    }
+    if (candidates.includes(known)) {
+      return true;
+    }
+    throw new Error(
+      `Booking already confirmed with different payment proof (${known})`,
+    );
+  }
+
+  markPaymentEventsEmitted(): void {
+    this.props.paymentEventsEmitted = true;
+    const metadata = { ...(this.props.metadata || {}) };
+    metadata['paymentEventsEmitted'] = true;
+    metadata['paymentEventsEmittedAt'] = new Date().toISOString();
+    this.props.metadata = metadata;
   }
 
   assertCanConfirmPayment(): void {
@@ -193,6 +237,11 @@ export class Booking {
     metadata['paymentStatus'] = nextPayment;
     metadata['paymentPending'] = nextPayment !== DOMAIN_PAYMENT_STATUSES.CONFIRMED;
     metadata['paymentConfirmedAt'] = new Date().toISOString();
+    const confirmationKey =
+      proof.paymentIntentId || proof.checkoutSessionId || undefined;
+    if (confirmationKey) {
+      metadata['paymentConfirmationKey'] = confirmationKey;
+    }
     if (this.props.paymentIntentId) {
       metadata['paymentIntentId'] = this.props.paymentIntentId;
     }
@@ -268,5 +317,16 @@ export class Booking {
   /** Valeurs Mongoose lowercase (anti-corruption) */
   toPersistenceStatus(): PersistenceBookingStatus {
     return toPersistenceBookingStatus(this.props.status);
+  }
+
+  /** Patch prêt pour bookingService.updateBooking */
+  toPersistenceUpdate(): {
+    status: PersistenceBookingStatus;
+    metadata: Record<string, unknown>;
+  } {
+    return {
+      status: toPersistenceBookingStatus(this.props.status),
+      metadata: this.metadata,
+    };
   }
 }

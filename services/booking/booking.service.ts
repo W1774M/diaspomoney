@@ -19,6 +19,7 @@ import type { PaginatedFindResult } from '@/lib/types';
 import type { BookingData, BookingServiceFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
+import { EmailDispatch } from '@/domain/comms';
 import { createCheckoutSession } from '@/lib/stripe-checkout';
 import { sendPaymentLinkEmail } from '@/lib/email/resend';
 
@@ -247,6 +248,31 @@ export class BookingService {
       if (!data.requesterId || !data.providerId || !data.serviceId) {
         throw new Error('Données de réservation incomplètes');
       }
+
+      // Invariants Catalog (domaine) — offre bookable (forced)
+      const { getServiceRepository } = await import('@/repositories');
+      const { CatalogService } = await import('@/domain/catalog');
+      const catalogItem = await getServiceRepository().findByCustomId(
+        data.serviceId,
+      );
+      if (!catalogItem) {
+        throw new Error(`Catalog service not found: ${data.serviceId}`);
+      }
+      CatalogService.create({
+        id: String(catalogItem.id || data.serviceId),
+        name: String(
+          (catalogItem as { label?: string; name?: string }).label ||
+            (catalogItem as { name?: string }).name ||
+            data.serviceId,
+        ),
+        category: String(
+          (catalogItem as { category?: string }).category ||
+            data.serviceType ||
+            'HEALTH',
+        ),
+        price: Number((catalogItem as { price?: number }).price ?? 0),
+        isActive: (catalogItem as { isActive?: boolean }).isActive !== false,
+      }).assertBookable();
 
       // Créer la réservation via le repository
       const booking = await this.bookingRepository.create({
@@ -877,11 +903,18 @@ export class BookingService {
                 const clientName = clientFirstName && clientLastName
                   ? `${clientFirstName} ${clientLastName}`
                   : clientFirstName || clientLastName || 'Client';
-                
+
+                const reservationLabel = booking.reservationNumber || id;
+                EmailDispatch.of({
+                  to: clientEmail,
+                  subject: `Paiement de votre commande ${reservationLabel} - DiaspoMoney`,
+                  templateId: 'payment_link',
+                });
+
                 const emailSent = await sendPaymentLinkEmail(
                   clientEmail,
                   clientName,
-                  booking.reservationNumber || id,
+                  reservationLabel,
                   serviceName,
                   amountInEuros,
                   currency,

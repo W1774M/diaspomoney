@@ -3,9 +3,11 @@
  *
  * Point unique pour confirm-payment API + webhook Stripe.
  * Flux : preuve Stripe → agrégat Booking → email → events serveur.
+ * Idempotent : second passage (API ↔ webhook) ne re-émet ni events ni email.
  */
 
 import { Booking } from '@/domain/booking';
+import { EmailDispatch } from '@/domain/comms';
 import type { PaymentProofEvaluation } from '@/domain/payment';
 import { bookingEvents, paymentEvents } from '@/lib/events';
 import { childLogger } from '@/lib/logger';
@@ -48,6 +50,10 @@ export interface ConfirmBookingPaymentResult {
   paymentIntentId?: string;
   paymentStatus?: string;
   emailSent?: boolean;
+  eventsEmitted?: boolean;
+  /** True si déjà confirmé pour la même preuve (replay API↔webhook) */
+  idempotent?: boolean;
+  alreadyConfirmed?: boolean;
   proof?: PaymentProofEvaluation;
 }
 
@@ -63,6 +69,12 @@ export class ConfirmBookingPaymentService {
         new ConfirmBookingPaymentService();
     }
     return ConfirmBookingPaymentService.instance;
+  }
+
+  /** Remise à zéro du singleton (tests) */
+  static resetInstanceForTests(): void {
+    ConfirmBookingPaymentService.instance =
+      new ConfirmBookingPaymentService();
   }
 
   async execute(
@@ -115,26 +127,43 @@ export class ConfirmBookingPaymentService {
     let bookingDomain: Booking | null = null;
     let reservationNumber: string | undefined;
     let emailSent = false;
+    let eventsEmitted = false;
+    let alreadyConfirmed = false;
+    let mutated = false;
 
     try {
       if (input.bookingId) {
         const raw = await bookingService.getBookingById(input.bookingId);
         bookingDomain = Booking.fromPersistence({
-          id: raw.id || raw._id,
+          id: String((raw as { id?: string; _id?: string }).id || (raw as { _id?: string })._id),
           reservationNumber: raw.reservationNumber,
-          requesterId: raw.requesterId,
+          requesterId: String(
+            (raw as { requesterId?: string }).requesterId || '',
+          ),
           status: raw.status,
-          metadata: raw.metadata,
+          metadata: (raw.metadata || {}) as Record<string, unknown>,
         });
 
-        // Idempotent si déjà confirmed
-        if (bookingDomain.paymentStatus !== 'confirmed') {
+        try {
+          alreadyConfirmed = bookingDomain.isIdempotentReplayFor(
+            input.proofId,
+            proof.paymentIntentId,
+          );
+        } catch (conflict) {
+          return {
+            success: false,
+            error:
+              conflict instanceof Error
+                ? conflict.message
+                : 'Booking already confirmed with different payment proof',
+            proof,
+            alreadyConfirmed: true,
+          };
+        }
+
+        if (!alreadyConfirmed) {
           bookingDomain.markPaymentConfirmed(proof);
-          const patch = bookingDomain.toApplicationUpdate();
-          await bookingService.updateBooking(input.bookingId, {
-            status: patch.status as any,
-            metadata: patch.metadata,
-          } as any);
+          mutated = true;
         }
 
         reservationNumber = bookingDomain.reservationNumber;
@@ -144,14 +173,37 @@ export class ConfirmBookingPaymentService {
           !bookingDomain.confirmationEmailSent &&
           proof.paymentStatus === 'confirmed'
         ) {
-          emailSent = await this.sendBookingConfirmationEmail(bookingDomain, proof);
+          emailSent = await this.sendBookingConfirmationEmail(
+            bookingDomain,
+            proof,
+          );
           if (emailSent) {
             bookingDomain.markConfirmationEmailSent();
-            const patch = bookingDomain.toApplicationUpdate();
-            await bookingService.updateBooking(input.bookingId, {
-              metadata: patch.metadata,
-            } as any);
+            mutated = true;
           }
+        }
+
+        // Events une seule fois (flag metadata)
+        if (
+          proof.paymentStatus === 'confirmed' &&
+          !bookingDomain.paymentEventsEmitted
+        ) {
+          await this.emitConfirmedEvents(
+            input,
+            proof,
+            bookingDomain,
+          );
+          bookingDomain.markPaymentEventsEmitted();
+          eventsEmitted = true;
+          mutated = true;
+        }
+
+        if (mutated) {
+          const persistence = bookingDomain.toPersistenceUpdate();
+          await bookingService.updateBooking(input.bookingId, {
+            status: persistence.status as never,
+            metadata: persistence.metadata,
+          } as never);
         }
       } else if (
         !input.skipEmail &&
@@ -167,44 +219,19 @@ export class ConfirmBookingPaymentService {
           reservationNumber,
           proof.paymentIntentId || input.proofId,
         );
+
+        await this.emitConfirmedEvents(input, proof, null);
+        eventsEmitted = true;
+      } else if (proof.paymentStatus === 'confirmed' && !input.bookingId) {
+        await this.emitConfirmedEvents(input, proof, null);
+        eventsEmitted = true;
       }
 
-      // Events serveur uniquement après preuve valide
-      if (proof.paymentStatus === 'confirmed') {
-        await paymentEvents
-          .emitPaymentSucceeded({
-            transactionId: proof.paymentIntentId || input.proofId,
-            amount:
-              proof.amount ??
-              input.expectedAmount ??
-              input.emailContext?.amount ??
-              0,
-            currency: (
-              proof.currency ||
-              input.expectedCurrency ||
-              input.emailContext?.currency ||
-              'EUR'
-            ).toUpperCase(),
-            userId:
-              bookingDomain?.clientEmail ||
-              input.emailContext?.requesterEmail ||
-              input.bookingId ||
-              'unknown',
-            provider: 'STRIPE',
-            timestamp: new Date(),
-          })
-          .catch((error) => {
-            this.log.error({ error }, 'Error emitting paymentSucceeded');
-          });
-
-        if (input.bookingId) {
-          await bookingEvents
-            .emitBookingConfirmed(input.bookingId)
-            .catch((error) => {
-              this.log.error({ error }, 'Error emitting bookingConfirmed');
-            });
-        }
-      }
+      const idempotent =
+        Boolean(input.bookingId) &&
+        alreadyConfirmed &&
+        !eventsEmitted &&
+        !emailSent;
 
       this.log.info(
         {
@@ -212,6 +239,9 @@ export class ConfirmBookingPaymentService {
           paymentIntentId: proof.paymentIntentId,
           paymentStatus: proof.paymentStatus,
           emailSent,
+          eventsEmitted,
+          alreadyConfirmed,
+          idempotent,
         },
         'ConfirmBookingPayment completed',
       );
@@ -223,9 +253,13 @@ export class ConfirmBookingPaymentService {
         paymentIntentId: proof.paymentIntentId || input.proofId,
         paymentStatus: proof.paymentStatus,
         emailSent,
+        eventsEmitted,
+        alreadyConfirmed,
+        idempotent,
         proof,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { message?: string };
       this.log.error(
         { error, bookingId: input.bookingId, proofId: input.proofId },
         'ConfirmBookingPayment failed after valid proof',
@@ -236,10 +270,67 @@ export class ConfirmBookingPaymentService {
       });
       return {
         success: false,
-        error: error.message || 'Erreur lors de la confirmation du paiement',
+        error: err.message || 'Erreur lors de la confirmation du paiement',
         proof,
       };
     }
+  }
+
+  private async emitConfirmedEvents(
+    input: ConfirmBookingPaymentInput,
+    proof: PaymentProofEvaluation,
+    bookingDomain: Booking | null,
+  ): Promise<void> {
+    await paymentEvents
+      .emitPaymentSucceeded({
+        transactionId: proof.paymentIntentId || input.proofId,
+        amount:
+          proof.amount ??
+          input.expectedAmount ??
+          input.emailContext?.amount ??
+          0,
+        currency: (
+          proof.currency ||
+          input.expectedCurrency ||
+          input.emailContext?.currency ||
+          'EUR'
+        ).toUpperCase(),
+        userId:
+          bookingDomain?.clientId ||
+          bookingDomain?.clientEmail ||
+          input.emailContext?.requesterEmail ||
+          input.bookingId ||
+          'unknown',
+        provider: 'STRIPE',
+        timestamp: new Date(),
+      })
+      .catch((error) => {
+        this.log.error({ error }, 'Error emitting paymentSucceeded');
+      });
+
+    if (input.bookingId) {
+      await bookingEvents
+        .emitBookingConfirmed(input.bookingId)
+        .catch((error) => {
+          this.log.error({ error }, 'Error emitting bookingConfirmed');
+        });
+    }
+  }
+
+  private assertEmailDispatch(
+    to: string,
+    subject: string,
+    content: { html?: string; text?: string; templateId?: string },
+  ): EmailDispatch {
+    return EmailDispatch.of({
+      to,
+      subject,
+      ...(content.html !== undefined ? { html: content.html } : {}),
+      ...(content.text !== undefined ? { text: content.text } : {}),
+      ...(content.templateId !== undefined
+        ? { templateId: content.templateId }
+        : {}),
+    });
   }
 
   private async sendBookingConfirmationEmail(
@@ -256,12 +347,16 @@ export class ConfirmBookingPaymentService {
     }
 
     const name = email.split('@')[0] || 'Client';
+    const service = booking.serviceLabel || 'Service DiaspoMoney';
+    this.assertEmailDispatch(email, `Confirmation de paiement - ${service}`, {
+      templateId: 'payment_confirmation',
+    });
     return emailService.sendPaymentConfirmationEmail(
       email,
       name,
       booking.expectedAmount,
       booking.expectedCurrency || proof.currency || 'EUR',
-      booking.serviceLabel || 'Service DiaspoMoney',
+      service,
     );
   }
 
@@ -308,6 +403,10 @@ Réf. paiement : ${paymentRef}
       'contact@diaspomoney.fr';
 
     if (contactEmail) {
+      this.assertEmailDispatch(contactEmail, emailSubject, {
+        html: emailHTML,
+        text: emailText,
+      });
       promises.push(
         emailService.sendCustomEmail(
           contactEmail,
@@ -318,6 +417,10 @@ Réf. paiement : ${paymentRef}
       );
     }
     if (ctx.requesterEmail) {
+      this.assertEmailDispatch(ctx.requesterEmail, emailSubject, {
+        html: emailHTML,
+        text: emailText,
+      });
       promises.push(
         emailService.sendCustomEmail(
           ctx.requesterEmail,

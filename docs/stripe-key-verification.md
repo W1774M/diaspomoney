@@ -1,5 +1,7 @@
 # Vérification de NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 
+> Chemin produit Stripe : voir [`stripe-integration.md`](./stripe-integration.md) (doc canonique).
+
 Ce document explique comment vérifier et configurer correctement la clé publique Stripe.
 
 ## 🔍 Vérification rapide

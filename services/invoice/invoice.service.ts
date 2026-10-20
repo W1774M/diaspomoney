@@ -273,7 +273,30 @@ export class InvoiceService {
     status: InvoiceStatus,
   ): Promise<boolean> {
     try {
-      return await this.invoiceRepository.updateStatus(id, status as any);
+      const existing = await this.invoiceRepository.findById(id);
+      if (!existing) {
+        throw new Error('Facture non trouvée');
+      }
+
+      const { Invoice: InvoiceAggregate } = await import('@/domain/billing');
+      const aggregate = InvoiceAggregate.rehydrate({
+        clientId: String(existing.userId),
+        currency: existing.currency,
+        items: existing.items?.map((item) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        tax: existing.tax,
+        status: String(existing.status),
+        dueDate: existing.dueDate,
+      });
+      aggregate.applyTargetStatus(String(status));
+
+      return await this.invoiceRepository.updateStatus(
+        id,
+        aggregate.toPersistenceStatus() as never,
+      );
     } catch (error) {
       logger.error({ error, id, status }, 'Erreur updateInvoiceStatus');
       Sentry.captureException(error);
@@ -288,7 +311,28 @@ export class InvoiceService {
   @InvalidateCache('InvoiceService:*')
   async markInvoiceAsPaid(id: string, paidAt?: Date): Promise<boolean> {
     try {
-      return await this.invoiceRepository.markAsPaid(id, paidAt || new Date());
+      const existing = await this.invoiceRepository.findById(id);
+      if (!existing) {
+        throw new Error('Facture non trouvée');
+      }
+
+      const { Invoice: InvoiceAggregate } = await import('@/domain/billing');
+      const aggregate = InvoiceAggregate.rehydrate({
+        clientId: String(existing.userId),
+        currency: existing.currency,
+        items: existing.items?.map((item) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        tax: existing.tax,
+        status: String(existing.status),
+        dueDate: existing.dueDate,
+      });
+      const paidDate = paidAt || new Date();
+      aggregate.markPaid(paidDate);
+
+      return await this.invoiceRepository.markAsPaid(id, paidDate);
     } catch (error) {
       logger.error({ error, id }, 'Erreur markInvoiceAsPaid');
       Sentry.captureException(error);

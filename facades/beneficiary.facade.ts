@@ -10,11 +10,10 @@ import { Validate } from '@/lib/decorators/validate.decorator';
 import { Audit } from '@/lib/decorators/audit.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
 import { logger } from '@/lib/logger';
-import { LANGUAGES } from '@/lib/constants';
 import { getBeneficiaryRepository } from '@/repositories';
 import { userService } from '@/services/user/user.service';
-import { notificationService } from '@/services/notification/notification.service';
 import { beneficiaryMapper } from '@/lib/mappers';
+import { dispatchFacadeNotification } from '@/facades/_shared/dispatchNotification';
 import type {
   Beneficiary,
   BeneficiaryData,
@@ -134,54 +133,35 @@ export class BeneficiaryFacade {
       let notificationSent = false;
       let emailSent = false;
 
-      // Étape 2: Envoyer une notification si demandé
+      // Comms via NotificationIntent (plus d'email HTML ad hoc dans la facade)
       if (data.sendNotification !== false) {
-        try {
-          await notificationService.sendNotification({
-            recipient: userId,
-            type: 'BENEFICIARY_CREATED',
-            template: 'beneficiary_created',
-            data: {
-              beneficiaryName: `${data.firstName} ${data.lastName}`,
-              relationship: data.relationship,
-            },
-            channels: [
-              { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
-              { type: 'EMAIL', enabled: true, priority: 'LOW' },
-            ],
-            locale: LANGUAGES.FR.code,
-            priority: 'MEDIUM',
-          });
-
-          notificationSent = true;
-        } catch (notificationError) {
-          // Ne pas faire échouer la création si la notification échoue
-          logger.error(
-            { error: notificationError, beneficiaryId },
-            'Failed to send notification, continuing...',
-          );
-        }
+        notificationSent = await dispatchFacadeNotification({
+          recipient: userId,
+          type: 'BENEFICIARY_CREATED',
+          template: 'beneficiary_created',
+          payload: {
+            beneficiaryName: `${data.firstName} ${data.lastName}`,
+            relationship: data.relationship,
+            beneficiaryId,
+          },
+          channels: ['PUSH', 'EMAIL'],
+          priority: 'NORMAL',
+        });
       }
 
-      // Étape 3: Envoyer un email de confirmation si demandé
       if (data.sendEmail !== false && data.email) {
-        try {
-          const { emailService } = await import('@/services/email/email.service');
-          const emailResult = await emailService.sendCustomEmail(
-            data.email,
-            `Bénéficiaire ${data.firstName} ${data.lastName} ajouté`,
-            this.generateBeneficiaryEmailHTML(beneficiary, data),
-            this.generateBeneficiaryEmailText(beneficiary, data),
-          );
-
-          emailSent = emailResult;
-        } catch (emailError) {
-          // Ne pas faire échouer la création si l'email échoue
-          logger.error(
-            { error: emailError, beneficiaryId },
-            'Failed to send beneficiary email, continuing...',
-          );
-        }
+        emailSent = await dispatchFacadeNotification({
+          recipient: data.email,
+          type: 'BENEFICIARY_CREATED',
+          template: 'beneficiary_created',
+          payload: {
+            beneficiaryName: `${data.firstName} ${data.lastName}`,
+            relationship: data.relationship,
+            beneficiaryId,
+          },
+          channels: ['EMAIL'],
+          priority: 'NORMAL',
+        });
       }
 
       logger.info(
@@ -272,7 +252,21 @@ export class BeneficiaryFacade {
         };
       }
 
-      if (existingBeneficiary.payerId !== userId) {
+      // Invariants CRM (domaine) — ownership Client
+      const { Beneficiary: BeneficiaryAggregate } = await import('@/domain/crm');
+      try {
+        BeneficiaryAggregate.create({
+          ownerClientId: String(existingBeneficiary.payerId || ''),
+          firstName: existingBeneficiary.firstName || 'Unknown',
+          lastName: existingBeneficiary.lastName || 'Unknown',
+          ...(existingBeneficiary.phone
+            ? { phone: existingBeneficiary.phone }
+            : {}),
+          ...(existingBeneficiary.email
+            ? { email: existingBeneficiary.email }
+            : {}),
+        }).assertOwnedBy(userId);
+      } catch {
         return {
           success: false,
           error: "Ce bénéficiaire n'appartient pas à cet utilisateur",
@@ -447,55 +441,6 @@ export class BeneficiaryFacade {
     }
   }
 
-  /**
-   * Générer le HTML de l'email de bénéficiaire
-   */
-  private generateBeneficiaryEmailHTML(
-    _beneficiary: Beneficiary,
-    data: BeneficiaryFacadeData,
-  ): string {
-    return `
-      <html>
-        <body>
-          <h2>Bénéficiaire ajouté</h2>
-          <p>Bonjour,</p>
-          <p>Un nouveau bénéficiaire a été ajouté à votre compte.</p>
-          <p><strong>Nom :</strong> ${data.firstName} ${data.lastName}</p>
-          <p><strong>Relation :</strong> ${data.relationship}</p>
-          ${data.email ? `<p><strong>Email :</strong> ${data.email}</p>` : ''}
-          ${data.phone ? `<p><strong>Téléphone :</strong> ${data.phone}</p>` : ''}
-          <p>Vous pouvez maintenant effectuer des transferts vers ce bénéficiaire.</p>
-          <p>Cordialement,<br>L'équipe DiaspoMoney</p>
-        </body>
-      </html>
-    `;
-  }
-
-  /**
-   * Générer le texte de l'email de bénéficiaire
-   */
-  private generateBeneficiaryEmailText(
-    _beneficiary: Beneficiary,
-    data: BeneficiaryFacadeData,
-  ): string {
-    return `
-      Bénéficiaire ajouté
-      
-      Bonjour,
-      
-      Un nouveau bénéficiaire a été ajouté à votre compte.
-      
-      Nom : ${data.firstName} ${data.lastName}
-      Relation : ${data.relationship}
-      ${data.email ? `Email : ${data.email}` : ''}
-      ${data.phone ? `Téléphone : ${data.phone}` : ''}
-      
-      Vous pouvez maintenant effectuer des transferts vers ce bénéficiaire.
-      
-      Cordialement,
-      L'équipe DiaspoMoney
-    `;
-  }
 }
 
 // Export de l'instance singleton

@@ -1,5 +1,7 @@
 # Configuration des variables d'environnement Stripe
 
+> Chemin produit Stripe : voir [`stripe-integration.md`](./stripe-integration.md) (doc canonique).
+
 ## ⚠️ Problème courant : La clé publique Stripe n'est pas détectée
 
 ### Cause

@@ -31,6 +31,21 @@ describe('CRM domain', () => {
     expect(c.currentStatus).toBe('IN_PROGRESS');
   });
 
+  it('Complaint.rehydrate mappe statuts lowercase + transitionTo', () => {
+    const c = Complaint.rehydrate({
+      clientId: 'c1',
+      bookingId: 'booking-1',
+      type: 'QUALITY',
+      status: 'open',
+    });
+    expect(c.currentStatus).toBe('OPEN');
+    c.transitionTo('IN_PROGRESS');
+    expect(c.currentStatus).toBe('IN_PROGRESS');
+
+    expect(Complaint.mapPersistenceStatus('in_progress')).toBe('IN_PROGRESS');
+    expect(Complaint.mapPersistenceStatus('resolved')).toBe('RESOLVED');
+  });
+
   it('Quote BTP PENDING → APPROVED', () => {
     const q = Quote.create({
       kind: 'BTP',

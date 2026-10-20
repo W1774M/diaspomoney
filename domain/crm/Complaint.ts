@@ -24,6 +24,27 @@ export class Complaint {
   ) {}
 
   /**
+   * ACL persistence → domaine (open / in_progress → OPEN / IN_PROGRESS).
+   */
+  static mapPersistenceStatus(status: string): ComplaintStatus {
+    const normalized = String(status || '')
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, '_')
+      .replace(/-/g, '_');
+
+    if (normalized === 'INPROGRESS') return COMPLAINT_STATUSES.IN_PROGRESS;
+
+    if (
+      (Object.values(COMPLAINT_STATUSES) as string[]).includes(normalized)
+    ) {
+      return normalized as ComplaintStatus;
+    }
+
+    return COMPLAINT_STATUSES.OPEN;
+  }
+
+  /**
    * @param bookingId — canonique (remplace appointmentId)
    */
   static open(input: {
@@ -45,6 +66,29 @@ export class Complaint {
       input.bookingId.trim(),
       COMPLAINT_STATUSES.OPEN,
       input.type.trim(),
+    );
+  }
+
+  /**
+   * Rehydrate depuis la persistence (statuts lowercase tolérés).
+   */
+  static rehydrate(input: {
+    clientId: string;
+    bookingId: string;
+    type: string;
+    status: string;
+  }): Complaint {
+    if (!input.clientId?.trim()) {
+      throw new Error('Complaint requires clientId');
+    }
+    if (!input.bookingId?.trim()) {
+      throw new Error('Complaint requires bookingId (not appointmentId)');
+    }
+    return new Complaint(
+      input.clientId.trim(),
+      input.bookingId.trim(),
+      Complaint.mapPersistenceStatus(input.status),
+      (input.type || '').trim() || 'QUALITY',
     );
   }
 

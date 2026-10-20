@@ -2,7 +2,8 @@
  * BTP Facade - DiaspoMoney
  *
  * Facade Pattern pour simplifier le processus de gestion BTP
- * Orchestre BTPService
+ * Orchestre BTPService.
+ * `createQuote` délègue à quoteFacade (invariants CRM Quote) puis btpService.
  */
 
 import { Log } from '@/lib/decorators/log.decorator';
@@ -11,6 +12,7 @@ import { Audit } from '@/lib/decorators/audit.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
 import { logger } from '@/lib/logger';
 import { btpService } from '@/services/btp/btp.service';
+import { quoteFacade } from '@/facades/quote.facade';
 import * as Sentry from '@sentry/nextjs';
 import type { BTPFacadeData, BTPFacadeResult, IFacade, FacadeOptions } from '@/lib/types';
 import { z } from 'zod';
@@ -80,9 +82,19 @@ export class BTPFacade implements IFacade<BTPFacadeData, BTPFacadeResult> {
         case 'searchContractors':
           result = await btpService.searchContractors(data.data as any);
           break;
-        case 'createQuote':
-          result = await btpService.createBTPQuote(data.data as any);
+        case 'createQuote': {
+          // Délégation CRM → QuoteFacade (domaine Quote + persistence BTP)
+          const quoteResult = await quoteFacade.createQuote({
+            sector: 'BTP',
+            clientId: data.userId,
+            ...(data.data as Record<string, unknown>),
+          });
+          if (!quoteResult.success) {
+            throw new Error(quoteResult.error || 'Quote creation failed');
+          }
+          result = quoteResult.quote;
           break;
+        }
         case 'createProject':
           result = await btpService.createConstructionProject(data.data as any);
           break;

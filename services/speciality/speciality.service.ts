@@ -108,18 +108,26 @@ export class SpecialityService {
   @InvalidateCache('speciality:*')
   async createSpeciality(data: { name: string; description: string; group: string; isActive?: boolean }): Promise<ISpeciality> {
     try {
+      // Invariants Catalog (domaine) — group → category
+      const { Speciality: SpecialityAggregate } = await import('@/domain/catalog');
+      const offer = SpecialityAggregate.create({
+        name: data.name,
+        category: data.group,
+        isActive: data.isActive !== undefined ? data.isActive : true,
+      });
+
       // Vérifier si une spécialité avec le même nom existe déjà (Repository Pattern)
-      const existing = await this.specialityRepository.findByName(data.name);
+      const existing = await this.specialityRepository.findByName(offer.name);
       if (existing) {
         throw new Error('Une spécialité avec ce nom existe déjà');
       }
 
       // Créer la spécialité via le repository
       return await this.specialityRepository.create({
-        name: data.name,
+        name: offer.name,
         description: data.description,
-        group: data.group,
-        isActive: data.isActive !== undefined ? data.isActive : true,
+        group: offer.category,
+        isActive: offer.isActive,
       });
     } catch (error) {
       logger.error(
@@ -163,6 +171,16 @@ export class SpecialityService {
       const speciality = await this.specialityRepository.findById(id);
       if (!speciality) {
         throw new Error('Spécialité non trouvée');
+      }
+
+      // Invariants Catalog si name/group/isActive changent
+      if (data.name !== undefined || data.group !== undefined || data.isActive !== undefined) {
+        const { Speciality: SpecialityAggregate } = await import('@/domain/catalog');
+        SpecialityAggregate.create({
+          name: data.name ?? speciality.name,
+          category: data.group ?? speciality.group,
+          isActive: data.isActive ?? speciality.isActive,
+        });
       }
 
       // Vérifier si le nom est modifié et s'il existe déjà (Repository Pattern)

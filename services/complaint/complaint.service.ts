@@ -136,7 +136,7 @@ export class ComplaintService {
     rules: [
       {
         paramIndex: 0,
-        schema: CreateComplaintSchema.passthrough(),
+        schema: CreateComplaintSchema,
         paramName: 'data',
       },
     ],
@@ -146,20 +146,37 @@ export class ComplaintService {
   @InvalidateCache('ComplaintService:*')
   async createComplaint(data: CreateComplaintData): Promise<Complaint> {
     try {
+      // Invariants CRM — bookingId canonique (ACL appointmentId → bookingId)
+      const bookingId = data.bookingId || data.appointmentId;
+      if (!bookingId) {
+        throw new Error('Complaint requires bookingId (or appointmentId)');
+      }
+      if (!data.userId) {
+        throw new Error('Complaint requires userId');
+      }
+
+      const { Complaint: ComplaintAggregate } = await import('@/domain/crm');
+      const domainComplaint = ComplaintAggregate.open({
+        clientId: data.userId,
+        bookingId,
+        type: data.type,
+      });
+
       // Générer un numéro de réclamation unique
       const number = await this.complaintRepository.generateComplaintNumber();
 
-      // Créer la réclamation via le repository
+      // Créer la réclamation via le repository (dual-write bookingId + appointmentId)
       const complaint = await this.complaintRepository.create({
         number,
         title: data.title,
-        type: data.type,
+        type: domainComplaint.type || data.type,
         priority: data.priority,
-        status: 'OPEN',
+        status: domainComplaint.currentStatus,
         description: data.description,
         provider: data.provider,
-        appointmentId: data.appointmentId,
-        userId: data.userId,
+        appointmentId: bookingId,
+        bookingId,
+        userId: domainComplaint.clientId,
       } as Partial<Complaint>);
 
       return complaint;
@@ -182,9 +199,37 @@ export class ComplaintService {
     data: UpdateComplaintData,
   ): Promise<Complaint> {
     try {
+      const existing = await this.complaintRepository.findById(id);
+      if (!existing) {
+        throw new Error('Réclamation non trouvée');
+      }
+
+      const updatePayload: Partial<Complaint> = {
+        ...(data as Partial<Complaint>),
+      };
+
+      // Si le statut change : rehydrate domaine + transitionTo (ACL lowercase → UPPER)
+      if (data.status !== undefined && data.status !== existing.status) {
+        const { Complaint: ComplaintAggregate } = await import('@/domain/crm');
+        const bookingId =
+          (existing as { bookingId?: string }).bookingId ||
+          existing.appointmentId;
+        const aggregate = ComplaintAggregate.rehydrate({
+          clientId: String(existing.userId || ''),
+          bookingId: String(bookingId || ''),
+          type: String(existing.type || ''),
+          status: String(existing.status),
+        });
+        const target = ComplaintAggregate.mapPersistenceStatus(
+          String(data.status),
+        );
+        aggregate.transitionTo(target);
+        updatePayload.status = aggregate.currentStatus;
+      }
+
       const updatedComplaint = await this.complaintRepository.update(
         id,
-        data as Partial<Complaint>,
+        updatePayload,
       );
 
       if (!updatedComplaint) {

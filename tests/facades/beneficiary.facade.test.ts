@@ -167,13 +167,21 @@ describe('BeneficiaryFacade', () => {
         id: 'beneficiary123',
       } as any);
 
-      const { emailService } = await import('@/services/email/email.service');
-      vi.mocked(emailService.sendCustomEmail).mockResolvedValue(true);
+      const { notificationService } = await import(
+        '@/services/notification/notification.service'
+      );
+      vi.mocked(notificationService.sendNotification).mockResolvedValue(
+        {} as never,
+      );
 
-      const result = await beneficiaryFacade.createBeneficiary('user123', beneficiaryData);
+      const result = await beneficiaryFacade.createBeneficiary(
+        'user123',
+        beneficiaryData,
+      );
 
       expect(result.success).toBe(true);
       expect(result.emailSent).toBe(true);
+      expect(notificationService.sendNotification).toHaveBeenCalled();
     });
   });
 
@@ -187,6 +195,8 @@ describe('BeneficiaryFacade', () => {
       const mockExistingBeneficiary = {
         id: 'beneficiary123',
         payerId: 'user123',
+        firstName: 'John',
+        lastName: 'Doe',
         email: 'john@example.com',
       };
 
@@ -226,6 +236,8 @@ describe('BeneficiaryFacade', () => {
       const mockExistingBeneficiary = {
         id: 'beneficiary123',
         payerId: 'other-user',
+        firstName: 'John',
+        lastName: 'Doe',
       };
 
       mockBeneficiaryRepository.findById.mockResolvedValue(mockExistingBeneficiary as any);

@@ -56,10 +56,16 @@ export async function POST(request: NextRequest) {
         acceptProcessing: false,
         bookingId: appointment.id || appointment._id,
         emailContext: {
-          requesterEmail: appointment.requester?.email,
+          ...(appointment.requester?.email
+            ? { requesterEmail: appointment.requester.email }
+            : {}),
           requesterName,
-          serviceName: appointment.selectedService?.name,
-          providerName: appointment.provider?.name,
+          ...(appointment.selectedService?.name
+            ? { serviceName: appointment.selectedService.name }
+            : {}),
+          ...(appointment.provider?.name
+            ? { providerName: appointment.provider.name }
+            : {}),
           amount: paymentData.amount,
           currency: paymentData.currency,
           formattedDate,

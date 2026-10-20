@@ -19,15 +19,15 @@ Couche `domain/` désormais couvre les **7 bounded contexts**.
 
 ## Call sites branchés (invariants)
 
-- Identity → `AuthService.register` via `UserAccount.register`
-- Catalog → `ServiceService.createService` via `CatalogService.create`
-- Billing → `InvoiceService.createInvoice` via `Invoice.draft`
-- Booking/Payments → ConfirmBookingPayment + `verifyPaymentProof` (existant)
+- Identity → `AuthService.register` (`UserAccount.register`) + `AuthService.login` (`assertCanLogin`)
+- Catalog → `createService` / `updateService` / `createServiceOption` / `Speciality.create` + `createBooking.assertBookable` **hard** — **forced Done**
+- Billing → `InvoiceService.createInvoice` (`Invoice.draft`) + `updateInvoiceStatus` / `markInvoiceAsPaid` (transitions)
+- Booking/Payments → ConfirmBookingPayment + `verifyPaymentProof` (idempotent)
+- CRM → Beneficiary (facade + `user.service.addBeneficiary`) + Complaint (`bookingId` dual-write + transitions) + Quote APIs via `quoteFacade` — **forced Done**
+- Comms → `NotificationIntent` + `EmailDispatch` (email.service / confirm-payment / payment-link) + `SupportTicket.open` (messaging) — **forced Done**
 
 ## Prochaines extractions
 
-1. `beneficiary.facade` → `Beneficiary.create` + `assertOwnedBy`
-2. Complaint : renommer `appointmentId` → `bookingId`
-3. Ports Comms : facades métier émettent `NotificationIntent` au lieu d’appeler Resend
-4. Extraire Stripe refund hors `booking.service.deleteBookingCompletely`
-5. Façade Quote unique (BTP + Education)
+1. Drop colonne legacy `appointmentId` Complaint (dual-write déjà en place)
+2. Extraire Stripe refund hors `booking.service.deleteBookingCompletely`
+3. Isoler education/btp hors parcours critique si pas de vraie persistence

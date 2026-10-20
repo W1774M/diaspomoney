@@ -88,21 +88,19 @@ class AuthService {
         email: credentials.email.toLowerCase(),
       });
 
-      if (!user || user.status !== USER_STATUSES.ACTIVE) {
+      if (!user) {
         log.warn(
           { email: credentials.email.toLowerCase() },
           'Login failed: invalid credentials or inactive user',
         );
-        // Détecter les tentatives de force brute
         await securityManager.detectAnomalies(
-          user?.id || credentials.email,
+          credentials.email,
           'LOGIN_FAILED',
           {
             email: credentials.email.toLowerCase(),
             reason: 'user_not_found_or_inactive',
           },
         );
-        // Enregistrer l'audit log
         await auditLogging.createAuditLog(
           'LOGIN_FAILED',
           'AUTH_SYSTEM',
@@ -111,7 +109,46 @@ class AuthService {
             reason: 'user_not_found_or_inactive',
           },
           {
-            ...(user?.id && { userId: user.id }),
+            category: 'AUTHENTICATION',
+            severity: 'MEDIUM',
+            outcome: 'FAILURE',
+            ipAddress: options?.ipAddress || 'unknown',
+            userAgent: options?.userAgent || 'unknown',
+          },
+        );
+        throw new Error('Identifiants invalides');
+      }
+
+      // Invariants Identity (domaine) — seul ACTIVE peut s'authentifier
+      try {
+        const { UserAccount } = await import('@/domain/identity');
+        UserAccount.rehydrate({
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName || user.name?.split(' ')[0] || 'User',
+          lastName:
+            user.lastName || user.name?.split(' ').slice(1).join(' ') || '',
+          status: String(user.status || USER_STATUSES.INACTIVE).toUpperCase(),
+          roles: user.roles || [ROLES.CUSTOMER],
+        }).assertCanLogin();
+      } catch {
+        log.warn(
+          { email: credentials.email.toLowerCase(), status: user.status },
+          'Login failed: invalid credentials or inactive user',
+        );
+        await securityManager.detectAnomalies(user.id, 'LOGIN_FAILED', {
+          email: credentials.email.toLowerCase(),
+          reason: 'user_not_found_or_inactive',
+        });
+        await auditLogging.createAuditLog(
+          'LOGIN_FAILED',
+          'AUTH_SYSTEM',
+          {
+            email: credentials.email.toLowerCase(),
+            reason: 'user_not_found_or_inactive',
+          },
+          {
+            userId: user.id,
             category: 'AUTHENTICATION',
             severity: 'MEDIUM',
             outcome: 'FAILURE',

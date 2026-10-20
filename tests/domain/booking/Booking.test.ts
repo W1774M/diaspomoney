@@ -67,4 +67,41 @@ describe('Booking aggregate', () => {
     expect(booking.confirmationEmailSent).toBe(true);
     expect(booking.metadata['confirmationEmailSent']).toBe(true);
   });
+
+  it('isIdempotentReplayFor accepte la même preuve', () => {
+    const booking = Booking.fromPersistence({
+      id: 'b1',
+      status: 'CONFIRMED',
+      metadata: {
+        paymentStatus: 'confirmed',
+        paymentIntentId: 'pi_abc',
+      },
+    });
+    expect(booking.isIdempotentReplayFor('pi_abc')).toBe(true);
+  });
+
+  it('isIdempotentReplayFor refuse une autre preuve', () => {
+    const booking = Booking.fromPersistence({
+      id: 'b1',
+      status: 'CONFIRMED',
+      metadata: {
+        paymentStatus: 'confirmed',
+        paymentIntentId: 'pi_abc',
+      },
+    });
+    expect(() => booking.isIdempotentReplayFor('pi_other')).toThrow(
+      /different payment proof/i,
+    );
+  });
+
+  it('markPaymentEventsEmitted pose le flag metadata', () => {
+    const booking = Booking.fromPersistence({
+      id: 'b1',
+      status: 'CONFIRMED',
+      metadata: { paymentStatus: 'confirmed', paymentIntentId: 'pi_abc' },
+    });
+    booking.markPaymentEventsEmitted();
+    expect(booking.paymentEventsEmitted).toBe(true);
+    expect(booking.metadata['paymentEventsEmitted']).toBe(true);
+  });
 });

@@ -357,6 +357,16 @@ export class EmailService {
     tags?: Array<{ name: string; value: string }>,
   ): Promise<boolean> {
     try {
+      // Port Comms — valider intention avant Resend
+      const { EmailDispatch } = await import('@/domain/comms');
+      const primaryTo = Array.isArray(to) ? to[0] : to;
+      EmailDispatch.of({
+        to: primaryTo || '',
+        subject,
+        html,
+        ...(typeof text === 'string' ? { text } : {}),
+      });
+
       const recipients = Array.isArray(to) ? to.join(', ') : to;
       this.log.debug(
         { recipients, subject, hasTags: !!tags?.length },

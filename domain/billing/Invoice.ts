@@ -25,6 +25,80 @@ export class Invoice {
     this.props = props;
   }
 
+  /**
+   * ACL persistence → domaine (PENDING app ≈ SENT).
+   */
+  static rehydrate(raw: {
+    clientId: string;
+    currency?: string;
+    items?: Array<{
+      description: string;
+      quantity: number;
+      unitPrice: number;
+    }>;
+    tax?: number;
+    status: string;
+    dueDate: Date;
+    notes?: string;
+  }): Invoice {
+    const currency = (raw.currency || 'EUR').toUpperCase();
+    const items = raw.items?.length
+      ? raw.items
+      : [{ description: 'Line', quantity: 1, unitPrice: 0 }];
+    const lines = items.map((item) => InvoiceLine.of({ ...item, currency }));
+    return new Invoice({
+      clientId: raw.clientId,
+      currency,
+      lines,
+      tax: raw.tax ?? 0,
+      status: Invoice.mapPersistenceStatus(raw.status),
+      dueDate: raw.dueDate,
+      ...(raw.notes !== undefined ? { notes: raw.notes } : {}),
+    });
+  }
+
+  static mapPersistenceStatus(status: string): InvoiceStatus {
+    const upper = String(status || '').toUpperCase();
+    if (upper === 'PENDING') return INVOICE_STATUSES.SENT;
+    if (
+      (Object.values(INVOICE_STATUSES) as string[]).includes(upper)
+    ) {
+      return upper as InvoiceStatus;
+    }
+    return INVOICE_STATUSES.DRAFT;
+  }
+
+  /** Domaine → valeur stockée (SENT → PENDING pour compat app) */
+  toPersistenceStatus(): string {
+    if (this.props.status === INVOICE_STATUSES.SENT) return 'PENDING';
+    return this.props.status;
+  }
+
+  applyTargetStatus(target: string, paymentDate?: Date): void {
+    const mapped = Invoice.mapPersistenceStatus(target);
+    if (mapped === this.props.status) return;
+    if (mapped === INVOICE_STATUSES.SENT) {
+      this.send();
+      return;
+    }
+    if (mapped === INVOICE_STATUSES.PAID) {
+      this.markPaid(paymentDate);
+      return;
+    }
+    if (mapped === INVOICE_STATUSES.CANCELLED) {
+      this.cancel();
+      return;
+    }
+    if (mapped === INVOICE_STATUSES.OVERDUE) {
+      this.markOverdueIfNeeded(new Date(this.props.dueDate.getTime() + 1));
+      if (this.props.status !== INVOICE_STATUSES.OVERDUE) {
+        this.transition(INVOICE_STATUSES.OVERDUE);
+      }
+      return;
+    }
+    this.transition(mapped);
+  }
+
   static draft(input: {
     clientId: string;
     currency?: string;

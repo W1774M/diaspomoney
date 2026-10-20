@@ -2,7 +2,8 @@
  * Education Facade - DiaspoMoney
  *
  * Facade Pattern pour simplifier le processus de gestion d'éducation
- * Orchestre EducationService
+ * Orchestre EducationService.
+ * `createInquiry` délègue à quoteFacade (invariants CRM Quote) puis educationService.
  */
 
 import { Log } from '@/lib/decorators/log.decorator';
@@ -11,6 +12,7 @@ import { Audit } from '@/lib/decorators/audit.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
 import { logger } from '@/lib/logger';
 import { educationService } from '@/services/education/education.service';
+import { quoteFacade } from '@/facades/quote.facade';
 import * as Sentry from '@sentry/nextjs';
 import type { EducationFacadeData, EducationFacadeResult, IFacade, FacadeOptions } from '@/lib/types';
 import { z } from 'zod';
@@ -93,9 +95,19 @@ export class EducationFacade implements IFacade<EducationFacadeData, EducationFa
             data.data as any,
           );
           break;
-        case 'createInquiry':
-          result = await educationService.createEducationInquiry(data.data as any);
+        case 'createInquiry': {
+          // Délégation CRM → QuoteFacade (domaine Quote + persistence Education)
+          const quoteResult = await quoteFacade.createQuote({
+            sector: 'EDUCATION',
+            clientId: data.userId,
+            ...(data.data as Record<string, unknown>),
+          });
+          if (!quoteResult.success) {
+            throw new Error(quoteResult.error || 'Inquiry creation failed');
+          }
+          result = quoteResult.quote;
           break;
+        }
         default:
           throw new Error(`Unknown operation: ${data.operation}`);
       }

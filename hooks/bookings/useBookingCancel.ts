@@ -1,41 +1,31 @@
 'use client';
 
 /**
- * Custom Hook pour annuler une réservation
- * Implémente le Custom Hooks Pattern
- * Utilise les API routes au lieu d'importer directement les services (évite les imports MongoDB côté client)
+ * Custom Hook pour annuler une réservation — thin API client via fetchJson.
  */
 
+import { fetchJson } from '@/lib/api/fetchJson';
 import type { UseBookingCancelReturn } from '@/lib/types';
 import { useCallback, useState } from 'react';
 
-/**
- * Custom Hook pour gérer l'annulation d'une réservation
- * Implémente le Custom Hooks Pattern
- */
-export function useBookingCancel(): UseBookingCancelReturn {
-  const [loading, setLoading] = useState(false);
+export function useBookingCancel(): UseBookingCancelReturn & {
+  isLoading: boolean;
+} {
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const cancelBooking = useCallback(async (bookingId: string) => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/bookings/${bookingId}`, {
+      const result = await fetchJson<{
+        success?: boolean;
+        booking?: unknown;
+        error?: string;
+      }>(`/api/bookings/${bookingId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || "Erreur lors de l'annulation de la réservation",
-        );
-      }
-
-      const result = await response.json();
       if (!result.success) {
         throw new Error(result.error || 'Erreur inconnue');
       }
@@ -45,16 +35,16 @@ export function useBookingCancel(): UseBookingCancelReturn {
       const errorMessage =
         err instanceof Error ? err.message : 'Erreur inconnue';
       setError(errorMessage);
-      // Le logging est fait côté serveur via les services avec @Log decorator
       throw err;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
   return {
     cancelBooking,
-    loading,
+    isLoading,
+    loading: isLoading,
     error,
   };
 }

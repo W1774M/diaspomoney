@@ -11,7 +11,7 @@
 import { auth } from '@/auth';
 import { DATABASE } from '@/lib/constants';
 import { handleApiRoute, ApiErrors, validateBody, validateQuery } from '@/lib/api/error-handler';
-import { getMongoClient } from '@/lib/database/mongodb';
+import { getMongoClient } from '@/lib/mongodb';
 import { NotificationFiltersSchema, MarkNotificationReadSchema, MarkAllNotificationsReadSchema } from '@/lib/validations/notification.schema';
 import { UINotification } from '@/lib/types';
 import { ObjectId } from 'mongodb';

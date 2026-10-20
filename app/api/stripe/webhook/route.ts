@@ -121,10 +121,9 @@ export async function POST(req: NextRequest) {
           const result = await confirmBookingPaymentService.execute({
             proofId: session.id,
             bookingId,
-            expectedAmount:
-              session.amount_total != null
-                ? session.amount_total / 100
-                : undefined,
+            ...(session.amount_total != null
+              ? { expectedAmount: session.amount_total / 100 }
+              : {}),
             expectedCurrency: (session.currency || "eur").toUpperCase(),
             acceptProcessing: false,
           });
