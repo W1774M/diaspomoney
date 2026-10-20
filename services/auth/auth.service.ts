@@ -88,21 +88,19 @@ class AuthService {
         email: credentials.email.toLowerCase(),
       });
 
-      if (!user || user.status !== USER_STATUSES.ACTIVE) {
+      if (!user) {
         log.warn(
           { email: credentials.email.toLowerCase() },
           'Login failed: invalid credentials or inactive user',
         );
-        // Détecter les tentatives de force brute
         await securityManager.detectAnomalies(
-          user?.id || credentials.email,
+          credentials.email,
           'LOGIN_FAILED',
           {
             email: credentials.email.toLowerCase(),
             reason: 'user_not_found_or_inactive',
           },
         );
-        // Enregistrer l'audit log
         await auditLogging.createAuditLog(
           'LOGIN_FAILED',
           'AUTH_SYSTEM',
@@ -111,7 +109,46 @@ class AuthService {
             reason: 'user_not_found_or_inactive',
           },
           {
-            ...(user?.id && { userId: user.id }),
+            category: 'AUTHENTICATION',
+            severity: 'MEDIUM',
+            outcome: 'FAILURE',
+            ipAddress: options?.ipAddress || 'unknown',
+            userAgent: options?.userAgent || 'unknown',
+          },
+        );
+        throw new Error('Identifiants invalides');
+      }
+
+      // Invariants Identity (domaine) — seul ACTIVE peut s'authentifier
+      try {
+        const { UserAccount } = await import('@/domain/identity');
+        UserAccount.rehydrate({
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName || user.name?.split(' ')[0] || 'User',
+          lastName:
+            user.lastName || user.name?.split(' ').slice(1).join(' ') || '',
+          status: String(user.status || USER_STATUSES.INACTIVE).toUpperCase(),
+          roles: user.roles || [ROLES.CUSTOMER],
+        }).assertCanLogin();
+      } catch {
+        log.warn(
+          { email: credentials.email.toLowerCase(), status: user.status },
+          'Login failed: invalid credentials or inactive user',
+        );
+        await securityManager.detectAnomalies(user.id, 'LOGIN_FAILED', {
+          email: credentials.email.toLowerCase(),
+          reason: 'user_not_found_or_inactive',
+        });
+        await auditLogging.createAuditLog(
+          'LOGIN_FAILED',
+          'AUTH_SYSTEM',
+          {
+            email: credentials.email.toLowerCase(),
+            reason: 'user_not_found_or_inactive',
+          },
+          {
+            userId: user.id,
             category: 'AUTHENTICATION',
             severity: 'MEDIUM',
             outcome: 'FAILURE',
@@ -245,14 +282,16 @@ class AuthService {
       // S'assurer que la connexion à la base de données est établie
       await dbConnect();
 
-      // Validation des données
-      if (data.password && data.password.length < 8) {
-        log.warn(
-          { email: data.email.toLowerCase() },
-          'Registration failed: password too short',
-        );
-        throw new Error('Le mot de passe doit contenir au moins 8 caractères');
-      }
+      // Invariants Identity (domaine) — email, password, PENDING + rôle Client
+      const { UserAccount } = await import('@/domain/identity');
+      const account = UserAccount.register({
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        ...(data.password !== undefined ? { password: data.password } : {}),
+        roles: [ROLES.CUSTOMER],
+      });
+      const registration = account.toRegistrationSnapshot();
 
       // Utiliser UserFacade pour créer l'utilisateur (Facade Pattern)
       // La facade gère la vérification de duplication, la création, l'audit, etc.
@@ -286,13 +325,14 @@ class AuthService {
           oauth?: any;
         };
       } = {
-        email: data.email.toLowerCase(),
-        name: `${data.firstName} ${data.lastName}`,
-        firstName: data.firstName,
-        lastName: data.lastName,
+        email: registration.email,
+        name: registration.name,
+        firstName: registration.firstName,
+        lastName: registration.lastName,
         ...(data.phone && { phone: String(data.phone).trim() }),
-        roles: [ROLES.CUSTOMER], // Rôle par défaut
-        status: USER_STATUSES.PENDING, // PENDING pour activation via email
+        roles: registration.roles,
+        status: registration.status,
+        ...(data.password !== undefined ? { password: data.password } : {}),
         sendWelcomeNotification: false, // On enverra un email personnalisé après
         metadata: {
           ...(data.country && { country: data.country }),

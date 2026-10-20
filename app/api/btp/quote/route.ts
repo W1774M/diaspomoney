@@ -2,20 +2,19 @@
  * API Route - BTP Quote
  * Endpoint pour les demandes de devis BTP
  * Implémente les design patterns :
- * - Service Layer Pattern (via btpService)
+ * - Facade Pattern (via quoteFacade / CRM Quote)
+ * - Service Layer Pattern (via btpService, délégué par la facade)
  * - Repository Pattern (via btpService qui utilise le repository)
- * - Dependency Injection (via btpService singleton)
- * - Logger Pattern (structured logging avec childLogger + @Log decorator dans le service)
+ * - Logger Pattern (structured logging avec childLogger)
  * - Middleware Pattern (authentification optionnelle)
- * - Decorator Pattern (@Log, @InvalidateCache dans btpService)
- * - Singleton Pattern (btpService)
+ * - Singleton Pattern (quoteFacade)
  */
 
 import { auth } from '@/auth';
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
 import { CreateQuoteSchema, type CreateQuoteInput } from '@/lib/validations/quote.schema';
-import { btpService } from '@/services/btp/btp.service';
+import { quoteFacade } from '@/facades';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -28,7 +27,7 @@ export async function POST(request: NextRequest) {
     const userId = session?.user?.id;
 
     const body = await request.json();
-    
+
     // Validation avec Zod - S'assurer que le type est BTP
     const validatedBody = { ...body, type: 'BTP' as const };
     const data: CreateQuoteInput = validateBody(validatedBody, CreateQuoteSchema);
@@ -43,12 +42,10 @@ export async function POST(request: NextRequest) {
       'Creating BTP quote request',
     );
 
-    // Utiliser le service avec décorateurs (@Log, @InvalidateCache)
-    // Le service gère toute la logique métier, le cache et les notifications
     if (!data.location) {
       throw new Error('Location is required for BTP quote');
     }
-    
+
     const quoteData: {
       projectType: string;
       area: number;
@@ -70,7 +67,7 @@ export async function POST(request: NextRequest) {
         email: data.contact.email,
       },
     };
-    
+
     if (data.budget !== undefined) quoteData.budget = data.budget;
     if (data.timeline !== undefined) quoteData.timeline = data.timeline;
     if (data.contact.phone !== undefined) quoteData.contact.phone = data.contact.phone;
@@ -78,8 +75,19 @@ export async function POST(request: NextRequest) {
     if (data.urgency !== undefined) quoteData.urgency = data.urgency;
     const finalProviderId = data.providerId || userId;
     if (finalProviderId !== undefined) quoteData.providerId = finalProviderId;
-    
-    const quote = await btpService.createBTPQuote(quoteData);
+
+    // CRM Quote — invariants domaine via quoteFacade (délègue ensuite à btpService)
+    const result = await quoteFacade.createQuote({
+      sector: 'BTP',
+      ...(userId ? { clientId: userId } : {}),
+      ...quoteData,
+    });
+
+    if (!result.success || !result.quote) {
+      throw new Error(result.error || 'Erreur lors de la création du devis BTP');
+    }
+
+    const quote = result.quote as { id?: string; costEstimate?: number };
 
     log.info(
       {
@@ -94,7 +102,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        quote,
+        quote: result.quote,
         message: 'Demande de devis envoyée avec succès',
       },
       { status: 201 },

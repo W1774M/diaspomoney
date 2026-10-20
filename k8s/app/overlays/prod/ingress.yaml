@@ -1,0 +1,35 @@
+# TLS: certResolver "le" (Let's Encrypt via Traefik), matching existing IngressRoutes.
+# Middlewares https-redirect + security-headers: k8s/common/middlewares.yaml.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: diaspomoney-prod-ingressroute-https
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`diaspomoney.fr`)
+      kind: Rule
+      services:
+        - name: diaspomoney-prod-service
+          port: 80
+      middlewares:
+        - name: security-headers
+  tls:
+    certResolver: le
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: diaspomoney-prod-ingressroute-http
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`diaspomoney.fr`)
+      kind: Rule
+      middlewares:
+        - name: https-redirect
+      services:
+        - name: diaspomoney-prod-service
+          port: 80

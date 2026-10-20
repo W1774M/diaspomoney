@@ -20,6 +20,9 @@ export interface Complaint {
   updatedAt: Date;
   description: string;
   provider: string;
+  /** Canonique */
+  bookingId?: string;
+  /** Legacy ACL — dual-write avec bookingId */
   appointmentId: string;
   userId?: string;
   [key: string]: any;

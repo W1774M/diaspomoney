@@ -1,137 +1,110 @@
 'use client';
 
 /**
- * Custom Hook pour les paiements
- * Implémente le Custom Hooks Pattern
- * Utilise les API routes au lieu d'importer directement les services
+ * Custom Hook pour les paiements — thin API client via fetchJson.
  */
 
-import { UsePaymentsReturn } from '@/lib/types';
-import {
+import { fetchJson } from '@/lib/api/fetchJson';
+import { CURRENCIES } from '@/lib/constants';
+import type { UsePaymentsReturn } from '@/lib/types';
+import type {
   UIAccountBalance,
   UIBillingAddress,
   UIPaymentMethod,
 } from '@/lib/types';
-import { CURRENCIES } from '@/lib/constants';
 import { useCallback, useState } from 'react';
 
-/**
- * Custom Hook pour gérer les paiements
- * Implémente le Custom Hooks Pattern
- */
-export function usePayments(): UsePaymentsReturn {
+export function usePayments(): UsePaymentsReturn & { isLoading: boolean } {
   const [paymentMethods, setPaymentMethods] = useState<UIPaymentMethod[]>([]);
   const [billingAddresses, setBillingAddresses] = useState<UIBillingAddress[]>(
     [],
   );
   const [balance, setBalance] = useState<UIAccountBalance | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPaymentMethods = useCallback(async () => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/payments/methods');
+      const data = await fetchJson<{
+        success?: boolean;
+        methods?: UIPaymentMethod[];
+        error?: string;
+      }>('/api/payments/methods');
 
-      if (!response.ok) {
-        throw new Error(
-          'Erreur lors de la récupération des méthodes de paiement',
-        );
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setPaymentMethods(data.methods || []);
-      } else {
+      if (!data.success) {
         throw new Error(data.error || 'Erreur inconnue');
       }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Erreur inconnue';
-      setError(errorMessage);
-      // Le logging est fait côté serveur via PaymentService avec @Log decorator
+      setPaymentMethods(data.methods || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
   const fetchBillingAddresses = useCallback(async () => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/payments/addresses');
+      const data = await fetchJson<{
+        success?: boolean;
+        addresses?: UIBillingAddress[];
+        error?: string;
+      }>('/api/payments/addresses');
 
-      if (!response.ok) {
-        throw new Error('Erreur lors de la récupération des adresses');
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setBillingAddresses(data.addresses || []);
-      } else {
+      if (!data.success) {
         throw new Error(data.error || 'Erreur inconnue');
       }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Erreur inconnue';
-      setError(errorMessage);
-      // Le logging est fait côté serveur via PaymentService avec @Log decorator
+      setBillingAddresses(data.addresses || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
   const fetchBalance = useCallback(async () => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/payments/balance');
+      const data = await fetchJson<{
+        success?: boolean;
+        balance?: {
+          available?: number;
+          currency?: string;
+          lastUpdated?: number | string | Date;
+        };
+        error?: string;
+      }>('/api/payments/balance');
 
-      if (!response.ok) {
-        throw new Error('Erreur lors de la récupération du solde');
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setBalance({
-          available: data.balance?.available || 0,
-          currency: data.balance?.currency || CURRENCIES.EUR.code,
-          lastUpdated: new Date(data.balance?.lastUpdated || Date.now()),
-        });
-      } else {
+      if (!data.success) {
         throw new Error(data.error || 'Erreur inconnue');
       }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Erreur inconnue';
-      setError(errorMessage);
-      // Le logging est fait côté serveur via PaymentService avec @Log decorator
+      setBalance({
+        available: data.balance?.available || 0,
+        currency: data.balance?.currency || CURRENCIES.EUR.code,
+        lastUpdated: new Date(data.balance?.lastUpdated || Date.now()),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
   const setDefaultPaymentMethod = useCallback(
     async (type: 'card' | 'paypal', id: string) => {
       try {
-        const response = await fetch('/api/payments/methods/default', {
+        await fetchJson('/api/payments/methods/default', {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type, id }),
         });
 
-        if (!response.ok) {
-          throw new Error('Erreur lors de la mise à jour');
-        }
-
-        // Mettre à jour l'état local
         setPaymentMethods(prev =>
           prev.map(method => ({
             ...method,
@@ -139,10 +112,7 @@ export function usePayments(): UsePaymentsReturn {
           })),
         );
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Erreur inconnue';
-        setError(errorMessage);
-        // Le logging est fait côté serveur via PaymentService avec @Log decorator
+        setError(err instanceof Error ? err.message : 'Erreur inconnue');
       }
     },
     [],
@@ -150,51 +120,34 @@ export function usePayments(): UsePaymentsReturn {
 
   const setDefaultAddress = useCallback(async (id: string) => {
     try {
-      const response = await fetch('/api/payments/addresses/default', {
+      await fetchJson('/api/payments/addresses/default', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
 
-      if (!response.ok) {
-        throw new Error('Erreur lors de la mise à jour');
-      }
-
-      // Mettre à jour l'état local
       setBillingAddresses(prev =>
         prev.map(address => ({
           ...address,
           isDefault: address.id === id,
         })),
       );
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Erreur inconnue';
-      setError(errorMessage);
-      // Le logging est fait côté serveur via PaymentService avec @Log decorator
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
     }
   }, []);
 
   const deletePaymentMethod = useCallback(
     async (type: 'card' | 'paypal', id: string) => {
       try {
-        const response = await fetch(`/api/payments/methods/${id}`, {
+        await fetchJson(`/api/payments/methods/${id}`, {
           method: 'DELETE',
         });
 
-        if (!response.ok) {
-          throw new Error('Erreur lors de la suppression');
-        }
-
-        // Mettre à jour l'état local
         setPaymentMethods(prev =>
           prev.filter(method => !(method.id === id && method.type === type)),
         );
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Erreur inconnue';
-        setError(errorMessage);
-        // Le logging est fait côté serveur via PaymentService avec @Log decorator
+        setError(err instanceof Error ? err.message : 'Erreur inconnue');
         throw err;
       }
     },
@@ -203,22 +156,14 @@ export function usePayments(): UsePaymentsReturn {
 
   const deleteAddress = useCallback(async (id: string) => {
     try {
-      const response = await fetch(`/api/payments/addresses/${id}`, {
+      await fetchJson(`/api/payments/addresses/${id}`, {
         method: 'DELETE',
       });
 
-      if (!response.ok) {
-        throw new Error('Erreur lors de la suppression');
-      }
-
-      // Mettre à jour l'état local
       setBillingAddresses(prev => prev.filter(address => address.id !== id));
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Erreur inconnue';
-      setError(errorMessage);
-      // Le logging est fait côté serveur via PaymentService avec @Log decorator
-      throw error;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      throw err;
     }
   }, []);
 
@@ -226,7 +171,8 @@ export function usePayments(): UsePaymentsReturn {
     paymentMethods,
     billingAddresses,
     balance,
-    loading,
+    isLoading,
+    loading: isLoading,
     error,
     fetchPaymentMethods,
     fetchBillingAddresses,

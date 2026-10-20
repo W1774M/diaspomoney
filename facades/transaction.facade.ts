@@ -12,10 +12,10 @@ import { Audit } from '@/lib/decorators/audit.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
 import { Transaction } from '@/lib/decorators/transaction.decorator';
 import { logger } from '@/lib/logger';
-import { LANGUAGES, TRANSACTION_STATUSES } from '@/lib/constants';
-import { notificationService } from '@/services/notification/notification.service';
+import { TRANSACTION_STATUSES } from '@/lib/constants';
 import { transactionService } from '@/services/transaction/transaction.service';
 import { transactionMapper } from '@/lib/mappers';
+import { dispatchFacadeNotification } from '@/facades/_shared/dispatchNotification';
 import * as Sentry from '@sentry/nextjs';
 import type { TransactionFacadeData, TransactionFacadeResult, IFacade, FacadeOptions } from '@/lib/types';
 import { z } from 'zod';
@@ -23,17 +23,20 @@ import { z } from 'zod';
 // Réexporter pour compatibilité
 export type { TransactionFacadeData, TransactionFacadeResult };
 
-const CreateTransactionFacadeSchema = z.object({
-  payerId: z.string().min(1, 'Payer ID is required'),
-  beneficiaryId: z.string().min(1, 'Beneficiary ID is required'),
-  amount: z.number().positive('Amount must be positive'),
-  currency: z.string().length(3, 'Currency must be 3 characters'),
-  type: z.string().min(1, 'Transaction type is required'),
-  description: z.string().optional(),
-  serviceId: z.string().optional(),
-  serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']).optional(),
-  sendNotification: z.boolean().optional(),
-});
+const CreateTransactionFacadeSchema = z
+  .object({
+    payerId: z.string().min(1, 'Payer ID is required'),
+    beneficiaryId: z.string().min(1, 'Beneficiary ID is required'),
+    amount: z.number().positive('Amount must be positive'),
+    currency: z.string().length(3, 'Currency must be 3 characters'),
+    type: z.string().min(1, 'Transaction type is required'),
+    description: z.string().optional(),
+    serviceId: z.string().optional(),
+    serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']).optional(),
+    sendNotification: z.boolean().optional(),
+    metadata: z.record(z.any()).optional(),
+  })
+  .passthrough();
 
 /**
  * TransactionFacade - Facade pour le processus de transaction complet
@@ -120,34 +123,19 @@ export class TransactionFacade implements IFacade<TransactionFacadeData, Transac
       // Envoyer une notification si demandé
       let notificationSent = false;
       if (data.sendNotification !== false) {
-        try {
-          await notificationService.sendNotification({
-            recipient: data.payerId,
-            type: 'TRANSACTION_CREATED',
-            template: 'transaction_created',
-            data: {
-              transactionId: transaction.id || transaction._id?.toString(),
-              amount: data.amount,
-              currency: data.currency,
-              type: data.type,
-            },
-            channels: [
-              {
-                type: 'EMAIL',
-                enabled: true,
-                priority: 'MEDIUM',
-              },
-            ],
-            locale: LANGUAGES.FR.code,
-            priority: 'MEDIUM',
-          });
-          notificationSent = true;
-        } catch (notificationError) {
-          logger.warn(
-            { error: notificationError, transactionId: transaction.id },
-            'Failed to send transaction notification',
-          );
-        }
+        notificationSent = await dispatchFacadeNotification({
+          recipient: data.payerId,
+          type: 'TRANSACTION_CREATED',
+          template: 'transaction_created',
+          payload: {
+            transactionId: transaction.id || transaction._id?.toString(),
+            amount: data.amount,
+            currency: data.currency,
+            type: data.type,
+          },
+          channels: ['EMAIL'],
+          priority: 'NORMAL',
+        });
       }
 
       logger.info(

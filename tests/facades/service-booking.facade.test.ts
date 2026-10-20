@@ -17,6 +17,7 @@ const { mockPaymentServiceInstance } = vi.hoisted(() => {
     createPaymentIntent: vi.fn(),
     processPayment: vi.fn(),
     getTransactionStatus: vi.fn(),
+    verifyPaymentProof: vi.fn(),
     cancelPaymentIntent: vi.fn(),
     refundPayment: vi.fn(),
   };
@@ -42,6 +43,18 @@ vi.mock('@sentry/nextjs', () => ({
 describe('ServiceBookingFacade', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPaymentServiceInstance.verifyPaymentProof.mockResolvedValue({
+      success: true,
+      paymentIntentId: 'pi_test123',
+      transactionId: 'pi_test123',
+      metadata: { status: 'succeeded' },
+    });
+    mockPaymentServiceInstance.getTransactionStatus.mockResolvedValue({
+      success: true,
+      paymentIntentId: 'pi_test123',
+      transactionId: 'pi_test123',
+      metadata: { status: 'succeeded' },
+    });
   });
 
   afterEach(() => {
@@ -809,36 +822,20 @@ describe('ServiceBookingFacade', () => {
         paymentIntentId: 'pi_invalid',
       });
 
-      const mockBooking = {
-        _id: 'booking123',
-        id: 'booking123',
-        reservationNumber: 'RES-2025-001',
-        requesterId: 'guest-johndo-123456-abc',
-        providerId: bookingData.selectedService.serviceId,
-        serviceId: bookingData.selectedService.serviceId,
-        serviceType: 'HEALTH',
-        status: 'CANCELLED',
-      };
-
       const { bookingService } = await import('@/services/booking/booking.service');
-      vi.mocked(bookingService.createBooking).mockResolvedValue(mockBooking as any);
-      vi.mocked(bookingService.updateBookingStatus).mockResolvedValue(mockBooking as any);
-
       const { PaymentService } = await import('@/services/payment/payment.service');
       const mockPaymentService = PaymentService.getInstance();
-      vi.mocked(mockPaymentService.getTransactionStatus).mockResolvedValue({
+      vi.mocked(mockPaymentService.verifyPaymentProof).mockResolvedValue({
         success: false,
         error: 'Payment verification failed',
+        metadata: { status: 'canceled' },
       } as any);
 
       const result = await serviceBookingFacade.execute(bookingData);
 
       expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-      expect(bookingService.updateBookingStatus).toHaveBeenCalledWith(
-        expect.any(String),
-        'CANCELLED',
-      );
+      expect(result.error).toContain('Payment verification failed');
+      expect(bookingService.createBooking).not.toHaveBeenCalled();
     });
 
     it('devrait créer une réservation avec options supplémentaires', async () => {

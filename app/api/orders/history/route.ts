@@ -1,6 +1,6 @@
 import { auth } from '@/auth';
 import { BOOKING_STATUSES } from '@/lib/constants';
-import { getMongoClient } from '@/lib/database/mongodb';
+import { getMongoClient } from '@/lib/mongodb';
 import { childLogger } from '@/lib/logger';
 import { getBookingRepository, getInvoiceRepository } from '@/repositories';
 import mongoose from 'mongoose';

@@ -20,6 +20,12 @@ export { StatisticsFacade, statisticsFacade } from './statistics.facade';
 export { SpecialityFacade, specialityFacade } from './speciality.facade';
 export { EducationFacade, educationFacade } from './education.facade';
 export { BTPFacade, btpFacade } from './btp.facade';
+export { QuoteFacade, quoteFacade } from './quote.facade';
+export type {
+  QuoteFacadeCreateData,
+  QuoteFacadeResult,
+  QuoteSector,
+} from './quote.facade';
 
 // Alias pour compatibilité (déprécié - utiliser serviceBookingFacade)
 // @deprecated Utilisez serviceBookingFacade à la place

@@ -1,60 +1,51 @@
 'use client';
 
 /**
- * Custom Hook pour les bénéficiaires
- * Implémente le Custom Hooks Pattern
- * Utilise les API routes au lieu d'importer directement les services
+ * Custom Hook pour les bénéficiaires — thin API client via fetchJson.
  */
 
+import { fetchJson } from '@/lib/api/fetchJson';
 import { logger } from '@/lib/logger';
 import type { Beneficiary } from '@/lib/types';
 import type {
-  UseBeneficiariesReturn,
   CreateBeneficiaryData,
   UpdateBeneficiaryData,
+  UseBeneficiariesReturn,
 } from '@/lib/types/hooks.types';
 import { useCallback, useEffect, useState } from 'react';
 
-/**
- * Custom Hook pour gérer les bénéficiaires
- * Implémente le Custom Hooks Pattern
- */
-export function useBeneficiaries(): UseBeneficiariesReturn {
+export function useBeneficiaries(): UseBeneficiariesReturn & {
+  isLoading: boolean;
+} {
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Récupérer tous les bénéficiaires
   const fetchBeneficiaries = useCallback(async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/beneficiaries');
+      const data = await fetchJson<{
+        success?: boolean;
+        data?: Beneficiary[];
+        error?: string;
+      }>('/api/beneficiaries');
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!data.success) {
         throw new Error(
-          errorData.error || 'Erreur lors de la récupération des bénéficiaires',
+          data.error || 'Erreur lors de la récupération des bénéficiaires',
         );
       }
-
-      const data = await response.json();
-      // Le nouveau format standardisé utilise data directement pour les listes
-      if (data.success) {
-        setBeneficiaries(Array.isArray(data.data) ? data.data : []);
-      } else {
-        throw new Error(data.error || 'Erreur lors de la récupération des bénéficiaires');
-      }
-    } catch (error) {
-      logger.error({ error }, 'Erreur fetchBeneficiaries:');
-      setError(error instanceof Error ? error.message : 'Erreur inconnue');
+      setBeneficiaries(Array.isArray(data.data) ? data.data : []);
+    } catch (err) {
+      logger.error({ error: err }, 'Erreur fetchBeneficiaries:');
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
-  // Créer un nouveau bénéficiaire
   const createBeneficiary = useCallback(
     async (
       beneficiaryData: CreateBeneficiaryData,
@@ -62,33 +53,25 @@ export function useBeneficiaries(): UseBeneficiariesReturn {
       try {
         setError(null);
 
-        const response = await fetch('/api/beneficiaries', {
+        const result = await fetchJson<{
+          data?: Beneficiary;
+          beneficiary?: Beneficiary;
+        }>('/api/beneficiaries', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify(beneficiaryData),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.error || 'Erreur lors de la création du bénéficiaire',
-          );
+        const newBeneficiary = result.data || result.beneficiary;
+        if (!newBeneficiary) {
+          throw new Error('Erreur lors de la création du bénéficiaire');
         }
 
-        const result = await response.json();
-        // Le nouveau format standardisé utilise data directement pour les ressources
-        const newBeneficiary = result.data || result.beneficiary;
-
-        // Ajouter à la liste locale
         setBeneficiaries(prev => [newBeneficiary, ...prev]);
-
         return newBeneficiary;
-      } catch (error) {
-        logger.error({ error }, 'Erreur createBeneficiary:');
+      } catch (err) {
+        logger.error({ error: err }, 'Erreur createBeneficiary:');
         setError(
-          error instanceof Error ? error.message : 'Erreur lors de la création',
+          err instanceof Error ? err.message : 'Erreur lors de la création',
         );
         return null;
       }
@@ -96,7 +79,6 @@ export function useBeneficiaries(): UseBeneficiariesReturn {
     [],
   );
 
-  // Mettre à jour un bénéficiaire
   const updateBeneficiary = useCallback(
     async (
       beneficiaryId: string,
@@ -105,26 +87,19 @@ export function useBeneficiaries(): UseBeneficiariesReturn {
       try {
         setError(null);
 
-        const response = await fetch(`/api/beneficiaries/${beneficiaryId}`, {
+        const result = await fetchJson<{
+          data?: Beneficiary;
+          beneficiary?: Beneficiary;
+        }>(`/api/beneficiaries/${beneficiaryId}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify(beneficiaryData),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.error || 'Erreur lors de la mise à jour du bénéficiaire',
-          );
+        const updatedBeneficiary = result.data || result.beneficiary;
+        if (!updatedBeneficiary) {
+          throw new Error('Erreur lors de la mise à jour du bénéficiaire');
         }
 
-        const result = await response.json();
-        // Le nouveau format standardisé utilise data directement pour les ressources
-        const updatedBeneficiary = result.data || result.beneficiary;
-
-        // Mettre à jour dans la liste locale
         setBeneficiaries(prev =>
           prev.map(beneficiary =>
             beneficiary._id === beneficiaryId ? updatedBeneficiary : beneficiary,
@@ -132,10 +107,10 @@ export function useBeneficiaries(): UseBeneficiariesReturn {
         );
 
         return updatedBeneficiary;
-      } catch (error) {
-        logger.error({ error }, 'Erreur updateBeneficiary:');
+      } catch (err) {
+        logger.error({ error: err }, 'Erreur updateBeneficiary:');
         setError(
-          error instanceof Error ? error.message : 'Erreur lors de la mise à jour',
+          err instanceof Error ? err.message : 'Erreur lors de la mise à jour',
         );
         return null;
       }
@@ -143,33 +118,24 @@ export function useBeneficiaries(): UseBeneficiariesReturn {
     [],
   );
 
-  // Supprimer un bénéficiaire
   const deleteBeneficiary = useCallback(
     async (beneficiaryId: string): Promise<boolean> => {
       try {
         setError(null);
 
-        const response = await fetch(`/api/beneficiaries/${beneficiaryId}`, {
+        await fetchJson(`/api/beneficiaries/${beneficiaryId}`, {
           method: 'DELETE',
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.error || 'Erreur lors de la suppression du bénéficiaire',
-          );
-        }
-
-        // Supprimer de la liste locale
         setBeneficiaries(prev =>
           prev.filter(beneficiary => beneficiary._id !== beneficiaryId),
         );
 
         return true;
-      } catch (error) {
-        logger.error({ error }, 'Erreur deleteBeneficiary:');
+      } catch (err) {
+        logger.error({ error: err }, 'Erreur deleteBeneficiary:');
         setError(
-          error instanceof Error ? error.message : 'Erreur lors de la suppression',
+          err instanceof Error ? err.message : 'Erreur lors de la suppression',
         );
         return false;
       }
@@ -177,19 +143,18 @@ export function useBeneficiaries(): UseBeneficiariesReturn {
     [],
   );
 
-  // Rafraîchir la liste
   const refreshBeneficiaries = useCallback(async () => {
     await fetchBeneficiaries();
   }, [fetchBeneficiaries]);
 
-  // Charger les bénéficiaires au montage du composant
   useEffect(() => {
     fetchBeneficiaries();
   }, [fetchBeneficiaries]);
 
   return {
     beneficiaries,
-    loading,
+    isLoading,
+    loading: isLoading,
     error,
     createBeneficiary,
     updateBeneficiary,

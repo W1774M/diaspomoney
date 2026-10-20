@@ -1,3 +1,4 @@
 // Beneficiaries Hooks Exports
-export { useBeneficiaryFilters } from "./useBeneficiaryFilters";
-export { useBeneficiaryStats } from "./useBeneficiaryStats";
+export { useBeneficiaries } from './useBeneficiaries';
+export { useBeneficiaryFilters } from './useBeneficiaryFilters';
+export { useBeneficiaryStats } from './useBeneficiaryStats';

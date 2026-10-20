@@ -19,7 +19,10 @@ export interface CreateComplaintData {
   priority: Complaint['priority'];
   description: string;
   provider: string;
-  appointmentId: string;
+  /** Canonique — préféré à appointmentId */
+  bookingId?: string;
+  /** Legacy ACL — fallback si bookingId absent */
+  appointmentId?: string;
   userId?: string;
 }
 

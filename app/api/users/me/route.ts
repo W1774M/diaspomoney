@@ -4,7 +4,7 @@ import { mapUserToResponse } from '@/lib/mappers/user.mapper';
 import { UpdateUserSchema } from '@/lib/validations/user.schema';
 import { UserDocument } from '@/lib/types/user-document.types';
 import { getUserRepository } from '@/repositories';
-import { getMongoClient } from '@/lib/database/mongodb';
+import { getMongoClient } from '@/lib/mongodb';
 import { NextRequest } from 'next/server';
 
 /**

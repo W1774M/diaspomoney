@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { getMongoClient } from '@/lib/database/mongodb';
+import { getMongoClient } from '@/lib/mongodb';
 import { existsSync } from 'fs';
 import { mkdir, unlink, writeFile } from 'fs/promises';
 import { ObjectId } from 'mongodb';

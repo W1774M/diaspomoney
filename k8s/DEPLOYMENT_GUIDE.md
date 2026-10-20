@@ -160,25 +160,20 @@ docker push localhost:5000/diaspomoney:prod
 #### Environnement DEV
 
 ```bash
-kubectl apply -f k8s/app/dev/deployment.yaml
-kubectl apply -f k8s/app/dev/service.yaml
-kubectl apply -f k8s/app/dev/ingress.yaml
+kubectl apply -f k8s/common/middlewares.yaml   # une fois
+kubectl apply -k k8s/app/overlays/dev
 ```
 
 #### Environnement RECETTE
 
 ```bash
-kubectl apply -f k8s/app/rct/deployment.yaml
-kubectl apply -f k8s/app/rct/service.yaml
-kubectl apply -f k8s/app/rct/ingress.yaml
+kubectl apply -k k8s/app/overlays/rct
 ```
 
 #### Environnement PRODUCTION
 
 ```bash
-kubectl apply -f k8s/app/prod/deployment.yaml
-kubectl apply -f k8s/app/prod/service.yaml
-kubectl apply -f k8s/app/prod/ingress.yaml
+kubectl apply -k k8s/app/overlays/prod
 ```
 
 ### 3. Script de déploiement automatisé

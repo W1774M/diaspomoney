@@ -2,7 +2,7 @@
  * Service Booking Facade - DiaspoMoney
  *
  * Facade Pattern pour simplifier le processus de réservation de service complet
- * Orchestre BookingService, PaymentFacade, et NotificationService
+ * Orchestre BookingService, PaymentFacade, et dispatchFacadeNotification (Comms)
  *
  * Étapes du processus :
  * 1. Sélection du type de service (santé/éducation/BTP)
@@ -21,12 +21,12 @@ import { Performance } from '@/lib/decorators/performance.decorator';
 import { Transaction } from '@/lib/decorators/transaction.decorator';
 import { logger } from '@/lib/logger';
 import { CURRENCIES, LANGUAGES, BOOKING_STATUSES } from '@/lib/constants';
-import { notificationService } from '@/services/notification/notification.service';
 import { transactionService } from '@/services/transaction/transaction.service';
 import { invoiceService } from '@/services/invoice/invoice.service';
 import { PaymentService } from '@/services/payment/payment.service';
 import { bookingService } from '@/services/booking/booking.service';
 import { bookingMapper } from '@/lib/mappers';
+import { dispatchFacadeNotification } from '@/facades/_shared/dispatchNotification';
 import { paymentFacade } from './payment.facade';
 import type {
   IFacade,
@@ -141,9 +141,39 @@ export class ServiceBookingFacade
         'Calcul du montant total avec options',
       );
 
-      // Vérifier que le paiement a été effectué
-      // Note: En production, vous devriez vérifier le statut du payment intent
-      // via l'API Stripe pour confirmer que le paiement a bien été effectué
+      // Preuve Stripe serveur avant toute création / email
+      if (!data.paymentIntentId) {
+        return {
+          success: false,
+          error: 'Identifiant de paiement (paymentIntentId) requis',
+        };
+      }
+
+      const paymentProof = await this.paymentService.verifyPaymentProof(
+        data.paymentIntentId,
+        {
+          expectedAmount: totalAmount,
+          expectedCurrency: CURRENCIES.EUR.code,
+          acceptProcessing: true,
+        },
+      );
+
+      if (!paymentProof.success) {
+        logger.warn(
+          {
+            paymentIntentId: data.paymentIntentId,
+            error: paymentProof.error,
+            status: paymentProof.metadata?.['status'],
+          },
+          'Service booking rejected: Stripe payment proof failed',
+        );
+        return {
+          success: false,
+          error:
+            paymentProof.error ||
+            'Paiement non confirmé auprès de Stripe. Réservation non créée.',
+        };
+      }
 
       // Mapper ServiceBookingFacadeData vers BookingFacadeData
       // Générer un ID unique pour les utilisateurs non connectés
@@ -315,28 +345,28 @@ Numéro de réservation: ${bookingResult.booking.reservationNumber || bookingRes
 Votre réservation a été confirmée. Vous serez recontacté rapidement pour le suivi de votre rendez-vous.
           `.trim();
 
-          try {
-            await notificationService.sendNotification({
-              recipient: clientEmail,
-              type: 'SERVICE_BOOKING_CONFIRMED',
-              template: 'service-booking-confirmed',
-              data: {
-                title: 'Réservation confirmée - Récapitulatif de commande',
-                message: summaryMessage,
-                bookingId: bookingResult.booking.id,
-                reservationNumber: bookingResult.booking.reservationNumber || bookingResult.booking.id,
-                serviceType: data.serviceType,
-                serviceLabel: data.selectedService.label,
-                totalAmount: totalAmount,
-                appointmentDate: data.appointmentDate,
-                appointmentTime: data.appointmentTime,
-                beneficiaryName: `${data.beneficiaryInfo.firstName} ${data.beneficiaryInfo.lastName}`,
-              },
-              channels: [{ type: 'EMAIL' as const, enabled: true, priority: 'HIGH' as const }],
-              locale: 'fr',
-              priority: 'HIGH',
-            });
-            
+          const clientNotified = await dispatchFacadeNotification({
+            recipient: clientEmail,
+            type: 'SERVICE_BOOKING_CONFIRMED',
+            template: 'service-booking-confirmed',
+            payload: {
+              title: 'Réservation confirmée - Récapitulatif de commande',
+              message: summaryMessage,
+              bookingId: bookingResult.booking.id,
+              reservationNumber: bookingResult.booking.reservationNumber || bookingResult.booking.id,
+              serviceType: data.serviceType,
+              serviceLabel: data.selectedService.label,
+              totalAmount: totalAmount,
+              appointmentDate: data.appointmentDate,
+              appointmentTime: data.appointmentTime,
+              beneficiaryName: `${data.beneficiaryInfo.firstName} ${data.beneficiaryInfo.lastName}`,
+            },
+            channels: ['EMAIL'],
+            locale: LANGUAGES.FR.code,
+            priority: 'HIGH',
+          });
+
+          if (clientNotified) {
             logger.info(
               {
                 bookingId: bookingResult.booking.id,
@@ -345,44 +375,27 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
               },
               'Email de confirmation de réservation envoyé au client avec succès',
             );
-          } catch (emailError) {
-            logger.error(
-              {
-                error: emailError,
-                bookingId: bookingResult.booking.id,
-                clientEmail,
-              },
-              'Erreur lors de l\'envoi de l\'email de confirmation au client',
-            );
-            // Ne pas faire échouer la création de réservation si l'email échoue
           }
         }
         
         // Envoyer également au bénéficiaire si un email est fourni
         if (data.beneficiaryInfo.email && data.beneficiaryInfo.email !== data.clientInfo.email) {
-          try {
-            await notificationService.sendNotification({
-              recipient: data.beneficiaryInfo.email,
-              type: 'SERVICE_BOOKING_CONFIRMED',
-              template: 'service-booking-confirmed',
-              data: {
-                title: 'Réservation confirmée pour vous',
-                message: `Une réservation a été effectuée en votre nom pour le service: ${data.selectedService.label}.\n\n${appointmentInfo}\n\nVous serez recontacté rapidement pour le suivi.`,
-                bookingId: bookingResult.booking.id,
-                reservationNumber: bookingResult.booking.reservationNumber || bookingResult.booking.id,
-                serviceType: data.serviceType,
-                serviceLabel: data.selectedService.label,
-              },
-              channels: [{ type: 'EMAIL' as const, enabled: true, priority: 'HIGH' as const }],
-              locale: 'fr',
-              priority: 'HIGH',
-            });
-          } catch (beneficiaryNotificationError) {
-            logger.warn(
-              { error: beneficiaryNotificationError, bookingId: bookingResult.booking.id },
-              'Failed to send notification to beneficiary, but booking was created',
-            );
-          }
+          await dispatchFacadeNotification({
+            recipient: data.beneficiaryInfo.email,
+            type: 'SERVICE_BOOKING_CONFIRMED',
+            template: 'service-booking-confirmed',
+            payload: {
+              title: 'Réservation confirmée pour vous',
+              message: `Une réservation a été effectuée en votre nom pour le service: ${data.selectedService.label}.\n\n${appointmentInfo}\n\nVous serez recontacté rapidement pour le suivi.`,
+              bookingId: bookingResult.booking.id,
+              reservationNumber: bookingResult.booking.reservationNumber || bookingResult.booking.id,
+              serviceType: data.serviceType,
+              serviceLabel: data.selectedService.label,
+            },
+            channels: ['EMAIL'],
+            locale: LANGUAGES.FR.code,
+            priority: 'HIGH',
+          });
         }
       } catch (notificationError) {
         logger.warn(
@@ -864,45 +877,36 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
         );
         
         if (clientEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
-          try {
-            await notificationService.sendNotification({
-              recipient: clientEmail,
-              type: 'BOOKING_CONFIRMED',
-              template: 'booking_confirmation',
-              channels: [
-                { type: 'EMAIL', enabled: true, priority: 'HIGH' },
-                { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
-              ],
-              locale: LANGUAGES.FR.code,
-              priority: 'HIGH',
-              data: {
-                booking: {
-                  id: bookingId,
-                  providerId: data.providerId,
-                  serviceId: data.serviceId,
-                  appointmentDate: data.appointmentDate,
-                  timeslot: data.timeslot,
-                },
-                payment: paymentResult?.success
-                  ? {
-                      transactionId: paymentResult.transactionId,
-                      amount: data.payment?.amount,
-                      currency: data.payment?.currency,
-                    }
-                  : undefined,
+          const clientNotified = await dispatchFacadeNotification({
+            recipient: clientEmail,
+            type: 'BOOKING_CONFIRMED',
+            template: 'booking_confirmation',
+            channels: ['EMAIL', 'PUSH'],
+            locale: LANGUAGES.FR.code,
+            priority: 'HIGH',
+            payload: {
+              booking: {
+                id: bookingId,
+                providerId: data.providerId,
+                serviceId: data.serviceId,
+                appointmentDate: data.appointmentDate,
+                timeslot: data.timeslot,
               },
-            });
-            
+              payment: paymentResult?.success
+                ? {
+                    transactionId: paymentResult.transactionId,
+                    amount: data.payment?.amount,
+                    currency: data.payment?.currency,
+                  }
+                : undefined,
+            },
+          });
+
+          if (clientNotified) {
             logger.info(
               { bookingId, clientEmail },
               'Notification de confirmation envoyée au client avec succès',
             );
-          } catch (notificationError) {
-            logger.error(
-              { error: notificationError, bookingId, clientEmail },
-              'Erreur lors de l\'envoi de la notification de confirmation au client',
-            );
-            // Ne pas faire échouer la création de réservation si la notification échoue
           }
         } else {
           logger.warn(
@@ -922,17 +926,14 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
         const beneficiaryLastName = data.metadata?.['beneficiaryLastName'] as string | undefined;
         const beneficiaryPhone = data.metadata?.['beneficiaryPhone'] as string | undefined;
         
-        await notificationService.sendNotification({
+        await dispatchFacadeNotification({
           recipient: adminEmail,
           type: 'BOOKING_RECEIVED',
           template: 'booking_received',
-          channels: [
-            { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
-            { type: 'IN_APP', enabled: true, priority: 'HIGH' },
-          ],
+          channels: ['EMAIL', 'PUSH'],
           locale: LANGUAGES.FR.code,
-          priority: 'MEDIUM',
-          data: {
+          priority: 'NORMAL',
+          payload: {
             booking: {
               id: booking.id || (booking as any)._id?.toString(),
               requesterId: data.requesterId,

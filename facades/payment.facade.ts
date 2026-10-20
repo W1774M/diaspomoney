@@ -12,12 +12,11 @@ import { Audit } from '@/lib/decorators/audit.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
 import { Transaction } from '@/lib/decorators/transaction.decorator';
 import { logger } from '@/lib/logger';
-import { LANGUAGES } from '@/lib/constants';
 import { invoiceService } from '@/services/invoice/invoice.service';
-import { notificationService } from '@/services/notification/notification.service';
 import { PaymentService } from '@/services/payment/payment.service';
 import { transactionService } from '@/services/transaction/transaction.service';
 import { transactionMapper, invoiceMapper } from '@/lib/mappers';
+import { dispatchFacadeNotification } from '@/facades/_shared/dispatchNotification';
 import * as Sentry from '@sentry/nextjs';
 import type { PaymentFacadeData, PaymentFacadeResult, IFacade, FacadeOptions } from '@/lib/types';
 import { CreatePaymentSchema } from '@/lib/validations/payment.schema';
@@ -209,23 +208,19 @@ export class PaymentFacade implements IFacade<PaymentFacadeData, PaymentFacadeRe
 
       // Étape 5: Envoyer les notifications si demandé
       if (data.sendNotification !== false) {
-        try {
-          // Récupérer l'email de l'utilisateur pour la notification
-          const userEmail = data.customerId; // À adapter selon votre logique
-          await notificationService.sendPaymentSuccessNotification(
-            userEmail,
-            data.amount,
-            data.currency,
-            data.description,
-            LANGUAGES.FR.code,
-          );
-        } catch (notificationError) {
-          // Ne pas faire échouer le paiement si la notification échoue
-          logger.error(
-            { error: notificationError },
-            'Failed to send notification, continuing...',
-          );
-        }
+        await dispatchFacadeNotification({
+          recipient: data.customerId,
+          type: 'PAYMENT_SUCCESS',
+          template: 'payment_success',
+          payload: {
+            amount: data.amount,
+            currency: data.currency,
+            serviceName: data.description,
+            transactionDate: new Date().toLocaleDateString('fr'),
+          },
+          channels: ['EMAIL', 'PUSH'],
+          priority: 'HIGH',
+        });
       }
 
       logger.info(

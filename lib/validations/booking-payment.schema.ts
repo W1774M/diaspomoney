@@ -47,6 +47,16 @@ const AppointmentPaymentSchema = z.object({
 const PaymentDataSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   currency: z.string().length(3, 'Currency must be 3 characters'),
+  /** Preuve Stripe obligatoire côté serveur (PaymentIntent) */
+  paymentIntentId: z
+    .string()
+    .regex(/^pi_/, 'paymentIntentId must start with pi_')
+    .optional(),
+  /** Alternative : Checkout Session Stripe */
+  checkoutSessionId: z
+    .string()
+    .regex(/^cs_/, 'checkoutSessionId must start with cs_')
+    .optional(),
   cardNumber: z.string().optional(),
   expiryDate: z.string().optional(),
   cvv: z.string().optional(),
@@ -56,10 +66,19 @@ const PaymentDataSchema = z.object({
 /**
  * Schéma pour confirmer un paiement de réservation
  */
-export const ConfirmPaymentSchema = z.object({
-  appointment: AppointmentPaymentSchema,
-  paymentData: PaymentDataSchema,
-});
+export const ConfirmPaymentSchema = z
+  .object({
+    appointment: AppointmentPaymentSchema,
+    paymentData: PaymentDataSchema,
+  })
+  .refine(
+    (data) =>
+      Boolean(data.paymentData.paymentIntentId || data.paymentData.checkoutSessionId),
+    {
+      message: 'paymentIntentId or checkoutSessionId is required',
+      path: ['paymentData', 'paymentIntentId'],
+    },
+  );
 
 /**
  * Schéma pour signaler une erreur de paiement de réservation

@@ -1,11 +1,10 @@
 'use client';
 
 /**
- * Custom Hook pour supprimer complètement une réservation
- * Implémente le Custom Hooks Pattern
- * Utilise les API routes au lieu d'importer directement les services (évite les imports MongoDB côté client)
+ * Custom Hook pour supprimer complètement une réservation — thin API client via fetchJson.
  */
 
+import { fetchJson } from '@/lib/api/fetchJson';
 import { useCallback, useState } from 'react';
 
 export interface UseBookingDeleteReturn {
@@ -18,57 +17,60 @@ export interface UseBookingDeleteReturn {
       stripePaymentIntent: boolean;
     };
   }>;
+  isLoading: boolean;
+  /** @deprecated alias isLoading */
   loading: boolean;
   error: string | null;
 }
 
-/**
- * Custom Hook pour gérer la suppression complète d'une réservation
- * Implémente le Custom Hooks Pattern
- */
 export function useBookingDelete(): UseBookingDeleteReturn {
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const deleteBooking = useCallback(async (bookingId: string) => {
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}/delete`, {
+      const result = await fetchJson<{
+        success?: boolean;
+        deleted?: {
+          booking: boolean;
+          transaction: boolean;
+          invoice: boolean;
+          stripePaymentIntent: boolean;
+        };
+        error?: string;
+      }>(`/api/bookings/${encodeURIComponent(bookingId)}/delete`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.error || 'Erreur lors de la suppression complète de la réservation',
-        );
-      }
-
-      const result = await response.json();
       if (!result.success) {
         throw new Error(result.error || 'Erreur inconnue');
       }
 
-      return result;
+      return result as {
+        success: boolean;
+        deleted: {
+          booking: boolean;
+          transaction: boolean;
+          invoice: boolean;
+          stripePaymentIntent: boolean;
+        };
+      };
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : 'Erreur inconnue';
       setError(errorMessage);
-      // Le logging est fait côté serveur via les services avec @Log decorator
       throw err;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
   return {
     deleteBooking,
-    loading,
+    isLoading,
+    loading: isLoading,
     error,
   };
 }
-

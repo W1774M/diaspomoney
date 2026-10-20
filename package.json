@@ -43,6 +43,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@jridgewell/sourcemap-codec": "^1.6.0",
     "@next-auth/mongodb-adapter": "^1",
     "@sentry/nextjs": "^10.25.0",
     "@stripe/react-stripe-js": "^5.3.0",
@@ -84,6 +85,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.56.1",
+    "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@types/bcryptjs": "^2.4.6",

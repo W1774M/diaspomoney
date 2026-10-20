@@ -13,10 +13,11 @@ if [ -z "$ENV" ]; then
   exit 1
 fi
 
-# Vérifier que l'environnement est valide
-if [ ! -d "k8s/app/${ENV}" ]; then
+# Vérifier que l'environnement est valide (overlays Kustomize)
+OVERLAY_DIR="k8s/app/overlays/${ENV}"
+if [ ! -d "${OVERLAY_DIR}" ]; then
   echo "❌ Erreur: L'environnement ${ENV} n'existe pas"
-  echo "   Environnements disponibles: $(ls -1 k8s/app/ 2>/dev/null | tr '\n' ' ' || echo 'aucun')"
+  echo "   Environnements disponibles: $(ls -1 k8s/app/overlays/ 2>/dev/null | tr '\n' ' ' || echo 'aucun')"
   exit 1
 fi
 
@@ -124,53 +125,22 @@ fi
 
 echo "✅ Images poussées vers le registry"
 
-# Vérifier que les fichiers de déploiement existent
-DEPLOYMENT_FILE="k8s/app/${ENV}/deployment.yaml"
-SERVICE_FILE="k8s/app/${ENV}/service.yaml"
-INGRESS_FILE="k8s/app/${ENV}/ingress.yaml"
-
-if [ ! -f "${DEPLOYMENT_FILE}" ]; then
-  echo "❌ Erreur: Le fichier ${DEPLOYMENT_FILE} n'existe pas"
-  echo "   Vérifiez que l'environnement ${ENV} est correct (rct, prod, dev)"
-  exit 1
-fi
-
-# Extraire le nom du deployment depuis le fichier YAML
-DEPLOYMENT_NAME_FROM_YAML=$(grep "^  name:" "${DEPLOYMENT_FILE}" | head -1 | awk '{print $2}' || echo "")
-if [ -z "$DEPLOYMENT_NAME_FROM_YAML" ]; then
-  echo "❌ Erreur: Impossible d'extraire le nom du deployment depuis ${DEPLOYMENT_FILE}"
-  exit 1
-fi
-
+DEPLOYMENT_NAME_FROM_YAML="diaspomoney-${ENV}"
 echo "📋 Nom du deployment: ${DEPLOYMENT_NAME_FROM_YAML}"
+echo "📁 Overlay Kustomize: ${OVERLAY_DIR}"
 
-# Check if deployment exists
-if kubectl get deployment ${DEPLOYMENT_NAME_FROM_YAML} -n ${NAMESPACE} &>/dev/null; then
-  echo "🔄 Mise à jour du déploiement existant..."
-  # Utiliser LATEST_TAG pour que le déploiement utilise toujours la dernière image
-  kubectl set image deployment/${DEPLOYMENT_NAME_FROM_YAML} ${DEPLOYMENT_NAME_FROM_YAML}=${LATEST_TAG} -n ${NAMESPACE}
-else
-  echo "📦 Création du déploiement (première fois)..."
-  
-  # Créer une copie temporaire du fichier pour modification
-  TEMP_DEPLOYMENT_FILE=$(mktemp)
-  cp "${DEPLOYMENT_FILE}" "${TEMP_DEPLOYMENT_FILE}"
-  
-    # Update image in deployment file temporarily
-  sed -i "s|image: localhost:5000/diaspomoney:.*|image: ${IMAGE_TAG}|g" "${TEMP_DEPLOYMENT_FILE}"
-  kubectl apply -f "${TEMP_DEPLOYMENT_FILE}"
-  
-  # Nettoyer le fichier temporaire
-  rm -f "${TEMP_DEPLOYMENT_FILE}"
-  
-  if [ -f "${SERVICE_FILE}" ]; then
-    kubectl apply -f "${SERVICE_FILE}"
-  fi
-  
-  if [ -f "${INGRESS_FILE}" ]; then
-    kubectl apply -f "${INGRESS_FILE}"
-  fi
-fi
+# Middlewares Traefik (idempotent)
+kubectl apply -f k8s/common/middlewares.yaml
+
+# Apply overlay (Deployment + Service + IngressRoute)
+echo "📦 Application de l'overlay Kustomize..."
+kubectl apply -k "${OVERLAY_DIR}"
+
+# Point the deployment at the freshly built image tag
+echo "🔄 Mise à jour de l'image: ${LATEST_TAG}"
+kubectl set image "deployment/${DEPLOYMENT_NAME_FROM_YAML}" \
+  "${DEPLOYMENT_NAME_FROM_YAML}=${LATEST_TAG}" \
+  -n "${NAMESPACE}"
 
 # Verify rollout
 echo "⏳ Attente du déploiement..."

@@ -60,13 +60,33 @@ export class ServiceService {
   @InvalidateCache('ServiceRepository:*')
   async createService(data: CreateServiceInput) {
     try {
+      // Invariants Catalog (domaine)
+      const { CatalogService } = await import('@/domain/catalog');
+      const offer = CatalogService.create({
+        id: data.id,
+        name: data.label,
+        category: data.category,
+        price: data.price,
+        description: data.description,
+        isActive: data.isActive ?? true,
+      });
+
       // Vérifier si le service existe déjà
-      const existing = await this.serviceRepository.findByCustomId(data.id);
+      const existing = await this.serviceRepository.findByCustomId(offer.id);
       if (existing) {
-        throw new Error(`Service with id ${data.id} already exists`);
+        throw new Error(`Service with id ${offer.id} already exists`);
       }
 
-      const service = await this.serviceRepository.create(data as any);
+      const snapshot = offer.toCreateInput();
+      const service = await this.serviceRepository.create({
+        ...data,
+        id: snapshot.id,
+        label: snapshot.name,
+        category: snapshot.category,
+        price: snapshot.price,
+        isActive: snapshot.isActive,
+        description: snapshot.description ?? data.description,
+      } as any);
       logger.info({ serviceId: service.id }, 'Service created successfully');
       return service;
     } catch (error) {
@@ -96,7 +116,46 @@ export class ServiceService {
   @InvalidateCache('ServiceRepository:*')
   async updateService(id: string, data: UpdateServiceInput) {
     try {
-      const service = await this.serviceRepository.update(id, data as any);
+      const existing =
+        (await this.serviceRepository.findByCustomId(id)) ||
+        (await this.serviceRepository.findById(id));
+      if (!existing) {
+        throw new Error(`Service ${id} not found`);
+      }
+
+      // Invariants Catalog (domaine) sur le patch
+      const { CatalogService } = await import('@/domain/catalog');
+      const offer = CatalogService.create({
+        id: String((existing as { id?: string }).id || id),
+        name: String(
+          data.label ??
+            (existing as { label?: string }).label ??
+            (existing as { name?: string }).name ??
+            id,
+        ),
+        category: String(
+          data.category ?? (existing as { category?: string }).category ?? 'HEALTH',
+        ),
+        price: Number(
+          data.price ?? (existing as { price?: number }).price ?? 0,
+        ),
+        isActive:
+          data.isActive ??
+          (existing as { isActive?: boolean }).isActive ??
+          true,
+        ...(data.description !== undefined
+          ? { description: data.description }
+          : {}),
+      });
+      const snapshot = offer.toCreateInput();
+
+      const service = await this.serviceRepository.update(id, {
+        ...data,
+        label: snapshot.name,
+        category: snapshot.category,
+        price: snapshot.price,
+        isActive: snapshot.isActive,
+      } as never);
       logger.info({ serviceId: id }, 'Service updated successfully');
       return service;
     } catch (error) {
@@ -170,6 +229,12 @@ export class ServiceService {
   @InvalidateCache('ServiceOptionRepository:*')
   async createServiceOption(data: CreateServiceOptionInput) {
     try {
+      // Invariants Catalog — category si fournie
+      if (data.category) {
+        const { assertCatalogCategory } = await import('@/domain/catalog');
+        assertCatalogCategory(String(data.category));
+      }
+
       // Générer un ID basé sur le label (sans catégorie car une option peut être multi-catégories)
       const optionId = data.label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const option = await this.serviceOptionRepository.create({

@@ -415,11 +415,18 @@ export class MessagingService {
       );
 
       if (!ticket) {
+        // Invariants Comms — SupportTicket domaine
+        const { SupportTicket } = await import('@/domain/comms');
+        const domainTicket = SupportTicket.open({
+          clientId: userId,
+          subject: 'Support DiaspoMoney',
+        });
         ticket = await this.supportTicketRepository.create({
-          userId,
-          status: 'open',
+          userId: domainTicket.clientId,
+          status: domainTicket.currentStatus.toLowerCase() as 'open',
           priority: 'medium',
           messages: [],
+          subject: domainTicket.subject,
         });
       }
 

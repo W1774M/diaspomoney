@@ -389,7 +389,10 @@ export class MongoComplaintRepository implements IComplaintRepository {
       updatedAt: new Date(mapped.updatedAt),
       description: mapped.description,
       provider: mapped.provider,
-      appointmentId: mapped.appointmentId,
+      appointmentId: mapped.appointmentId || doc.bookingId || '',
+      ...(doc.bookingId || mapped.appointmentId
+        ? { bookingId: doc.bookingId || mapped.appointmentId }
+        : {}),
       userId: mapped.userId,
     };
   }

@@ -585,9 +585,17 @@ export class UserService {
     data: BeneficiaryData,
   ): Promise<Beneficiary> {
     try {
-      if (!data.firstName || !data.lastName) {
-        throw new Error('Prénom et nom requis');
-      }
+      // Invariants CRM (domaine) — ownership Client
+      const { Beneficiary: BeneficiaryAggregate } = await import('@/domain/crm');
+      const domainBeneficiary = BeneficiaryAggregate.create({
+        ownerClientId: userId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        ...(typeof data.phone === 'string' ? { phone: data.phone } : {}),
+        ...(typeof data.email === 'string' && data.email.trim()
+          ? { email: data.email.trim() }
+          : {}),
+      });
 
       if (!data.relationship) {
         throw new Error('Relation requise');
@@ -606,13 +614,14 @@ export class UserService {
         throw new Error('Limite de bénéficiaires atteinte (10 max)');
       }
 
+      const snapshot = domainBeneficiary.toBookingSnapshot();
       const beneficiaryData: Partial<Beneficiary> = {
-        payerId: userId,
-        firstName: data.firstName,
-        lastName: data.lastName,
+        payerId: domainBeneficiary.ownerClientId,
+        firstName: snapshot.firstName,
+        lastName: snapshot.lastName,
         relationship: data.relationship,
         location: data.location,
-        isActive: true,
+        isActive: domainBeneficiary.isActive,
       };
       if (typeof data.email === 'string' && data.email.trim()) {
         beneficiaryData.email = data.email.trim();
