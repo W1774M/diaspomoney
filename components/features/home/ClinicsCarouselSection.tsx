@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { MapPin, Stethoscope, X } from 'lucide-react';
 import { HEALTH_CLINICS, type ClinicOption } from '@/lib/clinics';
-
-const carouselClinics = [...HEALTH_CLINICS, ...HEALTH_CLINICS];
+import { Marquee } from '@/components/ui/Marquee';
+import { NativeModal } from '@/components/ui/NativeModal';
 
 function ClinicPrices({ clinic }: { clinic: ClinicOption }) {
   return (
@@ -76,21 +76,17 @@ export function ClinicsCarouselSection() {
           </p>
         </div>
 
-        <div
-          className="relative overflow-hidden"
-          role="region"
-          aria-label="Carousel des cliniques partenaires"
+        <Marquee
+          label="Cliniques partenaires"
+          trackClassName="gap-6 py-2"
+          controlClassName="absolute right-3 top-4 z-10 rounded-full border border-orange-200 bg-white p-1.5 text-[hsl(25,100%,40%)] shadow-sm hover:bg-orange-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(25,100%,45%)]"
         >
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-white to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-orange-50/80 to-transparent" />
-
-          <div className="flex w-max animate-marquee gap-6 py-2">
-            {carouselClinics.map((clinic, index) => (
+            {HEALTH_CLINICS.map((clinic) => (
               <button
-                key={`${clinic.name}-${index}`}
+                key={clinic.name}
                 type="button"
                 onClick={() => setSelectedClinic(clinic)}
-                className="flex h-[450px] w-[320px] shrink-0 flex-col overflow-hidden rounded-2xl border border-orange-100 bg-white text-left shadow-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg md:h-[470px] md:w-[380px]"
+                className="flex h-[450px] w-[320px] shrink-0 flex-col overflow-hidden rounded-2xl border border-orange-100 bg-white text-left shadow-sm transition-shadow hover:shadow-lg motion-safe:transition-transform motion-safe:duration-300 motion-safe:hover:-translate-y-1 md:h-[470px] md:w-[380px]"
               >
                 <div className="relative h-44 w-full bg-orange-50">
                   <Image
@@ -136,23 +132,17 @@ export function ClinicsCarouselSection() {
                 </div>
               </button>
             ))}
-          </div>
-        </div>
+        </Marquee>
       </div>
 
-      {selectedClinic ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="clinic-detail-title"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) {
-              setSelectedClinic(null);
-            }
-          }}
-        >
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+      <NativeModal
+        open={selectedClinic !== null}
+        onClose={() => setSelectedClinic(null)}
+        labelledBy="clinic-detail-title"
+        className="max-w-2xl rounded-2xl shadow-2xl"
+      >
+        {selectedClinic ? (
+          <div>
             <div className="relative h-64 w-full bg-orange-50">
               <Image
                 src={selectedClinic.image}
@@ -160,7 +150,6 @@ export function ClinicsCarouselSection() {
                 fill
                 sizes="(max-width: 768px) 100vw, 672px"
                 className="object-cover"
-                priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
               <button
@@ -223,8 +212,8 @@ export function ClinicsCarouselSection() {
               </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </NativeModal>
     </section>
   );
 }

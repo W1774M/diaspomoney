@@ -1,5 +1,6 @@
 import Link from "next/link";
 import HowItWorks from "@/components/common/HowItWorks";
+import { Marquee } from "@/components/ui/Marquee";
 import {
   BenefitsSection,
   CareForLovedOnesSection,
@@ -64,10 +65,14 @@ export default function HomePage() {
     <div className="flex flex-col">
       <HomeAnnouncementDialog />
       {/* Bannière défilante */}
-      <div className="relative w-full overflow-hidden bg-[hsl(25,100%,53%)] text-white py-3 text-sm font-medium">
-        <div className="flex animate-marquee whitespace-nowrap w-max">
-          {[...BANNER_MESSAGES, ...BANNER_MESSAGES].map((msg, index) => (
-            <span key={`${msg.id}-${index}`} className="inline-flex items-center gap-1 mx-8">
+      <Marquee
+        label="Annonces DiaspoMoney"
+        className="w-full bg-[hsl(25,100%,53%)] text-white py-3 pr-10 text-sm font-medium"
+        trackClassName="whitespace-nowrap"
+        controlClassName="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/20 p-1 text-white hover:bg-black/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+      >
+          {BANNER_MESSAGES.map((msg) => (
+            <span key={msg.id} className="inline-flex items-center gap-1 mx-8">
               {msg.parts.map((part, i) =>
                 part.type === "text" ? (
                   <span key={i}>{part.value}</span>
@@ -86,8 +91,7 @@ export default function HomePage() {
               <span className="text-white/70 mx-2" aria-hidden>•</span>
             </span>
           ))}
-        </div>
-      </div>
+      </Marquee>
       <HeroSection />
       <ClinicsCarouselSection />
       <HowItWorks className="py-20 md:pt-12 md:pb-1 bg-white relative overflow-hidden" />

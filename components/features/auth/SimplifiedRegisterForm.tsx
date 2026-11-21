@@ -205,6 +205,7 @@ export function SimplifiedRegisterForm({
                   </label>
                   <div className="relative">
                     <input
+                      autoComplete="new-password"
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={e =>
@@ -233,6 +234,7 @@ export function SimplifiedRegisterForm({
                   </label>
                   <div className="relative">
                     <input
+                      autoComplete="new-password"
                       type={showConfirmPassword ? "text" : "password"}
                       value={formData.confirmPassword}
                       onChange={e =>
@@ -289,6 +291,7 @@ export function SimplifiedRegisterForm({
                   Réponse <span className="text-red-500">*</span>
                 </label>
                 <input
+                  autoComplete="off"
                   type="text"
                   value={formData.securityAnswer}
                   onChange={e =>
