@@ -15,11 +15,9 @@ export default defineConfig({
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,
   ...(process.env['CI'] && { workers: 1 }),
-  reporter: [
-    ['html'],
-    ['list'],
-    ['json', { outputFile: 'test-results/results.json' }],
-  ],
+  reporter: process.env['CI']
+    ? [['list'], ['junit', { outputFile: 'test-results/e2e-junit.xml' }], ['html', { open: 'never' }]]
+    : [['list'], ['html']],
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
@@ -31,23 +29,20 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
   },
 
+  // En CI : Chromium seul (rapide, stable). En local : les trois moteurs.
   projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    ...(process.env['CI']
+      ? []
+      : [
+          { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+          { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+        ]),
   ],
 
+  // En CI : build de production déjà construit par le job « build » (comme en prod).
   webServer: {
-    command: 'pnpm dev',
+    command: process.env['CI'] ? 'pnpm start' : 'pnpm dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env['CI'],
     timeout: 120000,
