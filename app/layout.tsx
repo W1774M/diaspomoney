@@ -9,7 +9,9 @@ import 'react-international-phone/style.css';
 import { DefaultTemplate } from '@/template/DefaultTemplate';
 import type { Metadata, Viewport } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
-import Script from 'next/script';
+import { CookieConsent } from '@/components/consent/CookieConsent';
+import { CONSENT_DEFAULT_SCRIPT } from '@/lib/consent';
+import { serializeJsonLd, siteJsonLd } from '@/lib/seo';
 
 const geistSans = Inter({
   variable: '--font-geist-sans',
@@ -30,8 +32,6 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 const baseUrl =
   process.env['NEXT_PUBLIC_APP_URL'] || 'https://diaspomoney.fr';
 
-const googleTagManagerId = 'GTM-N83PJN57';
-
 // Couleur de la barre du navigateur mobile et thème des contrôles natifs (site clair uniquement).
 export const viewport: Viewport = {
   themeColor: '#F97015',
@@ -46,18 +46,9 @@ export const metadata: Metadata = {
   },
   description:
     'Réservez et payez des services pour vos proches en Afrique : santé, éducation, immobilier. Paiement sécurisé, prestataires vérifiés.',
-  keywords: [
-    'diaspora',
-    'services Afrique',
-    'paiement diaspora',
-    'santé Afrique',
-    'éducation Afrique',
-    'immobilier Afrique',
-  ],
   openGraph: {
     type: 'website',
     locale: 'fr_FR',
-    url: baseUrl,
     siteName: 'DiaspoMoney',
     title: 'DiaspoMoney – Services pour la diaspora',
     description:
@@ -70,6 +61,7 @@ export const metadata: Metadata = {
     description:
       'Réservez et payez des services pour vos proches en Afrique. Paiement sécurisé, prestataires vérifiés.',
   },
+  manifest: '/manifest.webmanifest',
   robots: {
     index: true,
     follow: true,
@@ -84,39 +76,22 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
-        {/* Google Tag Manager */}
-        <Script
-          id='gtm-script'
-          strategy='afterInteractive'
-          dangerouslySetInnerHTML={{
-            __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-              new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-              'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-            })(window,document,'script','dataLayer','${googleTagManagerId}');`,
-          }}
-        />
-
-        {/* End Google Tag Manager */}
+        {/* Consent Mode v2 : tout refusé par défaut, avant tout tag Google. */}
+        <script dangerouslySetInnerHTML={{ __html: CONSENT_DEFAULT_SCRIPT }} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} antialiased`}
         suppressHydrationWarning
       >
-        {/* Google Tag Manager (noscript) */}
-        <Script
-          id='gtm-noscript'
-          strategy='afterInteractive'
-          dangerouslySetInnerHTML={{
-            __html: `<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${googleTagManagerId}"
-              height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>`,
-          }}
+        <script
+          type='application/ld+json'
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(siteJsonLd()) }}
         />
-        {/* End Google Tag Manager (noscript) */}
         <EventSystemProvider>
           <AuthProvider>
             <AppointmentProvider>
               <DefaultTemplate>{children}</DefaultTemplate>
+              <CookieConsent />
             </AppointmentProvider>
           </AuthProvider>
         </EventSystemProvider>

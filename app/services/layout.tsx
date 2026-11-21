@@ -1,15 +1,12 @@
 import type { Metadata } from 'next';
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: 'Nos services',
+export const metadata: Metadata = pageMetadata({
+  path: "/services",
+  title: "Nos services",
   description:
-    'Santé, éducation, immobilier : réservez et payez des services pour vos proches en Afrique. Paiement sécurisé, prestataires vérifiés.',
-  openGraph: {
-    title: 'Nos services | DiaspoMoney',
-    description:
-      'Santé, éducation, immobilier : réservez et payez des services pour vos proches en Afrique.',
-  },
-};
+    "Santé, éducation, immobilier : réservez et payez des services pour vos proches en Afrique. Paiement sécurisé, prestataires vérifiés.",
+});
 
 export default function ServicesLayout({
   children,

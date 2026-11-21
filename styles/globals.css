@@ -80,6 +80,34 @@ body {
   accent-color: hsl(25 100% 53%);
 }
 
+/* ---- Lien d'évitement : invisible jusqu'au premier Tab ---- */
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: #1c1917;
+  color: #fff;
+  font-weight: 600;
+  translate: 0 -200%;
+}
+
+.skip-link:focus-visible {
+  translate: 0 0;
+  outline: 2px solid hsl(25 100% 53%);
+  outline-offset: 2px;
+}
+
+/* Mode contraste élevé : les anneaux en box-shadow disparaissent, on garde un contour réel */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid CanvasText !important;
+    outline-offset: 2px;
+  }
+}
+
 /* ---- Modales natives <dialog> ---- */
 dialog:modal {
   /* empêche le défilement dans la modale de se propager à la page */

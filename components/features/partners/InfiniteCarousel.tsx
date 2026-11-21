@@ -1,8 +1,16 @@
 'use client';
 
+/**
+ * Liste défilante des partenaires.
+ * Défilement natif avec scroll-snap, sans lecture automatique ni copies des cartes :
+ * chaque partenaire n'existe qu'une fois dans le DOM, les boutons précédent/suivant
+ * déplacent d'une largeur visible et se désactivent aux extrémités.
+ * Le détail s'ouvre dans une modale <dialog> native.
+ */
 import ExternalImage from '@/components/common/ExternalImage';
-import { ExternalLink, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { NativeModal } from '@/components/ui/NativeModal';
+import { ChevronLeft, ChevronRight, ExternalLink, MapPin, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface Partner {
   id: string;
@@ -16,113 +24,148 @@ interface Partner {
   established: string;
 }
 
-interface PartnerModalProps {
-  partner: Partner | null;
-  isOpen: boolean;
-  onClose: () => void;
+function prefersReducedMotion(): boolean {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-const PartnerModal = ({ partner, isOpen, onClose }: PartnerModalProps) => {
-  if (!partner || !isOpen) return null;
-
+function PartnerModal({ partner, onClose }: { partner: Partner | null; onClose: () => void }) {
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
-      <div className='bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto'>
-        {/* Header */}
-        <div className='relative p-6 border-b'>
-          <button
-            title='Fermer'
-            onClick={onClose}
-            className='absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors'
-          >
-            <X className='w-6 h-6' />
-          </button>
-
-          <div className='flex items-center space-x-4'>
-            <ExternalImage
-              src={partner.logo}
-              alt={partner.name}
-              className='w-16 h-16 object-contain rounded-lg'
-              width={64}
-              height={64}
-            />
-            <div>
-              <h2 className='text-2xl font-bold text-gray-900'>
-                {partner.name}
-              </h2>
-              <p className='text-gray-600'>{partner.category}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className='p-6 space-y-6'>
-          {/* Description */}
-          <div>
-            <h3 className='text-lg font-semibold text-gray-900 mb-2'>
-              Description
-            </h3>
-            <p className='text-gray-700'>{partner.description}</p>
-          </div>
-
-          {/* Services */}
-          <div>
-            <h3 className='text-lg font-semibold text-gray-900 mb-2'>
-              Services
-            </h3>
-            <div className='flex flex-wrap gap-2'>
-              {partner.services.map((service, index) => (
-                <span
-                  key={index}
-                  className='px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm'
-                >
-                  {service}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Details */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <h4 className='font-semibold text-gray-900 mb-1'>Localisation</h4>
-              <p className='text-gray-600'>{partner.location}</p>
-            </div>
-            <div>
-              <h4 className='font-semibold text-gray-900 mb-1'>Établi en</h4>
-              <p className='text-gray-600'>{partner.established}</p>
-            </div>
-          </div>
-
-          {/* Action Button */}
-          <div className='pt-4 border-t'>
-            <a
-              href={partner.website}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='inline-flex items-center px-6 py-3 bg-[hsl(25,100%,53%)] text-white font-semibold rounded-lg hover:bg-[hsl(25,100%,45%)] transition-colors'
+    <NativeModal
+      open={partner !== null}
+      onClose={onClose}
+      labelledBy='partner-detail-title'
+      className='w-full max-w-2xl rounded-2xl shadow-2xl'
+    >
+      {partner ? (
+        <div>
+          <div className='relative border-b p-6'>
+            <button
+              type='button'
+              onClick={onClose}
+              aria-label='Fermer le détail du partenaire'
+              className='absolute right-4 top-4 rounded-full p-1 text-gray-500 transition-colors hover:text-gray-700'
             >
-              <ExternalLink className='w-5 h-5 mr-2' />
-              Visiter le site
-            </a>
+              <X className='h-6 w-6' aria-hidden />
+            </button>
+
+            <div className='flex items-center gap-4 pr-10'>
+              <ExternalImage
+                src={partner.logo}
+                alt=''
+                className='h-16 w-16 rounded-lg object-contain'
+                width={64}
+                height={64}
+              />
+              <div>
+                <h2 id='partner-detail-title' className='text-2xl font-bold text-gray-900'>
+                  {partner.name}
+                </h2>
+                <p className='text-gray-600'>{partner.category}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className='space-y-6 p-6'>
+            <div>
+              <h3 className='mb-2 text-lg font-semibold text-gray-900'>Description</h3>
+              <p className='text-gray-700'>{partner.description}</p>
+            </div>
+
+            {partner.services.length > 0 ? (
+              <div>
+                <h3 className='mb-2 text-lg font-semibold text-gray-900'>Services</h3>
+                <ul className='flex flex-wrap gap-2'>
+                  {partner.services.map((service) => (
+                    <li
+                      key={service}
+                      className='rounded-full bg-orange-50 px-3 py-1 text-sm text-[hsl(25,100%,35%)]'
+                    >
+                      {service}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <dl className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+              {partner.location ? (
+                <div>
+                  <dt className='mb-1 font-semibold text-gray-900'>Localisation</dt>
+                  <dd className='text-gray-600'>{partner.location}</dd>
+                </div>
+              ) : null}
+              {partner.established ? (
+                <div>
+                  <dt className='mb-1 font-semibold text-gray-900'>Établi en</dt>
+                  <dd className='text-gray-600'>{partner.established}</dd>
+                </div>
+              ) : null}
+            </dl>
+
+            {partner.website ? (
+              <div className='border-t pt-4'>
+                <a
+                  href={partner.website}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='inline-flex items-center rounded-lg bg-[hsl(25,100%,45%)] px-6 py-3 font-semibold text-white transition-colors hover:bg-[hsl(25,100%,40%)]'
+                >
+                  <ExternalLink className='mr-2 h-5 w-5' aria-hidden />
+                  Visiter le site
+                  <span className='sr-only'> de {partner.name} (nouvel onglet)</span>
+                </a>
+              </div>
+            ) : null}
           </div>
         </div>
-      </div>
-    </div>
+      ) : null}
+    </NativeModal>
   );
-};
+}
+
+function PartnerCard({ partner, onOpen }: { partner: Partner; onOpen: () => void }) {
+  return (
+    <article className='group relative flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-lg transition-shadow focus-within:ring-2 focus-within:ring-[hsl(25,100%,45%)] hover:shadow-2xl'>
+      <div className='flex aspect-video items-center justify-center bg-gradient-to-br from-orange-50 to-amber-100 p-4'>
+        <ExternalImage
+          src={partner.logo}
+          alt=''
+          className='h-full w-full object-contain'
+          width={300}
+          height={200}
+        />
+      </div>
+      <div className='flex flex-1 flex-col p-4'>
+        <h3 className='mb-1 line-clamp-2 font-semibold text-gray-900'>
+          {/* Le bouton couvre toute la carte via ::after. */}
+          <button
+            type='button'
+            onClick={onOpen}
+            aria-haspopup='dialog'
+            className='text-left after:absolute after:inset-0 after:content-[""] focus-visible:outline-none'
+          >
+            {partner.name}
+          </button>
+        </h3>
+        <p className='line-clamp-1 text-sm text-gray-600'>{partner.category}</p>
+        {partner.location ? (
+          <p className='mt-auto flex items-center gap-1 pt-3 text-sm text-gray-500'>
+            <MapPin className='h-4 w-4 shrink-0' aria-hidden />
+            {partner.location}
+          </p>
+        ) : null}
+      </div>
+    </article>
+  );
+}
 
 export function InfiniteCarousel() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [disableTransition, setDisableTransition] = useState(false);
-  const [hoveredPartnerId, setHoveredPartnerId] = useState<string | null>(null);
-  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [visibleItems, setVisibleItems] = useState(5);
-  const carouselRef = useRef<HTMLDivElement>(null);
-
-  // Données des partenaires
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
+  const [canPrev, setCanPrev] = useState(false);
+  const [canNext, setCanNext] = useState(false);
+  const scrollerRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,6 +177,8 @@ export function InfiniteCarousel() {
         if (!cancelled) setPartners((data?.partners as Partner[]) || []);
       } catch {
         // Ignorer les erreurs de fetch
+      } finally {
+        if (!cancelled) setLoaded(true);
       }
     })();
     return () => {
@@ -141,127 +186,49 @@ export function InfiniteCarousel() {
     };
   }, []);
 
-  // Gestion de la responsivité
-  useEffect(() => {
-    const updateVisibleItems = () => {
-      const width = window.innerWidth;
-      if (width < 480) {
-        setVisibleItems(1); // Très petit mobile: 1 item
-      } else if (width < 640) {
-        setVisibleItems(1); // Mobile: 1 item
-      } else if (width < 768) {
-        setVisibleItems(2); // Small tablet: 2 items
-      } else if (width < 1024) {
-        setVisibleItems(3); // Tablet: 3 items
-      } else if (width < 1280) {
-        setVisibleItems(4); // Desktop: 4 items
-      } else {
-        setVisibleItems(5); // Large desktop: 5 items
-      }
-    };
-
-    updateVisibleItems();
-    window.addEventListener('resize', updateVisibleItems);
-    return () => window.removeEventListener('resize', updateVisibleItems);
+  const updateEdges = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+    setCanPrev(scroller.scrollLeft > 4);
+    setCanNext(scroller.scrollLeft < maxScroll - 4);
   }, []);
 
-  const baseLength = partners.length;
-
-  // Gestion des différents cas de pagination
-  const getCarouselConfig = () => {
-    if (baseLength === 0) {
-      return {
-        track: [],
-        startIndex: 0,
-        itemWidthPct: 100,
-        showIndicators: false,
-        showNavigation: false,
-      };
-    }
-
-    if (baseLength <= visibleItems) {
-      // Moins d'items que la capacité visible - pas de carousel infini
-      return {
-        track: partners,
-        startIndex: 0,
-        itemWidthPct: 100 / baseLength,
-        showIndicators: false,
-        showNavigation: false,
-      };
-    }
-
-    // Plus d'items que la capacité visible - carousel infini
-    const track = [...partners, ...partners, ...partners];
-    const startIndex = baseLength;
-
-    return {
-      track,
-      startIndex,
-      itemWidthPct: 100 / visibleItems,
-      showIndicators: true,
-      showNavigation: true,
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    updateEdges();
+    scroller.addEventListener('scroll', updateEdges, { passive: true });
+    const observer = new ResizeObserver(updateEdges);
+    observer.observe(scroller);
+    return () => {
+      scroller.removeEventListener('scroll', updateEdges);
+      observer.disconnect();
     };
-  };
+  }, [partners.length, updateEdges]);
 
-  const config = getCarouselConfig();
-  const { track, startIndex, itemWidthPct, showIndicators, showNavigation } =
-    config;
-
-  // Initialiser l'index au milieu au premier rendu
+  // Un bouton désactivé perd le focus : on le reporte sur l'autre bouton.
+  const prevRef = useRef<HTMLButtonElement>(null);
+  const nextRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    if (baseLength > 0 && showNavigation) {
-      setCurrentIndex(startIndex);
-    } else if (baseLength > 0) {
-      setCurrentIndex(0);
-    }
-  }, [baseLength, startIndex, showNavigation]);
+    if (!canPrev && document.activeElement === prevRef.current) nextRef.current?.focus();
+    if (!canNext && document.activeElement === nextRef.current) prevRef.current?.focus();
+  }, [canPrev, canNext]);
 
-  // Auto-scroll seulement si navigation activée
-  useEffect(() => {
-    if (hoveredPartnerId || baseLength === 0 || !showNavigation) return;
-
-    const interval = setInterval(() => {
-      setDisableTransition(false);
-      setCurrentIndex(prev => prev + 1);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [hoveredPartnerId, baseLength, showNavigation]);
-
-  // Gérer la fin de transition pour recaler l'index au milieu sans animation
-  const handleTransitionEnd = () => {
-    if (!showNavigation) return;
-
-    if (currentIndex >= startIndex + baseLength) {
-      setDisableTransition(true);
-      setCurrentIndex(startIndex);
-    } else if (currentIndex <= startIndex - 1) {
-      setDisableTransition(true);
-      setCurrentIndex(startIndex + baseLength - 1);
-    }
+  const scrollByPage = (direction: 1 | -1) => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    scroller.scrollBy({
+      left: direction * scroller.clientWidth,
+      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+    });
   };
 
-  const handlePartnerClick = (partner: Partner) => {
-    setSelectedPartner(partner);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedPartner(null);
-  };
-
-  // Cas spécial: aucun partenaire
-  if (baseLength === 0) {
+  if (loaded && partners.length === 0) {
     return (
-      <div className='w-full flex flex-col items-center py-12'>
-        <div className='bg-gray-50 rounded-lg p-8 shadow-sm w-full max-w-md text-center'>
-          <div className='w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4'>
-            <span className='text-2xl text-gray-400'>🤝</span>
-          </div>
-          <h3 className='text-lg font-semibold text-gray-900 mb-2'>
-            Aucun partenaire disponible
-          </h3>
+      <div className='flex w-full flex-col items-center py-12'>
+        <div className='w-full max-w-md rounded-lg bg-gray-50 p-8 text-center shadow-sm'>
+          <h3 className='mb-2 text-lg font-semibold text-gray-900'>Aucun partenaire disponible</h3>
           <p className='text-gray-600'>
             Nos partenaires seront bientôt disponibles. Revenez plus tard !
           </p>
@@ -270,272 +237,56 @@ export function InfiniteCarousel() {
     );
   }
 
-  // Cas spécial: un seul partenaire - design centré et optimisé
-  if (baseLength === 1) {
-    const partner = partners[0];
-    return (
-      <div className='w-full flex justify-center'>
-        <div className='w-full max-w-md lg:max-w-lg xl:max-w-xl'>
-          <div
-            className='relative bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl'
-            onMouseEnter={() =>
-              setHoveredPartnerId(partner && partner.id ? partner.id : null)
-            }
-            onMouseLeave={() => setHoveredPartnerId(null)}
-            onClick={() => handlePartnerClick(partner as Partner)}
-          >
-            {/* Overlay sombre au hover */}
-            <div
-              className={`absolute inset-0 bg-black transition-opacity duration-300 z-10 ${
-                hoveredPartnerId === (partner && partner.id ? partner.id : null)
-                  ? 'opacity-30'
-                  : 'opacity-0'
-              }`}
-            />
-
-            {/* Image du partenaire */}
-            <div className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4'>
-              <ExternalImage
-                src={partner && partner.logo ? partner.logo : ''}
-                alt={partner && partner.name ? partner.name : 'Partenaire'}
-                className='w-full h-full object-contain'
-                width={300}
-                height={200}
-              />
-            </div>
-
-            {/* Contenu */}
-            <div className='p-6'>
-              <div className='flex items-center justify-between mb-3'>
-                <h3 className='text-xl font-bold text-gray-900 truncate'>
-                  {partner && partner.name ? partner.name : ''}
-                </h3>
-                <ExternalLink className='h-5 w-5 text-gray-400' />
-              </div>
-
-              <p className='text-gray-600 text-sm mb-4 line-clamp-3'>
-                {partner && partner.description ? partner.description : ''}
-              </p>
-
-              <div className='flex flex-wrap gap-2 mb-4'>
-                {partner && partner.services
-                  ? partner.services.slice(0, 3).map((service, idx) => (
-                      <span
-                        key={idx}
-                        className='px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full'
-                      >
-                        {service}
-                      </span>
-                    ))
-                  : []}
-                {partner && partner.services
-                  ? partner.services.length > 3 && (
-                      <span className='px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full'>
-                        +{partner.services.length - 3} autres
-                      </span>
-                    )
-                  : null}
-              </div>
-
-              <div className='flex items-center justify-between text-sm text-gray-500'>
-                <span className='flex items-center'>
-                  📍 {partner && partner.location ? partner.location : ''}
-                </span>
-                {partner && partner.established ? (
-                  <span>Depuis {partner.established}</span>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Cas spécial: deux partenaires - design en grille centrée
-  if (baseLength === 2) {
-    return (
-      <div className='w-full flex justify-center'>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl'>
-          {partners.map(partner => (
-            <div
-              key={partner.id}
-              className='relative bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl'
-              onMouseEnter={() => setHoveredPartnerId(partner.id)}
-              onMouseLeave={() => setHoveredPartnerId(null)}
-              onClick={() => handlePartnerClick(partner)}
-            >
-              {/* Overlay sombre au hover */}
-              <div
-                className={`absolute inset-0 bg-black transition-opacity duration-300 z-10 ${
-                  hoveredPartnerId === partner.id ? 'opacity-30' : 'opacity-0'
-                }`}
-              />
-
-              {/* Image du partenaire */}
-              <div className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4'>
-                <ExternalImage
-                  src={partner.logo}
-                  alt={partner.name}
-                  className='w-full h-full object-contain'
-                  width={300}
-                  height={200}
-                />
-              </div>
-
-              {/* Contenu */}
-              <div className='p-6'>
-                <div className='flex items-center justify-between mb-3'>
-                  <h3 className='text-lg font-bold text-gray-900 truncate'>
-                    {partner.name}
-                  </h3>
-                  <ExternalLink className='h-5 w-5 text-gray-400' />
-                </div>
-
-                <p className='text-gray-600 text-sm mb-4 line-clamp-2'>
-                  {partner.description}
-                </p>
-
-                <div className='flex flex-wrap gap-2 mb-4'>
-                  {partner.services.slice(0, 2).map((service, idx) => (
-                    <span
-                      key={idx}
-                      className='px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full'
-                    >
-                      {service}
-                    </span>
-                  ))}
-                  {partner.services.length > 2 && (
-                    <span className='px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full'>
-                      +{partner.services.length - 2} autres
-                    </span>
-                  )}
-                </div>
-
-                <div className='flex items-center justify-between text-sm text-gray-500'>
-                  <span className='flex items-center'>
-                    📍 {partner.location}
-                  </span>
-                  {partner.established && (
-                    <span>Depuis {partner.established}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const showControls = canPrev || canNext;
+  const controlClass =
+    'inline-flex h-11 w-11 items-center justify-center rounded-full border border-orange-200 bg-white text-[hsl(25,100%,40%)] shadow-sm transition-colors hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40';
 
   return (
     <>
-      <div className='relative overflow-hidden'>
-        <div
-          ref={carouselRef}
-          className={`flex ${
-            disableTransition
-              ? 'transition-none'
-              : 'transition-transform duration-1000 ease-in-out'
-          }`}
-          style={{ transform: `translateX(-${currentIndex * itemWidthPct}%)` }}
-          onTransitionEnd={handleTransitionEnd}
+      <section aria-roledescription='carrousel' aria-label='Nos partenaires' className='relative'>
+        <ul
+          ref={scrollerRef}
+          className='scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-1 px-1 pb-4 pt-2 md:gap-6'
         >
-          {track.map((partner, index) => (
-            <div
-              key={`${partner.id}-${index}`}
-              className='flex-shrink-0 px-1 sm:px-2 md:px-4'
-              style={{ width: `${itemWidthPct}%` }}
+          {partners.map((partner, index) => (
+            <li
+              key={partner.id}
+              aria-roledescription='diapositive'
+              aria-label={`${index + 1} sur ${partners.length}`}
+              className='w-[80%] shrink-0 snap-start sm:w-[calc((100%-1rem)/2)] md:w-[calc((100%-3rem)/3)] lg:w-[calc((100%-4.5rem)/4)] xl:w-[calc((100%-6rem)/5)]'
             >
-              <div
-                className={`relative bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transition-all duration-300 ${
-                  hoveredPartnerId === partner.id
-                    ? 'scale-105 shadow-2xl'
-                    : 'hover:scale-105'
-                }`}
-                onMouseEnter={() => setHoveredPartnerId(partner.id)}
-                onMouseLeave={() => setHoveredPartnerId(null)}
-                onClick={() => handlePartnerClick(partner)}
-              >
-                {/* Overlay sombre au hover */}
-                <div
-                  className={`absolute inset-0 bg-black transition-opacity duration-300 z-10 ${
-                    hoveredPartnerId === partner.id ? 'opacity-30' : 'opacity-0'
-                  }`}
-                />
-
-                {/* Image du partenaire */}
-                <div className='aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-2 sm:p-3 md:p-4'>
-                  <ExternalImage
-                    src={partner.logo}
-                    alt={partner.name}
-                    className='w-full h-full object-contain'
-                    width={300}
-                    height={200}
-                  />
-                </div>
-
-                {/* Contenu */}
-                <div className='p-2 sm:p-3 md:p-4'>
-                  <h3 className='font-semibold text-gray-900 text-xs sm:text-sm mb-1 line-clamp-2'>
-                    {partner.name}
-                  </h3>
-                  <p className='text-xs text-gray-600 mb-2 line-clamp-1'>
-                    {partner.category}
-                  </p>
-                </div>
-
-                {/* Bouton d'action visible au hover */}
-                <div
-                  className={`absolute bottom-2 sm:bottom-3 md:bottom-4 left-1/2 transform -translate-x-1/2 z-20 transition-opacity duration-300 ${
-                    hoveredPartnerId === partner.id
-                      ? 'opacity-100'
-                      : 'opacity-0'
-                  }`}
-                >
-                  <button className='bg-white text-[hsl(25,100%,53%)] px-2 sm:px-3 md:px-4 py-1 sm:py-2 rounded-full text-xs font-semibold shadow-lg hover:bg-gray-50 transition-colors'>
-                    Voir détails
-                  </button>
-                </div>
-              </div>
-            </div>
+              <PartnerCard partner={partner} onOpen={() => setSelectedPartner(partner)} />
+            </li>
           ))}
-        </div>
+        </ul>
 
-        {/* Indicateurs de position - seulement si navigation activée et plus de partenaires que visible */}
-        {showIndicators && baseLength > visibleItems && (
-          <div className='flex justify-center mt-6 space-x-2'>
-            {Array.from(
-              { length: Math.ceil(baseLength / visibleItems) },
-              (_, index) => (
-                <button
-                  title='Indicateur de position'
-                  key={index}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    Math.floor(
-                      ((currentIndex - startIndex + baseLength) % baseLength) /
-                        visibleItems,
-                    ) === index
-                      ? 'bg-[hsl(25,100%,53%)]'
-                      : 'bg-gray-300'
-                  }`}
-                  onClick={() => {
-                    setDisableTransition(false);
-                    setCurrentIndex(startIndex + index * visibleItems);
-                  }}
-                />
-              ),
-            )}
+        {showControls ? (
+          <div className='mt-4 flex justify-center gap-3'>
+            <button
+              type='button'
+              className={controlClass}
+              ref={prevRef}
+              onClick={() => scrollByPage(-1)}
+              disabled={!canPrev}
+              aria-label='Partenaires précédents'
+            >
+              <ChevronLeft className='h-5 w-5' aria-hidden />
+            </button>
+            <button
+              type='button'
+              className={controlClass}
+              ref={nextRef}
+              onClick={() => scrollByPage(1)}
+              disabled={!canNext}
+              aria-label='Partenaires suivants'
+            >
+              <ChevronRight className='h-5 w-5' aria-hidden />
+            </button>
           </div>
-        )}
-      </div>
+        ) : null}
+      </section>
 
-      {/* Modal des détails du partenaire */}
-      <PartnerModal
-        partner={selectedPartner}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-      />
+      <PartnerModal partner={selectedPartner} onClose={() => setSelectedPartner(null)} />
     </>
   );
 }

@@ -3,7 +3,43 @@ const require = createRequire(import.meta.url);
 // Use webpack from Next.js's bundled version (webpack is not a direct dependency)
 const webpack = require('next/dist/compiled/webpack/webpack-lib');
 
+/**
+ * CSP en « Report-Only » : elle signale les violations dans la console sans rien bloquer.
+ * Une fois GTM et Stripe vérifiés, renommer l'en-tête en Content-Security-Policy.
+ */
+const CSP = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self' https://checkout.stripe.com https://accounts.google.com https://www.facebook.com",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.google-analytics.com https://js.stripe.com https://static.cloudflareinsights.com",
+  "connect-src 'self' https://api.diaspomoney.fr https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://api.stripe.com https://*.sentry.io https://*.ingest.sentry.io https://cloudflareinsights.com",
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.googletagmanager.com",
+  'upgrade-insecure-requests',
+].join('; ');
+
+const SECURITY_HEADERS = [
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=(), payment=(self "https://js.stripe.com")' },
+  { key: 'Content-Security-Policy-Report-Only', value: CSP },
+];
+
 const nextConfig = {
+  // Ne pas annoncer « X-Powered-By: Next.js ».
+  poweredByHeader: false,
+
+  // En-têtes de sécurité appliqués à toutes les réponses.
+  async headers() {
+    return [{ source: '/:path*', headers: SECURITY_HEADERS }];
+  },
+
   // Optimisation des images
   images: {
     formats: ['image/webp', 'image/avif'], // Seulement webp et avif sont supportés par Next.js
@@ -63,9 +99,6 @@ const nextConfig = {
     // Configuration pour permettre toutes les images externes en développement
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Loader personnalisé pour les images locales
-    loader: 'custom',
-    loaderFile: './lib/image-loader.ts',
   },
 
   // Configuration pour exclure certains packages de l'externalisation serveur

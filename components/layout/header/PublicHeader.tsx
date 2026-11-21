@@ -35,6 +35,7 @@ export default function PublicHeader() {
           <div className='flex items-center'>
             <Link href='/' className='flex-shrink-0 flex items-center space-x-2'>
               <Logo
+                loading='eager'
                 src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
                 width={640}
                 height={320}

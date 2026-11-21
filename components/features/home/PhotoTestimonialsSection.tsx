@@ -4,9 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 
 const PHOTO_TESTIMONIALS = [
-  { id: 1, src: '/img/partners/WhatsApp Image 2026-02-05 at 14.59.59 (1).jpeg', alt: 'Partenaires DiaspoMoney' },
-  { id: 2, src: '/img/partners/WhatsApp Image 2026-02-25 at 12.18.54.jpeg', alt: 'Partenaires DiaspoMoney' },
-  { id: 3, src: '/img/partners/WhatsApp Image 2026-02-05 at 14.59.59.jpeg', alt: 'Partenaires DiaspoMoney' },
+  { id: 1, src: '/img/partners/WhatsApp Image 2026-02-05 at 14.59.59 (1).jpeg', alt: 'Cabinet dentaire d’une clinique partenaire, fauteuil et équipement de soins' },
+  { id: 2, src: '/img/partners/WhatsApp Image 2026-02-25 at 12.18.54.jpeg', alt: 'Salle de radiologie du House of Health Medical Complex à Douala' },
+  { id: 3, src: '/img/partners/WhatsApp Image 2026-02-05 at 14.59.59.jpeg', alt: 'Une dentiste soigne une patiente dans une clinique partenaire' },
 ];
 
 const IMAGES_PER_SLIDE = 2;
