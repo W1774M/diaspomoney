@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * Tests d'intégration pour les pages refactorisées avec autorisation
  * 

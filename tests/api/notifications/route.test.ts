@@ -46,7 +46,8 @@ const mockClient = {
   db: vi.fn(() => mockDb),
 };
 
-vi.mock('@/lib/database/mongodb', () => ({
+// La route importe @/lib/mongodb (lib/database/mongodb n’en est qu’une ré-exportation).
+vi.mock('@/lib/mongodb', () => ({
   getMongoClient: vi.fn(() => Promise.resolve(mockClient)),
 }));
 

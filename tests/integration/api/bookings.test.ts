@@ -80,6 +80,16 @@ describe('Integration: /api/bookings', () => {
 
   describe('POST /api/bookings', () => {
     it('devrait créer une réservation dans la base de données', async () => {
+      // La réservation exige une offre existante et active dans le catalogue (collection services).
+      const mongo = (globalThis as any).__DIASPOMONEY_TEST_MONGO__ as import('mongodb').MongoClient;
+      await mongo.db(process.env['MONGODB_DB']).collection('services').insertOne({
+        id: 'test-service-id',
+        name: 'Consultation test',
+        category: 'HEALTH',
+        price: 19,
+        isActive: true,
+      });
+
       // Aligner le payload sur CreateBookingSchema (lib/validations/booking.schema.ts)
       // NB: on n'inclut pas de "payment" ici pour éviter les dépendances externes (Stripe) en intégration.
       const bookingData = {

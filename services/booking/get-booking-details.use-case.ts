@@ -1,4 +1,4 @@
-import { ApiErrors } from '@/lib/api/error-handler';
+import { ApiError, ApiErrors } from '@/lib/api/error-handler';
 import { DATABASE, ROLES } from '@/lib/constants';
 import { getMongoClient } from '@/lib/database/mongodb';
 import { bookingMapper } from '@/lib/mappers';
@@ -57,13 +57,13 @@ export async function getBookingDetailsUseCase({
   roles,
 }: GetBookingDetailsInput) {
   if (!mongoose.Types.ObjectId.isValid(bookingId)) {
-    throw ApiErrors.VALIDATION_ERROR({ bookingId: 'ID de réservation invalide' });
+    throw new ApiError(400, 'ID de réservation invalide', 'VALIDATION_ERROR', { bookingId: bookingId });
   }
 
   const booking = await bookingService.getBookingById(bookingId);
 
   if (!booking) {
-    throw ApiErrors.NOT_FOUND;
+    throw new ApiError(404, 'Réservation non trouvée', 'NOT_FOUND');
   }
 
   const mappedBooking = bookingMapper.map(booking as any);
