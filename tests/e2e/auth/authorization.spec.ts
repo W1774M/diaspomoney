@@ -9,8 +9,11 @@
 import { expect, test } from '@playwright/test';
 import { clearSession, expectRedirect, loginAs } from './helpers';
 
-/** Redirection appliquée par AuthorizedRoute quand le rôle ne convient pas. */
-const REFUSED = /\/dashboard$/;
+/**
+ * Rôle refusé : AuthorizedRoute renvoie vers /dashboard, qui redirige ensuite chaque rôle vers
+ * son propre espace (un client arrive sur /dashboard/customer).
+ */
+const REFUSED = /\/dashboard(\/customer)?$/;
 
 test.describe("Système d'autorisation E2E", () => {
   test.beforeEach(async ({ page }) => {
