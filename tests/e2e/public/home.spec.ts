@@ -48,7 +48,7 @@ test.describe('Accueil', () => {
 // Le bandeau des cliniques défile en continu : on joue ces parcours avec « mouvement réduit »
 // (préférence système respectée par le site), où les cartes sont immobiles et défilables.
 test.describe('Cliniques partenaires (mouvement réduit)', () => {
-  test.use({ reducedMotion: 'reduce' });
+  test.use({ contextOptions: { reducedMotion: 'reduce' } });
   test.beforeEach(({ page }) => withConsentDecided(page));
 
   test('une carte de clinique ouvre son détail dans une modale fermable au clavier', async ({ page }) => {
