@@ -16,14 +16,15 @@ commands:
       - run:
           name: 🚀 Déploiement de la version choisie
           command: |
-            : "${DEPLOY_HOST:?DEPLOY_HOST manquant}" "${DEPLOY_USER:?DEPLOY_USER manquant}" "${DEPLOY_KNOWN_HOSTS:?DEPLOY_KNOWN_HOSTS manquant}"
+            : "${DEPLOY_HOST:?DEPLOY_HOST manquant}" "${DEPLOY_USER:?DEPLOY_USER manquant}"
             case "${ENVIRONMENT_NAME}" in
               development) target=dev ;;
               staging) target=rct ;;
               production) target=prod ;;
               *) echo "Environnement inconnu : '${ENVIRONMENT_NAME}'" >&2; exit 1 ;;
             esac
-            mkdir -p ~/.ssh && echo "$DEPLOY_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+            # Clé publique d'hôte du serveur (non secrète) : protège contre une usurpation du serveur.
+            mkdir -p ~/.ssh && echo "${DEPLOY_HOST} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJQnLPGAhyIDjB0rYkbNl4gSVShP2iH4KE7kolx2Iv24" >> ~/.ssh/known_hosts
             ssh -o BatchMode=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "deploy ${target} ${TARGET_VERSION}"
           no_output_timeout: 30m
 

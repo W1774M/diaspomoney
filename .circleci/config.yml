@@ -10,7 +10,7 @@ version: 2.1
 #   main            : … → déploiement prod
 #
 # Variables du projet CircleCI (Project Settings → Environment Variables) :
-#   DEPLOY_HOST, DEPLOY_USER, DEPLOY_KNOWN_HOSTS  accès SSH au serveur
+#   DEPLOY_HOST, DEPLOY_USER                      accès SSH au serveur (clé d'hôte inscrite dans ce fichier)
 #   GITHUB_TOKEN                                  jeton GitHub (pull requests en écriture)
 # Clé SSH (Project Settings → SSH Keys → Additional SSH Keys) : clé « circleci-deploy »,
 # limitée côté serveur à scripts/server/ci-deploy.sh (déploiement uniquement).
@@ -211,8 +211,9 @@ jobs:
       - run:
           name: 🚀 Déploiement << parameters.env >>
           command: |
-            : "${DEPLOY_HOST:?DEPLOY_HOST manquant}" "${DEPLOY_USER:?DEPLOY_USER manquant}" "${DEPLOY_KNOWN_HOSTS:?DEPLOY_KNOWN_HOSTS manquant}"
-            mkdir -p ~/.ssh && echo "$DEPLOY_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+            : "${DEPLOY_HOST:?DEPLOY_HOST manquant}" "${DEPLOY_USER:?DEPLOY_USER manquant}"
+            # Clé publique d'hôte du serveur (non secrète) : protège contre une usurpation du serveur.
+            mkdir -p ~/.ssh && echo "${DEPLOY_HOST} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJQnLPGAhyIDjB0rYkbNl4gSVShP2iH4KE7kolx2Iv24" >> ~/.ssh/known_hosts
             ssh -o BatchMode=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "deploy << parameters.env >> $CIRCLE_SHA1"
           no_output_timeout: 30m
       - run:

@@ -40,7 +40,7 @@ Les valeurs sont dans un fichier lisible par root uniquement sur le serveur :
 ssh diaspomoney-server "cat /root/.diaspomoney-circleci-setup"
 ```
 
-1. **Project Settings → Environment Variables** : ajouter `DEPLOY_HOST`, `DEPLOY_USER` et `DEPLOY_KNOWN_HOSTS`, avec les valeurs du fichier.
+1. **Project Settings → Environment Variables** : ajouter `DEPLOY_HOST` et `DEPLOY_USER` (la clé publique du serveur est inscrite dans la config ; `DEPLOY_KNOWN_HOSTS` n'est plus utilisée), avec les valeurs du fichier.
 2. **Project Settings → SSH Keys → Additional SSH Keys** :
    - Hostname : la valeur de `DEPLOY_HOST` ;
    - clé privée : `ssh diaspomoney-server "cat /root/.ssh/circleci_deploy"` ;
@@ -128,7 +128,7 @@ MongoDB de test en local : `pnpm -s test:db:up`. La base est `127.0.0.1:27018/di
 
    ```
    SENTRY_RELAY_CLIENT_SECRET='<Client Secret Sentry>'
-   CIRCLECI_VALIDATION_URL='https://circleci.com/api/v3/deploy/hooks/<UUID de l'organisation CircleCI>/validate'
+   CIRCLECI_VALIDATION_URL='https://circleci.com/api/v3/deploy/hooks/0cd6cbdc-890c-4f94-8189-ccb2978954c2/validate'
    CIRCLECI_VALIDATION_SECRET='<secret CCIVWH_… de l'étape 3>'
    ```
 
