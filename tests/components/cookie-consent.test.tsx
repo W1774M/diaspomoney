@@ -1,13 +1,30 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { CookieConsent, ManageCookiesButton } from '@/components/consent/CookieConsent';
 
 const KEY = 'diaspomoney.consent';
 
+/** Stockage en mémoire : localStorage n'est pas fourni par l'environnement de test. */
+function memoryStorage(): Storage {
+  const data = new Map<string, string>();
+  return {
+    get length() { return data.size; },
+    clear: () => data.clear(),
+    getItem: (k) => data.get(k) ?? null,
+    key: (i) => Array.from(data.keys())[i] ?? null,
+    removeItem: (k) => { data.delete(k); },
+    setItem: (k, v) => { data.set(k, String(v)); },
+  };
+}
+
 describe('CookieConsent', () => {
+  beforeEach(() => {
+    Object.defineProperty(window, 'localStorage', { value: memoryStorage(), configurable: true });
+  });
+
   afterEach(() => {
-    window.localStorage.clear();
+    cleanup();
     delete (window as unknown as { dataLayer?: unknown }).dataLayer;
   });
 
