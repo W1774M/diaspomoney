@@ -5,9 +5,18 @@
  * ou un lecteur d'écran), assertions auto-attendantes (pas de délai fixe), chaque test
  * part d'un contexte vierge (cookies et localStorage isolés par Playwright).
  */
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+/** Choix de cookies déjà fait : le bandeau ne recouvre pas la page (hors tests du bandeau). */
+async function withConsentDecided(page: Page) {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('diaspomoney.consent', JSON.stringify({ analytics: 'denied', date: Date.now() }));
+  });
+}
 
 test.describe('Accueil', () => {
+  test.beforeEach(({ page }) => withConsentDecided(page));
+
   test('affiche le titre, la navigation et le pied de page', async ({ page }) => {
     await page.goto('/');
 
@@ -26,6 +35,21 @@ test.describe('Accueil', () => {
     await skipLink.press('Enter');
     await expect(page).toHaveURL(/#contenu$/);
   });
+
+  test('le bandeau défilant peut être mis en pause', async ({ page }) => {
+    await page.goto('/');
+
+    const pause = page.getByRole('button', { name: 'Mettre en pause le défilement' }).first();
+    await pause.click();
+    await expect(page.getByRole('button', { name: 'Reprendre le défilement' }).first()).toBeVisible();
+  });
+});
+
+// Le bandeau des cliniques défile en continu : on joue ces parcours avec « mouvement réduit »
+// (préférence système respectée par le site), où les cartes sont immobiles et défilables.
+test.describe('Cliniques partenaires (mouvement réduit)', () => {
+  test.use({ reducedMotion: 'reduce' });
+  test.beforeEach(({ page }) => withConsentDecided(page));
 
   test('une carte de clinique ouvre son détail dans une modale fermable au clavier', async ({ page }) => {
     await page.goto('/');
@@ -49,14 +73,6 @@ test.describe('Accueil', () => {
     await page.getByRole('button', { name: 'Choisir cette clinique' }).click();
 
     await expect(page).toHaveURL(/\/services\/health\?clinic=clinique-saint-petersbourg/);
-  });
-
-  test('le bandeau défilant peut être mis en pause', async ({ page }) => {
-    await page.goto('/');
-
-    const pause = page.getByRole('button', { name: 'Mettre en pause le défilement' }).first();
-    await pause.click();
-    await expect(page.getByRole('button', { name: 'Reprendre le défilement' }).first()).toBeVisible();
   });
 });
 
