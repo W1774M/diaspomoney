@@ -249,145 +249,14 @@ jobs:
           path: .next
           destination: build-artifacts
 
-  # ============================================
-  # DÉPLOIEMENT
-  # ============================================
-  deploy-dev:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: medium
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          name: 🔧 Install kubectl
-          command: |
-            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            chmod +x kubectl
-            sudo mv kubectl /usr/local/bin/
-      - run:
-          name: 🔐 Configure kubectl
-          command: |
-            echo "$KUBE_CONFIG_DEV" | base64 -d > kubeconfig
-            export KUBECONFIG=kubeconfig
-            kubectl cluster-info
-      - run:
-          name: 🚀 Déployer sur Dev
-          command: |
-            export KUBECONFIG=kubeconfig
-            chmod +x ./scripts/deploy.sh
-            ./scripts/deploy.sh dev
-          environment:
-            KUBECONFIG: kubeconfig
-      - run:
-          name: ✅ Vérifier le déploiement
-          command: |
-            export KUBECONFIG=kubeconfig
-            kubectl rollout status deployment/diaspomoney-app -n diaspomoney --timeout=300s || true
-            kubectl get pods -n diaspomoney -l app=diaspomoney-app
-      - run:
-          name: 🧪 Smoke Tests
-          command: |
-            sleep 10
-            curl -f https://dev.diaspomoney.fr/api/health || echo "⚠️ Smoke test échoué"
-
-  deploy-rct:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: medium
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          name: 🔧 Install kubectl
-          command: |
-            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            chmod +x kubectl
-            sudo mv kubectl /usr/local/bin/
-      - run:
-          name: 🔐 Configure kubectl
-          command: |
-            echo "$KUBE_CONFIG_RCT" | base64 -d > kubeconfig
-            export KUBECONFIG=kubeconfig
-            kubectl cluster-info
-      - run:
-          name: 🚀 Déployer sur Recette
-          command: |
-            export KUBECONFIG=kubeconfig
-            chmod +x ./scripts/deploy.sh
-            ./scripts/deploy.sh rct
-          environment:
-            KUBECONFIG: kubeconfig
-      - run:
-          name: ✅ Vérifier le déploiement
-          command: |
-            export KUBECONFIG=kubeconfig
-            kubectl rollout status deployment/diaspomoney-app -n diaspomoney --timeout=300s || true
-            kubectl get pods -n diaspomoney -l app=diaspomoney-app
-      - run:
-          name: 🧪 Smoke Tests
-          command: |
-            sleep 10
-            curl -f https://rct.diaspomoney.fr/api/health || echo "⚠️ Smoke test échoué"
-
-  deploy-prod:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: medium
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          name: 🔧 Install kubectl
-          command: |
-            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            chmod +x kubectl
-            sudo mv kubectl /usr/local/bin/
-      - run:
-          name: 🔐 Configure kubectl
-          command: |
-            echo "$KUBE_CONFIG_PROD" | base64 -d > kubeconfig
-            export KUBECONFIG=kubeconfig
-            kubectl cluster-info
-      - run:
-          name: 📋 Afficher informations de déploiement
-          command: |
-            echo "🚀 Déploiement en production"
-            echo "📦 Commit: $CIRCLE_SHA1"
-            echo "👤 Auteur: $CIRCLE_USERNAME"
-            echo "🌿 Branche: $CIRCLE_BRANCH"
-            echo "📅 Date: $(date)"
-      - run:
-          name: 🚀 Déployer sur Production
-          command: |
-            export KUBECONFIG=kubeconfig
-            chmod +x ./scripts/deploy.sh
-            ./scripts/deploy.sh prod
-          environment:
-            KUBECONFIG: kubeconfig
-      - run:
-          name: ✅ Vérifier le déploiement
-          command: |
-            export KUBECONFIG=kubeconfig
-            kubectl rollout status deployment/diaspomoney-app -n diaspomoney --timeout=600s || true
-            kubectl get pods -n diaspomoney -l app=diaspomoney-app
-      - run:
-          name: 🧪 Smoke Tests
-          command: |
-            sleep 15
-            curl -f https://diaspomoney.fr/api/health || echo "⚠️ Smoke test échoué"
-
 # ============================================
 # WORKFLOWS
 # ============================================
 workflows:
   version: 2
   
-  # Workflow pour la branche dev
-  deploy-dev-workflow:
+  # CI pour la branche dev. Le déploiement runtime est géré sur le serveur via Docker Compose et Portainer.
+  ci-dev-workflow:
     when:
       and:
         - equal: [ dev, << pipeline.git.branch >> ]
@@ -402,15 +271,9 @@ workflows:
       - build:
           requires:
             - coverage
-      - deploy-dev:
-          requires:
-            - build
-          filters:
-            branches:
-              only: dev
 
-  # Workflow pour la branche rct
-  deploy-rct-workflow:
+  # CI pour la branche rct. Le déploiement runtime est géré sur le serveur via Docker Compose et Portainer.
+  ci-rct-workflow:
     when:
       and:
         - equal: [ rct, << pipeline.git.branch >> ]
@@ -425,15 +288,9 @@ workflows:
       - build:
           requires:
             - coverage
-      - deploy-rct:
-          requires:
-            - build
-          filters:
-            branches:
-              only: rct
 
-  # Workflow pour la branche main (production)
-  deploy-prod-workflow:
+  # CI pour la branche main. Le déploiement runtime est géré sur le serveur via Docker Compose et Portainer.
+  ci-prod-workflow:
     when:
       and:
         - equal: [ main, << pipeline.git.branch >> ]
@@ -448,16 +305,6 @@ workflows:
       - build:
           requires:
             - coverage
-      - hold-production:
-          type: approval
-          requires:
-            - build
-      - deploy-prod:
-          requires:
-            - hold-production
-          filters:
-            branches:
-              only: main
 
   # Workflow pour les pull requests
   pr-workflow:

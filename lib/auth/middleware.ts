@@ -11,28 +11,11 @@
 
 import { childLogger } from '@/lib/logger';
 import type { AuthenticatedUser } from '@/lib/types';
+import { getNextAuthSecret } from '@/lib/auth/next-auth-secret';
 import * as Sentry from '@sentry/nextjs';
 import jwt from 'jsonwebtoken';
 import { decode } from 'next-auth/jwt';
 import { NextRequest } from 'next/server';
-
-function isProductionEnvironment(): boolean {
-  return process.env['NODE_ENV'] === 'production' || process.env['VERCEL_ENV'] === 'production';
-}
-
-function getNextAuthSecret(): string | null {
-  const secret = process.env['AUTH_SECRET'] ?? process.env['NEXTAUTH_SECRET'];
-
-  if (secret) {
-    return secret;
-  }
-
-  if (isProductionEnvironment()) {
-    return null;
-  }
-
-  return 'fallback-secret-for-development';
-}
 
 /**
  * Authentifier un utilisateur depuis une requête

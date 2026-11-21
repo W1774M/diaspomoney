@@ -29,6 +29,16 @@ export interface SelectedService {
   options: ServiceOption[];
 }
 
+export interface SelectedClinic {
+  id: string;
+  name: string;
+  image: string;
+  location: string;
+  specialties: string[];
+  generalistPrice?: string;
+  specialistPrice?: string;
+}
+
 export interface ServiceBookingStep {
   step: number;
   title: string;
@@ -42,6 +52,7 @@ export interface ServiceBookingState {
   serviceType: ServiceType | null;
   clientInfo: Partial<ClientInfo>;
   beneficiaryInfo: Partial<BeneficiaryData>;
+  selectedClinic: SelectedClinic | null;
   selectedService: SelectedService | null;
   additionalOptions: ServiceOption[];
   paymentIntentId: string | null;
@@ -92,6 +103,7 @@ export interface AppointmentAvailability {
  */
 export interface ServiceBookingWizardProps {
   initialServiceType?: ServiceType;
+  initialClinic?: SelectedClinic | null;
   onComplete?: (bookingId: string) => void;
   onCancel?: () => void;
 }

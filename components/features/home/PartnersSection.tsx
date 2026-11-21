@@ -2,7 +2,7 @@ import { InfiniteCarousel } from "@/components/features/partners/InfiniteCarouse
 
 export function PartnersSection() {
   return (
-    <section id="partners" className="py-20 md:py-24 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden">
+    <section id="partners" className="py-20 md:pt-12 md:pb-1 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Tag */}
         <div className="flex justify-center mb-6">

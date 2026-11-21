@@ -309,6 +309,16 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
               Conditions d&apos;utilisation
             </Link>
             <Link
+              href='/terms-of-sale'
+              className='text-xs transition-colors hover:opacity-80'
+              style={{
+                color: '#999999',
+                fontFamily: 'Plus Jakarta Sans, sans-serif',
+              }}
+            >
+              Conditions générales de vente
+            </Link>
+            <Link
               href='/privacy-policy'
               className='text-xs transition-colors hover:opacity-80'
               style={{

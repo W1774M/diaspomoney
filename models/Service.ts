@@ -38,6 +38,11 @@ const ServiceSchema = new Schema(
       default: true,
       index: true,
     },
+    important: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     metadata: {
       type: Schema.Types.Mixed,
       default: {},
@@ -65,6 +70,7 @@ export interface ServiceDocument extends Document {
   description: string;
   price: number;
   isActive: boolean;
+  important: boolean;
   metadata?: Record<string, any>;
   associatedOptions?: string[];
   createdAt: Date;

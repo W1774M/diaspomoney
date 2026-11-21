@@ -12,7 +12,7 @@
 ;
 
 import { ProviderQueryBuilder } from '@/builders';
-import { auth } from '@/auth';
+import { requireApiRoles } from '@/lib/api/auth';
 import { handleApiRoute, validateBody, validateQuery, ApiErrors } from '@/lib/api/error-handler';
 import { createPaginatedResponse, createResourceResponse } from '@/lib/api/response';
 import { PROVIDER_CONSTANTS, USER_STATUSES, ROLES, DATABASE } from '@/lib/constants/index';
@@ -35,13 +35,10 @@ import { mapProviderToResponse } from '@/lib/mappers/provider.mapper';
 export async function GET(request: NextRequest) {
   return handleApiRoute(request, async () => {
     // Auth + authorization (CSM ne doit voir que son portefeuille)
-    const session = await auth();
-    const userId = session?.user?.id;
-    const userRoles = session?.user?.roles || [];
-    if (!userId) throw ApiErrors.UNAUTHORIZED;
-    const isAdmin = userRoles.includes(ROLES.ADMIN) || userRoles.includes(ROLES.SUPERADMIN);
-    const isCSM = userRoles.includes(ROLES.CSM);
-    if (!isAdmin && !isCSM) throw ApiErrors.FORBIDDEN;
+    const session = await requireApiRoles([ROLES.ADMIN, ROLES.SUPERADMIN, ROLES.CSM]);
+    const userId = session.user.id;
+    const isAdmin = session.roles.includes(ROLES.ADMIN) || session.roles.includes(ROLES.SUPERADMIN);
+    const isCSM = session.roles.includes(ROLES.CSM);
 
     const { searchParams } = new URL(request.url);
 
@@ -90,7 +87,7 @@ export async function GET(request: NextRequest) {
       filters, 
       isAdmin, 
       isCSM,
-      ROLES_PROVIDER: ROLES.PROVIDER 
+      ROLES_PROVIDER: ROLES.PROVIDER, 
     }, 'Provider query filters before CSM check');
 
     // Si CSM: restreindre aux providers de son portefeuille
@@ -126,7 +123,7 @@ export async function GET(request: NextRequest) {
       
       // Compter tous les utilisateurs avec le rôle PROVIDER
       const totalProvidersCount = await usersCollection.countDocuments({
-        roles: { $in: [ROLES.PROVIDER] }
+        roles: { $in: [ROLES.PROVIDER] },
       });
       
       // Compter avec le filtre de statut si applicable
@@ -159,7 +156,7 @@ export async function GET(request: NextRequest) {
         shouldFilterStatus,
         sampleProviderRoles: sampleProvider?.['roles'],
         sampleProviderStatus: sampleProvider?.['status'],
-        sampleProviderId: sampleProvider?._id?.toString()
+        sampleProviderId: sampleProvider?._id?.toString(),
       }, 'Direct MongoDB provider counts and sample');
     } catch (debugError) {
       logger.error({ error: debugError }, 'Error in debug MongoDB query');
@@ -185,7 +182,7 @@ export async function GET(request: NextRequest) {
       query, 
       paginationOptions, 
       resultCount: result?.data?.length || 0,
-      total: result?.total || 0
+      total: result?.total || 0,
     }, 'Providers query result from repository');
 
     // Récupérer les prestataires avec filtres (pour compatibilité avec le code existant)
@@ -216,7 +213,7 @@ export async function GET(request: NextRequest) {
 
     logger.debug({ 
       serviceFilters, 
-      serviceResultCount: serviceResult?.data?.length || 0 
+      serviceResultCount: serviceResult?.data?.length || 0, 
     }, 'Providers query result from service');
 
     // Mapper les providers depuis le repository ou, en fallback, depuis le service
@@ -373,7 +370,7 @@ export async function GET(request: NextRequest) {
       filteredCount: filteredProviders.length,
       total,
       page: Math.floor(offset / limit) + 1,
-      limit
+      limit,
     }, 'Final providers response');
 
     return createPaginatedResponse(
@@ -407,17 +404,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return handleApiRoute(request, async () => {
     // Vérifier l'authentification et l'autorisation
-    const session = await auth();
-    if (!session?.user?.id) {
-      throw ApiErrors.UNAUTHORIZED;
-    }
-
-    const userRoles = session.user.roles || [];
-    const isAdmin = userRoles.includes(ROLES.ADMIN) || userRoles.includes(ROLES.SUPERADMIN);
-    
-    if (!isAdmin) {
-      throw ApiErrors.FORBIDDEN;
-    }
+    await requireApiRoles([ROLES.ADMIN, ROLES.SUPERADMIN]);
 
     const body = await request.json();
 
@@ -442,7 +429,7 @@ export async function POST(request: NextRequest) {
         : [];
     
     const isAlreadyProvider = currentRoles.some(role => 
-      role === ROLES.PROVIDER || role.toUpperCase() === 'PROVIDER'
+      role === ROLES.PROVIDER || role.toUpperCase() === 'PROVIDER',
     );
 
     // Préparer les données de mise à jour

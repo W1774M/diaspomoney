@@ -24,6 +24,7 @@ import {
   X,
   Ticket,
   Layers,
+  Star,
 } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 
@@ -357,6 +358,7 @@ function ServicesManagementPageContent() {
     description: string;
     price: number;
     isActive: boolean;
+    important: boolean;
     metadata?: Record<string, any>;
     associatedOptions?: string[];
   }) => {
@@ -884,7 +886,12 @@ function ServicesManagementPageContent() {
                 {paginatedServices.map((service) => {
                   const CategoryIcon = getCategoryIcon(service.category);
                   return (
-                    <tr key={service.id} className="group hover:bg-gray-50">
+                    <tr
+                      key={service.id}
+                      className={`group hover:bg-gray-50 ${
+                        service.important ? 'bg-amber-50/70 ring-1 ring-inset ring-amber-200' : ''
+                      }`}
+                    >
                       <td className="px-6 py-4 max-w-md align-top">
                         <div className="flex items-start">
                           <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg bg-gray-100">
@@ -894,6 +901,12 @@ function ServicesManagementPageContent() {
                             <div className="text-sm font-medium text-gray-900">
                               {service.label}
                             </div>
+                            {service.important && (
+                              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                                <Star className="h-3 w-3 fill-current" aria-hidden />
+                                Important
+                              </span>
+                            )}
                             <div className="text-sm text-gray-500 line-clamp-2" title={service.description}>
                               {service.description}
                             </div>
@@ -912,7 +925,11 @@ function ServicesManagementPageContent() {
                           <span className="font-medium">{service.price} €</span>
                         )}
                       </td>
-                      <td className="sticky right-0 z-10 px-6 py-4 whitespace-nowrap text-right text-sm font-medium bg-white border-l border-gray-200 shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.08)] group-hover:bg-gray-50">
+                      <td
+                        className={`sticky right-0 z-10 px-6 py-4 whitespace-nowrap text-right text-sm font-medium border-l border-gray-200 shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.08)] group-hover:bg-gray-50 ${
+                          service.important ? 'bg-amber-50' : 'bg-white'
+                        }`}
+                      >
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => {
@@ -1680,7 +1697,7 @@ function ServicesManagementPageContent() {
                       notificationManager.addSuccess(
                         editingPromotionCode 
                           ? 'Code promotionnel modifié avec succès'
-                          : 'Code promotionnel créé avec succès'
+                          : 'Code promotionnel créé avec succès',
                       );
                       setShowPromotionCodeForm(false);
                       setEditingPromotionCode(null);

@@ -35,8 +35,7 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    const PromotionCodeModel = PromotionCode as any;
-    const code = await PromotionCodeModel.findOne({
+    const code = await PromotionCode.findOne({
       label: label.toUpperCase().trim(),
     });
 
@@ -49,18 +48,18 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date();
-    const validFrom = new Date((code as any).validFrom);
-    const validUntil = new Date((code as any).validUntil);
+    const validFrom = new Date(code.validFrom);
+    const validUntil = new Date(code.validUntil);
 
     // Vérifier le statut
-    if ((code as any).status !== 'valid') {
+    if (code.status !== 'valid') {
       return NextResponse.json({
         success: true,
         valid: false,
         error: 'Ce code promotionnel n\'est plus valide',
         code: {
-          label: (code as any).label,
-          status: (code as any).status,
+          label: code.label,
+          status: code.status,
         },
       });
     }
@@ -72,7 +71,7 @@ export async function POST(request: NextRequest) {
         valid: false,
         error: 'Ce code promotionnel n\'est pas encore actif',
         code: {
-          label: (code as any).label,
+          label: code.label,
           validFrom: validFrom,
         },
       });
@@ -80,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     if (now > validUntil) {
       // Marquer comme expiré
-      (code as any).status = 'expired';
+      code.status = 'expired';
       await code.save();
 
       return NextResponse.json({
@@ -88,29 +87,29 @@ export async function POST(request: NextRequest) {
         valid: false,
         error: 'Ce code promotionnel a expiré',
         code: {
-          label: (code as any).label,
+          label: code.label,
           status: 'expired',
         },
       });
     }
 
     // Vérifier l'usage maximum
-    if ((code as any).maxUsage && (code as any).usageCount >= (code as any).maxUsage) {
+    if (code.maxUsage && code.usageCount >= code.maxUsage) {
       return NextResponse.json({
         success: true,
         valid: false,
         error: 'Ce code promotionnel a atteint son nombre maximum d\'utilisations',
         code: {
-          label: (code as any).label,
-          usageCount: (code as any).usageCount,
-          maxUsage: (code as any).maxUsage,
+          label: code.label,
+          usageCount: code.usageCount,
+          maxUsage: code.maxUsage,
         },
       });
     }
 
     // Code valide
     const discountAmount = amount > 0 
-      ? ((amount * (code as any).percentage) / 100)
+      ? ((amount * code.percentage) / 100)
       : 0;
     const finalAmount = amount > 0 
       ? (amount - discountAmount)
@@ -118,8 +117,8 @@ export async function POST(request: NextRequest) {
 
     log.info(
       { 
-        codeId: (code as any)._id, 
-        label: (code as any).label,
+        codeId: code._id, 
+        label: code.label,
         userId,
       },
       'Promotion code validated',
@@ -129,17 +128,17 @@ export async function POST(request: NextRequest) {
       success: true,
       valid: true,
       code: {
-        _id: (code as any)._id,
-        id: (code as any)._id.toString(),
-        label: (code as any).label,
-        percentage: (code as any).percentage,
+        _id: code._id,
+        id: code._id.toString(),
+        label: code.label,
+        percentage: code.percentage,
         validFrom: validFrom,
         validUntil: validUntil,
-        usageCount: (code as any).usageCount,
-        maxUsage: (code as any).maxUsage,
+        usageCount: code.usageCount,
+        maxUsage: code.maxUsage,
       },
       discount: {
-        percentage: (code as any).percentage,
+        percentage: code.percentage,
         amount: discountAmount,
         finalAmount: finalAmount,
       },

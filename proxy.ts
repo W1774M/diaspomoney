@@ -1,10 +1,41 @@
 import { logger } from '@sentry/nextjs';
+import { getNextAuthSecret } from '@/lib/auth/next-auth-secret';
+import { getToken } from 'next-auth/jwt';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+async function hasValidSession(request: NextRequest): Promise<boolean> {
+  const secret = getNextAuthSecret();
+
+  if (!secret) {
+    return false;
+  }
+
+  try {
+    const token = await getToken({
+      req: request,
+      secret,
+    });
+
+    return Boolean(token);
+  } catch {
+    return false;
+  }
+}
+
+function buildLoginRedirect(request: NextRequest): NextResponse {
+  const loginUrl = new URL("/login", request.url);
+  loginUrl.searchParams.set(
+    'callbackUrl',
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+  );
+
+  return NextResponse.redirect(loginUrl);
+}
+
 // Proxy Next.js 16
 // Gère les redirections HTTPS et l'authentification
-export default function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const host = request.headers.get('host') || '';
   const xForwardedFor = request.headers.get('x-forwarded-for');
   const xRealIp = request.headers.get('x-real-ip');
@@ -94,22 +125,18 @@ export default function proxy(request: NextRequest) {
 
   // If protected path, check for session token
   if (isProtectedPath) {
-    const sessionToken =
-      request.cookies.get("next-auth.session-token") ||
-      request.cookies.get("__Secure-next-auth.session-token") ||
-      request.cookies.get("authjs.session-token") ||
-      request.cookies.get("__Secure-authjs.session-token");
+    const isAuthenticated = await hasValidSession(request);
 
-    if (!sessionToken) {
+    if (!isAuthenticated) {
       // Not authenticated, redirect to login
       // IMPORTANT: Use the same hostname
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = buildLoginRedirect(request);
       logger.info('[MIDDLEWARE] Redirecting to login:', {
         from: request.url,
-        to: loginUrl.toString(),
+        to: loginUrl.headers.get('location'),
         host,
       });
-      return NextResponse.redirect(loginUrl);
+      return loginUrl;
     }
   }
 

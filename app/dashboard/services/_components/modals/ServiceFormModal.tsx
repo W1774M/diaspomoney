@@ -15,6 +15,7 @@ export interface ServiceFormModalProps {
     description: string;
     price: number;
     isActive: boolean;
+    important: boolean;
     metadata?: Record<string, any>;
     associatedOptions?: string[];
   }) => Promise<void>;
@@ -34,9 +35,10 @@ export default function ServiceFormModal({
     label: service?.label || '',
     description: service?.description || '',
     price: service?.price || 0,
-    isActive: (service as any)?.isActive ?? true,
-    metadata: (service as any)?.metadata || {},
-    associatedOptions: (service as any)?.associatedOptions || [],
+    isActive: service?.isActive ?? true,
+    important: service?.important ?? false,
+    metadata: service?.metadata || {},
+    associatedOptions: service?.associatedOptions || [],
   });
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -189,6 +191,24 @@ Conditions : voir [nos CGU](https://diaspomoney.fr)."
             <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
               Service actif (visible pour les utilisateurs)
             </label>
+          </div>
+
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-start">
+              <input
+                type="checkbox"
+                id="important"
+                checked={formData.important}
+                onChange={(e) => setFormData({ ...formData, important: e.target.checked })}
+                className="mt-1 h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
+              />
+              <label htmlFor="important" className="ml-3 block text-sm text-gray-800">
+                <span className="font-semibold">Service important</span>
+                <span className="block text-gray-600">
+                  S&apos;il est activé, ce service ressortira visuellement dans le parcours de réservation.
+                </span>
+              </label>
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">

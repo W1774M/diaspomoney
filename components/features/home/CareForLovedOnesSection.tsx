@@ -22,7 +22,7 @@ export function CareForLovedOnesSection() {
   };
 
   return (
-    <section className="py-20 md:py-24 relative overflow-hidden" style={{ backgroundColor: '#FDF8F3' }}>
+    <section className="py-20 md:pt-12 md:pb-1 relative overflow-hidden" style={{ backgroundColor: '#FDF8F3' }}>
       {/* Background glow effect */}
       <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full opacity-30 blur-3xl" style={{ backgroundColor: '#FBE3CC' }}></div>
       

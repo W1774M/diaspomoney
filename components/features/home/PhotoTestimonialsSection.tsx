@@ -35,7 +35,7 @@ export function PhotoTestimonialsSection() {
   return (
     <section
       id="photo-testimonials"
-      className="py-20 md:py-24 bg-white relative overflow-hidden"
+      className="py-20 md:pt-12 md:pb-1 bg-white relative overflow-hidden"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Tag */}

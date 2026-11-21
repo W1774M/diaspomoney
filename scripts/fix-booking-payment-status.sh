@@ -3,11 +3,11 @@
 # Script de migration pour corriger les commandes avec un statut CONFIRMED ou FINISHED
 # mais un paymentStatus "pending"
 #
-# Usage: 
+# Usage:
 #   ./scripts/fix-booking-payment-status.sh [--dry-run] [--yes] [--host HOST]
 #   --dry-run: Affiche seulement les commandes à corriger sans les modifier
 #   --yes: Exécute la correction sans demander de confirmation
-#   --host HOST: Spécifie l'hôte MongoDB (par défaut: localhost si exécuté en dehors de Docker)
+#   --host HOST: Remplace l'hôte MongoDB pour cette exécution
 
 set -euo pipefail
 
@@ -120,56 +120,29 @@ load_env() {
 
 load_env
 
-# Variables MongoDB - construire l'URI si nécessaire
-MONGO_ADMINUSERNAME="${MONGO_ADMINUSERNAME:-admin}"
-MONGO_PASSWORD="${MONGO_PASSWORD:-}"
+# Variables MongoDB compatibles avec l'ancien .env et le nouveau Compose.
+MONGO_ADMINUSERNAME="${MONGO_INITDB_ROOT_USERNAME:-${MONGO_ADMINUSERNAME:-admin}}"
+MONGO_PASSWORD="${MONGO_INITDB_ROOT_PASSWORD:-${MONGO_PASSWORD:-}}"
 MONGO_DB="${MONGO_DB:-diaspomoney}"
-
-# Gérer l'hôte et le port MongoDB
+MONGO_HOST="${MONGO_HOST_OVERRIDE:-${MONGO_HOST:-localhost}}"
 MONGO_PORT="${MONGO_PORT:-27017}"
 
-# Si on est en dehors de Docker et que MONGO_HOST est "mongodb", utiliser localhost avec le port NodePort
-if [ -n "$MONGO_HOST_OVERRIDE" ]; then
-    # Priorité à l'option --host
-    MONGO_HOST="$MONGO_HOST_OVERRIDE"
-elif [ -n "${MONGO_HOST:-}" ]; then
-    # Si MONGO_HOST est défini dans .env mais vaut "mongodb" (nom Docker) et qu'on n'est pas dans Docker
-    if [ "$MONGO_HOST" = "mongodb" ] && [ ! -f /.dockerenv ] && [ -z "${DOCKER_CONTAINER:-}" ]; then
-        show_warning "MONGO_HOST est défini à 'mongodb' (nom Docker) mais le script s'exécute en dehors de Docker"
-        show_info "Vérification de l'accès via NodePort Kubernetes (port 30017)..."
-        
-        # Vérifier si le service NodePort est disponible
-        if kubectl get svc diaspomoney-mongo-external -n diaspomoney &>/dev/null; then
-            MONGO_HOST="localhost"
-            MONGO_PORT="30017"
-            show_info "Utilisation de localhost:30017 (NodePort Kubernetes)"
-        else
-            MONGO_HOST="localhost"
-            show_info "Utilisation de localhost:27017 (port par défaut)"
-        fi
-    fi
-else
-    # Par défaut, vérifier si on peut utiliser le NodePort
-    if kubectl get svc diaspomoney-mongo-external -n diaspomoney &>/dev/null; then
-        MONGO_HOST="localhost"
-        MONGO_PORT="30017"
-        show_info "Détection automatique: utilisation de localhost:30017 (NodePort Kubernetes)"
+# Priorité aux URLs explicites, puis construction depuis les variables Compose.
+MONGODB_URI="${MONGODB_URI:-${MONGO_URL:-${MONGO_URI:-}}}"
+
+if [ -z "${MONGODB_URI:-}" ] || [[ "${MONGODB_URI}" == *'${'* ]] || [[ "${MONGODB_URI}" == *'$MONGO'* ]]; then
+    if [ -n "$MONGO_PASSWORD" ] && [ -n "$MONGO_ADMINUSERNAME" ]; then
+        MONGODB_URI="mongodb://${MONGO_ADMINUSERNAME}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}?authSource=admin"
     else
-        MONGO_HOST="localhost"
-        show_info "Utilisation de localhost:27017 (port par défaut)"
+        MONGODB_URI="mongodb://${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}"
     fi
 fi
 
-# Si MONGODB_URI n'est pas défini, contient des variables non résolues, ou contient "mongodb" comme hôte en dehors de Docker, le reconstruire
-if [ -z "${MONGODB_URI:-}" ] || \
-   [[ "${MONGODB_URI}" == *'${'* ]] || \
-   [[ "${MONGODB_URI}" == *'$MONGO'* ]] || \
-   ([[ "${MONGODB_URI}" == *'@mongodb:'* ]] && [ ! -f /.dockerenv ] && [ -z "${DOCKER_CONTAINER:-}" ]) || \
-   ([[ "${MONGODB_URI}" == *'mongodb://mongodb'* ]] && [ ! -f /.dockerenv ] && [ -z "${DOCKER_CONTAINER:-}" ]); then
-    if [ -n "$MONGO_PASSWORD" ] && [ -n "$MONGO_ADMINUSERNAME" ]; then
-        MONGODB_URI="mongodb://${MONGO_ADMINUSERNAME}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}?authSource=${MONGO_ADMINUSERNAME}"
-    else
-        MONGODB_URI="mongodb://${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB}"
+if [[ "$MONGODB_URI" == *'@mongodb:'* || "$MONGODB_URI" == *'mongodb://mongodb'* ]]; then
+    if [ ! -f /.dockerenv ] && [ -z "${DOCKER_CONTAINER:-}" ]; then
+        show_warning "L'URI MongoDB cible l'hôte Docker Compose 'mongodb' depuis l'hôte local."
+        show_info "Exécute ce script depuis un conteneur relié au réseau Compose, ou fournis une URI accessible via MONGODB_URI."
+        show_info "Exemple: MONGODB_URI='mongodb://admin:***@localhost:27017/diaspomoney?authSource=admin' $0 --dry-run"
     fi
 fi
 

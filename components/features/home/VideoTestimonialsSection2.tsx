@@ -22,7 +22,7 @@ export function VideoTestimonialsSection2({ videoTestimonials }: { videoTestimon
   };
 
   return (
-    <section className="py-20 md:py-24 relative overflow-hidden">
+    <section className="py-20 md:pt-12 md:pb-0 relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Title with Play Icon */}
         <div className="flex items-center justify-center gap-3 mb-12">

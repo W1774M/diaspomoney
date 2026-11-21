@@ -12,7 +12,10 @@ export interface Service {
   label: string;
   description: string;
   price: number;
+  isActive: boolean;
+  important: boolean;
   optional: boolean;
+  metadata?: Record<string, unknown>;
   associatedOptions?: string[];
 }
 
@@ -120,7 +123,10 @@ export function useServices(options: UseServicesOptions = {}): UseServicesReturn
           label: s.label,
           description: s.description,
           price: s.price,
+          isActive: s.isActive ?? true,
+          important: s.important ?? false,
           optional: s.optional ?? false,
+          metadata: s.metadata || {},
           associatedOptions: s.associatedOptions || [],
         }));
         setServices(mappedServices);

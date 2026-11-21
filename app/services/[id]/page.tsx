@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { ServiceBookingWizard } from '@/components/services/ServiceBookingWizard';
 import { SPECIALITY_TYPES } from '@/lib/constants';
@@ -23,6 +23,7 @@ import {
 import type { ServiceType } from '@/lib/types/constants.types';
 import { logger } from '@/lib/logger';
 import { ServiceDescription } from '@/components/common/ServiceDescription';
+import { getHealthClinicById } from '@/lib/clinics';
 
 type PublicPack = {
   _id?: string;
@@ -71,10 +72,12 @@ const mapIdToServiceType = (id: string): ServiceType | null => {
 export default function ServiceDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const serviceId = Array.isArray(params.id) ? params.id[0] : params.id;
   
   // L'ID correspond au type de service (health, education, btp)
   const serviceType = mapIdToServiceType(serviceId || '');
+  const selectedClinic = getHealthClinicById(searchParams.get('clinic'));
   const [showBookingWizard, setShowBookingWizard] = useState(false);
   const [packs, setPacks] = useState<PublicPack[]>([]);
   const [packsLoading, setPacksLoading] = useState(false);
@@ -165,6 +168,7 @@ export default function ServiceDetailPage() {
             </button>
             <ServiceBookingWizard
               initialServiceType={serviceType}
+              initialClinic={selectedClinic}
               onComplete={(bookingId) => {
                 // Ne pas rediriger automatiquement - laisser l'utilisateur voir l'étape 4 de confirmation
                 // La redirection se fera via les boutons dans l'étape 4
@@ -210,6 +214,15 @@ export default function ServiceDetailPage() {
                     {serviceType === SPECIALITY_TYPES.BTP && 
                       "Accompagnement dans la recherche, la location et la construction de biens immobiliers."}
                   </p>
+                  {selectedClinic && (
+                    <div className="mb-4 rounded-xl border border-orange-200 bg-orange-50 p-4">
+                      <p className="text-sm font-semibold text-[hsl(25,100%,40%)]">
+                        Clinique sélectionnée
+                      </p>
+                      <p className="mt-1 font-bold text-gray-900">{selectedClinic.name}</p>
+                      <p className="text-sm text-gray-700">{selectedClinic.location}</p>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-6 text-sm text-gray-500">
                     <div className="flex items-center gap-2">

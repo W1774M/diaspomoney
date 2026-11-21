@@ -1,9 +1,24 @@
-import { Schema, model, models, Document } from 'mongoose';
+import { Schema, model, models, Document, type Model } from 'mongoose';
 
 /**
  * Statuts possibles pour un code promotionnel
  */
 export type PromotionCodeStatus = 'valid' | 'expired' | 'invalid';
+
+export interface PromotionCodeDocument extends Document {
+  label: string;
+  percentage: number;
+  validFrom: Date;
+  validUntil: Date;
+  status: PromotionCodeStatus;
+  usageCount: number;
+  maxUsage: number | null;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isValid(): boolean;
+  calculateDiscount(amount: number): number;
+}
 
 /**
  * Modèle PromotionCode pour MongoDB
@@ -67,41 +82,30 @@ PromotionCodeSchema.index({ validUntil: 1, status: 1 });
 PromotionCodeSchema.index({ createdAt: -1 });
 
 // Méthode pour vérifier si le code est valide
-PromotionCodeSchema.methods['isValid'] = function() {
+PromotionCodeSchema.methods['isValid'] = function(this: PromotionCodeDocument) {
   const now = new Date();
-  const self = this as any;
   return (
-    self.status === 'valid' &&
-    self.validFrom <= now &&
-    self.validUntil >= now &&
-    (self.maxUsage === null || self.usageCount < self.maxUsage)
+    this.status === 'valid' &&
+    this.validFrom <= now &&
+    this.validUntil >= now &&
+    (this.maxUsage === null || this.usageCount < this.maxUsage)
   );
 };
 
 // Méthode pour calculer le montant réduit
-PromotionCodeSchema.methods['calculateDiscount'] = function(amount: number): number {
-  const self = this as any;
-  if (!self['isValid']()) {
+PromotionCodeSchema.methods['calculateDiscount'] = function(
+  this: PromotionCodeDocument,
+  amount: number,
+): number {
+  if (!this.isValid()) {
     return 0;
   }
-  return (amount * self.percentage) / 100;
+  return (amount * this.percentage) / 100;
 };
 
-export interface PromotionCodeDocument extends Document {
-  label: string;
-  percentage: number;
-  validFrom: Date;
-  validUntil: Date;
-  status: PromotionCodeStatus;
-  usageCount: number;
-  maxUsage: number | null;
-  createdBy?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  isValid(): boolean;
-  calculateDiscount(amount: number): number;
-}
-
-export default models['PromotionCode'] ||
+const PromotionCodeModel =
+  (models['PromotionCode'] as Model<PromotionCodeDocument> | undefined) ||
   model<PromotionCodeDocument>('PromotionCode', PromotionCodeSchema);
+
+export default PromotionCodeModel;
 

@@ -14,7 +14,7 @@ import { Performance } from '@/lib/decorators/performance.decorator';
 import { Transaction } from '@/lib/decorators/transaction.decorator';
 import { BOOKING_STATUSES, DATABASE, ROLES } from '@/lib/constants';
 import { logger } from '@/lib/logger';
-import { Booking, getBookingRepository } from '@/repositories';
+import { getBookingRepository, type Booking, type BookingFilters } from '@/repositories';
 import type { PaginatedFindResult } from '@/lib/types';
 import type { BookingData, BookingServiceFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
@@ -23,6 +23,33 @@ import { createCheckoutSession } from '@/lib/stripe-checkout';
 import { sendPaymentLinkEmail } from '@/lib/email/resend';
 import { notificationService } from '@/services/notification/notification.service';
 import { cleanUrl } from '@/lib/utils';
+
+interface BookingProgressHistoryEntry {
+  step?: number;
+  completed?: boolean;
+  [key: string]: unknown;
+}
+
+interface PricedOption {
+  price?: number | string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isProgressHistoryEntry(value: unknown): value is BookingProgressHistoryEntry {
+  return isRecord(value);
+}
+
+function isPricedOption(value: unknown): value is PricedOption {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const price = value['price'];
+  return price === undefined || typeof price === 'number' || typeof price === 'string';
+}
 
 /**
  * BookingService refactoré utilisant le Repository Pattern
@@ -52,74 +79,15 @@ export class BookingService {
         'Liaison des commandes guest à l\'utilisateur',
       );
 
-      // Accéder directement à la collection MongoDB pour les requêtes complexes
-      // (requête regex sur requesterId et filtre sur metadata.clientEmail)
-      const { mongoClient } = await import('@/lib/mongodb');
-      const client = await mongoClient;
-      const db = client.db();
-      const collection = db.collection('bookings');
-      
-      // Normaliser l'email pour la comparaison (en minuscules)
-      const normalizedEmail = userEmail.toLowerCase();
-      
-      // Rechercher toutes les commandes guest avec l'email correspondant
-      const guestBookings = await collection.find({
-        requesterId: { $regex: /^guest-/ },
-        'metadata.clientEmail': normalizedEmail,
-      }).toArray();
-
-      if (guestBookings.length === 0) {
-        logger.info(
-          { userId, userEmail },
-          'Aucune commande guest trouvée pour cet email',
-        );
-        return 0;
-      }
-
-      logger.info(
-        {
-          userId,
-          userEmail,
-          guestBookingsCount: guestBookings.length,
-          bookingIds: guestBookings.map((b: any) => b._id.toString()),
-        },
-        'Commandes guest trouvées, mise à jour en cours',
+      const updatedCount = await this.bookingRepository.linkGuestBookingsToUser(
+        userId,
+        userEmail,
       );
 
-      // Mettre à jour toutes les commandes trouvées une par une via le repository
-      // pour s'assurer que les validations et les hooks sont exécutés
-      let updatedCount = 0;
-      for (const booking of guestBookings) {
-        try {
-          const bookingId = booking._id.toString();
-          await this.bookingRepository.update(bookingId, {
-            requesterId: userId,
-          } as any);
-          updatedCount++;
-          
-          logger.debug(
-            { bookingId, userId, userEmail },
-            'Commande guest liée à l\'utilisateur',
-          );
-        } catch (updateError) {
-          logger.warn(
-            {
-              error: updateError,
-              bookingId: booking._id.toString(),
-              userId,
-              userEmail,
-            },
-            'Erreur lors de la mise à jour d\'une commande guest, continuation',
-          );
-          // Continuer avec les autres commandes même si une échoue
-        }
-      }
-
       logger.info(
         {
           userId,
           userEmail,
-          totalFound: guestBookings.length,
           successfullyUpdated: updatedCount,
         },
         'Commandes guest liées à l\'utilisateur avec succès',
@@ -156,13 +124,22 @@ export class BookingService {
   }> {
     try {
       // Convertir les filtres en format BookingFilters
-      const repositoryFilters: Record<string, any> = {
-        requesterId: filters.userId,
-        providerId: filters.providerId,
-        status: filters.status as Booking['status'],
-        dateFrom: filters.dateFrom,
-        dateTo: filters.dateTo,
-      };
+      const repositoryFilters: BookingFilters = {};
+      if (filters.userId !== undefined) {
+        repositoryFilters.requesterId = filters.userId;
+      }
+      if (filters.providerId !== undefined) {
+        repositoryFilters.providerId = filters.providerId;
+      }
+      if (filters.status !== undefined) {
+        repositoryFilters.status = filters.status as Booking['status'];
+      }
+      if (filters.dateFrom !== undefined) {
+        repositoryFilters.dateFrom = filters.dateFrom;
+      }
+      if (filters.dateTo !== undefined) {
+        repositoryFilters.dateTo = filters.dateTo;
+      }
 
       // Utiliser le repository avec pagination
       const limit = filters['limit'] || 50;
@@ -1158,7 +1135,7 @@ export class BookingService {
         
         const invoices = await invoiceRepository.findInvoicesWithFilters(
           { bookingId: id },
-          { limit: 1, page: 1 }
+          { limit: 1, page: 1 },
         );
 
         if (invoices.data.length > 0) {
@@ -1368,14 +1345,18 @@ export class BookingService {
         throw new Error('Réservation non trouvée');
       }
 
-      const metadata = booking.metadata || {};
+      const metadata: Record<string, unknown> = booking.metadata || {};
       const currentStep = (metadata['currentStep'] as number) || 0;
-      const progressHistory = (metadata['progressHistory'] as any[]) || [];
+      const progressHistoryValue = metadata['progressHistory'];
+      const progressHistory = Array.isArray(progressHistoryValue)
+        ? progressHistoryValue.filter(isProgressHistoryEntry)
+        : [];
 
       // Récupérer toutes les étapes complétées
       const completedSteps = progressHistory
-        .filter((h: any) => h.completed === true)
-        .map((h: any) => h.step as number);
+        .filter((historyEntry) => historyEntry.completed === true)
+        .map((historyEntry) => historyEntry.step)
+        .filter((historyStep): historyStep is number => typeof historyStep === 'number');
       
       const maxCompletedStep = completedSteps.length > 0 ? Math.max(...completedSteps) : 0;
       
@@ -1385,12 +1366,14 @@ export class BookingService {
         const maxStepName = stepNames[maxCompletedStep] || `Étape ${maxCompletedStep}`;
         throw new Error(
           `L'étape ${step} (${requestedStepName}) est déjà complétée. ` +
-          `L'étape ${maxCompletedStep} (${maxStepName}) ayant été validée, toutes les étapes précédentes sont considérées comme complétées.`
+          `L'étape ${maxCompletedStep} (${maxStepName}) ayant été validée, toutes les étapes précédentes sont considérées comme complétées.`,
         );
       }
 
       // Vérifier si l'étape est déjà complétée dans l'historique
-      const stepHistory = progressHistory.find((h: any) => h.step === step && h.completed === true);
+      const stepHistory = progressHistory.find((historyEntry) => (
+        historyEntry.step === step && historyEntry.completed === true
+      ));
       if (stepHistory) {
         // Si l'étape est déjà complétée, vérifier si c'est l'étape actuelle
         // Si c'est l'étape actuelle et qu'elle est complétée, on peut quand même avancer
@@ -1423,7 +1406,7 @@ export class BookingService {
             `Impossible de valider l'étape ${step} (${requestedStepName}) : ` +
             `les étapes précédentes doivent être complétées en premier. ` +
             `Étapes manquantes : ${missingStepsNames}. ` +
-            `Veuillez valider les étapes dans l'ordre (1, 2, 3, 4).`
+            `Veuillez valider les étapes dans l'ordre (1, 2, 3, 4).`,
           );
         }
       }
@@ -1436,7 +1419,7 @@ export class BookingService {
         throw new Error(
           `Impossible de valider l'étape ${step} (${requestedStepName}) : elle est déjà passée. ` +
           `La réservation est actuellement à l'étape ${currentStep} (${currentStepName}). ` +
-          `Vous pouvez uniquement valider l'étape actuelle (${currentStep}) ou l'étape suivante (${currentStep + 1}).`
+          `Vous pouvez uniquement valider l'étape actuelle (${currentStep}) ou l'étape suivante (${currentStep + 1}).`,
         );
       }
 
@@ -1508,7 +1491,7 @@ export class BookingService {
                 checkoutSessionId = checkoutResult.sessionId;
 
                 logger.info(
-                  { bookingId: id, checkoutSessionId, paymentUrl: paymentUrl.substring(0, 50) + '...' },
+                  { bookingId: id, checkoutSessionId, paymentUrl: `${paymentUrl.substring(0, 50)  }...` },
                   'Checkout session created for step 3 validation',
                 );
 
@@ -1540,7 +1523,7 @@ export class BookingService {
               error: errorMessage, 
               errorDetails: error,
               bookingId: id, 
-              step 
+              step, 
             }, 'Error creating payment link for step 3');
             Sentry.captureException(error, {
               tags: { component: 'BookingService', method: 'validateStep', step: 3 },
@@ -1590,7 +1573,6 @@ export class BookingService {
 
       // Calculer et mettre à jour le montant total si nécessaire
       // Le montant doit être calculé à partir de basePrice + optionsPrice - discountAmount
-      let calculatedTotalAmount: number | undefined;
       const basePrice = typeof metadata['basePrice'] === 'number'
         ? metadata['basePrice']
         : typeof metadata['basePrice'] === 'string'
@@ -1604,12 +1586,17 @@ export class BookingService {
       const optionsPrice = (() => {
         if (metadata['additionalOptions']) {
           try {
-            const options = typeof metadata['additionalOptions'] === 'string'
+            const options: unknown = typeof metadata['additionalOptions'] === 'string'
               ? JSON.parse(metadata['additionalOptions'])
               : metadata['additionalOptions'];
             if (Array.isArray(options)) {
-              return options.reduce((sum: number, opt: any) => {
-                const optPrice = typeof opt.price === 'number' ? opt.price : parseFloat(opt.price) || 0;
+              return options.reduce((sum: number, opt: unknown) => {
+                if (!isPricedOption(opt)) {
+                  return sum;
+                }
+                const optPrice = typeof opt.price === 'number'
+                  ? opt.price
+                  : parseFloat(opt.price ?? '') || 0;
                 return sum + optPrice;
               }, 0);
             }
@@ -1631,10 +1618,10 @@ export class BookingService {
         : 0;
 
       const subtotal = basePrice + optionsPrice;
-      calculatedTotalAmount = subtotal - discountAmount;
+      const calculatedTotalAmount = subtotal - discountAmount;
 
       // Mettre à jour les métadonnées
-      const updatedMetadata: Record<string, any> = {
+      const updatedMetadata: Record<string, unknown> = {
         ...metadata,
         currentStep: step,
         stepName,
@@ -1787,9 +1774,18 @@ export class BookingService {
       } else if (typeof error === 'string') {
         errorMessage = error;
       } else if (error && typeof error === 'object') {
-        errorMessage = (error as any).message || (error as any).error || JSON.stringify(error);
-        errorStack = (error as any).stack;
-        errorName = (error as any).name;
+        const errorRecord = error as Record<string, unknown>;
+        const message = errorRecord['message'];
+        const errorValue = errorRecord['error'];
+        const stack = errorRecord['stack'];
+        const name = errorRecord['name'];
+
+        errorMessage =
+          (typeof message === 'string' && message) ||
+          (typeof errorValue === 'string' && errorValue) ||
+          JSON.stringify(error);
+        errorStack = typeof stack === 'string' ? stack : undefined;
+        errorName = typeof name === 'string' ? name : undefined;
       }
       
       logger.error({ 
@@ -1798,7 +1794,7 @@ export class BookingService {
         errorStack,
         errorType: typeof error,
         id, 
-        step 
+        step, 
       }, 'Erreur validateStep');
       Sentry.captureException(error);
       throw error;

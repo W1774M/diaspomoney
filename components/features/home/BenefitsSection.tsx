@@ -43,7 +43,7 @@ const BENEFITS = [
 
 export function BenefitsSection() {
   return (
-    <section className="py-20 md:py-24 bg-gray-50 relative overflow-hidden">
+    <section className="py-20 md:pt-12 md:pb-1 bg-gray-50 relative overflow-hidden">
       {/* Decorative elements */}
       <div className="absolute top-20 left-10 w-32 h-32 bg-[#F97015] opacity-10 rounded-full blur-3xl"></div>
       <div className="absolute top-20 right-10 w-32 h-32 bg-[#F97015] opacity-10 rounded-full blur-3xl"></div>

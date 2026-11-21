@@ -30,6 +30,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 const baseUrl =
   process.env['NEXT_PUBLIC_APP_URL'] || 'https://diaspomoney.fr';
 
+const googleTagManagerId = 'GTM-N83PJN57';
+
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
@@ -85,7 +87,7 @@ export default function RootLayout({
               new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
               j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
               'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-            })(window,document,'script','dataLayer','GTM-N83PJN57');`,
+            })(window,document,'script','dataLayer','${googleTagManagerId}');`,
           }}
         />
 
@@ -100,7 +102,7 @@ export default function RootLayout({
           id='gtm-noscript'
           strategy='afterInteractive'
           dangerouslySetInnerHTML={{
-            __html: `<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T5KW77GK"
+            __html: `<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${googleTagManagerId}"
               height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>`,
           }}
         />

@@ -5,6 +5,7 @@
 
 import type { IMapper, MappingOptions } from '@/lib/types';
 import type { Booking } from '@/repositories/interfaces/IBookingRepository';
+import type { ServiceType as OrderServiceType } from '@/lib/types/orders.types';
 import { BOOKING_STATUSES } from '@/lib/constants';
 
 /**
@@ -62,6 +63,20 @@ export interface BookingResponse {
     phone: string;
     email?: string;
   };
+  beneficiary?: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email?: string;
+  };
+  selectedService?: {
+    id?: string | number;
+    name: string;
+    type: OrderServiceType;
+    description?: string;
+    price?: number;
+    duration?: number;
+  };
   metadata?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
@@ -99,6 +114,12 @@ function mapStatus(status: string | undefined): Booking['status'] {
   
   const normalizedStatus = status.toLowerCase();
   return statusMap[normalizedStatus] || BOOKING_STATUSES.PENDING;
+}
+
+function mapServiceTypeForOrder(serviceType: BookingDocument['serviceType']): OrderServiceType {
+  if (serviceType === 'BTP') return 'construction';
+  if (serviceType === 'EDUCATION') return 'education';
+  return 'health';
 }
 
 /**
@@ -181,6 +202,22 @@ export function mapBookingToResponse(
   }
   if (mappedRecipient) {
     response.recipient = mappedRecipient;
+  }
+  if (bookingDoc.beneficiary) {
+    response.beneficiary = {
+      firstName: bookingDoc.beneficiary.firstName || '',
+      lastName: bookingDoc.beneficiary.lastName || '',
+      phone: bookingDoc.beneficiary.phone || '',
+      ...(bookingDoc.beneficiary.email && { email: bookingDoc.beneficiary.email }),
+    };
+  }
+  const selectedService = bookingDoc['selectedService'];
+  if (selectedService?.name) {
+    response.selectedService = {
+      ...selectedService,
+      name: selectedService.name,
+      type: selectedService.type || mapServiceTypeForOrder(bookingDoc.serviceType),
+    };
   }
   
   return response;

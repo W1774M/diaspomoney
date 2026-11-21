@@ -53,7 +53,7 @@ export function RoadmapSection() {
   };
 
   return (
-    <section className="py-20 md:py-24 bg-black relative overflow-hidden">
+    <section className="py-20 md:pt-12 md:pb-8 bg-black relative overflow-hidden">
       {/* Decorative element */}
       <div className="absolute top-20 left-10 w-64 h-64 bg-[#F97015] opacity-5 rounded-full blur-3xl"></div>
 

@@ -31,6 +31,7 @@ export class MongoServiceRepository implements IServiceRepository {
       description: doc['description'],
       price: doc['price'],
       isActive: doc['isActive'] ?? true,
+      important: doc['important'] ?? false,
       metadata: doc['metadata'] || {},
       associatedOptions: doc['associatedOptions'] || [],
       createdAt: doc['createdAt'] || new Date(),

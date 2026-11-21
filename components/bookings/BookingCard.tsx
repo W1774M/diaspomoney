@@ -49,6 +49,11 @@ const BookingCard = React.memo<BookingCardProps>(function BookingCard({
             {booking.reservationNumber}
           </div>
           <div className="text-sm text-gray-500">{requesterName}</div>
+          {metadata['clinicName'] && (
+            <div className="mt-1 text-xs font-medium text-[hsl(25,100%,45%)]">
+              {String(metadata['clinicName'])}
+            </div>
+          )}
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">

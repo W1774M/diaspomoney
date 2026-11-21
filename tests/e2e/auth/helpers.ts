@@ -8,9 +8,43 @@
  */
 
 import { Page, expect } from '@playwright/test';
+import { encode, type JWT } from 'next-auth/jwt';
+import { existsSync, readFileSync } from 'fs';
+import path from 'path';
 import { ROLES } from '@/lib/constants';
+import { getNextAuthSecret } from '@/lib/auth/next-auth-secret';
+
+function loadTestEnv(): void {
+  const envPath = path.resolve(process.cwd(), '.env');
+  if (!existsSync(envPath)) {
+    return;
+  }
+
+  const envFile = readFileSync(envPath, 'utf8');
+  for (const line of envFile.split(/\r?\n/)) {
+    const match = line.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (!match) {
+      continue;
+    }
+
+    const key = match[1];
+    const rawValue = match[2] ?? '';
+    if (!key || process.env[key] !== undefined) {
+      continue;
+    }
+
+    const value = rawValue.replace(/^\${([A-Z0-9_]+)}$/, (_, envKey: string) => (
+      process.env[envKey] ?? ''
+    ));
+    process.env[key] = value;
+  }
+}
+
+loadTestEnv();
 
 export interface TestUser {
+  id: string;
+  name: string;
   email: string;
   password: string;
   roles: string[];
@@ -18,21 +52,29 @@ export interface TestUser {
 
 export const testUsers: Record<string, TestUser> = {
   admin: {
+    id: 'e2e-admin-user',
+    name: 'E2E Admin',
     email: 'admin@test.com',
     password: 'password123',
     roles: [ROLES.ADMIN],
   },
   csm: {
+    id: 'e2e-csm-user',
+    name: 'E2E CSM',
     email: 'csm@test.com',
     password: 'password123',
     roles: [ROLES.CSM],
   },
   provider: {
+    id: 'e2e-provider-user',
+    name: 'E2E Provider',
     email: 'provider@test.com',
     password: 'password123',
     roles: [ROLES.PROVIDER],
   },
   customer: {
+    id: 'e2e-customer-user',
+    name: 'E2E Customer',
     email: 'customer@test.com',
     password: 'password123',
     roles: [ROLES.CUSTOMER],
@@ -49,32 +91,48 @@ export const testUsers: Record<string, TestUser> = {
 export async function loginAs(
   page: Page,
   userType: keyof typeof testUsers,
-  options: { waitForNavigation?: boolean; timeout?: number } = {},
+  options: { redirectTo?: string } = {},
 ) {
-  const { waitForNavigation = true, timeout = 10000 } = options;
   const user = testUsers[userType];
 
   if (!user) {
     throw new Error(`User type "${userType}" not found in testUsers`);
   }
 
-  await page.goto('/login');
+  const secret = getNextAuthSecret();
+  if (!secret) {
+    throw new Error('AUTH_SECRET or NEXTAUTH_SECRET must be configured for E2E auth helpers');
+  }
 
-  // Attendre que le formulaire soit chargé
-  await page.waitForSelector('#email', { state: 'visible' });
-  await page.waitForSelector('#password', { state: 'visible' });
+  const primaryRole = user.roles[0] ?? ROLES.CUSTOMER;
+  const token: JWT = {
+    sub: user.id,
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    roles: user.roles,
+    role: primaryRole,
+  };
 
-  // Remplir le formulaire de connexion avec les IDs spécifiques
-  await page.fill('#email', user.email);
-  await page.fill('#password', user.password);
+  const sessionToken = await encode({
+    token,
+    secret,
+  });
 
-  // Cliquer sur le bouton de connexion (chercher par texte pour plus de robustesse)
-  const submitButton = page.getByRole('button', { name: /se connecter|connexion/i });
-  await submitButton.click();
+  await page.context().addCookies([
+    {
+      name: 'next-auth.session-token',
+      value: sessionToken,
+      url: 'http://localhost:3000',
+      httpOnly: true,
+      sameSite: 'Lax',
+      secure: false,
+      expires: Math.floor(Date.now() / 1000) + 60 * 60,
+    },
+  ]);
 
-  // Attendre la redirection vers le dashboard si demandé
-  if (waitForNavigation) {
-    await page.waitForURL('**/dashboard**', { timeout });
+  if (options.redirectTo) {
+    await page.goto(options.redirectTo);
   }
 }
 
