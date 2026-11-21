@@ -18,8 +18,8 @@ vi.mock('@/auth', () => ({
 
 // Mock PaymentService (Stripe) : en intégration on veut une DB réelle,
 // mais on ne veut pas dépendre d'un vrai STRIPE_SECRET_KEY.
-vi.mock('@/services/payment/payment.service.strategy', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/services/payment/payment.service.strategy')>();
+vi.mock('@/services/payment/payment.service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/payment/payment.service')>();
 
   const mockInstance = {
     createPaymentIntent: vi.fn(async (amount: number, currency: string, _customerId: string, metadata: any) => ({

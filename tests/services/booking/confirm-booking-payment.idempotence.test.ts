@@ -140,7 +140,7 @@ describe('ConfirmBookingPayment idempotence (API ↔ webhook)', () => {
     expect(mockSendPaymentConfirmationEmail).toHaveBeenCalledTimes(1);
     expect(mockUpdateBooking).toHaveBeenCalled();
 
-    const updateArg = mockUpdateBooking.mock.calls[0][1];
+    const updateArg = mockUpdateBooking.mock.calls[0]![1];
     expect(updateArg.metadata.paymentEventsEmitted).toBe(true);
     expect(updateArg.metadata.confirmationEmailSent).toBe(true);
     expect(updateArg.metadata.paymentIntentId).toBe('pi_shared');

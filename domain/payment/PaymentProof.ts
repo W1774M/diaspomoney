@@ -11,29 +11,29 @@ export interface PaymentProofSnapshot {
   source: PaymentProofSource;
   /** Identifiant preuve (pi_… ou cs_…) */
   proofId: string;
-  paymentIntentId?: string;
-  checkoutSessionId?: string;
+  paymentIntentId?: string | undefined;
+  checkoutSessionId?: string | undefined;
   /** Statut brut provider (ex: succeeded, paid, processing) */
   providerStatus: string;
   /** Montant réel en unité mineure (centimes) si connu */
-  amountMinor?: number;
-  currency?: string;
+  amountMinor?: number | undefined;
+  currency?: string | undefined;
 }
 
 export interface EvaluatePaymentProofOptions {
-  expected?: Money;
+  expected?: Money | undefined;
   /** Autoriser processing (virements, etc.) pour création booking */
-  acceptProcessing?: boolean;
+  acceptProcessing?: boolean | undefined;
 }
 
 export interface PaymentProofEvaluation {
   valid: boolean;
   paymentStatus: 'confirmed' | 'processing' | 'failed';
-  paymentIntentId?: string;
-  checkoutSessionId?: string;
-  amount?: number;
-  currency?: string;
-  error?: string;
+  paymentIntentId?: string | undefined;
+  checkoutSessionId?: string | undefined;
+  amount?: number | undefined;
+  currency?: string | undefined;
+  error?: string | undefined;
   providerStatus: string;
 }
 
