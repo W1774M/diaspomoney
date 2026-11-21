@@ -128,7 +128,7 @@ MongoDB de test en local : `pnpm -s test:db:up`. La base est `127.0.0.1:27018/di
 
    ```
    SENTRY_RELAY_CLIENT_SECRET='<Client Secret Sentry>'
-   CIRCLECI_VALIDATION_URL='https://circleci.com/api/v3/deploy/hooks/<UUID de l'organisation CircleCI>/validate'
+   CIRCLECI_VALIDATION_URL='https://circleci.com/api/v3/deploy/hooks/0cd6cbdc-890c-4f94-8189-ccb2978954c2/validate'
    CIRCLECI_VALIDATION_SECRET='<secret CCIVWH_… de l'étape 3>'
    ```
 
