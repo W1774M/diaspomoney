@@ -1,5 +1,6 @@
 import { logger } from '@sentry/nextjs';
 import { getNextAuthSecret } from '@/lib/auth/next-auth-secret';
+import { handleStagingAccess } from '@/lib/staging-access';
 import { getToken } from 'next-auth/jwt';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -101,6 +102,13 @@ export default async function proxy(request: NextRequest) {
     `${Date.now()}-${Math.random()}`;
 
   const { pathname } = request.nextUrl;
+
+  // ---- ACCÈS PROTÉGÉ dev / rct (cookie 30 jours, voir lib/staging-access.ts) ----
+  // Les requêtes internes (healthcheck Docker) ne passent pas par Traefik et restent libres.
+  if (!isInternalRequest) {
+    const stagingResponse = await handleStagingAccess(request);
+    if (stagingResponse) return stagingResponse;
+  }
 
   // --- TEMPORARY HARDENING (CVE-2025-55182 / RSC multipart vectors) ---
   // Bloquer multipart/form-data en POST sur les routes non-API.
