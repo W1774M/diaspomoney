@@ -39,8 +39,13 @@ export function Marquee({
     >
       <div className={`marquee-track ${trackClassName}`}>
         <div className="marquee-set">{children}</div>
-        {/* inert="" : React 18 ignore un booléen pour cet attribut. */}
-        <div className="marquee-set" data-marquee-clone aria-hidden="true" {...{ inert: '' }}>
+        {/* inert posé par ref : React 18 ignore la prop booléenne `inert`. */}
+        <div
+          className="marquee-set"
+          data-marquee-clone
+          aria-hidden="true"
+          ref={(element) => element?.setAttribute('inert', '')}
+        >
           {children}
         </div>
       </div>
