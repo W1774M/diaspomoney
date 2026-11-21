@@ -74,4 +74,80 @@ body {
   display: none;  /* Chrome, Safari and Opera */
 }
 
-/* (Les animations et styles custom peuvent être réinsérés ici si besoin) */
+/* Couleurs de l'interface native (barres de défilement, champs) : site en thème clair */
+:root {
+  color-scheme: light;
+  accent-color: hsl(25 100% 53%);
+}
+
+/* ---- Modales natives <dialog> ---- */
+dialog:modal {
+  /* empêche le défilement dans la modale de se propager à la page */
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  background-color: rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(4px);
+  /* ::backdrop doit être un conteneur de défilement pour respecter overscroll-behavior */
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* ---- Défilement continu (components/ui/Marquee.tsx) ---- */
+@keyframes diaspo-marquee {
+  to {
+    translate: -50% 0;
+  }
+}
+
+.marquee {
+  /* sans animation : bande défilable au doigt / clavier */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+}
+
+.marquee-set {
+  display: contents;
+}
+
+.marquee-set[data-marquee-clone] {
+  display: none;
+}
+
+.marquee-control {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .marquee {
+    overflow-x: hidden;
+  }
+
+  .marquee-track {
+    animation: diaspo-marquee 40s linear infinite;
+  }
+
+  .marquee-set[data-marquee-clone] {
+    display: contents;
+  }
+
+  .marquee-control {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  .marquee:hover .marquee-track,
+  .marquee:focus-within .marquee-track,
+  .marquee[data-paused] .marquee-track {
+    animation-play-state: paused;
+  }
+}

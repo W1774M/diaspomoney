@@ -201,7 +201,9 @@ export function HeroSection() {
                     height={683}
                     className="object-contain w-full h-full rounded-full"
                     sizes="(min-width: 1024px) 380px, (min-width: 768px) 320px, 280px"
-                    priority
+                    // Image LCP : préchargée et prioritaire sur le réseau.
+                    preload
+                    fetchPriority="high"
                   />
                 </div>
               </div>

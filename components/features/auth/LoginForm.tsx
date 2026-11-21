@@ -139,6 +139,7 @@ export function LoginForm() {
                 Email
               </FormLabel>
               <Input
+                autoComplete="username" spellCheck={false} required
                 id='email'
                 type='email'
                 {...register('email')}

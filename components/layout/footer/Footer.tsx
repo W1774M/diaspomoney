@@ -136,7 +136,7 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
           {/* Colonne 1 : Logo et description avec réseaux sociaux */}
           <div className='lg:col-span-1'>
             {/* Logo */}
-            <Logo src='/img/diaspo/Logo_DispoMoney_horiz_CMJN.png' width={640} height={320} alt='Diaspomoney' className='h-20 w-auto mb-4' />
+            <Logo src='/img/diaspo/Logo_DispoMoney_horiz.webp' width={640} height={224} alt='Diaspomoney' className='h-20 w-auto mb-4' />
             
             {/* Description */}
             <p 

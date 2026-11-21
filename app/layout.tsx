@@ -7,7 +7,7 @@ import { EventSystemProvider } from '@/app/providers/EventSystemProvider';
 import '@/styles/globals.css';
 import 'react-international-phone/style.css';
 import { DefaultTemplate } from '@/template/DefaultTemplate';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import Script from 'next/script';
 
@@ -31,6 +31,12 @@ const baseUrl =
   process.env['NEXT_PUBLIC_APP_URL'] || 'https://diaspomoney.fr';
 
 const googleTagManagerId = 'GTM-N83PJN57';
+
+// Couleur de la barre du navigateur mobile et thème des contrôles natifs (site clair uniquement).
+export const viewport: Viewport = {
+  themeColor: '#F97015',
+  colorScheme: 'light',
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),

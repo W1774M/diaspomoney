@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Bell, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
+import { NativeModal } from '@/components/ui/NativeModal';
 import { getHomeDialogDelay } from '@/lib/home-dialog-schedule';
 
 const STORAGE_KEY = 'diaspomoney.homeDialog.lastShownAt';
@@ -58,18 +59,6 @@ export default function HomeAnnouncementDialog() {
     return () => window.clearTimeout(timeoutId);
   }, [lastClosedAt]);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
   const handleClose = useCallback(() => {
     const now = Date.now();
 
@@ -78,85 +67,52 @@ export default function HomeAnnouncementDialog() {
     setIsOpen(false);
   }, []);
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        handleClose();
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [handleClose, isOpen]);
-
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          handleClose();
-        }
-      }}
+    <NativeModal
+      open={isOpen}
+      onClose={handleClose}
+      labelledBy="home-announcement-dialog-title"
+      className="max-w-md rounded-2xl"
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" />
-
-      <div
-        className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-xl"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="home-announcement-dialog-title"
-        aria-describedby="home-announcement-dialog-message"
-      >
-        <div className="flex items-start justify-between gap-4 border-b border-gray-200 p-6">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-[#F97015]/10 p-2">
-              <Bell className="h-5 w-5 text-[#F97015]" />
-            </div>
-            <h3
-              id="home-announcement-dialog-title"
-              className="text-lg font-semibold text-gray-900"
-            >
-              {title}
-            </h3>
+      <div className="flex items-start justify-between gap-4 border-b border-gray-200 p-6">
+        <div className="flex items-center gap-3">
+          <div className="rounded-full bg-[#F97015]/10 p-2">
+            <Bell className="h-5 w-5 text-[#F97015]" aria-hidden="true" />
           </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="text-gray-400 transition-colors hover:text-gray-600"
-            aria-label="Fermer"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <h2 id="home-announcement-dialog-title" className="text-lg font-semibold text-gray-900">
+            {title}
+          </h2>
         </div>
-
-        <div className="space-y-5 p-6">
-          <Link
-            href={imageHref}
-            onClick={handleClose}
-            className="group block overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
-            aria-label={`${imageAlt} - ouvrir le service associé`}
-          >
-            <Image
-              src={imageSrc}
-              alt={imageAlt}
-              width={800}
-              height={800}
-              className="h-auto w-full transition-transform duration-300 group-hover:scale-[1.02]"
-              priority
-              unoptimized
-            />
-          </Link>
-        </div>
+        <button
+          type="button"
+          onClick={handleClose}
+          className="text-gray-400 transition-colors hover:text-gray-600"
+          aria-label="Fermer"
+        >
+          <X className="h-5 w-5" aria-hidden="true" />
+        </button>
       </div>
-    </div>
+
+      <div className="space-y-5 p-6">
+        <Link
+          href={imageHref}
+          onClick={handleClose}
+          className="group block overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
+          aria-label={`${imageAlt} - ouvrir le service associé`}
+          autoFocus
+        >
+          <Image
+            src={imageSrc}
+            alt={imageAlt}
+            width={800}
+            height={800}
+            className="h-auto w-full motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-[1.02]"
+            // Image révélée après un délai : elle ne doit pas concurrencer l'image principale (LCP).
+            fetchPriority="low"
+            unoptimized
+          />
+        </Link>
+      </div>
+    </NativeModal>
   );
 }
