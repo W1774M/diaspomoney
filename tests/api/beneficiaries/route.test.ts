@@ -72,6 +72,8 @@ const { mockFindByEmail } = vi.hoisted(() => {
 vi.mock('@/repositories', () => ({
   getUserRepository: vi.fn(() => ({
     findByEmail: mockFindByEmail,
+    // recherche d’un compte par téléphone du bénéficiaire
+    findUsersWithFilters: vi.fn(async () => ({ data: [] })),
   })),
 }));
 

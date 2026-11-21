@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Mail, MapPin } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
+import { ManageCookiesButton } from '@/components/consent/CookieConsent';
 
 // Facebook icon component (replacement for deprecated lucide-react Facebook)
 const FacebookIcon = ({ size, style }: { size: number; style?: React.CSSProperties }) => (
@@ -14,27 +15,6 @@ const FacebookIcon = ({ size, style }: { size: number; style?: React.CSSProperti
   >
     <path
       d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"
-      stroke="currentColor"
-      strokeWidth="2"
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
-// Twitter icon component (replacement for deprecated lucide-react Twitter)
-const TwitterIcon = ({ size, style }: { size: number; style?: React.CSSProperties }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    style={style}
-  >
-    <path
-      d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"
       stroke="currentColor"
       strokeWidth="2"
       fill="none"
@@ -136,7 +116,7 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
           {/* Colonne 1 : Logo et description avec réseaux sociaux */}
           <div className='lg:col-span-1'>
             {/* Logo */}
-            <Logo src='/img/diaspo/Logo_DispoMoney_horiz_CMJN.png' width={640} height={320} alt='Diaspomoney' className='h-20 w-auto mb-4' />
+            <Logo src='/img/diaspo/Logo_DispoMoney_horiz.webp' width={640} height={224} alt='Diaspomoney' className='h-20 w-auto mb-4' />
             
             {/* Description */}
             <p 
@@ -162,19 +142,6 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
                 <FacebookIcon size={18} style={{ color: '#555555' }} />
               </a>
               <a
-                href='https://twitter.com'
-                target='_blank'
-                rel='noopener noreferrer'
-                className='w-10 h-10 rounded-full border flex items-center justify-center transition-colors hover:bg-gray-100'
-                style={{ 
-                  backgroundColor: '#FDF8F3',
-                  borderColor: '#E5E5E5',
-                }}
-                aria-label='Twitter'
-              >
-                <TwitterIcon size={18} style={{ color: '#555555' }} />
-              </a>
-              <a
                 href='https://www.instagram.com/diaspomoney.fr/'
                 target='_blank'
                 rel='noopener noreferrer'
@@ -188,7 +155,7 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
                 <InstagramIcon size={18} style={{ color: '#555555' }} />
               </a>
               <a
-                href='linkedin.com/company/diaspomoney'
+                href='https://www.linkedin.com/company/diaspomoney'
                 target='_blank'
                 rel='noopener noreferrer'
                 className='w-10 h-10 rounded-full border flex items-center justify-center transition-colors hover:bg-gray-100'
@@ -328,6 +295,9 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
             >
               Politique de confidentialité
             </Link>
+            <ManageCookiesButton
+              className='text-xs text-gray-600 underline-offset-2 transition-colors hover:underline'
+            />
             {/* <Link
               href='/legal'
               className='text-xs transition-colors hover:opacity-80'

@@ -1,10 +1,12 @@
 import { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import Link from 'next/link';
 
-export const metadata: Metadata = {
-  title: 'Conditions Générales de Vente (CGV) - DiaspoMoney',
-  description: 'Conditions Générales de Vente de DiaspoMoney',
-};
+export const metadata: Metadata = pageMetadata({
+  path: "/terms-of-sale",
+  title: "Conditions générales de vente",
+  description: "Conditions générales de vente des services réservés sur DiaspoMoney.",
+});
 
 export default function TermsOfSalePage() {
   return (

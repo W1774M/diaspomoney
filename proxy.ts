@@ -1,5 +1,6 @@
 import { logger } from '@sentry/nextjs';
 import { getNextAuthSecret } from '@/lib/auth/next-auth-secret';
+import { handleStagingAccess } from '@/lib/staging-access';
 import { getToken } from 'next-auth/jwt';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -102,6 +103,13 @@ export default async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // ---- ACCÈS PROTÉGÉ dev / rct (cookie 30 jours, voir lib/staging-access.ts) ----
+  // Les requêtes internes (healthcheck Docker) ne passent pas par Traefik et restent libres.
+  if (!isInternalRequest) {
+    const stagingResponse = await handleStagingAccess(request);
+    if (stagingResponse) return stagingResponse;
+  }
+
   // --- TEMPORARY HARDENING (CVE-2025-55182 / RSC multipart vectors) ---
   // Bloquer multipart/form-data en POST sur les routes non-API.
   // (Les uploads doivent passer par /api/*, ex: /api/users/me/avatar)
@@ -167,6 +175,10 @@ export default async function proxy(request: NextRequest) {
 
 // Export config for Next.js proxy
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Les fichiers statiques de /public (images, manifeste, robots) ne passent pas par le proxy :
+  // l'optimiseur d'images les lit par une requête interne que le proxy rendait vide.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|img/|.*\\.(?:png|jpe?g|webp|avif|gif|svg|ico)$).*)',
+  ],
 };
 

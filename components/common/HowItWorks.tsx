@@ -101,12 +101,11 @@ export default function HowItWorks({ className }: { className?: string }) {
                   <div className="relative w-full h-56 md:h-64 lg:h-72 rounded-lg overflow-hidden border border-gray-200 bg-black/5">
                     <Image
                       src={step.image}
-                      alt={step.title}
+                      alt=""
                       width={step.width}
                       height={step.height}
                       className="w-full h-full object-contain rounded-lg"
                       sizes="(min-width: 1024px) 288px, (min-width: 768px) 256px, 222px"
-                      priority={idx === 0}
                     />
                   </div>
                 </div>

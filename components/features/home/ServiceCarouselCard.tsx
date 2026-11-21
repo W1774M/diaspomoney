@@ -88,7 +88,7 @@ export function ServiceCarouselCard({
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
             <div className="text-center p-4">
-              <div className="text-7xl mb-2 opacity-80">
+              <div className="text-7xl mb-2 opacity-80" aria-hidden="true">
                 {serviceType === "Santé" ? "🏥" : serviceType === "Éducation" ? "🎓" : "🏗️"}
               </div>
             </div>

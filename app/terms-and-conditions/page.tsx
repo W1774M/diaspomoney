@@ -1,10 +1,12 @@
 import { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import Link from 'next/link';
 
-export const metadata: Metadata = {
-  title: 'Conditions Générales d’Utilisation (CGU) - DiaspoMoney',
-  description: 'Conditions Générales d’Utilisation de DiaspoMoney',
-};
+export const metadata: Metadata = pageMetadata({
+  path: "/terms-and-conditions",
+  title: "Conditions générales d’utilisation",
+  description: "Conditions générales d’utilisation de la plateforme DiaspoMoney.",
+});
 
 export default function TermsAndConditionsPage() {
   return (

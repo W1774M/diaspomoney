@@ -105,6 +105,7 @@ describe('useBookings', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('status=PENDING'),
+      expect.anything(),
     );
     expect(result.current.bookings).toHaveLength(1);
   });
@@ -129,6 +130,7 @@ describe('useBookings', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('offset=20'),
+      expect.anything(),
     );
     expect(result.current.total).toBe(50);
   });
@@ -166,6 +168,7 @@ describe('useBookings', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('providerId=provider123'),
+      expect.anything(),
     );
   });
 

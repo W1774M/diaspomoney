@@ -243,7 +243,8 @@ describe('usePayments', () => {
       await result.current.fetchPaymentMethods();
     });
 
-    expect(result.current.error).toBe('Erreur lors de la récupération des méthodes de paiement');
+    // Le message renvoyé par l'API est affiché tel quel.
+    expect(result.current.error).toBe('Erreur serveur');
   });
 
   it('devrait gérer les états de chargement', async () => {

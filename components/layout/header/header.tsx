@@ -29,6 +29,7 @@ function Header() {
           <div className='flex items-center'>
             <Link href='/' className='flex-shrink-0'>
               <Logo
+                loading='eager'
                 src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
                 width={640}
                 height={320}

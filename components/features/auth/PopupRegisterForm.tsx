@@ -201,6 +201,7 @@ export function PopupRegisterForm({
                   Prénom <span className="text-red-500">*</span>
                 </label>
                 <input
+                  autoComplete="given-name"
                   type="text"
                   value={formData.firstName}
                   onChange={e => handleInputChange("firstName", e.target.value)}
@@ -213,6 +214,7 @@ export function PopupRegisterForm({
                   Nom <span className="text-red-500">*</span>
                 </label>
                 <input
+                  autoComplete="family-name"
                   type="text"
                   value={formData.lastName}
                   onChange={e => handleInputChange("lastName", e.target.value)}
@@ -227,6 +229,7 @@ export function PopupRegisterForm({
                 Email <span className="text-red-500">*</span>
               </label>
               <input
+                autoComplete="email" spellCheck={false}
                 type="email"
                 value={formData.email}
                 onChange={e => handleInputChange("email", e.target.value)}
@@ -274,6 +277,7 @@ export function PopupRegisterForm({
                 Adresse 1 <span className="text-red-500">*</span>
               </label>
               <input
+                autoComplete="address-line1"
                 type="text"
                 value={formData.address1}
                 onChange={e => handleInputChange("address1", e.target.value)}
@@ -287,6 +291,7 @@ export function PopupRegisterForm({
                 Adresse 2 (optionnel)
               </label>
               <input
+                autoComplete="address-line2"
                 type="text"
                 value={formData.address2}
                 onChange={e => handleInputChange("address2", e.target.value)}
@@ -301,6 +306,7 @@ export function PopupRegisterForm({
                   Code postal <span className="text-red-500">*</span>
                 </label>
                 <input
+                  autoComplete="postal-code"
                   type="text"
                   value={formData.postalCode}
                   onChange={e =>
@@ -315,6 +321,7 @@ export function PopupRegisterForm({
                   Ville <span className="text-red-500">*</span>
                 </label>
                 <input
+                  autoComplete="address-level2"
                   type="text"
                   value={formData.city}
                   onChange={e => handleInputChange("city", e.target.value)}
@@ -331,6 +338,7 @@ export function PopupRegisterForm({
                 </label>
                 <div className="relative">
                   <input
+                    autoComplete="new-password"
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={e =>
@@ -359,6 +367,7 @@ export function PopupRegisterForm({
                 </label>
                 <div className="relative">
                   <input
+                    autoComplete="new-password"
                     type={showConfirmPassword ? "text" : "password"}
                     value={formData.confirmPassword}
                     onChange={e =>
@@ -410,6 +419,7 @@ export function PopupRegisterForm({
                 Réponse <span className="text-red-500">*</span>
               </label>
               <input
+                autoComplete="off"
                 type="text"
                 value={formData.securityAnswer}
                 onChange={e =>

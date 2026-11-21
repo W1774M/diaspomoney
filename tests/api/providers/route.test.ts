@@ -62,16 +62,20 @@ vi.mock('@/builders', () => ({
 
 // Mock de getUserRepository
 const mockFindWithPagination = vi.fn();
+const mockFindById = vi.fn();
 vi.mock('@/repositories', () => ({
   getUserRepository: vi.fn(() => ({
     findWithPagination: mockFindWithPagination,
+    findById: mockFindById,
   })),
 }));
 
 // Mock de userService
+const { mockUpdateUserProfile } = vi.hoisted(() => ({ mockUpdateUserProfile: vi.fn() }));
 vi.mock('@/services/user/user.service', () => ({
   userService: {
     getUsers: vi.fn(),
+    updateUserProfile: mockUpdateUserProfile,
   },
 }));
 
@@ -233,14 +237,20 @@ describe('POST /api/providers', () => {
     } as any);
   });
 
-  it('devrait créer un provider avec succès', async () => {
+  it('devrait promouvoir un utilisateur existant en prestataire', async () => {
+    mockFindById.mockResolvedValueOnce({ id: 'user123', roles: ['CUSTOMER'] });
+    mockUpdateUserProfile.mockResolvedValueOnce({
+      id: 'user123',
+      email: 'provider@example.com',
+      name: 'New Provider',
+      roles: ['CUSTOMER', 'PROVIDER'],
+      status: 'ACTIVE',
+    });
+
     const request = new NextRequest('http://localhost:3000/api/providers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'New Provider',
-        email: 'provider@example.com',
-      }),
+      body: JSON.stringify({ userId: 'user123', specialities: ['Pédiatrie'], city: 'Douala' }),
     });
 
     const response = await POST(request);
@@ -248,7 +258,25 @@ describe('POST /api/providers', () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.data).toHaveProperty('id');
+    expect(data.data).toHaveProperty('id', 'user123');
+    const [, update] = mockUpdateUserProfile.mock.calls[0]!;
+    expect(update.roles).toEqual(['CUSTOMER', 'PROVIDER']);
+    expect(update.specialty).toBe('Pédiatrie');
+  });
+
+  it('renvoie 404 si l’utilisateur à promouvoir n’existe pas', async () => {
+    mockFindById.mockResolvedValueOnce(null);
+
+    const request = new NextRequest('http://localhost:3000/api/providers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: 'inconnu' }),
+    });
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(404);
+    expect(mockUpdateUserProfile).not.toHaveBeenCalled();
   });
 
   it('devrait valider le body avec CreateProviderSchema', async () => {

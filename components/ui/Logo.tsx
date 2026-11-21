@@ -1,6 +1,5 @@
 'use client';
 
-import { getAssetURL } from '@/config/cdn';
 import Image from 'next/image';
 import { useState } from 'react';
 
@@ -11,6 +10,8 @@ interface LogoProps {
   alt: string;
   fallbackText?: string;
   className?: string;
+  /** « eager » pour un logo visible au chargement (header) ; jamais préchargé. */
+  loading?: 'eager' | 'lazy';
 }
 
 const Logo = ({
@@ -20,6 +21,7 @@ const Logo = ({
   alt,
   fallbackText,
   className = '',
+  loading = 'lazy',
 }: LogoProps) => {
   const [imageError, setImageError] = useState(false);
 
@@ -45,10 +47,7 @@ const Logo = ({
       alt={alt}
       className={className}
       onError={() => setImageError(true)}
-      loader={({ src, width, quality }) =>
-        getAssetURL(src, { width, quality: quality ?? 85 })
-      }
-      priority
+      loading={loading}
     />
   );
 };

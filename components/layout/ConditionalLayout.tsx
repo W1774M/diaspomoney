@@ -25,8 +25,11 @@ export default function ConditionalLayout({
   // Pour toutes les autres pages, utiliser le header et footer
   return (
     <div className='min-h-screen flex flex-col'>
+      <a href='#contenu' className='skip-link'>
+        Aller au contenu
+      </a>
       <PublicHeader />
-      <main className='flex-1'>{children}</main>
+      <main id='contenu' tabIndex={-1} className='flex-1 focus:outline-none'>{children}</main>
       <Footer />
     </div>
   );

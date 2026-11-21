@@ -61,6 +61,7 @@ export default function ForgotPasswordForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Input
+              autoComplete="email" spellCheck={false}
               type="email"
               placeholder="Votre adresse email"
               value={email}

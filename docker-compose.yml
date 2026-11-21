@@ -93,6 +93,8 @@ services:
       PORT: 3000
       HOSTNAME: 0.0.0.0
       NEXTAUTH_URL: https://dev.diaspomoney.fr
+      STAGING_ACCESS_PASSWORD: ${STAGING_ACCESS_PASSWORD:?STAGING_ACCESS_PASSWORD manquant dans .env}
+      STAGING_ACCESS_SECRET: ${STAGING_ACCESS_SECRET:?STAGING_ACCESS_SECRET manquant dans .env}
       NEXT_PUBLIC_APP_URL: https://dev.diaspomoney.fr
       NEXT_PUBLIC_API_URL: https://dev.diaspomoney.fr/api
       MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/diaspomoney-dev?authSource=admin
@@ -108,6 +110,9 @@ services:
       - traefik.http.routers.diaspomoney-dev.entrypoints=websecure
       - traefik.http.routers.diaspomoney-dev.tls=true
       - traefik.http.routers.diaspomoney-dev.tls.certresolver=le
+      # Retire l'en-tête X-Powered-By ajouté par Next malgré poweredByHeader: false
+      - traefik.http.middlewares.diaspomoney-strip-powered-by.headers.customresponseheaders.X-Powered-By=
+      - traefik.http.routers.diaspomoney-dev.middlewares=diaspomoney-strip-powered-by
       - traefik.http.services.diaspomoney-dev.loadbalancer.server.port=3000
 
   app-rct:
@@ -139,6 +144,8 @@ services:
       PORT: 3000
       HOSTNAME: 0.0.0.0
       NEXTAUTH_URL: https://rct.diaspomoney.fr
+      STAGING_ACCESS_PASSWORD: ${STAGING_ACCESS_PASSWORD:?STAGING_ACCESS_PASSWORD manquant dans .env}
+      STAGING_ACCESS_SECRET: ${STAGING_ACCESS_SECRET:?STAGING_ACCESS_SECRET manquant dans .env}
       NEXT_PUBLIC_APP_URL: https://rct.diaspomoney.fr
       NEXT_PUBLIC_API_URL: https://rct.diaspomoney.fr/api
       MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/diaspomoney-rct?authSource=admin
@@ -154,6 +161,9 @@ services:
       - traefik.http.routers.diaspomoney-rct.entrypoints=websecure
       - traefik.http.routers.diaspomoney-rct.tls=true
       - traefik.http.routers.diaspomoney-rct.tls.certresolver=le
+      # Retire l'en-tête X-Powered-By ajouté par Next malgré poweredByHeader: false
+      - traefik.http.middlewares.diaspomoney-strip-powered-by.headers.customresponseheaders.X-Powered-By=
+      - traefik.http.routers.diaspomoney-rct.middlewares=diaspomoney-strip-powered-by
       - traefik.http.services.diaspomoney-rct.loadbalancer.server.port=3000
 
   app-prod:
@@ -205,6 +215,9 @@ services:
       - traefik.http.routers.diaspomoney-prod.entrypoints=websecure
       - traefik.http.routers.diaspomoney-prod.tls=true
       - traefik.http.routers.diaspomoney-prod.tls.certresolver=le
+      # Retire l'en-tête X-Powered-By ajouté par Next malgré poweredByHeader: false
+      - traefik.http.middlewares.diaspomoney-strip-powered-by.headers.customresponseheaders.X-Powered-By=
+      - traefik.http.routers.diaspomoney-prod.middlewares=diaspomoney-strip-powered-by
       - traefik.http.services.diaspomoney-prod.loadbalancer.server.port=3000
 
   mongo-express:
