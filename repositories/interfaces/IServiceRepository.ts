@@ -12,6 +12,7 @@ export interface Service {
   description: string;
   price: number;
   isActive: boolean;
+  important: boolean;
   metadata?: Record<string, any>;
   associatedOptions?: string[];
   createdAt: Date;

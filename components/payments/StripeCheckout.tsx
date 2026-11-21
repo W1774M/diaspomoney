@@ -165,8 +165,23 @@ export function StripeCheckout(props: StripeCheckoutProps) {
           return;
         }
         
-        const msg = error?.message || "Erreur lors de l'initialisation du paiement";
-        logger.error({ error, message: msg }, "Error creating payment intent");
+        // Détecter les erreurs de blocage par le navigateur (bloqueurs de publicité, CSP, etc.)
+        const errorMessage = error?.message || '';
+        const isBlockedByClient = 
+          errorMessage.includes('ERR_BLOCKED_BY_CLIENT') ||
+          errorMessage.includes('Failed to fetch') ||
+          errorMessage.includes('NetworkError') ||
+          errorMessage.includes('Network request failed');
+        
+        let msg: string;
+        if (isBlockedByClient) {
+          msg = "Le paiement est bloqué par votre navigateur. Veuillez désactiver temporairement votre bloqueur de publicité ou autoriser stripe.com dans ses paramètres. Vous pouvez aussi essayer en mode navigation privée.";
+          logger.warn({ error, blockedByClient: true }, "Payment blocked by browser/client");
+        } else {
+          msg = errorMessage || "Erreur lors de l'initialisation du paiement";
+          logger.error({ error, message: msg }, "Error creating payment intent");
+        }
+        
         if (!cancelled) {
           setError(msg);
           setIsLoading(false);

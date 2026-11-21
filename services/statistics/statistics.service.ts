@@ -22,7 +22,7 @@ import type {
   UserWithBudgets,
 } from '@/lib/types/statistics.types';
 import { TransactionStatus } from '@/lib/types/transaction.types';
-import { CURRENCIES, TRANSACTION_STATUSES, USER_STATUSES } from '@/lib/constants';
+import { CURRENCIES, TRANSACTION_STATUSES, USER_STATUSES, BOOKING_STATUSES } from '@/lib/constants';
 import { ObjectId } from 'mongodb';
 
 /**
@@ -407,6 +407,102 @@ export class StatisticsService {
       const totalSpent = annualSpent;
       const estimatedSavings = totalSpent * 0.1; // 10% d'économies estimées
 
+      // Calculer les statistiques de bookings
+      const totalBookings = allBookings.length;
+      const activeBookings = allBookings.filter(
+        (b: StatisticsBooking) => b.status !== BOOKING_STATUSES.FINISHED,
+      ).length;
+      const completedBookings = allBookings.filter(
+        (b: StatisticsBooking) => b.status === BOOKING_STATUSES.FINISHED,
+      ).length;
+      const cancelledBookings = allBookings.filter(
+        (b: StatisticsBooking) => b.status === BOOKING_STATUSES.CANCELLED,
+      ).length;
+
+      // Fonction helper pour extraire le montant total d'une réservation
+      const getBookingAmount = (b: StatisticsBooking): number => {
+        const anyB = b as any;
+        const metadata = anyB?.metadata || {};
+        
+        // Essayer d'abord les champs directs
+        const candidates = [
+          anyB?.totalAmount,
+          anyB?.price,
+          anyB?.amount,
+          metadata?.totalAmount,
+          metadata?.price,
+          metadata?.amount,
+        ];
+        const directValue = candidates.find((v) => typeof v === 'number' && Number.isFinite(v) && v > 0);
+        if (directValue) return directValue;
+        
+        // Si pas de valeur directe, calculer à partir de basePrice + optionsPrice - discountAmount
+        const basePrice = 
+          (typeof metadata?.basePrice === 'number' ? metadata.basePrice : 0) ||
+          (typeof metadata?.servicePrice === 'number' ? metadata.servicePrice : 0) ||
+          ((b.selectedService as any)?.['price'] || 0);
+        
+        const optionsPrice = (() => {
+          if (metadata?.additionalOptions) {
+            try {
+              const options = typeof metadata.additionalOptions === 'string' 
+                ? JSON.parse(metadata.additionalOptions) 
+                : metadata.additionalOptions;
+              if (Array.isArray(options)) {
+                return options.reduce((sum: number, opt: any) => {
+                  const optPrice = typeof opt.price === 'number' ? opt.price : parseFloat(opt.price) || 0;
+                  return sum + optPrice;
+                }, 0);
+              }
+            } catch {
+              // Ignorer les erreurs de parsing
+            }
+          }
+          return typeof metadata?.optionsPrice === 'number' ? metadata.optionsPrice : 0;
+        })();
+        
+        const discountAmount = typeof metadata?.discountAmount === 'number' ? metadata.discountAmount : 0;
+        
+        const calculatedAmount = basePrice + optionsPrice - discountAmount;
+        return calculatedAmount > 0 ? calculatedAmount : 0;
+      };
+
+      // Calculer le montant total dépensé
+      // Inclure les commandes FINISHED et CONFIRMED (car les CONFIRMED sont payées)
+      const paidBookings = allBookings.filter(
+        (b: StatisticsBooking) => 
+          b.status === BOOKING_STATUSES.FINISHED || 
+          b.status === BOOKING_STATUSES.CONFIRMED
+      );
+      
+      const totalSpentFromBookings = paidBookings.reduce((sum: number, b: StatisticsBooking) => {
+        const amount = getBookingAmount(b);
+        return sum + amount;
+      }, 0);
+
+      // Calculer le panier moyen (montant total / nombre de commandes payées)
+      // Utiliser le nombre de commandes payées (FINISHED + CONFIRMED) pour le calcul
+      const paidBookingsCount = paidBookings.length;
+      const averageBasketValue = paidBookingsCount > 0 && totalSpentFromBookings > 0
+        ? totalSpentFromBookings / paidBookingsCount
+        : 0;
+
+      // Log pour debug
+      logger.debug(
+        {
+          userId,
+          completedBookings,
+          paidBookingsCount,
+          totalSpentFromBookings,
+          averageBasketValue,
+          paidBookingsBreakdown: {
+            finished: allBookings.filter((b: StatisticsBooking) => b.status === BOOKING_STATUSES.FINISHED).length,
+            confirmed: allBookings.filter((b: StatisticsBooking) => b.status === BOOKING_STATUSES.CONFIRMED).length,
+          },
+        },
+        'Calcul du panier moyen et montant total dépensé',
+      );
+
       const statistics: PersonalStatistics = {
         budget: {
           monthly: {
@@ -469,6 +565,14 @@ export class StatisticsService {
             averageRating: fav.rating,
           })),
           bySpecialty: [],
+        },
+        bookings: {
+          total: totalBookings,
+          active: activeBookings,
+          completed: completedBookings,
+          cancelled: cancelledBookings,
+          totalSpent: totalSpentFromBookings,
+          averageBasketValue: averageBasketValue,
         },
         period: {
           start: startOfYear,

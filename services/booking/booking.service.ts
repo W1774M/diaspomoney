@@ -14,15 +14,43 @@ import { Performance } from '@/lib/decorators/performance.decorator';
 import { Transaction } from '@/lib/decorators/transaction.decorator';
 import { BOOKING_STATUSES, DATABASE, ROLES } from '@/lib/constants';
 import { logger } from '@/lib/logger';
-import { Booking, getBookingRepository } from '@/repositories';
+import { getBookingRepository, type Booking, type BookingFilters } from '@/repositories';
 import type { PaginatedFindResult } from '@/lib/types';
 import type { BookingData, BookingServiceFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
+import { EmailDispatch } from '@/domain/comms';
 import { createCheckoutSession } from '@/lib/stripe-checkout';
 import { sendPaymentLinkEmail } from '@/lib/email/resend';
 import { notificationService } from '@/services/notification/notification.service';
 import { cleanUrl } from '@/lib/utils';
+
+interface BookingProgressHistoryEntry {
+  step?: number;
+  completed?: boolean;
+  [key: string]: unknown;
+}
+
+interface PricedOption {
+  price?: number | string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isProgressHistoryEntry(value: unknown): value is BookingProgressHistoryEntry {
+  return isRecord(value);
+}
+
+function isPricedOption(value: unknown): value is PricedOption {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const price = value['price'];
+  return price === undefined || typeof price === 'number' || typeof price === 'string';
+}
 
 /**
  * BookingService refactoré utilisant le Repository Pattern
@@ -52,74 +80,15 @@ export class BookingService {
         'Liaison des commandes guest à l\'utilisateur',
       );
 
-      // Accéder directement à la collection MongoDB pour les requêtes complexes
-      // (requête regex sur requesterId et filtre sur metadata.clientEmail)
-      const { mongoClient } = await import('@/lib/mongodb');
-      const client = await mongoClient;
-      const db = client.db();
-      const collection = db.collection('bookings');
-      
-      // Normaliser l'email pour la comparaison (en minuscules)
-      const normalizedEmail = userEmail.toLowerCase();
-      
-      // Rechercher toutes les commandes guest avec l'email correspondant
-      const guestBookings = await collection.find({
-        requesterId: { $regex: /^guest-/ },
-        'metadata.clientEmail': normalizedEmail,
-      }).toArray();
-
-      if (guestBookings.length === 0) {
-        logger.info(
-          { userId, userEmail },
-          'Aucune commande guest trouvée pour cet email',
-        );
-        return 0;
-      }
-
-      logger.info(
-        {
-          userId,
-          userEmail,
-          guestBookingsCount: guestBookings.length,
-          bookingIds: guestBookings.map((b: any) => b._id.toString()),
-        },
-        'Commandes guest trouvées, mise à jour en cours',
+      const updatedCount = await this.bookingRepository.linkGuestBookingsToUser(
+        userId,
+        userEmail,
       );
 
-      // Mettre à jour toutes les commandes trouvées une par une via le repository
-      // pour s'assurer que les validations et les hooks sont exécutés
-      let updatedCount = 0;
-      for (const booking of guestBookings) {
-        try {
-          const bookingId = booking._id.toString();
-          await this.bookingRepository.update(bookingId, {
-            requesterId: userId,
-          } as any);
-          updatedCount++;
-          
-          logger.debug(
-            { bookingId, userId, userEmail },
-            'Commande guest liée à l\'utilisateur',
-          );
-        } catch (updateError) {
-          logger.warn(
-            {
-              error: updateError,
-              bookingId: booking._id.toString(),
-              userId,
-              userEmail,
-            },
-            'Erreur lors de la mise à jour d\'une commande guest, continuation',
-          );
-          // Continuer avec les autres commandes même si une échoue
-        }
-      }
-
       logger.info(
         {
           userId,
           userEmail,
-          totalFound: guestBookings.length,
           successfullyUpdated: updatedCount,
         },
         'Commandes guest liées à l\'utilisateur avec succès',
@@ -156,13 +125,22 @@ export class BookingService {
   }> {
     try {
       // Convertir les filtres en format BookingFilters
-      const repositoryFilters: Record<string, any> = {
-        requesterId: filters.userId,
-        providerId: filters.providerId,
-        status: filters.status as Booking['status'],
-        dateFrom: filters.dateFrom,
-        dateTo: filters.dateTo,
-      };
+      const repositoryFilters: BookingFilters = {};
+      if (filters.userId !== undefined) {
+        repositoryFilters.requesterId = filters.userId;
+      }
+      if (filters.providerId !== undefined) {
+        repositoryFilters.providerId = filters.providerId;
+      }
+      if (filters.status !== undefined) {
+        repositoryFilters.status = filters.status as Booking['status'];
+      }
+      if (filters.dateFrom !== undefined) {
+        repositoryFilters.dateFrom = filters.dateFrom;
+      }
+      if (filters.dateTo !== undefined) {
+        repositoryFilters.dateTo = filters.dateTo;
+      }
 
       // Utiliser le repository avec pagination
       const limit = filters['limit'] || 50;
@@ -249,6 +227,31 @@ export class BookingService {
       if (!data.requesterId || !data.providerId || !data.serviceId) {
         throw new Error('Données de réservation incomplètes');
       }
+
+      // Invariants Catalog (domaine) — offre bookable (forced)
+      const { getServiceRepository } = await import('@/repositories');
+      const { CatalogService } = await import('@/domain/catalog');
+      const catalogItem = await getServiceRepository().findByCustomId(
+        data.serviceId,
+      );
+      if (!catalogItem) {
+        throw new Error(`Catalog service not found: ${data.serviceId}`);
+      }
+      CatalogService.create({
+        id: String(catalogItem.id || data.serviceId),
+        name: String(
+          (catalogItem as { label?: string; name?: string }).label ||
+            (catalogItem as { name?: string }).name ||
+            data.serviceId,
+        ),
+        category: String(
+          (catalogItem as { category?: string }).category ||
+            data.serviceType ||
+            'HEALTH',
+        ),
+        price: Number((catalogItem as { price?: number }).price ?? 0),
+        isActive: (catalogItem as { isActive?: boolean }).isActive !== false,
+      }).assertBookable();
 
       // Créer la réservation via le repository
       const booking = await this.bookingRepository.create({
@@ -429,13 +432,60 @@ export class BookingService {
           bookingId: id, 
           existingStatus: existingBooking.status,
           updateFields: Object.keys(data),
+          statusInData: 'status' in data ? (data as any).status : undefined,
+          fullUpdateData: data,
         },
         'Updating booking',
       );
 
+      // Si le statut change vers CONFIRMED ou FINISHED, mettre à jour le paymentStatus
+      const statusInData = 'status' in data ? (data as any).status : undefined;
+      const statusIsChanging = statusInData && statusInData !== existingBooking.status;
+      const statusToConfirmedOrFinished = statusIsChanging && 
+        (statusInData === BOOKING_STATUSES.CONFIRMED || statusInData === BOOKING_STATUSES.FINISHED);
+      
+      if (statusToConfirmedOrFinished) {
+        const existingMetadata = existingBooking.metadata || {};
+        const currentPaymentStatus = existingMetadata['paymentStatus'] as string | undefined;
+        
+        // Si le paiement n'est pas déjà confirmé, le marquer comme confirmé
+        if (currentPaymentStatus !== 'confirmed' && currentPaymentStatus !== 'completed' && currentPaymentStatus !== 'succeeded') {
+          logger.info(
+            { 
+              bookingId: id, 
+              previousStatus: existingBooking.status,
+              newStatus: statusInData,
+              previousPaymentStatus: currentPaymentStatus,
+            },
+            'Updating paymentStatus to confirmed because booking status changed to CONFIRMED or FINISHED',
+          );
+          
+          // Mettre à jour les métadonnées avec le nouveau paymentStatus
+          if (!data.metadata) {
+            data.metadata = {};
+          }
+          data.metadata = {
+            ...existingMetadata,
+            ...data.metadata,
+            paymentStatus: 'confirmed',
+            paymentPending: false,
+          };
+        }
+      }
+
       const updatedBooking = await this.bookingRepository.update(
         id,
         data as Partial<Booking>,
+      );
+      
+      logger.debug(
+        {
+          bookingId: id,
+          requestedStatus: 'status' in data ? (data as any).status : undefined,
+          updatedStatus: updatedBooking?.status,
+          existingStatus: existingBooking.status,
+        },
+        'Booking update result',
       );
 
       if (!updatedBooking) {
@@ -480,6 +530,252 @@ export class BookingService {
         },
         'Booking updated successfully',
       );
+
+      // Envoyer des notifications si le statut a changé
+      const statusChanged = existingBooking.status !== updatedBooking.status;
+      if (statusChanged) {
+        try {
+          const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+          const bookingsUrl = `${baseUrl}/dashboard/bookings`;
+          const reservationNumber =
+            (updatedBooking as any).reservationNumber ||
+            (existingBooking as any).reservationNumber ||
+            id.slice(-8).toUpperCase();
+          const serviceName =
+            (updatedBooking.metadata?.['serviceLabel'] as string | undefined) ||
+            (existingBooking.metadata?.['serviceLabel'] as string | undefined) ||
+            (updatedBooking as any).serviceId ||
+            'Service';
+
+          const appointmentDateValue =
+            (updatedBooking as any).appointmentDate || (existingBooking as any).appointmentDate;
+          const apptDate = appointmentDateValue
+            ? new Date(appointmentDateValue).toLocaleDateString('fr-FR')
+            : 'à confirmer';
+          const apptTime =
+            (updatedBooking as any).timeslot ||
+            (existingBooking as any).timeslot ||
+            (appointmentDateValue
+              ? new Date(appointmentDateValue).toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : '');
+
+          // Notification au client (requester)
+          const requesterId = (updatedBooking as any).requesterId || (existingBooking as any).requesterId;
+          const clientEmail =
+            (updatedBooking.metadata?.['clientEmail'] as string | undefined) ||
+            (existingBooking.metadata?.['clientEmail'] as string | undefined);
+          
+          if (requesterId) {
+            const clientName =
+              (updatedBooking.metadata?.['clientFirstName'] && updatedBooking.metadata?.['clientLastName']
+                ? `${updatedBooking.metadata['clientFirstName']} ${updatedBooking.metadata['clientLastName']}`
+                : undefined) ||
+              (existingBooking.metadata?.['clientFirstName'] && existingBooking.metadata?.['clientLastName']
+                ? `${existingBooking.metadata['clientFirstName']} ${existingBooking.metadata['clientLastName']}`
+                : undefined);
+
+            await notificationService.sendNotification({
+              recipient: requesterId,
+              type: updatedBooking.status === BOOKING_STATUSES.FINISHED 
+                ? 'BOOKING_FINISHED' 
+                : 'BOOKING_STATUS_UPDATED',
+              template: updatedBooking.status === BOOKING_STATUSES.FINISHED 
+                ? 'booking_finished' 
+                : 'booking_status_updated',
+              data: {
+                reservationNumber,
+                serviceName,
+                appointmentDate: apptDate,
+                appointmentTime: apptTime,
+                status: updatedBooking.status,
+                bookingsUrl,
+                clientName,
+              },
+              channels: [
+                { type: 'IN_APP', enabled: true, priority: 'HIGH' },
+                { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
+              ],
+              locale: 'fr',
+              priority: 'HIGH',
+              userId: requesterId,
+              ...(clientEmail ? { recipientEmail: clientEmail } : {}),
+            } as any);
+          }
+
+          // Notification au prestataire si assigné
+          const providerId = (updatedBooking as any).providerId || (existingBooking as any).providerId;
+          if (providerId) {
+            const providerName =
+              (updatedBooking.metadata?.['providerName'] as string | undefined) ||
+              (existingBooking.metadata?.['providerName'] as string | undefined) ||
+              'Prestataire';
+
+            await notificationService.sendNotification({
+              recipient: providerId,
+              type: updatedBooking.status === BOOKING_STATUSES.FINISHED 
+                ? 'PROVIDER_BOOKING_FINISHED' 
+                : 'PROVIDER_BOOKING_STATUS_UPDATED',
+              template: updatedBooking.status === BOOKING_STATUSES.FINISHED 
+                ? 'provider_booking_finished' 
+                : 'provider_booking_status_updated',
+              data: {
+                providerName,
+                reservationNumber,
+                serviceName,
+                appointmentDate: apptDate,
+                appointmentTime: apptTime,
+                status: updatedBooking.status,
+                bookingsUrl,
+              },
+              channels: [
+                { type: 'IN_APP', enabled: true, priority: 'HIGH' },
+                { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
+              ],
+              locale: 'fr',
+              priority: 'HIGH',
+              userId: providerId,
+            } as any);
+          }
+
+          // Notification au bénéficiaire si email enregistré
+          const beneficiaryEmail = (updatedBooking.metadata?.['beneficiaryEmail'] as string | undefined) ||
+            (existingBooking.metadata?.['beneficiaryEmail'] as string | undefined);
+          if (beneficiaryEmail && beneficiaryEmail !== clientEmail) {
+            const beneficiaryName =
+              (updatedBooking.metadata?.['beneficiaryFirstName'] && updatedBooking.metadata?.['beneficiaryLastName']
+                ? `${updatedBooking.metadata['beneficiaryFirstName']} ${updatedBooking.metadata['beneficiaryLastName']}`
+                : undefined) ||
+              (existingBooking.metadata?.['beneficiaryFirstName'] && existingBooking.metadata?.['beneficiaryLastName']
+                ? `${existingBooking.metadata['beneficiaryFirstName']} ${existingBooking.metadata['beneficiaryLastName']}`
+                : undefined) ||
+              'Bénéficiaire';
+
+            await notificationService.sendNotification({
+              recipient: beneficiaryEmail,
+              type: 'BOOKING_STATUS_UPDATED',
+              template: 'booking_status_updated',
+              data: {
+                reservationNumber,
+                serviceName,
+                appointmentDate: apptDate,
+                appointmentTime: apptTime,
+                status: updatedBooking.status,
+                bookingsUrl,
+                clientName: beneficiaryName,
+              },
+              channels: [
+                { type: 'IN_APP', enabled: true, priority: 'HIGH' },
+                { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
+              ],
+              locale: 'fr',
+              priority: 'MEDIUM',
+              recipientEmail: beneficiaryEmail,
+            } as any);
+          }
+
+          // Notification aux admins
+          try {
+            const { mongoClient } = await import('@/lib/mongodb');
+            const mClient = await mongoClient;
+            const db = mClient.db();
+            const users = db.collection(DATABASE.COLLECTIONS.USERS);
+
+            const admins = await users
+              .find(
+                {
+                  roles: { $in: [ROLES.ADMIN, ROLES.SUPERADMIN] },
+                },
+                { projection: { _id: 1, email: 1 } },
+              )
+              .toArray();
+
+            if (admins.length > 0) {
+              await Promise.all(
+                admins.map((admin: any) =>
+                  notificationService.sendNotification({
+                    recipient: admin._id.toString(),
+                    type: 'BOOKING_STATUS_UPDATED',
+                    template: 'booking_status_updated',
+                    data: {
+                      reservationNumber,
+                      serviceName,
+                      appointmentDate: apptDate,
+                      appointmentTime: apptTime,
+                      status: updatedBooking.status,
+                      bookingsUrl,
+                    },
+                    channels: [
+                      { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
+                      { type: 'EMAIL', enabled: admin.email ? true : false, priority: 'LOW' },
+                    ],
+                    locale: 'fr',
+                    priority: 'MEDIUM',
+                    userId: admin._id.toString(),
+                    ...(admin.email ? { recipientEmail: admin.email } : {}),
+                  } as any),
+                ),
+              );
+            }
+          } catch (adminNotifError) {
+            logger.warn({ error: adminNotifError, bookingId: id }, 'Failed to notify admins');
+          }
+
+          // Notification aux CSM concernés (si provider assigné)
+          if (providerId) {
+            try {
+              const { mongoClient } = await import('@/lib/mongodb');
+              const mClient = await mongoClient;
+              const db = mClient.db();
+              const users = db.collection(DATABASE.COLLECTIONS.USERS);
+
+              const csms = await users
+                .find(
+                  {
+                    roles: { $in: [ROLES.CSM] },
+                    csmPortfolioProviderIds: providerId,
+                  },
+                  { projection: { _id: 1, email: 1 } },
+                )
+                .toArray();
+
+              if (csms.length > 0) {
+                await Promise.all(
+                  csms.map((csm: any) =>
+                    notificationService.sendNotification({
+                      recipient: csm._id.toString(),
+                      type: 'CSM_BOOKING_STATUS_UPDATED',
+                      template: 'csm_booking_status_updated',
+                      data: {
+                        reservationNumber,
+                        serviceName,
+                        appointmentDate: apptDate,
+                        appointmentTime: apptTime,
+                        status: updatedBooking.status,
+                        bookingsUrl,
+                      },
+                      channels: [
+                        { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
+                        { type: 'EMAIL', enabled: csm.email ? true : false, priority: 'LOW' },
+                      ],
+                      locale: 'fr',
+                      priority: 'MEDIUM',
+                      userId: csm._id.toString(),
+                      ...(csm.email ? { recipientEmail: csm.email } : {}),
+                    } as any),
+                  ),
+                );
+              }
+            } catch (csmNotifError) {
+              logger.warn({ error: csmNotifError, bookingId: id }, 'Failed to notify CSMs');
+            }
+          }
+        } catch (statusNotifError) {
+          logger.warn({ error: statusNotifError, bookingId: id }, 'Failed to send status change notifications');
+        }
+      }
 
       // Notification provider (in-app): mission mise à jour / (ré)assignée
       try {
@@ -597,6 +893,24 @@ export class BookingService {
     status: Booking['status'],
   ): Promise<boolean> {
     try {
+      const existing = await this.bookingRepository.findById(id);
+      if (!existing) {
+        throw new Error('Réservation non trouvée');
+      }
+
+      // Transitions validées via domaine (anti-corruption status)
+      const {
+        canTransitionBookingStatus,
+        toDomainBookingStatus,
+      } = await import('@/domain/booking');
+      const from = toDomainBookingStatus(String(existing.status));
+      const to = toDomainBookingStatus(String(status));
+      if (!canTransitionBookingStatus(from, to)) {
+        throw new Error(
+          `Transition de statut booking invalide: ${from} → ${to}`,
+        );
+      }
+
       return await this.bookingRepository.updateStatus(id, status);
     } catch (error) {
       logger.error({ error, id, status }, 'Erreur updateBookingStatus');
@@ -865,7 +1179,7 @@ export class BookingService {
         
         const invoices = await invoiceRepository.findInvoicesWithFilters(
           { bookingId: id },
-          { limit: 1, page: 1 }
+          { limit: 1, page: 1 },
         );
 
         if (invoices.data.length > 0) {
@@ -1061,18 +1375,49 @@ export class BookingService {
   @InvalidateCache('BookingService:*')
   async validateStep(id: string, step: number, validatedBy?: string): Promise<Booking> {
     try {
+      // Définir les noms d'étapes une seule fois
+      const stepNames: Record<number, string> = {
+        1: 'Informations client',
+        2: 'Sélection du service',
+        3: 'Paiement',
+        4: 'Confirmation',
+      };
+
       // Récupérer la réservation
       const booking = await this.bookingRepository.findById(id);
       if (!booking) {
         throw new Error('Réservation non trouvée');
       }
 
-      const metadata = booking.metadata || {};
+      const metadata: Record<string, unknown> = booking.metadata || {};
       const currentStep = (metadata['currentStep'] as number) || 0;
-      const progressHistory = (metadata['progressHistory'] as any[]) || [];
+      const progressHistoryValue = metadata['progressHistory'];
+      const progressHistory = Array.isArray(progressHistoryValue)
+        ? progressHistoryValue.filter(isProgressHistoryEntry)
+        : [];
+
+      // Récupérer toutes les étapes complétées
+      const completedSteps = progressHistory
+        .filter((historyEntry) => historyEntry.completed === true)
+        .map((historyEntry) => historyEntry.step)
+        .filter((historyStep): historyStep is number => typeof historyStep === 'number');
+      
+      const maxCompletedStep = completedSteps.length > 0 ? Math.max(...completedSteps) : 0;
+      
+      // Si une étape ultérieure est complétée, l'étape demandée est automatiquement considérée comme complétée
+      if (maxCompletedStep > step) {
+        const requestedStepName = stepNames[step] || `Étape ${step}`;
+        const maxStepName = stepNames[maxCompletedStep] || `Étape ${maxCompletedStep}`;
+        throw new Error(
+          `L'étape ${step} (${requestedStepName}) est déjà complétée. ` +
+          `L'étape ${maxCompletedStep} (${maxStepName}) ayant été validée, toutes les étapes précédentes sont considérées comme complétées.`,
+        );
+      }
 
       // Vérifier si l'étape est déjà complétée dans l'historique
-      const stepHistory = progressHistory.find((h: any) => h.step === step && h.completed === true);
+      const stepHistory = progressHistory.find((historyEntry) => (
+        historyEntry.step === step && historyEntry.completed === true
+      ));
       if (stepHistory) {
         // Si l'étape est déjà complétée, vérifier si c'est l'étape actuelle
         // Si c'est l'étape actuelle et qu'elle est complétée, on peut quand même avancer
@@ -1085,10 +1430,41 @@ export class BookingService {
         }
       }
 
+      // Vérifier que toutes les étapes précédentes sont complétées avant de valider une étape
+      if (step > 1) {
+        const missingSteps: number[] = [];
+        for (let i = 1; i < step; i++) {
+          // Vérifier si l'étape i est complétée (soit directement, soit via une étape ultérieure)
+          const isStepCompleted = completedSteps.includes(i) || maxCompletedStep > i;
+          if (!isStepCompleted) {
+            missingSteps.push(i);
+          }
+        }
+
+        if (missingSteps.length > 0) {
+          const requestedStepName = stepNames[step] || `Étape ${step}`;
+          const missingStepsNames = missingSteps
+            .map((s) => `${s} (${stepNames[s] || `Étape ${s}`})`)
+            .join(', ');
+          throw new Error(
+            `Impossible de valider l'étape ${step} (${requestedStepName}) : ` +
+            `les étapes précédentes doivent être complétées en premier. ` +
+            `Étapes manquantes : ${missingStepsNames}. ` +
+            `Veuillez valider les étapes dans l'ordre (1, 2, 3, 4).`,
+          );
+        }
+      }
+
       // On peut valider l'étape actuelle (où l'utilisateur s'est arrêté) ou l'étape suivante
       // Si currentStep est 1, cela signifie que l'utilisateur est bloqué à l'étape 1, donc on peut valider l'étape 1
       if (step < currentStep) {
-        throw new Error(`L'étape ${step} est déjà passée. L'étape actuelle est ${currentStep}.`);
+        const currentStepName = stepNames[currentStep] || `Étape ${currentStep}`;
+        const requestedStepName = stepNames[step] || `Étape ${step}`;
+        throw new Error(
+          `Impossible de valider l'étape ${step} (${requestedStepName}) : elle est déjà passée. ` +
+          `La réservation est actuellement à l'étape ${currentStep} (${currentStepName}). ` +
+          `Vous pouvez uniquement valider l'étape actuelle (${currentStep}) ou l'étape suivante (${currentStep + 1}).`,
+        );
       }
 
       // Vérifier que l'étape n'est pas trop loin dans le futur (max 1 étape d'avance)
@@ -1096,15 +1472,8 @@ export class BookingService {
         throw new Error(`Vous ne pouvez valider que l'étape actuelle (${currentStep}) ou l'étape suivante (${currentStep + 1}). L'étape ${step} ne peut pas être validée directement.`);
       }
 
-      // Définir les noms d'étapes
-      const stepNames: Record<number, string> = {
-        1: 'Étape 1 : Informations client',
-        2: 'Étape 2 : Sélection du service',
-        3: 'Étape 3 : Paiement',
-        4: 'Étape 4 : Confirmation',
-      };
-
-      const stepName = stepNames[step] || `Étape ${step}`;
+      // Construire le nom complet de l'étape
+      const stepName = `Étape ${step} : ${stepNames[step] || `Étape ${step}`}`;
 
       // Pour l'étape 3 (paiement), créer un lien de paiement et l'envoyer par email si pas déjà généré
       let paymentUrl: string | undefined;
@@ -1166,7 +1535,7 @@ export class BookingService {
                 checkoutSessionId = checkoutResult.sessionId;
 
                 logger.info(
-                  { bookingId: id, checkoutSessionId, paymentUrl: paymentUrl.substring(0, 50) + '...' },
+                  { bookingId: id, checkoutSessionId, paymentUrl: `${paymentUrl.substring(0, 50)  }...` },
                   'Checkout session created for step 3 validation',
                 );
 
@@ -1174,11 +1543,18 @@ export class BookingService {
                 const clientName = clientFirstName && clientLastName
                   ? `${clientFirstName} ${clientLastName}`
                   : clientFirstName || clientLastName || 'Client';
-                
+
+                const reservationLabel = booking.reservationNumber || id;
+                EmailDispatch.of({
+                  to: clientEmail,
+                  subject: `Paiement de votre commande ${reservationLabel} - DiaspoMoney`,
+                  templateId: 'payment_link',
+                });
+
                 const emailSent = await sendPaymentLinkEmail(
                   clientEmail,
                   clientName,
-                  booking.reservationNumber || id,
+                  reservationLabel,
                   serviceName,
                   amountInEuros,
                   currency,
@@ -1193,13 +1569,23 @@ export class BookingService {
               }
             }
           } catch (error) {
-            logger.error({ error, bookingId: id, step }, 'Error creating payment link for step 3');
+            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            logger.error({ 
+              error: errorMessage, 
+              errorDetails: error,
+              bookingId: id, 
+              step, 
+            }, 'Error creating payment link for step 3');
             Sentry.captureException(error, {
               tags: { component: 'BookingService', method: 'validateStep', step: 3 },
-              extra: { bookingId: id, step },
+              extra: { bookingId: id, step, errorMessage },
             });
             // Ne pas bloquer la validation si l'envoi du lien échoue
             // L'admin peut valider l'étape même sans générer de lien
+            // Mais on log l'erreur pour le débogage
+            if (errorMessage.includes('Stripe') || errorMessage.includes('STRIPE_SECRET_KEY')) {
+              logger.warn({ bookingId: id }, 'Stripe configuration issue detected. Step validation will continue without payment link.');
+            }
           }
         }
       }
@@ -1238,7 +1624,6 @@ export class BookingService {
 
       // Calculer et mettre à jour le montant total si nécessaire
       // Le montant doit être calculé à partir de basePrice + optionsPrice - discountAmount
-      let calculatedTotalAmount: number | undefined;
       const basePrice = typeof metadata['basePrice'] === 'number'
         ? metadata['basePrice']
         : typeof metadata['basePrice'] === 'string'
@@ -1252,12 +1637,17 @@ export class BookingService {
       const optionsPrice = (() => {
         if (metadata['additionalOptions']) {
           try {
-            const options = typeof metadata['additionalOptions'] === 'string'
+            const options: unknown = typeof metadata['additionalOptions'] === 'string'
               ? JSON.parse(metadata['additionalOptions'])
               : metadata['additionalOptions'];
             if (Array.isArray(options)) {
-              return options.reduce((sum: number, opt: any) => {
-                const optPrice = typeof opt.price === 'number' ? opt.price : parseFloat(opt.price) || 0;
+              return options.reduce((sum: number, opt: unknown) => {
+                if (!isPricedOption(opt)) {
+                  return sum;
+                }
+                const optPrice = typeof opt.price === 'number'
+                  ? opt.price
+                  : parseFloat(opt.price ?? '') || 0;
                 return sum + optPrice;
               }, 0);
             }
@@ -1279,10 +1669,10 @@ export class BookingService {
         : 0;
 
       const subtotal = basePrice + optionsPrice;
-      calculatedTotalAmount = subtotal - discountAmount;
+      const calculatedTotalAmount = subtotal - discountAmount;
 
       // Mettre à jour les métadonnées
-      const updatedMetadata: Record<string, any> = {
+      const updatedMetadata: Record<string, unknown> = {
         ...metadata,
         currentStep: step,
         stepName,
@@ -1324,21 +1714,89 @@ export class BookingService {
       }
 
       // Si l'étape 4 est validée, marquer la réservation comme non-draft
+      const updateData: Partial<Booking> = {
+        metadata: updatedMetadata,
+      };
+      
       if (step === 4) {
         updatedMetadata['isDraft'] = false;
         // Optionnellement, mettre à jour le statut de la réservation
         if (booking.status === BOOKING_STATUSES.DRAFT) {
-          await this.bookingRepository.updateStatus(id, BOOKING_STATUSES.PENDING);
+          updateData.status = BOOKING_STATUSES.PENDING;
         }
       }
 
-      // Mettre à jour la réservation
-      const updatedBooking = await this.bookingRepository.update(id, {
-        metadata: updatedMetadata,
-      });
+      // Mettre à jour la réservation en une seule opération
+      const updatedBooking = await this.bookingRepository.update(id, updateData);
 
       if (!updatedBooking) {
-        throw new Error('Erreur lors de la mise à jour de la réservation');
+        // Le repository a retourné null, ce qui peut arriver si :
+        // 1. Le document a été supprimé entre la vérification et la mise à jour (race condition)
+        // 2. Le mapping a échoué
+        // Tentons de récupérer le booking à nouveau pour vérifier s'il existe toujours
+        logger.warn(
+          { 
+            bookingId: id, 
+            step, 
+            metadataKeys: Object.keys(updatedMetadata),
+            metadataSize: JSON.stringify(updatedMetadata).length,
+            updateData,
+          },
+          'Repository returned null after update, attempting to refetch booking',
+        );
+        
+        const refetchedBooking = await this.bookingRepository.findById(id);
+        if (!refetchedBooking) {
+          logger.error(
+            { 
+              bookingId: id,
+              step,
+              updateData,
+            },
+            'Booking not found after update - document may have been deleted',
+          );
+          throw new Error('Erreur lors de la mise à jour de la réservation. La réservation n\'a pas pu être trouvée ou mise à jour.');
+        }
+        
+        // Le booking existe toujours, vérifier si la mise à jour a été appliquée
+        // en comparant les métadonnées
+        const refetchedMetadata = refetchedBooking.metadata || {};
+        const expectedStep = updatedMetadata['currentStep'];
+        const actualStep = refetchedMetadata['currentStep'];
+        
+        if (expectedStep && actualStep === expectedStep) {
+          // La mise à jour semble avoir été appliquée malgré le null
+          logger.info(
+            { bookingId: id, step, expectedStep, actualStep },
+            'Booking refetched successfully after update returned null - update appears to have been applied',
+          );
+          return refetchedBooking;
+        }
+        
+        // La mise à jour n'a pas été appliquée, réessayer une fois
+        logger.warn(
+          { bookingId: id, step, expectedStep, actualStep },
+          'Update not applied, retrying once',
+        );
+        
+        const retryBooking = await this.bookingRepository.update(id, updateData);
+        if (!retryBooking) {
+          logger.error(
+            { 
+              bookingId: id,
+              step,
+              updateData,
+            },
+            'Failed to update booking after retry - repository returned null again',
+          );
+          throw new Error('Erreur lors de la mise à jour de la réservation. La réservation n\'a pas pu être trouvée ou mise à jour.');
+        }
+        
+        logger.info(
+          { bookingId: id, step },
+          'Booking updated successfully after retry',
+        );
+        return retryBooking;
       }
 
       logger.info(
@@ -1355,7 +1813,40 @@ export class BookingService {
 
       return updatedBooking;
     } catch (error) {
-      logger.error({ error, id, step }, 'Erreur validateStep');
+      // Extraire les détails de l'erreur de manière sécurisée pour le logging
+      let errorMessage = 'Erreur inconnue';
+      let errorStack: string | undefined;
+      let errorName: string | undefined;
+      
+      if (error instanceof Error) {
+        errorMessage = error.message || 'Erreur inconnue';
+        errorStack = error.stack;
+        errorName = error.name;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        const errorRecord = error as Record<string, unknown>;
+        const message = errorRecord['message'];
+        const errorValue = errorRecord['error'];
+        const stack = errorRecord['stack'];
+        const name = errorRecord['name'];
+
+        errorMessage =
+          (typeof message === 'string' && message) ||
+          (typeof errorValue === 'string' && errorValue) ||
+          JSON.stringify(error);
+        errorStack = typeof stack === 'string' ? stack : undefined;
+        errorName = typeof name === 'string' ? name : undefined;
+      }
+      
+      logger.error({ 
+        errorMessage,
+        errorName,
+        errorStack,
+        errorType: typeof error,
+        id, 
+        step, 
+      }, 'Erreur validateStep');
       Sentry.captureException(error);
       throw error;
     }

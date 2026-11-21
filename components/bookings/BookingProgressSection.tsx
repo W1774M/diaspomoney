@@ -1,20 +1,12 @@
 'use client';
 
-import { CheckCircle, Circle, AlertCircle, Clock, Check, Send, CreditCard } from 'lucide-react';
-import { AuthorizedContent } from '@/components/auth';
-import { ROLES } from '@/lib/constants';
+import { CheckCircle, Circle, AlertCircle, Clock } from 'lucide-react';
 import type { BookingResponse } from '@/lib/mappers/booking.mapper';
 import type { BookingProgress } from '@/hooks/bookings/useBookingProgress';
 
 interface BookingProgressSectionProps {
   booking: BookingResponse;
   progress: BookingProgress;
-  onValidateStep: (step: number) => void;
-  onResendPaymentLink: () => void;
-  onGeneratePaymentLink: () => void;
-  validatingStep: number | null;
-  resendingPaymentLink: boolean;
-  generatingPaymentLink: boolean;
 }
 
 const stepLabels: Record<number, { name: string; description: string }> = {
@@ -27,12 +19,6 @@ const stepLabels: Record<number, { name: string; description: string }> = {
 export default function BookingProgressSection({
   booking,
   progress,
-  onValidateStep,
-  onResendPaymentLink,
-  onGeneratePaymentLink,
-  validatingStep,
-  resendingPaymentLink,
-  generatingPaymentLink,
 }: BookingProgressSectionProps) {
   const metadata = booking.metadata || {};
   const isDraft = metadata['isDraft'] === true;
@@ -87,7 +73,7 @@ export default function BookingProgressSection({
       <div className="mb-4 sm:mb-6">
         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <span className="text-xs sm:text-sm font-medium text-gray-700">
-            Progression : {progress.currentStep || 0} / {progress.totalSteps} étapes
+            Progression : {Object.values(progress.stepStatuses).filter((s) => s.isCompleted).length} / {progress.totalSteps} étapes
           </span>
           <span className="text-xs sm:text-sm text-gray-500">{progress.completionPercentage}%</span>
         </div>
@@ -198,61 +184,6 @@ export default function BookingProgressSection({
                   )}
                 </div>
               </div>
-              <AuthorizedContent roles={[ROLES.ADMIN]}>
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                  {/* Bouton générer un lien de paiement (uniquement pour l'étape 3) */}
-                  {step === 3 && !isCompleted && (
-                    <div className="flex-shrink-0 w-full sm:w-auto">
-                      <button
-                        onClick={onGeneratePaymentLink}
-                        disabled={generatingPaymentLink}
-                        className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Générer un lien de paiement et l'envoyer au client"
-                      >
-                        <CreditCard className="w-3 h-3" />
-                        <span className="hidden sm:inline">
-                          {generatingPaymentLink ? 'Génération...' : 'Générer un lien'}
-                        </span>
-                        <span className="sm:hidden">{generatingPaymentLink ? 'Génération...' : 'Générer'}</span>
-                      </button>
-                    </div>
-                  )}
-                  {/* Bouton renvoyer le lien (uniquement si un lien existe déjà) */}
-                  {step === 3 && isPaymentWaiting && (
-                    <div className="flex-shrink-0 w-full sm:w-auto">
-                      <button
-                        onClick={onResendPaymentLink}
-                        disabled={resendingPaymentLink}
-                        className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Renvoyer le lien de paiement au client"
-                      >
-                        <Send className="w-3 h-3" />
-                        <span className="hidden sm:inline">
-                          {resendingPaymentLink ? 'Envoi...' : 'Renvoyer le lien'}
-                        </span>
-                        <span className="sm:hidden">{resendingPaymentLink ? 'Envoi...' : 'Renvoyer'}</span>
-                      </button>
-                    </div>
-                  )}
-                  {/* Bouton valider l'étape */}
-                  {progress.nextStepToValidate !== null && step === progress.nextStepToValidate && !isCompleted && (
-                    <div className="flex-shrink-0 w-full sm:w-auto">
-                      <button
-                        onClick={() => onValidateStep(step)}
-                        disabled={validatingStep === step}
-                        className="w-full sm:w-auto flex items-center justify-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={`Valider l'étape ${step}`}
-                      >
-                        <Check className="w-3 h-3" />
-                        <span className="hidden sm:inline">
-                          {validatingStep === step ? 'Validation...' : `Valider étape ${step}`}
-                        </span>
-                        <span className="sm:hidden">{validatingStep === step ? 'Validation...' : 'Valider'}</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </AuthorizedContent>
             </div>
           );
         })}

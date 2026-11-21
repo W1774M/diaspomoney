@@ -85,7 +85,7 @@ describe('useBookingStats', () => {
       userId: 'user5',
       providerId: 'provider5',
       date: new Date('2024-02-15'),
-      status: 'completed',
+      status: 'FINISHED',
       paymentStatus: 'paid',
       reservationNumber: 'RES-005',
       price: 250,

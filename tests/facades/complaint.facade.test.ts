@@ -92,7 +92,11 @@ describe('ComplaintFacade', () => {
 
       expect(result.success).toBe(true);
       expect(result.complaintId).toBe('complaint123');
-      expect(complaintService.createComplaint).toHaveBeenCalledWith(complaintData);
+      expect(complaintService.createComplaint).toHaveBeenCalledWith({
+        ...complaintData,
+        bookingId: 'appointment123',
+        appointmentId: 'appointment123',
+      });
     });
 
     it('devrait envoyer une notification si sendNotification est true', async () => {
@@ -197,14 +201,14 @@ describe('ComplaintFacade', () => {
         id: 'complaint123',
       } as any);
 
-      const { emailService } = await import('@/services/email/email.service');
-      vi.mocked(emailService.sendCustomEmail).mockResolvedValue(true);
+      const { notificationService } = await import('@/services/notification/notification.service');
+      vi.mocked(notificationService.sendNotification).mockResolvedValue({} as any);
 
       const result = await complaintFacade.createComplaint(complaintData);
 
       expect(result.success).toBe(true);
       expect(result.emailSent).toBe(true);
-      expect(emailService.sendCustomEmail).toHaveBeenCalled();
+      expect(notificationService.sendNotification).toHaveBeenCalled();
     });
 
     it('devrait gérer les erreurs de création de réclamation', async () => {

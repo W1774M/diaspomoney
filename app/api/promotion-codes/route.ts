@@ -10,12 +10,13 @@
  */
 
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
+import { requireApiRoles } from '@/lib/api/auth';
 import { childLogger } from '@/lib/logger';
-import { auth } from '@/auth';
 import { ROLES } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import PromotionCode from '@/models/PromotionCode';
+import PromotionCode, { type PromotionCodeDocument } from '@/models/PromotionCode';
+import type { FilterQuery } from 'mongoose';
 import { z } from 'zod';
 
 const log = childLogger({ route: 'api/promotion-codes' });
@@ -45,40 +46,25 @@ function generatePromotionCodeLabel(): string {
  */
 export async function GET(request: NextRequest) {
   return handleApiRoute(request, async () => {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 },
-      );
-    }
-
-    // Vérifier que l'utilisateur est admin
-    const userRoles = (session.user as any).roles || [];
-    if (!userRoles.includes(ROLES.ADMIN)) {
-      return NextResponse.json(
-        { error: 'Accès refusé. Admin uniquement.' },
-        { status: 403 },
-      );
-    }
+    await requireApiRoles([ROLES.ADMIN, ROLES.SUPERADMIN]);
 
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
-    const query: any = {};
+    const query: FilterQuery<PromotionCodeDocument> = {};
 
     if (status) {
       query.status = status;
     }
 
-    const codes = await (PromotionCode as any).find(query)
+    const codes = await PromotionCode.find(query)
       .sort({ createdAt: -1 })
       .lean();
 
     // Calculer le statut réel basé sur les dates
     const now = new Date();
-    const codesWithCalculatedStatus = codes.map((code: any) => {
+    const codesWithCalculatedStatus = codes.map((code) => {
       let calculatedStatus = code.status;
       
       if (code.status === 'valid') {
@@ -112,22 +98,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   return handleApiRoute(request, async () => {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 },
-      );
-    }
-
-    // Vérifier que l'utilisateur est admin
-    const userRoles = (session.user as any).roles || [];
-    if (!userRoles.includes(ROLES.ADMIN)) {
-      return NextResponse.json(
-        { error: 'Accès refusé. Admin uniquement.' },
-        { status: 403 },
-      );
-    }
+    const session = await requireApiRoles([ROLES.ADMIN, ROLES.SUPERADMIN]);
 
     const body = await request.json();
     const data = validateBody(body, CreatePromotionCodeSchema);
@@ -139,18 +110,19 @@ export async function POST(request: NextRequest) {
     if (!label) {
       // Générer un label unique
       let attempts = 0;
-      do {
+      while (attempts <= 10) {
         label = generatePromotionCodeLabel();
-        const existing = await (PromotionCode as any).findOne({ label });
+        const existing = await PromotionCode.findOne({ label });
         if (!existing) break;
         attempts++;
-        if (attempts > 10) {
-          throw new Error('Impossible de générer un code unique');
-        }
-      } while (true);
+      }
+
+      if (attempts > 10) {
+        throw new Error('Impossible de générer un code unique');
+      }
     } else {
       // Vérifier que le label n'existe pas déjà
-      const existing = await (PromotionCode as any).findOne({ label });
+      const existing = await PromotionCode.findOne({ label });
       if (existing) {
         return NextResponse.json(
           { error: 'Un code avec ce label existe déjà' },
@@ -169,7 +141,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const code = await (PromotionCode as any).create({
+    const code = await PromotionCode.create({
       label,
       percentage: data.percentage,
       validFrom,

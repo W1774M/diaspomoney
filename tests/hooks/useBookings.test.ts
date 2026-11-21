@@ -74,7 +74,7 @@ describe('useBookings', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.error).toBeDefined();
+    expect(result.current.error).not.toBeNull(); // toBeDefined() acceptait null
     expect(result.current.bookings).toHaveLength(0);
   });
 
@@ -105,6 +105,7 @@ describe('useBookings', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('status=PENDING'),
+      expect.anything(),
     );
     expect(result.current.bookings).toHaveLength(1);
   });
@@ -129,6 +130,7 @@ describe('useBookings', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('offset=20'),
+      expect.anything(),
     );
     expect(result.current.total).toBe(50);
   });
@@ -166,6 +168,7 @@ describe('useBookings', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('providerId=provider123'),
+      expect.anything(),
     );
   });
 

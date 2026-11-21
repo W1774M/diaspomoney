@@ -38,14 +38,11 @@ kubectl delete service maintenance-page-service -n diaspomoney
 ### Étape 2 : Appliquer la nouvelle configuration de production
 
 ```bash
-# Appliquer le service corrigé
-kubectl apply -f diaspomoney/k8s/app/prod/service.yaml
+# Canonique (Kustomize) — remplace les anciens apply -f sur app/prod/*.yaml
+kubectl apply -k k8s/app/overlays/prod
 
-# Appliquer les IngressRoute avec les nouvelles fonctionnalités
-kubectl apply -f diaspomoney/k8s/app/prod/ingress.yaml
-
-# Vérifier que le déploiement existe
-kubectl get deployment diaspomoney-app -n diaspomoney
+# Vérifier
+kubectl get deployment,svc,ingressroute -n diaspomoney | findstr /i prod
 ```
 
 ### Étape 3 : Vérifier le déploiement

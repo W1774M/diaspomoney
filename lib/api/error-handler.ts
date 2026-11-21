@@ -30,6 +30,8 @@ export const ApiErrors = {
   UNAUTHORIZED: new ApiError(401, 'Non autorisé', 'UNAUTHORIZED'),
   FORBIDDEN: new ApiError(403, 'Accès non autorisé', 'FORBIDDEN'),
   NOT_FOUND: new ApiError(404, 'Ressource non trouvée', 'NOT_FOUND'),
+  PAYMENT_REQUIRED: (message = 'Paiement non confirmé auprès de Stripe') =>
+    new ApiError(402, message, 'PAYMENT_REQUIRED'),
   VALIDATION_ERROR: (details?: unknown) => 
     new ApiError(400, 'Erreur de validation', 'VALIDATION_ERROR', details),
   INTERNAL_ERROR: new ApiError(500, 'Erreur interne du serveur', 'INTERNAL_ERROR'),
@@ -161,6 +163,49 @@ export async function handleApiRoute<T>(
         },
         { status: 400 },
       );
+    }
+
+    // Vérifier les erreurs réseau spécifiques
+    if (error instanceof Error) {
+      const errorCode = (error as any).code;
+      const isNetworkError = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED', 'EAI_AGAIN'].includes(errorCode);
+      
+      if (isNetworkError) {
+        log.error(
+          { 
+            error: error.message, 
+            code: errorCode,
+            route: routeName,
+          }, 
+          'Network error in API route',
+        );
+        
+        Sentry.captureException(error, {
+          tags: {
+            component: 'API',
+            route: routeName,
+            errorType: 'network',
+            errorCode: errorCode,
+          },
+          extra: {
+            requestId: reqId,
+          },
+        });
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Erreur de connexion réseau. Veuillez réessayer dans quelques instants.',
+            code: 'NETWORK_ERROR',
+            details: {
+              code: errorCode,
+              message: error.message,
+            },
+            ...(reqId && { requestId: reqId }),
+          },
+          { status: 503 }, // Service Unavailable pour les erreurs réseau
+        );
+      }
     }
 
     // Erreur inattendue

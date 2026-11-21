@@ -5,7 +5,6 @@ import { useAuthorization } from '@/hooks/auth/useAuthorization';
 import imageLoader from '@/lib/image-loader';
 import { ROLES } from '@/lib/constants';
 import {
-  Dashboard,
   FooterActionsProps,
   NavigationItem,
   NavigationLinkProps,
@@ -61,62 +60,8 @@ const logger = childLogger({ component: 'Sidebar' });
 // FONCTIONS UTILITAIRES
 // ============================================================================
 
-/**
- * Détermine les dashboards disponibles selon les rôles de l'utilisateur
- * Dans l'ordre de priorité : Super Admin > Admin > CSM > Provider > Customer
- */
-function getAvailableDashboards(userRoles: string[] = []): Dashboard[] {
-  const dashboards: Dashboard[] = [];
-
-  if (userRoles.length === 0) {
-    return [{ name: 'Dashboard', href: '/dashboard', role: 'default' }];
-  }
-
-  // Ajouter les dashboards selon l'ordre de priorité
-  const hasSuperAdmin = userRoles.includes(ROLES.SUPERADMIN);
-  const hasAdmin = userRoles.includes(ROLES.ADMIN);
-  if (hasSuperAdmin) {
-    dashboards.push({
-      name: 'Super Admin',
-      href: '/dashboard/superadmin',
-      role: ROLES.SUPERADMIN,
-    });
-  } else if (hasAdmin && userRoles.length > 1) {
-    // Compat legacy : ADMIN + plusieurs rôles => Super Admin
-    dashboards.push({
-      name: 'Super Admin',
-      href: '/dashboard/superadmin',
-      role: ROLES.ADMIN,
-    });
-  } else if (hasAdmin) {
-    dashboards.push({
-      name: 'Admin',
-      href: '/dashboard/admin',
-      role: ROLES.ADMIN,
-    });
-  }
-
-  const roleDashboards: Array<{ role: string; name: string; href: string }> = [
-    { role: ROLES.CSM, name: 'CSM', href: '/dashboard/csm' },
-    { role: ROLES.PROVIDER, name: 'Prestataire', href: '/dashboard/provider' },
-    { role: ROLES.CUSTOMER, name: 'Client', href: '/dashboard/customer' },
-    {
-      role: ROLES.BENEFICIARY,
-      name: 'Dashboard Bénéficiaire',
-      href: '/dashboard/beneficiary',
-    },
-  ];
-
-  for (const cfg of roleDashboards) {
-    if (userRoles.includes(cfg.role)) {
-      dashboards.push({ name: cfg.name, href: cfg.href, role: cfg.role });
-    }
-  }
-
-  return dashboards.length > 0
-    ? dashboards
-    : [{ name: 'Dashboard', href: '/dashboard', role: 'default' }];
-}
+// Note: getAvailableDashboards a été déplacé dans app/dashboard/page.tsx et components/dashboard/DashboardSwitcher.tsx
+// pour gérer le switch entre les dashboards sur la page principale
 
 /**
  * Construit les sections de navigation organisées
@@ -433,7 +378,6 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
 }
 
 function buildNavigationSections(
-  dashboards: Dashboard[],
   isAuthorizedAdmin: boolean,
   isAuthorizedProvider: boolean,
   isAuthorizedCSM: boolean,
@@ -448,35 +392,14 @@ function buildNavigationSections(
   // Section PRINCIPAL
   const principalItems: NavigationItem[] = [];
 
-  // Tableau de bord
-  if (dashboards.length > 1) {
-    principalItems.push({
-      name: 'Tableau de bord',
-      key: 'dashboards',
-      icon: LayoutDashboard,
-      show: true,
-      values: dashboards.map(d => ({
-        name: d.name,
-        key: `dashboard-${d.role.toLowerCase()}`,
-        href: d.href,
-        icon: LayoutDashboard,
-        show: true,
-      })),
-    });
-  } else {
-    const mainDashboard = dashboards[0] || {
-      name: 'Dashboard',
-      href: '/dashboard',
-      role: 'default',
-    };
-    principalItems.push({
-      name: 'Tableau de bord',
-      key: 'dashboard',
-      href: mainDashboard.href,
-      icon: LayoutDashboard,
-      show: true,
-    });
-  }
+  // Tableau de bord - toujours un seul bouton pointant vers /dashboard
+  principalItems.push({
+    name: 'Tableau de bord',
+    key: 'dashboard',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+    show: true,
+  });
 
 
   // Messagerie Interne (menu déroulant)
@@ -572,22 +495,6 @@ function buildNavigationSections(
     });
 
     adminGestionItems.push({
-      name: 'Agences',
-      key: 'agencies',
-      href: '/dashboard/agencies',
-      icon: Building,
-      show: false,
-    });
-
-    adminGestionItems.push({
-      name: 'Prestataires',
-      key: 'providers',
-      href: '/dashboard/providers',
-      icon: User,
-      show: true,
-    });
-
-    adminGestionItems.push({
       name: 'Gestion de service',
       key: 'services',
       href: '/dashboard/services',
@@ -615,13 +522,6 @@ function buildNavigationSections(
   // ----------------------------
   const csmGestionItems: NavigationItem[] = [];
   if (isAuthorizedCSM) {
-    csmGestionItems.push({
-      name: 'Prestataires',
-      key: 'providers',
-      href: '/dashboard/providers',
-      icon: User,
-      show: true,
-    });
     csmGestionItems.push({
       name: 'Mon portefeuille',
       key: 'csm-portfolio',
@@ -1309,9 +1209,7 @@ export default function Sidebar() {
   }
 
   // Construction de la navigation par sections
-  const dashboards = getAvailableDashboards(user?.roles || []);
   const sections = buildNavigationSections(
-    dashboards,
     isAuthorizedAdmin,
     isAuthorizedProvider,
     isAuthorizedCSM,

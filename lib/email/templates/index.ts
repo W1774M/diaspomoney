@@ -11,3 +11,4 @@ export { paymentConfirmationTemplate } from './payment-confirmation';
 export { bookingTakeChargeTemplate } from './booking-take-charge';
 export { paymentLinkTemplate } from './payment-link';
 export { providerAssignmentTemplate } from './provider-assignment';
+export { feedbackRequestTemplate } from './feedback-request';

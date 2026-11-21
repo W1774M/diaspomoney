@@ -38,7 +38,7 @@ vi.mock('@/auth', () => ({
 }));
 
 // Mock de paymentService
-vi.mock('@/services/payment/payment.service.strategy', () => ({
+vi.mock('@/services/payment/payment.service', () => ({
   paymentService: {
     createPaymentIntent: vi.fn(),
   },
@@ -88,7 +88,7 @@ describe('POST /api/payments/create-intent', () => {
       user: { id: 'user123' },
     } as any);
 
-    const { paymentService } = await import('@/services/payment/payment.service.strategy');
+    const { paymentService } = await import('@/services/payment/payment.service');
     vi.mocked(paymentService.createPaymentIntent).mockResolvedValue({
       id: 'pi_123',
       clientSecret: 'pi_123_secret_test',
@@ -118,7 +118,7 @@ describe('POST /api/payments/create-intent', () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValue(null); // Pas de session
 
-    const { paymentService } = await import('@/services/payment/payment.service.strategy');
+    const { paymentService } = await import('@/services/payment/payment.service');
     vi.mocked(paymentService.createPaymentIntent).mockResolvedValue({
       id: 'pi_123',
       clientSecret: 'pi_123_secret_test',
@@ -178,7 +178,7 @@ describe('POST /api/payments/create-intent', () => {
       user: { id: 'user123' },
     } as any);
 
-    const { paymentService } = await import('@/services/payment/payment.service.strategy');
+    const { paymentService } = await import('@/services/payment/payment.service');
     vi.mocked(paymentService.createPaymentIntent).mockResolvedValue({
       id: 'pi_123',
       clientSecret: 'pi_123_secret_test',
@@ -211,7 +211,7 @@ describe('POST /api/payments/create-intent', () => {
       user: { id: 'user123' },
     } as any);
 
-    const { paymentService } = await import('@/services/payment/payment.service.strategy');
+    const { paymentService } = await import('@/services/payment/payment.service');
     vi.mocked(paymentService.createPaymentIntent).mockResolvedValue({
       id: 'pi_123',
       clientSecret: 'pi_123_secret_test',
@@ -250,7 +250,7 @@ describe('POST /api/payments/create-intent', () => {
       user: { id: 'user123' },
     } as any);
 
-    const { paymentService } = await import('@/services/payment/payment.service.strategy');
+    const { paymentService } = await import('@/services/payment/payment.service');
     vi.mocked(paymentService.createPaymentIntent).mockResolvedValue({
       id: 'pi_123',
       clientSecret: null, // clientSecret manquant
@@ -280,7 +280,7 @@ describe('POST /api/payments/create-intent', () => {
       user: { id: 'user123' },
     } as any);
 
-    const { paymentService } = await import('@/services/payment/payment.service.strategy');
+    const { paymentService } = await import('@/services/payment/payment.service');
     vi.mocked(paymentService.createPaymentIntent).mockResolvedValue({
       id: 'pi_123',
       clientSecret: 'pi_123_secret_test',
@@ -309,7 +309,7 @@ describe('POST /api/payments/create-intent', () => {
       user: { id: 'user123' },
     } as any);
 
-    const { paymentService } = await import('@/services/payment/payment.service.strategy');
+    const { paymentService } = await import('@/services/payment/payment.service');
     vi.mocked(paymentService.createPaymentIntent).mockResolvedValue({
       id: 'pi_123',
       clientSecret: 'pi_123_secret_test',
@@ -349,7 +349,7 @@ describe('POST /api/payments/create-intent', () => {
       user: { id: 'user123' },
     } as any);
 
-    const { paymentService } = await import('@/services/payment/payment.service.strategy');
+    const { paymentService } = await import('@/services/payment/payment.service');
     vi.mocked(paymentService.createPaymentIntent).mockResolvedValue({
       id: 'pi_123',
       clientSecret: 'pi_123_secret_test',

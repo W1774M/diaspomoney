@@ -170,8 +170,8 @@ export interface BookingFacadeResult extends FacadeResult {
    */
   paymentResult?: {
     success: boolean;
-    paymentIntentId?: string;
-    transactionId?: string;
+    paymentIntentId?: string | undefined;
+    transactionId?: string | undefined;
   };
 
   /**

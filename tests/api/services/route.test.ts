@@ -122,6 +122,7 @@ describe('GET /api/services', () => {
         description: 'Service description',
         price: 100,
         isActive: true,
+        important: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -195,6 +196,7 @@ describe('POST /api/services', () => {
       description: 'Service description',
       price: 100,
       isActive: true,
+      important: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -274,6 +276,7 @@ describe('POST /api/services', () => {
       description: 'Service description',
       price: 100,
       isActive: true,
+      important: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

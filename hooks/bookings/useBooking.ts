@@ -119,18 +119,12 @@ export function useBooking(bookingId: string | undefined): UseBookingReturn {
           body: JSON.stringify({ status }),
         });
 
-        if (!response.ok) {
-          let errorData;
-          try {
-            errorData = await response.json();
-          } catch (_parseError) {
-            await response.text(); // Lire le texte pour éviter les warnings
-            throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-          }
-          throw new Error(errorData.error || `Erreur ${response.status}: ${response.statusText}`);
-        }
-
+        // Lire la réponse une seule fois
         const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || `Erreur ${response.status}: ${response.statusText}`);
+        }
 
         if (data.success && data.booking) {
           setBooking(data.booking);

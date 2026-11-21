@@ -126,51 +126,54 @@ export const ModalPreview = ({
     setErrorMsg(null);
 
     try {
-      // Simulation d'un problème de paiement (à remplacer par votre logique réelle)
-      // TODO: Remplacer par un vrai appel à PaymentFacade via l'API
-      const paymentSuccess = Math.random() > 0.3; // 70% de succès pour tester
-
-      if (!paymentSuccess) {
-        // Préparer les données d'appointment pour l'API
-        const appointmentData: AppointmentData = {
-          ...appointment,
-          id: (appointment as any)._id as string || (appointment as any).id || '',
-        } as AppointmentData;
-
-        // En cas d'erreur de paiement, envoyer l'email d'erreur via le hook
-        const errorSent = await sendPaymentError(
-          appointmentData,
-          paymentData,
-          'Erreur lors du traitement du paiement - Problème technique temporaire',
-        );
-
-        if (errorSent) {
-          addError(
-            'Erreur de paiement détectée. Un email a été envoyé avec un lien pour réessayer (valide 15 minutes).',
-            10000,
-          );
-        } else {
-          addError('Erreur de paiement. Veuillez réessayer plus tard.', 8000);
-        }
-
-        setIsClosing(true);
-        setTimeout(() => onFinalValidation?.(), 300);
-        return;
-      }
-
       // Préparer les données d'appointment pour l'API
       const appointmentData: AppointmentData = {
         ...appointment,
         id: (appointment as any)._id as string || (appointment as any).id || '',
       } as AppointmentData;
 
-      // Confirmer le paiement via le hook (qui utilise les facades via API)
-      const result = await confirmPayment(
-        appointmentData,
-        paymentData,
-      );
+      // Traiter le paiement avec les données de carte via l'API
+      const response = await fetch('/api/bookings/process-payment-with-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          appointment: appointmentData,
+          paymentData,
+        }),
+      });
 
-      if (result.success) {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'Erreur lors du traitement du paiement';
+        
+        // En cas d'erreur de paiement, envoyer l'email d'erreur via le hook
+        await sendPaymentError(
+          appointmentData,
+          paymentData,
+          errorMessage,
+        );
+
+        addError(
+          `Erreur de paiement: ${errorMessage}. Un email a été envoyé avec un lien pour réessayer.`,
+          10000,
+        );
+
+        setIsClosing(true);
+        setTimeout(() => onFinalValidation?.(), 300);
+        return;
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.reservationNumber) {
+        // Succès - utiliser le hook pour émettre les événements
+        await confirmPayment(
+          appointmentData,
+          paymentData,
+        );
+
         addSuccess(
           `Paiement effectué avec succès ! Email de confirmation envoyé. Numéro de réservation : ${result.reservationNumber}`,
           8000,
@@ -181,12 +184,6 @@ export const ModalPreview = ({
         setData({ ...appointment, id: (appointment as any)._id as string || (appointment as any).id || '' });
         router.push('/login');
       } else {
-        // Préparer les données d'appointment pour l'API
-        const appointmentData: AppointmentData = {
-          ...appointment,
-          id: (appointment as any)._id as string || (appointment as any).id || '',
-        } as AppointmentData;
-
         // En cas d'erreur, envoyer l'email d'erreur
         await sendPaymentError(
           appointmentData,

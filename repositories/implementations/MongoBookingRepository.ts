@@ -189,6 +189,11 @@ export class MongoBookingRepository implements IBookingRepository {
         ...data,
         updatedAt: new Date(),
       };
+      this.log.debug(
+        { id, updateData, statusInUpdateData: updateData.status },
+        'MongoDB update: before findOneAndUpdate',
+      );
+
       const result = await collection.findOneAndUpdate(
         { _id: new ObjectId(id) },
         { $set: updateData },
@@ -201,8 +206,27 @@ export class MongoBookingRepository implements IBookingRepository {
         return null;
       }
       
+      this.log.debug(
+        {
+          id,
+          rawStatus: result['value']?.status,
+          requestedStatus: updateData.status,
+          fullRawDocument: result['value'],
+        },
+        'MongoDB update: after findOneAndUpdate',
+      );
+      
       try {
         const mapped = this.mapToBooking(result['value']);
+        this.log.debug(
+          {
+            id,
+            mappedStatus: mapped.status,
+            rawStatus: result['value']?.status,
+            requestedStatus: updateData.status,
+          },
+          'MongoDB update: after mapping',
+        );
         return mapped;
       } catch (mappingError) {
         this.log.error(
@@ -551,6 +575,59 @@ export class MongoBookingRepository implements IBookingRepository {
     }
   }
 
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @InvalidateCache('BookingRepository:*')
+  async linkGuestBookingsToUser(userId: string, userEmail: string): Promise<number> {
+    try {
+      const collection = await this.getCollection();
+      const normalizedEmail = userEmail.toLowerCase();
+      const guestBookings = await collection
+        .find({
+          requesterId: { $regex: /^guest-/ },
+          'metadata.clientEmail': normalizedEmail,
+        })
+        .toArray();
+
+      let updatedCount = 0;
+      for (const booking of guestBookings) {
+        const bookingId = booking['_id']?.toString();
+        if (!bookingId) {
+          continue;
+        }
+
+        const updatedBooking = await this.update(bookingId, { requesterId: userId });
+        if (updatedBooking) {
+          updatedCount++;
+        }
+      }
+
+      this.log.info(
+        {
+          userId,
+          userEmail,
+          totalFound: guestBookings.length,
+          successfullyUpdated: updatedCount,
+        },
+        'Guest bookings linked to user',
+      );
+
+      return updatedCount;
+    } catch (error) {
+      this.log.error(
+        { error, userId, userEmail },
+        'Error in linkGuestBookingsToUser',
+      );
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoBookingRepository',
+          action: 'linkGuestBookingsToUser',
+        },
+        extra: { userId, userEmail },
+      });
+      throw error;
+    }
+  }
+
   /**
    * Construire une requête booking avec BookingQueryBuilder
    */
@@ -676,6 +753,17 @@ export class MongoBookingRepository implements IBookingRepository {
             },
           }
         : {}),
+      ...(mapped.beneficiary
+        ? {
+            beneficiary: {
+              firstName: mapped.beneficiary.firstName ?? '',
+              lastName: mapped.beneficiary.lastName ?? '',
+              phone: mapped.beneficiary.phone ?? '',
+              ...(mapped.beneficiary.email ? { email: mapped.beneficiary.email } : {}),
+            },
+          }
+        : {}),
+      ...(mapped.selectedService ? { selectedService: mapped.selectedService } : {}),
       ...(mapped.metadata ? { metadata: mapped.metadata } : {}),
       createdAt: new Date(mapped.createdAt),
       updatedAt: new Date(mapped.updatedAt),

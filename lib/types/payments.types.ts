@@ -15,6 +15,10 @@ export interface PaymentData {
   amount: number;
   currency: string;
   paymentMethod?: string;
+  /** Preuve Stripe (PaymentIntent) à vérifier côté serveur */
+  paymentIntentId?: string;
+  /** Preuve Stripe (Checkout Session) à vérifier côté serveur */
+  checkoutSessionId?: string;
   cardNumber?: string;
   expiryDate?: string;
   cvv?: string;
@@ -109,15 +113,15 @@ export interface StripePaymentMethod {
  */
 export interface PaymentResult {
   success: boolean;
-  transactionId?: string;
-  paymentIntentId?: string;
-  clientSecret?: string;
-  error?: string;
-  requiresAction?: boolean;
+  transactionId?: string | undefined;
+  paymentIntentId?: string | undefined;
+  clientSecret?: string | undefined;
+  error?: string | undefined;
+  requiresAction?: boolean | undefined;
   nextAction?: {
     type: string;
-    url?: string;
-    data?: any;
+    url?: string | undefined;
+    data?: any | undefined;
   };
   metadata?: Record<string, any>;
 }

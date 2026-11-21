@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { getMongoClient } from '@/lib/database/mongodb';
+import { getMongoClient } from '@/lib/mongodb';
 import { existsSync } from 'fs';
 import { mkdir, unlink, writeFile } from 'fs/promises';
 import { ObjectId } from 'mongodb';
@@ -74,8 +74,26 @@ export async function POST(request: NextRequest) {
 
     // Créer le dossier uploads/avatars s'il n'existe pas
     const uploadsDir = join(process.cwd(), 'public', 'uploads', 'avatars');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
+    try {
+      if (!existsSync(uploadsDir)) {
+        await mkdir(uploadsDir, { recursive: true });
+        logger.info({ uploadsDir }, 'Dossier uploads/avatars créé');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        {
+          msg: `Impossible de créer le dossier uploads/avatars: ${errorMessage}`,
+          uploadsDir,
+        }
+      );
+      return NextResponse.json(
+        { 
+          error: "Impossible de créer le dossier de stockage",
+          details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        },
+        { status: 500 },
+      );
     }
 
     // Générer un nom de fichier unique
@@ -85,9 +103,27 @@ export async function POST(request: NextRequest) {
     const filePath = join(uploadsDir, fileName);
 
     // Convertir le fichier en buffer et l'écrire
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
+    try {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      await writeFile(filePath, buffer);
+      logger.info({ filePath, fileSize: buffer.length }, 'Fichier avatar écrit avec succès');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(
+        {
+          msg: `Impossible d'écrire le fichier avatar: ${errorMessage}`,
+          filePath,
+        }
+      );
+      return NextResponse.json(
+        { 
+          error: "Impossible d'enregistrer le fichier",
+          details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        },
+        { status: 500 },
+      );
+    }
 
     // URL relative pour l'accès public
     const avatarUrl = `/uploads/avatars/${fileName}`;

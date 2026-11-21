@@ -98,6 +98,7 @@
     "out",
     "dist",
     "build",
-    "coverage"
+    "coverage",
+    "scripts"
   ]
 }

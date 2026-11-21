@@ -167,6 +167,7 @@ export function RegisterForm() {
               Prénom <span className='text-red-500'>*</span>
             </label>
             <input
+              autoComplete="given-name"
               type='text'
               value={formData.firstName}
               onChange={e =>
@@ -183,6 +184,7 @@ export function RegisterForm() {
               Nom <span className='text-red-500'>*</span>
             </label>
             <input
+              autoComplete="family-name"
               type='text'
               value={formData.lastName}
               onChange={e =>
@@ -202,6 +204,7 @@ export function RegisterForm() {
             Email <span className='text-red-500'>*</span>
           </label>
           <input
+            autoComplete="email" spellCheck={false}
             type='email'
             value={formData.email}
             onChange={e => handleInputChange('email', e.target.value)}
@@ -234,6 +237,7 @@ export function RegisterForm() {
                 Date de naissance
               </label>
               <input
+                autoComplete="bday"
                 type='date'
                 value={formData.dateOfBirth}
                 onChange={e =>

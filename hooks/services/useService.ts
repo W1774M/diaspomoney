@@ -31,7 +31,7 @@ export function useService(serviceId: string | undefined): UseServiceReturn {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/services/${serviceId}`, {
+      const response = await fetch(`/api/services/${encodeURIComponent(serviceId)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

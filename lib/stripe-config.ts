@@ -92,10 +92,11 @@ export function getStripeInstance(options?: StripeConfigOptions): Stripe {
   log.info({ mode }, 'Initializing Stripe instance');
 
   // Créer une nouvelle instance avec les options fournies
+  // Augmentation du timeout et des retries pour gérer les problèmes réseau (ECONNRESET, etc.)
   const instance = new Stripe(apiKey, {
     apiVersion: options?.apiVersion as Stripe.LatestApiVersion || '2025-10-29.clover',
-    maxNetworkRetries: options?.maxNetworkRetries || 2,
-    timeout: options?.timeout || 20000,
+    maxNetworkRetries: options?.maxNetworkRetries || 3, // Augmenté de 2 à 3
+    timeout: options?.timeout || 30000, // Augmenté de 20s à 30s
     typescript: (options?.typescript ?? true) as true,
   });
 
@@ -213,6 +214,16 @@ export function isRetryableError(error: unknown): boolean {
       error instanceof Stripe.errors.StripeAPIError
     );
   }
+  
+  // Vérifier les erreurs réseau (ECONNRESET, ETIMEDOUT, etc.)
+  if (error instanceof Error) {
+    const errorCode = (error as any).code;
+    const networkErrors = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED', 'EAI_AGAIN'];
+    if (networkErrors.includes(errorCode)) {
+      return true;
+    }
+  }
+  
   return false;
 }
 

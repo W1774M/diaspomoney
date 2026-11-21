@@ -9,6 +9,7 @@ import { childLogger } from '@/lib/logger';
 import ServiceFormModal from './_components/modals/ServiceFormModal';
 import OptionFormModal from './_components/modals/OptionFormModal';
 import PackFormModal from './_components/modals/PackFormModal';
+import Pagination from '@/components/bookings/Pagination';
 import { 
   Settings2, 
   Plus, 
@@ -23,11 +24,14 @@ import {
   X,
   Ticket,
   Layers,
+  Star,
 } from 'lucide-react';
 import { useEffect, useState, useMemo } from 'react';
 
 // Créer un logger avec contexte pour ce composant
 const logger = childLogger({ component: 'ServicesManagementPage' });
+
+const SERVICES_PAGE_SIZE = 6;
 
 type ActiveTab = 'services' | 'options' | 'associations' | 'promotion-codes' | 'packs';
 
@@ -59,6 +63,12 @@ const getCategoryLabel = (category?: string) => {
       return category;
   }
 };
+
+/** Segment d’URL pour GET/PUT/DELETE /api/services/… : MongoDB _id si présent (fiable), sinon id métier */
+function getServiceApiSegment(service: Pick<Service, 'id' | '_id'>): string {
+  const raw = service._id || service.id;
+  return encodeURIComponent(raw);
+}
 
 const getCategoryColor = (category?: string) => {
   if (!category) return 'bg-gray-100 text-gray-800';
@@ -122,6 +132,7 @@ function ServicesManagementPageContent() {
   const [editingPack, setEditingPack] = useState<any | null>(null);
   const [packSearchTerm, setPackSearchTerm] = useState('');
   const [packCategoryFilter, setPackCategoryFilter] = useState<string>('');
+  const [servicesPage, setServicesPage] = useState(1);
 
   // Mémoriser le statut admin basé sur les rôles de l'utilisateur
   const isAdminValue = useMemo(() => {
@@ -223,6 +234,30 @@ function ServicesManagementPageContent() {
     });
   }, [services, searchTerm, categoryFilter]);
 
+  useEffect(() => {
+    setServicesPage(1);
+  }, [searchTerm, categoryFilter]);
+
+  const servicesTotalPages =
+    filteredServices.length === 0
+      ? 1
+      : Math.ceil(filteredServices.length / SERVICES_PAGE_SIZE);
+  const safeServicesPage = Math.min(
+    Math.max(1, servicesPage),
+    servicesTotalPages,
+  );
+  const paginatedServices = filteredServices.slice(
+    (safeServicesPage - 1) * SERVICES_PAGE_SIZE,
+    safeServicesPage * SERVICES_PAGE_SIZE,
+  );
+
+  const handleServicesPageChange = (page: number) => {
+    setServicesPage(page);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   // Filtrer les packs
   const filteredPacks = useMemo(() => {
     const term = (packSearchTerm || '').trim().toLowerCase();
@@ -323,6 +358,7 @@ function ServicesManagementPageContent() {
     description: string;
     price: number;
     isActive: boolean;
+    important: boolean;
     metadata?: Record<string, any>;
     associatedOptions?: string[];
   }) => {
@@ -349,7 +385,7 @@ function ServicesManagementPageContent() {
       }, '[ServiceForm] Soumission du service');
 
       const url = editingService 
-        ? `/api/services/${editingService.id}`
+        ? `/api/services/${getServiceApiSegment(editingService)}`
         : '/api/services';
       
       const method = editingService ? 'PUT' : 'POST';
@@ -443,7 +479,7 @@ function ServicesManagementPageContent() {
   };
 
   // Supprimer un service
-  const handleDeleteService = async (serviceId: string) => {
+  const handleDeleteService = async (service: Service) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce service ? Cette action est irréversible.')) {
       return;
     }
@@ -455,7 +491,7 @@ function ServicesManagementPageContent() {
     }
 
     try {
-      const response = await fetch(`/api/services/${serviceId}`, {
+      const response = await fetch(`/api/services/${getServiceApiSegment(service)}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -819,8 +855,17 @@ function ServicesManagementPageContent() {
             <p className="text-gray-500">Aucun service trouvé</p>
           </div>
         ) : (
+          <>
+          <Pagination
+            currentPage={safeServicesPage}
+            totalPages={servicesTotalPages}
+            totalItems={filteredServices.length}
+            itemsPerPage={SERVICES_PAGE_SIZE}
+            onPageChange={handleServicesPageChange}
+            placement="top"
+          />
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -832,26 +877,37 @@ function ServicesManagementPageContent() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Prix
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="sticky right-0 z-20 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-l border-gray-200 shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.08)]">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredServices.map((service) => {
+                {paginatedServices.map((service) => {
                   const CategoryIcon = getCategoryIcon(service.category);
                   return (
-                    <tr key={service.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
+                    <tr
+                      key={service.id}
+                      className={`group hover:bg-gray-50 ${
+                        service.important ? 'bg-amber-50/70 ring-1 ring-inset ring-amber-200' : ''
+                      }`}
+                    >
+                      <td className="px-6 py-4 max-w-md align-top">
+                        <div className="flex items-start">
                           <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg bg-gray-100">
                             <CategoryIcon className="h-5 w-5 text-gray-600" />
                           </div>
-                          <div className="ml-4">
+                          <div className="ml-4 min-w-0">
                             <div className="text-sm font-medium text-gray-900">
                               {service.label}
                             </div>
-                            <div className="text-sm text-gray-500">
+                            {service.important && (
+                              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                                <Star className="h-3 w-3 fill-current" aria-hidden />
+                                Important
+                              </span>
+                            )}
+                            <div className="text-sm text-gray-500 line-clamp-2" title={service.description}>
                               {service.description}
                             </div>
                           </div>
@@ -869,29 +925,36 @@ function ServicesManagementPageContent() {
                           <span className="font-medium">{service.price} €</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td
+                        className={`sticky right-0 z-10 px-6 py-4 whitespace-nowrap text-right text-sm font-medium border-l border-gray-200 shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.08)] group-hover:bg-gray-50 ${
+                          service.important ? 'bg-amber-50' : 'bg-white'
+                        }`}
+                      >
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => {
                               setSelectedService(service);
                               setActiveTab('associations');
                             }}
-                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                            className="rounded-md p-1.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900 transition-colors"
                             title="Gérer les options"
+                            type="button"
                           >
                             <Link2 className="h-5 w-5" />
                           </button>
                           <button
                             onClick={() => handleEditService(service)}
-                            className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] transition-colors"
+                            className="rounded-md p-1.5 text-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,95%)] hover:text-[hsl(25,90%,48%)] transition-colors"
                             title="Modifier"
+                            type="button"
                           >
                             <Edit className="h-5 w-5" />
                           </button>
                           <button
-                            onClick={() => handleDeleteService(service.id)}
-                            className="text-red-600 hover:text-red-900 transition-colors"
+                            onClick={() => handleDeleteService(service)}
+                            className="rounded-md p-1.5 text-red-600 hover:bg-red-50 hover:text-red-900 transition-colors"
                             title="Supprimer"
+                            type="button"
                           >
                             <Trash2 className="h-5 w-5" />
                           </button>
@@ -903,6 +966,14 @@ function ServicesManagementPageContent() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={safeServicesPage}
+            totalPages={servicesTotalPages}
+            totalItems={filteredServices.length}
+            itemsPerPage={SERVICES_PAGE_SIZE}
+            onPageChange={handleServicesPageChange}
+          />
+          </>
         )}
       </div>
 
@@ -1203,8 +1274,8 @@ function ServicesManagementPageContent() {
       {/* Onglet Codes promotionnels */}
       {activeTab === 'promotion-codes' && (
         <div className="space-y-6">
-          {/* En-tête avec bouton d'ajout */}
-          <div className="flex justify-between items-center">
+          {/* En-tête avec bouton d'ajout - responsive */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Codes promotionnels</h2>
               <p className="text-gray-600 mt-1">Gérez les codes de réduction pour les services</p>
@@ -1221,7 +1292,7 @@ function ServicesManagementPageContent() {
                 });
                 setShowPromotionCodeForm(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors"
+              className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors min-h-[44px] shrink-0"
             >
               <Plus className="h-5 w-5" />
               Nouveau code
@@ -1240,100 +1311,191 @@ function ServicesManagementPageContent() {
               <p className="text-gray-500">Aucun code promotionnel</p>
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Réduction</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validité</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {promotionCodes.map((code: any) => {
-                    const now = new Date();
-                    const validUntil = code.validUntil ? new Date(code.validUntil) : new Date(0);
-                    const isValid = code.calculatedStatus === 'valid' || 
-                      (code.status === 'valid' && validUntil >= now && (!code.maxUsage || code.usageCount < code.maxUsage));
-                    const statusColor = isValid ? 'bg-green-100 text-green-800' : 
-                      code.calculatedStatus === 'expired' ? 'bg-red-100 text-red-800' : 
-                      'bg-gray-100 text-gray-800';
-                    
-                    return (
-                      <tr key={code._id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{code.label}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{code.percentage}%</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {code.validFrom ? new Date(code.validFrom).toLocaleDateString('fr-FR') : 'N/A'} - {code.validUntil ? new Date(code.validUntil).toLocaleDateString('fr-FR') : 'N/A'}
+            <>
+              {/* Vue cartes - mobile uniquement (tactile, actions visibles) */}
+              <div className="md:hidden space-y-4">
+                {promotionCodes.map((code: any) => {
+                  const now = new Date();
+                  const validUntil = code.validUntil ? new Date(code.validUntil) : new Date(0);
+                  const isValid = code.calculatedStatus === 'valid' || 
+                    (code.status === 'valid' && validUntil >= now && (!code.maxUsage || code.usageCount < code.maxUsage));
+                  const statusColor = isValid ? 'bg-green-100 text-green-800' : 
+                    code.calculatedStatus === 'expired' ? 'bg-red-100 text-red-800' : 
+                    'bg-gray-100 text-gray-800';
+                  return (
+                    <div key={code._id} className="bg-white rounded-lg shadow border border-gray-200 p-4 flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-base font-semibold text-gray-900 truncate">{code.label}</div>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-sm font-medium text-gray-700">{code.percentage}%</span>
+                            <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${statusColor}`}>
+                              {isValid ? 'Valide' : code.calculatedStatus === 'expired' ? 'Expiré' : 'Invalide'}
+                            </span>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {code.usageCount} {code.maxUsage ? `/ ${code.maxUsage}` : '(illimité)'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}`}>
-                            {isValid ? 'Valide' : code.calculatedStatus === 'expired' ? 'Expiré' : 'Invalide'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => {
-                                setEditingPromotionCode(code);
-                                setPromotionCodeFormData({
-                                  label: code.label || '',
-                                  percentage: code.percentage || 10,
-                                  validFrom: code.validFrom ? new Date(code.validFrom).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                                  validUntil: code.validUntil ? new Date(code.validUntil).toISOString().split('T')[0] as string : '',
-                                  maxUsage: code.maxUsage?.toString() || '',
-                                });
-                                setShowPromotionCodeForm(true);
-                              }}
-                              className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (confirm('Êtes-vous sûr de vouloir supprimer ce code ?')) {
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium text-gray-500">Validité : </span>
+                        {code.validFrom ? new Date(code.validFrom).toLocaleDateString('fr-FR') : 'N/A'} – {code.validUntil ? new Date(code.validUntil).toLocaleDateString('fr-FR') : 'N/A'}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium text-gray-500">Usage : </span>
+                        {code.usageCount} {code.maxUsage ? `/ ${code.maxUsage}` : '(illimité)'}
+                      </div>
+                      <div className="flex gap-2 pt-2 border-t border-gray-100">
+                        <button
+                          onClick={() => {
+                            setEditingPromotionCode(code);
+                            setPromotionCodeFormData({
+                              label: code.label || '',
+                              percentage: code.percentage || 10,
+                              validFrom: code.validFrom ? new Date(code.validFrom).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                              validUntil: code.validUntil ? new Date(code.validUntil).toISOString().split('T')[0] as string : '',
+                              maxUsage: code.maxUsage?.toString() || '',
+                            });
+                            setShowPromotionCodeForm(true);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)] font-medium min-h-[44px] active:bg-[hsl(25,100%,95%)]"
+                          type="button"
+                        >
+                          <Edit className="h-5 w-5 shrink-0" />
+                          Modifier
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm('Êtes-vous sûr de vouloir supprimer ce code ?')) {
+                              return;
+                            }
+                            try {
+                              const response = await fetch(`/api/promotion-codes/${encodeURIComponent(code._id)}`, {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                              });
+                              const data = await response.json();
+                              if (!response.ok || !data.success) {
+                                throw new Error(data.error || data.message || 'Erreur lors de la suppression');
+                              }
+                              notificationManager.addSuccess('Code promotionnel supprimé');
+                              fetchPromotionCodes();
+                            } catch (error: any) {
+                              notificationManager.addError(error.message || 'Erreur lors de la suppression');
+                            }
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 border-red-500 text-red-600 font-medium min-h-[44px] active:bg-red-50"
+                          type="button"
+                        >
+                          <Trash2 className="h-5 w-5 shrink-0" />
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Vue tableau - desktop */}
+              <div className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
+                <table className="w-full min-w-[640px]">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Réduction</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validité</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {promotionCodes.map((code: any) => {
+                      const now = new Date();
+                      const validUntil = code.validUntil ? new Date(code.validUntil) : new Date(0);
+                      const isValid = code.calculatedStatus === 'valid' || 
+                        (code.status === 'valid' && validUntil >= now && (!code.maxUsage || code.usageCount < code.maxUsage));
+                      const statusColor = isValid ? 'bg-green-100 text-green-800' : 
+                        code.calculatedStatus === 'expired' ? 'bg-red-100 text-red-800' : 
+                        'bg-gray-100 text-gray-800';
+                      return (
+                        <tr key={code._id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{code.label}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{code.percentage}%</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {code.validFrom ? new Date(code.validFrom).toLocaleDateString('fr-FR') : 'N/A'} - {code.validUntil ? new Date(code.validUntil).toLocaleDateString('fr-FR') : 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {code.usageCount} {code.maxUsage ? `/ ${code.maxUsage}` : '(illimité)'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}`}>
+                              {isValid ? 'Valide' : code.calculatedStatus === 'expired' ? 'Expiré' : 'Invalide'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingPromotionCode(code);
+                                  setPromotionCodeFormData({
+                                    label: code.label || '',
+                                    percentage: code.percentage || 10,
+                                    validFrom: code.validFrom ? new Date(code.validFrom).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                                    validUntil: code.validUntil ? new Date(code.validUntil).toISOString().split('T')[0] as string : '',
+                                    maxUsage: code.maxUsage?.toString() || '',
+                                  });
+                                  setShowPromotionCodeForm(true);
+                                }}
+                                className="p-2 rounded-lg text-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,95%)] hover:text-[hsl(25,90%,48%)]"
+                                type="button"
+                                title="Modifier"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (!confirm('Êtes-vous sûr de vouloir supprimer ce code ?')) {
+                                    return;
+                                  }
                                   try {
-                                    const response = await fetch(`/api/promotion-codes/${code._id}`, {
+                                    const response = await fetch(`/api/promotion-codes/${encodeURIComponent(code._id)}`, {
                                       method: 'DELETE',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      credentials: 'include',
                                     });
                                     const data = await response.json();
-                                    if (data.success) {
-                                      notificationManager.addSuccess('Code promotionnel supprimé');
-                                      fetchPromotionCodes();
-                                    } else {
-                                      notificationManager.addError(data.error || 'Erreur lors de la suppression');
+                                    if (!response.ok || !data.success) {
+                                      throw new Error(data.error || data.message || 'Erreur lors de la suppression');
                                     }
-                                  } catch (error) {
-                                    notificationManager.addError('Erreur lors de la suppression');
+                                    notificationManager.addSuccess('Code promotionnel supprimé');
+                                    fetchPromotionCodes();
+                                  } catch (error: any) {
+                                    notificationManager.addError(error.message || 'Erreur lors de la suppression');
                                   }
-                                }
-                              }}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                                }}
+                                className="p-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-900"
+                                type="button"
+                                title="Supprimer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -1535,7 +1697,7 @@ function ServicesManagementPageContent() {
                       notificationManager.addSuccess(
                         editingPromotionCode 
                           ? 'Code promotionnel modifié avec succès'
-                          : 'Code promotionnel créé avec succès'
+                          : 'Code promotionnel créé avec succès',
                       );
                       setShowPromotionCodeForm(false);
                       setEditingPromotionCode(null);

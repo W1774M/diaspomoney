@@ -1,169 +1,113 @@
-# Configuration Kubernetes - DiaspoMoney
+# Configuration Kubernetes — DiaspoMoney
 
-## 📁 Structure de l'architecture
+## Structure
 
-```text
+```
 k8s/
 ├── app/
-│   ├── prod/
-│   │   ├── deployment.yaml      # Déploiement production (diaspomoney.fr)
-│   │   ├── service.yaml        # Service ClusterIP pour prod
-│   │   └── ingress.yaml        # IngressRoute Traefik pour prod
-│   ├── rct/
-│   │   ├── deployment.yaml     # Déploiement recette (rct.diaspomoney.fr)
-│   │   ├── service.yaml        # Service ClusterIP pour rct
-│   │   └── ingress.yaml        # IngressRoute Traefik pour rct
-│   ├── dev/
-│   │   ├── deployment.yaml     # Déploiement développement (dev.diaspomoney.fr)
-│   │   ├── service.yaml       # Service ClusterIP pour dev
-│   │   └── ingress.yaml       # IngressRoute Traefik pour dev
+│   ├── base/                     # Kustomize base (Deployment + Service partagés)
+│   │   ├── kustomization.yaml
+│   │   ├── deployment.yaml
+│   │   └── service.yaml
+│   ├── overlays/
+│   │   ├── dev/                  # canonical: kubectl apply -k k8s/app/overlays/dev
+│   │   ├── rct/
+│   │   └── prod/
+│   ├── dev/                      # thin wrapper → overlays/dev
+│   ├── rct/                      # thin wrapper → overlays/rct
+│   └── prod/                     # thin wrapper → overlays/prod
 │
-├── secrets.yaml                # Secrets partagés (app-secrets, mongodb-secret, redis-secret, mongo-express-*)
+├── common/
+│   └── middlewares.yaml          # Traefik: https-redirect + security-headers
 │
 ├── mongodb/
-│   ├── deployment.yaml         # Déploiement MongoDB
-│   ├── service.yaml            # Service MongoDB
-│   ├── pvc.yaml                # PersistentVolumeClaim pour données
-│   ├── ingress-tcp.yaml        # Accès TCP MongoDB via Traefik (entryPoint `mongo`)
-│   └── middleware-ip.yaml      # Whitelist IP (si tu exposes Mongo en TCP)
-│
-├── mongo-express/
-│   ├── deployment.yml          # Déploiement Mongo Express
-│   ├── service.yaml            # Service Mongo Express
-│   ├── ingress.yaml            # Ingress (HTTP) pour mongo.diaspomoney.fr
-│   └── mongo-express-middleware.yaml  # Auth basic Traefik (référence un Secret)
-│
 ├── redis/
-│   ├── deployment.yaml         # Déploiement Redis
-│   ├── service.yaml            # Service Redis
+├── mongo-express/
+│   ├── deployment.yaml
+│   ├── secrets.example.yaml      # placeholders only — never real passwords
+│   └── …
 │
-└── traefik/                    # Configurations Traefik
-    ├── traefik.yaml            # ConfigMap Traefik (ACME / certResolver)
-    ├── traefik-values.yaml     # Arguments additionnels (si install via Helm)
-    └── middlewares.yaml        # Middlewares requis (https-redirect, security-headers)
+└── traefik/
 ```
 
-## 🚀 Déploiement
+## Déploiement
 
-### 1. Créer le namespace
+### 1. Namespace
 
 ```bash
 kubectl create namespace diaspomoney
 ```
 
-### 2. Déployer les secrets (obligatoire)
+### 2. Secrets (hors git — ne jamais committer de vraies valeurs)
 
 ```bash
-# Secrets (app + mongodb + redis + mongo-express)
-kubectl apply -f k8s/secrets.yaml
+# Déjà en cluster (ne pas régénérer à l’aveugle) :
+#   mongodb-secret, redis-secret, app-secrets
+#
+# Mongo Express Traefik basicAuth (clé `users` = htpasswd) :
+htpasswd -nbB admin 'STRONG_PASSWORD' \
+  | kubectl create secret generic mongo-express-traefik-auth \
+      --from-file=users=/dev/stdin -n diaspomoney --dry-run=client -o yaml \
+  | kubectl apply -f -
+# Ou éditer localement k8s/mongo-express/secrets.example.yaml (non commité)
 ```
 
-### 3. Traefik : middlewares requis (obligatoire pour les IngressRoute)
-
-Les manifests `k8s/app/*/ingress.yaml` utilisent :
-
-- `https-redirect` (HTTP → HTTPS)
-- `security-headers` (headers de sécurité)
+### 3. Middlewares Traefik (une fois)
 
 ```bash
-kubectl apply -f k8s/traefik/middlewares.yaml
+kubectl apply -f k8s/common/middlewares.yaml
 ```
 
-### 4. MongoDB : script d'init (requis par le déploiement)
-
-Le déploiement MongoDB monte un ConfigMap nommé `mongo-init-script`.
-Le fichier source est `docker/mongo-init.js` (à **adapter** si besoin, il contient des données/credentials de dev).
-
-```bash
-kubectl create configmap mongo-init-script ^
-  --from-file=mongo-init.js=docker/mongo-init.js ^
-  -n diaspomoney ^
-  --dry-run=client -o yaml | kubectl apply -f -
-```
-
-### 5. Déployer MongoDB
+### 4. Infra
 
 ```bash
 kubectl apply -f k8s/mongodb/
-```
-
-### 6. Déployer Redis
-
-```bash
 kubectl apply -f k8s/redis/
 ```
 
-### 7. Déployer les applications
+### 5. Application (Kustomize)
 
 ```bash
-# Développement
-kubectl apply -f k8s/app/dev/
+# Canonique
+kubectl apply -k k8s/app/overlays/dev
+kubectl apply -k k8s/app/overlays/rct
+kubectl apply -k k8s/app/overlays/prod
 
-# Recette
-kubectl apply -f k8s/app/rct/
-
-# Production
-kubectl apply -f k8s/app/prod/
+# Équivalent via wrappers (rétrocompat)
+kubectl apply -k k8s/app/dev
+kubectl apply -k k8s/app/rct
+kubectl apply -k k8s/app/prod
 ```
 
-### 8. (Optionnel) Déployer Mongo Express
+Prévisualiser le rendu :
 
 ```bash
-kubectl apply -f k8s/mongo-express/
+kubectl kustomize k8s/app/overlays/dev
 ```
 
-## 🌐 URLs d'accès
+## Hostnames
 
-- **Production**: `https://diaspomoney.fr`
-- **Recette**: `https://rct.diaspomoney.fr`
-- **Développement**: `https://dev.diaspomoney.fr`
-- **Mongo Express**: `https://mongo.diaspomoney.fr`
+| Env  | Host                 | Deployment         | Service                    |
+|------|----------------------|--------------------|----------------------------|
+| prod | `diaspomoney.fr`     | `diaspomoney-prod` | `diaspomoney-prod-service` |
+| rct  | `rct.diaspomoney.fr` | `diaspomoney-rct`  | `diaspomoney-rct-service`  |
+| dev  | `dev.diaspomoney.fr` | `diaspomoney-dev`  | `diaspomoney-dev-service`  |
 
-## 📝 Notes importantes
+Namespace : `diaspomoney`.
 
-1. **Secrets**: Les fichiers `secrets.yaml` contiennent des valeurs sensibles. Ne jamais les commiter avec les vraies valeurs en production.
+## Notes
 
-2. **TLS**: Les certificats TLS sont gérés par Traefik via `certResolver: le` (ACME). Pour l'Ingress Kubernetes de Mongo Express, le secret TLS `mongo-express-tls` est créé/renouvelé automatiquement par Traefik.
+1. **TLS** : les IngressRoutes utilisent `certResolver: le` (Let's Encrypt via Traefik). Les anciens secrets manuels (`dev-tls-cert`, etc.) ne sont plus référencés par les IngressRoutes app.
+2. **Redis** : `REDIS_HOST` + `REDIS_PORT` + `REDIS_PASSWORD` (secret `redis-secret`). Pas de `REDIS_URL` avec `$(REDIS_PASSWORD)` — Kubernetes n’expand pas le shell dans les env.
+3. **MongoDB** : clés `connection-string-dev` / `connection-string-rct` / `connection-string` selon l’overlay.
+4. **Probes** : liveness `GET /` (processus up) ; readiness `GET /api/health` (dépendances). Ne pas utiliser `/api/health` en liveness — un 503 Mongo provoque une boucle de redémarrage.
+5. **Stripe publishable** : `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (aligné rct/prod).
+6. **Redis requirepass** : le Deployment Redis passe par `sh -c` pour expand `$REDIS_PASSWORD` (K8s n’expand pas les env dans un `command` argv).
 
-3. **Persistance**: MongoDB utilise un PersistentVolumeClaim pour la persistance des données. Redis utilise `emptyDir` (à migrer vers PVC en production).
-
-4. **CDN**: Les variables CDN sont préparées dans les secrets mais désactivées par défaut. Voir `.env.example` pour l'activation.
-
-## 🔧 Maintenance
-
-### Vérifier les pods
-
-```bash
-kubectl get pods -n diaspomoney
-```
-
-### Vérifier les services
+## Maintenance
 
 ```bash
-kubectl get svc -n diaspomoney
-```
-
-### Vérifier les ingress
-
-```bash
-kubectl get ingressroute -n diaspomoney
-```
-
-### Logs
-
-```bash
-# Application production
+kubectl get pods,svc,ingressroute -n diaspomoney
 kubectl logs -f deployment/diaspomoney-prod -n diaspomoney
-
-# MongoDB
-kubectl logs -f deployment/diaspomoney-mongo -n diaspomoney
-
-# Redis
-kubectl logs -f deployment/diaspomoney-redis -n diaspomoney
-```
-
-### Redémarrer un déploiement
-
-```bash
 kubectl rollout restart deployment/diaspomoney-prod -n diaspomoney
 ```

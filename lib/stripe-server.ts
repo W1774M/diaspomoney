@@ -1,18 +1,22 @@
 /**
- * Configuration Stripe pour les routes API
- * Utilise la configuration centralisée conforme à la documentation officielle
- * https://docs.stripe.com/api/authentication?lang=node
+ * Accès serveur Stripe — thin wrapper sur `lib/stripe-config`.
+ *
+ * Chemin produit (ne pas contourner) :
+ * - Paiement : `PaymentService` → `StripePaymentStrategy` → `getStripeInstance`
+ * - Confirmation booking : `ConfirmBookingPayment` + webhook `app/api/stripe/webhook`
+ * - Checkout email : `lib/stripe-checkout` → `getStripeInstance`
+ *
+ * Voir `docs/stripe-integration.md` § Chemin canonique.
  */
 
 import Stripe from 'stripe';
 import { getStripeInstance, isStripeConfigured } from './stripe-config';
 
-// Instance Stripe pour compatibilité avec le code existant
 let stripe: Stripe | undefined;
 
 /**
- * Obtient l'instance Stripe (compatibilité avec le code existant)
- * Utilise la configuration centralisée
+ * Instance Stripe serveur (singleton). Préférer pour retrieve / webhooks.
+ * Pour créer un PaymentIntent métier → `paymentService.createPaymentIntent`.
  */
 export function getStripe(): Stripe {
   if (!stripe) {
@@ -22,33 +26,6 @@ export function getStripe(): Stripe {
     stripe = getStripeInstance();
   }
   return stripe;
-}
-
-export type CreatePaymentIntentParams = {
-  amountInMinorUnit: number; // e.g., cents
-  currency?: string; // default EUR
-  customerEmail?: string;
-  metadata?: Record<string, string>;
-};
-
-export async function createPaymentIntent(params: CreatePaymentIntentParams) {
-  const client = getStripe();
-  const {
-    amountInMinorUnit,
-    currency = 'eur',
-    customerEmail,
-    metadata,
-  } = params;
-
-  const paymentIntent = await client.paymentIntents.create({
-    amount: amountInMinorUnit,
-    currency,
-    ...(customerEmail ? { receipt_email: customerEmail } : {}),
-    automatic_payment_methods: { enabled: true },
-    ...(metadata ? { metadata } : {}),
-  });
-
-  return paymentIntent;
 }
 
 export function verifyStripeSignature({

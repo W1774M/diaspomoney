@@ -61,7 +61,7 @@ export default function ServicesPage() {
       id: "consultation-general",
       title: "Santé",
       description: "Accès à un réseau de professionnels de santé certifiés",
-      price: "À partir de 30€",
+      price: "À partir de 10€",
       delivery: "Rendez-vous sous 24-48h",
       features: [
         "Réseau de médecins vérifiés",
@@ -100,7 +100,6 @@ export default function ServicesPage() {
       cta: "Demander un devis",
     },
   ];
-
 
   return (
     <div className="min-h-screen bg-white">
@@ -240,7 +239,7 @@ export default function ServicesPage() {
         </div>
       </section>
 
-      <HowItWorks className="bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(41,86%,46%)] text-white py-16 md:py-24" bgColor="bg-white" textColor="text-white"/>
+      <HowItWorks className="bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(41,86%,46%)] text-white py-16 md:py-24" />
       {/* CTA Section */}
       <section className="py-16 bg-white text-black">
         <div className="container mx-auto px-4 text-center">

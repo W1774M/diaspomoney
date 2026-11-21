@@ -41,10 +41,9 @@ pnpm k8s:prod
 ./scripts/deploy.sh rct
 ./scripts/deploy.sh prod
 
-# Ou manuellement
-kubectl apply -f k8s/app/dev/deployment.yaml
-kubectl apply -f k8s/app/dev/service.yaml
-kubectl apply -f k8s/app/dev/ingress.yaml
+# Ou manuellement (Kustomize)
+kubectl apply -f k8s/common/middlewares.yaml
+kubectl apply -k k8s/app/overlays/dev
 ```
 
 ### 4. Vérifier

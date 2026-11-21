@@ -25,6 +25,7 @@ export interface BookingEditData {
   beneficiaryPhone?: string;
   beneficiaryEmail?: string;
   // Service
+  serviceId?: string;
   serviceLabel?: string;
   servicePrice?: number;
   serviceDescription?: string;
@@ -60,6 +61,7 @@ export function useBookingEdit({ booking, bookingId, refetch }: UseBookingEditPr
     if (booking.recipient?.lastName) data.beneficiaryLastName = booking.recipient.lastName;
     if (booking.recipient?.phone) data.beneficiaryPhone = booking.recipient.phone;
     if (booking.recipient?.email) data.beneficiaryEmail = booking.recipient.email;
+    if (booking.serviceId) data.serviceId = booking.serviceId;
     if (metadata['serviceLabel']) data.serviceLabel = metadata['serviceLabel'] as string;
     if (metadata['servicePrice'] !== undefined && metadata['servicePrice'] !== null) {
       const price = typeof metadata['servicePrice'] === 'number' 

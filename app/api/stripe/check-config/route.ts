@@ -8,6 +8,7 @@ import { isStripeConfigured, getStripeMode, getStripeInstance } from '@/lib/stri
 
 export async function GET() {
   try {
+    // Utiliser les variables d'environnement standard (pas _PROD)
     const secretKey = process.env['STRIPE_SECRET_KEY'];
     const publishableKey = process.env['NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'];
 
@@ -76,18 +77,28 @@ function getRecommendations(config: any): string[] {
     recommendations.push('❌ STRIPE_SECRET_KEY n\'est pas définie. Ajoutez-la dans .env.local');
   } else if (!config.secretKey.format) {
     recommendations.push('⚠️ STRIPE_SECRET_KEY n\'a pas le bon format. Doit commencer par sk_test_ ou sk_live_');
+  } else if (config.secretKey.mode === 'live') {
+    recommendations.push('⚠️ ATTENTION: STRIPE_SECRET_KEY est en mode LIVE (production). Assurez-vous que c\'est intentionnel.');
+  } else if (config.secretKey.mode === 'test') {
+    recommendations.push('✅ STRIPE_SECRET_KEY est en mode TEST (correct pour le développement)');
   }
 
   if (!config.publishableKey.defined) {
     recommendations.push('⚠️ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY n\'est pas définie. Ajoutez-la dans .env.local');
   } else if (!config.publishableKey.format) {
     recommendations.push('⚠️ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY n\'a pas le bon format. Doit commencer par pk_test_ ou pk_live_');
+  } else if (config.publishableKey.mode === 'live') {
+    recommendations.push('⚠️ ATTENTION: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY est en mode LIVE (production). Assurez-vous que c\'est intentionnel.');
+  } else if (config.publishableKey.mode === 'test') {
+    recommendations.push('✅ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY est en mode TEST (correct pour le développement)');
   } else if (!config.publishableKey.usingNextPublic) {
     recommendations.push('💡 Utilisez NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY au lieu de STRIPE_PUBLISHABLE_KEY pour Next.js');
   }
 
   if (config.modesMatch === false) {
     recommendations.push('⚠️ Les modes des clés ne correspondent pas (test vs live)');
+  } else if (config.modesMatch === true && config.secretKey.mode === 'test') {
+    recommendations.push('✅ Les deux clés sont en mode TEST et correspondent');
   }
 
   if (config.configured && !recommendations.length) {

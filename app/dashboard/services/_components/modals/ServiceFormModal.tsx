@@ -2,6 +2,7 @@
 
 import { SPECIALITY_TYPES } from '@/lib/constants';
 import type { Service } from '@/hooks/services';
+import { MarkdownDescriptionField } from '@/components/common/MarkdownDescriptionField';
 import { X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
@@ -14,6 +15,7 @@ export interface ServiceFormModalProps {
     description: string;
     price: number;
     isActive: boolean;
+    important: boolean;
     metadata?: Record<string, any>;
     associatedOptions?: string[];
   }) => Promise<void>;
@@ -33,9 +35,10 @@ export default function ServiceFormModal({
     label: service?.label || '',
     description: service?.description || '',
     price: service?.price || 0,
-    isActive: (service as any)?.isActive ?? true,
-    metadata: (service as any)?.metadata || {},
-    associatedOptions: (service as any)?.associatedOptions || [],
+    isActive: service?.isActive ?? true,
+    important: service?.important ?? false,
+    metadata: service?.metadata || {},
+    associatedOptions: service?.associatedOptions || [],
   });
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -133,20 +136,25 @@ export default function ServiceFormModal({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-              placeholder="Description du service..."
-              rows={4}
-              required
-              maxLength={1000}
-            />
-          </div>
+          <MarkdownDescriptionField
+            label={
+              <>
+                Description <span className="text-red-500">*</span>
+              </>
+            }
+            value={formData.description}
+            onChange={(description) => setFormData({ ...formData, description })}
+            placeholder="Premier paragraphe (accroche).
+
+Deuxième paragraphe : détails, **points importants**, listes :
+- élément 1
+- élément 2
+
+Conditions : voir [nos CGU](https://diaspomoney.fr)."
+            required
+            maxLength={1000}
+            rows={12}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -183,6 +191,24 @@ export default function ServiceFormModal({
             <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
               Service actif (visible pour les utilisateurs)
             </label>
+          </div>
+
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div className="flex items-start">
+              <input
+                type="checkbox"
+                id="important"
+                checked={formData.important}
+                onChange={(e) => setFormData({ ...formData, important: e.target.checked })}
+                className="mt-1 h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
+              />
+              <label htmlFor="important" className="ml-3 block text-sm text-gray-800">
+                <span className="font-semibold">Service important</span>
+                <span className="block text-gray-600">
+                  S&apos;il est activé, ce service ressortira visuellement dans le parcours de réservation.
+                </span>
+              </label>
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">

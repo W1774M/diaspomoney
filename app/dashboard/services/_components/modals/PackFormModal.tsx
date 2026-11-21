@@ -2,6 +2,7 @@
 
 import { SPECIALITY_TYPES } from '@/lib/constants';
 import type { Service } from '@/hooks/services';
+import { MarkdownDescriptionField } from '@/components/common/MarkdownDescriptionField';
 import { X } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 
@@ -109,19 +110,15 @@ export default function PackFormModal({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description (optionnel)
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-              placeholder="Décrivez ce pack..."
-              rows={3}
-              maxLength={1000}
-            />
-          </div>
+          <MarkdownDescriptionField
+            label="Description (optionnel)"
+            value={formData.description}
+            onChange={(description) => setFormData({ ...formData, description })}
+            placeholder="Texte court + **mise en forme** ou listes si besoin."
+            required={false}
+            maxLength={1000}
+            rows={8}
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -43,7 +43,7 @@ describe('useBookingCancel', () => {
     expect(fetch).toHaveBeenCalledWith('/api/bookings/booking123', {
       method: 'DELETE',
       headers: {
-        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
     });
   });
@@ -84,7 +84,7 @@ describe('useBookingCancel', () => {
     await expect(result.current.cancelBooking('booking123')).rejects.toThrow();
 
     await waitFor(() => {
-      expect(result.current.error).toBeDefined();
+      expect(result.current.error).not.toBeNull(); // toBeDefined() acceptait null
     });
 
     expect(result.current.error).toContain('annulation');
@@ -104,7 +104,7 @@ describe('useBookingCancel', () => {
     await expect(result.current.cancelBooking('booking123')).rejects.toThrow();
 
     await waitFor(() => {
-      expect(result.current.error).toBeDefined();
+      expect(result.current.error).not.toBeNull(); // toBeDefined() acceptait null
     });
 
     expect(result.current.error).toBe('Réservation déjà annulée');
@@ -124,7 +124,7 @@ describe('useBookingCancel', () => {
     await expect(result.current.cancelBooking('booking123')).rejects.toThrow();
 
     await waitFor(() => {
-      expect(result.current.error).toBeDefined();
+      expect(result.current.error).not.toBeNull(); // toBeDefined() acceptait null
     });
   });
 
@@ -197,7 +197,7 @@ describe('useBookingCancel', () => {
     }
 
     await waitFor(() => {
-      expect(result.current.error).toBeDefined();
+      expect(result.current.error).not.toBeNull(); // toBeDefined() acceptait null
     });
 
     expect(result.current.error).toBe('Erreur de test');
@@ -217,7 +217,7 @@ describe('useBookingCancel', () => {
     await expect(result.current.cancelBooking('booking123')).rejects.toThrow('Erreur de propagation');
   });
 
-  it('devrait avoir les headers Content-Type corrects', async () => {
+  it('devrait envoyer l’en-tête Accept JSON (DELETE sans corps)', async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -234,7 +234,7 @@ describe('useBookingCancel', () => {
       '/api/bookings/booking123',
       expect.objectContaining({
         headers: {
-          'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
       }),
     );

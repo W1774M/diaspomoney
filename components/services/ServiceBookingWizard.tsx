@@ -3,16 +3,20 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/auth/useAuth";
-import { Check, ArrowRight, ArrowLeft, CreditCard, User, Phone, Mail, MapPin, Heart, GraduationCap, Home, Clock, ShoppingCart } from "lucide-react";
+import { Check, ArrowRight, ArrowLeft, CreditCard, User, Phone, Mail, MapPin, Heart, GraduationCap, Home, Clock, ShoppingCart, Star } from "lucide-react";
 import { StripeCheckout } from "@/components/payments/StripeCheckout";
 import { ServiceBookingSidebar } from "./ServiceBookingSidebar";
 import { useNotificationManager } from "@/components/ui/Notification";
 import { childLogger } from "@/lib/logger";
 import { useServices } from "@/hooks/services/useServices";
 import { useServiceOptions } from "@/hooks/services/useServiceOptions";
+import { usePromotionCodeValidation } from "@/hooks/services/usePromotionCodeValidation";
+import {
+  createEmptyServiceBookingState,
+  useServiceBookingDraft,
+} from "@/hooks/services/useServiceBookingDraft";
 import { PhoneInput } from "react-international-phone";
 import type {
-  ServiceType,
   ServiceBookingState,
   ServiceBookingWizardProps,
   ServiceBookingRequestData,
@@ -20,109 +24,32 @@ import type {
   ValidationError,
 } from "@/lib/types/service-booking.types";
 import { SPECIALITY_TYPES, CURRENCIES } from "@/lib/constants";
+import { ServiceDescription } from "@/components/common/ServiceDescription";
 
 // Créer un logger avec contexte pour ce composant
 const logger = childLogger({ component: 'ServiceBookingWizard' });
 
-// ServiceBookingWizardProps est maintenant importé depuis lib/types/service-booking.types
-// Les services et options sont maintenant récupérés depuis la base de données via les hooks useServices et useServiceOptions
-
-// Clé pour le localStorage
-const STORAGE_KEY = 'serviceBookingData';
-
-// Fonction pour charger les données depuis localStorage
-const loadFromStorage = (initialServiceType: ServiceType | null): ServiceBookingState | null => {
-  if (typeof window === 'undefined') return null;
-  
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Vérifier que le type de service correspond
-      if (parsed.serviceType === initialServiceType || !initialServiceType) {
-        // S'assurer que additionalOptions est un tableau valide
-        if (!Array.isArray(parsed.additionalOptions)) {
-          parsed.additionalOptions = [];
-        }
-        
-        logger.debug(
-          {
-            serviceType: parsed.serviceType,
-            additionalOptionsCount: parsed.additionalOptions?.length || 0,
-            additionalOptions: parsed.additionalOptions?.map((opt: any) => ({
-              id: opt.id,
-              label: opt.label,
-              price: opt.price,
-            })) || [],
-          },
-          'Données restaurées depuis localStorage',
-        );
-        
-        return parsed;
-      }
-    }
-  } catch (error) {
-    logger.error({ error }, 'Erreur lors de la lecture du cache');
-    localStorage.removeItem(STORAGE_KEY);
-  }
-  return null;
-};
-
-// Fonction pour sauvegarder dans localStorage
-const saveToStorage = (state: ServiceBookingState) => {
-  if (typeof window === 'undefined') return;
-  
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (error) {
-    logger.error({ error }, 'Erreur lors de la sauvegarde du cache');
-  }
-};
-
-// Fonction pour nettoyer le localStorage
-const clearStorage = () => {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(STORAGE_KEY);
-};
-
 export function ServiceBookingWizard({
   initialServiceType,
+  initialClinic,
   onComplete,
   onCancel,
 }: ServiceBookingWizardProps) {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
+  const bookingDraft = useServiceBookingDraft(initialServiceType ?? null);
+  const {
+    discountAmount,
+    promotionCodeData,
+    promotionCodeError,
+    resetPromotionCode,
+    validatePromotionCode,
+    validatingCode,
+  } = usePromotionCodeValidation();
   const notificationManager = useNotificationManager();
-  
-  // État initial : charger depuis localStorage ou créer un nouvel état
-  const initialState = (): ServiceBookingState => {
-    const saved = loadFromStorage(initialServiceType ?? null);
-    if (saved) {
-      return {
-        ...saved,
-        serviceType: initialServiceType ?? saved.serviceType,
-        currentStep: saved.currentStep || 1,
-      };
-    }
-    return {
-      currentStep: 1,
-      serviceType: initialServiceType ?? null,
-      clientInfo: {},
-      beneficiaryInfo: {},
-      selectedService: null,
-      additionalOptions: [],
-      paymentIntentId: null,
-      paymentConfirmed: false,
-      availability: {
-        selectedDate: null,
-        selectedTime: null,
-      },
-      totalAmount: 0,
-    };
-  };
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [state, setState] = useState<ServiceBookingState>(initialState);
+  const [state, setState] = useState<ServiceBookingState>(bookingDraft.getInitialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
   const [confirmedReservationNumber, setConfirmedReservationNumber] = useState<string | null>(null);
@@ -130,10 +57,21 @@ export function ServiceBookingWizard({
   
   // États pour le code promotionnel
   const [promotionCode, setPromotionCode] = useState('');
-  const [promotionCodeData, setPromotionCodeData] = useState<any>(null);
-  const [promotionCodeError, setPromotionCodeError] = useState<string | null>(null);
-  const [validatingCode, setValidatingCode] = useState(false);
-  const [discountAmount, setDiscountAmount] = useState(0);
+
+  useEffect(() => {
+    if (!initialClinic) return;
+
+    setState((prev) => {
+      if (prev.selectedClinic?.id === initialClinic.id) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        selectedClinic: initialClinic,
+      };
+    });
+  }, [initialClinic]);
   
   // Récupérer les services depuis la base de données
   const { 
@@ -144,6 +82,11 @@ export function ServiceBookingWizard({
   } = useServices({
     category: state.serviceType || undefined,
     isActive: true, // Seulement les services actifs
+  });
+
+  const visibleServices = [...availableServices].sort((a, b) => {
+    if (a.important === b.important) return 0;
+    return a.important ? -1 : 1;
   });
   
   // Récupérer les options supplémentaires depuis la base de données
@@ -159,38 +102,24 @@ export function ServiceBookingWizard({
   // Restaurer l'étape depuis le cache
   // Nettoyer le cache si le paiement est déjà confirmé (pour éviter les doublons)
   useEffect(() => {
-    const saved = loadFromStorage(initialServiceType ?? null);
+    const saved = bookingDraft.loadDraft();
     if (saved) {
       // Si le paiement est confirmé, nettoyer le cache pour éviter les réservations en double
       if (saved.paymentConfirmed && saved.paymentIntentId) {
-        clearStorage();
+        bookingDraft.clearDraft();
         // Réinitialiser l'état
-        setState({
-          currentStep: 1,
-          serviceType: initialServiceType || null,
-          clientInfo: {},
-          beneficiaryInfo: {},
-          selectedService: null,
-          additionalOptions: [],
-          paymentIntentId: null,
-          paymentConfirmed: false,
-          availability: {
-            selectedDate: null,
-            selectedTime: null,
-          },
-          totalAmount: 0,
-        });
+        setState(createEmptyServiceBookingState(initialServiceType || null));
         setCurrentStep(1);
       } else if (saved.currentStep) {
         setCurrentStep(saved.currentStep);
       }
     }
-  }, [initialServiceType]);
+  }, [bookingDraft, initialServiceType]);
 
   // Pré-remplir les informations client si connecté (seulement si pas déjà dans le cache)
   useEffect(() => {
     if (isAuthenticated && user) {
-      const saved = loadFromStorage(initialServiceType ?? null);
+      const saved = bookingDraft.loadDraft();
       // Ne pré-remplir que si les données ne sont pas déjà dans le cache
       if (!saved || !saved.clientInfo?.email) {
         const nameParts = user.name?.split(" ") || [];
@@ -205,62 +134,19 @@ export function ServiceBookingWizard({
         }));
       }
     }
-  }, [isAuthenticated, user, initialServiceType]);
+  }, [bookingDraft, isAuthenticated, user]);
 
   // Sauvegarder dans localStorage à chaque modification du state
   // Restaurer le draftBookingId depuis le localStorage
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed.draftBookingId) {
-            setDraftBookingId(parsed.draftBookingId);
-          }
-        }
-      } catch (error) {
-        logger.error({ error }, 'Erreur lors de la lecture du draftBookingId');
-      }
+    const savedDraftBookingId = bookingDraft.readDraftBookingId();
+    if (savedDraftBookingId) {
+      setDraftBookingId(savedDraftBookingId);
     }
-  }, []);
+  }, [bookingDraft]);
 
-  // Utiliser un debounce pour éviter trop d'écritures
-  // Ne pas sauvegarder si on est à l'étape 4 (confirmation) pour éviter de sauvegarder l'état réinitialisé
-  useEffect(() => {
-    // Ne pas sauvegarder si on est à l'étape de confirmation (étape 4)
-    // car le cache a déjà été nettoyé après la soumission réussie
-    if (currentStep === 4) {
-      return;
-    }
-    
-    const timeoutId = setTimeout(() => {
-      // S'assurer que additionalOptions est toujours un tableau
-      const stateToSave = {
-        ...state,
-        additionalOptions: Array.isArray(state.additionalOptions) ? state.additionalOptions : [],
-        currentStep, // Inclure l'étape actuelle dans la sauvegarde
-        draftBookingId, // Inclure le draftBookingId
-      } as ServiceBookingState & { draftBookingId?: string | null };
-      
-      logger.debug(
-        {
-          currentStep,
-          additionalOptionsCount: stateToSave.additionalOptions.length,
-          additionalOptions: stateToSave.additionalOptions.map(opt => ({
-            id: opt.id,
-            label: opt.label,
-            price: opt.price,
-          })),
-        },
-        'Sauvegarde dans localStorage',
-      );
-      
-      saveToStorage(stateToSave);
-    }, 300); // Debounce de 300ms
-
-    return () => clearTimeout(timeoutId);
-  }, [state, currentStep, draftBookingId]);
+  // Ne plus sauvegarder automatiquement à chaque modification
+  // La sauvegarde se fera uniquement lors de la validation d'étape (handleNext)
 
   // Calculer le montant total
   useEffect(() => {
@@ -277,50 +163,9 @@ export function ServiceBookingWizard({
     }));
   }, [state.selectedService, state.additionalOptions, discountAmount]);
 
-  // Valider le code promotionnel
-  const validatePromotionCode = async (code: string) => {
-    if (!code || code.trim() === '') {
-      setPromotionCodeData(null);
-      setDiscountAmount(0);
-      setPromotionCodeError(null);
-      return;
-    }
-
-    setValidatingCode(true);
-    setPromotionCodeError(null);
-
-    try {
-      const response = await fetch('/api/promotion-codes/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          label: code.toUpperCase().trim(),
-          amount: (state.selectedService?.price || 0) + state.additionalOptions.reduce((sum, opt) => sum + opt.price, 0),
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success && data.valid) {
-        setPromotionCodeData(data.code);
-        setDiscountAmount(data.discount.amount);
-        setPromotionCodeError(null);
-        notificationManager.addSuccess(`Code promotionnel appliqué : ${data.discount.percentage}% de réduction`);
-      } else {
-        setPromotionCodeData(null);
-        setDiscountAmount(0);
-        setPromotionCodeError(data.error || 'Code promotionnel invalide');
-        notificationManager.addError(data.error || 'Code promotionnel invalide');
-      }
-    } catch (error) {
-      logger.error({ error }, 'Error validating promotion code');
-      setPromotionCodeData(null);
-      setDiscountAmount(0);
-      setPromotionCodeError('Erreur lors de la validation du code');
-      notificationManager.addError('Erreur lors de la validation du code');
-    } finally {
-      setValidatingCode(false);
-    }
-  };
+  const getPromotionCodeAmount = () =>
+    (state.selectedService?.price || 0) +
+    state.additionalOptions.reduce((sum, opt) => sum + opt.price, 0);
 
   const validateStep = (step: number): boolean => {
     switch (step) {
@@ -372,6 +217,13 @@ export function ServiceBookingWizard({
                 price: state.selectedService.price,
               }
             : undefined,
+          selectedClinic: state.selectedClinic
+            ? {
+                id: state.selectedClinic.id,
+                name: state.selectedClinic.name,
+                location: state.selectedClinic.location,
+              }
+            : undefined,
           paymentIntentId: state.paymentIntentId || undefined,
           bookingId: draftBookingId || undefined,
         }),
@@ -401,6 +253,25 @@ export function ServiceBookingWizard({
         3: 'Paiement',
         4: 'Confirmation',
       };
+
+      // Sauvegarder les données dans localStorage lors de la validation de l'étape
+      const stateToSave = {
+        ...state,
+        additionalOptions: Array.isArray(state.additionalOptions) ? state.additionalOptions : [],
+        currentStep, // Inclure l'étape actuelle dans la sauvegarde
+        draftBookingId, // Inclure le draftBookingId
+      } as ServiceBookingState & { draftBookingId?: string | null };
+      
+      logger.debug(
+        {
+          currentStep,
+          stepName: stepNames[currentStep] || `Étape ${currentStep}`,
+          additionalOptionsCount: stateToSave.additionalOptions.length,
+        },
+        'Sauvegarde lors de la validation de l\'étape',
+      );
+      
+      bookingDraft.saveDraft(stateToSave);
 
       // Enregistrer la progression de l'étape actuelle avant de passer à la suivante
       await trackProgress(currentStep, stepNames[currentStep] || `Étape ${currentStep}`);
@@ -572,6 +443,14 @@ export function ServiceBookingWizard({
         paymentIntentId: paymentIntentId,
         metadata: {
           ...(draftBookingId && { draftBookingId }),
+          ...(state.selectedClinic && {
+            clinicId: state.selectedClinic.id,
+            clinicName: state.selectedClinic.name,
+            clinicLocation: state.selectedClinic.location,
+            clinicSpecialties: state.selectedClinic.specialties.join(', '),
+            clinicGeneralistPrice: state.selectedClinic.generalistPrice || '',
+            clinicSpecialistPrice: state.selectedClinic.specialistPrice || '',
+          }),
           ...(promotionCodeData && {
             promotionCode: promotionCodeData.label,
             promotionCodeId: promotionCodeData._id || promotionCodeData.id,
@@ -651,7 +530,7 @@ export function ServiceBookingWizard({
           }, 'Payment succeeded but API response is invalid JSON, passing to step 4 anyway');
           
           // Nettoyer le cache
-          clearStorage();
+          bookingDraft.clearDraft();
           
           // Passer à l'étape 4 avec un avertissement
           setCurrentStep(4);
@@ -715,7 +594,7 @@ export function ServiceBookingWizard({
           }, 'Payment succeeded but booking API returned error, passing to step 4 anyway');
           
           // Nettoyer le cache
-          clearStorage();
+          bookingDraft.clearDraft();
           
           // Passer à l'étape 4 avec un avertissement
           setCurrentStep(4);
@@ -757,7 +636,7 @@ export function ServiceBookingWizard({
         
         // 1. Nettoyer le cache IMMÉDIATEMENT après une soumission réussie
         // Cela empêche le useEffect de sauvegarder l'état réinitialisé
-        clearStorage();
+        bookingDraft.clearDraft();
         
         // 2. Stocker les informations de confirmation pour l'affichage
         if (bookingId) {
@@ -1254,29 +1133,47 @@ export function ServiceBookingWizard({
                           Réessayer
                         </button>
                       </div>
-                    ) : availableServices && availableServices.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {availableServices.map((service) => (
+                    ) : visibleServices.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                        {visibleServices.map((service) => (
                           <button
                             key={service.id}
                             onClick={() => handleServiceSelect(service)}
-                            className={`p-6 rounded-xl border-2 text-left transition-all hover:shadow-md ${
+                            className={`relative flex h-96 max-h-96 flex-col overflow-hidden p-6 rounded-xl border-2 text-left transition-all hover:shadow-md ${
                               state.selectedService?.serviceId === service.id
                                 ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] shadow-md"
+                                : service.important
+                                ? "border-amber-300 bg-gradient-to-br from-amber-50 to-white shadow-sm hover:border-amber-400"
                                 : "border-gray-200 hover:border-gray-300 bg-white"
                             }`}
                             type="button"
                           >
-                            <div className="flex items-start justify-between mb-3">
-                              <h3 className="font-semibold text-lg mb-1">{service.label}</h3>
+                            {service.important && (
+                              <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                                <Star className="h-3.5 w-3.5 fill-current" aria-hidden />
+                                Important
+                              </span>
+                            )}
+                            {/* En-tête : titre aligné en haut sur toutes les cartes */}
+                            <div className="service-card-header flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 pb-3 pr-24">
+                              <h3 className="font-semibold text-lg leading-snug text-gray-900">
+                                {service.label}
+                              </h3>
                               {state.selectedService?.serviceId === service.id && (
-                                <Check className="w-6 h-6 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                                <Check className="h-6 w-6 shrink-0 text-[hsl(25,100%,53%)]" aria-hidden />
                               )}
                             </div>
-                            <p className="text-sm text-gray-600 mb-4">
-                              {service.description}
-                            </p>
-                            <div className="flex items-center justify-between">
+                            {/* Corps : hauteur fixe implicite (flex-1), texte long → défilement */}
+                            <div className="service-card-body flex min-h-0 flex-1 flex-col overflow-hidden py-3">
+                              <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1 text-left [scrollbar-gutter:stable]">
+                                <ServiceDescription
+                                  content={service.description}
+                                  variant="compact"
+                                />
+                              </div>
+                            </div>
+                            {/* Pied : prix aligné en bas */}
+                            <div className="service-card-footer flex shrink-0 items-center justify-between gap-2 border-t border-gray-100 pt-4">
                               <p className="text-xl font-bold text-[hsl(25,100%,53%)]">
                                 {service.price === 0
                                   ? "Sur devis"
@@ -1325,44 +1222,74 @@ export function ServiceBookingWizard({
                             Réessayer
                           </button>
                         </div>
-                      ) : additionalOptions && additionalOptions.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {additionalOptions.map((option) => {
-                          const isSelected = state.additionalOptions.some(
-                            (opt) => opt.id === option.id,
-                          );
+                      ) : (() => {
+                        // Filtrer les options pour n'afficher que celles associées au service courant
+                        const serviceSpecificOptions = additionalOptions.filter((option) => {
+                          const associatedServices = (option as any).associatedServices as string[] | undefined;
+                          
+                          // Si aucune association n'est définie, considérer l'option comme globale
+                          if (!associatedServices || associatedServices.length === 0) {
+                            return true;
+                          }
+                          
+                          // Sinon, n'afficher que si l'option est liée au service sélectionné
+                          return associatedServices.includes(state.selectedService!.serviceId);
+                        });
+
+                        if (serviceSpecificOptions.length === 0) {
                           return (
-                            <button
-                              key={option.id}
-                              onClick={() => handleToggleOption(option)}
-                              className={`p-5 rounded-xl border-2 text-left transition-all hover:shadow-md ${
-                                isSelected
-                                  ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] shadow-md"
-                                  : "border-gray-200 hover:border-gray-300 bg-white"
-                              }`}
-                              type="button"
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <h3 className="font-semibold mb-1">{option.label}</h3>
-                                {isSelected && (
-                                  <Check className="w-5 h-5 text-[hsl(25,100%,53%)] flex-shrink-0" />
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-600 mb-3">
-                                {option.description}
+                            <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                              <p className="text-gray-500 text-sm">
+                                Aucune option supplémentaire disponible pour ce service
                               </p>
-                              <p className="text-lg font-bold text-[hsl(25,100%,53%)]">
-                                +{option.price}€
-                              </p>
-                            </button>
+                            </div>
                           );
-                        })}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                          <p className="text-gray-500 text-sm">Aucune option supplémentaire disponible</p>
-                        </div>
-                      )}
+                        }
+
+                        return (
+                          <div className="grid grid-cols-1 gap-4 items-stretch md:grid-cols-2">
+                            {serviceSpecificOptions.map((option) => {
+                              const isSelected = state.additionalOptions.some(
+                                (opt) => opt.id === option.id,
+                              );
+                              return (
+                                <button
+                                  key={option.id}
+                                  onClick={() => handleToggleOption(option)}
+                                  className={`flex h-96 max-h-96 flex-col overflow-hidden p-5 rounded-xl border-2 text-left transition-all hover:shadow-md ${
+                                    isSelected
+                                      ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] shadow-md"
+                                      : "border-gray-200 hover:border-gray-300 bg-white"
+                                  }`}
+                                  type="button"
+                                >
+                                  <div className="service-option-card-header flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 pb-2">
+                                    <h3 className="font-semibold leading-snug text-gray-900">
+                                      {option.label}
+                                    </h3>
+                                    {isSelected && (
+                                      <Check className="h-5 w-5 shrink-0 text-[hsl(25,100%,53%)]" aria-hidden />
+                                    )}
+                                  </div>
+                                  <div className="service-option-card-body flex min-h-0 flex-1 flex-col overflow-hidden py-2">
+                                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1 text-left [scrollbar-gutter:stable]">
+                                      <ServiceDescription
+                                        content={option.description}
+                                        variant="compact"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="service-option-card-footer shrink-0 border-t border-gray-100 pt-3">
+                                    <p className="text-lg font-bold text-[hsl(25,100%,53%)]">
+                                      +{option.price}€
+                                    </p>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
@@ -1409,14 +1336,12 @@ export function ServiceBookingWizard({
                     onChange={(e) => {
                       setPromotionCode(e.target.value);
                       if (e.target.value.trim() === '') {
-                        setPromotionCodeData(null);
-                        setDiscountAmount(0);
-                        setPromotionCodeError(null);
+                        resetPromotionCode();
                       }
                     }}
                     onBlur={() => {
                       if (promotionCode.trim()) {
-                        validatePromotionCode(promotionCode);
+                        validatePromotionCode(promotionCode, { amount: getPromotionCodeAmount() });
                       }
                     }}
                     placeholder="Entrez votre code promotionnel"
@@ -1425,7 +1350,7 @@ export function ServiceBookingWizard({
                   />
                   <button
                     type="button"
-                    onClick={() => validatePromotionCode(promotionCode)}
+                    onClick={() => validatePromotionCode(promotionCode, { amount: getPromotionCodeAmount() })}
                     disabled={validatingCode || !promotionCode.trim()}
                     className="px-6 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                   >
@@ -1451,7 +1376,12 @@ export function ServiceBookingWizard({
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="font-medium text-gray-900">{state.selectedService?.label}</p>
-                    <p className="text-sm text-gray-500">{state.selectedService?.description}</p>
+                    <div className="text-sm text-gray-600 max-h-32 overflow-y-auto mt-1">
+                      <ServiceDescription
+                        content={state.selectedService?.description || ""}
+                        variant="compact"
+                      />
+                    </div>
                   </div>
                   <span className="font-semibold text-gray-900 ml-4">
                     {state.selectedService?.price || 0}€
@@ -1469,6 +1399,16 @@ export function ServiceBookingWizard({
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {state.selectedClinic && (
+                  <div className="pt-3 border-t border-gray-200">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Clinique sélectionnée</p>
+                    <div className="rounded-lg bg-orange-50 p-3 text-sm">
+                      <p className="font-semibold text-gray-900">{state.selectedClinic.name}</p>
+                      <p className="text-gray-600">{state.selectedClinic.location}</p>
+                    </div>
                   </div>
                 )}
                 
@@ -1530,6 +1470,8 @@ export function ServiceBookingWizard({
                     serviceType: state.serviceType || "",
                     serviceId: state.selectedService?.serviceId || "",
                     serviceLabel: state.selectedService?.label || "",
+                    clinicId: state.selectedClinic?.id || "",
+                    clinicName: state.selectedClinic?.name || "",
                   }}
                   onSuccess={handlePaymentSuccess}
                   onError={(error: string) => {
@@ -1627,12 +1569,30 @@ export function ServiceBookingWizard({
                               <p className="font-semibold text-gray-900">
                                 {state.selectedService.label}
                               </p>
-                              <p className="text-sm text-gray-600 mt-1">
-                                {state.selectedService.description}
-                              </p>
+                              <div className="mt-1 max-h-40 overflow-y-auto text-gray-600">
+                                <ServiceDescription
+                                  content={state.selectedService.description}
+                                  variant="compact"
+                                />
+                              </div>
                             </div>
                             <p className="text-lg font-semibold text-gray-900 ml-4">
                               {state.selectedService.price}€
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {state.selectedClinic && (
+                        <div className="border-b pb-4">
+                          <p className="text-sm font-medium text-gray-700 mb-2">
+                            Clinique sélectionnée
+                          </p>
+                          <div className="rounded-lg bg-orange-50 p-4">
+                            <p className="font-semibold text-gray-900">{state.selectedClinic.name}</p>
+                            <p className="text-sm text-gray-700">{state.selectedClinic.location}</p>
+                            <p className="mt-2 text-xs text-gray-600">
+                              {state.selectedClinic.specialties.join(', ')}
                             </p>
                           </div>
                         </div>
@@ -1784,6 +1744,7 @@ export function ServiceBookingWizard({
                           serviceType: null,
                           clientInfo: {},
                           beneficiaryInfo: {},
+                          selectedClinic: null,
                           selectedService: null,
                           additionalOptions: [],
                           paymentIntentId: null,

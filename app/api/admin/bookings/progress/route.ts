@@ -6,6 +6,7 @@
 import { auth } from '@/auth';
 import { handleApiRoute, ApiErrors } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
+import { ROLES } from '@/lib/constants';
 import { bookingService } from '@/services/booking/booking.service';
 import { NextRequest } from 'next/server';
 
@@ -21,10 +22,19 @@ export async function GET(request: NextRequest) {
     async () => {
       const session = await auth();
       
-      // Vérifier que l'utilisateur est admin
-      // TODO: Ajouter une vérification de rôle admin
-      if (!session?.user?.email) {
+      // Vérifier l'authentification
+      if (!session?.user?.id) {
+        log.warn({ msg: 'Unauthorized access attempt' });
         throw ApiErrors.UNAUTHORIZED;
+      }
+
+      // Vérifier que l'utilisateur est admin
+      const userRoles = session.user.roles || [];
+      const isAdmin = userRoles.includes(ROLES.ADMIN) || userRoles.includes(ROLES.SUPERADMIN);
+      
+      if (!isAdmin) {
+        log.warn({ userId: session.user.id, roles: userRoles }, 'Access denied: admin required');
+        throw ApiErrors.FORBIDDEN;
       }
 
       // Récupérer tous les bookings

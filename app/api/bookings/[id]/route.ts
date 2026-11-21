@@ -11,15 +11,15 @@
  */
 
 import { auth } from '@/auth';
-import { validateBody } from '@/lib/api/error-handler';
+import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
+import { requireApiSession } from '@/lib/api/auth';
 import { childLogger } from '@/lib/logger';
 import { UpdateBookingSchema, type UpdateBookingInput } from '@/lib/validations/booking.schema';
+import { getBookingDetailsUseCase } from '@/services/booking/get-booking-details.use-case';
 import { bookingService } from '@/services/booking/booking.service';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
-import { DATABASE, ROLES } from '@/lib/constants';
-import { getMongoClient } from '@/lib/database/mongodb';
-import { ObjectId } from 'mongodb';
+import { ROLES, BOOKING_STATUSES } from '@/lib/constants';
 
 /**
  * GET /api/bookings/[id] - Récupérer une réservation par ID
@@ -28,111 +28,20 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> | { id: string } },
 ) {
-  const reqId = request.headers.get('x-request-id') || undefined;
-  const log = childLogger({
-    requestId: reqId,
-    route: 'api/bookings/[id]',
-  });
-
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
-
-    // Gérer params qui peut être une Promise dans Next.js 15+
+  return handleApiRoute(request, async () => {
+    const session = await requireApiSession();
     const resolvedParams = await Promise.resolve(params);
-    const bookingId = resolvedParams.id;
-
-    // Vérifier que l'ID est un ObjectId valide
-    if (!mongoose.Types.ObjectId.isValid(bookingId)) {
-      log.warn({ bookingId }, 'Invalid booking ID format');
-      return NextResponse.json(
-        { error: 'ID de réservation invalide' },
-        { status: 400 },
-      );
-    }
-
-    log.debug({ bookingId }, 'Fetching booking');
-
-    // Utiliser le service avec décorateurs (@Log, @Cacheable)
-    const booking = await bookingService.getBookingById(bookingId);
-
-    if (!booking) {
-      log.warn({ bookingId }, 'Booking not found');
-      return NextResponse.json(
-        { error: 'Réservation non trouvée' },
-        { status: 404 },
-      );
-    }
-
-    // Mapper le booking avec bookingMapper pour garantir un format cohérent
-    const { bookingMapper } = await import('@/lib/mappers');
-    const mappedBooking = bookingMapper.map(booking as any);
-
-    // Authorization: Admin -> ok ; Provider/Customer -> seulement leurs bookings ; CSM -> seulement portfolio
-    const roles = session.user.roles || [];
-    const isAdmin = roles.includes(ROLES.ADMIN) || roles.includes(ROLES.SUPERADMIN);
-    const isProvider = roles.includes(ROLES.PROVIDER);
-    const isCustomer = roles.includes(ROLES.CUSTOMER);
-    const isCSM = roles.includes(ROLES.CSM);
-
-    if (!isAdmin) {
-      const uid = session.user.id;
-      const providerId = (mappedBooking as any).providerId;
-      const requesterId = (mappedBooking as any).requesterId;
-
-      if (isProvider && providerId === uid) {
-        // ok
-      } else if (isCustomer && requesterId === uid) {
-        // ok
-      } else if (isCSM) {
-        const client = await getMongoClient();
-        const db = client.db();
-        const users = db.collection(DATABASE.COLLECTIONS.USERS);
-        const csm = await users.findOne(
-          { _id: new ObjectId(uid) },
-          { projection: { csmPortfolioProviderIds: 1 } },
-        );
-        const ids =
-          (csm?.['csmPortfolioProviderIds'] as string[] | undefined) || [];
-        if (!providerId || !ids.includes(providerId)) {
-          return NextResponse.json({ error: 'Accès interdit' }, { status: 403 });
-        }
-      } else {
-        return NextResponse.json({ error: 'Accès interdit' }, { status: 403 });
-      }
-    }
-
-    log.info(
-      { bookingId, status: mappedBooking.status },
-      'Booking fetched successfully',
-    );
-
-    return NextResponse.json({
-      success: true,
-      booking: mappedBooking,
+    const booking = await getBookingDetailsUseCase({
+      bookingId: resolvedParams.id,
+      userId: session.user.id,
+      roles: session.roles,
     });
-  } catch (error) {
-    const resolvedParams = await Promise.resolve(params);
-    log.error(
-      { error, bookingId: resolvedParams.id, msg: 'Error fetching booking' },
-      'Error fetching booking',
-    );
 
-    // Gérer le cas où la réservation n'est pas trouvée
-    if (error instanceof Error && error.message === 'Réservation non trouvée') {
-      return NextResponse.json(
-        { error: 'Réservation non trouvée' },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Erreur interne du serveur' },
-      { status: 500 },
-    );
-  }
+    return {
+      success: true,
+      booking,
+    };
+  }, 'api/bookings/[id]');
 }
 
 /**
@@ -193,17 +102,94 @@ export async function PUT(
 
     const body = await request.json();
     
+    log.info(
+      { bookingId, body, bodyStatus: body.status, bodyKeys: Object.keys(body) },
+      'PUT request body received',
+    );
+    
     // Validation avec Zod
     const data: UpdateBookingInput = validateBody(body, UpdateBookingSchema);
     
-    log.debug(
-      { bookingId, fields: Object.keys(data) },
-      'Updating booking',
+    log.info(
+      { 
+        bookingId, 
+        fields: Object.keys(data), 
+        status: data.status, 
+        statusType: typeof data.status,
+        statusUndefined: data.status === undefined,
+        bodyStatus: body.status,
+        validatedData: data,
+      },
+      'After Zod validation',
     );
+
+    // Récupérer le booking existant pour vérifier le statut précédent
+    const existingBooking = await bookingService.getBookingById(bookingId);
+    if (!existingBooking) {
+      log.warn({ bookingId }, 'Booking not found before update');
+      return NextResponse.json(
+        { error: 'Réservation non trouvée' },
+        { status: 404 },
+      );
+    }
 
     // Construire l'objet de mise à jour avec seulement les propriétés définies
     const updateData: any = {};
-    if (data.status !== undefined) updateData.status = data.status;
+    if (data.status !== undefined) {
+      updateData.status = data.status;
+      
+      const existingMetadata = existingBooking.metadata || {};
+      const metadataUpdates: Record<string, any> = { ...existingMetadata };
+      
+      // Si le statut passe à CONFIRMED, enregistrer qui a pris en charge
+      if (data.status === BOOKING_STATUSES.CONFIRMED && existingBooking.status !== BOOKING_STATUSES.CONFIRMED) {
+        metadataUpdates['takenChargeBy'] = session.user.id;
+        metadataUpdates['takenChargeAt'] = new Date().toISOString();
+        log.info({ bookingId, userId: session.user.id }, 'Recording who took charge of booking');
+      }
+      
+      // Si le statut passe à CONFIRMED ou FINISHED, mettre à jour le paymentStatus
+      if ((data.status === BOOKING_STATUSES.CONFIRMED || data.status === BOOKING_STATUSES.FINISHED) &&
+          existingBooking.status !== data.status) {
+        const currentPaymentStatus = existingMetadata['paymentStatus'] as string | undefined;
+        
+        // Si le paiement n'est pas déjà confirmé, le marquer comme confirmé
+        if (currentPaymentStatus !== 'confirmed' && 
+            currentPaymentStatus !== 'completed' && 
+            currentPaymentStatus !== 'succeeded') {
+          log.info(
+            { 
+              bookingId, 
+              previousStatus: existingBooking.status,
+              newStatus: data.status,
+              previousPaymentStatus: currentPaymentStatus,
+            },
+            'Updating paymentStatus to confirmed because booking status changed to CONFIRMED or FINISHED',
+          );
+          
+          metadataUpdates['paymentStatus'] = 'confirmed';
+          metadataUpdates['paymentPending'] = false;
+        }
+      }
+      
+      // Appliquer les mises à jour de métadonnées si nécessaire
+      if (Object.keys(metadataUpdates).length > 0) {
+        updateData.metadata = metadataUpdates;
+      }
+      
+      log.info({ bookingId, requestedStatus: data.status, updateData }, 'Status update requested');
+    } else {
+      log.warn(
+        { 
+          bookingId, 
+          bodyStatus: body.status, 
+          dataStatus: data.status,
+          dataKeys: Object.keys(data),
+          bodyKeys: Object.keys(body),
+        },
+        'Status is undefined after validation - check Zod schema',
+      );
+    }
     if (data.appointmentDate !== undefined) {
       updateData.appointmentDate = typeof data.appointmentDate === 'string' 
         ? new Date(data.appointmentDate) 
@@ -213,7 +199,6 @@ export async function PUT(
     if (data.consultationMode !== undefined) updateData.consultationMode = data.consultationMode;
     if (data.metadata !== undefined) updateData.metadata = data.metadata;
 
-    // Utiliser le service avec décorateurs (@Log, @InvalidateCache)
     const updatedBooking = await bookingService.updateBooking(bookingId, updateData);
 
     if (!updatedBooking) {
@@ -224,13 +209,8 @@ export async function PUT(
       );
     }
 
-    // Le booking retourné par updateBooking est déjà un Booking mappé
-    // On doit le convertir en BookingResponse pour l'API
-    // Utiliser le mapper pour garantir la cohérence avec les autres endpoints
     const { bookingMapper } = await import('@/lib/mappers');
     
-    // Convertir le Booking en BookingDocument pour le mapper
-    // Le mapper attend un BookingDocument (document MongoDB), pas un Booking déjà mappé
     const bookingDoc: any = {
       _id: updatedBooking._id,
       id: updatedBooking.id,
@@ -239,7 +219,7 @@ export async function PUT(
       providerId: updatedBooking.providerId,
       serviceId: updatedBooking.serviceId,
       serviceType: updatedBooking.serviceType,
-      status: updatedBooking.status, // Le statut est déjà au bon format depuis le repository
+      status: updatedBooking.status,
       timeslot: updatedBooking.timeslot,
       consultationMode: updatedBooking.consultationMode,
       recipient: updatedBooking.recipient,

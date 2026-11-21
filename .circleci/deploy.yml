@@ -1,0 +1,112 @@
+version: 2.1
+
+# Pipeline « deploy » : déclenché depuis l'écran Deploys de CircleCI pour déployer une
+# version choisie (SHA git complet) sur un environnement (development, staging, production).
+# Même mécanisme que .circleci/config.yml : script serveur via la clé SSH restreinte, qui
+# refuse tout commit absent de la branche de l'environnement (dev, rct, main).
+# En production, la validation (job « type: release ») marque le succès et peut déclencher
+# le rollback automatique ; le job deploy ne marque donc pas SUCCESS dans ce cas.
+
+commands:
+  deploy-target-version:
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:IEBaaimc2F7J9Mr2G0P15yQFZ0p88DKWQcOZa2oujxY"
+      - run:
+          name: 🚀 Déploiement de la version choisie
+          command: |
+            : "${DEPLOY_HOST:?DEPLOY_HOST manquant}" "${DEPLOY_USER:?DEPLOY_USER manquant}"
+            case "${ENVIRONMENT_NAME}" in
+              development) target=dev ;;
+              staging) target=rct ;;
+              production) target=prod ;;
+              *) echo "Environnement inconnu : '${ENVIRONMENT_NAME}'" >&2; exit 1 ;;
+            esac
+            # Clé publique d'hôte du serveur (non secrète) : protège contre une usurpation du serveur.
+            mkdir -p ~/.ssh && echo "${DEPLOY_HOST} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJQnLPGAhyIDjB0rYkbNl4gSVShP2iH4KE7kolx2Iv24" >> ~/.ssh/known_hosts
+            ssh -o BatchMode=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "deploy ${target} ${TARGET_VERSION}"
+          no_output_timeout: 30m
+
+jobs:
+  deploy:
+    docker:
+      - image: cimg/base:current
+    parameters:
+      validated:
+        type: boolean
+        default: false
+    environment:
+      COMPONENT_NAME: "<< pipeline.deploy.component_name >>"
+      ENVIRONMENT_NAME: "<< pipeline.deploy.environment_name >>"
+      TARGET_VERSION: "<< pipeline.deploy.target_version >>"
+    steps:
+      - run:
+          name: Plan deployment
+          command: |
+            circleci run release plan deploy \
+              --environment-name="${ENVIRONMENT_NAME}" \
+              --component-name="${COMPONENT_NAME}" \
+              --target-version="${TARGET_VERSION}"
+      - deploy-target-version
+      - run:
+          name: Update deployment status to running
+          command: circleci run release update deploy --status=RUNNING
+      - unless:
+          condition: << parameters.validated >>
+          steps:
+            - run:
+                name: Update deployment status to success
+                command: circleci run release update deploy --status=SUCCESS
+                when: on_success
+      - run:
+          name: Update deployment status to failed
+          command: circleci run release update deploy --status=FAILED
+          when: on_fail
+
+  cancel-deploy:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - run:
+          name: Update planned release to CANCELED
+          command: circleci run release update deploy --status=CANCELED
+
+  release-production:
+    type: release
+    plan_name: deploy
+    validation:
+      enabled: true
+      auto_rollback_on_failure: true
+      webhooks:
+        - name: sentry-errors
+          provider: custom
+          # Envoyé par le relais docker/sentry-relay : status "firing" | "resolved".
+          fail_when: criteria == "firing"
+
+workflows:
+  # Production : validation par les alertes, rollback automatique en cas d'échec.
+  deploy-production:
+    when:
+      equal: [production, << pipeline.deploy.environment_name >>]
+    jobs:
+      - deploy:
+          validated: true
+      - cancel-deploy:
+          requires:
+            - deploy:
+              - canceled
+      - release-production:
+          requires: [deploy]
+
+  # development / staging : pas de validation, le job marque lui-même SUCCESS.
+  deploy:
+    when:
+      not:
+        equal: [production, << pipeline.deploy.environment_name >>]
+    jobs:
+      - deploy
+      - cancel-deploy:
+          requires:
+            - deploy:
+              - canceled

@@ -125,15 +125,19 @@ export async function PUT(
     const decodedUserId = decodeURIComponent(targetUserId);
     log.debug({ targetUserId, decodedUserId }, 'Processing user update');
 
+    // Lire le body une seule fois
+    const body = await request.json();
+    
     // Vérifier les permissions (seuls ADMIN et SUPERADMIN peuvent modifier d'autres utilisateurs)
     const currentUserId = session.user.id;
 
     if (currentUserId !== targetUserId) {
       // Vérifier si l'utilisateur actuel est ADMIN ou SUPERADMIN
       const currentUser = await userService.getUserProfile(currentUserId);
-        const isAdmin =
-          currentUser.roles?.includes(ROLES.ADMIN) ||
-          currentUser.roles?.includes(ROLES.SUPERADMIN);
+      const isAdmin =
+        currentUser.roles?.includes(ROLES.ADMIN) ||
+        currentUser.roles?.includes(ROLES.SUPERADMIN);
+      const isSuperAdmin = currentUser.roles?.includes(ROLES.SUPERADMIN);
 
       if (!isAdmin) {
         log.warn(
@@ -145,9 +149,20 @@ export async function PUT(
           { status: 403 },
         );
       }
+      
+      // Protection : un admin ne peut pas attribuer le rôle SUPERADMIN
+      // Vérifier si les rôles sont modifiés et contiennent SUPERADMIN
+      if (body.roles && Array.isArray(body.roles) && body.roles.includes(ROLES.SUPERADMIN) && !isSuperAdmin) {
+        log.warn(
+          { currentUserId, targetUserId, msg: 'Admin attempted to assign SUPERADMIN role' },
+          'Admin attempted to assign SUPERADMIN role',
+        );
+        return NextResponse.json(
+          { error: 'Seuls les super administrateurs peuvent attribuer le rôle SUPERADMIN' },
+          { status: 403 },
+        );
+      }
     }
-
-    const body = await request.json();
     
     // Validation avec Zod
     const data = validateBody(body, UpdateUserSchema);

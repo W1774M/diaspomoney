@@ -13,10 +13,10 @@ if (!process.env['MONGODB_URI']) {
   // En mode build, utiliser une URI par défaut pour éviter l'erreur
   if (isBuildTime) {
     logger.warn(
-      'MONGODB_URI not set during build, using placeholder' +
-        ` (MONGODB_URI=${process.env['MONGODB_URI'] || 'mongodb://217.154.22.202:27017/diaspomoney'}, NEXT_PHASE=${process.env['NEXT_PHASE'] || 'unknown'})`,
+      'MONGODB_URI not set during build, using localhost placeholder' +
+        ` (NEXT_PHASE=${process.env['NEXT_PHASE'] || 'unknown'})`,
     );
-    uri = process.env['MONGODB_URI'] || 'mongodb://217.154.22.202:27017/diaspomoney';
+    uri = 'mongodb://127.0.0.1:27017/diaspomoney';
   } else {
     // Utiliser la configuration centralisée
     uri = config.database.uri;
@@ -153,12 +153,22 @@ export default dbConnect;
 // ============================================================================
 
 /**
+ * Native MongoClient (lazy). Préférer cet export à `@/lib/database/mongodb`.
+ */
+export async function getMongoClient(): Promise<MongoClient> {
+  return mongoClient;
+}
+
+/**
  * Get database instance
  */
 export async function getDatabase() {
-  const client = await mongoClient;
+  const client = await getMongoClient();
   return client.db();
 }
+
+/** Alias historique */
+export const getMongoDb = getDatabase;
 
 /**
  * Get collection
@@ -172,9 +182,12 @@ export async function getCollection(collectionName: string) {
  * Close database connection
  */
 export async function closeConnection() {
-  const client = await mongoClient;
+  const client = await getMongoClient();
   await client.close();
   if (cached.conn) {
     await cached.conn.disconnect();
   }
 }
+
+/** Alias historique */
+export const closeMongoConnection = closeConnection;

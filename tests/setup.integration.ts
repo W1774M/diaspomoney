@@ -3,7 +3,14 @@
  * Ce fichier est exécuté avant chaque test d'intégration
  */
 
-import { beforeAll, afterAll, vi } from 'vitest';
+import { beforeAll, afterAll, afterEach, vi } from 'vitest';
+// Matchers DOM (toBeInTheDocument…) et démontage entre tests pour les fichiers .tsx en jsdom.
+import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/react';
+
+afterEach(() => {
+  cleanup();
+});
 
 // Mock next/headers: certains decorators (RateLimit) l'utilisent, mais les tests
 // appellent les handlers directement (sans request scope Next.js).

@@ -52,7 +52,7 @@ if (result.success) {
 ### Utilisation avec PaymentService
 
 ```typescript
-import { paymentService } from '@/services/payment/payment.service.strategy';
+import { paymentService } from '@/services/payment/payment.service';
 
 // Le service sélectionne automatiquement la meilleure stratégie
 const paymentIntent = await paymentService.createPaymentIntent(

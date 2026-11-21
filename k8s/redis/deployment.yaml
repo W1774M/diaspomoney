@@ -16,51 +16,50 @@ spec:
         app: diaspomoney-redis
     spec:
       containers:
-      - name: redis
-        image: redis:7.2-alpine
-        ports:
-        - containerPort: 6379
-          name: redis
-        env:
-        - name: REDIS_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: redis-secret
-              key: password
-        command:
-        - redis-server
-        - --appendonly
-        - "yes"
-        - --requirepass
-        - "$(REDIS_PASSWORD)"
-        resources:
-          requests:
-            cpu: "50m"
-            memory: "128Mi"
-          limits:
-            cpu: "200m"
-            memory: "256Mi"
-        livenessProbe:
-          exec:
-            command:
+        - name: redis
+          image: redis:7.2-alpine
+          ports:
+            - containerPort: 6379
+              name: redis
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: password
+          # Shell form so $REDIS_PASSWORD expands (K8s does not expand env in argv arrays)
+          command:
             - sh
             - -c
-            - "redis-cli --raw -a $(REDIS_PASSWORD) incr ping"
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-        readinessProbe:
-          exec:
-            command:
-            - sh
-            - -c
-            - "redis-cli --raw -a $(REDIS_PASSWORD) incr ping"
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 3
-        volumeMounts:
-        - name: redis-data
-          mountPath: /data
+            - redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a "$REDIS_PASSWORD" ping | grep -q PONG
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - redis-cli -a "$REDIS_PASSWORD" ping | grep -q PONG
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
       volumes:
-      - name: redis-data
-        emptyDir: {}  # Pour la persistance, utilisez un PersistentVolumeClaim en production
+        - name: redis-data
+          emptyDir: {} # Prefer PVC for production persistence

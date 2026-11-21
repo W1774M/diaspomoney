@@ -1,6 +1,31 @@
 # Intégration Stripe - Documentation
 
-Cette documentation explique comment Stripe est intégré dans DiaspoMoney selon les bonnes pratiques de la [documentation officielle Stripe](https://docs.stripe.com/api/authentication?lang=node).
+**Doc canonique** du chemin paiement Stripe. Les autres fichiers `docs/stripe-*.md` sont des aides ops (env, debug, check-config).
+
+## Chemin canonique (ne pas contourner)
+
+```
+Client / API
+  ├─ POST /api/payments/create-intent
+  │     → PaymentService.createPaymentIntent
+  │     → StripePaymentStrategy → lib/stripe-config (getStripeInstance)
+  │
+  ├─ POST /api/bookings/confirm-payment
+  │     → ConfirmBookingPayment (preuve Stripe + agrégat Booking)
+  │
+  └─ POST /api/stripe/webhook  (payment_intent.succeeded / checkout.session.completed)
+        → ConfirmBookingPayment (idempotent avec confirm-payment)
+```
+
+| Rôle | Module |
+| --- | --- |
+| Config / SDK singleton | `lib/stripe-config.ts` |
+| Retrieve + signature webhook | `lib/stripe-server.ts` (`getStripe`, `verifyStripeSignature`) |
+| Checkout Session (lien email) | `lib/stripe-checkout.ts` |
+| Orchestration métier | `services/payment/payment.service.ts` |
+| Confirmation booking | `services/booking/confirm-booking-payment.service.ts` |
+
+**Interdit / retiré** : simulations carte (`lib/stripe.ts` supprimé), création PI hors `PaymentService`.
 
 ## Configuration
 
@@ -121,12 +146,9 @@ const paymentIntent = await stripe.paymentIntents.create(
 
 ### PaymentService
 
-Le service principal de paiement (`services/payment/payment.service.ts`) utilise la configuration centralisée :
-
 ```typescript
-import { getStripeServiceInstance } from '@/services/payment/payment.service';
+import { paymentService } from '@/services/payment/payment.service';
 
-// Toutes les méthodes utilisent automatiquement la bonne configuration
 const paymentIntent = await paymentService.createPaymentIntent(
   amount,
   currency,
@@ -135,15 +157,15 @@ const paymentIntent = await paymentService.createPaymentIntent(
 );
 ```
 
-### StripePaymentStrategy
+### ConfirmBookingPayment
 
-L'implémentation du Strategy Pattern utilise également la configuration centralisée :
+Unique point de confirmation (API + webhook) — preuve via `verifyPaymentProof`, puis agrégat `Booking`.
+
+### StripePaymentStrategy
 
 ```typescript
 import { StripePaymentStrategy } from '@/strategies/payment/implementations/StripePaymentStrategy';
-
-const strategy = new StripePaymentStrategy();
-// La configuration Stripe est automatiquement initialisée
+// Utilise getStripeInstance() — ne pas initialiser Stripe ailleurs
 ```
 
 ## Bonnes pratiques

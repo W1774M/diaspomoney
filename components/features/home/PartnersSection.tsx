@@ -2,18 +2,39 @@ import { InfiniteCarousel } from "@/components/features/partners/InfiniteCarouse
 
 export function PartnersSection() {
   return (
-    <section className="py-20 md:py-24 bg-white relative overflow-hidden">
-      {/* Subtle background pattern */}
-      <div className="absolute inset-0 opacity-[0.02] bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMwMDAiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')]" />
-      
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
+    <section id="partners" className="py-20 md:pt-12 md:pb-1 bg-gradient-to-b from-white to-gray-50 relative overflow-hidden">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Tag */}
+        <div className="flex justify-center mb-6">
+          <span
+            className="inline-block px-4 py-1.5 rounded-full text-white text-sm font-medium"
+            style={{
+              backgroundColor: '#F97015',
+              fontFamily: 'Plus Jakarta Sans, sans-serif',
+            }}
+          >
+            Partenaires
+          </span>
+        </div>
+
+        {/* Title */}
+        <div className="text-center mb-4">
+          <h2
+            className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
+            style={{
+              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              color: '#1C1917',
+            }}
+          >
             Nos partenaires
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto font-light">
-            Découvrez nos partenaires de confiance qui partagent notre vision
-            d&apos;un service de qualité pour la diaspora africaine.
+          <p
+            className="text-lg text-gray-600 max-w-2xl mx-auto"
+            style={{
+              fontFamily: 'Plus Jakarta Sans, sans-serif',
+            }}
+          >
+            Nous travaillons avec des partenaires de confiance pour vous offrir le meilleur service.
           </p>
         </div>
 

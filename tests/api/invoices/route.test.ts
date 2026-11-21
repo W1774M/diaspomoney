@@ -60,10 +60,23 @@ vi.mock('@/services/invoice/invoice.service', () => ({
 }));
 
 // Mock de pdfGeneratorService
+const { mockGenerateInvoicePDF, mockFindUserById, mockSendEmail } = vi.hoisted(() => ({
+  mockGenerateInvoicePDF: vi.fn(),
+  mockFindUserById: vi.fn(),
+  mockSendEmail: vi.fn(),
+}));
 vi.mock('@/services/invoice/pdf-generator.service', () => ({
   pdfGeneratorService: {
-    generateInvoicePDF: vi.fn(),
+    generateInvoicePDF: mockGenerateInvoicePDF,
   },
+  // send-email passe par le singleton
+  PDFGeneratorService: {
+    getInstance: () => ({ generateInvoicePDF: mockGenerateInvoicePDF }),
+  },
+}));
+
+vi.mock('@/lib/email/resend', () => ({
+  sendEmail: mockSendEmail,
 }));
 
 // Mock de getInvoiceRepository - créer une instance unique mockée
@@ -73,6 +86,7 @@ const mockInvoiceRepository = {
 
 vi.mock('@/repositories', () => ({
   getInvoiceRepository: vi.fn(() => mockInvoiceRepository),
+  getUserRepository: vi.fn(() => ({ findById: mockFindUserById })),
 }));
 
 // Mock de handleApiRoute
@@ -138,11 +152,12 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 // Mock de Sentry
-vi.mock('@sentry/nextjs', () => ({
-  default: {
-    captureException: vi.fn(),
-  },
-}));
+// Imports nommés (captureException, logger) utilisés par le code.
+vi.mock('@sentry/nextjs', () => {
+  const captureException = vi.fn();
+  const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+  return { captureException, captureMessage: vi.fn(), logger, default: { captureException } };
+});
 
 // Mock de mongoose
 vi.mock('mongoose', () => ({
@@ -613,7 +628,14 @@ describe('POST /api/invoices/[id]/send-email', () => {
     vi.mocked(invoiceService.getInvoiceById).mockResolvedValue({
       id: 'inv123',
       userId: 'user123',
+      invoiceNumber: 'FAC-2026-001',
+      amount: 19,
+      currency: 'EUR',
+      status: 'paid',
     } as any);
+    mockFindUserById.mockResolvedValueOnce({ id: 'user123', email: 'client@example.com', name: 'Client' });
+    mockGenerateInvoicePDF.mockResolvedValueOnce(Buffer.from('%PDF'));
+    mockSendEmail.mockResolvedValueOnce(true);
 
     const request = new NextRequest('http://localhost:3000/api/invoices/inv123/send-email', {
       method: 'POST',
@@ -621,9 +643,11 @@ describe('POST /api/invoices/[id]/send-email', () => {
     const response = await POST_SEND_EMAIL(request, { params: { id: 'inv123' } });
     const data = await response.json();
 
-    // Note: La route retourne actuellement 501 (non implémenté)
-    expect(response.status).toBe(501);
-    expect(data.error).toBe('Envoi par email non implémenté');
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    const [email] = mockSendEmail.mock.calls[0]!;
+    expect(email.to).toBe('client@example.com');
+    expect(email.attachments[0].filename).toBe('facture-FAC-2026-001.pdf');
   });
 
   it('devrait exiger une authentification', async () => {

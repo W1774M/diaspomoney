@@ -1,10 +1,42 @@
 import { logger } from '@sentry/nextjs';
+import { getNextAuthSecret } from '@/lib/auth/next-auth-secret';
+import { handleStagingAccess } from '@/lib/staging-access';
+import { getToken } from 'next-auth/jwt';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+async function hasValidSession(request: NextRequest): Promise<boolean> {
+  const secret = getNextAuthSecret();
+
+  if (!secret) {
+    return false;
+  }
+
+  try {
+    const token = await getToken({
+      req: request,
+      secret,
+    });
+
+    return Boolean(token);
+  } catch {
+    return false;
+  }
+}
+
+function buildLoginRedirect(request: NextRequest): NextResponse {
+  const loginUrl = new URL("/login", request.url);
+  loginUrl.searchParams.set(
+    'callbackUrl',
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+  );
+
+  return NextResponse.redirect(loginUrl);
+}
+
 // Proxy Next.js 16
 // Gère les redirections HTTPS et l'authentification
-export default function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const host = request.headers.get('host') || '';
   const xForwardedFor = request.headers.get('x-forwarded-for');
   const xRealIp = request.headers.get('x-real-ip');
@@ -71,6 +103,13 @@ export default function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // ---- ACCÈS PROTÉGÉ dev / rct (cookie 30 jours, voir lib/staging-access.ts) ----
+  // Les requêtes internes (healthcheck Docker) ne passent pas par Traefik et restent libres.
+  if (!isInternalRequest) {
+    const stagingResponse = await handleStagingAccess(request);
+    if (stagingResponse) return stagingResponse;
+  }
+
   // --- TEMPORARY HARDENING (CVE-2025-55182 / RSC multipart vectors) ---
   // Bloquer multipart/form-data en POST sur les routes non-API.
   // (Les uploads doivent passer par /api/*, ex: /api/users/me/avatar)
@@ -94,22 +133,18 @@ export default function proxy(request: NextRequest) {
 
   // If protected path, check for session token
   if (isProtectedPath) {
-    const sessionToken =
-      request.cookies.get("next-auth.session-token") ||
-      request.cookies.get("__Secure-next-auth.session-token") ||
-      request.cookies.get("authjs.session-token") ||
-      request.cookies.get("__Secure-authjs.session-token");
+    const isAuthenticated = await hasValidSession(request);
 
-    if (!sessionToken) {
+    if (!isAuthenticated) {
       // Not authenticated, redirect to login
       // IMPORTANT: Use the same hostname
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = buildLoginRedirect(request);
       logger.info('[MIDDLEWARE] Redirecting to login:', {
         from: request.url,
-        to: loginUrl.toString(),
+        to: loginUrl.headers.get('location'),
         host,
       });
-      return NextResponse.redirect(loginUrl);
+      return loginUrl;
     }
   }
 
@@ -140,6 +175,10 @@ export default function proxy(request: NextRequest) {
 
 // Export config for Next.js proxy
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Les fichiers statiques de /public (images, manifeste, robots) ne passent pas par le proxy :
+  // l'optimiseur d'images les lit par une requête interne que le proxy rendait vide.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|img/|.*\\.(?:png|jpe?g|webp|avif|gif|svg|ico)$).*)',
+  ],
 };
 

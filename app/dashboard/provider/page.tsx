@@ -2,6 +2,7 @@
 
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import RoleSpecificStats from '@/components/dashboard/RoleSpecificStats';
+import DashboardSwitcher from '@/components/dashboard/DashboardSwitcher';
 import { useAuth } from '@/hooks';
 import { ROLES } from '@/lib/constants';
 import { AuthorizedRoute } from '@/components/auth';
@@ -18,6 +19,7 @@ function ProviderDashboardPageContent() {
         userName={user?.name || 'Prestataire'}
         subtitle='Tableau de bord prestataire - Gérez vos services et rendez-vous'
       />
+      <DashboardSwitcher />
       <RoleSpecificStats {...(user?.id && { userId: user.id })} />
       
       {/* Actions rapides spécifiques aux prestataires */}

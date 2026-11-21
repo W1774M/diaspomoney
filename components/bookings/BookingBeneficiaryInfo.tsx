@@ -2,12 +2,20 @@
 
 import { User } from 'lucide-react';
 import type { BookingResponse } from '@/lib/mappers/booking.mapper';
+import { useBookingSharedElements } from '@/hooks/bookings/useBookingSharedElements';
 
 interface BookingBeneficiaryInfoProps {
   booking: BookingResponse;
 }
 
 export default function BookingBeneficiaryInfo({ booking }: BookingBeneficiaryInfoProps) {
+  const { isElementAllowed } = useBookingSharedElements(booking);
+  
+  // Vérifier si l'élément est autorisé
+  if (!isElementAllowed('beneficiaryInfo')) {
+    return null;
+  }
+  
   if (!booking.recipient) {
     return null;
   }

@@ -108,6 +108,7 @@ export default [
         },
       ],
       'prefer-const': 'error',
+      '@typescript-eslint/no-explicit-any': 'warn',
       'no-var': 'error',
       'prefer-template': 'warn',
       'object-curly-spacing': ['warn', 'always'],

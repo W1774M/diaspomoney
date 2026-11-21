@@ -1,10 +1,12 @@
 import { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import Link from 'next/link';
 
-export const metadata: Metadata = {
-  title: 'À propos - DiaspoMoney',
-  description: 'Découvrez DiaspoMoney, la plateforme de réservation de services pour la diaspora',
-};
+export const metadata: Metadata = pageMetadata({
+  path: "/about",
+  title: "À propos",
+  description: "Découvrez DiaspoMoney, la plateforme de réservation de services pour la diaspora africaine.",
+});
 
 export default function AboutPage() {
   return (

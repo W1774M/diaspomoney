@@ -1,7 +1,8 @@
 /**
  * API Route - Validate Promotion Code
  * Endpoint pour valider un code promotionnel
- * Accessible à tous les utilisateurs authentifiés
+ * Accessible à tous (invités et utilisateurs connectés) pour permettre
+ * l'application d'un code lors du tunnel de réservation.
  */
 
 import { handleApiRoute } from '@/lib/api/error-handler';
@@ -17,17 +18,12 @@ const log = childLogger({ route: 'api/promotion-codes/validate' });
 
 /**
  * POST /api/promotion-codes/validate
- * Valider un code promotionnel
+ * Valider un code promotionnel (invités et utilisateurs connectés)
  */
 export async function POST(request: NextRequest) {
   return handleApiRoute(request, async () => {
     const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 },
-      );
-    }
+    const userId = session?.user?.id ?? 'guest';
 
     const body = await request.json();
     const { label, amount = 0 } = z
@@ -39,8 +35,7 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    const PromotionCodeModel = PromotionCode as any;
-    const code = await PromotionCodeModel.findOne({
+    const code = await PromotionCode.findOne({
       label: label.toUpperCase().trim(),
     });
 
@@ -53,18 +48,18 @@ export async function POST(request: NextRequest) {
     }
 
     const now = new Date();
-    const validFrom = new Date((code as any).validFrom);
-    const validUntil = new Date((code as any).validUntil);
+    const validFrom = new Date(code.validFrom);
+    const validUntil = new Date(code.validUntil);
 
     // Vérifier le statut
-    if ((code as any).status !== 'valid') {
+    if (code.status !== 'valid') {
       return NextResponse.json({
         success: true,
         valid: false,
         error: 'Ce code promotionnel n\'est plus valide',
         code: {
-          label: (code as any).label,
-          status: (code as any).status,
+          label: code.label,
+          status: code.status,
         },
       });
     }
@@ -76,7 +71,7 @@ export async function POST(request: NextRequest) {
         valid: false,
         error: 'Ce code promotionnel n\'est pas encore actif',
         code: {
-          label: (code as any).label,
+          label: code.label,
           validFrom: validFrom,
         },
       });
@@ -84,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     if (now > validUntil) {
       // Marquer comme expiré
-      (code as any).status = 'expired';
+      code.status = 'expired';
       await code.save();
 
       return NextResponse.json({
@@ -92,29 +87,29 @@ export async function POST(request: NextRequest) {
         valid: false,
         error: 'Ce code promotionnel a expiré',
         code: {
-          label: (code as any).label,
+          label: code.label,
           status: 'expired',
         },
       });
     }
 
     // Vérifier l'usage maximum
-    if ((code as any).maxUsage && (code as any).usageCount >= (code as any).maxUsage) {
+    if (code.maxUsage && code.usageCount >= code.maxUsage) {
       return NextResponse.json({
         success: true,
         valid: false,
         error: 'Ce code promotionnel a atteint son nombre maximum d\'utilisations',
         code: {
-          label: (code as any).label,
-          usageCount: (code as any).usageCount,
-          maxUsage: (code as any).maxUsage,
+          label: code.label,
+          usageCount: code.usageCount,
+          maxUsage: code.maxUsage,
         },
       });
     }
 
     // Code valide
     const discountAmount = amount > 0 
-      ? ((amount * (code as any).percentage) / 100)
+      ? ((amount * code.percentage) / 100)
       : 0;
     const finalAmount = amount > 0 
       ? (amount - discountAmount)
@@ -122,9 +117,9 @@ export async function POST(request: NextRequest) {
 
     log.info(
       { 
-        codeId: (code as any)._id, 
-        label: (code as any).label,
-        userId: session.user.id,
+        codeId: code._id, 
+        label: code.label,
+        userId,
       },
       'Promotion code validated',
     );
@@ -133,17 +128,17 @@ export async function POST(request: NextRequest) {
       success: true,
       valid: true,
       code: {
-        _id: (code as any)._id,
-        id: (code as any)._id.toString(),
-        label: (code as any).label,
-        percentage: (code as any).percentage,
+        _id: code._id,
+        id: code._id.toString(),
+        label: code.label,
+        percentage: code.percentage,
         validFrom: validFrom,
         validUntil: validUntil,
-        usageCount: (code as any).usageCount,
-        maxUsage: (code as any).maxUsage,
+        usageCount: code.usageCount,
+        maxUsage: code.maxUsage,
       },
       discount: {
-        percentage: (code as any).percentage,
+        percentage: code.percentage,
         amount: discountAmount,
         finalAmount: finalAmount,
       },

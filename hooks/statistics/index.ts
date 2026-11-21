@@ -19,3 +19,4 @@ export { useSuperAdminStats } from './useSuperAdminStats';
 export type { SuperAdminStats } from './useSuperAdminStats';
 
 export { usePlatformStatistics } from './usePlatformStatistics';
+export { useStatistics } from './useStatistics';

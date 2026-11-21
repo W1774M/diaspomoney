@@ -11,16 +11,17 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
-      - diaspomoney
+      - app
       - traefik
     labels:
       - traefik.enable=true
-      - traefik.http.routers.grafana.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/grafana`)
+      - traefik.docker.network=traefik
+      - traefik.http.routers.grafana.rule=Host(`${MONITORING_DOMAIN:-dashboard.diaspomoney.fr}`) && PathPrefix(`/grafana`)
       - traefik.http.routers.grafana.entrypoints=websecure
       - traefik.http.routers.grafana.tls=true
       - traefik.http.routers.grafana.tls.certresolver=le
       - traefik.http.services.grafana.loadbalancer.server.port=3000
-      
+
   prometheus:
     image: prom/prometheus:latest
     container_name: diaspomoney-prometheus
@@ -29,12 +30,25 @@ services:
       - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     networks:
-      - diaspomoney
+      - app
       - traefik
     labels:
       - traefik.enable=true
-      - traefik.http.routers.prometheus.rule=Host(`dashboard.diaspomoney.fr`) && PathPrefix(`/prometheus`)
+      - traefik.docker.network=traefik
+      - traefik.http.routers.prometheus.rule=Host(`${MONITORING_DOMAIN:-dashboard.diaspomoney.fr}`) && PathPrefix(`/prometheus`)
       - traefik.http.routers.prometheus.entrypoints=websecure
       - traefik.http.routers.prometheus.tls=true
       - traefik.http.routers.prometheus.tls.certresolver=le
       - traefik.http.services.prometheus.loadbalancer.server.port=9090
+
+networks:
+  app:
+    external: true
+    name: diaspomoney-app
+  traefik:
+    external: true
+    name: traefik
+
+volumes:
+  grafana_data:
+  prometheus_data:

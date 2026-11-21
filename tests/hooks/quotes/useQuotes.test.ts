@@ -193,7 +193,7 @@ describe('useQuotes', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.error).toBeDefined();
+    expect(result.current.error).not.toBeNull(); // toBeDefined() acceptait null
     expect(result.current.quotes).toHaveLength(0);
     expect(result.current.total).toBe(0);
   });

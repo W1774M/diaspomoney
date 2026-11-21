@@ -146,7 +146,7 @@ export default function HistoricalOrderCard({
                 <span className='hidden sm:inline'>Facture</span>
               </button>
             )}
-            {order.status === 'completed' && !order.rating && (
+            {order.status === 'finished' && !order.rating && (
               <button
                 onClick={() => onRate(order)}
                 className='flex items-center gap-2 px-3 py-2 text-sm font-medium text-[hsl(25,100%,53%)] hover:bg-orange-50 rounded-md transition-colors'

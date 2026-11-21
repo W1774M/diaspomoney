@@ -39,8 +39,20 @@ const BookingsPage = React.memo(function BookingsPage() {
   const isProvider = userRoles.includes(ROLES.PROVIDER);
   const isCustomer = userRoles.includes(ROLES.CUSTOMER);
   const isAdmin = userRoles.includes(ROLES.ADMIN) || userRoles.includes(ROLES.SUPERADMIN);
+  const isCSM = userRoles.includes(ROLES.CSM);
   // Les admins ne doivent pas voir les boutons de switch car ils voient toutes les commandes
   const canSwitchView = isProvider && isCustomer && !isAdmin;
+  
+  // Déterminer les rôles disponibles pour le filtre (uniquement les rôles que l'utilisateur possède)
+  // On retire désormais l'option générique "Toutes" pour forcer un rôle explicite.
+  const availableRoles = useMemo(() => {
+    const roles: Array<{ value: string; label: string }> = [];
+    if (isAdmin) roles.push({ value: 'ADMIN', label: 'Admin' });
+    if (isCSM) roles.push({ value: 'CSM', label: 'CSM' });
+    if (isProvider) roles.push({ value: 'PROVIDER', label: 'Prestataire' });
+    if (isCustomer) roles.push({ value: 'CUSTOMER', label: 'Client' });
+    return roles;
+  }, [isAdmin, isCSM, isProvider, isCustomer]);
   
   // État pour le mode de vue (customer ou provider)
   const [viewMode, setViewMode] = useState<'customer' | 'provider'>('customer');
@@ -52,6 +64,14 @@ const BookingsPage = React.memo(function BookingsPage() {
   // États pour les filtres (initialisés avant useBookings)
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('ALL');
+  // Rôle sélectionné pour le filtre : par défaut, on prend le premier rôle disponible (s'il existe)
+  const [roleFilter, setRoleFilter] = useState<string>(() => {
+    if (isAdmin) return 'ADMIN';
+    if (isCSM) return 'CSM';
+    if (isProvider) return 'PROVIDER';
+    if (isCustomer) return 'CUSTOMER';
+    return '';
+  }); // 'ADMIN', 'CSM', 'PROVIDER', 'CUSTOMER'
   
   // Calculer l'offset basé sur la page actuelle
   const offset = useMemo(() => (currentPage - 1) * itemsPerPage, [currentPage, itemsPerPage]);
@@ -68,7 +88,9 @@ const BookingsPage = React.memo(function BookingsPage() {
     ...(paymentStatusFilter !== 'ALL' && { paymentStatus: paymentStatusFilter }),
     // Passer le mode de vue si l'utilisateur peut switcher
     ...(canSwitchView && { viewMode }),
-  }), [itemsPerPage, offset, sortBy, sortOrder, statusFilter, paymentStatusFilter, canSwitchView, viewMode]);
+    // Passer le filtre de rôle uniquement s'il est défini
+    ...(roleFilter && { roleFilter }),
+  }), [itemsPerPage, offset, sortBy, sortOrder, statusFilter, paymentStatusFilter, canSwitchView, viewMode, roleFilter]);
   
   const { bookings, loading, error, total } = useBookings(bookingsOptions);
   
@@ -195,6 +217,33 @@ const BookingsPage = React.memo(function BookingsPage() {
                 >
                   En tant que prestataire
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Role Filter (afficher uniquement si l'utilisateur a plusieurs rôles ou est admin) */}
+        {availableRoles.length > 1 && (
+          <div className='bg-white rounded-lg shadow-sm p-4 mb-6'>
+            <div className='flex items-center gap-4 flex-wrap'>
+              <span className='text-sm font-medium text-gray-700'>Filtrer par rôle :</span>
+              <div className='flex gap-2 flex-wrap'>
+                {availableRoles.map((role) => (
+                  <button
+                    key={role.value}
+                    onClick={() => {
+                      setRoleFilter(role.value);
+                      setCurrentPage(1); // Réinitialiser à la page 1 lors du changement de filtre
+                    }}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      roleFilter === role.value
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {role.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>

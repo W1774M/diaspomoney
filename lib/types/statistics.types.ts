@@ -120,6 +120,14 @@ export interface PersonalStatistics {
   services: ServiceStatistics;
   savings: SavingsStatistics;
   providers: ProviderStatistics;
+  bookings: {
+    total: number;
+    active: number;
+    completed: number;
+    cancelled: number;
+    totalSpent: number;
+    averageBasketValue: number;
+  };
   period: {
     start: Date;
     end: Date;

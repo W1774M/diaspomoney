@@ -16,7 +16,7 @@ export function useBookingStats(bookings: Booking[]): BookingStats {
       b => b.status === "cancelled",
     ).length;
     const completedBookings = safeBookings.filter(
-      b => b.status === "completed",
+      b => b.status === "FINISHED" || b.status === "finished",
     ).length;
 
     const totalRevenue = safeBookings

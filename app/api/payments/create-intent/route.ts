@@ -5,7 +5,7 @@ import { auth } from '@/auth';
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
 import { CreatePaymentIntentSchema, type CreatePaymentIntentInput } from '@/lib/validations/payment.schema';
-import { paymentService } from '@/services/payment/payment.service.strategy';
+import { paymentService } from '@/services/payment/payment.service';
 import { NextRequest } from 'next/server';
 
 export async function POST(req: NextRequest) {

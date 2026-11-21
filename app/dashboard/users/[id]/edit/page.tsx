@@ -14,14 +14,14 @@
  * - userService utilise le Repository Pattern pour la persistance
  */
 
-import { useUser, useUserEdit } from '@/hooks';
+import { useUser, useUserEdit, useAuth } from '@/hooks';
 import { USER_ROLES, USER_STATUSES, ProviderType, ProviderCategory } from '@/lib/types';
 import { LANGUAGES, TIMEZONES, USER_STATUSES as CONST_USER_STATUSES, ROLES } from '@/lib/constants';
 import { AuthorizedRoute } from '@/components/auth';
 import { ArrowLeft, Plus, X as XIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { PhoneInput } from 'react-international-phone';
 import { useNotificationManager } from '@/components/ui/Notification';
 
@@ -35,6 +35,20 @@ function EditUserPageContent() {
   const { user, loading, error, fetchUser } = useUser();
   const { updateUser, loading: saving } = useUserEdit();
   const { addSuccess, addError } = useNotificationManager();
+  const { user: currentUser } = useAuth();
+  
+  // Filtrer les rôles disponibles : un admin ne peut pas voir/attribuer SUPERADMIN
+  const availableRoles = useMemo(() => {
+    const currentUserRoles = currentUser?.roles || [];
+    const isSuperAdmin = currentUserRoles.includes(ROLES.SUPERADMIN);
+    
+    // Si l'utilisateur actuel n'est pas SUPERADMIN, retirer SUPERADMIN de la liste
+    if (!isSuperAdmin) {
+      return USER_ROLES.filter(role => role !== ROLES.SUPERADMIN);
+    }
+    
+    return USER_ROLES;
+  }, [currentUser?.roles]);
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -152,13 +166,28 @@ function EditUserPageContent() {
   }, []);
 
   const handleRoleChange = useCallback((role: string, checked: boolean) => {
+    const currentUserRoles = currentUser?.roles || [];
+    const isSuperAdmin = currentUserRoles.includes(ROLES.SUPERADMIN);
+    
+    // Empêcher un admin de s'attribuer le rôle SUPERADMIN
+    if (!isSuperAdmin && role === ROLES.SUPERADMIN) {
+      addError('Vous ne pouvez pas vous attribuer le rôle SUPERADMIN');
+      return;
+    }
+    
+    // Empêcher un admin d'attribuer le rôle SUPERADMIN à quelqu'un d'autre
+    if (!isSuperAdmin && checked && role === ROLES.SUPERADMIN) {
+      addError('Seuls les super administrateurs peuvent attribuer le rôle SUPERADMIN');
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       roles: checked
         ? [...prev.roles, role]
         : prev.roles.filter(r => r !== role),
     }));
-  }, []);
+  }, [currentUser?.roles, addError]);
 
   const handlePreferenceChange = useCallback((field: string, value: any) => {
     setFormData(prev => ({
@@ -388,7 +417,7 @@ function EditUserPageContent() {
                 Rôles *
               </label>
               <div className='space-y-2'>
-                {USER_ROLES.map(role => (
+                {availableRoles.map(role => (
                   <label key={role} className='flex items-center'>
                     <input
                       type='checkbox'

@@ -1,69 +1,102 @@
 version: 2.1
 
-# Orbs réutilisables
-orbs:
-  docker: circleci/docker@2.0.0
+# =====================================================================================
+# CI/CD DiaspoMoney
+#
+#   toutes branches : installation → tests (lint, types, couverture globale) → build → E2E
+#   dev             : … → déploiement dev → ouverture de la PR dev → rct
+#   rct             : … → déploiement rct → ouverture de la PR rct → main
+#                       → [Approve dans CircleCI] → fusion de la PR rct → main
+#   main            : … → déploiement prod
+#
+# Variables du projet CircleCI (Project Settings → Environment Variables) :
+#   DEPLOY_HOST, DEPLOY_USER                      accès SSH au serveur (clé d'hôte inscrite dans ce fichier)
+#   GITHUB_TOKEN                                  jeton GitHub (pull requests en écriture)
+# Clé SSH (Project Settings → SSH Keys → Additional SSH Keys) : clé « circleci-deploy »,
+# limitée côté serveur à scripts/server/ci-deploy.sh (déploiement uniquement).
+#
+# Notes :
+# - Ne pas redéfinir PATH dans `environment:` : CircleCI n'y développe ni `~` ni `$PATH`.
+# - Next 16 exige Node >= 20.9 : image cimg/node:20.19 (Node 20, comme le Dockerfile).
+# - pnpm-lock.yaml est versionné : la CI installe exactement les versions de la prod.
+# =====================================================================================
 
-# Paramètres réutilisables
-parameters:
-  deploy-environment:
-    type: string
-    default: "dev"
-
-# Jobs réutilisables
-jobs:
-  # ============================================
-  # INSTALLATION DES DÉPENDANCES
-  # ============================================
-  install-dependencies:
+executors:
+  node:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/node:20.19
     environment:
-      PNPM_HOME: ~/.local/share/pnpm
-      PATH: ~/.local/share/pnpm:$PATH
+      NEXT_TELEMETRY_DISABLED: "1"
+
+  # Node + MongoDB de test sur le port attendu par tests/setup.mongo.ts (127.0.0.1:27018).
+  node-mongo:
+    docker:
+      - image: cimg/node:20.19-browsers
+      - image: mongo:7
+        command: ["mongod", "--port", "27018", "--bind_ip_all"]
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+      MONGODB_URI: mongodb://127.0.0.1:27018/diaspomoney_test
+
+  base:
+    docker:
+      - image: cimg/base:current
+
+commands:
+  attach-deps:
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: 📦 Versions
+          command: node --version && pnpm --version
+
+  wait-for-mongo:
+    steps:
+      - run:
+          name: ⏳ Attente de MongoDB
+          command: |
+            for i in $(seq 1 30); do
+              node -e "require('net').connect(27018,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))" && exit 0
+              sleep 2
+            done
+            echo "❌ MongoDB n'a pas démarré" && exit 1
+
+jobs:
+  # ---------------------------------------------------------------------------
+  install-dependencies:
+    executor: node
     steps:
       - checkout
       - run:
-          name: 📦 Install pnpm
-          command: |
-            curl -fsSL https://get.pnpm.io/install.sh | sh -
-            pnpm --version
+          name: 📦 pnpm
+          command: pnpm --version && pnpm config set store-dir ~/.pnpm-store
       - restore_cache:
           keys:
-            - v1-pnpm-{{ checksum "pnpm-lock.yaml" }}
-            - v1-pnpm-
+            - v2-pnpm-{{ checksum "pnpm-lock.yaml" }}
+            - v2-pnpm-
       - run:
           name: 📚 Install dependencies
           command: pnpm install --frozen-lockfile
       - save_cache:
-          key: v1-pnpm-{{ checksum "pnpm-lock.yaml" }}
+          key: v2-pnpm-{{ checksum "pnpm-lock.yaml" }}
           paths:
             - ~/.pnpm-store
-            - node_modules
       - persist_to_workspace:
           root: .
           paths:
             - node_modules
-            - .pnpm-store
 
-  # ============================================
-  # TESTS
-  # ============================================
+  # ---------------------------------------------------------------------------
+  # Lint, types, puis les trois suites via CircleCI Smarter Testing
+  # (.circleci/test-suites.yml) : résultats JUnit téléversés (onglet Tests, Test Insights),
+  # « Rerun failed tests » ne relance que les tests en échec, découpage statique possible
+  # en ajoutant parallelism. Aucune fonction payante activée.
   tests:
-    docker:
-      - image: cimg/node:20.0
-    environment:
-      PNPM_HOME: ~/.local/share/pnpm
-      PATH: ~/.local/share/pnpm:$PATH
+    executor: node-mongo
     steps:
-      - checkout
-      - run:
-          name: 📦 Install pnpm
-          command: |
-            curl -fsSL https://get.pnpm.io/install.sh | sh -
-            pnpm --version
-      - attach_workspace:
-          at: .
+      - attach-deps
       - run:
           name: 🔍 Lint
           command: pnpm lint
@@ -71,413 +104,231 @@ jobs:
           name: 📝 TypeScript Check
           command: pnpm tsc:check
       - run:
-          name: 🧪 Unit Tests (Client)
-          command: pnpm test:unit:client
+          name: 🧪 Tests client
+          command: circleci testsuite run "unit-client"
+      - wait-for-mongo
       - run:
-          name: 🧪 Unit Tests (Server)
-          command: pnpm test:unit:server
+          name: 🧪 Tests serveur
+          command: circleci testsuite run "unit-server"
       - run:
-          name: 🐳 Start MongoDB
-          command: |
-            docker run -d \
-              --name mongodb-test \
-              -p 27018:27017 \
-              -e MONGO_INITDB_DATABASE=diaspomoney_test \
-              mongo:7
-            # Attendre que MongoDB soit prêt
-            timeout=60
-            elapsed=0
-            while ! docker exec mongodb-test mongosh --quiet --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
-              if [ $elapsed -ge $timeout ]; then
-                echo "❌ MongoDB n'a pas démarré"
-                exit 1
-              fi
-              echo "⏳ Attente de MongoDB... ($elapsed/$timeout secondes)"
-              sleep 2
-              elapsed=$((elapsed + 2))
-            done
-            echo "✅ MongoDB est prêt!"
-      - run:
-          name: 🔗 Integration Tests
-          command: pnpm test:integration
+          name: 🔗 Tests d'intégration
+          command: circleci testsuite run "integration"
           environment:
-            MONGODB_URI: mongodb://localhost:27018/diaspomoney_test
             NODE_ENV: test
+
+  # ---------------------------------------------------------------------------
+  # Couverture globale : les trois suites en entier, rapports fusionnés, échec sous les
+  # seuils de coverage-thresholds.json (cliquet). Séparé de « tests » pour qu'un rerun
+  # partiel (tests en échec seulement) ne fausse jamais la mesure.
+  coverage:
+    executor: node-mongo
+    steps:
+      - attach-deps
+      - wait-for-mongo
       - run:
-          name: 🧹 Stop MongoDB
-          command: docker stop mongodb-test && docker rm mongodb-test || true
+          name: 📊 Couverture globale (cliquet)
+          command: pnpm test:coverage
+      - store_artifacts:
+          path: coverage
+          destination: coverage
+
+  # ---------------------------------------------------------------------------
+  build:
+    executor: node
+    environment:
+      NODE_ENV: production
+      APP_URL: https://dev.diaspomoney.fr
+      API_URL: https://dev.diaspomoney.fr/api
+      NEXTAUTH_URL: https://dev.diaspomoney.fr
+      NEXT_PUBLIC_APP_URL: https://dev.diaspomoney.fr
+      NEXT_PUBLIC_API_URL: https://dev.diaspomoney.fr/api
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+    steps:
+      - attach-deps
       - run:
-          name: 🎭 Install Playwright
-          command: pnpm exec playwright install --with-deps
+          name: 🏗️ Build application
+          command: pnpm build && rm -rf .next/cache
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .next
+            - public/styles.css
+
+  # ---------------------------------------------------------------------------
+  # E2E Playwright (Chromium) sur le build de production, avec une base MongoDB vide.
+  e2e:
+    executor: node-mongo
+    environment:
+      NODE_ENV: production
+      AUTH_SECRET: e2e-ci-secret-not-used-anywhere-else
+      NEXTAUTH_SECRET: e2e-ci-secret-not-used-anywhere-else
+      NEXTAUTH_URL: http://localhost:3000
+      PORT: "3000"
+    steps:
+      - attach-deps
+      - wait-for-mongo
       - run:
-          name: 🏗️ Build for E2E
-          command: pnpm build
-          environment:
-            NODE_ENV: production
+          name: 🎭 Navigateur Chromium
+          command: pnpm exec playwright install --with-deps chromium
       - run:
-          name: 🎭 E2E Tests
+          name: 🎭 Tests E2E
           command: pnpm test:e2e
-          environment:
-            NODE_ENV: test
       - store_test_results:
           path: test-results
-      - store_artifacts:
-          path: test-results
-          destination: test-results
       - store_artifacts:
           path: playwright-report
           destination: playwright-report
 
-  # ============================================
-  # COUVERTURE DE CODE
-  # ============================================
-  coverage:
-    docker:
-      - image: cimg/node:20.0
-    environment:
-      PNPM_HOME: ~/.local/share/pnpm
-      PATH: ~/.local/share/pnpm:$PATH
+  # ---------------------------------------------------------------------------
+  # Déploiement + marqueurs CircleCI Deploys (plan → déploiement → RUNNING → SUCCESS/FAILED).
+  # Plan « deploy-<env> », composant « diaspomoney », version = SHA git complet (c'est ce que
+  # le pipeline de rollback redéploie). Quand la validation est active (production), le job
+  # ne marque pas SUCCESS : c'est le job « type: release » qui le fait après la fenêtre
+  # d'observation.
+  deploy:
+    executor: base
+    parameters:
+      env:
+        type: enum
+        enum: [dev, rct, prod]
+      environment-name:
+        type: enum
+        enum: [development, staging, production]
+      validated:
+        type: boolean
+        default: false
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:IEBaaimc2F7J9Mr2G0P15yQFZ0p88DKWQcOZa2oujxY"
+      - run:
+          name: Plan deployment
+          command: |
+            circleci run release plan deploy-<< parameters.env >> \
+              --environment-name="<< parameters.environment-name >>" \
+              --component-name="diaspomoney" \
+              --target-version="${CIRCLE_SHA1}"
+      - run:
+          name: 🚀 Déploiement << parameters.env >>
+          command: |
+            : "${DEPLOY_HOST:?DEPLOY_HOST manquant}" "${DEPLOY_USER:?DEPLOY_USER manquant}"
+            # Clé publique d'hôte du serveur (non secrète) : protège contre une usurpation du serveur.
+            mkdir -p ~/.ssh && echo "${DEPLOY_HOST} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJQnLPGAhyIDjB0rYkbNl4gSVShP2iH4KE7kolx2Iv24" >> ~/.ssh/known_hosts
+            ssh -o BatchMode=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "deploy << parameters.env >> $CIRCLE_SHA1"
+          no_output_timeout: 30m
+      - run:
+          name: Update deployment status to running
+          command: circleci run release update deploy-<< parameters.env >> --status=RUNNING
+      - unless:
+          condition: << parameters.validated >>
+          steps:
+            - run:
+                name: Update deployment status to success
+                command: circleci run release update deploy-<< parameters.env >> --status=SUCCESS
+                when: on_success
+      - run:
+          name: Update deployment status to failed
+          command: circleci run release update deploy-<< parameters.env >> --status=FAILED
+          when: on_fail
+
+  # Validation de la mise en production : CircleCI écoute les alertes du webhook
+  # « sentry-errors » pendant 20 min ; une alerte qui tombe fait échouer la release et
+  # déclenche le pipeline de rollback (.circleci/rollback.yml) vers la version précédente.
+  release-production:
+    type: release
+    plan_name: deploy-prod
+    validation:
+      enabled: true
+      auto_rollback_on_failure: true
+      webhooks:
+        - name: sentry-errors
+          provider: custom
+          # Envoyé par le relais docker/sentry-relay : status "firing" | "resolved".
+          fail_when: criteria == "firing"
+
+  # ---------------------------------------------------------------------------
+  open-pr:
+    executor: node
+    parameters:
+      head: { type: string }
+      base: { type: string }
     steps:
       - checkout
       - run:
-          name: 📦 Install pnpm
-          command: |
-            curl -fsSL https://get.pnpm.io/install.sh | sh -
-            pnpm --version
-      - restore_cache:
-          keys:
-            - v1-pnpm-{{ checksum "pnpm-lock.yaml" }}
-            - v1-pnpm-
-      - run:
-          name: 📚 Install dependencies
-          command: pnpm install --frozen-lockfile
-      - attach_workspace:
-          at: .
-      - run:
-          name: 🐳 Start MongoDB
-          command: |
-            docker run -d \
-              --name mongodb-coverage \
-              -p 27018:27017 \
-              -e MONGO_INITDB_DATABASE=diaspomoney_test \
-              mongo:7
-            timeout=60
-            elapsed=0
-            while ! docker exec mongodb-coverage mongosh --quiet --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
-              if [ $elapsed -ge $timeout ]; then
-                echo "❌ MongoDB n'a pas démarré"
-                exit 1
-              fi
-              sleep 2
-              elapsed=$((elapsed + 2))
-            done
-      - run:
-          name: 📊 Générer couverture
-          command: |
-            pnpm test:unit:coverage
-            pnpm test:integration --coverage
-          environment:
-            MONGODB_URI: mongodb://localhost:27018/diaspomoney_test
-            NODE_ENV: test
-      - run:
-          name: 🧹 Stop MongoDB
-          command: docker stop mongodb-coverage && docker rm mongodb-coverage || true
-      - run:
-          name: 📈 Vérifier seuil de couverture (95%)
-          command: |
-            COVERAGE_FILE="./coverage/coverage-summary.json"
-            if [ ! -f "$COVERAGE_FILE" ]; then
-              echo "❌ Fichier de couverture non trouvé"
-              exit 1
-            fi
-            
-            TOTAL_COVERAGE=$(node -e "
-              const fs = require('fs');
-              const cov = JSON.parse(fs.readFileSync('./coverage/coverage-summary.json', 'utf8'));
-              console.log(cov.total.lines.pct.toFixed(2));
-            ")
-            
-            echo "📊 Couverture actuelle: ${TOTAL_COVERAGE}%"
-            echo "🎯 Seuil minimum requis: 95%"
-            
-            THRESHOLD=95
-            PASSED=$(node -e "console.log(${TOTAL_COVERAGE} >= ${THRESHOLD} ? 'true' : 'false')")
-            
-            if [ "$PASSED" = "false" ]; then
-              echo "❌ La couverture (${TOTAL_COVERAGE}%) est inférieure au seuil requis (95%)"
-              exit 1
-            else
-              echo "✅ Couverture suffisante: ${TOTAL_COVERAGE}% >= 95%"
-            fi
-      - store_artifacts:
-          path: coverage
-          destination: coverage
-      - store_test_results:
-          path: coverage
+          name: 🔀 PR << parameters.head >> → << parameters.base >>
+          command: bash scripts/ci/github-pr.sh open << parameters.head >> << parameters.base >>
 
-  # ============================================
-  # BUILD
-  # ============================================
-  build:
-    docker:
-      - image: cimg/node:20.0
-    environment:
-      PNPM_HOME: ~/.local/share/pnpm
-      PATH: ~/.local/share/pnpm:$PATH
+  merge-pr:
+    executor: node
+    parameters:
+      head: { type: string }
+      base: { type: string }
     steps:
       - checkout
       - run:
-          name: 📦 Install pnpm
-          command: |
-            curl -fsSL https://get.pnpm.io/install.sh | sh -
-            pnpm --version
-      - restore_cache:
-          keys:
-            - v1-pnpm-{{ checksum "pnpm-lock.yaml" }}
-            - v1-pnpm-
-      - run:
-          name: 📚 Install dependencies
-          command: pnpm install --frozen-lockfile
-      - attach_workspace:
-          at: .
-      - run:
-          name: 🏗️ Build application
-          command: pnpm build
-          environment:
-            NODE_ENV: production
-      - store_artifacts:
-          path: .next
-          destination: build-artifacts
+          name: ✅ Fusion << parameters.head >> → << parameters.base >>
+          command: bash scripts/ci/github-pr.sh merge << parameters.head >> << parameters.base >> "$CIRCLE_SHA1"
 
-  # ============================================
-  # DÉPLOIEMENT
-  # ============================================
-  deploy-dev:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: medium
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          name: 🔧 Install kubectl
-          command: |
-            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            chmod +x kubectl
-            sudo mv kubectl /usr/local/bin/
-      - run:
-          name: 🔐 Configure kubectl
-          command: |
-            echo "$KUBE_CONFIG_DEV" | base64 -d > kubeconfig
-            export KUBECONFIG=kubeconfig
-            kubectl cluster-info
-      - run:
-          name: 🚀 Déployer sur Dev
-          command: |
-            export KUBECONFIG=kubeconfig
-            chmod +x ./scripts/deploy.sh
-            ./scripts/deploy.sh dev
-          environment:
-            KUBECONFIG: kubeconfig
-      - run:
-          name: ✅ Vérifier le déploiement
-          command: |
-            export KUBECONFIG=kubeconfig
-            kubectl rollout status deployment/diaspomoney-app -n diaspomoney --timeout=300s || true
-            kubectl get pods -n diaspomoney -l app=diaspomoney-app
-      - run:
-          name: 🧪 Smoke Tests
-          command: |
-            sleep 10
-            curl -f https://dev.diaspomoney.fr/api/health || echo "⚠️ Smoke test échoué"
-
-  deploy-rct:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: medium
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          name: 🔧 Install kubectl
-          command: |
-            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            chmod +x kubectl
-            sudo mv kubectl /usr/local/bin/
-      - run:
-          name: 🔐 Configure kubectl
-          command: |
-            echo "$KUBE_CONFIG_RCT" | base64 -d > kubeconfig
-            export KUBECONFIG=kubeconfig
-            kubectl cluster-info
-      - run:
-          name: 🚀 Déployer sur Recette
-          command: |
-            export KUBECONFIG=kubeconfig
-            chmod +x ./scripts/deploy.sh
-            ./scripts/deploy.sh rct
-          environment:
-            KUBECONFIG: kubeconfig
-      - run:
-          name: ✅ Vérifier le déploiement
-          command: |
-            export KUBECONFIG=kubeconfig
-            kubectl rollout status deployment/diaspomoney-app -n diaspomoney --timeout=300s || true
-            kubectl get pods -n diaspomoney -l app=diaspomoney-app
-      - run:
-          name: 🧪 Smoke Tests
-          command: |
-            sleep 10
-            curl -f https://rct.diaspomoney.fr/api/health || echo "⚠️ Smoke test échoué"
-
-  deploy-prod:
-    machine:
-      image: ubuntu-2004:current
-    resource_class: medium
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run:
-          name: 🔧 Install kubectl
-          command: |
-            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-            chmod +x kubectl
-            sudo mv kubectl /usr/local/bin/
-      - run:
-          name: 🔐 Configure kubectl
-          command: |
-            echo "$KUBE_CONFIG_PROD" | base64 -d > kubeconfig
-            export KUBECONFIG=kubeconfig
-            kubectl cluster-info
-      - run:
-          name: 📋 Afficher informations de déploiement
-          command: |
-            echo "🚀 Déploiement en production"
-            echo "📦 Commit: $CIRCLE_SHA1"
-            echo "👤 Auteur: $CIRCLE_USERNAME"
-            echo "🌿 Branche: $CIRCLE_BRANCH"
-            echo "📅 Date: $(date)"
-      - run:
-          name: 🚀 Déployer sur Production
-          command: |
-            export KUBECONFIG=kubeconfig
-            chmod +x ./scripts/deploy.sh
-            ./scripts/deploy.sh prod
-          environment:
-            KUBECONFIG: kubeconfig
-      - run:
-          name: ✅ Vérifier le déploiement
-          command: |
-            export KUBECONFIG=kubeconfig
-            kubectl rollout status deployment/diaspomoney-app -n diaspomoney --timeout=600s || true
-            kubectl get pods -n diaspomoney -l app=diaspomoney-app
-      - run:
-          name: 🧪 Smoke Tests
-          command: |
-            sleep 15
-            curl -f https://diaspomoney.fr/api/health || echo "⚠️ Smoke test échoué"
-
-# ============================================
-# WORKFLOWS
-# ============================================
+# =====================================================================================
 workflows:
-  version: 2
-  
-  # Workflow pour la branche dev
-  deploy-dev-workflow:
-    when:
-      and:
-        - equal: [ dev, << pipeline.git.branch >> ]
+  ci-cd:
     jobs:
       - install-dependencies
       - tests:
-          requires:
-            - install-dependencies
+          requires: [install-dependencies]
       - coverage:
-          requires:
-            - tests
+          requires: [install-dependencies]
       - build:
-          requires:
-            - coverage
-      - deploy-dev:
-          requires:
-            - build
-          filters:
-            branches:
-              only: dev
+          requires: [install-dependencies]
+      - e2e:
+          requires: [build]
 
-  # Workflow pour la branche rct
-  deploy-rct-workflow:
-    when:
-      and:
-        - equal: [ rct, << pipeline.git.branch >> ]
-    jobs:
-      - install-dependencies
-      - tests:
-          requires:
-            - install-dependencies
-      - coverage:
-          requires:
-            - tests
-      - build:
-          requires:
-            - coverage
-      - deploy-rct:
-          requires:
-            - build
-          filters:
-            branches:
-              only: rct
+      # ---- dev : déploiement puis PR vers rct -----------------------------------
+      - deploy:
+          name: deploy-dev
+          env: dev
+          environment-name: development
+          requires: [tests, coverage, e2e]
+          filters: { branches: { only: dev } }
+      - open-pr:
+          name: pr-dev-vers-rct
+          head: dev
+          base: rct
+          requires: [deploy-dev]
+          filters: { branches: { only: dev } }
 
-  # Workflow pour la branche main (production)
-  deploy-prod-workflow:
-    when:
-      and:
-        - equal: [ main, << pipeline.git.branch >> ]
-    jobs:
-      - install-dependencies
-      - tests:
-          requires:
-            - install-dependencies
-      - coverage:
-          requires:
-            - tests
-      - build:
-          requires:
-            - coverage
-      - hold-production:
+      # ---- rct : déploiement, PR vers main, validation, fusion ------------------
+      - deploy:
+          name: deploy-rct
+          env: rct
+          environment-name: staging
+          requires: [tests, coverage, e2e]
+          filters: { branches: { only: rct } }
+      - open-pr:
+          name: pr-rct-vers-main
+          head: rct
+          base: main
+          requires: [deploy-rct]
+          filters: { branches: { only: rct } }
+      - valider-mise-en-prod:
           type: approval
-          requires:
-            - build
-      - deploy-prod:
-          requires:
-            - hold-production
-          filters:
-            branches:
-              only: main
+          requires: [pr-rct-vers-main]
+          filters: { branches: { only: rct } }
+      - merge-pr:
+          name: fusion-rct-vers-main
+          head: rct
+          base: main
+          requires: [valider-mise-en-prod]
+          filters: { branches: { only: rct } }
 
-  # Workflow pour les pull requests
-  pr-workflow:
-    when:
-      and:
-        - not:
-            equal: [ << pipeline.git.branch >>, main ]
-        - not:
-            equal: [ << pipeline.git.branch >>, rct ]
-        - not:
-            equal: [ << pipeline.git.branch >>, dev ]
-    jobs:
-      - install-dependencies
-      - tests:
-          requires:
-            - install-dependencies
-      - coverage:
-          requires:
-            - tests
-      - build:
-          requires:
-            - coverage
-
+      # ---- main : déploiement prod ----------------------------------------------
+      - deploy:
+          name: deploy-prod
+          env: prod
+          environment-name: production
+          validated: true
+          requires: [tests, coverage, e2e]
+          filters: { branches: { only: main } }
+      - release-production:
+          requires: [deploy-prod]
+          filters: { branches: { only: main } }

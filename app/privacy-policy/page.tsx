@@ -1,10 +1,12 @@
 import { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import Link from 'next/link';
 
-export const metadata: Metadata = {
-  title: 'Politique de confidentialité - DiaspoMoney',
-  description: 'Politique de confidentialité de DiaspoMoney',
-};
+export const metadata: Metadata = pageMetadata({
+  path: "/privacy-policy",
+  title: "Politique de confidentialité",
+  description: "Politique de confidentialité de DiaspoMoney : données collectées, finalités, durées de conservation et droits.",
+});
 
 export default function PrivacyPolicyPage() {
   return (
@@ -12,107 +14,205 @@ export default function PrivacyPolicyPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">
-            Politique de confidentialité
+            Politique de Confidentialité (P2C)
           </h1>
-          
+
           <div className="prose prose-lg max-w-none">
             <p className="text-gray-600 mb-6">
-              Dernière mise à jour : {new Date().toLocaleDateString('fr-FR')}
+              En vigueur à compter du : [Date à insérer]
             </p>
-            
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                1. Collecte des informations
-              </h2>
-              <p className="text-gray-700 mb-4">
-                DiaspoMoney collecte des informations lorsque vous vous inscrivez sur notre site,
-                passez une commande, vous abonnez à notre newsletter ou remplissez un formulaire.
-                Les informations collectées incluent votre nom, adresse e-mail, numéro de téléphone
-                et autres informations nécessaires pour fournir nos services.
-              </p>
-            </section>
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                2. Utilisation des informations
+                Définitions Préalables Sommaires
               </h2>
-              <p className="text-gray-700 mb-4">
-                Toutes les informations que nous recueillons auprès de vous peuvent être utilisées pour :
-              </p>
-              <ul className="list-disc list-inside text-gray-700 space-y-2 ml-4">
-                <li>Personnaliser votre expérience et répondre à vos besoins individuels</li>
-                <li>Fournir un contenu publicitaire personnalisé</li>
-                <li>Améliorer notre site web</li>
-                <li>Améliorer le service client et vos besoins de prise en charge</li>
-                <li>Vous contacter par e-mail</li>
-                <li>Administrer un concours, une promotion, ou une enquête</li>
-                <li>Traiter vos transactions et réservations</li>
+              <ul className="list-disc space-y-2 pl-6 text-gray-700 mb-4">
+                <li>
+                  Donnée personnelle : Information relative à une personne physique identifiée ou
+                  identifiable.
+                </li>
+                <li>Traitement : Toute opération réalisée sur des données.</li>
+                <li>Responsable de traitement : DiaspoMoney.</li>
+                <li>Sous-traitant : Prestataire tiers manipulant les données.</li>
+                <li>Destinataire : Entité recevant les données (prestataires, autorités...).</li>
               </ul>
             </section>
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                3. Protection des données
+                1. Identité du Responsable de Traitement
               </h2>
               <p className="text-gray-700 mb-4">
-                Nous mettons en œuvre une variété de mesures de sécurité pour préserver la sécurité
-                de vos informations personnelles. Vos informations sont stockées dans des bases de
-                données sécurisées et protégées par des protocoles de sécurité appropriés.
+                Le traitement est assuré par : <strong>DIASPOMONEY</strong>, (adresse), (email de
+                contact).
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                4. Confidentialité du commerce en ligne
+                2. Données Collectées
+              </h2>
+              <ul className="list-disc space-y-2 pl-6 text-gray-700 mb-4">
+                <li>Données d’identification : nom, prénom, email, téléphone</li>
+                <li>Données de santé (le cas échéant, avec consentement)</li>
+                <li>Données de paiement</li>
+                <li>Données de connexion et navigation (cookies)</li>
+              </ul>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                3. Finalités du Traitement
+              </h2>
+              <ul className="list-disc space-y-2 pl-6 text-gray-700 mb-4">
+                <li>Gérer les commandes et les relations contractuelles</li>
+                <li>Sécuriser les transactions</li>
+                <li>Superviser les prestations</li>
+                <li>Respecter les obligations légales (KYC/AML)</li>
+                <li>Améliorer la plateforme</li>
+              </ul>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                4. Base Légale du Traitement
+              </h2>
+              <div className="overflow-x-auto">
+                <table className="min-w-full border border-gray-200 text-left text-gray-700 mb-4">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="border border-gray-200 px-4 py-2 font-semibold">Finalité</th>
+                      <th className="border border-gray-200 px-4 py-2 font-semibold">Base légale</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-gray-200 px-4 py-2">
+                        Exécution du contrat / commande
+                      </td>
+                      <td className="border border-gray-200 px-4 py-2">Article 6.1.b RGPD</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-200 px-4 py-2">KYC/AML obligations</td>
+                      <td className="border border-gray-200 px-4 py-2">
+                        Article 6.1.c RGPD (obligation légale)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-200 px-4 py-2">
+                        Suivi et supervision des prestations
+                      </td>
+                      <td className="border border-gray-200 px-4 py-2">
+                        Article 6.1.f RGPD (intérêt légitime)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-200 px-4 py-2">
+                        Amélioration et Analytics
+                      </td>
+                      <td className="border border-gray-200 px-4 py-2">
+                        Consentement ou intérêt légitime
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-200 px-4 py-2">
+                        Communication, marketing (newsletter, offres)
+                      </td>
+                      <td className="border border-gray-200 px-4 py-2">
+                        Article 6.1.a RGPD (consentement explicite)
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                5. Durée de Conservation
+              </h2>
+              <ul className="list-disc space-y-2 pl-6 text-gray-700 mb-4">
+                <li>Données clients et connexions : durée relation + 3 ans</li>
+                <li>KYC/AML : 5 ans après la dernière interaction</li>
+                <li>Factures et preuves comptables : 10 ans</li>
+                <li>Cookies et Analytics : 13 mois</li>
+              </ul>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">6. Destinataires</h2>
+              <p className="text-gray-700 mb-4">Les données peuvent être transmises :</p>
+              <ul className="list-disc space-y-2 pl-6 text-gray-700 mb-4">
+                <li>Aux prestataires exécutants</li>
+                <li>Aux intermédiaires de suivi</li>
+                <li>Aux autorités administratives ou judiciaires (en cas de réquisition)</li>
+              </ul>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+                7. Transfert Hors UE
               </h2>
               <p className="text-gray-700 mb-4">
-                Nous sommes les seuls propriétaires des informations recueillies sur ce site.
-                Vos informations personnelles ne seront pas vendues, échangées, transférées,
-                ou données à une autre société pour n&apos;importe quelle raison, sans votre consentement.
+                Certaines données peuvent être transférées hors UE, notamment vers les pays
+                d’intervention. Des garanties telles que des clauses contractuelles types et des
+                engagements de confidentialité sont mises en place.
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                5. Cookies
+                8. Droits des Utilisateurs
               </h2>
+              <ul className="list-disc space-y-2 pl-6 text-gray-700 mb-4">
+                <li>Accès, rectification, effacement</li>
+                <li>Limitation et opposition</li>
+                <li>Portabilité</li>
+                <li>
+                  Réclamation auprès de la CNIL (
+                  <Link
+                    href="https://www.cnil.fr/"
+                    className="text-[hsl(25,100%,53%)] hover:underline"
+                  >
+                    www.cnil.fr
+                  </Link>
+                  )
+                </li>
+              </ul>
+            </section>
+
+            <section className="mb-8">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">9. Cookies</h2>
+              <p className="text-gray-700 mb-4">La plateforme utilise des cookies pour :</p>
+              <ul className="list-disc space-y-2 pl-6 text-gray-700 mb-4">
+                <li>Analyser la fréquentation</li>
+                <li>Personnaliser l’expérience utilisateur</li>
+                <li>Gérer la sécurité</li>
+              </ul>
               <p className="text-gray-700 mb-4">
-                Nous utilisons des cookies pour améliorer votre expérience sur notre site.
-                Vous pouvez choisir de désactiver les cookies dans les paramètres de votre navigateur,
-                mais cela peut affecter certaines fonctionnalités du site.
+                L’utilisateur peut configurer ses préférences via le bandeau dédié.
               </p>
             </section>
 
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                6. Consentement
+                10. Sécurité des Données
               </h2>
               <p className="text-gray-700 mb-4">
-                En utilisant notre site, vous consentez à notre politique de confidentialité.
+                Des mesures techniques et organisationnelles sont mises en place : chiffrement,
+                pare-feu, contrôle d’accès…
               </p>
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                7. Vos droits
-              </h2>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">11. Contact</h2>
               <p className="text-gray-700 mb-4">
-                Conformément au RGPD, vous avez le droit d&apos;accéder, de rectifier, de supprimer
-                ou de porter vos données personnelles. Vous pouvez exercer ces droits en nous contactant.
+                Pour toute question relative à vos données personnelles :
               </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                8. Contact
-              </h2>
-              <p className="text-gray-700 mb-4">
-                Si vous avez des questions concernant cette politique de confidentialité,
-                vous pouvez nous contacter à{' '}
-                <Link href="mailto:support@diaspomoney.fr" className="text-[hsl(25,100%,53%)] hover:underline">
-                  support@diaspomoney.fr
-                </Link>
-              </p>
+              <ul className="list-disc space-y-2 pl-6 text-gray-700 mb-4">
+                <li>Email : (Email du DPO) – Objet : « Données personnelles »</li>
+                <li>Adresse postale : (Adresse du DPO) – envoi recommandé</li>
+              </ul>
             </section>
           </div>
 
@@ -129,4 +229,3 @@ export default function PrivacyPolicyPage() {
     </div>
   );
 }
-

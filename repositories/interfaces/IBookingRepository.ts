@@ -3,6 +3,7 @@
  */
 
 import { BOOKING_STATUSES } from '@/lib/constants';
+import type { ServiceType as OrderServiceType } from '@/lib/types/orders.types';
 import { IPaginatedRepository, PaginatedResult, PaginationOptions } from './IRepository';
 
 export interface Booking {
@@ -21,6 +22,20 @@ export interface Booking {
     firstName: string;
     lastName: string;
     phone: string;
+  };
+  beneficiary?: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email?: string;
+  };
+  selectedService?: {
+    id?: string | number;
+    name: string;
+    type: OrderServiceType;
+    description?: string;
+    price?: number;
+    duration?: number;
   };
   metadata?: Record<string, any>;
   createdAt: Date;
@@ -82,5 +97,10 @@ export interface IBookingRepository extends IPaginatedRepository<Booking, string
     filters: BookingFilters,
     options?: PaginationOptions
   ): Promise<PaginatedResult<Booking>>;
+
+  /**
+   * Lier les commandes guest à un utilisateur connecté via l'email client.
+   */
+  linkGuestBookingsToUser(userId: string, userEmail: string): Promise<number>;
 }
 

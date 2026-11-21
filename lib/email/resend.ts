@@ -11,7 +11,7 @@ import { childLogger } from '@/lib/logger';
 import type { EmailOptions, EmailTemplate } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Resend } from 'resend';
-import { welcomeTemplate, passwordResetTemplate, accountActivationTemplate, loginSuccessTemplate, paymentConfirmationTemplate, bookingTakeChargeTemplate, paymentLinkTemplate, providerAssignmentTemplate } from './templates';
+import { welcomeTemplate, passwordResetTemplate, accountActivationTemplate, loginSuccessTemplate, paymentConfirmationTemplate, bookingTakeChargeTemplate, paymentLinkTemplate, providerAssignmentTemplate, feedbackRequestTemplate } from './templates';
 
 const log = childLogger({ component: 'EmailService' });
 
@@ -237,7 +237,22 @@ async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
       return false;
     }
 
-    const { data, error } = await resend.emails.send({
+    // Préparer les attachments si présents
+    const attachments = options.attachments?.map((att: {
+      filename: string;
+      content: Buffer | Uint8Array | string;
+      contentType?: string;
+    }) => ({
+      filename: att.filename,
+      content: att.content instanceof Buffer 
+        ? att.content.toString('base64')
+        : att.content instanceof Uint8Array
+        ? Buffer.from(att.content).toString('base64')
+        : att.content,
+      type: att.contentType || 'application/pdf',
+    }));
+
+    const emailPayload: any = {
       from:
         options.from ||
         (process.env['NODE_ENV'] === 'production'
@@ -249,7 +264,14 @@ async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
       text: options.text ?? '', // Ensure text is always a string (Resend type requires string)
       reply_to: options.replyTo || [],
       tags: sanitizedTags,
-    });
+    };
+
+    // Ajouter les attachments seulement s'ils existent
+    if (attachments && attachments.length > 0) {
+      emailPayload.attachments = attachments;
+    }
+
+    const { data, error } = await resend.emails.send(emailPayload);
 
     if (error) {
       log.error(
@@ -581,6 +603,45 @@ export async function sendExternalProviderAssignmentEmail(params: {
       { name: 'type', value: 'provider_assignment' },
       { name: 'provider_email', value: sanitizeTagValue(params.to) },
       { name: 'reservation', value: sanitizeTagValue(params.reservationNumber) },
+    ],
+  });
+}
+
+/**
+ * Envoyer un email de demande de feedback
+ */
+export async function sendFeedbackRequestEmail(
+  email: string,
+  name: string,
+  reservationNumber: string,
+  serviceName: string,
+  feedbackUrl: string,
+): Promise<boolean> {
+  // En développement, utiliser l'email autorisé par Resend
+  // En production, utiliser l'email original
+  const targetEmail =
+    process.env['NODE_ENV'] === 'development'
+      ? 'malarbillaudrey@gmail.com'
+      : email;
+
+  log.debug({ targetEmail, originalEmail: email }, 'Sending feedback request email');
+
+  const template = feedbackRequestTemplate(
+    name,
+    reservationNumber,
+    serviceName,
+    feedbackUrl,
+  );
+
+  return await sendEmail({
+    to: targetEmail,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+    tags: [
+      { name: 'type', value: 'feedback_request' },
+      { name: 'reservation_number', value: sanitizeTagValue(reservationNumber) },
+      { name: 'user_email', value: sanitizeTagValue(email) },
     ],
   });
 }
