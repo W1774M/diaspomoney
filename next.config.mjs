@@ -40,6 +40,11 @@ const nextConfig = {
     return [{ source: '/:path*', headers: SECURITY_HEADERS }];
   },
 
+  // Ancienne adresse dupliquée de la politique de confidentialité.
+  async redirects() {
+    return [{ source: '/privacy', destination: '/privacy-policy', permanent: true }];
+  },
+
   // Optimisation des images
   images: {
     formats: ['image/webp', 'image/avif'], // Seulement webp et avif sont supportés par Next.js
