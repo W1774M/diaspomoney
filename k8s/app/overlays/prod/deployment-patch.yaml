@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diaspomoney
+  labels:
+    app: diaspomoney-prod
+    env: prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: diaspomoney-prod
+  template:
+    metadata:
+      labels:
+        app: diaspomoney-prod
+        env: prod
+    spec:
+      containers:
+        - name: diaspomoney
+          image: localhost:5000/diaspomoney:prod-latest
+          imagePullPolicy: Always
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: NEXT_TELEMETRY_DISABLED
+              value: "0"
+            - name: NEXT_TELEMETRY_ENABLED
+              value: "true"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: NEXT_PUBLIC_APP_URL
+              value: "https://diaspomoney.fr"
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://diaspomoney.fr/api"
+            - name: NEXTAUTH_URL
+              value: "https://diaspomoney.fr"
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: connection-string
+            - name: MONGO_URL
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: connection-string
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

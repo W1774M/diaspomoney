@@ -1,5 +1,7 @@
 # Vérification de la configuration Stripe
 
+> Chemin produit Stripe : voir [`stripe-integration.md`](./stripe-integration.md) (doc canonique).
+
 ## 🔍 Diagnostic en ligne
 
 Une route API de diagnostic est disponible pour vérifier votre configuration Stripe :

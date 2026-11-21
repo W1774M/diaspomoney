@@ -30,6 +30,8 @@ export const ApiErrors = {
   UNAUTHORIZED: new ApiError(401, 'Non autorisé', 'UNAUTHORIZED'),
   FORBIDDEN: new ApiError(403, 'Accès non autorisé', 'FORBIDDEN'),
   NOT_FOUND: new ApiError(404, 'Ressource non trouvée', 'NOT_FOUND'),
+  PAYMENT_REQUIRED: (message = 'Paiement non confirmé auprès de Stripe') =>
+    new ApiError(402, message, 'PAYMENT_REQUIRED'),
   VALIDATION_ERROR: (details?: unknown) => 
     new ApiError(400, 'Erreur de validation', 'VALIDATION_ERROR', details),
   INTERNAL_ERROR: new ApiError(500, 'Erreur interne du serveur', 'INTERNAL_ERROR'),

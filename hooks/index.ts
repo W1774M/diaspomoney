@@ -8,7 +8,6 @@ export type { AuthorizationOptions, AuthorizationResult } from './auth/useAuthor
 // Data hooks
 export { useProviderDetail } from './providers';
 export type { ProviderRatingStats, UseProviderDetailReturn } from './providers';
-export { useBookings } from './useBookings';
 export { useProviders } from './useProviders';
 export { useUsers } from './useUsers';
 
@@ -33,7 +32,7 @@ export * from './settings';
 // Beneficiaries hooks
 export * from './beneficiaries';
 
-// Bookings hooks
+// Bookings hooks (inclut useBookings)
 export * from './bookings';
 
 // Complaints hooks
@@ -42,7 +41,7 @@ export * from './complaints';
 // Form hooks
 export * from './forms';
 
-// API hooks
+// API hooks (useProvidersOptimized)
 export * from './api';
 
 // Messaging hooks
@@ -62,9 +61,3 @@ export * from './specialities';
 
 // Statistics hooks
 export * from './statistics';
-
-// Data hooks
-// export * from "./data";
-
-// UI hooks
-// export * from "./ui";

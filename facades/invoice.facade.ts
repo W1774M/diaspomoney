@@ -2,7 +2,7 @@
  * Invoice Facade - DiaspoMoney
  *
  * Facade Pattern pour simplifier le processus de création de facture complet
- * Orchestre InvoiceService, EmailService et NotificationService
+ * Orchestre InvoiceService et Comms (via dispatchFacadeNotification)
  */
 
 import { Log } from '@/lib/decorators/log.decorator';
@@ -11,11 +11,9 @@ import { Validate } from '@/lib/decorators/validate.decorator';
 import { Audit } from '@/lib/decorators/audit.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
 import { logger } from '@/lib/logger';
-import { LANGUAGES, CURRENCIES } from '@/lib/constants';
-import { emailService } from '@/services/email/email.service';
 import { invoiceService, InvoiceData } from '@/services/invoice/invoice.service';
-import { notificationService } from '@/services/notification/notification.service';
 import { invoiceMapper } from '@/lib/mappers';
+import { dispatchFacadeNotification } from '@/facades/_shared/dispatchNotification';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
@@ -123,26 +121,30 @@ export class InvoiceFacade {
       let emailSent = false;
       let notificationSent = false;
 
+      const invoicePayload = {
+        invoiceNumber,
+        amount: data.amount,
+        currency: data.currency,
+      };
+
       // Étape 2: Envoyer la facture par email si demandé
       if (data.sendEmail !== false && data.recipientEmail) {
         try {
-          // Récupérer les informations utilisateur pour l'email
           const { getUserRepository } = await import('@/repositories');
           const userRepository = getUserRepository();
           const user = await userRepository.findById(data.userId);
 
           if (user && user.email) {
-            const emailResult = await emailService.sendCustomEmail(
-              data.recipientEmail || user.email,
-              `Facture ${invoiceNumber}`,
-              this.generateInvoiceEmailHTML(invoice, invoiceNumber),
-              this.generateInvoiceEmailText(invoice, invoiceNumber),
-            );
-
-            emailSent = emailResult;
+            emailSent = await dispatchFacadeNotification({
+              recipient: data.recipientEmail || user.email,
+              type: 'INVOICE_CREATED',
+              template: 'invoice_created',
+              payload: invoicePayload,
+              channels: ['EMAIL'],
+              priority: 'NORMAL',
+            });
           }
         } catch (emailError) {
-          // Ne pas faire échouer la création de facture si l'email échoue
           logger.error(
             { error: emailError, invoiceId },
             'Failed to send invoice email, continuing...',
@@ -152,32 +154,14 @@ export class InvoiceFacade {
 
       // Étape 3: Envoyer une notification si demandé
       if (data.sendNotification !== false) {
-        try {
-          await notificationService.sendNotification({
-            recipient: data.userId,
-            type: 'INVOICE_CREATED',
-            template: 'invoice_created',
-            data: {
-              invoiceNumber,
-              amount: data.amount,
-              currency: data.currency,
-            },
-            channels: [
-              { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
-              { type: 'EMAIL', enabled: true, priority: 'LOW' },
-            ],
-            locale: LANGUAGES.FR.code,
-            priority: 'MEDIUM',
-          });
-
-          notificationSent = true;
-        } catch (notificationError) {
-          // Ne pas faire échouer la création de facture si la notification échoue
-          logger.error(
-            { error: notificationError, invoiceId },
-            'Failed to send notification, continuing...',
-          );
-        }
+        notificationSent = await dispatchFacadeNotification({
+          recipient: data.userId,
+          type: 'INVOICE_CREATED',
+          template: 'invoice_created',
+          payload: invoicePayload,
+          channels: ['PUSH', 'EMAIL'],
+          priority: 'NORMAL',
+        });
       }
 
       logger.info(
@@ -226,58 +210,7 @@ export class InvoiceFacade {
       };
     }
   }
-
-  /**
-   * Générer le HTML de l'email de facture
-   */
-  private generateInvoiceEmailHTML(
-    invoice: any,
-    invoiceNumber: string,
-  ): string {
-    const total = invoice.totalAmount || invoice.amount || 0;
-    const currency = invoice.currency || CURRENCIES.EUR.code;
-
-    return `
-      <html>
-        <body>
-          <h2>Facture ${invoiceNumber}</h2>
-          <p>Bonjour,</p>
-          <p>Votre facture a été générée avec succès.</p>
-          <p><strong>Montant total :</strong> ${total} ${currency}</p>
-          <p>Vous pouvez télécharger votre facture depuis votre espace client.</p>
-          <p>Cordialement,<br>L'équipe DiaspoMoney</p>
-        </body>
-      </html>
-    `;
-  }
-
-  /**
-   * Générer le texte de l'email de facture
-   */
-  private generateInvoiceEmailText(
-    invoice: any,
-    invoiceNumber: string,
-  ): string {
-    const total = invoice.totalAmount || invoice.amount || 0;
-    const currency = invoice.currency || CURRENCIES.EUR.code;
-
-    return `
-      Facture ${invoiceNumber}
-      
-      Bonjour,
-      
-      Votre facture a été générée avec succès.
-      
-      Montant total : ${total} ${currency}
-      
-      Vous pouvez télécharger votre facture depuis votre espace client.
-      
-      Cordialement,
-      L'équipe DiaspoMoney
-    `;
-  }
 }
 
 // Export de l'instance singleton
 export const invoiceFacade = InvoiceFacade.getInstance();
-

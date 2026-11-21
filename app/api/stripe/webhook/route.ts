@@ -2,9 +2,10 @@ import { paymentEvents } from "@/lib/events";
 import { childLogger } from "@/lib/logger";
 import { verifyStripeSignature } from "@/lib/stripe-server";
 import type { StripePaymentIntent } from "@/lib/types";
+import { confirmBookingPaymentService } from "@/services/booking/confirm-booking-payment.service";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
-import { bookingService } from "@/services/booking/booking.service";
+
 export async function POST(req: NextRequest) {
   try {
     const webhookSecret = process.env["STRIPE_WEBHOOK_SECRET"];
@@ -15,7 +16,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Next.js request cloning to get raw body
     const rawBody = Buffer.from(await req.arrayBuffer());
     const signature = req.headers.get("stripe-signature");
 
@@ -41,17 +41,50 @@ export async function POST(req: NextRequest) {
           metadata: pi.metadata,
         });
 
-        // Émettre un événement via EventBus
-        await paymentEvents.emitPaymentSucceeded({
-          transactionId: pi.id,
-          amount: pi.amount / 100, // Convertir de centimes
-          currency: pi.currency.toUpperCase(),
-          userId: (pi.metadata?.['userId'] as string) || (typeof pi.customer === 'string' ? pi.customer : pi.customer?.id || 'unknown') || 'unknown',
-          provider: 'STRIPE',
-          timestamp: new Date(),
-        }).catch(error => {
-          log.error({ err: error, msg: "Error emitting payment succeeded event" });
-        });
+        const bookingId = pi.metadata?.["bookingId"];
+        if (bookingId) {
+          const result = await confirmBookingPaymentService.execute({
+            proofId: pi.id,
+            bookingId,
+            expectedAmount: pi.amount / 100,
+            expectedCurrency: pi.currency.toUpperCase(),
+            acceptProcessing: false,
+          });
+
+          if (!result.success) {
+            log.warn(
+              { bookingId, paymentIntentId: pi.id, error: result.error },
+              "ConfirmBookingPayment failed from payment_intent.succeeded",
+            );
+          } else {
+            log.info(
+              { bookingId, paymentIntentId: pi.id, emailSent: result.emailSent },
+              "Booking payment confirmed via ConfirmBookingPayment",
+            );
+          }
+        } else {
+          // Pas de booking lié — event bus uniquement (analytics / notif générique)
+          await paymentEvents
+            .emitPaymentSucceeded({
+              transactionId: pi.id,
+              amount: pi.amount / 100,
+              currency: pi.currency.toUpperCase(),
+              userId:
+                (pi.metadata?.["userId"] as string) ||
+                (typeof pi.customer === "string"
+                  ? pi.customer
+                  : pi.customer?.id || "unknown") ||
+                "unknown",
+              provider: "STRIPE",
+              timestamp: new Date(),
+            })
+            .catch((error) => {
+              log.error({
+                err: error,
+                msg: "Error emitting payment succeeded event",
+              });
+            });
+        }
         break;
       }
       case "payment_intent.payment_failed": {
@@ -62,13 +95,17 @@ export async function POST(req: NextRequest) {
           paymentIntentId: pi?.id,
         });
 
-        // Émettre un événement via EventBus
-        await paymentEvents.emitPaymentFailed(
-          pi.id || 'unknown',
-          pi?.last_payment_error?.message || 'Payment failed',
-        ).catch(error => {
-          log.error({ err: error, msg: "Error emitting payment failed event" });
-        });
+        await paymentEvents
+          .emitPaymentFailed(
+            pi.id || "unknown",
+            pi?.last_payment_error?.message || "Payment failed",
+          )
+          .catch((error) => {
+            log.error({
+              err: error,
+              msg: "Error emitting payment failed event",
+            });
+          });
         break;
       }
       case "checkout.session.completed": {
@@ -79,63 +116,31 @@ export async function POST(req: NextRequest) {
           metadata: session.metadata,
         });
 
-        // Mettre à jour le booking si un bookingId est présent dans les métadonnées
         const bookingId = session.metadata?.["bookingId"];
-        if (bookingId) {
-          try {
-            // Récupérer le booking
-            const booking = await bookingService.getBookingById(bookingId);
-            if (booking) {
-              const metadata = booking.metadata || {};
-              const progressHistory = (metadata['progressHistory'] as any[]) || [];
-              
-              // Mettre à jour le statut de paiement
-              const updatedMetadata: Record<string, any> = {
-                ...metadata,
-                paymentStatus: 'confirmed',
-                paymentPending: false,
-                paymentConfirmedAt: new Date().toISOString(),
-                checkoutSessionId: session.id,
-                paymentIntentId: session.payment_intent as string || metadata['paymentIntentId'],
-              };
+        if (bookingId && session.payment_status === "paid") {
+          const result = await confirmBookingPaymentService.execute({
+            proofId: session.id,
+            bookingId,
+            ...(session.amount_total != null
+              ? { expectedAmount: session.amount_total / 100 }
+              : {}),
+            expectedCurrency: (session.currency || "eur").toUpperCase(),
+            acceptProcessing: false,
+          });
 
-              // Marquer l'étape 3 comme complétée dans progressHistory
-              const step3History = progressHistory.find((h: any) => h.step === 3);
-              if (step3History) {
-                const updatedStep3History = {
-                  ...step3History,
-                  completed: true,
-                  paymentConfirmedAt: new Date().toISOString(),
-                  data: {
-                    ...step3History.data,
-                    paymentPending: false,
-                    paymentConfirmed: true,
-                  },
-                };
-
-                const updatedProgressHistory = progressHistory.map((h: any) =>
-                  h.step === 3 ? updatedStep3History : h
-                );
-
-                updatedMetadata['progressHistory'] = updatedProgressHistory;
-              }
-
-              // Mettre à jour le booking
-              await bookingService.updateBooking(bookingId, {
-                metadata: updatedMetadata,
-              });
-
-              log.info(
-                { bookingId, sessionId: session.id },
-                'Booking payment status updated to confirmed after checkout session completion',
-              );
-            } else {
-              log.warn({ bookingId }, 'Booking not found for checkout session');
-            }
-          } catch (error) {
-            log.error(
-              { error, bookingId, sessionId: session.id },
-              'Error updating booking payment status from checkout session',
+          if (!result.success) {
+            log.warn(
+              { bookingId, sessionId: session.id, error: result.error },
+              "ConfirmBookingPayment failed from checkout.session.completed",
+            );
+          } else {
+            log.info(
+              {
+                bookingId,
+                sessionId: session.id,
+                emailSent: result.emailSent,
+              },
+              "Booking payment confirmed via ConfirmBookingPayment (checkout)",
             );
           }
         }

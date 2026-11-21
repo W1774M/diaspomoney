@@ -1,0 +1,29 @@
+# Traefik middlewares shared by app IngressRoutes (namespace diaspomoney).
+# Apply once: kubectl apply -f k8s/common/middlewares.yaml
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: https-redirect
+  namespace: diaspomoney
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers
+  namespace: diaspomoney
+spec:
+  headers:
+    frameDeny: true
+    browserXssFilter: true
+    contentTypeNosniff: true
+    referrerPolicy: strict-origin-when-cross-origin
+    stsSeconds: 31536000
+    stsIncludeSubdomains: true
+    stsPreload: true
+    forceSTSHeader: true
+    customFrameOptionsValue: SAMEORIGIN

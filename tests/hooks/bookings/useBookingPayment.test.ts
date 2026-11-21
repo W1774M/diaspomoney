@@ -56,6 +56,7 @@ describe('useBookingPayment', () => {
     amount: 1000,
     currency: 'EUR',
     paymentMethodId: 'pm_123',
+    paymentIntentId: 'pi_test_123',
   };
 
   describe('confirmPayment', () => {
@@ -93,14 +94,15 @@ describe('useBookingPayment', () => {
       expect(paymentResult.reservationNumber).toBe('RES-002');
     });
 
-    it('devrait émettre un événement paymentSucceeded (EventObserver)', async () => {
-      const { paymentEvents } = await import('@/lib/events');
+    it('ne doit pas émettre d’events domaine côté client (source = serveur)', async () => {
+      const { paymentEvents, bookingEvents } = await import('@/lib/events');
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           success: true,
           reservationNumber: 'RES-001',
+          paymentIntentId: 'pi_test_123',
         }),
       } as Response);
 
@@ -108,35 +110,8 @@ describe('useBookingPayment', () => {
 
       await result.current.confirmPayment(mockAppointment, mockPaymentData);
 
-      await waitFor(() => {
-        expect(paymentEvents.emitPaymentSucceeded).toHaveBeenCalledWith(
-          expect.objectContaining({
-            transactionId: 'RES-001',
-            amount: mockPaymentData.amount,
-            currency: mockPaymentData.currency,
-          }),
-        );
-      });
-    });
-
-    it('devrait émettre un événement bookingConfirmed (EventObserver)', async () => {
-      const { bookingEvents } = await import('@/lib/events');
-
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          reservationNumber: 'RES-001',
-        }),
-      } as Response);
-
-      const { result } = renderHook(() => useBookingPayment());
-
-      await result.current.confirmPayment(mockAppointment, mockPaymentData);
-
-      await waitFor(() => {
-        expect(bookingEvents.emitBookingConfirmed).toHaveBeenCalledWith('appointment123');
-      });
+      expect(paymentEvents.emitPaymentSucceeded).not.toHaveBeenCalled();
+      expect(bookingEvents.emitBookingConfirmed).not.toHaveBeenCalled();
     });
 
     it('devrait gérer les erreurs lors de la confirmation (response.ok = false)', async () => {
@@ -173,7 +148,7 @@ describe('useBookingPayment', () => {
       expect(paymentResult.error).toBe('Carte refusée');
     });
 
-    it('devrait émettre un événement paymentFailed en cas d\'erreur', async () => {
+    it('ne doit pas émettre paymentFailed côté client en cas d\'erreur', async () => {
       const { paymentEvents } = await import('@/lib/events');
 
       vi.mocked(fetch).mockResolvedValueOnce({
@@ -186,14 +161,13 @@ describe('useBookingPayment', () => {
 
       const { result } = renderHook(() => useBookingPayment());
 
-      await result.current.confirmPayment(mockAppointment, mockPaymentData);
+      const paymentResult = await result.current.confirmPayment(
+        mockAppointment,
+        mockPaymentData,
+      );
 
-      await waitFor(() => {
-        expect(paymentEvents.emitPaymentFailed).toHaveBeenCalledWith(
-          'appointment123',
-          expect.stringContaining('Erreur'),
-        );
-      });
+      expect(paymentResult.success).toBe(false);
+      expect(paymentEvents.emitPaymentFailed).not.toHaveBeenCalled();
     });
 
     it('devrait avoir un état de chargement pendant la confirmation', async () => {
@@ -285,9 +259,8 @@ describe('useBookingPayment', () => {
       await waitFor(() => {
         expect(logger.info).toHaveBeenCalledWith(
           expect.objectContaining({
-            appointmentId: 'appointment123',
+            bookingId: 'appointment123',
             reservationNumber: 'RES-001',
-            amount: mockPaymentData.amount,
           }),
           expect.stringContaining('Payment confirmed'),
         );
@@ -299,6 +272,7 @@ describe('useBookingPayment', () => {
 
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
+        status: 400,
         json: async () => ({
           success: false,
           error: 'Erreur de paiement',
@@ -313,7 +287,7 @@ describe('useBookingPayment', () => {
         expect(logger.error).toHaveBeenCalledWith(
           expect.objectContaining({
             error: expect.any(Error),
-            appointmentId: 'appointment123',
+            bookingId: 'appointment123',
           }),
           expect.stringContaining('Error confirming payment'),
         );
@@ -336,9 +310,10 @@ describe('useBookingPayment', () => {
       expect(fetch).toHaveBeenCalledWith(
         '/api/bookings/confirm-payment',
         expect.objectContaining({
-          headers: {
+          headers: expect.objectContaining({
             'Content-Type': 'application/json',
-          },
+            Accept: 'application/json',
+          }),
         }),
       );
     });
@@ -390,9 +365,10 @@ describe('useBookingPayment', () => {
         '/api/bookings/payment-error',
         expect.objectContaining({
           method: 'POST',
-          headers: {
+          headers: expect.objectContaining({
             'Content-Type': 'application/json',
-          },
+            Accept: 'application/json',
+          }),
           body: JSON.stringify({
             appointment: mockAppointment,
             paymentData: mockPaymentData,

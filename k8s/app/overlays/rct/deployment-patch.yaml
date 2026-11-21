@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diaspomoney
+  labels:
+    app: diaspomoney-rct
+    env: rct
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: diaspomoney-rct
+  template:
+    metadata:
+      labels:
+        app: diaspomoney-rct
+        env: rct
+    spec:
+      containers:
+        - name: diaspomoney
+          image: localhost:5000/diaspomoney:rct-latest
+          imagePullPolicy: Always
+          env:
+            - name: NODE_ENV
+              value: "recette"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: NEXT_PUBLIC_APP_URL
+              value: "https://rct.diaspomoney.fr"
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://rct.diaspomoney.fr/api"
+            - name: NEXTAUTH_URL
+              value: "https://rct.diaspomoney.fr"
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: connection-string-rct
+            - name: MONGO_URL
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: connection-string-rct
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

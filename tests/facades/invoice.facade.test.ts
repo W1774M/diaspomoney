@@ -150,14 +150,14 @@ describe('InvoiceFacade', () => {
         email: 'user@example.com',
       } as any);
 
-      const { emailService } = await import('@/services/email/email.service');
-      vi.mocked(emailService.sendCustomEmail).mockResolvedValue(true);
+      const { notificationService } = await import('@/services/notification/notification.service');
+      vi.mocked(notificationService.sendNotification).mockResolvedValue({} as any);
 
       const result = await invoiceFacade.createInvoice(invoiceData);
 
       expect(result.success).toBe(true);
       expect(result.emailSent).toBe(true);
-      expect(emailService.sendCustomEmail).toHaveBeenCalled();
+      expect(notificationService.sendNotification).toHaveBeenCalled();
     });
 
     it('devrait créer une facture et envoyer une notification si demandé', async () => {
@@ -273,6 +273,7 @@ describe('InvoiceFacade', () => {
           },
         ],
         sendEmail: true,
+        sendNotification: false,
         recipientEmail: 'client@example.com',
       };
 
@@ -300,8 +301,8 @@ describe('InvoiceFacade', () => {
         email: 'user@example.com',
       } as any);
 
-      const { emailService } = await import('@/services/email/email.service');
-      vi.mocked(emailService.sendCustomEmail).mockRejectedValue(
+      const { notificationService } = await import('@/services/notification/notification.service');
+      vi.mocked(notificationService.sendNotification).mockRejectedValue(
         new Error('Erreur d\'envoi d\'email'),
       );
 

@@ -11,10 +11,9 @@ import { Validate } from '@/lib/decorators/validate.decorator';
 import { Audit } from '@/lib/decorators/audit.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
 import { logger } from '@/lib/logger';
-import { LANGUAGES } from '@/lib/constants';
 import { messagingService } from '@/services/messaging/messaging.service';
-import { notificationService } from '@/services/notification/notification.service';
 import { messageMapper } from '@/lib/mappers';
+import { dispatchFacadeNotification } from '@/facades/_shared/dispatchNotification';
 import * as Sentry from '@sentry/nextjs';
 import type { MessagingFacadeData, MessagingFacadeResult, IFacade, FacadeOptions } from '@/lib/types';
 import { z } from 'zod';
@@ -136,39 +135,26 @@ export class MessagingFacade implements IFacade<MessagingFacadeData, MessagingFa
       // Envoyer une notification si demandé
       let notificationSent = false;
       if (data.sendNotification !== false && data.participants) {
-        try {
-          // Notifier les autres participants
-          const otherParticipants = data.participants.filter(
-            (p) => p !== (data.userId || data.metadata?.['userId']),
-          );
-          for (const participantId of otherParticipants) {
-            await notificationService.sendNotification({
-              recipient: participantId,
-              type: 'MESSAGE_RECEIVED',
-              template: 'message_received',
-              data: {
-                conversationId: conversation.id,
-                senderId: data.userId || data.metadata?.['userId'],
-                messagePreview: data.text.substring(0, 100),
-              },
-              channels: [
-                {
-                  type: 'IN_APP',
-                  enabled: true,
-                  priority: 'MEDIUM',
-                },
-              ],
-              locale: LANGUAGES.FR.code,
-              priority: 'MEDIUM',
-            });
-          }
-          notificationSent = true;
-        } catch (notificationError) {
-          logger.warn(
-            { error: notificationError, conversationId: conversation.id },
-            'Failed to send message notification',
-          );
+        const otherParticipants = data.participants.filter(
+          (p) => p !== (data.userId || data.metadata?.['userId']),
+        );
+        let allSent = true;
+        for (const participantId of otherParticipants) {
+          const sent = await dispatchFacadeNotification({
+            recipient: participantId,
+            type: 'MESSAGE_RECEIVED',
+            template: 'message_received',
+            payload: {
+              conversationId: conversation.id,
+              senderId: data.userId || data.metadata?.['userId'],
+              messagePreview: data.text.substring(0, 100),
+            },
+            channels: ['PUSH'],
+            priority: 'NORMAL',
+          });
+          if (!sent) allSent = false;
         }
+        notificationSent = otherParticipants.length > 0 && allSent;
       }
 
       logger.info(

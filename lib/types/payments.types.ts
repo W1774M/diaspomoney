@@ -15,6 +15,10 @@ export interface PaymentData {
   amount: number;
   currency: string;
   paymentMethod?: string;
+  /** Preuve Stripe (PaymentIntent) à vérifier côté serveur */
+  paymentIntentId?: string;
+  /** Preuve Stripe (Checkout Session) à vérifier côté serveur */
+  checkoutSessionId?: string;
   cardNumber?: string;
   expiryDate?: string;
   cvv?: string;

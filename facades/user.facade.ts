@@ -18,6 +18,7 @@ import { notificationService } from '@/services/notification/notification.servic
 import { userService } from '@/services/user/user.service';
 import { userMapper } from '@/lib/mappers';
 import { cleanUrl } from '@/lib/utils';
+import { dispatchFacadeNotification } from '@/facades/_shared/dispatchNotification';
 import * as Sentry from '@sentry/nextjs';
 import type { UserFacadeData, UserFacadeResult, IFacade, FacadeOptions, User, UserRole, UserStatus, UserFilters, PaginationOptions, UserResponse } from '@/lib/types';
 import { z } from 'zod';
@@ -168,19 +169,20 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
       // Envoyer une notification de bienvenue si demandé
       let notificationSent = false;
       if (data.sendWelcomeNotification !== false) {
-        try {
-          await notificationService.sendWelcomeNotification(
-            user.email,
-            user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-            LANGUAGES.FR.code,
-          );
-          notificationSent = true;
-        } catch (notificationError) {
-          logger.warn(
-            { error: notificationError, userId: user.id },
-            'Failed to send welcome notification',
-          );
-        }
+        notificationSent = await dispatchFacadeNotification({
+          recipient: user.email,
+          type: 'WELCOME_EMAIL',
+          template: 'welcome',
+          payload: {
+            userName:
+              user.name ||
+              `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+            appName: 'DiaspoMoney',
+            supportEmail: 'support@diaspomoney.fr',
+          },
+          channels: ['EMAIL'],
+          priority: 'NORMAL',
+        });
       }
 
       // Planifier les rappels KYC (anti-spam: 3 emails max J+1, J+2, J+7)
