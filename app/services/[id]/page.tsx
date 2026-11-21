@@ -5,8 +5,8 @@
 
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { ServiceBookingWizard } from '@/components/services/ServiceBookingWizard';
 import { SPECIALITY_TYPES } from '@/lib/constants';
 import { 
@@ -18,9 +18,21 @@ import {
   GraduationCap, 
   Home,
   Calendar,
+  Layers,
 } from 'lucide-react';
 import type { ServiceType } from '@/lib/types/constants.types';
 import { logger } from '@/lib/logger';
+import { ServiceDescription } from '@/components/common/ServiceDescription';
+import { getHealthClinicById } from '@/lib/clinics';
+
+type PublicPack = {
+  _id?: string;
+  id: string;
+  label: string;
+  description?: string;
+  category: string;
+  serviceIds: string[];
+};
 
 // Mapping des types de service vers les icônes et labels
 const SERVICE_TYPE_CONFIG: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
@@ -36,7 +48,7 @@ const SERVICE_TYPE_CONFIG: Record<string, { icon: React.ReactNode; label: string
   },
   [SPECIALITY_TYPES.BTP]: {
     icon: <Home className="w-8 h-8" />,
-    label: 'Immobilier',
+    label: 'Immobilier & BTP',
     color: 'text-green-500',
   },
 };
@@ -60,11 +72,55 @@ const mapIdToServiceType = (id: string): ServiceType | null => {
 export default function ServiceDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const serviceId = Array.isArray(params.id) ? params.id[0] : params.id;
   
   // L'ID correspond au type de service (health, education, btp)
   const serviceType = mapIdToServiceType(serviceId || '');
+  const selectedClinic = getHealthClinicById(searchParams.get('clinic'));
   const [showBookingWizard, setShowBookingWizard] = useState(false);
+  const [packs, setPacks] = useState<PublicPack[]>([]);
+  const [packsLoading, setPacksLoading] = useState(false);
+
+  const packsTitle = useMemo(() => {
+    if (!serviceType) return 'Nos packs';
+    const label = SERVICE_TYPE_CONFIG[serviceType]?.label || serviceType;
+    return `Nos packs ${label.toLowerCase()}`;
+  }, [serviceType]);
+
+  useEffect(() => {
+    if (!serviceType) return;
+
+    let cancelled = false;
+    const fetchPacks = async () => {
+      setPacksLoading(true);
+      try {
+        const params = new URLSearchParams({ category: serviceType });
+        const res = await fetch(`/api/public/packs?${params.toString()}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.error || 'Erreur lors du chargement des packs');
+        }
+        if (!cancelled) {
+          setPacks(Array.isArray(data.data) ? data.data : []);
+        }
+      } catch (error) {
+        logger.warn({ error, serviceType }, '[ServiceDetailPage] Unable to fetch packs');
+        if (!cancelled) setPacks([]);
+      } finally {
+        if (!cancelled) setPacksLoading(false);
+      }
+    };
+
+    fetchPacks();
+    return () => {
+      cancelled = true;
+    };
+  }, [serviceType]);
 
   if (!serviceType) {
     return (
@@ -112,10 +168,11 @@ export default function ServiceDetailPage() {
             </button>
             <ServiceBookingWizard
               initialServiceType={serviceType}
+              initialClinic={selectedClinic}
               onComplete={(bookingId) => {
                 // Ne pas rediriger automatiquement - laisser l'utilisateur voir l'étape 4 de confirmation
                 // La redirection se fera via les boutons dans l'étape 4
-                logger.info({ bookingId: bookingId as string }, 'Booking completed');
+                logger.info({ bookingId: bookingId as string }, 'Booking finished');
               }}
               onCancel={() => setShowBookingWizard(false)}
             />
@@ -157,6 +214,15 @@ export default function ServiceDetailPage() {
                     {serviceType === SPECIALITY_TYPES.BTP && 
                       "Accompagnement dans la recherche, la location et la construction de biens immobiliers."}
                   </p>
+                  {selectedClinic && (
+                    <div className="mb-4 rounded-xl border border-orange-200 bg-orange-50 p-4">
+                      <p className="text-sm font-semibold text-[hsl(25,100%,40%)]">
+                        Clinique sélectionnée
+                      </p>
+                      <p className="mt-1 font-bold text-gray-900">{selectedClinic.name}</p>
+                      <p className="text-sm text-gray-700">{selectedClinic.location}</p>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-6 text-sm text-gray-500">
                     <div className="flex items-center gap-2">
@@ -264,6 +330,68 @@ export default function ServiceDetailPage() {
             </div>
 
             {/* Section garanties */}
+            {!packsLoading && packs.length > 0 && (
+              <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <Layers className="w-5 h-5 text-gray-700" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        {packsTitle}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Choisissez un pack regroupant plusieurs services.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-sm text-gray-500">
+                    {packs.length} pack{packs.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {packs.map((p) => (
+                    <div
+                      key={p.id || p._id}
+                      className="border border-gray-200 rounded-lg p-5 hover:shadow-sm transition"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {p.label}
+                          </div>
+                          {p.description && (
+                            <div className="text-sm text-gray-600 mt-2 max-h-44 overflow-y-auto pr-0.5">
+                              <ServiceDescription
+                                content={p.description}
+                                variant="compact"
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                          {(Array.isArray(p.serviceIds) ? p.serviceIds.length : 0)} service
+                          {(Array.isArray(p.serviceIds) && p.serviceIds.length > 1) ? 's' : ''}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setShowBookingWizard(true)}
+                          className="text-sm font-medium text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,48%)]"
+                        >
+                          Commencer la réservation →
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(41,86%,46%)] rounded-lg shadow-lg p-8 text-white mb-8">
               <div className="flex items-start gap-4">
                 <Shield className="w-12 h-12 flex-shrink-0" />

@@ -22,6 +22,7 @@ export const CreateServiceSchema = z.object({
   description: z.string().min(1, 'La description est requise').max(1000, 'La description est trop longue'),
   price: z.number().min(0, 'Le prix doit être positif'),
   isActive: z.boolean().default(true),
+  important: z.boolean().default(false),
   metadata: z.record(z.string(), z.any()).optional(),
   associatedOptions: z.array(z.string()).optional(),
 });
@@ -39,6 +40,7 @@ export const UpdateServiceSchema = z.object({
   description: z.string().min(1).max(1000).optional(),
   price: z.number().min(0).optional(),
   isActive: z.boolean().optional(),
+  important: z.boolean().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
   associatedOptions: z.array(z.string()).optional(),
 }).refine((data) => Object.keys(data).length > 0, {

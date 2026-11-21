@@ -24,6 +24,9 @@ import { CreateComplaintSchema } from '@/lib/validations/complaint.schema';
 import { getComplaintRepository } from '@/repositories';
 import { complaintService } from '@/services/complaint/complaint.service';
 import { NextRequest } from 'next/server';
+import { DATABASE, ROLES } from '@/lib/constants';
+import { getMongoClient } from '@/lib/database/mongodb';
+import { ObjectId } from 'mongodb';
 /**
  * GET /api/complaints - Récupérer les réclamations
  */
@@ -33,6 +36,8 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.id) {
       throw ApiErrors.UNAUTHORIZED;
     }
+    const userRoles = session.user.roles || [];
+    const isCSM = userRoles.includes(ROLES.CSM);
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -47,12 +52,34 @@ export async function GET(request: NextRequest) {
     // Utiliser ComplaintQueryBuilder pour construire la requête (Builder Pattern)
     const queryBuilder = new ComplaintQueryBuilder();
 
-    // Par défaut, récupérer les réclamations de l'utilisateur connecté
-    const targetUserId = userId || session.user.id;
-    queryBuilder.byUser(targetUserId);
+    if (isCSM) {
+      // CSM: ne voit que les réclamations liées aux providers de son portefeuille
+      const client = await getMongoClient();
+      const db = client.db();
+      const users = db.collection(DATABASE.COLLECTIONS.USERS);
+      const csm = await users.findOne(
+        { _id: new ObjectId(session.user.id) },
+        { projection: { csmPortfolioProviderIds: 1 } },
+      );
+      const ids = (csm?.['csmPortfolioProviderIds'] as string[] | undefined) || [];
+      if (ids.length === 0) {
+        return createPaginatedResponse([], { page: 1, limit: 50, total: 0 });
+      }
 
-    // Appliquer les filtres
-    if (provider) {
+      // Si un provider est demandé, il doit être dans le portefeuille
+      if (provider && !ids.includes(provider)) {
+        return createPaginatedResponse([], { page: 1, limit: 50, total: 0 });
+      }
+
+      queryBuilder.whereIn('provider', provider ? [provider] : ids);
+    } else {
+      // Par défaut, récupérer les réclamations de l'utilisateur connecté
+      const targetUserId = userId || session.user.id;
+      queryBuilder.byUser(targetUserId);
+    }
+
+    // Appliquer les filtres (provider déjà géré pour CSM via whereIn)
+    if (provider && !isCSM) {
       queryBuilder.byProvider(provider);
     }
     if (appointmentId) {

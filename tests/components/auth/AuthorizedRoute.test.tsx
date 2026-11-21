@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import AuthorizedRoute from '@/components/auth/AuthorizedRoute';
+import AuthorizedRoute, { AdminRoute, SuperAdminRoute, RoleRoute } from '@/components/auth/AuthorizedRoute';
 import { ROLES } from '@/lib/constants';
 
 // Mock de useRouter
@@ -325,6 +325,167 @@ describe('AuthorizedRoute', () => {
 
       button.click();
       expect(mockPush).toHaveBeenCalledWith('/dashboard');
+    });
+  });
+
+  describe('AdminRoute', () => {
+    it('devrait protéger la route avec les rôles ADMIN et SUPERADMIN', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      mockUseAuthorization.mockReturnValue({
+        isAuthorized: true,
+      });
+
+      render(
+        <AdminRoute>
+          <div>Contenu admin</div>
+        </AdminRoute>
+      );
+
+      expect(screen.getByText('Contenu admin')).toBeInTheDocument();
+      expect(mockUseAuthorization).toHaveBeenCalledWith(
+        expect.objectContaining({
+          roles: [ROLES.ADMIN, ROLES.SUPERADMIN],
+        }),
+      );
+    });
+  });
+
+  describe('SuperAdminRoute', () => {
+    it('devrait autoriser un utilisateur avec rôle SUPERADMIN explicite', async () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: { roles: [ROLES.SUPERADMIN] },
+      });
+
+      render(
+        <SuperAdminRoute>
+          <div>Contenu super admin</div>
+        </SuperAdminRoute>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Contenu super admin')).toBeInTheDocument();
+      });
+    });
+
+    it('devrait autoriser un utilisateur legacy (ADMIN + plusieurs rôles)', async () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: { roles: [ROLES.ADMIN, ROLES.PROVIDER] },
+      });
+
+      render(
+        <SuperAdminRoute>
+          <div>Contenu super admin</div>
+        </SuperAdminRoute>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Contenu super admin')).toBeInTheDocument();
+      });
+    });
+
+    it('devrait refuser un utilisateur avec seulement ADMIN', async () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: { roles: [ROLES.ADMIN] },
+      });
+
+      render(
+        <SuperAdminRoute>
+          <div>Contenu super admin</div>
+        </SuperAdminRoute>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Accès non autorisé')).toBeInTheDocument();
+        expect(screen.getByText(/Super Admin requis/)).toBeInTheDocument();
+      });
+    });
+
+    it('devrait rediriger si non authentifié', async () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: false,
+        isLoading: false,
+        user: null,
+      });
+
+      render(
+        <SuperAdminRoute redirectTo="/custom-login">
+          <div>Contenu super admin</div>
+        </SuperAdminRoute>
+      );
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/custom-login');
+      });
+    });
+
+    it('devrait afficher un fallback si fourni', async () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: { roles: [ROLES.ADMIN] },
+      });
+
+      render(
+        <SuperAdminRoute fallback={<div>Accès refusé</div>}>
+          <div>Contenu super admin</div>
+        </SuperAdminRoute>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Accès refusé')).toBeInTheDocument();
+      });
+    });
+
+    it('devrait ne rien afficher si showError est false', async () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+        user: { roles: [ROLES.ADMIN] },
+      });
+
+      const { container } = render(
+        <SuperAdminRoute showError={false}>
+          <div>Contenu super admin</div>
+        </SuperAdminRoute>
+      );
+
+      await waitFor(() => {
+        expect(container.firstChild).toBeNull();
+      });
+    });
+  });
+
+  describe('RoleRoute', () => {
+    it('devrait protéger la route avec les rôles spécifiés', () => {
+      mockUseAuth.mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      mockUseAuthorization.mockReturnValue({
+        isAuthorized: true,
+      });
+
+      render(
+        <RoleRoute roles={[ROLES.PROVIDER, ROLES.CUSTOMER]}>
+          <div>Contenu protégé</div>
+        </RoleRoute>
+      );
+
+      expect(screen.getByText('Contenu protégé')).toBeInTheDocument();
+      expect(mockUseAuthorization).toHaveBeenCalledWith(
+        expect.objectContaining({
+          roles: [ROLES.PROVIDER, ROLES.CUSTOMER],
+        }),
+      );
     });
   });
 });

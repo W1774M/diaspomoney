@@ -70,7 +70,25 @@ class AuthService {
       },
     ],
   })
-  @RateLimit({ maxRequests: 5, windowMs: 60000 }) // 5 tentatives par minute
+  @RateLimit({
+    maxRequests: 5,
+    windowMs: 60000,
+    // IMPORTANT: Sans keyGenerator, args[0] est un objet (credentials) => "[object Object]"
+    // Ce qui mutualise le rate limit et déclenche des faux positifs en prod.
+    keyGenerator: (credentials: LoginCredentials, options?: { ipAddress?: string }) => {
+      const email =
+        typeof credentials?.email === 'string' && credentials.email.trim()
+          ? credentials.email.trim().toLowerCase()
+          : 'unknown';
+      const ip =
+        typeof options?.ipAddress === 'string' && options.ipAddress.trim()
+          ? options.ipAddress.trim()
+          : 'unknown';
+
+      // Bucket principal: par email + IP (réduit le bruteforce sans pénaliser tout le monde)
+      return `ratelimit:AuthService:login:email:${email}:ip:${ip}`;
+    },
+  }) // 5 tentatives par minute
   @Audit({ eventType: 'USER_LOGIN', includeArgs: false })
   @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
   @InvalidateCache('AuthService:*') // Invalider le cache après connexion
@@ -266,7 +284,29 @@ class AuthService {
       },
     ],
   })
-  @RateLimit({ maxRequests: 3, windowMs: 60000 }) // 3 inscriptions par minute
+  @RateLimit({
+    maxRequests: 3,
+    windowMs: 60000,
+    // IMPORTANT: Sans keyGenerator, args[0] est un objet (data) => "[object Object]"
+    // Résultat: tout le trafic partage la même clé et se bloque en cascade.
+    // On limite surtout par IP (fallback par email si IP inconnue).
+    keyGenerator: (data: RegisterData, options?: { ipAddress?: string }) => {
+      const ip =
+        typeof options?.ipAddress === 'string' && options.ipAddress.trim()
+          ? options.ipAddress.trim()
+          : '';
+
+      if (ip && ip !== 'unknown') {
+        return `ratelimit:AuthService:register:ip:${ip}`;
+      }
+
+      const email =
+        typeof data?.email === 'string' && data.email.trim()
+          ? data.email.trim().toLowerCase()
+          : 'unknown';
+      return `ratelimit:AuthService:register:email:${email}`;
+    },
+  }) // 3 inscriptions par minute
   @Audit({ eventType: 'USER_REGISTER', includeArgs: false })
   @Performance({ warningThreshold: 2000, errorThreshold: 5000 })
   @InvalidateCache('AuthService:*') // Invalider le cache après inscription
@@ -275,6 +315,7 @@ class AuthService {
     options?: {
       ipAddress?: string;
       userAgent?: string;
+      baseUrl?: string;
     },
   ): Promise<AuthResponse> {
     const log = childLogger({ route: 'AuthService:register' });
@@ -340,7 +381,7 @@ class AuthService {
           ...(data.dateOfBirth && { 
             dateOfBirth: (data.dateOfBirth as unknown as Date) instanceof Date 
               ? (data.dateOfBirth as unknown as Date)
-              : new Date(data.dateOfBirth as unknown as string | number | Date) 
+              : new Date(data.dateOfBirth as unknown as string | number | Date),
           }),
           ...(data.targetCountry && { targetCountry: data.targetCountry }),
           ...(data.targetCity && { targetCity: data.targetCity }),
@@ -362,25 +403,36 @@ class AuthService {
         const errorMessage = facadeResult.error || 'Erreur lors de la création de l\'utilisateur';
         
         // Si c'est une erreur de duplication, enregistrer l'audit log spécifique
-        if (errorMessage.includes('existe déjà') || errorMessage.includes('duplicate')) {
-        await auditLogging.createAuditLog(
-          'REGISTER_FAILED',
-          'AUTH_SYSTEM',
-          {
-            email: data.email.toLowerCase(),
-            reason: 'email_already_exists',
-          },
-          {
-            category: 'AUTHENTICATION',
-            severity: 'LOW',
-            outcome: 'FAILURE',
-            ipAddress: options?.ipAddress || 'unknown',
-            userAgent: options?.userAgent || 'unknown',
-          },
-        );
+        const isDuplicateError = 
+          errorMessage.includes('existe déjà') || 
+          errorMessage.includes('duplicate') ||
+          errorMessage.includes('already exists') ||
+          facadeResult.errorCode === 'DUPLICATE_EMAIL';
+        
+        if (isDuplicateError) {
+          await auditLogging.createAuditLog(
+            'REGISTER_FAILED',
+            'AUTH_SYSTEM',
+            {
+              email: data.email.toLowerCase(),
+              reason: 'email_already_exists',
+            },
+            {
+              category: 'AUTHENTICATION',
+              severity: 'LOW',
+              outcome: 'FAILURE',
+              ipAddress: options?.ipAddress || 'unknown',
+              userAgent: options?.userAgent || 'unknown',
+            },
+          );
         }
         
-        throw new Error(errorMessage);
+        // Créer une erreur avec le message, en préservant les informations de duplication
+        const error = new Error(errorMessage);
+        if (isDuplicateError) {
+          (error as any).isDuplicate = true;
+        }
+        throw error;
       }
 
       const user = facadeResult.user;
@@ -395,8 +447,17 @@ class AuthService {
 
       // Envoyer l'email d'activation avec lien pour définir le mot de passe
       const { cleanUrl } = await import('@/lib/utils');
-      const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
-      const activationUrl = `${baseUrl}/activate-account?token=${activationToken}`;
+      const resolvedBaseUrl = cleanUrl(
+        options?.baseUrl ||
+          process.env['NEXTAUTH_URL'] ||
+          process.env['NEXT_PUBLIC_APP_URL'] ||
+          process.env['APP_URL'] ||
+          process.env['NEXT_PUBLIC_URL'] ||
+          process.env['PUBLIC_URL'] ||
+          (process.env['PROD_DOMAIN'] ? `https://${process.env['PROD_DOMAIN']}` : '') ||
+          (process.env['DOMAIN'] ? `https://${process.env['DOMAIN']}` : ''),
+      );
+      const activationUrl = `${resolvedBaseUrl}/activate-account?token=${activationToken}`;
       
       // Envoyer l'email d'activation avec lien pour définir le mot de passe
       const { sendWelcomeEmail } = await import('@/lib/email/resend');
@@ -452,6 +513,9 @@ class AuthService {
           id: user._id?.toString() || user.id,
           email: user.email,
           role: user.roles?.[0] || ROLES.CUSTOMER,
+          firstName: (user as any).firstName || undefined,
+          lastName: (user as any).lastName || undefined,
+          name: (user as any).name || undefined,
           isVerified: false,
           kycStatus: KYC_STATUSES.PENDING,
         },

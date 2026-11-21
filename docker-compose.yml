@@ -1,48 +1,244 @@
+x-app-common: &app-common
+  restart: unless-stopped
+  env_file:
+    - .env
+  depends_on:
+    mongodb:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  networks:
+    - app
+    - traefik
+  healthcheck:
+    test:
+      [
+        "CMD-SHELL",
+        "node -e \"fetch('http://127.0.0.1:3000/').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+      ]
+    interval: 30s
+    timeout: 10s
+    retries: 5
+    start_period: 30s
+
 services:
-  # === BUILD FOR RECETTE ===
-  app-recette:
+  mongodb:
+    image: mongo:7
+    container_name: diaspomoney-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: diaspomoney
+    volumes:
+      - mongodb_data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - app
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --host 127.0.0.1 --username \"$${MONGO_INITDB_ROOT_USERNAME}\" --password \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --quiet --eval \"db.adminCommand({ ping: 1 }).ok\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: diaspomoney-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  app-dev:
+    <<: *app-common
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ENV: dev
+        NODE_ENV: production
+        NEXTAUTH_URL: https://dev.diaspomoney.fr
+        APP_URL: https://dev.diaspomoney.fr
+        API_URL: https://dev.diaspomoney.fr/api
+        NEXT_PUBLIC_APP_URL: https://dev.diaspomoney.fr
+        NEXT_PUBLIC_API_URL: https://dev.diaspomoney.fr/api
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-pk_test_placeholder}
+        NEXT_PUBLIC_HOME_DIALOG_ENABLED: ${NEXT_PUBLIC_HOME_DIALOG_ENABLED:-false}
+        NEXT_PUBLIC_HOME_DIALOG_TITLE: ${NEXT_PUBLIC_HOME_DIALOG_TITLE:-Information importante}
+        NEXT_PUBLIC_HOME_DIALOG_MESSAGE: ${NEXT_PUBLIC_HOME_DIALOG_MESSAGE:-}
+        NEXT_PUBLIC_HOME_DIALOG_CTA_LABEL: ${NEXT_PUBLIC_HOME_DIALOG_CTA_LABEL:-Découvrir les services}
+        NEXT_PUBLIC_HOME_DIALOG_CTA_HREF: ${NEXT_PUBLIC_HOME_DIALOG_CTA_HREF:-/services}
+        NEXT_PUBLIC_HOME_DIALOG_IMAGE_SRC: ${NEXT_PUBLIC_HOME_DIALOG_IMAGE_SRC:-/api/home-dialog-ad}
+        NEXT_PUBLIC_HOME_DIALOG_IMAGE_HREF: ${NEXT_PUBLIC_HOME_DIALOG_IMAGE_HREF:-/services/health}
+        NEXT_PUBLIC_HOME_DIALOG_IMAGE_ALT: ${NEXT_PUBLIC_HOME_DIALOG_IMAGE_ALT:-Offre DiaspoMoney à 2 euros}
+    image: diaspomoney:dev
+    container_name: diaspomoney-app-dev
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXTAUTH_URL: https://dev.diaspomoney.fr
+      NEXT_PUBLIC_APP_URL: https://dev.diaspomoney.fr
+      NEXT_PUBLIC_API_URL: https://dev.diaspomoney.fr/api
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/diaspomoney-dev?authSource=admin
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/diaspomoney-dev?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.diaspomoney-dev.rule=Host(`dev.diaspomoney.fr`)
+      - traefik.http.routers.diaspomoney-dev.entrypoints=websecure
+      - traefik.http.routers.diaspomoney-dev.tls=true
+      - traefik.http.routers.diaspomoney-dev.tls.certresolver=le
+      - traefik.http.services.diaspomoney-dev.loadbalancer.server.port=3000
+
+  app-rct:
+    <<: *app-common
     build:
       context: .
       dockerfile: Dockerfile
       args:
         ENV: rct
         NODE_ENV: production
+        NEXTAUTH_URL: https://rct.diaspomoney.fr
+        APP_URL: https://rct.diaspomoney.fr
+        API_URL: https://rct.diaspomoney.fr/api
         NEXT_PUBLIC_APP_URL: https://rct.diaspomoney.fr
         NEXT_PUBLIC_API_URL: https://rct.diaspomoney.fr/api
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-pk_test_placeholder}
-        USE_LOCAL_BUILD: "false"
-    image: localhost:5000/diaspomoney:rct-${BUILD_DATE:-latest}
-    container_name: diaspomoney-app-rct-build
-    profiles: ["build-only"]
+        NEXT_PUBLIC_HOME_DIALOG_ENABLED: ${NEXT_PUBLIC_HOME_DIALOG_ENABLED:-false}
+        NEXT_PUBLIC_HOME_DIALOG_TITLE: ${NEXT_PUBLIC_HOME_DIALOG_TITLE:-Information importante}
+        NEXT_PUBLIC_HOME_DIALOG_MESSAGE: ${NEXT_PUBLIC_HOME_DIALOG_MESSAGE:-}
+        NEXT_PUBLIC_HOME_DIALOG_CTA_LABEL: ${NEXT_PUBLIC_HOME_DIALOG_CTA_LABEL:-Découvrir les services}
+        NEXT_PUBLIC_HOME_DIALOG_CTA_HREF: ${NEXT_PUBLIC_HOME_DIALOG_CTA_HREF:-/services}
+        NEXT_PUBLIC_HOME_DIALOG_IMAGE_SRC: ${NEXT_PUBLIC_HOME_DIALOG_IMAGE_SRC:-/api/home-dialog-ad}
+        NEXT_PUBLIC_HOME_DIALOG_IMAGE_HREF: ${NEXT_PUBLIC_HOME_DIALOG_IMAGE_HREF:-/services/health}
+        NEXT_PUBLIC_HOME_DIALOG_IMAGE_ALT: ${NEXT_PUBLIC_HOME_DIALOG_IMAGE_ALT:-Offre DiaspoMoney à 2 euros}
+    image: diaspomoney:rct
+    container_name: diaspomoney-app-rct
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXTAUTH_URL: https://rct.diaspomoney.fr
+      NEXT_PUBLIC_APP_URL: https://rct.diaspomoney.fr
+      NEXT_PUBLIC_API_URL: https://rct.diaspomoney.fr/api
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/diaspomoney-rct?authSource=admin
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/diaspomoney-rct?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.diaspomoney-rct.rule=Host(`rct.diaspomoney.fr`)
+      - traefik.http.routers.diaspomoney-rct.entrypoints=websecure
+      - traefik.http.routers.diaspomoney-rct.tls=true
+      - traefik.http.routers.diaspomoney-rct.tls.certresolver=le
+      - traefik.http.services.diaspomoney-rct.loadbalancer.server.port=3000
 
-  # === BUILD FOR PROD ===
   app-prod:
+    <<: *app-common
     build:
       context: .
       dockerfile: Dockerfile
       args:
         ENV: prod
         NODE_ENV: production
+        NEXTAUTH_URL: https://diaspomoney.fr
+        APP_URL: https://diaspomoney.fr
+        API_URL: https://diaspomoney.fr/api
         NEXT_PUBLIC_APP_URL: https://diaspomoney.fr
         NEXT_PUBLIC_API_URL: https://diaspomoney.fr/api
-        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-pk_live_placeholder}
-        USE_LOCAL_BUILD: "false"
-    image: localhost:5000/diaspomoney:prod-${BUILD_DATE:-latest}
-    container_name: diaspomoney-app-prod-build
-    profiles: ["build-only"]
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD:-pk_live_placeholder}
+        NEXT_PUBLIC_HOME_DIALOG_ENABLED: ${NEXT_PUBLIC_HOME_DIALOG_ENABLED:-false}
+        NEXT_PUBLIC_HOME_DIALOG_TITLE: ${NEXT_PUBLIC_HOME_DIALOG_TITLE:-Information importante}
+        NEXT_PUBLIC_HOME_DIALOG_MESSAGE: ${NEXT_PUBLIC_HOME_DIALOG_MESSAGE:-}
+        NEXT_PUBLIC_HOME_DIALOG_CTA_LABEL: ${NEXT_PUBLIC_HOME_DIALOG_CTA_LABEL:-Découvrir les services}
+        NEXT_PUBLIC_HOME_DIALOG_CTA_HREF: ${NEXT_PUBLIC_HOME_DIALOG_CTA_HREF:-/services}
+        NEXT_PUBLIC_HOME_DIALOG_IMAGE_SRC: ${NEXT_PUBLIC_HOME_DIALOG_IMAGE_SRC:-/api/home-dialog-ad}
+        NEXT_PUBLIC_HOME_DIALOG_IMAGE_HREF: ${NEXT_PUBLIC_HOME_DIALOG_IMAGE_HREF:-/services/health}
+        NEXT_PUBLIC_HOME_DIALOG_IMAGE_ALT: ${NEXT_PUBLIC_HOME_DIALOG_IMAGE_ALT:-Offre DiaspoMoney à 2 euros}
+    image: diaspomoney:prod
+    container_name: diaspomoney-app-prod
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXTAUTH_URL: https://diaspomoney.fr
+      NEXT_PUBLIC_APP_URL: https://diaspomoney.fr
+      NEXT_PUBLIC_API_URL: https://diaspomoney.fr/api
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/diaspomoney?authSource=admin
+      MONGO_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/diaspomoney?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/2
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY_PROD}
+      STRIPE_SECRET_KEY_PROD: ${STRIPE_SECRET_KEY_PROD}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD:-pk_live_placeholder}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD:-pk_live_placeholder}
+      STRIPE_WEBHOOK_SECRET_PROD: ${STRIPE_WEBHOOK_SECRET_PROD}
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.diaspomoney-prod.rule=Host(`diaspomoney.fr`)
+      - traefik.http.routers.diaspomoney-prod.entrypoints=websecure
+      - traefik.http.routers.diaspomoney-prod.tls=true
+      - traefik.http.routers.diaspomoney-prod.tls.certresolver=le
+      - traefik.http.services.diaspomoney-prod.loadbalancer.server.port=3000
 
-  # === BUILD FOR DEV ===
-  app-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        ENV: dev
-        NODE_ENV: development
-        NEXT_PUBLIC_APP_URL: http://localhost:3000
-        NEXT_PUBLIC_API_URL: http://localhost:3000/api
-        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-pk_test_placeholder}
-        USE_LOCAL_BUILD: "true"  # Use local build for dev
-    image: localhost:5000/diaspomoney:dev-${BUILD_DATE:-latest}
-    container_name: diaspomoney-app-dev-build
-    profiles: ["build-only"]
+  mongo-express:
+    image: mongo-express:latest
+    container_name: diaspomoney-mongo-express
+    restart: unless-stopped
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/?authSource=admin
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - app
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.mongo-express.rule=Host(`${MONGO_EXPRESS_DOMAIN}`)
+      - traefik.http.routers.mongo-express.entrypoints=websecure
+      - traefik.http.routers.mongo-express.tls=true
+      - traefik.http.routers.mongo-express.tls.certresolver=le
+      - traefik.http.services.mongo-express.loadbalancer.server.port=8081
+
+networks:
+  app:
+    name: diaspomoney-app
+  traefik:
+    external: true
+    name: traefik
+
+volumes:
+  mongodb_data:
+  redis_data:

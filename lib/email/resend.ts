@@ -11,7 +11,7 @@ import { childLogger } from '@/lib/logger';
 import type { EmailOptions, EmailTemplate } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Resend } from 'resend';
-import { welcomeTemplate, passwordResetTemplate, accountActivationTemplate, loginSuccessTemplate, paymentConfirmationTemplate, bookingTakeChargeTemplate, paymentLinkTemplate } from './templates';
+import { welcomeTemplate, passwordResetTemplate, accountActivationTemplate, loginSuccessTemplate, paymentConfirmationTemplate, bookingTakeChargeTemplate, paymentLinkTemplate, providerAssignmentTemplate, feedbackRequestTemplate } from './templates';
 
 const log = childLogger({ component: 'EmailService' });
 
@@ -157,6 +157,10 @@ export const emailTemplates = {
     paymentUrl: string,
   ): EmailTemplate =>
     paymentLinkTemplate(name, reservationNumber, serviceName, amount, currency, paymentUrl),
+
+  // Email d'attribution de réservation à un prestataire externe (non enregistré)
+  providerAssignment: (params: Parameters<typeof providerAssignmentTemplate>[0]): EmailTemplate =>
+    providerAssignmentTemplate(params),
 };
 
 // Fonction pour nettoyer les valeurs des tags (ASCII uniquement)
@@ -204,7 +208,7 @@ async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
     const sanitizedTags = (
       options.tags || [
         { name: 'service', value: 'diaspomoney' },
-        { name: 'environment', value: process.env.NODE_ENV || 'development' },
+        { name: 'environment', value: process.env['NODE_ENV'] || 'development' },
       ]
     ).map(tag => ({
       name: sanitizeTagValue(tag.name),
@@ -233,10 +237,25 @@ async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
       return false;
     }
 
-    const { data, error } = await resend.emails.send({
+    // Préparer les attachments si présents
+    const attachments = options.attachments?.map((att: {
+      filename: string;
+      content: Buffer | Uint8Array | string;
+      contentType?: string;
+    }) => ({
+      filename: att.filename,
+      content: att.content instanceof Buffer 
+        ? att.content.toString('base64')
+        : att.content instanceof Uint8Array
+        ? Buffer.from(att.content).toString('base64')
+        : att.content,
+      type: att.contentType || 'application/pdf',
+    }));
+
+    const emailPayload: any = {
       from:
         options.from ||
-        (process.env.NODE_ENV === 'production'
+        (process.env['NODE_ENV'] === 'production'
           ? 'DiaspoMoney <noreply@diaspomoney.fr>'
           : 'DiaspoMoney <onboarding@resend.dev>'),
       to: Array.isArray(options.to) ? options.to : [options.to],
@@ -245,7 +264,14 @@ async function sendEmailInternal(options: EmailOptions): Promise<boolean> {
       text: options.text ?? '', // Ensure text is always a string (Resend type requires string)
       reply_to: options.replyTo || [],
       tags: sanitizedTags,
-    });
+    };
+
+    // Ajouter les attachments seulement s'ils existent
+    if (attachments && attachments.length > 0) {
+      emailPayload.attachments = attachments;
+    }
+
+    const { data, error } = await resend.emails.send(emailPayload);
 
     if (error) {
       log.error(
@@ -286,7 +312,7 @@ export async function sendWelcomeEmail(
   // En développement, utiliser l'email autorisé par Resend
   // En production, utiliser l'email original
   const targetEmail =
-    process.env.NODE_ENV === 'development'
+    process.env['NODE_ENV'] === 'development'
       ? 'malarbillaudrey@gmail.com'
       : email;
 
@@ -343,7 +369,7 @@ export async function sendAccountActivationEmail(
   // En développement, utiliser l'email autorisé par Resend
   // En production, utiliser l'email original
   const targetEmail =
-    process.env.NODE_ENV === 'development'
+    process.env['NODE_ENV'] === 'development'
       ? 'malarbillaudrey@gmail.com'
       : email;
 
@@ -377,7 +403,7 @@ export async function sendLoginSuccessEmail(
   // En développement, utiliser l'email autorisé par Resend
   // En production, utiliser l'email original
   const targetEmail =
-    process.env.NODE_ENV === 'development'
+    process.env['NODE_ENV'] === 'development'
       ? 'malarbillaudrey@gmail.com'
       : email;
 
@@ -525,6 +551,97 @@ export async function sendPaymentLinkEmail(
       { name: 'type', value: 'payment_link' },
       { name: 'user', value: sanitizeTagValue(email) },
       { name: 'reservation', value: sanitizeTagValue(reservationNumber) },
+    ],
+  });
+}
+
+/**
+ * Envoyer un email à un prestataire externe (non enregistré) avec les détails de la réservation.
+ * En développement, l'email est redirigé vers une adresse autorisée par Resend.
+ */
+export async function sendExternalProviderAssignmentEmail(params: {
+  to: string;
+  providerName?: string;
+  reservationNumber: string;
+  serviceName: string;
+  appointmentDate?: string;
+  appointmentTime?: string;
+  clientName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  beneficiaryName?: string;
+  beneficiaryPhone?: string;
+  notes?: string;
+}): Promise<boolean> {
+  const targetEmail =
+    process.env['NODE_ENV'] === 'development'
+      ? 'malarbillaudrey@gmail.com'
+      : params.to;
+
+  const templatePayload: Parameters<typeof providerAssignmentTemplate>[0] = {
+    reservationNumber: params.reservationNumber,
+    serviceName: params.serviceName,
+    ...(params.providerName ? { providerName: params.providerName } : {}),
+    ...(params.appointmentDate ? { appointmentDate: params.appointmentDate } : {}),
+    ...(params.appointmentTime ? { appointmentTime: params.appointmentTime } : {}),
+    ...(params.clientName ? { clientName: params.clientName } : {}),
+    ...(params.clientEmail ? { clientEmail: params.clientEmail } : {}),
+    ...(params.clientPhone ? { clientPhone: params.clientPhone } : {}),
+    ...(params.beneficiaryName ? { beneficiaryName: params.beneficiaryName } : {}),
+    ...(params.beneficiaryPhone ? { beneficiaryPhone: params.beneficiaryPhone } : {}),
+    ...(params.notes ? { notes: params.notes } : {}),
+  };
+
+  const template = emailTemplates.providerAssignment(templatePayload);
+
+  return await sendEmail({
+    to: targetEmail,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+    tags: [
+      { name: 'type', value: 'provider_assignment' },
+      { name: 'provider_email', value: sanitizeTagValue(params.to) },
+      { name: 'reservation', value: sanitizeTagValue(params.reservationNumber) },
+    ],
+  });
+}
+
+/**
+ * Envoyer un email de demande de feedback
+ */
+export async function sendFeedbackRequestEmail(
+  email: string,
+  name: string,
+  reservationNumber: string,
+  serviceName: string,
+  feedbackUrl: string,
+): Promise<boolean> {
+  // En développement, utiliser l'email autorisé par Resend
+  // En production, utiliser l'email original
+  const targetEmail =
+    process.env['NODE_ENV'] === 'development'
+      ? 'malarbillaudrey@gmail.com'
+      : email;
+
+  log.debug({ targetEmail, originalEmail: email }, 'Sending feedback request email');
+
+  const template = feedbackRequestTemplate(
+    name,
+    reservationNumber,
+    serviceName,
+    feedbackUrl,
+  );
+
+  return await sendEmail({
+    to: targetEmail,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+    tags: [
+      { name: 'type', value: 'feedback_request' },
+      { name: 'reservation_number', value: sanitizeTagValue(reservationNumber) },
+      { name: 'user_email', value: sanitizeTagValue(email) },
     ],
   });
 }

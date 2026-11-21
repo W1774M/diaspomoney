@@ -13,9 +13,13 @@ import { logger } from '@/lib/logger';
 import { complaintService } from '@/services/complaint/complaint.service';
 import { CreateComplaintData } from '@/lib/types';
 import { complaintMapper } from '@/lib/mappers';
+import { cleanUrl } from '@/lib/utils';
 import { dispatchFacadeNotification } from '@/facades/_shared/dispatchNotification';
+import { notificationService } from '@/services/notification/notification.service';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
+import { DATABASE, LANGUAGES, ROLES } from '@/lib/constants';
+import { getMongoClient } from '@/lib/database/mongodb';
 
 export interface ComplaintFacadeData extends CreateComplaintData {
   sendNotification?: boolean; // Envoyer une notification
@@ -161,16 +165,25 @@ export class ComplaintFacade {
           if (provider && (provider.id || (provider as any)._id)) {
             const providerId: string =
               provider.id || (provider as any)._id?.toString() || data.provider;
+            const actionRequired = data.priority === 'HIGH';
+            const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+            const complaintsUrl = `${baseUrl}/dashboard/complaints`;
             await dispatchFacadeNotification({
               recipient: providerId,
-              type: 'COMPLAINT_RECEIVED',
-              template: 'complaint_received',
+              type: 'PROVIDER_COMPLAINT_CREATED',
+              template: 'provider_complaint_created',
               payload: {
                 ...complaintPayload,
                 userId: data.userId,
+                actionLine: actionRequired
+                  ? 'Action requise : merci de consulter et répondre rapidement.'
+                  : 'Information : aucune action urgente requise.',
+                complaintsUrl,
               },
-              channels: ['PUSH', 'EMAIL'],
-              priority: data.priority === 'HIGH' ? 'HIGH' : 'NORMAL',
+              // IN_APP toujours (PUSH), email uniquement si action requise (anti-spam provider)
+              channels: actionRequired ? ['PUSH', 'EMAIL'] : ['PUSH'],
+              locale: LANGUAGES.FR.code,
+              priority: actionRequired ? 'HIGH' : 'NORMAL',
             });
           }
         } catch (providerNotificationError) {
@@ -179,6 +192,62 @@ export class ComplaintFacade {
             'Failed to notify provider, continuing...',
           );
         }
+      }
+
+      // Étape 3bis: Notifier les CSMs concernés (portefeuille) - IN_APP toujours, EMAIL seulement si action requise
+      try {
+        const providerId = data.provider;
+        const actionRequired = data.priority === 'HIGH';
+        const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+        const complaintsUrl = `${baseUrl}/dashboard/complaints`;
+
+        const client = await getMongoClient();
+        const db = client.db();
+        const users = db.collection(DATABASE.COLLECTIONS.USERS);
+
+        const csms = await users
+          .find(
+            {
+              roles: { $in: [ROLES.CSM] },
+              csmPortfolioProviderIds: providerId,
+            },
+            { projection: { _id: 1 } },
+          )
+          .toArray();
+
+        if (csms.length > 0) {
+          await Promise.all(
+            csms.map((csm: any) =>
+              notificationService.sendNotification({
+                recipient: csm._id.toString(),
+                type: 'CSM_COMPLAINT_CREATED',
+                template: 'csm_complaint_created',
+                data: {
+                  complaintNumber,
+                  title: data.title,
+                  type: data.type,
+                  priority: data.priority,
+                  actionLine: actionRequired
+                    ? 'Action requise : merci de consulter et traiter ce conflit.'
+                    : 'Information : à suivre.',
+                  complaintsUrl,
+                  providerId,
+                },
+                channels: [
+                  { type: 'IN_APP', enabled: true, priority: 'HIGH' },
+                  ...(actionRequired
+                    ? [{ type: 'EMAIL' as const, enabled: true, priority: 'MEDIUM' as const }]
+                    : []),
+                ],
+                locale: LANGUAGES.FR.code,
+                priority: actionRequired ? 'HIGH' : 'MEDIUM',
+                userId: csm._id.toString(),
+              } as any),
+            ),
+          );
+        }
+      } catch (csmNotifError) {
+        logger.warn({ error: csmNotifError, complaintId }, 'Failed to notify CSMs for complaint');
       }
 
       // Étape 4: Envoyer un email de confirmation si demandé

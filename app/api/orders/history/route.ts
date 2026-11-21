@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
 
         // Vérifier si on peut réserver à nouveau (seulement si terminé, pas annulé)
         const canReorder =
-          booking.status === BOOKING_STATUSES.FINISHED || docStatus === 'completed' || docStatus === 'finished';
+          booking.status === BOOKING_STATUSES.FINISHED || docStatus === 'finished';
 
         return {
           _id: booking.id || booking._id || '',
@@ -176,8 +176,8 @@ export async function GET(request: NextRequest) {
           providerName,
           providerAvatar: provider?.avatar,
           status:
-            booking.status === BOOKING_STATUSES.FINISHED || docStatus === 'completed'
-              ? 'completed'
+            booking.status === BOOKING_STATUSES.FINISHED || docStatus === 'finished'
+              ? 'finished'
               : 'cancelled',
           completedDate: booking.updatedAt || booking.createdAt,
           cancelledDate:

@@ -13,7 +13,14 @@ export interface User extends BaseEntity {
   id: string; // Alias pour _id
   clientNotes?: string;
   avatar?: any;
-  preferences?: { language?: string; timezone?: string; notifications?: boolean };
+  preferences?: {
+    language?: string;
+    timezone?: string;
+    notifications?: boolean;
+    emailNotifications?: boolean;
+    smsNotifications?: boolean;
+    notificationEmailByType?: Record<string, boolean>;
+  };
   email: string;
   name: string;
   firstName?: string; // Prénom

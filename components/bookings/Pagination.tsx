@@ -9,6 +9,8 @@ export interface PaginationProps {
   totalItems: number;
   itemsPerPage: number;
   onPageChange: (page: number) => void;
+  /** 'top' : bordure sous la barre (liste au-dessous). Défaut : 'bottom' */
+  placement?: "top" | "bottom";
 }
 
 const Pagination = React.memo<PaginationProps>(function Pagination({
@@ -17,6 +19,7 @@ const Pagination = React.memo<PaginationProps>(function Pagination({
   totalItems,
   itemsPerPage,
   onPageChange,
+  placement = "bottom",
 }) {
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
@@ -84,8 +87,13 @@ const Pagination = React.memo<PaginationProps>(function Pagination({
     return null;
   }
 
+  const borderClass =
+    placement === "top" ? "border-b border-gray-200" : "border-t border-gray-200";
+
   return (
-    <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+    <div
+      className={`flex items-center justify-between ${borderClass} bg-white px-4 py-3 sm:px-6`}
+    >
       <div className="flex flex-1 justify-between sm:hidden">
         <button
           onClick={handlePrevious}

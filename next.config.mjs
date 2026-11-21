@@ -48,19 +48,17 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'app.diaspomoney.fr',
-        port: '',
-        pathname: '/**',
-      },
-      // Configuration plus permissive pour le développement
-      {
-        protocol: 'https',
-        hostname: '**',
-        port: '',
-        pathname: '/**',
-      },
+      // Configuration plus permissive UNIQUEMENT en développement (évite d'autoriser `**` en prod)
+      ...(process.env.NODE_ENV !== 'production'
+        ? [
+            {
+              protocol: 'https',
+              hostname: '**',
+              port: '',
+              pathname: '/**',
+            },
+          ]
+        : []),
     ],
     // Configuration pour permettre toutes les images externes en développement
     dangerouslyAllowSVG: true,

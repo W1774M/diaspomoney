@@ -268,5 +268,89 @@ describe('useMessaging', () => {
 
     expect(result.current.error).toBe('Network error');
   });
+
+  it('devrait gérer les erreurs lors de la récupération des messages (response.ok = false)', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+    } as Response);
+
+    const { result } = renderHook(() => useMessaging());
+
+    await act(async () => {
+      try {
+        await result.current.fetchMessages('c1', 'user1');
+      } catch (error) {
+        // Erreur gérée par le hook
+      }
+    });
+
+    expect(result.current.error).toBe('Erreur lors de la récupération des messages');
+    expect(mockAddError).toHaveBeenCalledWith('Erreur lors de la récupération des messages');
+  });
+
+  it('devrait gérer les erreurs avec data.error lors de la récupération des messages', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: false,
+        error: 'Erreur personnalisée',
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useMessaging());
+
+    await act(async () => {
+      try {
+        await result.current.fetchMessages('c1', 'user1');
+      } catch (error) {
+        // Erreur gérée par le hook
+      }
+    });
+
+    expect(result.current.error).toBe('Erreur personnalisée');
+    expect(mockAddError).toHaveBeenCalledWith('Erreur lors de la récupération des messages');
+  });
+
+  it('devrait gérer les erreurs lors de l\'envoi d\'un message (response.ok = false)', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+    } as Response);
+
+    const { result } = renderHook(() => useMessaging());
+
+    await act(async () => {
+      try {
+        await result.current.sendMessage('c1', 'Test', 'user1');
+      } catch (error) {
+        // Erreur gérée par le hook
+      }
+    });
+
+    expect(result.current.error).toBe("Erreur lors de l'envoi du message");
+    expect(mockAddError).toHaveBeenCalledWith("Erreur lors de l'envoi du message");
+  });
+
+  it('devrait gérer les erreurs avec data.error lors de l\'envoi d\'un message', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: false,
+        error: 'Erreur personnalisée',
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useMessaging());
+
+    await act(async () => {
+      try {
+        await result.current.sendMessage('c1', 'Test', 'user1');
+      } catch (error) {
+        // Erreur gérée par le hook
+      }
+    });
+
+    expect(result.current.error).toBe('Erreur personnalisée');
+    expect(mockAddError).toHaveBeenCalledWith("Erreur lors de l'envoi du message");
+  });
 });
 

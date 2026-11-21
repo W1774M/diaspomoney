@@ -31,6 +31,7 @@ export class MongoServiceRepository implements IServiceRepository {
       description: doc['description'],
       price: doc['price'],
       isActive: doc['isActive'] ?? true,
+      important: doc['important'] ?? false,
       metadata: doc['metadata'] || {},
       associatedOptions: doc['associatedOptions'] || [],
       createdAt: doc['createdAt'] || new Date(),
@@ -193,20 +194,13 @@ export class MongoServiceRepository implements IServiceRepository {
   async delete(id: string): Promise<boolean> {
     try {
       const collection = await this.getCollection();
-      
-      // Essayer d'abord par ID personnalisé (comme "consultation-medicale")
-      let result = await collection.deleteOne({ id });
-      
-      // Si aucun document supprimé et que l'ID ressemble à un ObjectId, essayer par _id
-      if (result.deletedCount === 0 && ObjectId.isValid(id)) {
-        try {
-          result = await collection.deleteOne({ _id: new ObjectId(id) });
-        } catch (objectIdError) {
-          // Si la conversion ObjectId échoue, on garde le résultat précédent (0 supprimé)
-          this.log.debug({ id, error: objectIdError }, 'Failed to delete by _id, already tried by custom id');
-        }
+      const existing = await this.findById(id);
+      if (!existing) {
+        return false;
       }
-      
+      const result = await collection.deleteOne({
+        _id: new ObjectId(existing._id),
+      });
       return result.deletedCount > 0;
     } catch (error) {
       this.log.error({ error, id }, 'Error in delete');

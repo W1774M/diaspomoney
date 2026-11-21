@@ -19,6 +19,7 @@ vi.mock('@/lib/logger', () => ({
   logger: {
     info: vi.fn(),
     error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
@@ -263,6 +264,196 @@ describe('useCreateUser', () => {
 
       expect(createResult).toHaveProperty('success');
       expect(createResult).toHaveProperty('user');
+    });
+  });
+
+  it('devrait gérer les erreurs 409 (DUPLICATE_EMAIL)', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({
+        error: 'Un compte avec cet email existe déjà',
+        code: 'DUPLICATE_EMAIL',
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useCreateUser());
+
+    await act(async () => {
+      const createResult = await result.current.createUser({
+        email: 'existing@example.com',
+        roles: ['CUSTOMER'],
+        status: 'ACTIVE',
+      });
+
+      expect(createResult.success).toBe(false);
+      expect(createResult.error).toBe('Un compte avec cet email existe déjà');
+    });
+
+    expect(result.current.error).toBe('Un compte avec cet email existe déjà');
+  });
+
+  it('devrait gérer les erreurs avec errorData.message', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        message: 'Erreur de validation',
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useCreateUser());
+
+    await act(async () => {
+      const createResult = await result.current.createUser({
+        email: 'test@example.com',
+        roles: ['CUSTOMER'],
+        status: 'ACTIVE',
+      });
+
+      expect(createResult.success).toBe(false);
+      expect(createResult.error).toBe('Erreur de validation');
+    });
+  });
+
+  it('devrait gérer les erreurs sans errorData', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    } as Response);
+
+    const { result } = renderHook(() => useCreateUser());
+
+    await act(async () => {
+      const createResult = await result.current.createUser({
+        email: 'test@example.com',
+        roles: ['CUSTOMER'],
+        status: 'ACTIVE',
+      });
+
+      expect(createResult.success).toBe(false);
+      expect(createResult.error).toBe("Erreur lors de la création de l'utilisateur");
+    });
+  });
+
+  it('devrait gérer les erreurs JSON invalides avec response.ok = true', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new Error('Invalid JSON');
+      },
+    } as unknown as Response);
+
+    const { result } = renderHook(() => useCreateUser());
+
+    await act(async () => {
+      const createResult = await result.current.createUser({
+        email: 'test@example.com',
+        roles: ['CUSTOMER'],
+        status: 'ACTIVE',
+      });
+
+      // Devrait retourner un succès partiel avec juste l'email
+      expect(createResult.success).toBe(true);
+      expect(createResult.user).toEqual({ email: 'test@example.com' });
+    });
+  });
+
+  it('devrait gérer les erreurs JSON invalides avec response.ok = false', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => {
+        throw new Error('Invalid JSON');
+      },
+    } as unknown as Response);
+
+    const { result } = renderHook(() => useCreateUser());
+
+    await act(async () => {
+      const createResult = await result.current.createUser({
+        email: 'test@example.com',
+        roles: ['CUSTOMER'],
+        status: 'ACTIVE',
+      });
+
+      expect(createResult.success).toBe(false);
+      // Si response.ok = false et que json() échoue, le catch(() => ({})) retourne {}
+      // donc errorMessage sera "Erreur lors de la création de l'utilisateur"
+      expect(createResult.error).toBe("Erreur lors de la création de l'utilisateur");
+    });
+  });
+
+  it('devrait gérer result.success = false', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: false,
+        error: 'Erreur de validation',
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useCreateUser());
+
+    await act(async () => {
+      const createResult = await result.current.createUser({
+        email: 'test@example.com',
+        roles: ['CUSTOMER'],
+        status: 'ACTIVE',
+      });
+
+      expect(createResult.success).toBe(false);
+      expect(createResult.error).toBe('Erreur de validation');
+    });
+
+    expect(result.current.error).toBe('Erreur de validation');
+  });
+
+  it('devrait gérer result.success = false sans error', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: false,
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useCreateUser());
+
+    await act(async () => {
+      const createResult = await result.current.createUser({
+        email: 'test@example.com',
+        roles: ['CUSTOMER'],
+        status: 'ACTIVE',
+      });
+
+      expect(createResult.success).toBe(false);
+      expect(createResult.error).toBe('Erreur inconnue');
+    });
+  });
+
+  it('devrait gérer result.success = true mais sans data', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        // Pas de data
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useCreateUser());
+
+    await act(async () => {
+      const createResult = await result.current.createUser({
+        email: 'test@example.com',
+        roles: ['CUSTOMER'],
+        status: 'ACTIVE',
+      });
+
+      // Devrait retourner un succès partiel avec juste l'email
+      expect(createResult.success).toBe(true);
+      expect(createResult.user).toEqual({ email: 'test@example.com' });
     });
   });
 });

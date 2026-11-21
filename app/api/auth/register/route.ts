@@ -13,7 +13,8 @@
  * - Singleton Pattern (authService, userFacade)
  */
 
-import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
+import { handleApiRoute, validateBody, ApiError } from '@/lib/api/error-handler';
+import { getPublicBaseUrl } from '@/lib/api/public-url';
 import { childLogger } from '@/lib/logger';
 import { RegisterSchema, type RegisterInput } from '@/lib/validations/auth.schema';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
         request.headers.get('x-real-ip') ||
         'unknown';
       const userAgent = request.headers.get('user-agent') || 'unknown';
+      const publicBaseUrl = getPublicBaseUrl(request);
 
       log.debug(
         {
@@ -73,10 +75,50 @@ export async function POST(request: NextRequest) {
       );
 
       // Tentative d'inscription
-      const result = await authService.register(sanitizedData as any, {
-        ipAddress,
-        userAgent,
-      });
+      let result;
+      try {
+        result = await authService.register(sanitizedData as any, {
+          ipAddress,
+          userAgent,
+          baseUrl: publicBaseUrl,
+        });
+      } catch (error: any) {
+        // Détecter les erreurs de duplication et retourner un statut 409 (Conflict)
+        const errorMessage = error?.message || error?.error || String(error || '');
+        const errorCode = error?.code;
+        const isDuplicate = error?.isDuplicate;
+        const errorErrorCode = error?.errorCode;
+        
+        const isDuplicateError =
+          isDuplicate === true ||
+          errorMessage.includes('existe déjà') ||
+          errorMessage.includes('duplicate') ||
+          errorMessage.includes('already exists') ||
+          errorCode === 11000 ||
+          errorCode === 11001 ||
+          errorErrorCode === 'DUPLICATE_EMAIL';
+        
+        if (isDuplicateError) {
+          log.warn(
+            {
+              email: sanitizedData.email,
+              errorMessage,
+              errorCode,
+              isDuplicate,
+            },
+            'Registration failed: duplicate email detected',
+          );
+          throw new ApiError(
+            409,
+            errorMessage.includes('existe déjà') || errorMessage.includes('duplicate') || errorMessage.includes('already exists')
+              ? errorMessage
+              : 'Un compte avec cet email existe déjà',
+            'DUPLICATE_EMAIL',
+          );
+        }
+        // Relancer les autres erreurs telles quelles
+        throw error;
+      }
 
       // Enregistrer les métriques
       monitoringManager.recordMetric({

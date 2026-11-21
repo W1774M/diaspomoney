@@ -1,94 +1,211 @@
 "use client";
 
-import { ServiceCarousel } from "./ServiceCarousel";
+import { CM, CG, CI, SN, CD, RW } from "country-flag-icons/react/3x2";
+import { Shield, Clock, Tag, ArrowRight } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
-interface HeroSectionProps {
-  onServiceClick: (serviceId: string) => void;
-  onExploreClick: () => void;
-}
-
-const CAROUSEL_SERVICES = [
+const FEATURES = [
   {
-    id: "health",
-    type: "health",
-    image: "/img/diaspo/services/Copilot_20250904_104936-e1756983521170.png",
-    title: "Santé",
-    description:
-      "Offrez à vos proches un accès direct aux soins : consultation médicale, analyses de laboratoire, soins d'urgence, hospitalisation, et bien plus encore.",
-    serviceType: "Santé",
+    icon: Shield,
+    text: "Paiements sécurisés",
   },
   {
-    id: "edu",
-    type: "edu",
-    image: "/img/diaspo/services/ChatGPT-Image-4-sept.-2025-11_43_39-e1756983550906.png",
-    title: "Éducation",
-    description:
-      "Facilitez l'accès à l'éducation pour vos proches : frais de scolarité, fournitures scolaires, formations professionnelles, et accompagnement éducatif.",
-    serviceType: "Éducation",
+    icon: Clock,
+    text: "Suivi temps réel",
   },
   {
-    id: "immo",
-    type: "immo",
-    image: "/img/diaspo/services/Copilot_20250904_123953-e1756983476403.png",
-    title: "Immobilier & BTP",
-    description:
-      "Soutenez vos proches dans leurs projets immobiliers : achat, location, rénovation, construction, et gestion immobilière avec des prestataires vérifiés.",
-    serviceType: "Immobilier",
+    icon: Tag,
+    text: "0% de frais cachés",
   },
 ];
 
-export function HeroSection({
-  onServiceClick,
-  onExploreClick,
-}: HeroSectionProps) {
+/**
+ * Pays couverts — drapeaux en SVG (les emojis drapeaux ne s’affichent pas sous Windows
+ * sur Chrome/Edge : lettres « CM », « CI », etc. à la place).
+ */
+const PRESENCE_COUNTRIES: { Flag: typeof CM; iso: string; label: string }[] = [
+  { Flag: CM, iso: "CM", label: "Présent au Cameroun" },
+  { Flag: CG, iso: "CG", label: "Présent au Congo" },
+  { Flag: CI, iso: "CI", label: "Bientôt en Côte d’Ivoire" },
+  { Flag: SN, iso: "SN", label: "Bientôt au Sénégal" },
+  { Flag: CD, iso: "CD", label: "Bientôt en RDC" },
+  { Flag: RW, iso: "RW", label: "Bientôt au Rwanda" },
+];
+
+export function HeroSection() {
+  const router = useRouter();
+
+  const handleGetStarted = () => {
+    router.push("/services");
+  };
+
+  const handleCreateAccount = () => {
+    router.push("/register");
+  };
+
+
   return (
-    <section className="bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] py-20 md:py-24 relative overflow-hidden">
-      {/* Subtle background pattern */}
-      <div className="absolute inset-0 opacity-5 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')]" />
-      
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <section className="relative bg-[#FDF8F3] overflow-hidden">
+      {/* Curved bottom border */}
+      <div className="absolute bottom-0 left-0 right-0">
+        <svg
+          viewBox="0 0 1440 120"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-full h-auto"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z"
+            fill="white"
+          />
+        </svg>
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-16 pb-24 md:pt-4 md:pb-0">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           {/* Left Content */}
           <div className="lg:w-1/2 w-full space-y-6">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight tracking-tight">
-              Transférez des <span className="italic text-white">services</span>,<br className="hidden md:block" /> pas de&nbsp;<span className="italic text-white">l&apos;argent</span>
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 leading-relaxed font-light max-w-2xl text-white/95">
-              Garantissez à vos proches en Afrique des services de qualité en
-              santé, éducation et immobilier, sans risque de détournement ni
-              surfacturation.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                className="bg-white text-gray-900 px-8 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-all duration-300 flex items-center justify-center gap-2 shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 group focus:outline-none focus:ring-4 focus:ring-white/50"
-                onClick={onExploreClick}
-                aria-label="Explorer tous les services disponibles"
+            {/* Alert Banner */}
+            <div className="flex items-center gap-2 mb-4">
+              <div
+                className="flex items-center gap-2 px-4 py-2 rounded-full"
+                style={{
+                  backgroundColor: '#FDF8F3',
+                  fontFamily: "Plus Jakarta Sans, sans-serif",
+                }}
               >
-                <span>Explorer les services</span>
-                <svg
-                  className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
+                <div className="w-2 h-2 rounded-full bg-[#F97015]"></div>
+                <span
+                  className="text-sm font-medium"
+                  style={{
+                    color: '#F97015',
+                    fontFamily: "Plus Jakarta Sans, sans-serif",
+                  }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7l5 5m0 0l-5 5m5-5H6"
-                  />
-                </svg>
+                  Nouveau : Application mobile bientôt disponible
+                </span>
+              </div>
+            </div>
+
+            {/* Main Title */}
+            <h1
+              className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight mb-6"
+              style={{
+                fontFamily: "Plus Jakarta Sans, sans-serif",
+                color: "#1C1917",
+              }}
+            >
+              Prenez soin de vos proches{" "}
+              <span style={{ color: "#F97015" }}>en Afrique</span>, depuis la
+              France
+            </h1>
+
+            {/* Pays couverts */}
+            <ul
+              className="flex flex-wrap gap-2 sm:gap-3 mb-2 list-none p-0 m-0"
+              style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
+              aria-label="Pays où DiaspoMoney est présent"
+            >
+              {PRESENCE_COUNTRIES.map(({ Flag, iso, label }) => (
+                <li
+                  key={iso}
+                  className="inline-flex items-center gap-2 rounded-full border border-stone-200/80 bg-white/80 px-3 py-1.5 text-sm text-stone-700 shadow-sm"
+                >
+                  <span
+                    className="relative h-[14px] w-[21px] shrink-0 overflow-hidden rounded-[2px] shadow-sm ring-1 ring-black/10"
+                    aria-hidden
+                  >
+                    <Flag
+                      title=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  </span>
+                  <span>{label}</span>
+                </li>
+              ))}
+            </ul>
+
+            {/* Description */}
+            <p
+              className="text-lg md:text-xl text-gray-600 leading-relaxed mb-8 max-w-2xl"
+              style={{
+                fontFamily: "Plus Jakarta Sans, sans-serif",
+                color: "#555555",
+              }}
+            >
+              Payez directement les services essentiels pour vos proches : <a href="/services/health" className="text-[#F97015]">santé</a>, <a href="/services/edu" className="text-[#F97015]">éducation</a>, <a href="/services/immo" className="text-[#F97015]">immobilier</a>.
+              Fini les transferts d’argent et les détournements.
+              Suivez chaque dépense en temps réel depuis votre tableau de bord, en toute transparence.
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+              <button
+                onClick={handleGetStarted}
+                className="bg-[#F97015] text-white px-8 py-4 rounded-xl font-semibold hover:bg-[#E85F0A] transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 group focus:outline-none focus:ring-4 focus:ring-[#F97015]/50"
+                style={{
+                  fontFamily: "Plus Jakarta Sans, sans-serif",
+                }}
+                aria-label="Commencer maintenant"
+              >
+                <span>Commencer maintenant</span>
+                <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+              </button>
+              <button
+                onClick={handleCreateAccount}
+                className="border-2 border-[#F97015] text-[#F97015] bg-white px-8 py-4 rounded-xl font-semibold hover:bg-[#F97015]/10 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[#F97015]/50"
+                style={{
+                  fontFamily: "Plus Jakarta Sans, sans-serif",
+                }}
+                aria-label="Je crée mon compte gratuitement"
+              >
+                Je crée mon compte gratuitement
               </button>
             </div>
+
+            {/* Feature Highlights */}
+            <div className="flex flex-wrap gap-6">
+              {FEATURES.map((feature, index) => {
+                const IconComponent = feature.icon;
+                return (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2"
+                    style={{
+                      fontFamily: "Plus Jakarta Sans, sans-serif",
+                    }}
+                  >
+                    <IconComponent className="w-5 h-5 text-gray-600" />
+                    <span className="text-sm text-gray-600">{feature.text}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          
-          {/* Right Content - Carousel */}
-          <div className="lg:w-1/2 w-full">
-            <ServiceCarousel
-              services={CAROUSEL_SERVICES}
-              onServiceClick={onServiceClick}
-            />
+
+          {/* Right Content - Illustration */}
+          <div className="lg:w-1/2 w-full flex items-center justify-center">
+            <div className="relative w-full max-w-md">
+              {/* Circular background behind illustration */}
+              <div className="absolute inset-0 rounded-full bg-[#FBE3CC] blur-2xl opacity-80 -z-10"></div>
+              
+              {/* Illustration placeholder - sera remplacé par l'image réelle */}
+              <div className="relative w-full aspect-square flex items-center justify-center">
+                <div className="w-full h-full bg-gradient-to-br from-[#FBE3CC] to-[#FDF8F3] rounded-full flex items-center justify-center overflow-hidden">
+                  <Image
+                    src="/img/diaspo/diaspomoney_hero_image.jpg"
+                    alt="DiaspoMoney Hero Illustration"
+                    width={512}
+                    height={683}
+                    className="object-contain w-full h-full rounded-full"
+                    sizes="(min-width: 1024px) 380px, (min-width: 768px) 320px, 280px"
+                    priority
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

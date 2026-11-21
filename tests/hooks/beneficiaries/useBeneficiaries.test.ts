@@ -240,5 +240,100 @@ describe('useBeneficiaries', () => {
 
     expect(result.current.beneficiaries).toHaveLength(1);
   });
+
+  it('devrait retourner null en cas d\'erreur lors de la mise à jour', async () => {
+    const mockBeneficiaries = [
+      { _id: 'b1', name: 'Beneficiary 1', relationship: 'FAMILY' },
+    ];
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: mockBeneficiaries,
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({
+          error: 'Erreur serveur',
+        }),
+      } as Response);
+
+    const { result } = renderHook(() => useBeneficiaries());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      const updated = await result.current.updateBeneficiary('b1', {
+        name: 'Updated',
+      });
+
+      expect(updated).toBeNull();
+    });
+
+    expect(result.current.error).toBe('Erreur serveur');
+  });
+
+  it('devrait gérer les erreurs lors de la suppression', async () => {
+    const mockBeneficiaries = [
+      { _id: 'b1', name: 'Beneficiary 1' },
+    ];
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: mockBeneficiaries,
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({
+          error: 'Erreur lors de la suppression',
+        }),
+      } as Response);
+
+    const { result } = renderHook(() => useBeneficiaries());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      const deleted = await result.current.deleteBeneficiary('b1');
+
+      expect(deleted).toBe(false);
+    });
+
+    expect(result.current.error).toBe('Erreur lors de la suppression');
+  });
+
+  it('devrait appeler refreshBeneficiaries', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: [],
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useBeneficiaries());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.refreshBeneficiaries();
+    });
+
+    // refreshBeneficiaries devrait appeler fetchBeneficiaries
+    expect(fetch).toHaveBeenCalledTimes(2); // Une fois au montage, une fois pour refresh
+  });
 });
 

@@ -1,8 +1,16 @@
 export { HeroSection } from "./HeroSection";
 export { BenefitsSection } from "./BenefitsSection";
+export { ClinicsCarouselSection } from "./ClinicsCarouselSection";
 export { PartnersSection } from "./PartnersSection";
 export { ServiceCarousel } from "./ServiceCarousel";
 export { ServiceCarouselCard } from "./ServiceCarouselCard";
 export { ServiceCard } from "./ServiceCard";
 export { BenefitCard } from "./BenefitCard";
-export { ExpertsSection } from "./ExpertsSection";  
+export { TestimonialsSection } from "./TestimonialsSection";
+export { default as PhotoTestimonialsSection } from "./PhotoTestimonialsSection";
+export { VideoTestimonialsSection } from "./VideoTestimonialsSection";
+export { VideoTestimonialsSection2 } from "./VideoTestimonialsSection2";
+export { default as HomeAnnouncementDialog } from "./HomeAnnouncementDialog";
+export { HomeAnnouncementBannerButton } from "./HomeAnnouncementBannerButton";
+export { RoadmapSection } from "./RoadmapSection";
+export { CareForLovedOnesSection } from "./CareForLovedOnesSection";

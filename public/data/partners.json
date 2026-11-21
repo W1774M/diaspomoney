@@ -1,16 +1,6 @@
 {
   "partners": [
     {
-      "name": "Dateka",
-      "logo": "https://dateka.fr/wp-content/uploads/2023/01/logo-dateka.png",
-      "description": "Partenaire technologique accompagnant DiaspoMoney dans sa transformation digitale et le développement de solutions innovantes.",
-      "website": "https://dateka.fr",
-      "category": "Technologie",
-      "services": ["Développement", "Conseil digital", "Innovation", "Support technique"],
-      "location": "France",
-      "established": "2015"
-    },
-    {
       "name": "Seine Innopolis",
       "logo": "https://www.seine-innopolis.fr/wp-content/uploads/2021/03/logo-seine-innopolis.png",
       "description": "Pôle d'innovation et d'entrepreneuriat accompagnant les startups dans leur développement.",

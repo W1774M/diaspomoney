@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import { GET, POST } from '@/app/api/bookings/route';
 import { NextRequest } from 'next/server';
+import { ObjectId } from 'mongodb';
 
 // Mock de auth pour les tests d'intégration
 vi.mock('@/auth', () => ({
@@ -15,6 +16,9 @@ vi.mock('@/auth', () => ({
 }));
 
 describe('Integration: /api/bookings', () => {
+  let requesterId: string;
+  let providerId: string;
+
   beforeAll(() => {
     // Vérifier que MongoDB est disponible
     if (!process.env['MONGODB_URI']) {
@@ -23,10 +27,13 @@ describe('Integration: /api/bookings', () => {
   });
 
   beforeEach(async () => {
+    requesterId = new ObjectId().toString();
+    providerId = new ObjectId().toString();
+
     // Mock par défaut pour tous les tests
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValue({
-      user: { id: 'test-user-id', roles: ['CUSTOMER'] },
+      user: { id: requesterId, roles: ['CUSTOMER'] },
     } as any);
   });
 
@@ -73,23 +80,22 @@ describe('Integration: /api/bookings', () => {
 
   describe('POST /api/bookings', () => {
     it('devrait créer une réservation dans la base de données', async () => {
+      // Aligner le payload sur CreateBookingSchema (lib/validations/booking.schema.ts)
+      // NB: on n'inclut pas de "payment" ici pour éviter les dépendances externes (Stripe) en intégration.
       const bookingData = {
+        requesterId,
+        providerId,
         serviceType: 'HEALTH',
-        clientInfo: {
+        serviceId: 'test-service-id',
+        appointmentDate: new Date(Date.now() + 86400000).toISOString(),
+        timeslot: '10:00',
+        recipient: {
           firstName: 'Test',
           lastName: 'User',
-          phone: '+33123456789',
-          email: `test-${Date.now()}@example.com`,
         },
-        selectedService: {
-          serviceId: 'test-service-id',
-          category: 'Consultation',
-          label: 'Consultation médicale',
-          price: 50,
+        metadata: {
+          source: 'integration-test',
         },
-        appointmentDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-        appointmentTime: '10:00',
-        paymentIntentId: 'pi_test_123',
       };
 
       const request = new NextRequest('http://localhost:3000/api/bookings', {
@@ -107,8 +113,11 @@ describe('Integration: /api/bookings', () => {
       
       const data = await response.json();
       expect(data.success).toBe(true);
-      if (data.booking) {
-        expect(data.booking.serviceType).toBe(bookingData.serviceType);
+      expect(data.data).toBeDefined();
+      if (data.data) {
+        expect(data.data.serviceType).toBe(bookingData.serviceType);
+        expect(data.data.requesterId).toBe(bookingData.requesterId);
+        expect(data.data.providerId).toBe(bookingData.providerId);
       }
     });
   });

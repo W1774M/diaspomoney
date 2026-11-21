@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useSignOut } from '@/hooks/auth/useSignOut';
 import { signOut as nextAuthSignOut } from 'next-auth/react';
 
@@ -269,7 +269,7 @@ describe('useSignOut', () => {
 
     // Lancer la déconnexion
     act(() => {
-      result.current.signOut();
+      void result.current.signOut();
     });
 
     // Vérifier que isSigningOut est true pendant le chargement
@@ -281,26 +281,49 @@ describe('useSignOut', () => {
       await promise;
     });
 
-    // Attendre que isSigningOut redevienne false
-    await waitFor(() => {
-      expect(result.current.isSigningOut).toBe(false);
-    }, { timeout: 2000 });
+    // Attendre la fin complète du signOut (y compris le finally)
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    // Avec fake timers, il faut laisser passer les timers/microtasks (setTimeout(100) + waitFor)
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+
+    expect(result.current.isSigningOut).toBe(false);
   });
 
   it('devrait prévenir les déconnexions multiples', async () => {
     vi.mocked(nextAuthSignOut).mockImplementation(() => new Promise(() => {})); // Jamais résolu
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ user: { id: 'user123' } }),
+    } as Response);
 
     const { result } = renderHook(() => useSignOut());
 
     act(() => {
-      result.current.signOut();
+      void result.current.signOut();
     });
 
+    // On est en fake timers dans ce fichier: éviter waitFor (polling sur setTimeout).
+    // Laisser passer une microtask + flush React pour appliquer setIsSigningOut(true).
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(result.current.isSigningOut).toBe(true);
+
+    // Laisser passer une microtask de plus pour que l'appel fetch(...) aboutisse et que
+    // nextAuthSignOut soit effectivement invoqué.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(vi.mocked(nextAuthSignOut)).toHaveBeenCalledTimes(1);
 
     // Tenter une deuxième déconnexion
     act(() => {
-      result.current.signOut();
+      void result.current.signOut();
     });
 
     // Le nombre d'appels à nextAuthSignOut ne devrait pas augmenter
@@ -342,6 +365,28 @@ describe('useSignOut', () => {
     // L'événement ne devrait pas être émis si userId est undefined
     const { authEvents } = await import('@/lib/events');
     expect(vi.mocked(authEvents.emitUserLoggedOut)).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith('/login');
+  });
+
+  it('devrait gérer les erreurs lors de l\'émission de l\'événement de déconnexion', async () => {
+    vi.mocked(nextAuthSignOut).mockResolvedValueOnce(undefined);
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        user: { id: 'user123', email: 'test@example.com' },
+      }),
+    } as Response);
+
+    const { authEvents } = await import('@/lib/events');
+    vi.mocked(authEvents.emitUserLoggedOut).mockRejectedValueOnce(new Error('Event error'));
+
+    const { result } = renderHook(() => useSignOut());
+
+    await act(async () => {
+      await result.current.signOut();
+    });
+
+    // Devrait continuer malgré l'erreur d'événement
     expect(mockPush).toHaveBeenCalledWith('/login');
   });
 });

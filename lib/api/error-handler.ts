@@ -98,6 +98,53 @@ export async function handleApiRoute<T>(
       );
     }
 
+    // Erreurs "compatibles" (ex: RateLimit decorator qui throw Error + statusCode=429)
+    // On doit préserver le statusCode au lieu de transformer en 500.
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      const anyErr = error as any;
+      const statusCode = Number(anyErr.statusCode);
+
+      if (Number.isFinite(statusCode) && statusCode >= 400 && statusCode <= 599) {
+        const retryAfterSeconds =
+          typeof anyErr.resetTime === 'number'
+            ? Math.max(1, Math.ceil((anyErr.resetTime - Date.now()) / 1000))
+            : undefined;
+
+        log.warn(
+          {
+            error: anyErr.message,
+            statusCode,
+            code: anyErr.code,
+            remaining: anyErr.remaining,
+            resetTime: anyErr.resetTime,
+          },
+          'API error (non-ApiError)',
+        );
+
+        const body: Record<string, unknown> = {
+          success: false,
+          error: typeof anyErr.message === 'string' ? anyErr.message : 'Erreur',
+          ...(typeof anyErr.code === 'string' ? { code: anyErr.code } : {}),
+          ...(typeof anyErr.remaining === 'number' || typeof anyErr.resetTime === 'number'
+            ? {
+                details: {
+                  ...(typeof anyErr.remaining === 'number' ? { remaining: anyErr.remaining } : {}),
+                  ...(typeof anyErr.resetTime === 'number' ? { resetTime: anyErr.resetTime } : {}),
+                },
+              }
+            : {}),
+          ...(reqId && { requestId: reqId }),
+        };
+
+        return NextResponse.json(body, {
+          status: statusCode,
+          headers: {
+            ...(retryAfterSeconds ? { 'Retry-After': String(retryAfterSeconds) } : {}),
+          },
+        });
+      }
+    }
+
     // Erreur de validation Zod
     if (error && typeof error === 'object' && 'issues' in error) {
       const zodError = error as { issues: Array<{ path: string[]; message: string }> };
@@ -116,6 +163,49 @@ export async function handleApiRoute<T>(
         },
         { status: 400 },
       );
+    }
+
+    // Vérifier les erreurs réseau spécifiques
+    if (error instanceof Error) {
+      const errorCode = (error as any).code;
+      const isNetworkError = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED', 'EAI_AGAIN'].includes(errorCode);
+      
+      if (isNetworkError) {
+        log.error(
+          { 
+            error: error.message, 
+            code: errorCode,
+            route: routeName,
+          }, 
+          'Network error in API route',
+        );
+        
+        Sentry.captureException(error, {
+          tags: {
+            component: 'API',
+            route: routeName,
+            errorType: 'network',
+            errorCode: errorCode,
+          },
+          extra: {
+            requestId: reqId,
+          },
+        });
+
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Erreur de connexion réseau. Veuillez réessayer dans quelques instants.',
+            code: 'NETWORK_ERROR',
+            details: {
+              code: errorCode,
+              message: error.message,
+            },
+            ...(reqId && { requestId: reqId }),
+          },
+          { status: 503 }, // Service Unavailable pour les erreurs réseau
+        );
+      }
     }
 
     // Erreur inattendue

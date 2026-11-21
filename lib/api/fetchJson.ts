@@ -52,17 +52,13 @@ export async function fetchJson<T = unknown>(
   }
 
   if (!response.ok) {
-    const message =
-      (body &&
-        typeof body === 'object' &&
-        'error' in body &&
-        typeof (body as { error: unknown }).error === 'string' &&
-        (body as { error: string }).error) ||
-      (body &&
-        typeof body === 'object' &&
-        'message' in body &&
-        typeof (body as { message: unknown }).message === 'string' &&
-        (body as { message: string }).message) ||
+    const payload =
+      body && typeof body === 'object'
+        ? (body as { error?: unknown; message?: unknown })
+        : undefined;
+    const message: string =
+      (typeof payload?.error === 'string' && payload.error) ||
+      (typeof payload?.message === 'string' && payload.message) ||
       `HTTP ${response.status}`;
     throw new FetchJsonError(message, response.status, body);
   }

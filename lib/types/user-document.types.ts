@@ -53,6 +53,9 @@ export interface UserDocument extends Omit<Partial<User>, 'preferences' | '_id' 
     language?: string;
     timezone?: string;
     notifications?: boolean;
+    emailNotifications?: boolean;
+    smsNotifications?: boolean;
+    notificationEmailByType?: Record<string, boolean>;
   };
 
   // OAuth
@@ -84,6 +87,13 @@ export interface UserDocument extends Omit<Partial<User>, 'preferences' | '_id' 
   marketingConsent?: boolean;
   kycConsent?: boolean;
   kycStatus?: string;
+
+  /**
+   * Portefeuille CSM: liste des prestataires suivis par ce CSM (IDs provider).
+   * Aujourd'hui: utilisé pour restreindre la visibilité "CSM ne voit que son portefeuille".
+   * Demain: pourra être enrichi (zones) et supporter exclusivité/partage.
+   */
+  csmPortfolioProviderIds?: string[];
 
   // Sécurité
   password?: string;
@@ -194,6 +204,9 @@ export interface UserResponse {
     language: string;
     timezone: string;
     notifications: boolean;
+    emailNotifications: boolean;
+    smsNotifications: boolean;
+    notificationEmailByType?: Record<string, boolean>;
   };
   dateOfBirth: string | null;
   countryOfResidence: string;

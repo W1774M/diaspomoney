@@ -13,6 +13,11 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { useLogin } from '@/hooks/auth/useLogin';
 import { signIn } from 'next-auth/react';
 
+// Éviter les imports réels Resend pendant les tests (le hook importe dynamiquement)
+vi.mock('@/lib/email/resend', () => ({
+  sendLoginSuccessEmail: vi.fn(async () => {}),
+}));
+
 // Mock de next-auth/react
 const mockUpdate = vi.fn();
 vi.mock('next-auth/react', () => ({
@@ -88,6 +93,8 @@ describe('useLogin', () => {
   });
 
   afterEach(() => {
+    // Sécurité: éviter de laisser des fake timers actifs entre tests
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -120,7 +127,8 @@ describe('useLogin', () => {
       email: 'test@example.com',
       password: 'password123',
       redirect: false,
-      callbackUrl: 'http://localhost:3000/dashboard',
+      // Le hook force maintenant un callbackUrl RELATIF
+      callbackUrl: '/dashboard',
     });
     expect(mockAddSuccess).toHaveBeenCalled();
     expect(mockUpdate).toHaveBeenCalled();
@@ -344,11 +352,17 @@ describe('useLogin', () => {
     });
 
     vi.mocked(signIn).mockReturnValueOnce(promise as any);
+    // Le hook fait plusieurs fetch('/api/auth/session') + plusieurs timeouts (>= ~1.5s)
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ user: { id: 'user123', email: 'test@example.com' } }),
+    } as Response);
 
     const { result } = renderHook(() => useLogin());
 
+    let loginPromise: Promise<boolean>;
     act(() => {
-      result.current.login({
+      loginPromise = result.current.login({
         email: 'test@example.com',
         password: 'password123',
       });
@@ -366,9 +380,14 @@ describe('useLogin', () => {
       await promise;
     });
 
+    // Attendre que le flow de login se termine réellement
+    await act(async () => {
+      await loginPromise!;
+    });
+
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
-    });
+    }, { timeout: 8000 });
   });
 
   it('devrait masquer l\'email dans les logs', async () => {
@@ -450,6 +469,172 @@ describe('useLogin', () => {
     expect(mockAddError).toHaveBeenCalledWith(
       'Identifiants incorrects. Vérifiez votre email et mot de passe.',
     );
+  });
+
+  it('devrait normaliser l\'URL de redirection (origin différent)', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { origin: 'http://localhost:3000' },
+      writable: true,
+    });
+
+    // Simuler sessionStorage avec une URL externe
+    const sessionStorageMock = {
+      getItem: vi.fn(() => 'http://evil.com/redirect'),
+      removeItem: vi.fn(),
+    };
+    Object.defineProperty(window, 'sessionStorage', {
+      value: sessionStorageMock,
+      writable: true,
+    });
+
+    vi.mocked(signIn).mockResolvedValueOnce({
+      ok: true,
+      error: null,
+      url: null,
+      status: 200,
+    } as any);
+
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        user: { id: 'user123', email: 'test@example.com' },
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useLogin());
+
+    await act(async () => {
+      await result.current.login({
+        email: 'test@example.com',
+        password: 'password123',
+      });
+    });
+
+    // Devrait rediriger vers /dashboard au lieu de l'URL externe
+    expect(mockReplace).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('devrait gérer les erreurs dans normalizeRedirectUrl (catch)', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { origin: 'http://localhost:3000' },
+      writable: true,
+    });
+
+    // Simuler sessionStorage avec une URL invalide qui causera une erreur dans URL()
+    const sessionStorageMock = {
+      getItem: vi.fn(() => 'not-a-valid-url'),
+      removeItem: vi.fn(),
+    };
+    Object.defineProperty(window, 'sessionStorage', {
+      value: sessionStorageMock,
+      writable: true,
+    });
+
+    vi.mocked(signIn).mockResolvedValueOnce({
+      ok: true,
+      error: null,
+      url: null,
+      status: 200,
+    } as any);
+
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        user: { id: 'user123', email: 'test@example.com' },
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useLogin());
+
+    await act(async () => {
+      await result.current.login({
+        email: 'test@example.com',
+        password: 'password123',
+      });
+    });
+
+    // Devrait utiliser l'URL telle quelle si elle commence par /
+    expect(mockReplace).toHaveBeenCalled();
+  });
+
+  it('devrait gérer les erreurs dans router.refresh', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { origin: 'http://localhost:3000' },
+      writable: true,
+    });
+
+    mockRefresh.mockImplementation(() => {
+      throw new Error('Refresh error');
+    });
+
+    vi.mocked(signIn).mockResolvedValueOnce({
+      ok: true,
+      error: null,
+      url: null,
+      status: 200,
+    } as any);
+
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        user: { id: 'user123', email: 'test@example.com' },
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useLogin());
+
+    await act(async () => {
+      await result.current.login({
+        email: 'test@example.com',
+        password: 'password123',
+      });
+    });
+
+    // Devrait continuer malgré l'erreur de refresh
+    expect(mockReplace).toHaveBeenCalled();
+  });
+
+  it('devrait utiliser window.location.assign si router.replace échoue', async () => {
+    mockReplace.mockImplementation(() => {
+      throw new Error('Navigation error');
+    });
+
+    const mockAssign = vi.fn();
+    Object.defineProperty(window, 'location', {
+      value: {
+        origin: 'http://localhost:3000',
+        assign: mockAssign,
+      },
+      writable: true,
+    });
+
+    vi.mocked(signIn).mockResolvedValueOnce({
+      ok: true,
+      error: null,
+      url: null,
+      status: 200,
+    } as any);
+
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        user: { id: 'user123', email: 'test@example.com' },
+      }),
+    } as Response);
+
+    const { result } = renderHook(() => useLogin());
+
+    await act(async () => {
+      await result.current.login({
+        email: 'test@example.com',
+        password: 'password123',
+      });
+    });
+
+    // Devrait utiliser window.location.assign en fallback
+    await waitFor(() => {
+      expect(mockAssign).toHaveBeenCalled();
+    });
   });
 });
 

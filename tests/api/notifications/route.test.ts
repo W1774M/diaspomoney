@@ -53,26 +53,35 @@ vi.mock('@/lib/database/mongodb', () => ({
 // Mock de handleApiRoute
 vi.mock('@/lib/api/error-handler', () => ({
   handleApiRoute: vi.fn(async (_request, handler) => {
-    const result = await handler();
-    // Si le résultat a déjà une méthode json(), le retourner tel quel
-    if (result && typeof result.json === 'function') {
-      return result;
+    try {
+      const result = await handler();
+      // Si le résultat a déjà une méthode json(), le retourner tel quel
+      if (result && typeof result.json === 'function') {
+        return result;
+      }
+      // Sinon, créer un NextResponse avec json()
+      const { NextResponse } = await import('next/server');
+      return NextResponse.json(result);
+    } catch (error: any) {
+      const status = error?.status || error?.statusCode || 500;
+      const { NextResponse } = await import('next/server');
+      return NextResponse.json(
+        { success: false, error: error?.message || 'Erreur interne du serveur' },
+        { status },
+      );
     }
-    // Sinon, créer un NextResponse avec json()
-    const { NextResponse } = await import('next/server');
-    return NextResponse.json(result);
   }),
   validateBody: vi.fn((body) => body),
   validateQuery: vi.fn((params) => Object.fromEntries(params)),
   ApiErrors: {
     UNAUTHORIZED: (() => {
-      const err = new Error('Unauthorized') as any;
+      const err = new Error('Non autorisé') as any;
       err.statusCode = 401;
       err.status = 401;
       return err;
     })(),
     NOT_FOUND: (() => {
-      const err = new Error('Not Found') as any;
+      const err = new Error('Ressource non trouvée') as any;
       err.statusCode = 404;
       err.status = 404;
       return err;
@@ -262,7 +271,10 @@ describe('PUT /api/notifications', () => {
       }),
     });
 
-    await expect(PUT(request)).rejects.toThrow();
+    const response = await PUT(request);
+    const data = await response.json();
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
   });
 });
 

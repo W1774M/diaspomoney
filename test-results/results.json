@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "C:\\Users\\Admin\\Lab\\Diaspomoney\\diaspomoney\\playwright.config.ts",
-    "rootDir": "C:/Users/Admin/Lab/Diaspomoney/diaspomoney/tests/e2e",
+    "configFile": "/root/Lab/diaspomoney/playwright.config.ts",
+    "rootDir": "/root/Lab/diaspomoney/tests/e2e",
     "forbidOnly": false,
     "fullyParallel": true,
     "globalSetup": null,
@@ -35,13 +35,13 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "C:/Users/Admin/Lab/Diaspomoney/diaspomoney/test-results",
+        "outputDir": "/root/Lab/diaspomoney/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {},
         "id": "chromium",
         "name": "chromium",
-        "testDir": "C:/Users/Admin/Lab/Diaspomoney/diaspomoney/tests/e2e",
+        "testDir": "/root/Lab/diaspomoney/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -49,13 +49,13 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/Users/Admin/Lab/Diaspomoney/diaspomoney/test-results",
+        "outputDir": "/root/Lab/diaspomoney/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {},
         "id": "firefox",
         "name": "firefox",
-        "testDir": "C:/Users/Admin/Lab/Diaspomoney/diaspomoney/tests/e2e",
+        "testDir": "/root/Lab/diaspomoney/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -63,13 +63,13 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/Users/Admin/Lab/Diaspomoney/diaspomoney/test-results",
+        "outputDir": "/root/Lab/diaspomoney/test-results",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {},
         "id": "webkit",
         "name": "webkit",
-        "testDir": "C:/Users/Admin/Lab/Diaspomoney/diaspomoney/tests/e2e",
+        "testDir": "/root/Lab/diaspomoney/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -78,10 +78,11 @@
       }
     ],
     "shard": null,
+    "tags": [],
     "updateSnapshots": "missing",
     "updateSourceMethod": "patch",
-    "version": "1.56.1",
-    "workers": 6,
+    "version": "1.57.0",
+    "workers": 2,
     "webServer": {
       "command": "pnpm dev",
       "url": "http://localhost:3000",
@@ -94,13 +95,13 @@
   "suites": [],
   "errors": [
     {
-      "message": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments.",
-      "stack": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments."
+      "message": "Error: Process from config.webServer exited early.",
+      "stack": "Error: Process from config.webServer exited early."
     }
   ],
   "stats": {
-    "startTime": "2025-11-25T16:10:25.173Z",
-    "duration": 171.65599999999995,
+    "startTime": "2025-12-25T18:17:59.205Z",
+    "duration": 14170.241,
     "expected": 0,
     "skipped": 0,
     "unexpected": 0,

@@ -389,15 +389,6 @@ export class InvoiceService {
       throw error;
     }
   }
-
-  /**
-   * Calculer la date d'échéance (30 jours par défaut)
-   */
-  private calculateDueDate(): Date {
-    const dueDate = new Date();
-    dueDate.setDate(dueDate.getDate() + 30);
-    return dueDate;
-  }
 }
 
 // Export singleton

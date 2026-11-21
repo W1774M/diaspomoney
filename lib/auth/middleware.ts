@@ -11,6 +11,7 @@
 
 import { childLogger } from '@/lib/logger';
 import type { AuthenticatedUser } from '@/lib/types';
+import { getNextAuthSecret } from '@/lib/auth/next-auth-secret';
 import * as Sentry from '@sentry/nextjs';
 import jwt from 'jsonwebtoken';
 import { decode } from 'next-auth/jwt';
@@ -40,10 +41,20 @@ export async function authenticateUser(
         request.cookies.get('__Secure-authjs.session-token')?.value;
 
       if (sessionToken) {
-        const secret =
-          process.env['AUTH_SECRET'] ??
-          process.env['NEXTAUTH_SECRET'] ??
-          'fallback-secret-for-development';
+        const secret = getNextAuthSecret();
+
+        if (!secret) {
+          log.error('AUTH_SECRET or NEXTAUTH_SECRET must be configured in production');
+          Sentry.captureMessage('Missing NextAuth secret in production', {
+            level: 'error',
+            tags: {
+              component: 'AuthMiddleware',
+              action: 'authenticateUser',
+              authMethod: 'NextAuth',
+            },
+          });
+          return null;
+        }
 
         try {
           const decoded = await decode({

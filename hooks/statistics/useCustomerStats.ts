@@ -1,9 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useBookings } from '@/hooks/useBookings';
-import { BOOKING_STATUSES } from '@/lib/constants';
-import type { BookingResponse } from '@/lib/mappers/booking.mapper';
+import { useMemo, useEffect } from 'react';
+import { useStatistics } from '@/hooks/statistics/useStatistics';
 
 interface FavoriteProvider {
   id: string;
@@ -13,6 +11,7 @@ interface FavoriteProvider {
 }
 
 export interface CustomerStats {
+  totalBookings: number;
   activeOrders: number;
   completedOrders: number;
   totalSpent: number;
@@ -25,55 +24,47 @@ interface UseCustomerStatsParams {
 }
 
 export function useCustomerStats({ userId, enabled }: UseCustomerStatsParams) {
-  const { bookings = [] } = useBookings({
-    userId: enabled ? userId : undefined,
-    limit: 100,
-  });
+  const { statistics, loading, fetchStatistics } = useStatistics();
+
+  // Charger les statistiques si nécessaire
+  useEffect(() => {
+    if (enabled && userId && !statistics && !loading) {
+      fetchStatistics();
+    }
+  }, [enabled, userId, statistics, loading, fetchStatistics]);
 
   const stats = useMemo<CustomerStats | null>(() => {
     if (!enabled || !userId) return null;
+    
+    // Utiliser les données de l'API statistics si disponibles
+    if (statistics) {
+      const favoriteProviders = (statistics.providers?.favorites || []).slice(0, 3).map((p) => ({
+        id: p.providerId,
+        name: p.providerName,
+        rating: p.rating || 0,
+        count: p.orderCount || 0,
+      }));
 
-    const activeBookings = bookings.filter(
-      (b: BookingResponse) =>
-        b.status === BOOKING_STATUSES.PENDING || b.status === BOOKING_STATUSES.CONFIRMED,
-    );
-    const completedBookings = bookings.filter(
-      (b: BookingResponse) => b.status === BOOKING_STATUSES.FINISHED,
-    );
-    const totalSpent = completedBookings.reduce(
-      (sum: number, b: BookingResponse) => sum + ((b as any).price || (b as any).totalAmount || 0),
-      0,
-    );
+      return {
+        totalBookings: statistics.bookings?.total || 0,
+        activeOrders: statistics.bookings?.active || 0,
+        completedOrders: statistics.bookings?.completed || 0,
+        totalSpent: statistics.bookings?.totalSpent || 0,
+        averageBasketValue: statistics.bookings?.averageBasketValue || 0,
+        favoriteProviders,
+      };
+    }
 
-    // Prestataires favoris (par nombre de commandes)
-    const providerCounts = new Map<string, { count: number; name: string; rating: number }>();
-    bookings.forEach((b: BookingResponse) => {
-      const provider = (b as any).provider;
-      if (provider?.id) {
-        const existing = providerCounts.get(provider.id) || {
-          count: 0,
-          name: `${provider.firstName || ''} ${provider.lastName || ''}`.trim(),
-          rating: provider.rating || 0,
-        };
-        providerCounts.set(provider.id, {
-          count: existing.count + 1,
-          name: existing.name,
-          rating: existing.rating,
-        });
-      }
-    });
-    const favoriteProviders: FavoriteProvider[] = Array.from(providerCounts.entries())
-      .map(([id, data]) => ({ id, ...data }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 3);
-
+    // Fallback si les statistiques ne sont pas encore chargées
     return {
-      activeOrders: activeBookings.length,
-      completedOrders: completedBookings.length,
-      totalSpent,
-      favoriteProviders,
+      totalBookings: 0,
+      activeOrders: 0,
+      completedOrders: 0,
+      totalSpent: 0,
+      averageBasketValue: 0,
+      favoriteProviders: [],
     };
-  }, [bookings, userId, enabled]);
+  }, [statistics, userId, enabled]);
 
   return stats;
 }

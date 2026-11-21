@@ -13,6 +13,9 @@ import { handleApiRoute, ApiErrors, validateBody } from '@/lib/api/error-handler
 import { createListResponse, createResourceResponse } from '@/lib/api/response';
 import { CreateTransactionSchema } from '@/lib/validations/transaction.schema';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import { DATABASE, ROLES } from '@/lib/constants';
+import { getMongoClient } from '@/lib/database/mongodb';
+import { ObjectId } from 'mongodb';
 import {
   TransactionService,
 } from '@/services/transaction/transaction.service';
@@ -28,13 +31,67 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.id) {
       throw ApiErrors.UNAUTHORIZED;
     }
+    const roles = session.user.roles || [];
+    const isCSM = roles.includes(ROLES.CSM);
 
     // Récupérer les paramètres de filtrage
     const { searchParams } = new URL(request.url);
 
     // Utiliser TransactionQueryBuilder pour construire la requête
     const { TransactionQueryBuilder } = await import('@/builders');
-    const queryBuilder = new TransactionQueryBuilder().byUser(session.user.id);
+    const queryBuilder = isCSM
+      ? new TransactionQueryBuilder()
+      : new TransactionQueryBuilder().byUser(session.user.id);
+
+    // Si CSM: restreindre aux transactions liées aux bookings de son portefeuille
+    if (isCSM) {
+      const client = await getMongoClient();
+      const db = client.db();
+      const users = db.collection(DATABASE.COLLECTIONS.USERS);
+
+      const csm = await users.findOne(
+        { _id: new ObjectId(session.user.id) },
+        { projection: { csmPortfolioProviderIds: 1 } },
+      );
+      const providerIds =
+        (csm?.['csmPortfolioProviderIds'] as string[] | undefined) || [];
+
+      if (providerIds.length === 0) {
+        return createListResponse([], { metadata: { count: 0 } });
+      }
+
+      // Extraire une fenêtre temporelle (optionnelle) pour limiter la recherche des bookings
+      const dateFrom = searchParams.get('dateFrom');
+      const dateTo = searchParams.get('dateTo');
+      const createdAtFilter: Record<string, any> = {};
+      if (dateFrom) createdAtFilter['$gte'] = new Date(dateFrom);
+      if (dateTo) createdAtFilter['$lte'] = new Date(dateTo);
+
+      const bookings = db.collection(DATABASE.COLLECTIONS.APPOINTMENTS); // bookings stored in "appointments" in constants? fallback below
+      // NOTE: en pratique, la collection bookings est souvent "bookings". On tente d'abord "bookings", sinon fallback "appointments".
+      const bookingsCollection =
+        (await db.listCollections({ name: 'bookings' }).hasNext())
+          ? db.collection('bookings')
+          : bookings;
+
+      const bookingQuery: Record<string, any> = { providerId: { $in: providerIds } };
+      if (Object.keys(createdAtFilter).length > 0) {
+        bookingQuery['createdAt'] = createdAtFilter;
+      }
+
+      const bookingDocs = await bookingsCollection
+        .find(bookingQuery, { projection: { _id: 1 } })
+        .limit(5000)
+        .toArray();
+
+      const bookingIds = bookingDocs.map((b: any) => b._id?.toString()).filter(Boolean);
+      if (bookingIds.length === 0) {
+        return createListResponse([], { metadata: { count: 0 } });
+      }
+
+      // Filtrer transactions par metadata.bookingId
+      queryBuilder.whereIn('metadata.bookingId', bookingIds);
+    }
 
     // Appliquer les filtres
     if (searchParams.get('status')) {

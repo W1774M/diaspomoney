@@ -1,14 +1,46 @@
 import { logger } from '@sentry/nextjs';
+import { getNextAuthSecret } from '@/lib/auth/next-auth-secret';
+import { getToken } from 'next-auth/jwt';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+async function hasValidSession(request: NextRequest): Promise<boolean> {
+  const secret = getNextAuthSecret();
+
+  if (!secret) {
+    return false;
+  }
+
+  try {
+    const token = await getToken({
+      req: request,
+      secret,
+    });
+
+    return Boolean(token);
+  } catch {
+    return false;
+  }
+}
+
+function buildLoginRedirect(request: NextRequest): NextResponse {
+  const loginUrl = new URL("/login", request.url);
+  loginUrl.searchParams.set(
+    'callbackUrl',
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+  );
+
+  return NextResponse.redirect(loginUrl);
+}
+
 // Proxy Next.js 16
 // Gère les redirections HTTPS et l'authentification
-export default function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const host = request.headers.get('host') || '';
   const xForwardedFor = request.headers.get('x-forwarded-for');
   const xRealIp = request.headers.get('x-real-ip');
   const xfProto = request.headers.get('x-forwarded-proto');
+  const contentType = request.headers.get('content-type') || '';
   
   // Check if host is an IP address or localhost (internal request)
   const isIpAddress = /^\d+\.\d+\.\d+\.\d+(:\d+)?$/.test(host);
@@ -48,18 +80,17 @@ export default function proxy(request: NextRequest) {
   // If host is not in allowed list, just continue (don't redirect)
   
   // Log for debugging (can be removed in production)
-  // Log toujours pour diagnostiquer les problèmes de redirection
-  logger.info('[MIDDLEWARE] Request:', {
-    host,
-    xForwardedFor,
-    xRealIp,
-    xfProto,
-    isInternalRequest,
-    isAllowedHost,
-    url: request.nextUrl.toString(),
-    nextPublicAppUrl: process.env['NEXT_PUBLIC_APP_URL'],
-    nextAuthUrl: process.env['NEXT_PUBLIC_APP_URL'],
-  });
+  if (process.env['NODE_ENV'] !== 'production') {
+    logger.info('[MIDDLEWARE] Request:', {
+      host,
+      xForwardedFor,
+      xRealIp,
+      xfProto,
+      isInternalRequest,
+      isAllowedHost,
+      url: request.nextUrl.toString(),
+    });
+  }
 
   // ---- ACCESS CONTROL & SESSION CHECKS ----
   // Attach a request-id (existing or generated) to the response
@@ -71,6 +102,21 @@ export default function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // --- TEMPORARY HARDENING (CVE-2025-55182 / RSC multipart vectors) ---
+  // Bloquer multipart/form-data en POST sur les routes non-API.
+  // (Les uploads doivent passer par /api/*, ex: /api/users/me/avatar)
+  if (
+    request.method === 'POST' &&
+    contentType.toLowerCase().includes('multipart/form-data') &&
+    !pathname.startsWith('/api/')
+  ) {
+    logger.warn('[MIDDLEWARE] Blocked multipart/form-data POST on non-API route', {
+      host,
+      pathname,
+    });
+    return NextResponse.json({ error: 'Unsupported content type' }, { status: 415 });
+  }
+
   // Check if this is a protected path
   const protectedPaths = ["/dashboard"];
   const isProtectedPath = protectedPaths.some(path =>
@@ -79,22 +125,18 @@ export default function proxy(request: NextRequest) {
 
   // If protected path, check for session token
   if (isProtectedPath) {
-    const sessionToken =
-      request.cookies.get("next-auth.session-token") ||
-      request.cookies.get("__Secure-next-auth.session-token") ||
-      request.cookies.get("authjs.session-token") ||
-      request.cookies.get("__Secure-authjs.session-token");
+    const isAuthenticated = await hasValidSession(request);
 
-    if (!sessionToken) {
+    if (!isAuthenticated) {
       // Not authenticated, redirect to login
       // IMPORTANT: Use the same hostname
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = buildLoginRedirect(request);
       logger.info('[MIDDLEWARE] Redirecting to login:', {
         from: request.url,
-        to: loginUrl.toString(),
+        to: loginUrl.headers.get('location'),
         host,
       });
-      return NextResponse.redirect(loginUrl);
+      return loginUrl;
     }
   }
 

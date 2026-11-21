@@ -43,21 +43,48 @@ export async function GET(request: NextRequest) {
       // Utiliser BeneficiaryFacade pour récupérer les bénéficiaires
       const beneficiaries = await beneficiaryFacade.getBeneficiaries(userId);
 
-      // Mapper vers le format attendu par le frontend (compatibilité)
-      const mappedBeneficiaries = beneficiaries.map(b => ({
-        _id: b.id || (b as any)._id?.toString(),
-        id: b.id || (b as any)._id?.toString(),
-        name: `${b.firstName} ${b.lastName}`,
-        firstName: b.firstName,
-        lastName: b.lastName,
-        email: b.email || '',
-        phone: b.phone || '',
-        relationship: b.relationship,
-        hasAccount: false, // TODO: Implémenter la vérification
-        status: b.isActive ? 'active' : 'inactive',
-        createdAt: b.createdAt?.toISOString() || new Date().toISOString(),
-        updatedAt: b.updatedAt?.toISOString() || new Date().toISOString(),
-      }));
+      // Vérifier pour chaque bénéficiaire s'il a un compte utilisateur
+      // Un bénéficiaire a un compte s'il existe un utilisateur avec le même email ou téléphone
+      const mappedBeneficiaries = await Promise.all(
+        beneficiaries.map(async (b) => {
+          let hasAccount = false;
+
+          // Vérifier par email si disponible
+          if (b.email) {
+            const userByEmail = await userRepository.findByEmail(b.email);
+            if (userByEmail) {
+              hasAccount = true;
+            }
+          }
+
+          // Vérifier par téléphone si pas encore trouvé et si téléphone disponible
+          if (!hasAccount && b.phone) {
+            // Rechercher par téléphone via findOne avec filtre
+            const usersByPhone = await userRepository.findUsersWithFilters(
+              { phone: b.phone },
+              { limit: 1, page: 1, offset: 0 },
+            );
+            if (usersByPhone.data && usersByPhone.data.length > 0) {
+              hasAccount = true;
+            }
+          }
+
+          return {
+            _id: b.id || (b as any)._id?.toString(),
+            id: b.id || (b as any)._id?.toString(),
+            name: `${b.firstName} ${b.lastName}`,
+            firstName: b.firstName,
+            lastName: b.lastName,
+            email: b.email || '',
+            phone: b.phone || '',
+            relationship: b.relationship,
+            hasAccount,
+            status: b.isActive ? 'active' : 'inactive',
+            createdAt: b.createdAt?.toISOString() || new Date().toISOString(),
+            updatedAt: b.updatedAt?.toISOString() || new Date().toISOString(),
+          };
+        }),
+      );
 
       return createListResponse(mappedBeneficiaries);
     },
@@ -143,6 +170,28 @@ export async function POST(request: NextRequest) {
         throw ApiErrors.VALIDATION_ERROR('Bénéficiaire non créé');
       }
 
+      // Vérifier si le bénéficiaire a un compte utilisateur
+      let hasAccount = false;
+
+      // Vérifier par email si disponible
+      if (beneficiary.email) {
+        const userByEmail = await userRepository.findByEmail(beneficiary.email);
+        if (userByEmail) {
+          hasAccount = true;
+        }
+      }
+
+      // Vérifier par téléphone si pas encore trouvé et si téléphone disponible
+      if (!hasAccount && beneficiary.phone) {
+        const usersByPhone = await userRepository.findUsersWithFilters(
+          { phone: beneficiary.phone },
+          { limit: 1, page: 1, offset: 0 },
+        );
+        if (usersByPhone.data && usersByPhone.data.length > 0) {
+          hasAccount = true;
+        }
+      }
+
       // Nettoyer location pour enlever postalCode si undefined
       const cleanLocation: any = {
         address: beneficiary.location?.address || '',
@@ -177,7 +226,7 @@ export async function POST(request: NextRequest) {
         phone: beneficiary.phone || '',
         relationship: beneficiary.relationship,
         location: cleanLocation,
-        hasAccount: false,
+        hasAccount,
         status: beneficiary.isActive ? 'active' : 'inactive',
         createdAt,
         updatedAt,

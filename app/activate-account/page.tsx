@@ -17,26 +17,21 @@ function ActivateAccountContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
-    if (!success) return;
-
-    const timer = setTimeout(() => {
-      router.replace('/login');
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [router, success]);
-
-  useEffect(() => {
     const tokenParam = searchParams.get('token');
+    const callbackParam = searchParams.get('callbackUrl');
     if (!tokenParam || tokenParam.trim() === '') {
       setError('Token d\'activation manquant');
       return;
     }
     setToken(tokenParam);
+    if (callbackParam && callbackParam.trim() !== '') {
+      setCallbackUrl(callbackParam);
+    }
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,15 +94,29 @@ function ActivateAccountContent() {
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-gray-600 mb-4">
-                Votre compte a été activé. Vous allez être redirigé vers la page de connexion...
+                Votre compte a été activé. Choisissez où continuer.
               </p>
             </CardContent>
-            <CardFooter className="justify-center">
-              <Link href="/login">
-                <Button className="bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)]">
-                  Se connecter maintenant
+            <CardFooter className="flex flex-col sm:flex-row gap-3 justify-center">
+              {callbackUrl && (
+                <Button
+                  variant="outline"
+                  className="sm:w-auto w-full border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,53%)]/5"
+                  onClick={() => {
+                    router.push(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+                  }}
+                >
+                  Revenir à ma dernière transaction
                 </Button>
-              </Link>
+              )}
+              <Button
+                className="bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)] sm:w-auto w-full"
+                onClick={() => {
+                  router.push('/login?callbackUrl=/dashboard');
+                }}
+              >
+                Accéder à mon Dashboard
+              </Button>
             </CardFooter>
           </Card>
         </div>

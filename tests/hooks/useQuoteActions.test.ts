@@ -188,24 +188,17 @@ describe('useQuoteActions', () => {
       } as Response);
 
       // Mock de window.URL et document.createElement pour les liens uniquement
-      const mockLink = {
-        href: '',
-        download: '',
-        click: vi.fn(),
-      };
-      
-      // Sauvegarder la fonction originale AVANT de créer le spy
+      // IMPORTANT: on retourne un VRAI <a> pour ne pas casser le rendu React (createRoot)
+      let lastLink: HTMLAnchorElement | null = null;
       const originalCreateElement = HTMLDocument.prototype.createElement;
-      const createElementSpy = vi.spyOn(document, 'createElement');
-      createElementSpy.mockImplementation((tagName, options) => {
+      vi.spyOn(document, 'createElement').mockImplementation((tagName: any, options: any) => {
+        const el = originalCreateElement.call(document, tagName, options) as any;
         if (tagName === 'a') {
-          return mockLink as any;
+          lastLink = el as HTMLAnchorElement;
+          vi.spyOn(lastLink, 'click').mockImplementation(() => {});
         }
-        // Utiliser la fonction originale pour éviter la récursion
-        return originalCreateElement.call(document, tagName, options);
+        return el;
       });
-      vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink as any);
-      vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink as any);
       global.URL.createObjectURL = vi.fn(() => 'blob:url');
       global.URL.revokeObjectURL = vi.fn();
 
@@ -218,7 +211,8 @@ describe('useQuoteActions', () => {
       expect(fetch).toHaveBeenCalledWith('/api/quotes/quote-123/download', {
         method: 'GET',
       });
-      expect(mockLink.click).toHaveBeenCalled();
+      expect(lastLink).toBeTruthy();
+      expect(vi.mocked(lastLink!.click)).toHaveBeenCalled();
     });
 
     it('devrait gérer l\'état isDownloading', async () => {
@@ -231,24 +225,14 @@ describe('useQuoteActions', () => {
       vi.mocked(fetch).mockReturnValueOnce(fetchPromise as Promise<Response>);
 
       // Mock de window.URL et document.createElement pour les liens uniquement
-      const mockLink = {
-        href: '',
-        download: '',
-        click: vi.fn(),
-      };
-      
-      // Sauvegarder la fonction originale AVANT de créer le spy
       const originalCreateElement = HTMLDocument.prototype.createElement;
-      const createElementSpy = vi.spyOn(document, 'createElement');
-      createElementSpy.mockImplementation((tagName, options) => {
+      vi.spyOn(document, 'createElement').mockImplementation((tagName: any, options: any) => {
+        const el = originalCreateElement.call(document, tagName, options) as any;
         if (tagName === 'a') {
-          return mockLink as any;
+          vi.spyOn(el as HTMLAnchorElement, 'click').mockImplementation(() => {});
         }
-        // Utiliser la fonction originale pour éviter la récursion
-        return originalCreateElement.call(document, tagName, options);
+        return el;
       });
-      vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockLink as any);
-      vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink as any);
       global.URL.createObjectURL = vi.fn(() => 'blob:url');
       global.URL.revokeObjectURL = vi.fn();
 
@@ -276,6 +260,152 @@ describe('useQuoteActions', () => {
       await waitFor(() => {
         expect(result.current.isDownloading).toBe(false);
       });
+    });
+  });
+
+  describe('rejectQuote', () => {
+    it('devrait rejeter un devis avec succès', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      } as Response);
+
+      const { result } = renderHook(() => useQuoteActions());
+
+      let rejectResult: boolean;
+      await act(async () => {
+        rejectResult = await result.current.rejectQuote('quote-123');
+      });
+
+      expect(rejectResult!).toBe(true);
+      expect(fetch).toHaveBeenCalledWith('/api/quotes/quote-123/reject', {
+        method: 'POST',
+      });
+    });
+
+    it('devrait gérer les erreurs de rejet', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Devis non trouvé' }),
+      } as Response);
+
+      const { result } = renderHook(() => useQuoteActions());
+
+      let rejectResult: boolean;
+      await act(async () => {
+        rejectResult = await result.current.rejectQuote('quote-123');
+      });
+
+      expect(rejectResult!).toBe(false);
+    });
+
+    it('devrait retourner false si l\'utilisateur annule', async () => {
+      vi.mocked(window.confirm).mockReturnValueOnce(false);
+
+      const { result } = renderHook(() => useQuoteActions());
+
+      let rejectResult: boolean;
+      await act(async () => {
+        rejectResult = await result.current.rejectQuote('quote-123');
+      });
+
+      expect(rejectResult!).toBe(false);
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('devrait gérer l\'état isRejecting', async () => {
+      let resolveFetch: (value: Response) => void;
+      const fetchPromise = new Promise<Response>((resolve) => {
+        resolveFetch = resolve;
+      });
+
+      vi.mocked(fetch).mockReturnValueOnce(fetchPromise as Promise<Response>);
+
+      const { result } = renderHook(() => useQuoteActions());
+
+      let rejectPromise: Promise<boolean>;
+      await act(async () => {
+        rejectPromise = result.current.rejectQuote('quote-123');
+      });
+
+      await waitFor(() => {
+        expect(result.current.isRejecting).toBe(true);
+      });
+
+      await act(async () => {
+        resolveFetch!({
+          ok: true,
+          json: async () => ({ success: true }),
+        } as Response);
+      });
+
+      await act(async () => {
+        await rejectPromise!;
+      });
+
+      await waitFor(() => {
+        expect(result.current.isRejecting).toBe(false);
+      });
+    });
+  });
+
+  describe('downloadQuote - gestion d\'erreurs', () => {
+    it('devrait gérer l\'erreur 404 lors du téléchargement', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as Response);
+
+      const { result } = renderHook(() => useQuoteActions());
+
+      await act(async () => {
+        await result.current.downloadQuote('quote-123');
+      });
+
+      expect(result.current.isDownloading).toBe(false);
+    });
+
+    it('devrait gérer l\'erreur 403 lors du téléchargement', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+      } as Response);
+
+      const { result } = renderHook(() => useQuoteActions());
+
+      await act(async () => {
+        await result.current.downloadQuote('quote-123');
+      });
+
+      expect(result.current.isDownloading).toBe(false);
+    });
+
+    it('devrait gérer les autres erreurs lors du téléchargement', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'Erreur serveur' }),
+      } as Response);
+
+      const { result } = renderHook(() => useQuoteActions());
+
+      await act(async () => {
+        await result.current.downloadQuote('quote-123');
+      });
+
+      expect(result.current.isDownloading).toBe(false);
+    });
+
+    it('devrait gérer les erreurs de réseau lors du téléchargement', async () => {
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
+
+      const { result } = renderHook(() => useQuoteActions());
+
+      await act(async () => {
+        await result.current.downloadQuote('quote-123');
+      });
+
+      expect(result.current.isDownloading).toBe(false);
     });
   });
 });

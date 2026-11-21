@@ -111,6 +111,11 @@ export async function PUT(request: NextRequest) {
         language: userData.preferences.language || 'fr',
         timezone: userData.preferences.timezone || 'Europe/Paris',
         notifications: userData.preferences.notifications !== false,
+        emailNotifications: userData.preferences.emailNotifications !== false,
+        smsNotifications: userData.preferences.smsNotifications === true,
+        ...(userData.preferences.notificationEmailByType && {
+          notificationEmailByType: userData.preferences.notificationEmailByType,
+        }),
       };
     }
 

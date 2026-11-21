@@ -11,6 +11,11 @@ export interface EmailOptions {
   from?: string;
   replyTo?: string;
   tags?: Array<{ name: string; value: string }>;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer | Uint8Array | string;
+    contentType?: string;
+  }>;
 }
 
 export interface EmailTemplate {
@@ -133,6 +138,11 @@ export interface EmailOptions {
   from?: string;
   replyTo?: string;
   tags?: Array<{ name: string; value: string }>;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer | Uint8Array | string;
+    contentType?: string;
+  }>;
 }
 
 export interface EmailTemplate {

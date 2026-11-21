@@ -22,39 +22,39 @@ import * as Sentry from '@sentry/nextjs';
 export interface ConfirmBookingPaymentInput {
   /** pi_… ou cs_… */
   proofId: string;
-  expectedAmount?: number;
-  expectedCurrency?: string;
-  acceptProcessing?: boolean;
+  expectedAmount?: number | undefined;
+  expectedCurrency?: string | undefined;
+  acceptProcessing?: boolean | undefined;
   /** Si fourni : charge et met à jour le Booking */
-  bookingId?: string;
+  bookingId?: string | undefined;
   /** Contexte email quand pas de booking (flux confirm-payment legacy) */
   emailContext?: {
-    requesterEmail?: string;
-    requesterName?: string;
-    serviceName?: string;
-    providerName?: string;
+    requesterEmail?: string | undefined;
+    requesterName?: string | undefined;
+    serviceName?: string | undefined;
+    providerName?: string | undefined;
     amount: number;
     currency: string;
-    formattedDate?: string;
-    contactEmail?: string;
+    formattedDate?: string | undefined;
+    contactEmail?: string | undefined;
   };
   /** Skip email (tests / déjà envoyé) */
-  skipEmail?: boolean;
+  skipEmail?: boolean | undefined;
 }
 
 export interface ConfirmBookingPaymentResult {
   success: boolean;
-  error?: string;
-  bookingId?: string;
-  reservationNumber?: string;
-  paymentIntentId?: string;
-  paymentStatus?: string;
-  emailSent?: boolean;
-  eventsEmitted?: boolean;
+  error?: string | undefined;
+  bookingId?: string | undefined;
+  reservationNumber?: string | undefined;
+  paymentIntentId?: string | undefined;
+  paymentStatus?: string | undefined;
+  emailSent?: boolean | undefined;
+  eventsEmitted?: boolean | undefined;
   /** True si déjà confirmé pour la même preuve (replay API↔webhook) */
-  idempotent?: boolean;
-  alreadyConfirmed?: boolean;
-  proof?: PaymentProofEvaluation;
+  idempotent?: boolean | undefined;
+  alreadyConfirmed?: boolean | undefined;
+  proof?: PaymentProofEvaluation | undefined;
 }
 
 export class ConfirmBookingPaymentService {

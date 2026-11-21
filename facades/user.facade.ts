@@ -13,9 +13,11 @@ import { Performance } from '@/lib/decorators/performance.decorator';
 import { Transaction } from '@/lib/decorators/transaction.decorator';
 import { Cacheable } from '@/lib/decorators/cache.decorator';
 import { logger } from '@/lib/logger';
-import { USER_STATUSES, KYC_STATUSES } from '@/lib/constants';
+import { LANGUAGES, USER_STATUSES, KYC_STATUSES, ROLES } from '@/lib/constants';
+import { notificationService } from '@/services/notification/notification.service';
 import { userService } from '@/services/user/user.service';
 import { userMapper } from '@/lib/mappers';
+import { cleanUrl } from '@/lib/utils';
 import { dispatchFacadeNotification } from '@/facades/_shared/dispatchNotification';
 import * as Sentry from '@sentry/nextjs';
 import type { UserFacadeData, UserFacadeResult, IFacade, FacadeOptions, User, UserRole, UserStatus, UserFilters, PaginationOptions, UserResponse } from '@/lib/types';
@@ -181,6 +183,60 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
           channels: ['EMAIL'],
           priority: 'NORMAL',
         });
+      }
+
+      // Planifier les rappels KYC (anti-spam: 3 emails max J+1, J+2, J+7)
+      // - uniquement si l'utilisateur est un CUSTOMER ou un PROVIDER
+      // - uniquement si le statut KYC est PENDING (pas de documents soumis)
+      try {
+        const roles = (user.roles || []) as string[];
+        const isCustomer = roles.includes(ROLES.CUSTOMER);
+        const isProvider = roles.includes(ROLES.PROVIDER);
+        const kycStatus = ((user as any).kycStatus as string | undefined) || KYC_STATUSES.PENDING;
+        const hasKycData = !!kycData;
+
+        if ((isCustomer || isProvider) && !hasKycData && kycStatus === KYC_STATUSES.PENDING) {
+          const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+          const dashboardUrl = `${baseUrl}/dashboard/notifications`;
+          const userName =
+            user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Bonjour';
+
+          const now = Date.now();
+          const reminderOffsetsDays = [1, 2, 7];
+          const reminderType = isProvider ? 'PROVIDER_KYC_REQUIRED_REMINDER' : 'KYC_REQUIRED_REMINDER';
+
+          await Promise.all(
+            reminderOffsetsDays.map((days, idx) =>
+              notificationService.sendNotification({
+                recipient: user.id || user._id?.toString() || '',
+                type: reminderType,
+                template: 'kyc_required_reminder',
+                data: {
+                  userName,
+                  dashboardUrl,
+                  supportEmail: 'support@diaspomoney.fr',
+                  requiredKycStatus: KYC_STATUSES.PENDING,
+                  reminderStep: idx + 1,
+                },
+                channels: [
+                  { type: 'EMAIL', enabled: true, priority: 'HIGH' },
+                  { type: 'IN_APP', enabled: true, priority: 'HIGH' },
+                ],
+                locale: LANGUAGES.FR.code,
+                priority: 'HIGH',
+                scheduledAt: new Date(now + days * 24 * 60 * 60 * 1000),
+                expiresAt: new Date(now + 30 * 24 * 60 * 60 * 1000),
+                userId: user.id || user._id?.toString() || '',
+              } as any),
+            ),
+          );
+        }
+      } catch (kycReminderError) {
+        // Ne pas faire échouer la création utilisateur si la planification échoue
+        logger.warn(
+          { error: kycReminderError, userId: user.id || user._id?.toString() },
+          'Failed to schedule KYC reminders',
+        );
       }
 
       logger.info(

@@ -4,7 +4,7 @@ import AuthGuard from '@/components/auth/AuthGuard';
 import Footer from '@/components/layout/footer/Footer';
 import DashboardHeader from '@/components/layout/header/DashboardHeader';
 import Sidebar from '@/components/layout/Sidebar';
-import { SidebarProvider } from '@/components/layout/SidebarContext';
+import { SidebarProvider } from '@/contexts/SidebarContext';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 
 export default function DashboardLayout({

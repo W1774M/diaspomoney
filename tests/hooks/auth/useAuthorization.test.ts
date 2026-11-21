@@ -501,6 +501,52 @@ describe('useAuthorization', () => {
 
       expect(result.current).toBe(false);
     });
+
+    it('devrait gérer user.roles undefined', () => {
+      mockUseAuth.mockReturnValue({
+        user: {
+          id: 'user123',
+          roles: undefined,
+        },
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
+      const { result } = renderHook(() => useAuthorization({ roles: [ROLES.ADMIN] }));
+
+      expect(result.current.isAuthorized).toBe(false);
+      expect(result.current.reason).toBe('insufficient_roles');
+    });
+
+    it('devrait gérer user null dans useHasRole', () => {
+      mockUseAuth.mockReturnValue({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+
+      const { result } = renderHook(() => useHasRole(ROLES.ADMIN));
+
+      expect(result.current).toBe(false);
+    });
+
+    it('devrait gérer user avec permissions undefined', () => {
+      mockUseAuth.mockReturnValue({
+        user: {
+          id: 'user123',
+          roles: [ROLES.CUSTOMER],
+          // permissions n'est pas défini
+        },
+        isAuthenticated: true,
+        isLoading: false,
+      });
+
+      // Le code utilise (user as any).permissions || [] pour couvrir la ligne 192
+      const { result } = renderHook(() => useHasPermission('users:read'));
+
+      // user.permissions est undefined, donc userPermissions sera []
+      expect(result.current).toBe(false);
+    });
   });
 });
 

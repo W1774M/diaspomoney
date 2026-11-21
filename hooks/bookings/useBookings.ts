@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 export type Booking = BookingResponse;
 
 export interface UseBookingsOptions {
+  enabled?: boolean | undefined;
   userId?: string | undefined;
   providerId?: string | undefined;
   status?: string | undefined;
@@ -16,6 +17,7 @@ export interface UseBookingsOptions {
   sortBy?: string | undefined;
   sortOrder?: 'asc' | 'desc' | undefined;
   viewMode?: 'customer' | 'provider' | undefined;
+  roleFilter?: string | undefined; // 'ALL', 'ADMIN', 'CSM', 'PROVIDER', 'CUSTOMER'
 }
 
 export interface UseBookingsReturn {
@@ -41,6 +43,14 @@ export const useBookings = (
   const memoizedOptions = useMemo(() => options, [optionsString]);
 
   const fetchBookings = useCallback(async () => {
+    if (memoizedOptions.enabled === false) {
+      setIsLoading(false);
+      setError(null);
+      setBookings([]);
+      setTotal(0);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -65,6 +75,8 @@ export const useBookings = (
         searchParams.append('sortOrder', memoizedOptions.sortOrder);
       if (memoizedOptions.viewMode)
         searchParams.append('viewMode', memoizedOptions.viewMode);
+      if (memoizedOptions.roleFilter)
+        searchParams.append('roleFilter', memoizedOptions.roleFilter);
 
       const data = await fetchJson<{
         success?: boolean;

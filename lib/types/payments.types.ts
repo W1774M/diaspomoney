@@ -113,15 +113,15 @@ export interface StripePaymentMethod {
  */
 export interface PaymentResult {
   success: boolean;
-  transactionId?: string;
-  paymentIntentId?: string;
-  clientSecret?: string;
-  error?: string;
-  requiresAction?: boolean;
+  transactionId?: string | undefined;
+  paymentIntentId?: string | undefined;
+  clientSecret?: string | undefined;
+  error?: string | undefined;
+  requiresAction?: boolean | undefined;
   nextAction?: {
     type: string;
-    url?: string;
-    data?: any;
+    url?: string | undefined;
+    data?: any | undefined;
   };
   metadata?: Record<string, any>;
 }

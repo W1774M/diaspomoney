@@ -256,7 +256,7 @@ authEvents.onUserLoggedIn((data) => {
 - `BOOKING_CREATED`
 - `BOOKING_CONFIRMED`
 - `BOOKING_CANCELLED`
-- `BOOKING_COMPLETED`
+- `BOOKING_FINISHED`
 - `BOOKING_REMINDER`
 
 ### Et plus...

@@ -24,7 +24,7 @@ import { z } from 'zod';
 export type QuoteSector = 'BTP' | 'EDUCATION';
 
 export interface QuoteFacadeCreateData {
-  clientId?: string;
+  clientId?: string | undefined;
   sector: QuoteSector;
   /** Email de contact (sinon dérivé de `contact.email`) */
   contactEmail?: string;

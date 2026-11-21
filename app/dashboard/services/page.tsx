@@ -6,6 +6,10 @@ import { SPECIALITY_TYPES, ROLES } from '@/lib/constants';
 import { useNotificationManager } from '@/components/ui/Notification';
 import { AuthorizedRoute } from '@/components/auth';
 import { childLogger } from '@/lib/logger';
+import ServiceFormModal from './_components/modals/ServiceFormModal';
+import OptionFormModal from './_components/modals/OptionFormModal';
+import PackFormModal from './_components/modals/PackFormModal';
+import Pagination from '@/components/bookings/Pagination';
 import { 
   Settings2, 
   Plus, 
@@ -19,11 +23,66 @@ import {
   Link2,
   X,
   Ticket,
+  Layers,
+  Star,
 } from 'lucide-react';
-import { useEffect, useState, useMemo, FormEvent } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 // Créer un logger avec contexte pour ce composant
 const logger = childLogger({ component: 'ServicesManagementPage' });
+
+const SERVICES_PAGE_SIZE = 6;
+
+type ActiveTab = 'services' | 'options' | 'associations' | 'promotion-codes' | 'packs';
+
+// Helpers UI (catégories)
+const getCategoryIcon = (category?: string) => {
+  if (!category) return Package;
+  switch (category) {
+    case SPECIALITY_TYPES.HEALTH:
+      return Heart;
+    case SPECIALITY_TYPES.EDUCATION:
+      return GraduationCap;
+    case SPECIALITY_TYPES.BTP:
+      return Home;
+    default:
+      return Settings2;
+  }
+};
+
+const getCategoryLabel = (category?: string) => {
+  if (!category) return 'Multi-catégories';
+  switch (category) {
+    case SPECIALITY_TYPES.HEALTH:
+      return 'Santé';
+    case SPECIALITY_TYPES.EDUCATION:
+      return 'Éducation';
+    case SPECIALITY_TYPES.BTP:
+      return 'Immobilier & BTP';
+    default:
+      return category;
+  }
+};
+
+/** Segment d’URL pour GET/PUT/DELETE /api/services/… : MongoDB _id si présent (fiable), sinon id métier */
+function getServiceApiSegment(service: Pick<Service, 'id' | '_id'>): string {
+  const raw = service._id || service.id;
+  return encodeURIComponent(raw);
+}
+
+const getCategoryColor = (category?: string) => {
+  if (!category) return 'bg-gray-100 text-gray-800';
+  switch (category) {
+    case SPECIALITY_TYPES.HEALTH:
+      return 'bg-emerald-100 text-emerald-800';
+    case SPECIALITY_TYPES.EDUCATION:
+      return 'bg-blue-100 text-blue-800';
+    case SPECIALITY_TYPES.BTP:
+      return 'bg-amber-100 text-amber-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
 
 /**
  * Page de gestion des services
@@ -36,11 +95,17 @@ const logger = childLogger({ component: 'ServicesManagementPage' });
 function ServicesManagementPageContent() {
   const { user } = useAuth();
   const notificationManager = useNotificationManager();
+
+  // UI: onglets + filtres
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'services' | 'options' | 'associations' | 'promotion-codes'>('services');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('services');
+
+  // UI: sélections
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedOption, setSelectedOption] = useState<ServiceOption | null>(null);
+
+  // UI: modals (services/options)
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [showOptionForm, setShowOptionForm] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -59,6 +124,15 @@ function ServicesManagementPageContent() {
     validUntil: '',
     maxUsage: '',
   });
+
+  // États pour les packs (groupes de services)
+  const [packs, setPacks] = useState<any[]>([]);
+  const [loadingPacks, setLoadingPacks] = useState(false);
+  const [showPackForm, setShowPackForm] = useState(false);
+  const [editingPack, setEditingPack] = useState<any | null>(null);
+  const [packSearchTerm, setPackSearchTerm] = useState('');
+  const [packCategoryFilter, setPackCategoryFilter] = useState<string>('');
+  const [servicesPage, setServicesPage] = useState(1);
 
   // Mémoriser le statut admin basé sur les rôles de l'utilisateur
   const isAdminValue = useMemo(() => {
@@ -97,6 +171,14 @@ function ServicesManagementPageContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isAdminValue]);
 
+  // Charger les packs
+  useEffect(() => {
+    if (activeTab === 'packs' && isAdminValue) {
+      fetchPacks();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, isAdminValue]);
+
   const fetchPromotionCodes = async () => {
     setLoadingCodes(true);
     try {
@@ -115,6 +197,29 @@ function ServicesManagementPageContent() {
     }
   };
 
+  const fetchPacks = async () => {
+    setLoadingPacks(true);
+    try {
+      const response = await fetch('/api/packs', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      const data = await response.json();
+      if (data.success) {
+        setPacks(Array.isArray(data.data) ? data.data : []);
+      } else {
+        notificationManager.addError(data.error || 'Erreur lors du chargement des packs');
+      }
+    } catch (error) {
+      logger.error({ error }, 'Error fetching packs');
+      notificationManager.addError('Erreur lors du chargement des packs');
+    } finally {
+      setLoadingPacks(false);
+    }
+  };
+
   // Filtrer les services
   const filteredServices = useMemo(() => {
     return services.filter(service => {
@@ -129,50 +234,43 @@ function ServicesManagementPageContent() {
     });
   }, [services, searchTerm, categoryFilter]);
 
-  // Icône selon la catégorie
-  const getCategoryIcon = (category?: string) => {
-    if (!category) return Package;
-    switch (category) {
-      case SPECIALITY_TYPES.HEALTH:
-        return Heart;
-      case SPECIALITY_TYPES.EDUCATION:
-        return GraduationCap;
-      case SPECIALITY_TYPES.BTP:
-        return Home;
-      default:
-        return Settings2;
+  useEffect(() => {
+    setServicesPage(1);
+  }, [searchTerm, categoryFilter]);
+
+  const servicesTotalPages =
+    filteredServices.length === 0
+      ? 1
+      : Math.ceil(filteredServices.length / SERVICES_PAGE_SIZE);
+  const safeServicesPage = Math.min(
+    Math.max(1, servicesPage),
+    servicesTotalPages,
+  );
+  const paginatedServices = filteredServices.slice(
+    (safeServicesPage - 1) * SERVICES_PAGE_SIZE,
+    safeServicesPage * SERVICES_PAGE_SIZE,
+  );
+
+  const handleServicesPageChange = (page: number) => {
+    setServicesPage(page);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  // Label de catégorie
-  const getCategoryLabel = (category?: string) => {
-    if (!category) return 'Multi-catégories';
-    switch (category) {
-      case SPECIALITY_TYPES.HEALTH:
-        return 'Santé';
-      case SPECIALITY_TYPES.EDUCATION:
-        return 'Éducation';
-      case SPECIALITY_TYPES.BTP:
-        return 'Immobilier & BTP';
-      default:
-        return category;
-    }
-  };
-
-  // Couleur de catégorie
-  const getCategoryColor = (category?: string) => {
-    if (!category) return 'bg-gray-100 text-gray-800';
-    switch (category) {
-      case SPECIALITY_TYPES.HEALTH:
-        return 'bg-emerald-100 text-emerald-800';
-      case SPECIALITY_TYPES.EDUCATION:
-        return 'bg-blue-100 text-blue-800';
-      case SPECIALITY_TYPES.BTP:
-        return 'bg-amber-100 text-amber-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // Filtrer les packs
+  const filteredPacks = useMemo(() => {
+    const term = (packSearchTerm || '').trim().toLowerCase();
+    return packs.filter((p: any) => {
+      const matchesSearch =
+        !term ||
+        String(p.label || '').toLowerCase().includes(term) ||
+        String(p.description || '').toLowerCase().includes(term) ||
+        String(p.id || '').toLowerCase().includes(term);
+      const matchesCategory = !packCategoryFilter || p.category === packCategoryFilter;
+      return matchesSearch && matchesCategory;
+    });
+  }, [packs, packSearchTerm, packCategoryFilter]);
 
   // Obtenir les options associées à un service
   const getServiceOptions = (serviceId: string) => {
@@ -260,6 +358,7 @@ function ServicesManagementPageContent() {
     description: string;
     price: number;
     isActive: boolean;
+    important: boolean;
     metadata?: Record<string, any>;
     associatedOptions?: string[];
   }) => {
@@ -286,7 +385,7 @@ function ServicesManagementPageContent() {
       }, '[ServiceForm] Soumission du service');
 
       const url = editingService 
-        ? `/api/services/${editingService.id}`
+        ? `/api/services/${getServiceApiSegment(editingService)}`
         : '/api/services';
       
       const method = editingService ? 'PUT' : 'POST';
@@ -380,7 +479,7 @@ function ServicesManagementPageContent() {
   };
 
   // Supprimer un service
-  const handleDeleteService = async (serviceId: string) => {
+  const handleDeleteService = async (service: Service) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce service ? Cette action est irréversible.')) {
       return;
     }
@@ -392,7 +491,7 @@ function ServicesManagementPageContent() {
     }
 
     try {
-      const response = await fetch(`/api/services/${serviceId}`, {
+      const response = await fetch(`/api/services/${getServiceApiSegment(service)}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -418,6 +517,72 @@ function ServicesManagementPageContent() {
   const handleCreateOption = () => {
     setEditingOption(null);
     setShowOptionForm(true);
+  };
+
+  // Packs
+  const handleCreatePack = () => {
+    setEditingPack(null);
+    setShowPackForm(true);
+  };
+
+  const handleEditPack = (pack: any) => {
+    setEditingPack(pack);
+    setShowPackForm(true);
+  };
+
+  const handleDeletePack = async (packId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce pack ? Cette action est irréversible.')) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/packs/${encodeURIComponent(packId)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Erreur lors de la suppression');
+      }
+      notificationManager.addSuccess('Pack supprimé avec succès');
+      fetchPacks();
+    } catch (error: any) {
+      notificationManager.addError(error.message || 'Erreur lors de la suppression');
+    }
+  };
+
+  const handleSubmitPack = async (payload: {
+    label: string;
+    description?: string;
+    category: string;
+    serviceIds: string[];
+    isActive: boolean;
+  }) => {
+    setIsSubmitting(true);
+    try {
+      const url = editingPack ? `/api/packs/${editingPack.id || editingPack._id}` : '/api/packs';
+      const method = editingPack ? 'PATCH' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.message || `Erreur HTTP: ${response.status}`);
+      }
+
+      notificationManager.addSuccess(editingPack ? 'Pack modifié avec succès' : 'Pack créé avec succès');
+      setShowPackForm(false);
+      setEditingPack(null);
+      fetchPacks();
+    } catch (error: any) {
+      notificationManager.addError(error.message || "Erreur lors de l'opération");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Ouvrir le formulaire de modification d'option
@@ -561,6 +726,15 @@ function ServicesManagementPageContent() {
               Nouvelle option
             </button>
           )}
+          {activeTab === 'packs' && (
+            <button
+              onClick={handleCreatePack}
+              className="flex items-center gap-2 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+              Nouveau pack
+            </button>
+          )}
         </div>
       </div>
 
@@ -619,6 +793,19 @@ function ServicesManagementPageContent() {
               Codes promotionnels
             </div>
           </button>
+          <button
+            onClick={() => setActiveTab('packs')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'packs'
+                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Layers className="h-5 w-5" />
+              Packs ({packs.length})
+            </div>
+          </button>
         </nav>
       </div>
 
@@ -668,8 +855,17 @@ function ServicesManagementPageContent() {
             <p className="text-gray-500">Aucun service trouvé</p>
           </div>
         ) : (
+          <>
+          <Pagination
+            currentPage={safeServicesPage}
+            totalPages={servicesTotalPages}
+            totalItems={filteredServices.length}
+            itemsPerPage={SERVICES_PAGE_SIZE}
+            onPageChange={handleServicesPageChange}
+            placement="top"
+          />
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -681,26 +877,37 @@ function ServicesManagementPageContent() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Prix
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="sticky right-0 z-20 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-l border-gray-200 shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.08)]">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredServices.map((service) => {
+                {paginatedServices.map((service) => {
                   const CategoryIcon = getCategoryIcon(service.category);
                   return (
-                    <tr key={service.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
+                    <tr
+                      key={service.id}
+                      className={`group hover:bg-gray-50 ${
+                        service.important ? 'bg-amber-50/70 ring-1 ring-inset ring-amber-200' : ''
+                      }`}
+                    >
+                      <td className="px-6 py-4 max-w-md align-top">
+                        <div className="flex items-start">
                           <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg bg-gray-100">
                             <CategoryIcon className="h-5 w-5 text-gray-600" />
                           </div>
-                          <div className="ml-4">
+                          <div className="ml-4 min-w-0">
                             <div className="text-sm font-medium text-gray-900">
                               {service.label}
                             </div>
-                            <div className="text-sm text-gray-500">
+                            {service.important && (
+                              <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                                <Star className="h-3 w-3 fill-current" aria-hidden />
+                                Important
+                              </span>
+                            )}
+                            <div className="text-sm text-gray-500 line-clamp-2" title={service.description}>
                               {service.description}
                             </div>
                           </div>
@@ -718,29 +925,36 @@ function ServicesManagementPageContent() {
                           <span className="font-medium">{service.price} €</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td
+                        className={`sticky right-0 z-10 px-6 py-4 whitespace-nowrap text-right text-sm font-medium border-l border-gray-200 shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.08)] group-hover:bg-gray-50 ${
+                          service.important ? 'bg-amber-50' : 'bg-white'
+                        }`}
+                      >
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => {
                               setSelectedService(service);
                               setActiveTab('associations');
                             }}
-                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                            className="rounded-md p-1.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900 transition-colors"
                             title="Gérer les options"
+                            type="button"
                           >
                             <Link2 className="h-5 w-5" />
                           </button>
                           <button
                             onClick={() => handleEditService(service)}
-                            className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] transition-colors"
+                            className="rounded-md p-1.5 text-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,95%)] hover:text-[hsl(25,90%,48%)] transition-colors"
                             title="Modifier"
+                            type="button"
                           >
                             <Edit className="h-5 w-5" />
                           </button>
                           <button
-                            onClick={() => handleDeleteService(service.id)}
-                            className="text-red-600 hover:text-red-900 transition-colors"
+                            onClick={() => handleDeleteService(service)}
+                            className="rounded-md p-1.5 text-red-600 hover:bg-red-50 hover:text-red-900 transition-colors"
                             title="Supprimer"
+                            type="button"
                           >
                             <Trash2 className="h-5 w-5" />
                           </button>
@@ -752,6 +966,14 @@ function ServicesManagementPageContent() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={safeServicesPage}
+            totalPages={servicesTotalPages}
+            totalItems={filteredServices.length}
+            itemsPerPage={SERVICES_PAGE_SIZE}
+            onPageChange={handleServicesPageChange}
+          />
+          </>
         )}
       </div>
 
@@ -1052,8 +1274,8 @@ function ServicesManagementPageContent() {
       {/* Onglet Codes promotionnels */}
       {activeTab === 'promotion-codes' && (
         <div className="space-y-6">
-          {/* En-tête avec bouton d'ajout */}
-          <div className="flex justify-between items-center">
+          {/* En-tête avec bouton d'ajout - responsive */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Codes promotionnels</h2>
               <p className="text-gray-600 mt-1">Gérez les codes de réduction pour les services</p>
@@ -1070,7 +1292,7 @@ function ServicesManagementPageContent() {
                 });
                 setShowPromotionCodeForm(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors"
+              className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors min-h-[44px] shrink-0"
             >
               <Plus className="h-5 w-5" />
               Nouveau code
@@ -1089,89 +1311,299 @@ function ServicesManagementPageContent() {
               <p className="text-gray-500">Aucun code promotionnel</p>
             </div>
           ) : (
+            <>
+              {/* Vue cartes - mobile uniquement (tactile, actions visibles) */}
+              <div className="md:hidden space-y-4">
+                {promotionCodes.map((code: any) => {
+                  const now = new Date();
+                  const validUntil = code.validUntil ? new Date(code.validUntil) : new Date(0);
+                  const isValid = code.calculatedStatus === 'valid' || 
+                    (code.status === 'valid' && validUntil >= now && (!code.maxUsage || code.usageCount < code.maxUsage));
+                  const statusColor = isValid ? 'bg-green-100 text-green-800' : 
+                    code.calculatedStatus === 'expired' ? 'bg-red-100 text-red-800' : 
+                    'bg-gray-100 text-gray-800';
+                  return (
+                    <div key={code._id} className="bg-white rounded-lg shadow border border-gray-200 p-4 flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-base font-semibold text-gray-900 truncate">{code.label}</div>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-sm font-medium text-gray-700">{code.percentage}%</span>
+                            <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${statusColor}`}>
+                              {isValid ? 'Valide' : code.calculatedStatus === 'expired' ? 'Expiré' : 'Invalide'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium text-gray-500">Validité : </span>
+                        {code.validFrom ? new Date(code.validFrom).toLocaleDateString('fr-FR') : 'N/A'} – {code.validUntil ? new Date(code.validUntil).toLocaleDateString('fr-FR') : 'N/A'}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium text-gray-500">Usage : </span>
+                        {code.usageCount} {code.maxUsage ? `/ ${code.maxUsage}` : '(illimité)'}
+                      </div>
+                      <div className="flex gap-2 pt-2 border-t border-gray-100">
+                        <button
+                          onClick={() => {
+                            setEditingPromotionCode(code);
+                            setPromotionCodeFormData({
+                              label: code.label || '',
+                              percentage: code.percentage || 10,
+                              validFrom: code.validFrom ? new Date(code.validFrom).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                              validUntil: code.validUntil ? new Date(code.validUntil).toISOString().split('T')[0] as string : '',
+                              maxUsage: code.maxUsage?.toString() || '',
+                            });
+                            setShowPromotionCodeForm(true);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)] font-medium min-h-[44px] active:bg-[hsl(25,100%,95%)]"
+                          type="button"
+                        >
+                          <Edit className="h-5 w-5 shrink-0" />
+                          Modifier
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm('Êtes-vous sûr de vouloir supprimer ce code ?')) {
+                              return;
+                            }
+                            try {
+                              const response = await fetch(`/api/promotion-codes/${encodeURIComponent(code._id)}`, {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                              });
+                              const data = await response.json();
+                              if (!response.ok || !data.success) {
+                                throw new Error(data.error || data.message || 'Erreur lors de la suppression');
+                              }
+                              notificationManager.addSuccess('Code promotionnel supprimé');
+                              fetchPromotionCodes();
+                            } catch (error: any) {
+                              notificationManager.addError(error.message || 'Erreur lors de la suppression');
+                            }
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 border-red-500 text-red-600 font-medium min-h-[44px] active:bg-red-50"
+                          type="button"
+                        >
+                          <Trash2 className="h-5 w-5 shrink-0" />
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Vue tableau - desktop */}
+              <div className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
+                <table className="w-full min-w-[640px]">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Réduction</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validité</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {promotionCodes.map((code: any) => {
+                      const now = new Date();
+                      const validUntil = code.validUntil ? new Date(code.validUntil) : new Date(0);
+                      const isValid = code.calculatedStatus === 'valid' || 
+                        (code.status === 'valid' && validUntil >= now && (!code.maxUsage || code.usageCount < code.maxUsage));
+                      const statusColor = isValid ? 'bg-green-100 text-green-800' : 
+                        code.calculatedStatus === 'expired' ? 'bg-red-100 text-red-800' : 
+                        'bg-gray-100 text-gray-800';
+                      return (
+                        <tr key={code._id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{code.label}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{code.percentage}%</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {code.validFrom ? new Date(code.validFrom).toLocaleDateString('fr-FR') : 'N/A'} - {code.validUntil ? new Date(code.validUntil).toLocaleDateString('fr-FR') : 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {code.usageCount} {code.maxUsage ? `/ ${code.maxUsage}` : '(illimité)'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}`}>
+                              {isValid ? 'Valide' : code.calculatedStatus === 'expired' ? 'Expiré' : 'Invalide'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingPromotionCode(code);
+                                  setPromotionCodeFormData({
+                                    label: code.label || '',
+                                    percentage: code.percentage || 10,
+                                    validFrom: code.validFrom ? new Date(code.validFrom).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                                    validUntil: code.validUntil ? new Date(code.validUntil).toISOString().split('T')[0] as string : '',
+                                    maxUsage: code.maxUsage?.toString() || '',
+                                  });
+                                  setShowPromotionCodeForm(true);
+                                }}
+                                className="p-2 rounded-lg text-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,95%)] hover:text-[hsl(25,90%,48%)]"
+                                type="button"
+                                title="Modifier"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (!confirm('Êtes-vous sûr de vouloir supprimer ce code ?')) {
+                                    return;
+                                  }
+                                  try {
+                                    const response = await fetch(`/api/promotion-codes/${encodeURIComponent(code._id)}`, {
+                                      method: 'DELETE',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      credentials: 'include',
+                                    });
+                                    const data = await response.json();
+                                    if (!response.ok || !data.success) {
+                                      throw new Error(data.error || data.message || 'Erreur lors de la suppression');
+                                    }
+                                    notificationManager.addSuccess('Code promotionnel supprimé');
+                                    fetchPromotionCodes();
+                                  } catch (error: any) {
+                                    notificationManager.addError(error.message || 'Erreur lors de la suppression');
+                                  }
+                                }}
+                                className="p-2 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-900"
+                                type="button"
+                                title="Supprimer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Onglet Packs */}
+      {activeTab === 'packs' && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Packs</h2>
+              <p className="text-gray-600 mt-1">Créez des packs (groupes de services) par catégorie</p>
+            </div>
+          </div>
+
+          {/* Filtres */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher un pack..."
+                  value={packSearchTerm}
+                  onChange={(e) => setPackSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                />
+              </div>
+
+              <select
+                value={packCategoryFilter}
+                onChange={(e) => setPackCategoryFilter(e.target.value)}
+                title="Filtrer par catégorie"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+              >
+                <option value="">Toutes les catégories</option>
+                <option value={SPECIALITY_TYPES.HEALTH}>Santé</option>
+                <option value={SPECIALITY_TYPES.EDUCATION}>Éducation</option>
+                <option value={SPECIALITY_TYPES.BTP}>Immobilier & BTP</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Liste */}
+          {loadingPacks ? (
+            <div className="p-12 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
+              <p className="mt-4 text-gray-600">Chargement des packs...</p>
+            </div>
+          ) : filteredPacks.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-lg shadow">
+              <Layers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Aucun pack</p>
+            </div>
+          ) : (
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Réduction</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validité</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pack</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Services</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {promotionCodes.map((code: any) => {
-                    const now = new Date();
-                    const validUntil = code.validUntil ? new Date(code.validUntil) : new Date(0);
-                    const isValid = code.calculatedStatus === 'valid' || 
-                      (code.status === 'valid' && validUntil >= now && (!code.maxUsage || code.usageCount < code.maxUsage));
-                    const statusColor = isValid ? 'bg-green-100 text-green-800' : 
-                      code.calculatedStatus === 'expired' ? 'bg-red-100 text-red-800' : 
-                      'bg-gray-100 text-gray-800';
-                    
+                  {filteredPacks.map((pack: any) => {
+                    const isActive = pack.isActive !== false;
+                    const statusColor = isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
                     return (
-                      <tr key={code._id} className="hover:bg-gray-50">
+                      <tr key={pack._id || pack.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{code.label}</div>
+                          <div className="text-sm font-medium text-gray-900">{pack.label}</div>
+                          <div className="text-xs text-gray-500">ID: {pack.id}</div>
+                          {pack.description && (
+                            <div className="text-xs text-gray-500 max-w-xl truncate">{pack.description}</div>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{code.percentage}%</div>
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getCategoryColor(pack.category)}`}>
+                            {getCategoryLabel(pack.category)}
+                          </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {code.validFrom ? new Date(code.validFrom).toLocaleDateString('fr-FR') : 'N/A'} - {code.validUntil ? new Date(code.validUntil).toLocaleDateString('fr-FR') : 'N/A'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {code.usageCount} {code.maxUsage ? `/ ${code.maxUsage}` : '(illimité)'}
+                            {Array.isArray(pack.serviceIds) ? pack.serviceIds.length : 0}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}`}>
-                            {isValid ? 'Valide' : code.calculatedStatus === 'expired' ? 'Expiré' : 'Invalide'}
+                            {isActive ? 'Actif' : 'Inactif'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-2">
                             <button
-                              onClick={() => {
-                                setEditingPromotionCode(code);
-                                setPromotionCodeFormData({
-                                  label: code.label || '',
-                                  percentage: code.percentage || 10,
-                                  validFrom: code.validFrom ? new Date(code.validFrom).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                                  validUntil: code.validUntil ? new Date(code.validUntil).toISOString().split('T')[0] as string : '',
-                                  maxUsage: code.maxUsage?.toString() || '',
-                                });
-                                setShowPromotionCodeForm(true);
-                              }}
+                              onClick={() => handleEditPack(pack)}
                               className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]"
+                              type="button"
+                              title="Modifier"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={async () => {
-                                if (confirm('Êtes-vous sûr de vouloir supprimer ce code ?')) {
-                                  try {
-                                    const response = await fetch(`/api/promotion-codes/${code._id}`, {
-                                      method: 'DELETE',
-                                    });
-                                    const data = await response.json();
-                                    if (data.success) {
-                                      notificationManager.addSuccess('Code promotionnel supprimé');
-                                      fetchPromotionCodes();
-                                    } else {
-                                      notificationManager.addError(data.error || 'Erreur lors de la suppression');
-                                    }
-                                  } catch (error) {
-                                    notificationManager.addError('Erreur lors de la suppression');
-                                  }
-                                }
-                              }}
+                              onClick={() => handleDeletePack(pack.id || pack._id)}
                               className="text-red-600 hover:text-red-900"
+                              type="button"
+                              title="Supprimer"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -1265,7 +1697,7 @@ function ServicesManagementPageContent() {
                       notificationManager.addSuccess(
                         editingPromotionCode 
                           ? 'Code promotionnel modifié avec succès'
-                          : 'Code promotionnel créé avec succès'
+                          : 'Code promotionnel créé avec succès',
                       );
                       setShowPromotionCodeForm(false);
                       setEditingPromotionCode(null);
@@ -1406,6 +1838,20 @@ function ServicesManagementPageContent() {
           </div>
         </div>
       )}
+
+      {/* Modal de formulaire pour créer/modifier un pack */}
+      {showPackForm && (
+        <PackFormModal
+          pack={editingPack}
+          services={services}
+          onSave={handleSubmitPack}
+          onCancel={() => {
+            setShowPackForm(false);
+            setEditingPack(null);
+          }}
+          isSubmitting={isSubmitting}
+        />
+      )}
     </div>
   );
 }
@@ -1419,406 +1865,5 @@ export default function ServicesManagementPage() {
     <AuthorizedRoute roles={[ROLES.ADMIN]} redirectTo="/dashboard">
       <ServicesManagementPageContent />
     </AuthorizedRoute>
-  );
-}
-
-/**
- * Composant modal de formulaire pour créer/modifier un service
- * Implémente les design patterns :
- * - Form Pattern (formulaire contrôlé)
- * - Modal Pattern (overlay avec formulaire)
- */
-interface ServiceFormModalProps {
-  service: Service | null;
-  onSave: (data: {
-    id: string;
-    category: string;
-    label: string;
-    description: string;
-    price: number;
-    isActive: boolean;
-    metadata?: Record<string, any>;
-    associatedOptions?: string[];
-  }) => Promise<void>;
-  onCancel: () => void;
-  isSubmitting: boolean;
-}
-
-function ServiceFormModal({ service, onSave, onCancel, isSubmitting }: ServiceFormModalProps) {
-  const [formData, setFormData] = useState({
-    id: service?.id || '',
-    category: service?.category || SPECIALITY_TYPES.HEALTH,
-    label: service?.label || '',
-    description: service?.description || '',
-    price: service?.price || 0,
-    isActive: (service as any)?.isActive ?? true,
-    metadata: (service as any)?.metadata || {},
-    associatedOptions: (service as any)?.associatedOptions || [],
-  });
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!formData.id.trim()) {
-      alert('L\'ID du service est requis');
-      return;
-    }
-    if (!formData.label.trim()) {
-      alert('Le libellé est requis');
-      return;
-    }
-    if (!formData.description.trim()) {
-      alert('La description est requise');
-      return;
-    }
-    if (formData.price < 0) {
-      alert('Le prix doit être positif');
-      return;
-    }
-
-    await onSave(formData);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {service ? 'Modifier le service' : 'Créer un nouveau service'}
-            </h2>
-            <button
-              onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              type="button"
-              title="Fermer"
-              aria-label="Fermer le formulaire"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* ID du service */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              ID du service <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.id}
-              onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-              disabled={!!service} // L'ID ne peut pas être modifié
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-              placeholder="ex: consultation-general"
-              required
-            />
-            {service && (
-              <p className="mt-1 text-xs text-gray-500">L'ID ne peut pas être modifié</p>
-            )}
-          </div>
-
-          {/* Catégorie */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Catégorie <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-              required
-              title="Catégorie du service"
-              aria-label="Catégorie du service"
-            >
-              <option value={SPECIALITY_TYPES.HEALTH}>Santé</option>
-              <option value={SPECIALITY_TYPES.EDUCATION}>Éducation</option>
-              <option value={SPECIALITY_TYPES.BTP}>Immobilier & BTP</option>
-            </select>
-          </div>
-
-          {/* Libellé */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Libellé <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.label}
-              onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-              placeholder="ex: Consultation générale"
-              required
-              maxLength={200}
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-              placeholder="Description du service..."
-              rows={4}
-              required
-              maxLength={1000}
-            />
-          </div>
-
-          {/* Prix */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Prix (€) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-              placeholder="0"
-              min="0"
-              step="0.01"
-              required
-            />
-            {formData.price === 0 && (
-              <p className="mt-1 text-xs text-gray-500">0€ = Sur devis</p>
-            )}
-          </div>
-
-          {/* Statut actif */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="isActive"
-              checked={formData.isActive}
-              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
-            />
-            <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
-              Service actif (visible pour les utilisateurs)
-            </label>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSubmitting}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Enregistrement...</span>
-                </>
-              ) : (
-                <span>{service ? 'Modifier' : 'Créer'}</span>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Composant modal de formulaire pour créer/modifier une option
- * Implémente les design patterns :
- * - Form Pattern (formulaire contrôlé)
- * - Modal Pattern (overlay avec formulaire)
- */
-interface OptionFormModalProps {
-  option: ServiceOption | null;
-  onSave: (data: {
-    label: string;
-    description: string;
-    price: number;
-    optional: boolean;
-    isActive: boolean;
-    metadata?: Record<string, any>;
-  }) => Promise<void>;
-  onCancel: () => void;
-  isSubmitting: boolean;
-}
-
-function OptionFormModal({ option, onSave, onCancel, isSubmitting }: OptionFormModalProps) {
-  const [formData, setFormData] = useState({
-    label: option?.label || '',
-    description: option?.description || '',
-    price: option?.price || 0,
-    optional: option?.optional ?? true,
-    isActive: (option as any)?.isActive ?? true,
-    metadata: (option as any)?.metadata || {},
-  });
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!formData.label.trim()) {
-      alert('Le libellé est requis');
-      return;
-    }
-    if (!formData.description.trim()) {
-      alert('La description est requise');
-      return;
-    }
-    if (formData.price < 0) {
-      alert('Le prix doit être positif');
-      return;
-    }
-
-    await onSave(formData);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {option ? 'Modifier l\'option' : 'Créer une nouvelle option'}
-            </h2>
-            <button
-              onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              type="button"
-              title="Fermer"
-              aria-label="Fermer le formulaire"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Note sur les catégories */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Note :</strong> Cette option peut être associée à plusieurs services de catégories différentes. 
-              La catégorie sera déterminée automatiquement selon les services associés.
-            </p>
-          </div>
-
-          {/* Libellé */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Libellé <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.label}
-              onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-              placeholder="ex: Consultation urgente"
-              required
-              maxLength={200}
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-              placeholder="Description de l'option..."
-              rows={4}
-              required
-              maxLength={1000}
-            />
-          </div>
-
-          {/* Prix */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Prix (€) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
-              placeholder="0"
-              min="0"
-              step="0.01"
-              required
-            />
-          </div>
-
-          {/* Optionnel */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="optional"
-              checked={formData.optional}
-              onChange={(e) => setFormData({ ...formData, optional: e.target.checked })}
-              className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
-            />
-            <label htmlFor="optional" className="ml-2 block text-sm text-gray-700">
-              Option facultative (l'utilisateur peut choisir de l'ajouter ou non)
-            </label>
-          </div>
-
-          {/* Statut actif */}
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="isActiveOption"
-              checked={formData.isActive}
-              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
-            />
-            <label htmlFor="isActiveOption" className="ml-2 block text-sm text-gray-700">
-              Option active (visible pour les utilisateurs)
-            </label>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSubmitting}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Enregistrement...</span>
-                </>
-              ) : (
-                <span>{option ? 'Modifier' : 'Créer'}</span>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
   );
 }

@@ -17,7 +17,7 @@
 "use client";
 
 import { useUsers, useAuthorization } from "@/hooks";
-import { useUserFilters, useUserActions } from "@/hooks/users";
+import { useUserFilters, useUserActions, useUserStatistics } from "@/hooks/users";
 import { ROLES, USER_STATUSES } from "@/lib/constants";
 import { logger } from "@/lib/logger";
 import { useRouter } from "next/navigation";
@@ -56,6 +56,9 @@ function UsersPage() {
 
   const { users = [], loading, error, refetch } = useUsers(usersOptions);
   
+  // Récupérer les statistiques depuis l'API
+  const { statistics: apiStatistics, loading: statsLoading } = useUserStatistics();
+  
   // Utiliser directement users au lieu de localUsers pour éviter les mises à jour inutiles
   // localUsers n'est nécessaire que pour les suppressions locales
   const [deletedUserIds, setDeletedUserIds] = useState<Set<string>>(new Set());
@@ -63,8 +66,20 @@ function UsersPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
 
-  // Calculer les statistiques
+  // Calculer les statistiques en combinant les données locales et API
   const stats = useMemo(() => {
+    // Utiliser les statistiques de l'API si disponibles, sinon calculer localement
+    if (apiStatistics && !statsLoading) {
+      return {
+        totalUsers: apiStatistics.totalUsers,
+        usersToday: apiStatistics.usersToday,
+        restRequests: apiStatistics.restRequests,
+        authRequests: apiStatistics.authRequests,
+        previousMonthUsers: apiStatistics.previousMonthUsers,
+      };
+    }
+
+    // Fallback : calculer localement si l'API n'est pas encore chargée
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -75,22 +90,25 @@ function UsersPage() {
       return createdAt.getTime() === today.getTime();
     }).length;
 
-    // Pour l'instant, on simule les requêtes REST et Auth
-    // TODO: Intégrer avec les vraies statistiques API
-    const restRequests = 0; // À remplacer par les vraies données
-    const authRequests = 0; // À remplacer par les vraies données
-
-    // Calculer le nombre d'utilisateurs du mois précédent (simulation)
-    const previousMonthUsers = Math.floor(users.length * 0.9); // Approximation
+    // Calculer le nombre d'utilisateurs du mois précédent
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    
+    const previousMonthUsers = users.filter((user: any) => {
+      const createdAt = user.createdAt ? new Date(user.createdAt) : null;
+      if (!createdAt) return false;
+      return createdAt >= startOfPreviousMonth && createdAt < startOfMonth;
+    }).length;
 
     return {
       totalUsers: users.length,
       usersToday,
-      restRequests,
-      authRequests,
+      restRequests: 0, // Sera remplacé par les données API
+      authRequests: 0, // Sera remplacé par les données API
       previousMonthUsers,
     };
-  }, [users]);
+  }, [users, apiStatistics, statsLoading]);
 
   // Hook d'actions pour la suppression (conforme au pattern)
   const handleUserCreated = useCallback(() => {

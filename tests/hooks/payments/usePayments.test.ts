@@ -287,5 +287,73 @@ describe('usePayments', () => {
 
     expect(result.current.error).toBe('Network error');
   });
+
+  it('devrait gérer les erreurs lors de la suppression d\'une méthode de paiement', async () => {
+    const mockMethods = [
+      { id: 'm1', type: 'card' as const },
+    ];
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          methods: mockMethods,
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+      } as Response);
+
+    const { result } = renderHook(() => usePayments());
+
+    await act(async () => {
+      await result.current.fetchPaymentMethods();
+    });
+
+    await act(async () => {
+      try {
+        await result.current.deletePaymentMethod('card', 'm1');
+      } catch (error) {
+        // Erreur gérée par le hook
+      }
+    });
+
+    expect(result.current.error).toBe('Erreur lors de la suppression');
+  });
+
+  it('devrait gérer les erreurs lors de la suppression d\'une adresse', async () => {
+    const mockAddresses = [
+      { id: 'a1', street: '123 Main St' },
+    ];
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          addresses: mockAddresses,
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+      } as Response);
+
+    const { result } = renderHook(() => usePayments());
+
+    await act(async () => {
+      await result.current.fetchBillingAddresses();
+    });
+
+    await act(async () => {
+      try {
+        await result.current.deleteAddress('a1');
+      } catch (error) {
+        // Erreur gérée par le hook
+      }
+    });
+
+    expect(result.current.error).toBe('Erreur lors de la suppression');
+  });
 });
 

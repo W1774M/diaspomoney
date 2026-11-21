@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ShoppingCart, CheckCircle, DollarSign, Heart } from 'lucide-react';
+import { ShoppingCart, CheckCircle, DollarSign } from 'lucide-react';
 import DashboardStatCard from '../DashboardStatCard';
 import type { CustomerStats } from '@/hooks/statistics';
 
@@ -13,7 +13,7 @@ const CustomerStatsComponent = React.memo<CustomerStatsProps>(function CustomerS
   stats,
 }) {
   return (
-    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
+    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8'>
       <DashboardStatCard
         title='Commandes en cours'
         value={stats.activeOrders}
@@ -31,12 +31,6 @@ const CustomerStatsComponent = React.memo<CustomerStatsProps>(function CustomerS
         value={`${stats.totalSpent.toFixed(2)} €`}
         icon={DollarSign}
         color='orange'
-      />
-      <DashboardStatCard
-        title='Prestataires favoris'
-        value={stats.favoriteProviders.length}
-        icon={Heart}
-        color='red'
       />
     </div>
   );

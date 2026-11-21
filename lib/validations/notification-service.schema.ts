@@ -16,11 +16,11 @@ export const SendNotificationSchema = z.object({
     z.object({
       type: z.enum(['EMAIL', 'SMS', 'PUSH', 'WHATSAPP', 'IN_APP']),
       enabled: z.boolean(),
-      priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional(),
+      priority: z.enum(['HIGH', 'MEDIUM', 'LOW', 'URGENT']).optional(),
     }),
   ).min(1, 'At least one channel is required'),
   locale: z.string().optional(),
-  priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional(),
+  priority: z.enum(['HIGH', 'MEDIUM', 'LOW', 'URGENT']).optional(),
   data: z.record(z.unknown()).optional(),
   userId: z.string().optional(),
 });

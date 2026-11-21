@@ -52,6 +52,116 @@ export class NotificationService {
     this.templateRepository = getNotificationTemplateRepository();
   }
 
+  /**
+   * Types pour lesquels l'email est considéré comme transactionnel/obligatoire,
+   * même si l'utilisateur désactive les emails (anti-perte d'information critique).
+   */
+  private isForcedEmailType(type: string): boolean {
+    const t = (type || '').toUpperCase();
+    return (
+      // Argent / transactionnel (y compris variantes PROVIDER_*)
+      t.includes('PAYMENT_') ||
+      // KYC / conformité (y compris variantes PROVIDER_*)
+      t.includes('KYC_') ||
+      // Sécurité
+      t.startsWith('LOGIN_') ||
+      t.includes('SECURITY_')
+    );
+  }
+
+  private isEmail(recipient: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient);
+  }
+
+  private async resolveUserFromRecipient(recipient: string) {
+    try {
+      const { getUserRepository } = await import('@/repositories');
+      const userRepository = getUserRepository();
+
+      if (this.isEmail(recipient)) {
+        return await userRepository.findByEmail(recipient);
+      }
+
+      return await userRepository.findById(recipient);
+    } catch (error) {
+      this.log.warn({ error, recipient }, 'Unable to resolve user for recipient');
+      return null;
+    }
+  }
+
+  private async shouldSendEmailForNotification(
+    notification: Notification,
+  ): Promise<boolean> {
+    if (this.isForcedEmailType(notification.type)) return true;
+
+    const user = await this.resolveUserFromRecipient(notification.recipient);
+    if (!user) return true;
+
+    const prefs = (user as any).preferences;
+    if (prefs && prefs.emailNotifications === false) return false;
+
+    const map = prefs?.notificationEmailByType;
+    if (map && typeof map === 'object') {
+      const key = (notification.type || '').toUpperCase();
+      const v = map[key];
+      if (typeof v === 'boolean') return v;
+    }
+
+    return true;
+  }
+
+  private async shouldDeliverNow(notification: Notification): Promise<boolean> {
+    const now = new Date();
+
+    if (
+      notification.expiresAt &&
+      new Date(notification.expiresAt).getTime() <= now.getTime()
+    ) {
+      await this.notificationRepository.updateStatus(
+        String(notification.id),
+        'EXPIRED',
+        {
+          failedAt: new Date(),
+          failureReason: 'Notification expirée avant envoi',
+        },
+      );
+      return false;
+    }
+
+    if (
+      notification.scheduledAt &&
+      new Date(notification.scheduledAt).getTime() > now.getTime()
+    ) {
+      return false;
+    }
+
+    // Conditions métier (ex: rappels KYC uniquement si le user est toujours PENDING)
+    const requiredKycStatus =
+      ((notification.metadata as any)?.requiredKycStatus as string | undefined) ||
+      ((notification.metadata as any)?.originalData?.requiredKycStatus as
+        | string
+        | undefined);
+    if (requiredKycStatus) {
+      const user = await this.resolveUserFromRecipient(notification.recipient);
+      const current = (user as any)?.kycStatus;
+      if (!user || current !== requiredKycStatus) {
+        await this.notificationRepository.updateStatus(
+          String(notification.id),
+          'EXPIRED',
+          {
+            failedAt: new Date(),
+            failureReason: `Condition non satisfaite (KYC=${
+              current || 'unknown'
+            }, attendu=${requiredKycStatus})`,
+          },
+        );
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   static getInstance(): NotificationService {
     if (!NotificationService.instance) {
       NotificationService.instance = new NotificationService();
@@ -129,6 +239,12 @@ export class NotificationService {
       const processedContent = this.processTemplate(template, data.data);
 
       // Créer la notification
+      const recipientIsEmail = this.isEmail(data.recipient);
+      const inferredUserId =
+        (data as any as NotificationData & { userId?: string }).userId ||
+        (!recipientIsEmail ? data.recipient : undefined) ||
+        'unknown';
+
       const notification: Notification = {
         id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         recipient: data.recipient,
@@ -137,6 +253,7 @@ export class NotificationService {
         content: processedContent.content,
         channels: data.channels,
         status: NOTIFICATION_STATUSES.PENDING,
+        read: false,
         metadata: {
           template: data.template,
           locale: data.locale,
@@ -145,7 +262,9 @@ export class NotificationService {
         },
         createdAt: new Date(),  
         updatedAt: new Date(),
-        userId: (data as any as NotificationData & { userId: string }).userId,
+        userId: inferredUserId,
+        ...(data.scheduledAt && { scheduledAt: data.scheduledAt }),
+        ...(data.expiresAt && { expiresAt: data.expiresAt }),
         // Ne pas définir _id ici, il sera généré par le repository MongoDB
       };
 
@@ -153,6 +272,20 @@ export class NotificationService {
       const savedNotification = await this.notificationRepository.create(
         notification,
       );
+
+      // Si la notification est planifiée dans le futur, ne pas envoyer tout de suite.
+      // Elle devra être traitée par un job/cron.
+      if (!(await this.shouldDeliverNow(savedNotification))) {
+        this.log.info(
+          {
+            notificationId: savedNotification.id,
+            scheduledAt: savedNotification.scheduledAt,
+            expiresAt: savedNotification.expiresAt,
+          },
+          'Notification saved (not delivered yet)',
+        );
+        return savedNotification;
+      }
 
       // Envoyer via les canaux activés
       await this.sendToChannels(savedNotification);
@@ -479,6 +612,19 @@ export class NotificationService {
           createdAt: new Date(),
           updatedAt: new Date(),
         },
+        payment_refunded: {
+          _id: 'payment_refunded',
+          id: 'payment_refunded',
+          name: 'payment_refunded',
+          subject: 'Remboursement confirmé - Transaction {{transactionId}}',
+          content:
+            'Votre remboursement pour la transaction {{transactionId}} est confirmé. Montant: {{amount}} {{currency}}.',
+          variables: ['transactionId', 'amount', 'currency'],
+          channels: [{ type: 'EMAIL', enabled: true, priority: 'HIGH' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
         kyc_approved: {
           _id: 'kyc_approved',
           id: 'kyc_approved',
@@ -488,6 +634,19 @@ export class NotificationService {
             "Bonjour {{userName}}, votre vérification d'identité a été approuvée. Vous pouvez maintenant utiliser tous les services de {{appName}}.",
           variables: ['userName', 'appName'],
           channels: [{ type: 'EMAIL', enabled: true, priority: 'MEDIUM' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        kyc_required_reminder: {
+          _id: 'kyc_required_reminder',
+          id: 'kyc_required_reminder',
+          name: 'kyc_required_reminder',
+          subject: "Action requise : vérification d'identité (KYC)",
+          content:
+            "Bonjour {{userName}},\n\nPour continuer à utiliser pleinement DiaspoMoney, nous avons besoin de vérifier votre identité.\n\n👉 Complétez votre vérification dans votre espace : {{dashboardUrl}}\n\nSi vous avez besoin d'aide, contactez {{supportEmail}}.",
+          variables: ['userName', 'dashboardUrl', 'supportEmail'],
+          channels: [{ type: 'EMAIL', enabled: true, priority: 'HIGH' }],
           locale,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -556,6 +715,166 @@ export class NotificationService {
           createdAt: new Date(),
           updatedAt: new Date(),
         },
+        provider_booking_assigned: {
+          _id: 'provider_booking_assigned',
+          id: 'provider_booking_assigned',
+          name: 'provider_booking_assigned',
+          subject: 'Nouvelle mission assignée - {{serviceName}}',
+          content:
+            'Bonjour {{providerName}},\n\nUne nouvelle mission vous a été assignée.\n\n- Réservation: {{reservationNumber}}\n- Service: {{serviceName}}\n- Date: {{appointmentDate}}\n- Heure: {{appointmentTime}}\n\nAccédez à vos réservations: {{bookingsUrl}}',
+          variables: [
+            'providerName',
+            'reservationNumber',
+            'serviceName',
+            'appointmentDate',
+            'appointmentTime',
+            'bookingsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        provider_booking_updated: {
+          _id: 'provider_booking_updated',
+          id: 'provider_booking_updated',
+          name: 'provider_booking_updated',
+          subject: 'Mission mise à jour - {{reservationNumber}}',
+          content:
+            'Bonjour {{providerName}},\n\nUne mission a été mise à jour.\n\n- Réservation: {{reservationNumber}}\n- Service: {{serviceName}}\n- Date: {{appointmentDate}}\n- Heure: {{appointmentTime}}\n\nVoir les détails: {{bookingsUrl}}',
+          variables: [
+            'providerName',
+            'reservationNumber',
+            'serviceName',
+            'appointmentDate',
+            'appointmentTime',
+            'bookingsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        provider_booking_cancelled: {
+          _id: 'provider_booking_cancelled',
+          id: 'provider_booking_cancelled',
+          name: 'provider_booking_cancelled',
+          subject: 'Mission annulée - {{reservationNumber}}',
+          content:
+            'Bonjour {{providerName}},\n\nLa mission {{reservationNumber}} a été annulée.\n\nService: {{serviceName}}\nDate: {{appointmentDate}} {{appointmentTime}}\n\nConsultez vos réservations: {{bookingsUrl}}',
+          variables: [
+            'providerName',
+            'reservationNumber',
+            'serviceName',
+            'appointmentDate',
+            'appointmentTime',
+            'bookingsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        provider_booking_reminder: {
+          _id: 'provider_booking_reminder',
+          id: 'provider_booking_reminder',
+          name: 'provider_booking_reminder',
+          subject: 'Rappel mission - {{reservationNumber}}',
+          content:
+            'Bonjour {{providerName}},\n\nRappel: vous avez une mission à venir.\n\n- Réservation: {{reservationNumber}}\n- Service: {{serviceName}}\n- Date: {{appointmentDate}}\n- Heure: {{appointmentTime}}\n\nVoir vos réservations: {{bookingsUrl}}',
+          variables: [
+            'providerName',
+            'reservationNumber',
+            'serviceName',
+            'appointmentDate',
+            'appointmentTime',
+            'bookingsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        provider_complaint_created: {
+          _id: 'provider_complaint_created',
+          id: 'provider_complaint_created',
+          name: 'provider_complaint_created',
+          subject: 'Nouvelle réclamation - {{complaintNumber}}',
+          content:
+            'Bonjour,\n\nUne nouvelle réclamation a été créée.\n\n- Réclamation: {{complaintNumber}}\n- Titre: {{title}}\n- Type: {{type}}\n- Priorité: {{priority}}\n\n{{actionLine}}\n\nAccédez aux réclamations: {{complaintsUrl}}',
+          variables: [
+            'complaintNumber',
+            'title',
+            'type',
+            'priority',
+            'actionLine',
+            'complaintsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        csm_complaint_created: {
+          _id: 'csm_complaint_created',
+          id: 'csm_complaint_created',
+          name: 'csm_complaint_created',
+          subject: 'Conflit à suivre (portefeuille) - {{complaintNumber}}',
+          content:
+            'Bonjour,\n\nUn conflit/réclamation concerne un prestataire de votre portefeuille.\n\n- Réclamation: {{complaintNumber}}\n- Titre: {{title}}\n- Type: {{type}}\n- Priorité: {{priority}}\n\n{{actionLine}}\n\nOuvrir les réclamations: {{complaintsUrl}}',
+          variables: [
+            'complaintNumber',
+            'title',
+            'type',
+            'priority',
+            'actionLine',
+            'complaintsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        csm_booking_created: {
+          _id: 'csm_booking_created',
+          id: 'csm_booking_created',
+          name: 'csm_booking_created',
+          subject: 'Nouvelle réservation (portefeuille) - {{reservationNumber}}',
+          content:
+            'Bonjour,\n\nUne nouvelle réservation concerne un prestataire de votre portefeuille.\n\n- Réservation: {{reservationNumber}}\n- Prestataire: {{providerName}}\n- Service: {{serviceName}}\n- Date: {{appointmentDate}} {{appointmentTime}}\n\nVoir les réservations: {{bookingsUrl}}',
+          variables: [
+            'reservationNumber',
+            'providerName',
+            'serviceName',
+            'appointmentDate',
+            'appointmentTime',
+            'bookingsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        csm_booking_cancelled: {
+          _id: 'csm_booking_cancelled',
+          id: 'csm_booking_cancelled',
+          name: 'csm_booking_cancelled',
+          subject: 'Réservation annulée (portefeuille) - {{reservationNumber}}',
+          content:
+            'Bonjour,\n\nUne réservation a été annulée sur votre portefeuille.\n\n- Réservation: {{reservationNumber}}\n- Prestataire: {{providerName}}\n- Service: {{serviceName}}\n- Date: {{appointmentDate}} {{appointmentTime}}\n\nVoir les réservations: {{bookingsUrl}}',
+          variables: [
+            'reservationNumber',
+            'providerName',
+            'serviceName',
+            'appointmentDate',
+            'appointmentTime',
+            'bookingsUrl',
+          ],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'HIGH' }],
+          locale,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       };
 
       const template = defaultTemplates[templateName] || null;
@@ -599,25 +918,43 @@ export class NotificationService {
    * Envoyer via les canaux activés
    */
   private async sendToChannels(notification: Notification): Promise<void> {
+    // Ne pas envoyer si la notification n'est pas due / est expirée / condition métier non satisfaite
+    if (!(await this.shouldDeliverNow(notification))) return;
+
+    let sentAtLeastOne = false;
+
     for (const channel of notification.channels) {
       if (!channel.enabled) continue;
 
       try {
         switch (channel.type) {
           case 'EMAIL':
+            // Anti-spam: respecter les préférences email (sauf types transactionnels/obligatoires)
+            if (!(await this.shouldSendEmailForNotification(notification))) {
+              this.log.info(
+                { notificationId: notification.id, recipient: notification.recipient },
+                'Email suppressed by user preferences',
+              );
+              break;
+            }
             await this.sendEmail(notification);
+            sentAtLeastOne = true;
             break;
           case 'SMS':
             await this.sendSMS(notification);
+            sentAtLeastOne = true;
             break;
           case 'PUSH':
             await this.sendPush(notification);
+            sentAtLeastOne = true;
             break;
           case 'WHATSAPP':
             await this.sendWhatsApp(notification);
+            sentAtLeastOne = true;
             break;
           case 'IN_APP':
             await this.sendInApp(notification);
+            sentAtLeastOne = true;
             break;
         }
       } catch (error) {
@@ -639,6 +976,31 @@ export class NotificationService {
         // Continuer avec les autres canaux
       }
     }
+
+    // Si aucun canal n'a effectivement envoyé (ex: email désactivé + aucun autre canal),
+    // on évite de laisser la notif en PENDING indéfiniment.
+    if (!sentAtLeastOne) {
+      await this.notificationRepository.updateStatus(
+        String(notification.id),
+        'EXPIRED',
+        {
+          failedAt: new Date(),
+          failureReason:
+            "Notification supprimée (aucun canal actif après préférences utilisateur)",
+        },
+      );
+    }
+  }
+
+  /**
+   * Livrer une notification existante (utile pour traiter les notifications planifiées).
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  async deliverNotificationById(notificationId: string): Promise<boolean> {
+    const notif = await this.notificationRepository.findById(notificationId);
+    if (!notif) return false;
+    await this.sendToChannels(notif);
+    return true;
   }
 
   /**

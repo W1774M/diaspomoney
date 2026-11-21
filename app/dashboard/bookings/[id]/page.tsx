@@ -12,7 +12,7 @@ import { AuthorizedContent, AuthorizedRoute } from '@/components/auth';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useBookingsPagination, BookingsPaginationProvider } from '@/contexts/BookingsPaginationContext';
 import BookingNavigation from '@/components/bookings/BookingNavigation';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -29,6 +29,9 @@ import BookingInfoSidebar from '@/components/bookings/BookingInfoSidebar';
 import BookingActions from '@/components/bookings/BookingActions';
 import BookingEditModal from '@/components/bookings/BookingEditModal';
 import { useBookingEdit } from '@/hooks/bookings/useBookingEdit';
+import AssignProviderModal from '@/components/bookings/AssignProviderModal';
+import DownloadSummaryModal from '@/components/bookings/DownloadSummaryModal';
+import { useNotificationManager } from '@/components/ui/Notification';
 
 /**
  * Contenu de la page de détail d'une réservation
@@ -52,8 +55,9 @@ function BookingDetailPageContent() {
   const bookingsPageUrl = getBookingsUrl();
 
   // Hooks pour la gestion des données
-  const { booking, loading, error, updateStatus, refetch } = useBooking(bookingId);
+  const { booking, loading, error, updateStatus, refetch, isUpdating: isUpdatingStatus } = useBooking(bookingId);
   const { deleteBooking, loading: deleteLoading } = useBookingDelete();
+  const notificationManager = useNotificationManager();
 
   // Calculer si la progression est complète
   const isProgressComplete = useMemo(() => calculateIsProgressComplete(booking), [booking]);
@@ -97,14 +101,12 @@ function BookingDetailPageContent() {
   // Hook pour la validation des étapes
   const {
     validatingStep,
-    resendingPaymentLink,
     showValidateStepDialog,
     stepToValidate,
     setShowValidateStepDialog,
     setStepToValidate,
     handleValidateStepClick,
     handleValidateStep,
-    handleResendPaymentLink,
   } = useBookingStepValidation({
     booking,
     bookingId,
@@ -133,6 +135,12 @@ function BookingDetailPageContent() {
     bookingId,
     refetch,
   });
+
+  const [isAssignProviderOpen, setIsAssignProviderOpen] = useState(false);
+  const [showMarkFinishedDialog, setShowMarkFinishedDialog] = useState(false);
+  const [requestingFeedback, setRequestingFeedback] = useState(false);
+  const [showDownloadSummaryModal, setShowDownloadSummaryModal] = useState(false);
+  const [downloadingSummary, setDownloadingSummary] = useState(false);
 
   // Marquer la commande comme vue quand elle est chargée
   useEffect(() => {
@@ -273,12 +281,6 @@ function BookingDetailPageContent() {
               <BookingProgressSection
                 booking={booking}
                 progress={progress}
-                onValidateStep={handleValidateStepClick}
-                onResendPaymentLink={handleResendPaymentLink}
-                onGeneratePaymentLink={generatePaymentLink}
-                validatingStep={validatingStep}
-                resendingPaymentLink={resendingPaymentLink}
-                generatingPaymentLink={generatingPaymentLink}
               />
             </AuthorizedContent>
 
@@ -298,10 +300,40 @@ function BookingDetailPageContent() {
               isUpdating={isUpdating}
               deleteLoading={deleteLoading || deleteLoadingFromActions}
               generatingInvoice={generatingInvoice}
+              onDownloadSummary={() => setShowDownloadSummaryModal(true)}
+              downloadingSummary={downloadingSummary}
               onGenerateInvoice={handleGenerateInvoice}
               onTakeCharge={handleTakeChargeClick}
               onDelete={handleDeleteBookingClick}
               onEdit={openEditModal}
+              onAssignProvider={() => setIsAssignProviderOpen(true)}
+              onMarkAsFinished={() => setShowMarkFinishedDialog(true)}
+              onRequestFeedback={async () => {
+                try {
+                  setRequestingFeedback(true);
+                  const response = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}/request-feedback`, {
+                    method: 'POST',
+                  });
+                  
+                  if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Erreur lors de la demande de feedback');
+                  }
+                  
+                  notificationManager.addSuccess('Email de demande de feedback envoyé avec succès');
+                } catch (error: any) {
+                  logger.error({ error, bookingId }, 'Error requesting feedback');
+                  notificationManager.addError(error.message || 'Erreur lors de la demande de feedback');
+                } finally {
+                  setRequestingFeedback(false);
+                }
+              }}
+              requestingFeedback={requestingFeedback}
+              progress={progress}
+              onValidateStep={handleValidateStepClick}
+              validatingStep={validatingStep}
+              onGeneratePaymentLink={generatePaymentLink}
+              generatingPaymentLink={generatingPaymentLink}
             />
           </div>
         </div>
@@ -353,6 +385,42 @@ function BookingDetailPageContent() {
         />
       )}
 
+      <ConfirmDialog
+        isOpen={showMarkFinishedDialog}
+        onClose={() => {
+          if (!isUpdatingStatus) {
+            setShowMarkFinishedDialog(false);
+          }
+        }}
+        onConfirm={async () => {
+          try {
+            const success = await updateStatus(BOOKING_STATUSES.FINISHED);
+            if (success) {
+              // Toast de succès pour l'administrateur
+              notificationManager.addSuccess('La commande a été marquée comme terminée avec succès. Les notifications ont été envoyées au client et au prestataire.');
+              setShowMarkFinishedDialog(false);
+              await refetch();
+              // Le bouton sera automatiquement masqué car le statut est maintenant FINISHED
+            } else {
+              // L'erreur est déjà gérée dans updateStatus et stockée dans error
+              const errorMessage = error || 'Erreur lors de la mise à jour du statut';
+              notificationManager.addError(errorMessage);
+              // Ne pas fermer la modale en cas d'erreur pour que l'utilisateur puisse réessayer
+            }
+          } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
+            notificationManager.addError(errorMessage);
+            logger.error({ error: err, bookingId }, 'Error marking booking as finished');
+          }
+        }}
+        title="Marquer comme terminé"
+        message="Êtes-vous sûr de vouloir marquer cette commande comme terminée ?\n\nCette action passera le statut de la réservation à « Terminée »."
+        confirmText="Marquer comme terminé"
+        cancelText="Annuler"
+        variant="default"
+        isLoading={isUpdatingStatus}
+      />
+
       {/* Modal d'édition */}
       <BookingEditModal
         isOpen={isEditing}
@@ -366,6 +434,62 @@ function BookingDetailPageContent() {
         promoCodeError={promoCodeError}
         onValidatePromoCode={validatePromotionCode}
         isPaymentCompleted={isPaymentCompleted}
+      />
+
+      {/* Modal d'attribution prestataire */}
+      <AssignProviderModal
+        isOpen={isAssignProviderOpen}
+        onClose={() => setIsAssignProviderOpen(false)}
+        bookingId={bookingId}
+        currentProviderId={booking.providerId}
+        {...(booking.metadata?.['assignedProviderType'] === 'EXTERNAL' &&
+        booking.metadata?.['assignedProviderEmail']
+          ? { currentAssignedProviderEmail: booking.metadata['assignedProviderEmail'] as string }
+          : {})}
+        onAssigned={async () => {
+          await refetch();
+        }}
+      />
+
+      {/* Modal de téléchargement du résumé */}
+      <DownloadSummaryModal
+        isOpen={showDownloadSummaryModal}
+        onClose={() => setShowDownloadSummaryModal(false)}
+        downloading={downloadingSummary}
+        onDownload={async (selectedElements: string[]) => {
+          try {
+            setDownloadingSummary(true);
+            const response = await fetch(`/api/bookings/${encodeURIComponent(bookingId)}/download-summary`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ elements: selectedElements }),
+            });
+
+            if (!response.ok) {
+              const data = await response.json();
+              throw new Error(data.error || 'Erreur lors de la génération du résumé');
+            }
+
+            // Télécharger le PDF
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `resume-${formattedReservationNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            notificationManager.addSuccess('Résumé téléchargé avec succès');
+            setShowDownloadSummaryModal(false);
+          } catch (error: any) {
+            logger.error({ error, bookingId }, 'Error downloading summary');
+            notificationManager.addError(error.message || 'Erreur lors du téléchargement du résumé');
+          } finally {
+            setDownloadingSummary(false);
+          }
+        }}
       />
     </div>
   );

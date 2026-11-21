@@ -27,6 +27,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [deletingAvatar, setDeletingAvatar] = useState(false);
     const [avatarError, setAvatarError] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
 
     // Charger l'avatar depuis les données utilisateur
     useEffect(() => {
@@ -77,9 +78,17 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
         }
 
         setUploadingAvatar(true);
+        setAvatarError(false);
+        setUploadError(null);
         try {
           const formData = new FormData();
           formData.append('avatar', file);
+
+          console.log('Début de l\'upload de l\'avatar:', {
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+          });
 
           const response = await fetch('/api/users/me/avatar', {
             method: 'POST',
@@ -88,32 +97,47 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
             // avec la boundary pour multipart/form-data
           });
 
+          console.log('Réponse reçue:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+          });
+
           if (!response.ok) {
             let errorMessage = "Erreur lors de l'upload";
+            let errorDetails = null;
             try {
               const errorData = await response.json();
               errorMessage = errorData.error || errorData.details || errorMessage;
+              errorDetails = errorData.details;
+              console.error('Erreur du serveur:', errorData);
             } catch (parseError) {
               // Si la réponse n'est pas du JSON, utiliser le statut
-              errorMessage = `Erreur ${response.status}: ${response.statusText}`;
+              const textResponse = await response.text();
+              console.error('Réponse non-JSON:', textResponse);
+              errorMessage = `Erreur ${response.status}: ${response.statusText || 'Erreur inconnue'}`;
             }
-            throw new Error(errorMessage);
+            throw new Error(errorMessage + (errorDetails ? `\n\nDétails: ${errorDetails}` : ''));
           }
 
           const result = await response.json();
+          console.log('Résultat de l\'upload:', result);
+          
           if (result.success && result.avatar) {
             setAvatarUrl(result.avatar);
             // Rafraîchir la page pour mettre à jour l'avatar partout
             window.location.reload();
           } else {
-            throw new Error("Réponse invalide du serveur");
+            throw new Error(result.error || "Réponse invalide du serveur");
           }
         } catch (error) {
           console.error("Erreur lors de l'upload de l'avatar:", error);
           const errorMessage = error instanceof Error 
             ? error.message 
             : "Erreur lors de l'upload de la photo de profil";
-          alert(errorMessage);
+          setAvatarError(true);
+          setUploadError(errorMessage);
+          console.error('Erreur upload avatar:', error);
           // Réinitialiser l'input file pour permettre de réessayer
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -261,6 +285,18 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
               <p className='text-xs text-gray-500'>
                 Formats acceptés: JPG, PNG, GIF (max 5MB)
               </p>
+              {uploadError && (
+                <div className='mt-2 p-3 bg-red-50 border border-red-200 rounded-lg'>
+                  <p className='text-sm text-red-800 font-medium'>Erreur lors de l'upload</p>
+                  <p className='text-xs text-red-600 mt-1'>{uploadError}</p>
+                  <p className='text-xs text-red-600 mt-2'>
+                    Veuillez vérifier:
+                    <br />• Que le fichier est bien une image
+                    <br />• Que la taille est inférieure à 5MB
+                    <br />• Votre connexion internet
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

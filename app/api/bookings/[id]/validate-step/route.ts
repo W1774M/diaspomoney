@@ -111,8 +111,39 @@ export async function POST(
       bookingId = 'unknown';
     }
 
+    // Extraire les détails de l'erreur de manière sécurisée
+    let errorMessage = 'Erreur inconnue';
+    let errorStack: string | undefined;
+    let errorName: string | undefined;
+    let errorCode: string | undefined;
+    
+    if (error instanceof Error) {
+      errorMessage = error.message || 'Erreur inconnue';
+      errorStack = error.stack;
+      errorName = error.name;
+      errorCode = (error as any).code;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (error && typeof error === 'object') {
+      // Essayer d'extraire le message depuis un objet d'erreur
+      errorMessage = (error as any).message || (error as any).error || JSON.stringify(error);
+      errorStack = (error as any).stack;
+      errorName = (error as any).name;
+      errorCode = (error as any).code;
+    }
+    
     log.error(
-      { error, bookingId, msg: 'Error validating booking step' },
+      { 
+        errorMessage,
+        errorName,
+        errorCode,
+        errorStack,
+        errorType: typeof error,
+        errorStringified: typeof error === 'object' ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : String(error),
+        bookingId, 
+        step: (error as any)?.step,
+        msg: 'Error validating booking step' 
+      },
       'Error validating booking step',
     );
 
@@ -123,16 +154,37 @@ export async function POST(
           { status: 404 },
         );
       }
-      if (error.message.includes('déjà complétée') || error.message.includes('ne peut pas être validée')) {
+      // Erreurs de validation d'étape (déjà complétée, déjà passée, etc.)
+      if (error.message.includes('déjà complétée') || 
+          error.message.includes('ne peut pas être validée') ||
+          error.message.includes('déjà passée') ||
+          error.message.includes('ne peut valider que')) {
         return NextResponse.json(
-          { error: error.message },
+          { 
+            error: error.message,
+            code: 'STEP_VALIDATION_ERROR',
+          },
           { status: 400 },
+        );
+      }
+      // Si l'erreur est liée à Stripe, retourner un message plus explicite
+      if (error.message.includes('Stripe') || error.message.includes('STRIPE_SECRET_KEY')) {
+        log.warn({ bookingId, errorMessage }, 'Stripe configuration error during step validation');
+        return NextResponse.json(
+          { 
+            error: 'Erreur de configuration Stripe. L\'étape a été validée mais le lien de paiement n\'a pas pu être généré. Veuillez vérifier la configuration Stripe.',
+            details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+          },
+          { status: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR },
         );
       }
     }
 
     return NextResponse.json(
-      { error: 'Erreur lors de la validation de l\'étape' },
+      { 
+        error: 'Erreur lors de la validation de l\'étape',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      },
       { status: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR },
     );
   }

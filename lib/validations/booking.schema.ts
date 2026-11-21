@@ -49,6 +49,7 @@ export const UpdateBookingSchema = z.object({
   status: z.enum([
     BOOKING_STATUSES.PENDING,
     BOOKING_STATUSES.CONFIRMED,
+    BOOKING_STATUSES.FINISHED,
     BOOKING_STATUSES.CANCELLED,
   ]).optional(),
   appointmentDate: z.union([z.string(), z.date()]).optional(),

@@ -176,6 +176,7 @@ export function useBookingActions({
         phone: '+33 1 23 45 67 89',
         siret: '123 456 789 00012',
         vatNumber: 'FR12 345678901',
+        website: 'https://diaspomoney.fr',
       };
 
       const invoiceData: InvoiceData = {

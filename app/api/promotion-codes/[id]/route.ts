@@ -4,8 +4,8 @@
  */
 
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
+import { requireApiRoles } from '@/lib/api/auth';
 import { childLogger } from '@/lib/logger';
-import { auth } from '@/auth';
 import { ROLES } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
@@ -29,32 +29,19 @@ const UpdatePromotionCodeSchema = z.object({
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> | { id: string } },
 ) {
   return handleApiRoute(request, async () => {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 },
-      );
-    }
+    const { id } = await Promise.resolve(params);
 
-    const userRoles = (session.user as any).roles || [];
-    if (!userRoles.includes(ROLES.ADMIN)) {
-      return NextResponse.json(
-        { error: 'Accès refusé. Admin uniquement.' },
-        { status: 403 },
-      );
-    }
+    await requireApiRoles([ROLES.ADMIN, ROLES.SUPERADMIN]);
 
     const body = await request.json();
     const data = validateBody(body, UpdatePromotionCodeSchema);
 
     await dbConnect();
 
-    const PromotionCodeModel = PromotionCode as any;
-    const code = await PromotionCodeModel.findById(params.id);
+    const code = await PromotionCode.findById(id);
     if (!code) {
       return NextResponse.json(
         { error: 'Code promotionnel non trouvé' },
@@ -65,9 +52,9 @@ export async function PATCH(
     // Vérifier l'unicité du label si modifié
     if (data.label) {
       const label = data.label.toUpperCase().trim();
-      const existing = await PromotionCodeModel.findOne({
+      const existing = await PromotionCode.findOne({
         label,
-        _id: { $ne: params.id },
+        _id: { $ne: id },
       });
       if (existing) {
         return NextResponse.json(
@@ -75,32 +62,32 @@ export async function PATCH(
           { status: 409 },
         );
       }
-      (code as any).label = label;
+      code.label = label;
     }
 
     if (data.percentage !== undefined) {
-      (code as any).percentage = data.percentage;
+      code.percentage = data.percentage;
     }
 
     if (data.validFrom) {
-      (code as any).validFrom = new Date(data.validFrom);
+      code.validFrom = new Date(data.validFrom);
     }
 
     if (data.validUntil) {
-      (code as any).validUntil = new Date(data.validUntil);
+      code.validUntil = new Date(data.validUntil);
     }
 
     if (data.status) {
-      (code as any).status = data.status;
+      code.status = data.status;
     }
 
     if (data.maxUsage !== undefined) {
-      (code as any).maxUsage = data.maxUsage;
+      code.maxUsage = data.maxUsage;
     }
 
     // Validation des dates
-    const validFrom = (code as any).validFrom;
-    const validUntil = (code as any).validUntil;
+    const validFrom = code.validFrom;
+    const validUntil = code.validUntil;
     if (validUntil <= validFrom) {
       return NextResponse.json(
         { error: 'La date de fin doit être postérieure à la date de début' },
@@ -117,15 +104,15 @@ export async function PATCH(
       code: {
         _id: code._id,
         id: code._id.toString(),
-        label: (code as any).label,
-        percentage: (code as any).percentage,
-        validFrom: (code as any).validFrom,
-        validUntil: (code as any).validUntil,
-        status: (code as any).status,
-        usageCount: (code as any).usageCount,
-        maxUsage: (code as any).maxUsage,
-        createdAt: (code as any).createdAt,
-        updatedAt: (code as any).updatedAt,
+        label: code.label,
+        percentage: code.percentage,
+        validFrom: code.validFrom,
+        validUntil: code.validUntil,
+        status: code.status,
+        usageCount: code.usageCount,
+        maxUsage: code.maxUsage,
+        createdAt: code.createdAt,
+        updatedAt: code.updatedAt,
       },
     });
   }, 'api/promotion-codes/[id]');
@@ -137,29 +124,16 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> | { id: string } },
 ) {
   return handleApiRoute(request, async () => {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Non autorisé' },
-        { status: 401 },
-      );
-    }
+    const { id } = await Promise.resolve(params);
 
-    const userRoles = (session.user as any).roles || [];
-    if (!userRoles.includes(ROLES.ADMIN)) {
-      return NextResponse.json(
-        { error: 'Accès refusé. Admin uniquement.' },
-        { status: 403 },
-      );
-    }
+    await requireApiRoles([ROLES.ADMIN, ROLES.SUPERADMIN]);
 
     await dbConnect();
 
-    const PromotionCodeModel = PromotionCode as any;
-    const code = await PromotionCodeModel.findByIdAndDelete(params.id);
+    const code = await PromotionCode.findByIdAndDelete(id);
     if (!code) {
       return NextResponse.json(
         { error: 'Code promotionnel non trouvé' },
@@ -167,7 +141,7 @@ export async function DELETE(
       );
     }
 
-    log.info({ codeId: params.id }, 'Promotion code deleted');
+    log.info({ codeId: id }, 'Promotion code deleted');
 
     return NextResponse.json({
       success: true,

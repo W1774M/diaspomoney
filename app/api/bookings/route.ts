@@ -10,7 +10,9 @@ import { getBookingRepository } from "@/repositories";
 import { serviceBookingFacade } from "@/facades";
 import { NextRequest } from "next/server";
 import { auth } from '@/auth';
-import { ROLES } from '@/lib/constants';
+import { DATABASE, ROLES } from '@/lib/constants';
+import { getMongoClient } from '@/lib/database/mongodb';
+import { ObjectId } from 'mongodb';
 
 // ---------------------------------------------
 // CONSTANTS
@@ -52,6 +54,7 @@ export async function GET(request: NextRequest) {
     const isAdmin = userRoles.includes(ROLES.ADMIN) || userRoles.includes(ROLES.SUPERADMIN);
     const isProvider = userRoles.includes(ROLES.PROVIDER);
     const isCustomer = userRoles.includes(ROLES.CUSTOMER);
+    const isCSM = userRoles.includes(ROLES.CSM);
     const userId = session.user.id;
 
     const { searchParams } = new URL(request.url);
@@ -60,6 +63,7 @@ export async function GET(request: NextRequest) {
     const viewMode = searchParams.get("viewMode"); // "customer" ou "provider"
     const status = searchParams.get("status");
     const paymentStatus = searchParams.get("paymentStatus");
+    const roleFilter = searchParams.get("roleFilter"); // "ALL", "ADMIN", "CSM", "PROVIDER", "CUSTOMER"
     const limit = searchParams.get("limit");
     const offset = searchParams.get("offset");
     const sortBy = searchParams.get("sortBy");
@@ -68,66 +72,114 @@ export async function GET(request: NextRequest) {
     // Construire les filtres pour le repository
     const bookingFilters: Record<string, any> = {};
     
-    // Logique de filtrage basée sur les rôles et permissions
-    // IMPORTANT : Les non-admins ne peuvent JAMAIS voir les commandes d'autres utilisateurs
-    // Les paramètres userId et providerId dans l'URL sont ignorés pour les non-admins
+    // Logique de filtrage basée sur le roleFilter
+    // Le roleFilter détermine quelle vue de commandes afficher selon le rôle sélectionné
     
-    if (isAdmin) {
-      // Les admins peuvent voir toutes les commandes
-      // Ils peuvent aussi filtrer par userId ou providerId s'ils sont fournis
-      if (requestedUserId) {
-        bookingFilters["requesterId"] = requestedUserId;
-      }
-      if (requestedProviderId) {
-        bookingFilters["providerId"] = requestedProviderId;
-      }
-      // Si aucun filtre n'est fourni, les admins voient toutes les commandes (pas de filtre appliqué)
-    } else {
-      // Pour les non-admins, FORCER le filtrage par leur propre userId
-      // Ignorer complètement les paramètres userId/providerId de l'URL pour éviter les contournements
-      
-      if (isProvider && isCustomer) {
-        // Utilisateur avec les deux rôles : permettre de switcher via viewMode
+    if (!roleFilter || roleFilter === 'ALL') {
+      // "Toutes" : Afficher toutes les commandes que l'utilisateur a le droit de voir selon ses rôles
+      if (isAdmin) {
+        // Admin : toutes les commandes (pas de filtre appliqué)
+        // Les admins peuvent aussi filtrer par userId ou providerId s'ils sont fournis dans l'URL
+        if (requestedUserId) {
+          bookingFilters["requesterId"] = requestedUserId;
+        }
+        if (requestedProviderId) {
+          bookingFilters["providerId"] = requestedProviderId;
+        }
+      } else if (isProvider && isCustomer) {
+        // Utilisateur avec les deux rôles : utiliser viewMode pour déterminer la vue par défaut
         if (viewMode === 'provider') {
-          // Vue provider : voir uniquement les commandes où il est le provider
           bookingFilters["providerId"] = userId;
         } else {
-          // Vue customer (par défaut) : voir uniquement les commandes où il est le requester
           bookingFilters["requesterId"] = userId;
         }
       } else if (isProvider) {
-        // Provider uniquement : voir uniquement ses propres commandes (où il est le provider)
+        // Provider uniquement : ses commandes en tant que provider
         bookingFilters["providerId"] = userId;
       } else if (isCustomer) {
-        // Customer uniquement : voir uniquement ses propres commandes (où il est le requester)
+        // Customer uniquement : ses commandes en tant que client
         bookingFilters["requesterId"] = userId;
+      } else if (isCSM) {
+        // CSM : commandes des providers de son portefeuille
+        const client = await getMongoClient();
+        const db = client.db();
+        const users = db.collection(DATABASE.COLLECTIONS.USERS);
+        const csm = await users.findOne(
+          { _id: new ObjectId(userId) },
+          { projection: { csmPortfolioProviderIds: 1 } },
+        );
+        const ids =
+          (csm?.['csmPortfolioProviderIds'] as string[] | undefined) || [];
+        if (ids.length === 0) {
+          return createPaginatedResponse([], { page: 1, limit: 50, total: 0 });
+        }
+        bookingFilters["providerIds"] = ids;
       } else {
         // Aucun rôle valide : refuser l'accès
         throw ApiErrors.FORBIDDEN;
       }
-      
-      // SÉCURITÉ : S'assurer qu'un filtre est toujours appliqué pour les non-admins
-      // Si aucun filtre n'est défini, c'est une erreur de sécurité
-      if (!bookingFilters["requesterId"] && !bookingFilters["providerId"]) {
+    } else if (roleFilter === 'ADMIN') {
+      // "Admin" : Toutes les commandes (uniquement pour les admins)
+      if (!isAdmin) {
+        throw ApiErrors.FORBIDDEN;
+      }
+      // Pas de filtre appliqué - toutes les commandes
+    } else if (roleFilter === 'CUSTOMER') {
+      // "Client" : Commandes où requesterId = userId connecté
+      if (!isCustomer) {
+        throw ApiErrors.FORBIDDEN;
+      }
+      bookingFilters["requesterId"] = userId;
+    } else if (roleFilter === 'PROVIDER') {
+      // "Prestataire" : Commandes où providerId = userId connecté (attribuées à l'utilisateur)
+      if (!isProvider) {
+        throw ApiErrors.FORBIDDEN;
+      }
+      bookingFilters["providerId"] = userId;
+    } else if (roleFilter === 'CSM') {
+      // "CSM" : Commandes où le providerId est dans le portefeuille du CSM connecté
+      if (!isCSM) {
+        throw ApiErrors.FORBIDDEN;
+      }
+      const client = await getMongoClient();
+      const db = client.db();
+      const users = db.collection(DATABASE.COLLECTIONS.USERS);
+      const csm = await users.findOne(
+        { _id: new ObjectId(userId) },
+        { projection: { csmPortfolioProviderIds: 1 } },
+      );
+      const ids =
+        (csm?.['csmPortfolioProviderIds'] as string[] | undefined) || [];
+      if (ids.length === 0) {
+        return createPaginatedResponse([], { page: 1, limit: 50, total: 0 });
+      }
+      bookingFilters["providerIds"] = ids;
+    }
+    
+    // SÉCURITÉ : S'assurer qu'un filtre est toujours appliqué pour les non-admins
+    // (sauf si admin et roleFilter = 'ALL' ou 'ADMIN' ou pas de roleFilter)
+    const isAdminViewingAll = isAdmin && (!roleFilter || roleFilter === 'ALL' || roleFilter === 'ADMIN');
+    if (!isAdminViewingAll) {
+      if (!bookingFilters["requesterId"] && !bookingFilters["providerId"] && !bookingFilters["providerIds"]) {
         logger.warn(
-          { userId, roles: userRoles, viewMode, isProvider, isCustomer },
+          { userId, roles: userRoles, roleFilter, isProvider, isCustomer, isCSM },
           'No booking filter applied for non-admin user - security issue',
         );
         throw ApiErrors.FORBIDDEN;
       }
-      
-      // Log de sécurité pour vérifier que le filtrage est bien appliqué
-      logger.debug(
-        {
-          userId,
-          roles: userRoles,
-          viewMode,
-          filterApplied: bookingFilters["requesterId"] ? 'requesterId' : 'providerId',
-          filterValue: bookingFilters["requesterId"] || bookingFilters["providerId"],
-        },
-        'Booking filter applied for non-admin user',
-      );
     }
+    
+    // Log de sécurité pour vérifier que le filtrage est bien appliqué
+    logger.debug(
+      {
+        userId,
+        roles: userRoles,
+        roleFilter,
+        filterApplied: bookingFilters["requesterId"] ? 'requesterId' : bookingFilters["providerId"] ? 'providerId' : bookingFilters["providerIds"] ? 'providerIds' : 'none (admin all)',
+        filterValue: bookingFilters["requesterId"] || bookingFilters["providerId"] || bookingFilters["providerIds"] || 'all',
+      },
+      'Booking filter applied',
+    );
     if (status && VALID_STATUSES.includes(status as ValidStatus)) {
       bookingFilters["status"] = status;
     }
@@ -144,8 +196,15 @@ export async function GET(request: NextRequest) {
     if (bookingFilters["requesterId"]) {
       queryBuilder.byRequester(bookingFilters["requesterId"]);
     }
+    if (Array.isArray(bookingFilters["requesterIds"])) {
+      // Filtrer par plusieurs requesterIds (pour le filtre par rôle)
+      queryBuilder.whereIn('requesterId', bookingFilters["requesterIds"]);
+    }
     if (bookingFilters["providerId"]) {
       queryBuilder.byProvider(bookingFilters["providerId"]);
+    }
+    if (Array.isArray(bookingFilters["providerIds"])) {
+      queryBuilder.byProviders(bookingFilters["providerIds"]);
     }
     if (bookingFilters["status"]) {
       queryBuilder.byStatus(bookingFilters["status"] as ValidStatus);

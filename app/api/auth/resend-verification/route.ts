@@ -6,6 +6,7 @@
  */
 
 import { sendWelcomeEmail } from '@/lib/email/resend';
+import { getPublicBaseUrl } from '@/lib/api/public-url';
 import dbConnect from '@/lib/mongodb';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import User from '@/models/User';
@@ -56,8 +57,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Envoyer l'email de bienvenue avec lien de vérification
-    const { cleanUrl } = await import('@/lib/utils');
-    const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
+    const baseUrl = getPublicBaseUrl(request);
     const verificationUrl = `${baseUrl}/verify-email?token=${emailVerificationToken}`;
     const emailSent = await sendWelcomeEmail(
       user.email,

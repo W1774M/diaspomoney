@@ -49,6 +49,12 @@ describe('Integration: /api/auth/register', () => {
       const response = await POST(request);
       
       // Peut retourner 200 ou 201 selon l'implémentation
+      if (response.status !== 200 && response.status !== 201) {
+        // Aide au debug: afficher la vraie erreur renvoyée par handleApiRoute
+        const err = await response.json().catch(() => null);
+        // eslint-disable-next-line no-console
+        console.error('register integration failed', { status: response.status, err });
+      }
       expect([200, 201]).toContain(response.status);
       
       const data = await response.json();

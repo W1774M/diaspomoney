@@ -10,6 +10,12 @@ import { bookingService } from '@/services/booking/booking.service';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 
+// Helper pour transformer les chaînes vides en undefined avant validation
+const emptyStringToUndefined = z.preprocess(
+  (val) => (val === '' || val === null ? undefined : val),
+  z.string().email().optional(),
+);
+
 const TrackProgressSchema = z.object({
   step: z.number().min(1).max(4),
   stepName: z.string(),
@@ -17,14 +23,14 @@ const TrackProgressSchema = z.object({
   clientInfo: z.object({
     firstName: z.string().optional(),
     lastName: z.string().optional(),
-    email: z.string().email().optional(),
+    email: emptyStringToUndefined,
     phone: z.string().optional(),
   }).optional(),
   beneficiaryInfo: z.object({
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     phone: z.string().optional(),
-    email: z.string().email().optional(),
+    email: emptyStringToUndefined,
   }).optional(),
   selectedService: z.object({
     serviceId: z.string(),

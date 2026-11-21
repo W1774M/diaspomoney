@@ -30,16 +30,16 @@ export class Invoice {
    */
   static rehydrate(raw: {
     clientId: string;
-    currency?: string;
+    currency?: string | undefined;
     items?: Array<{
       description: string;
       quantity: number;
       unitPrice: number;
     }>;
-    tax?: number;
+    tax?: number | undefined;
     status: string;
     dueDate: Date;
-    notes?: string;
+    notes?: string | undefined;
   }): Invoice {
     const currency = (raw.currency || 'EUR').toUpperCase();
     const items = raw.items?.length
@@ -179,8 +179,7 @@ export class Invoice {
     if (
       (this.props.status === INVOICE_STATUSES.SENT ||
         this.props.status === INVOICE_STATUSES.OVERDUE) &&
-      this.props.dueDate < now &&
-      this.props.status !== INVOICE_STATUSES.PAID
+      this.props.dueDate < now
     ) {
       if (canTransitionInvoiceStatus(this.props.status, INVOICE_STATUSES.OVERDUE)) {
         this.props.status = INVOICE_STATUSES.OVERDUE;

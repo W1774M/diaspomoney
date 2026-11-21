@@ -11,6 +11,28 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '@/app/api/payments/process/route';
 import { NextRequest } from 'next/server';
 
+const { ApiErrors, ApiError } = vi.hoisted(() => {
+  class ApiError extends Error {
+    status: number;
+    statusCode: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.name = 'ApiError';
+      this.status = status;
+      this.statusCode = status;
+    }
+  }
+  const make = (status: number, message: string) => new ApiError(status, message) as any;
+  const ApiErrors = {
+    UNAUTHORIZED: make(401, 'Non autorisé'),
+    FORBIDDEN: make(403, 'Accès non autorisé'),
+    NOT_FOUND: make(404, 'Ressource non trouvée'),
+    VALIDATION_ERROR: (msg: string) => make(400, msg || 'Erreur de validation'),
+    INTERNAL_ERROR: make(500, 'Erreur interne'),
+  };
+  return { ApiErrors, ApiError };
+});
+
 // Mock de auth
 vi.mock('@/auth', () => ({
   auth: vi.fn(),
@@ -74,15 +96,10 @@ vi.mock('@/lib/api/error-handler', () => ({
   }),
   validateBody: vi.fn((body) => body),
   ApiErrors: {
-    UNAUTHORIZED: new Error('Unauthorized'),
-    FORBIDDEN: new Error('Forbidden'),
-    INTERNAL_ERROR: new Error('Internal Error'),
+    ...ApiErrors,
+    INTERNAL_ERROR: new ApiError(500, 'Erreur interne'),
   },
-  ApiError: class ApiError extends Error {
-    constructor(public status: number, message: string) {
-      super(message);
-    }
-  },
+  ApiError,
 }));
 
 // Mock de logger
@@ -180,11 +197,16 @@ describe('POST /api/payments/process', () => {
   });
 
   it('devrait valider avec CreatePaymentSchema', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'user123', roles: ['CUSTOMER'] },
+    } as any);
+
     const { validateBody } = await import('@/lib/api/error-handler');
     vi.mocked(validateBody).mockImplementation((body) => {
       const bodyTyped = body as any;
       if (!bodyTyped.amount || bodyTyped.amount <= 0) {
-        throw new Error('Amount is required and must be positive');
+        throw ApiErrors.VALIDATION_ERROR('Amount is required and must be positive');
       }
       return body;
     });
@@ -197,7 +219,10 @@ describe('POST /api/payments/process', () => {
       }),
     });
 
-    await expect(POST(request)).rejects.toThrow();
+    const response = await POST(request);
+    const data = await response.json();
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
   });
 
   it('devrait construire PaymentFacadeData', async () => {
@@ -303,7 +328,10 @@ describe('POST /api/payments/process', () => {
       }),
     });
 
-    await expect(POST(request)).rejects.toThrow();
+    const response = await POST(request);
+    const data = await response.json();
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
   });
 
   it('devrait gérer requiresAction (3D Secure)', async () => {

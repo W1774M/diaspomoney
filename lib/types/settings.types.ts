@@ -21,6 +21,11 @@ export interface PreferencesData {
   notifications: boolean;
   emailNotifications: boolean;
   smsNotifications: boolean;
+  /**
+   * Préférences fines email par type de notification.
+   * La clé doit être le type (ex: "APPOINTMENT_REMINDER", "PAYMENT_FAILED", etc.)
+   */
+  notificationEmailByType?: Record<string, boolean>;
 }
 
 export interface SecurityData {
