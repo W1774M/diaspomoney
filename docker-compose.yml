@@ -197,6 +197,10 @@ services:
       PORT: 3000
       HOSTNAME: 0.0.0.0
       SENTRY_ENVIRONMENT: production
+      # Production publique : jamais derrière l'accès protégé de dev/rct. Ces variables
+      # arrivent du .env commun (env_file) ; vides, la protection est désactivée.
+      STAGING_ACCESS_PASSWORD: ""
+      STAGING_ACCESS_SECRET: ""
       NEXTAUTH_URL: https://diaspomoney.fr
       NEXT_PUBLIC_APP_URL: https://diaspomoney.fr
       NEXT_PUBLIC_API_URL: https://diaspomoney.fr/api
