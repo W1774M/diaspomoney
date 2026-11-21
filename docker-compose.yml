@@ -110,6 +110,9 @@ services:
       - traefik.http.routers.diaspomoney-dev.entrypoints=websecure
       - traefik.http.routers.diaspomoney-dev.tls=true
       - traefik.http.routers.diaspomoney-dev.tls.certresolver=le
+      # Retire l'en-tête X-Powered-By ajouté par Next malgré poweredByHeader: false
+      - traefik.http.middlewares.diaspomoney-strip-powered-by.headers.customresponseheaders.X-Powered-By=
+      - traefik.http.routers.diaspomoney-dev.middlewares=diaspomoney-strip-powered-by
       - traefik.http.services.diaspomoney-dev.loadbalancer.server.port=3000
 
   app-rct:
@@ -158,6 +161,9 @@ services:
       - traefik.http.routers.diaspomoney-rct.entrypoints=websecure
       - traefik.http.routers.diaspomoney-rct.tls=true
       - traefik.http.routers.diaspomoney-rct.tls.certresolver=le
+      # Retire l'en-tête X-Powered-By ajouté par Next malgré poweredByHeader: false
+      - traefik.http.middlewares.diaspomoney-strip-powered-by.headers.customresponseheaders.X-Powered-By=
+      - traefik.http.routers.diaspomoney-rct.middlewares=diaspomoney-strip-powered-by
       - traefik.http.services.diaspomoney-rct.loadbalancer.server.port=3000
 
   app-prod:
@@ -209,6 +215,9 @@ services:
       - traefik.http.routers.diaspomoney-prod.entrypoints=websecure
       - traefik.http.routers.diaspomoney-prod.tls=true
       - traefik.http.routers.diaspomoney-prod.tls.certresolver=le
+      # Retire l'en-tête X-Powered-By ajouté par Next malgré poweredByHeader: false
+      - traefik.http.middlewares.diaspomoney-strip-powered-by.headers.customresponseheaders.X-Powered-By=
+      - traefik.http.routers.diaspomoney-prod.middlewares=diaspomoney-strip-powered-by
       - traefik.http.services.diaspomoney-prod.loadbalancer.server.port=3000
 
   mongo-express:
