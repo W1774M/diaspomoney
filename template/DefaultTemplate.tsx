@@ -1,19 +1,12 @@
-"use client";
+import ConditionalLayout from '@/components/layout/ConditionalLayout';
+import React from 'react';
 
-import Footer from "@/components/layout/footer/Footer";
-import Header from "@/components/layout/header/header";
-
-const DefaultTemplate = ({
-  children,
-}: Readonly<{
+interface DefaultTemplateProps {
   children: React.ReactNode;
-}>) => {
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header />
-      <main className="flex-grow">{children}</main>
-      <Footer />
-    </div>
-  );
+}
+
+export const DefaultTemplate: React.FC<DefaultTemplateProps> = ({
+  children,
+}) => {
+  return <ConditionalLayout>{children}</ConditionalLayout>;
 };
-export default DefaultTemplate;

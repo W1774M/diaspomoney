@@ -1,0 +1,25 @@
+# Configuration SSH pour DiaspoMoney Server
+# Copiez ce fichier vers C:\Users\Admin\.ssh\config
+# ou ~/.ssh/config sur Linux/Mac
+
+Host diaspomoney-server
+    HostName 217.154.22.202
+    User root
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+    ConnectTimeout 10
+    ForwardAgent yes
+    StrictHostKeyChecking accept-new
+
+# Alternative : Connexion directe (sans alias)
+# Host 217.154.22.202
+#     User root
+#     IdentityFile ~/.ssh/id_ed25519
+#     ServerAliveInterval 60
+
+
+
+
+

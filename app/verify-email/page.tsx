@@ -1,128 +1,313 @@
 "use client";
-import DefaultTemplate from "@/template/DefaultTemplate";
-import { CheckCircle, XCircle } from "lucide-react";
-import Image from "next/image";
+
+import { useNotificationStore } from "@/store/notifications";
+import {
+  Mail,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  XCircle,
+  ArrowLeft,
+} from "lucide-react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 
 function VerifyEmailContent() {
+  const { addNotification } = useNotificationStore();
+  const router = useRouter();
+  const [isResending, setIsResending] = useState(false);
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<
+    "loading" | "verified" | "expired" | "invalid" | "idle"
+  >("idle");
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading"
-  );
-  const [message, setMessage] = useState("");
+  const token = searchParams.get("token");
 
+  // Vérification du token à l'arrivée sur la page
   useEffect(() => {
-    const verifyEmail = async () => {
-      const token = searchParams.get("token");
-
-      if (!token) {
-        setStatus("error");
-        setMessage("Token de vérification manquant");
-        return;
-      }
-
-      try {
-        const res = await fetch("/api/auth/verify-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        });
-
-        const result = await res.json();
-
+    if (!token) {
+      setStatus("invalid");
+      return;
+    }
+    setStatus("loading");
+    // Appel à l'API pour vérifier le token
+    fetch("/api/auth/verify-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token }),
+    })
+      .then(async (res) => {
         if (res.ok) {
-          setStatus("success");
-          setMessage("Email vérifié avec succès !");
+          const data = await res.json();
+          setStatus("verified");
+          setVerifiedEmail(data?.email || null);
         } else {
-          setStatus("error");
-          setMessage(result.error || "Erreur lors de la vérification");
+          const data = await res.json().catch(() => ({}));
+          if (data?.reason === "expired") {
+            setStatus("expired");
+          } else {
+            setStatus("invalid");
+          }
         }
-      } catch {
-        setStatus("error");
-        setMessage("Erreur réseau ou serveur");
-      }
-    };
+      })
+      .catch(() => {
+        setStatus("invalid");
+      });
+  }, [token]);
 
-    verifyEmail();
-  }, [searchParams]);
+  const handleResendEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email.trim()) {
+      addNotification({
+        type: "error",
+        message: "Veuillez entrer votre adresse email",
+        duration: 4000,
+      });
+      return;
+    }
+
+    setIsResending(true);
+
+    try {
+      // Appel réel à l'API pour renvoyer l'email de vérification
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.message || "Erreur lors de l'envoi.");
+      }
+
+      addNotification({
+        type: "success",
+        message: "Email de vérification envoyé ! Vérifiez votre boîte mail.",
+        duration: 6000,
+      });
+
+      setEmail("");
+    } catch (error: any) {
+      addNotification({
+        type: "error",
+        message:
+          error?.message ||
+          "Erreur lors de l'envoi. Veuillez réessayer.",
+        duration: 4000,
+      });
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8">
-      <div className="w-full max-w-md mx-auto">
-        <div className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl p-8">
-          <div className="flex flex-col items-center gap-4">
-            <Image
-              src="/img/Logo_Diaspo_Horizontal_enrichi.webp"
-              alt="DiaspoMoney"
-              width={160}
-              height={48}
-              className="mb-4 drop-shadow-md"
-              priority
-            />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8 px-4">
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl overflow-hidden">
+          {/* Header */}
+          <div className="relative bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white p-8 text-center">
+            <div className="absolute inset-0 opacity-30" style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3Cpattern id='grid' width='10' height='10' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 10 0 L 0 0 0 10' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23grid)'/%3E%3C/svg%3E")`,
+            }}></div>
+            <div className="relative z-10">
+              <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4">
+                <Mail className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold mb-2">Vérification de votre email</h1>
+              <p className="text-sm opacity-90">
+                {status === "loading"
+                  ? "Vérification de votre lien en cours..."
+                  : status === "verified"
+                  ? "Votre compte DiaspoMoney a été vérifié avec succès !"
+                  : status === "expired"
+                  ? "Le lien de vérification a expiré. Veuillez demander un nouveau lien."
+                  : status === "invalid"
+                  ? "Lien de vérification invalide ou déjà utilisé."
+                  : "Activez votre compte DiaspoMoney en vérifiant votre adresse email"}
+              </p>
+            </div>
+          </div>
 
-            {status === "loading" && (
-              <>
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-                <h1 className="text-2xl font-extrabold text-blue-800 tracking-tight text-center">
-                  Vérification en cours...
-                </h1>
-                <p className="text-blue-600 text-base text-center">
-                  Veuillez patienter pendant que nous vérifions votre email.
-                </p>
-              </>
+          {/* Content */}
+          <div className="p-10 space-y-6">
+            {/* Affichage du token si présent */}
+            {token && status === "loading" && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-800 text-sm mb-2 flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 animate-spin" />
+                Vérification du lien en cours...
+              </div>
             )}
 
-            {status === "success" && (
-              <>
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
+            {status === "verified" && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800 text-sm mb-2 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div>
+                  <div className="font-semibold mb-1">
+                    Félicitations, votre compte a été vérifié !
+                  </div>
+                  {verifiedEmail && (
+                    <div className="text-xs text-green-700 mt-1">
+                      Email vérifié : <span className="font-mono">{verifiedEmail}</span>
+                    </div>
+                  )}
+                  <div className="text-xs text-green-700 mt-1">
+                    Vous pouvez maintenant accéder à tous nos services.
+                  </div>
                 </div>
-                <h1 className="text-2xl font-extrabold text-blue-800 tracking-tight text-center">
-                  Email vérifié !
-                </h1>
-                <p className="text-blue-600 text-base text-center mb-6">
-                  Votre compte a été activé avec succès.
-                </p>
-                <Link
-                  href="/login"
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-bold rounded-xl shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200"
+              </div>
+            )}
+
+            {status === "expired" && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800 text-sm mb-2 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-yellow-600" />
+                <div>
+                  <div className="font-semibold mb-1">
+                    Le lien de vérification a expiré.
+                  </div>
+                  <div className="text-xs text-yellow-700 mt-1">
+                    Veuillez saisir votre adresse email pour recevoir un nouveau lien de vérification.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {status === "invalid" && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 text-sm mb-2 flex items-center gap-2">
+                <XCircle className="w-5 h-5 text-red-600" />
+                <div>
+                  <div className="font-semibold mb-1">
+                    Lien de vérification invalide ou déjà utilisé.
+                  </div>
+                  <div className="text-xs text-red-700 mt-1">
+                    Si besoin, vous pouvez demander un nouveau lien de vérification.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Instructions */}
+            {status === "verified" && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-medium mb-1">Votre compte est maintenant actif !</p>
+                    <ol className="list-decimal list-inside space-y-1 text-xs">
+                      <li>Vous pouvez vous connecter à votre espace DiaspoMoney</li>
+                      <li>Profitez de tous nos services en toute sécurité</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(status === "expired" || status === "invalid") && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4" />
+                  Renvoyer l'email de vérification
+                </h3>
+
+                <form onSubmit={handleResendEmail} className="space-y-3">
+                  <div>
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Votre adresse email
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                      placeholder="votre.email@exemple.com"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isResending}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white font-bold shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isResending ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Envoi en cours...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4" />
+                        Renvoyer l'email
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Actions principales */}
+            {status === "verified" && (
+              <div className="space-y-4">
+                <button
+                  onClick={() => router.push("/dashboard")}
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-bold text-lg shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 transform hover:-translate-y-1"
                 >
-                  Se connecter
-                </Link>
-              </>
-            )}
-
-            {status === "error" && (
-              <>
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                  <XCircle className="w-8 h-8 text-red-600" />
-                </div>
-                <h1 className="text-2xl font-extrabold text-red-800 tracking-tight text-center">
-                  Erreur de vérification
-                </h1>
-                <p className="text-red-600 text-base text-center mb-6">
-                  {message}
-                </p>
-                <div className="flex flex-col gap-3">
+                  Accéder à mon compte
+                </button>
+                
+                <div className="text-center">
                   <Link
                     href="/login"
-                    className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-bold rounded-xl shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200"
+                    className="text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center gap-2"
                   >
-                    Aller à la connexion
-                  </Link>
-                  <Link
-                    href="/register"
-                    className="inline-flex items-center justify-center px-6 py-3 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-all duration-200"
-                  >
-                    Créer un nouveau compte
+                    <ArrowLeft className="w-4 h-4" />
+                    Retour à la connexion
                   </Link>
                 </div>
-              </>
+              </div>
             )}
+
+            {/* Aide et support */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-yellow-800">
+                  <p className="font-medium mb-2">Besoin d'aide ?</p>
+                  <div className="space-y-2">
+                    <Link
+                      href="/support"
+                      className="block text-blue-600 hover:underline font-medium"
+                    >
+                      🆘 Contacter le support
+                    </Link>
+                    <Link
+                      href="/hotline"
+                      className="block text-blue-600 hover:underline font-medium"
+                    >
+                      📞 Appeler la hotline
+                    </Link>
+                    <Link
+                      href="/login"
+                      className="block text-blue-600 hover:underline font-medium"
+                    >
+                      🔙 Retour à la connexion
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -132,10 +317,23 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <DefaultTemplate>
-      <Suspense fallback={<div>Chargement...</div>}>
-        <VerifyEmailContent />
-      </Suspense>
-    </DefaultTemplate>
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          <Card className="shadow-xl border-0 backdrop-blur-sm bg-white/80">
+            <CardHeader className="text-center pb-4">
+              <div className="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                <RefreshCw className="w-8 h-8 text-orange-600 animate-spin" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-gray-900">
+                Chargement...
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

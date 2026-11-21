@@ -1,0 +1,395 @@
+/**
+ * Invoice Service - DiaspoMoney
+ * Service de gestion des factures utilisant le Repository Pattern
+ */
+
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
+import { Transaction } from '@/lib/decorators/transaction.decorator';
+import { logger } from '@/lib/logger';
+import { CreateInvoiceServiceSchema, UpdateInvoiceServiceSchema } from '@/lib/validations/invoice-service.schema';
+import type { PaginationOptions } from '@/lib/types';
+import { InvoiceStatus } from '@/lib/types';
+import {
+  getInvoiceRepository,
+  Invoice,
+  PaginatedResult,
+} from '@/repositories';
+import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
+
+export interface InvoiceData {
+  userId: string;
+  transactionId?: string;
+  bookingId?: string;
+  amount: number;
+  currency: string;
+  tax?: number;
+  items: Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
+  dueDate?: Date;
+  billingAddress?: {
+    street: string;
+    city: string;
+    country: string;
+    postalCode: string;
+  };
+  metadata?: Record<string, any>;
+}
+
+/**
+ * InvoiceService utilisant le Repository Pattern
+ */
+export class InvoiceService {
+  private static instance: InvoiceService;
+  private invoiceRepository = getInvoiceRepository();
+
+  static getInstance(): InvoiceService {
+    if (!InvoiceService.instance) {
+      InvoiceService.instance = new InvoiceService();
+    }
+    return InvoiceService.instance;
+  }
+
+  /**
+   * Créer une nouvelle facture
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: CreateInvoiceServiceSchema.passthrough(),
+        paramName: 'data',
+      },
+    ],
+  })
+  @Audit({ eventType: 'INVOICE_CREATED', includeArgs: true })
+  @Performance({ warningThreshold: 2000, errorThreshold: 5000 })
+  @Transaction()
+  @InvalidateCache('InvoiceService:*')
+  async createInvoice(data: InvoiceData): Promise<Invoice> {
+    try {
+      // Invariants Billing (domaine) — lignes recalculées, statut DRAFT
+      const { Invoice: InvoiceAggregate } = await import('@/domain/billing');
+      const draft = InvoiceAggregate.draft({
+        clientId: data.userId,
+        currency: data.currency,
+        items: (data.items || []).map((item) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        tax: data.tax || 0,
+        ...(data.dueDate ? { dueDate: data.dueDate } : {}),
+      });
+      const payload = draft.toCreatePayload();
+
+      // Générer le numéro de facture
+      const invoiceNumber =
+        await this.invoiceRepository.generateInvoiceNumber();
+
+      // Créer la facture via le repository
+      const invoice = await this.invoiceRepository.create({
+        invoiceNumber,
+        userId: payload.userId,
+        transactionId: data.transactionId,
+        bookingId: data.bookingId,
+        amount: payload.amount,
+        currency: payload.currency,
+        tax: payload.tax,
+        totalAmount: payload.totalAmount,
+        status: payload.status,
+        dueDate: payload.dueDate,
+        items: payload.items,
+        billingAddress: data.billingAddress,
+        metadata: data.metadata,
+      } as Partial<Invoice>);
+
+      return invoice;
+    } catch (error) {
+      logger.error({ error, data }, 'Erreur createInvoice');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupérer une facture par ID
+   */
+  @Log({ level: 'info', logArgs: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Invoice ID is required'),
+        paramName: 'id',
+      },
+    ],
+  })
+  @Cacheable(600, { prefix: 'InvoiceService:getInvoiceById' }) // Cache 10 minutes
+  async getInvoiceById(id: string): Promise<Invoice> {
+    try {
+      const invoice = await this.invoiceRepository.findById(id);
+
+      if (!invoice) {
+        throw new Error('Facture non trouvée');
+      }
+
+      return invoice;
+    } catch (error) {
+      logger.error({ error, id }, 'Erreur getInvoiceById');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupérer les factures d'un utilisateur
+   */
+  @Log({ level: 'debug', logArgs: true })
+  @Performance({ warningThreshold: 500, errorThreshold: 2000 })
+  @Cacheable(900, { prefix: 'InvoiceService:getUserInvoices' }) // Cache 15 minutes
+  async getUserInvoices(
+    userId: string,
+    options?: { limit?: number; offset?: number; page?: number },
+  ): Promise<PaginatedResult<Invoice>> {
+    try {
+      const pagination: PaginationOptions | undefined = options
+        ? {
+            limit: options.limit || 50,
+            page: options.page || 1,
+            ...(options.offset !== undefined && { offset: options.offset }),
+          }
+        : undefined;
+      return await this.invoiceRepository.findByUser(userId, pagination);
+    } catch (error) {
+      logger.error({ error, userId }, 'Erreur getUserInvoices');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupérer les factures avec filtres
+   */
+  @Log({ level: 'debug', logArgs: true })
+  @Cacheable(900, { prefix: 'InvoiceService:getInvoices' }) // Cache 15 minutes
+  async getInvoices(
+    filters: Record<string, any>,
+    options?: { limit?: number; offset?: number; page?: number },
+  ): Promise<PaginatedResult<Invoice>> {
+    try {
+      const pagination: PaginationOptions | undefined = options
+        ? {
+            limit: options.limit || 50,
+            page: options.page || 1,
+            ...(options.offset !== undefined && { offset: options.offset }),
+          }
+        : undefined;
+      return await this.invoiceRepository.findInvoicesWithFilters(
+        filters,
+        pagination,
+      );
+    } catch (error) {
+      logger.error({ error, filters }, 'Erreur getInvoices');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mettre à jour une facture
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Invoice ID is required'),
+        paramName: 'id',
+      },
+      {
+        paramIndex: 1,
+        schema: UpdateInvoiceServiceSchema.passthrough(),
+        paramName: 'data',
+      },
+    ],
+  })
+  @InvalidateCache('InvoiceService:*')
+  async updateInvoice(
+    id: string,
+    data: Partial<InvoiceData>,
+  ): Promise<Invoice> {
+    try {
+      const updateData: Partial<Invoice> = {
+        ...(data.amount && { amount: data.amount }),
+        ...(data.tax !== undefined && { tax: data.tax }),
+        ...(data.items && { items: data.items }),
+        ...(data.billingAddress && { billingAddress: data.billingAddress }),
+        ...(data.metadata && { metadata: data.metadata }),
+      };
+
+      // Recalculer le total si le montant ou la taxe change
+      if (data.amount !== undefined || data.tax !== undefined) {
+        const invoice = await this.invoiceRepository.findById(id);
+        if (invoice) {
+          updateData.totalAmount =
+            (data.amount || invoice.amount) + (data.tax || invoice.tax || 0);
+        }
+      }
+
+      const updatedInvoice = await this.invoiceRepository.update(
+        id,
+        updateData,
+      );
+
+      if (!updatedInvoice) {
+        throw new Error('Facture non trouvée');
+      }
+
+      return updatedInvoice;
+    } catch (error) {
+      logger.error({ error, id }, 'Erreur updateInvoice');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mettre à jour le statut d'une facture
+   */
+  @Log({ level: 'info', logArgs: true })
+  @InvalidateCache('InvoiceService:*')
+  async updateInvoiceStatus(
+    id: string,
+    status: InvoiceStatus,
+  ): Promise<boolean> {
+    try {
+      const existing = await this.invoiceRepository.findById(id);
+      if (!existing) {
+        throw new Error('Facture non trouvée');
+      }
+
+      const { Invoice: InvoiceAggregate } = await import('@/domain/billing');
+      const aggregate = InvoiceAggregate.rehydrate({
+        clientId: String(existing.userId),
+        currency: existing.currency,
+        items: existing.items?.map((item) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        tax: existing.tax,
+        status: String(existing.status),
+        dueDate: existing.dueDate,
+      });
+      aggregate.applyTargetStatus(String(status));
+
+      return await this.invoiceRepository.updateStatus(
+        id,
+        aggregate.toPersistenceStatus() as never,
+      );
+    } catch (error) {
+      logger.error({ error, id, status }, 'Erreur updateInvoiceStatus');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Marquer une facture comme payée
+   */
+  @Log({ level: 'info', logArgs: true })
+  @InvalidateCache('InvoiceService:*')
+  async markInvoiceAsPaid(id: string, paidAt?: Date): Promise<boolean> {
+    try {
+      const existing = await this.invoiceRepository.findById(id);
+      if (!existing) {
+        throw new Error('Facture non trouvée');
+      }
+
+      const { Invoice: InvoiceAggregate } = await import('@/domain/billing');
+      const aggregate = InvoiceAggregate.rehydrate({
+        clientId: String(existing.userId),
+        currency: existing.currency,
+        items: existing.items?.map((item) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        tax: existing.tax,
+        status: String(existing.status),
+        dueDate: existing.dueDate,
+      });
+      const paidDate = paidAt || new Date();
+      aggregate.markPaid(paidDate);
+
+      return await this.invoiceRepository.markAsPaid(id, paidDate);
+    } catch (error) {
+      logger.error({ error, id }, 'Erreur markInvoiceAsPaid');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupérer les factures en retard
+   */
+  @Log({ level: 'debug', logArgs: true })
+  @Cacheable(300, { prefix: 'InvoiceService:getOverdueInvoices' })
+  async getOverdueInvoices(options?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+  }): Promise<PaginatedResult<Invoice>> {
+    try {
+      const pagination: PaginationOptions | undefined = options
+        ? {
+            limit: options.limit || 50,
+            page: options.page || 1,
+            ...(options.offset !== undefined && { offset: options.offset }),
+          }
+        : undefined;
+      return await this.invoiceRepository.findOverdue(pagination);
+    } catch (error) {
+      logger.error({ error }, 'Erreur getOverdueInvoices');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Supprimer une facture
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Invoice ID is required'),
+        paramName: 'id',
+      },
+    ],
+  })
+  @InvalidateCache('InvoiceService:*')
+  async deleteInvoice(id: string): Promise<boolean> {
+    try {
+      return await this.invoiceRepository.delete(id);
+    } catch (error) {
+      logger.error({ error, id }, 'Erreur deleteInvoice');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+}
+
+// Export singleton
+export const invoiceService = InvoiceService.getInstance();

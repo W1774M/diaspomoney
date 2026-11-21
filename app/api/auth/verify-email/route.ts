@@ -1,61 +1,137 @@
-import { connectDatabase } from "@/config/database";
-import EmailVerificationToken from "@/models/EmailVerificationToken";
-import User from "@/models/User";
-import { NextRequest, NextResponse } from "next/server";
+/**
+
+
+ * API Route - Verify Email
+ * Endpoint de vérification d'email
+ */
+
+import dbConnect from '@/lib/mongodb';
+import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import { USER_STATUSES } from '@/lib/constants';
+import User from '@/models/User';
+import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDatabase();
-
-    const { token } = await request.json();
+    const body = await request.json();
+    const { token } = body;
 
     if (!token) {
-      return NextResponse.json({ error: "Token requis" }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Token de vérification requis' },
+        { status: 400 },
+      );
     }
 
-    // Vérifier le token
-    const verificationToken = await EmailVerificationToken.findOne({
-      token,
-      used: false,
-      expiresAt: { $gt: new Date() },
-    });
+    // S'assurer que la connexion à la base de données est établie
+    await dbConnect();
 
-    if (!verificationToken) {
+    // Vérifier le token JWT
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env['JWT_SECRET']!) as any;
+    } catch (_error) {
+      logger.error({ error: _error }, 'Error verifying email');
+
+      // Enregistrer les métriques d'échec (token invalide/expiré)
+      monitoringManager.recordMetric({
+        name: 'auth_email_verifications_failed',
+        value: 1,
+        timestamp: new Date(),
+        type: 'counter',
+      });
+
       return NextResponse.json(
-        { error: "Token invalide ou expiré" },
-        { status: 400 }
+        { error: 'Token invalide ou expiré', reason: 'expired' },
+        { status: 400 },
+      );
+    }
+
+    if (decoded.type !== 'email_verification') {
+      logger.error({ decoded }, 'Invalid token type');
+      return NextResponse.json(
+        { error: 'Type de token invalide' },
+        { status: 400 },
       );
     }
 
     // Trouver l'utilisateur
-    const user = await User.findOne({ email: verificationToken.email });
+    const user = await (User as any).findById(decoded.userId);
     if (!user) {
+      logger.error({ decoded }, 'User not found');
       return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
+        { error: 'Utilisateur non trouvé' },
+        { status: 404 },
       );
     }
 
-    // Marquer l'email comme vérifié
-    user.isEmailVerified = true;
-    await user.save();
+    // Vérifier si l'email est déjà vérifié
+    if (user.isEmailVerified) {
+      logger.error({ user }, 'Email already verified');
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Email déjà vérifié',
+          email: user.email,
+        },
+        { status: 200 },
+      );
+    }
 
-    // Marquer le token comme utilisé
-    verificationToken.used = true;
-    await verificationToken.save();
+    // Marquer l'email comme vérifié et activer le compte si l'utilisateur a un mot de passe
+    const updateData: any = {
+      isEmailVerified: true,
+      emailVerified: true,
+    };
+
+    // Si l'utilisateur a un mot de passe, activer automatiquement le compte
+    if (user.password && user.status === USER_STATUSES.PENDING) {
+      updateData.status = USER_STATUSES.ACTIVE;
+    }
+
+    await (User as any).findByIdAndUpdate(decoded.userId, updateData);
+
+    // Enregistrer les métriques
+    monitoringManager.recordMetric({
+      name: 'auth_email_verifications_successful',
+      value: 1,
+      timestamp: new Date(),
+      labels: {
+        user_id: decoded.userId,
+      },
+      type: 'counter',
+    });
 
     return NextResponse.json(
       {
         success: true,
-        message: "Email vérifié avec succès",
+        message: 'Email vérifié avec succès',
+        email: user.email,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
-    console.error("Erreur vérification email:", error);
+    logger.error({ error }, 'Error verifying email');
+
+    // Enregistrer les métriques d'échec
+    monitoringManager.recordMetric({
+      name: 'auth_email_verifications_failed',
+      value: 1,
+      timestamp: new Date(),
+      type: 'counter',
+    });
+
     return NextResponse.json(
-      { error: "Erreur interne du serveur" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erreur de vérification d'email",
+        success: false,
+      },
+      { status: 400 },
     );
   }
 }

@@ -1,0 +1,305 @@
+/**
+ * Payment Facade - DiaspoMoney
+ *
+ * Facade Pattern pour simplifier le processus de paiement complet
+ * Orchestre PaymentService, TransactionService, InvoiceService et NotificationService
+ */
+
+import { Log } from '@/lib/decorators/log.decorator';
+import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
+import { Transaction } from '@/lib/decorators/transaction.decorator';
+import { logger } from '@/lib/logger';
+import { invoiceService } from '@/services/invoice/invoice.service';
+import { PaymentService } from '@/services/payment/payment.service';
+import { transactionService } from '@/services/transaction/transaction.service';
+import { transactionMapper, invoiceMapper } from '@/lib/mappers';
+import { dispatchFacadeNotification } from '@/facades/_shared/dispatchNotification';
+import * as Sentry from '@sentry/nextjs';
+import type { PaymentFacadeData, PaymentFacadeResult, IFacade, FacadeOptions } from '@/lib/types';
+import { CreatePaymentSchema } from '@/lib/validations/payment.schema';
+
+// Réexporter pour compatibilité avec les autres facades
+export type { PaymentFacadeData, PaymentFacadeResult };
+
+/**
+ * PaymentFacade - Facade pour le processus de paiement complet
+ */
+export class PaymentFacade implements IFacade<PaymentFacadeData, PaymentFacadeResult> {
+  private static instance: PaymentFacade;
+  private paymentService: PaymentService;
+
+  private constructor() {
+    this.paymentService = PaymentService.getInstance();
+  }
+
+  static getInstance(): PaymentFacade {
+    if (!PaymentFacade.instance) {
+      PaymentFacade.instance = new PaymentFacade();
+    }
+    return PaymentFacade.instance;
+  }
+
+  /**
+   * Traiter un paiement complet avec orchestration
+   *
+   * Étapes :
+   * 1. Créer le PaymentIntent
+   * 2. Confirmer le paiement
+   * 3. Créer la transaction
+   * 4. Créer la facture (si demandé)
+   * 5. Envoyer les notifications (si demandé)
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: CreatePaymentSchema,
+        paramName: 'data',
+      },
+    ],
+  })
+  /**
+   * Exécuter la facade (implémentation de IFacade)
+   */
+  async execute(
+    data: PaymentFacadeData,
+    _options?: FacadeOptions,
+  ): Promise<PaymentFacadeResult> {
+    return this.processPayment(data);
+  }
+
+  @Retry({
+    maxAttempts: 2,
+    delay: 1000,
+    backoff: 'exponential',
+    shouldRetry: (error: any) => {
+      // Ne retry que pour les erreurs réseau/serveur, pas pour les erreurs de validation
+      return (
+        RetryHelpers.retryOnNetworkOrServerError(error) &&
+        !error.message?.includes('non trouvé') &&
+        !error.message?.includes('invalide')
+      );
+    },
+  })
+  @Audit({ eventType: 'PAYMENT_PROCESSED', includeArgs: true })
+  @Performance({ warningThreshold: 3000, errorThreshold: 8000 })
+  @Transaction()
+  async processPayment(data: PaymentFacadeData): Promise<PaymentFacadeResult> {
+    try {
+      logger.info(
+        {
+          amount: data.amount,
+          currency: data.currency,
+          customerId: data.customerId,
+          serviceType: data.serviceType,
+        },
+        'Processing payment via PaymentFacade',
+      );
+
+      // Étape 1: Créer le PaymentIntent
+      const paymentIntent = await this.paymentService.createPaymentIntent(
+        data.amount,
+        data.currency,
+        data.customerId,
+        {
+          ...data.metadata,
+          payerId: data.payerId,
+          beneficiaryId: data.beneficiaryId,
+          serviceType: data.serviceType,
+          serviceId: data.serviceId,
+        },
+      );
+
+      // Étape 2: Confirmer le paiement
+      const paymentResult = await this.paymentService.confirmPaymentIntent(
+        paymentIntent.id,
+        data.paymentMethodId,
+      );
+
+      if (!paymentResult.success) {
+        // Si le paiement nécessite une action (3D Secure, etc.)
+        if (paymentResult.requiresAction) {
+          const result: PaymentFacadeResult = {
+            success: false,
+            requiresAction: true,
+          };
+
+          if (paymentResult.error) {
+            result.error = paymentResult.error;
+          }
+
+          if (paymentResult.nextAction && paymentResult.nextAction.url) {
+            result.nextAction = {
+              type: paymentResult.nextAction.type,
+              url: paymentResult.nextAction.url,
+            };
+          }
+
+          return result;
+        }
+
+        // Paiement échoué
+        return {
+          success: false,
+          error: paymentResult.error || 'Payment confirmation failed',
+        };
+      }
+
+      // Étape 3: Créer la transaction
+      const transaction = await transactionService.createTransaction({
+        payerId: data.payerId,
+        beneficiaryId: data.beneficiaryId,
+        amount: data.amount,
+        currency: data.currency,
+        serviceType: data.serviceType,
+        serviceId: data.serviceId,
+        description: data.description,
+        metadata: {
+          ...(data.metadata || {}),
+          paymentIntentId: paymentIntent.id,
+        },
+      });
+
+      // Mapper le résultat avec TransactionMapper
+      const mappedTransaction = transactionMapper.map(transaction as any);
+      const transactionId = mappedTransaction.id;
+
+      let invoiceId: string | undefined;
+
+      // Étape 4: Créer la facture si demandé
+      if (data.createInvoice !== false) {
+        try {
+          const invoice = await invoiceService.createInvoice({
+            userId: data.payerId,
+            transactionId: transactionId,
+            amount: data.amount,
+            currency: data.currency,
+            items: [
+              {
+                description: data.description,
+                quantity: 1,
+                unitPrice: data.amount,
+                total: data.amount,
+              },
+            ],
+            dueDate: new Date(),
+            metadata: {
+              ...(data.metadata || {}),
+              paymentIntentId: paymentIntent.id,
+              transactionId: transactionId,
+            },
+          });
+          
+          // Mapper le résultat avec InvoiceMapper
+          const mappedInvoice = invoiceMapper.map(invoice as any);
+          invoiceId = mappedInvoice.id;
+        } catch (invoiceError) {
+          // Ne pas faire échouer le paiement si la facture échoue
+          logger.error(
+            { error: invoiceError },
+            'Failed to create invoice, continuing...',
+          );
+        }
+      }
+
+      // Étape 5: Envoyer les notifications si demandé
+      if (data.sendNotification !== false) {
+        await dispatchFacadeNotification({
+          recipient: data.customerId,
+          type: 'PAYMENT_SUCCESS',
+          template: 'payment_success',
+          payload: {
+            amount: data.amount,
+            currency: data.currency,
+            serviceName: data.description,
+            transactionDate: new Date().toLocaleDateString('fr'),
+          },
+          channels: ['EMAIL', 'PUSH'],
+          priority: 'HIGH',
+        });
+      }
+
+      logger.info(
+        {
+          paymentIntentId: paymentIntent.id,
+          transactionId,
+          invoiceId,
+        },
+        'Payment processed successfully via PaymentFacade',
+      );
+
+      const result: PaymentFacadeResult = {
+        success: true,
+        paymentIntentId: paymentIntent.id,
+        transactionId,
+      };
+
+      if (invoiceId) {
+        result.invoiceId = invoiceId;
+      }
+
+      return result;
+    } catch (error: any) {
+      logger.error(
+        {
+          error,
+          data: {
+            amount: data.amount,
+            currency: data.currency,
+            customerId: data.customerId,
+          },
+        },
+        'Error processing payment via PaymentFacade',
+      );
+
+      Sentry.captureException(error, {
+        extra: {
+          paymentData: {
+            amount: data.amount,
+            currency: data.currency,
+            customerId: data.customerId,
+            serviceType: data.serviceType,
+          },
+        },
+      });
+
+      return {
+        success: false,
+        error: error.message || 'Erreur lors du traitement du paiement',
+      };
+    }
+  }
+
+  /**
+   * Traiter un paiement simple (sans facture ni notification)
+   */
+  async processSimplePayment(
+    amount: number,
+    currency: string,
+    customerId: string,
+    paymentMethodId: string,
+    metadata?: Record<string, string>,
+  ): Promise<PaymentFacadeResult> {
+    return this.processPayment({
+      amount,
+      currency,
+      customerId,
+      paymentMethodId,
+      payerId: customerId, // Par défaut, le customer est le payer
+      beneficiaryId: customerId, // À adapter selon votre logique métier
+      serviceType: 'HEALTH', // Par défaut
+      serviceId: 'default',
+      description: `Payment of ${amount} ${currency}`,
+      metadata: metadata || {},
+      createInvoice: false,
+      sendNotification: false,
+    });
+  }
+}
+
+// Export de l'instance singleton
+export const paymentFacade = PaymentFacade.getInstance();

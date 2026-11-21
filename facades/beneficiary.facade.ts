@@ -1,0 +1,448 @@
+/**
+ * Beneficiary Facade - DiaspoMoney
+ *
+ * Facade Pattern pour simplifier le processus de gestion des bénéficiaires complet
+ * Orchestre UserService, BeneficiaryRepository et NotificationService
+ */
+
+import { Log } from '@/lib/decorators/log.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
+import { logger } from '@/lib/logger';
+import { getBeneficiaryRepository } from '@/repositories';
+import { userService } from '@/services/user/user.service';
+import { beneficiaryMapper } from '@/lib/mappers';
+import { dispatchFacadeNotification } from '@/facades/_shared/dispatchNotification';
+import type {
+  Beneficiary,
+  BeneficiaryData,
+  BeneficiaryRelationship,
+} from '@/lib/types';
+import {
+  CreateBeneficiarySchema,
+  UpdateBeneficiarySchema,
+} from '@/lib/validations/beneficiary.schema';
+import * as Sentry from '@sentry/nextjs';
+
+export interface BeneficiaryFacadeData extends BeneficiaryData {
+  sendNotification?: boolean; // Envoyer une notification
+  sendEmail?: boolean; // Envoyer un email de confirmation
+}
+
+export interface BeneficiaryFacadeResult {
+  success: boolean;
+  beneficiary?: Beneficiary;
+  notificationSent?: boolean;
+  emailSent?: boolean;
+  error?: string;
+}
+
+export interface UpdateBeneficiaryFacadeData {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  relationship?: BeneficiaryRelationship;
+  location?: {
+    address?: string;
+    city?: string;
+    country?: string;
+    postalCode?: string;
+  };
+}
+
+/**
+ * BeneficiaryFacade - Facade pour le processus de gestion des bénéficiaires complet
+ */
+export class BeneficiaryFacade {
+  private static instance: BeneficiaryFacade;
+  private beneficiaryRepository = getBeneficiaryRepository();
+
+  private constructor() {}
+
+  static getInstance(): BeneficiaryFacade {
+    if (!BeneficiaryFacade.instance) {
+      BeneficiaryFacade.instance = new BeneficiaryFacade();
+    }
+    return BeneficiaryFacade.instance;
+  }
+
+  /**
+   * Créer un bénéficiaire complet avec orchestration
+   *
+   * Étapes :
+   * 1. Créer le bénéficiaire via UserService
+   * 2. Envoyer une notification (si demandé)
+   * 3. Envoyer un email de confirmation (si demandé)
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 1,
+        schema: CreateBeneficiarySchema,
+        paramName: 'data',
+      },
+    ],
+  })
+  @Audit({ eventType: 'BENEFICIARY_CREATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
+  async createBeneficiary(
+    userId: string,
+    data: BeneficiaryFacadeData,
+  ): Promise<BeneficiaryFacadeResult> {
+    try {
+      logger.info(
+        {
+          userId,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          relationship: data.relationship,
+          sendNotification: data.sendNotification,
+          sendEmail: data.sendEmail,
+        },
+        'Creating beneficiary via BeneficiaryFacade',
+      );
+
+      // Invariants CRM (domaine) — ownership Client
+      const { Beneficiary: BeneficiaryAggregate } = await import('@/domain/crm');
+      BeneficiaryAggregate.create({
+        ownerClientId: userId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        ...(data.phone ? { phone: data.phone } : {}),
+        ...(data.email ? { email: data.email } : {}),
+      });
+
+      // Étape 1: Créer le bénéficiaire via UserService (persistence actuelle)
+      const beneficiary = await userService.addBeneficiary(userId, {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email || '',
+        phone: data.phone || '',
+        relationship: data.relationship,
+        location: data.location,
+      });
+
+      // Mapper le résultat avec BeneficiaryMapper
+      const mappedBeneficiary = beneficiaryMapper.map(beneficiary as any);
+
+      const beneficiaryId = mappedBeneficiary.id;
+
+      let notificationSent = false;
+      let emailSent = false;
+
+      // Comms via NotificationIntent (plus d'email HTML ad hoc dans la facade)
+      if (data.sendNotification !== false) {
+        notificationSent = await dispatchFacadeNotification({
+          recipient: userId,
+          type: 'BENEFICIARY_CREATED',
+          template: 'beneficiary_created',
+          payload: {
+            beneficiaryName: `${data.firstName} ${data.lastName}`,
+            relationship: data.relationship,
+            beneficiaryId,
+          },
+          channels: ['PUSH', 'EMAIL'],
+          priority: 'NORMAL',
+        });
+      }
+
+      if (data.sendEmail !== false && data.email) {
+        emailSent = await dispatchFacadeNotification({
+          recipient: data.email,
+          type: 'BENEFICIARY_CREATED',
+          template: 'beneficiary_created',
+          payload: {
+            beneficiaryName: `${data.firstName} ${data.lastName}`,
+            relationship: data.relationship,
+            beneficiaryId,
+          },
+          channels: ['EMAIL'],
+          priority: 'NORMAL',
+        });
+      }
+
+      logger.info(
+        {
+          beneficiaryId,
+          notificationSent,
+          emailSent,
+        },
+        'Beneficiary created successfully via BeneficiaryFacade',
+      );
+
+      return {
+        success: true,
+        beneficiary: mappedBeneficiary as unknown as Beneficiary, // Convertir vers le type attendu
+        notificationSent,
+        emailSent,
+      };
+    } catch (error: any) {
+      logger.error(
+        {
+          error,
+          data: {
+            userId,
+            firstName: data.firstName,
+            lastName: data.lastName,
+          },
+        },
+        'Error creating beneficiary via BeneficiaryFacade',
+      );
+
+      Sentry.captureException(error, {
+        extra: {
+          beneficiaryData: {
+            userId,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            relationship: data.relationship,
+          },
+        },
+      });
+
+      return {
+        success: false,
+        error: error.message || 'Erreur lors de la création du bénéficiaire',
+      };
+    }
+  }
+
+  /**
+   * Mettre à jour un bénéficiaire
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 2,
+        schema: UpdateBeneficiarySchema,
+        paramName: 'data',
+      },
+    ],
+  })
+  @Audit({ eventType: 'BENEFICIARY_UPDATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
+  async updateBeneficiary(
+    userId: string,
+    beneficiaryId: string,
+    data: UpdateBeneficiaryFacadeData,
+  ): Promise<BeneficiaryFacadeResult> {
+    try {
+      logger.info(
+        {
+          userId,
+          beneficiaryId,
+          updateFields: Object.keys(data),
+        },
+        'Updating beneficiary via BeneficiaryFacade',
+      );
+
+      // Vérifier que le bénéficiaire appartient à l'utilisateur
+      const existingBeneficiary = await this.beneficiaryRepository.findById(
+        beneficiaryId,
+      );
+
+      if (!existingBeneficiary) {
+        return {
+          success: false,
+          error: 'Bénéficiaire non trouvé',
+        };
+      }
+
+      // Invariants CRM (domaine) — ownership Client
+      const { Beneficiary: BeneficiaryAggregate } = await import('@/domain/crm');
+      try {
+        BeneficiaryAggregate.create({
+          ownerClientId: String(existingBeneficiary.payerId || ''),
+          firstName: existingBeneficiary.firstName || 'Unknown',
+          lastName: existingBeneficiary.lastName || 'Unknown',
+          ...(existingBeneficiary.phone
+            ? { phone: existingBeneficiary.phone }
+            : {}),
+          ...(existingBeneficiary.email
+            ? { email: existingBeneficiary.email }
+            : {}),
+        }).assertOwnedBy(userId);
+      } catch {
+        return {
+          success: false,
+          error: "Ce bénéficiaire n'appartient pas à cet utilisateur",
+        };
+      }
+
+      // Vérifier l'unicité de l'email si fourni
+      if (data.email && data.email !== existingBeneficiary.email) {
+        const beneficiaries = await this.beneficiaryRepository.findByPayer(userId);
+        const duplicate = beneficiaries.data.find(
+          b => b.email === data.email && b.id !== beneficiaryId,
+        );
+
+        if (duplicate) {
+          return {
+            success: false,
+            error: 'Un autre bénéficiaire avec cet email existe déjà',
+          };
+        }
+      }
+
+      // Préparer les données de mise à jour
+      const updateData: Partial<Beneficiary> = {
+        updatedAt: new Date(),
+      };
+
+      if (data.firstName !== undefined) updateData.firstName = data.firstName;
+      if (data.lastName !== undefined) updateData.lastName = data.lastName;
+      if (data.email !== undefined) updateData.email = data.email || '';
+      if (data.phone !== undefined) updateData.phone = data.phone;
+      if (data.relationship !== undefined)
+        updateData.relationship = data.relationship;
+      if (data.location !== undefined) {
+        // Fusionner les données existantes avec les nouvelles pour la mise à jour partielle
+        const existingLocation = existingBeneficiary.location || {
+          address: '',
+          city: '',
+          country: '',
+        };
+        const locationUpdate: Beneficiary['location'] = {
+          address: data.location.address ?? existingLocation.address,
+          city: data.location.city ?? existingLocation.city,
+          country: data.location.country ?? existingLocation.country,
+        };
+        // Ajouter postalCode seulement s'il est défini
+        const postalCode = data.location.postalCode ?? existingLocation.postalCode;
+        if (postalCode !== undefined) {
+          locationUpdate.postalCode = postalCode;
+        }
+        updateData.location = locationUpdate;
+      }
+
+      // Mettre à jour via le repository
+      const updatedBeneficiary = await this.beneficiaryRepository.update(
+        beneficiaryId,
+        updateData,
+      );
+
+      if (!updatedBeneficiary) {
+        return {
+          success: false,
+          error: 'Erreur lors de la mise à jour du bénéficiaire',
+        };
+      }
+
+      logger.info(
+        {
+          beneficiaryId,
+        },
+        'Beneficiary updated successfully via BeneficiaryFacade',
+      );
+
+      return {
+        success: true,
+        beneficiary: updatedBeneficiary,
+      };
+    } catch (error: any) {
+      logger.error(
+        {
+          error,
+          userId,
+          beneficiaryId,
+        },
+        'Error updating beneficiary via BeneficiaryFacade',
+      );
+
+      Sentry.captureException(error, {
+        extra: {
+          beneficiaryId,
+          updateData: data,
+        },
+      });
+
+      return {
+        success: false,
+        error: error.message || 'Erreur lors de la mise à jour du bénéficiaire',
+      };
+    }
+  }
+
+  /**
+   * Supprimer un bénéficiaire
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  async deleteBeneficiary(
+    userId: string,
+    beneficiaryId: string,
+  ): Promise<BeneficiaryFacadeResult> {
+    try {
+      logger.info(
+        {
+          userId,
+          beneficiaryId,
+        },
+        'Deleting beneficiary via BeneficiaryFacade',
+      );
+
+      // Utiliser UserService pour supprimer (désactiver) le bénéficiaire
+      await userService.removeBeneficiary(userId, beneficiaryId);
+
+      logger.info(
+        {
+          beneficiaryId,
+        },
+        'Beneficiary deleted successfully via BeneficiaryFacade',
+      );
+
+      return {
+        success: true,
+      };
+    } catch (error: any) {
+      logger.error(
+        {
+          error,
+          userId,
+          beneficiaryId,
+        },
+        'Error deleting beneficiary via BeneficiaryFacade',
+      );
+
+      Sentry.captureException(error, {
+        extra: {
+          beneficiaryId,
+        },
+      });
+
+      return {
+        success: false,
+        error: error.message || 'Erreur lors de la suppression du bénéficiaire',
+      };
+    }
+  }
+
+  /**
+   * Récupérer tous les bénéficiaires d'un utilisateur
+   */
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  async getBeneficiaries(userId: string): Promise<Beneficiary[]> {
+    try {
+      return await userService.getBeneficiaries(userId);
+    } catch (error: any) {
+      logger.error(
+        {
+          error,
+          userId,
+        },
+        'Error getting beneficiaries via BeneficiaryFacade',
+      );
+
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+}
+
+// Export de l'instance singleton
+export const beneficiaryFacade = BeneficiaryFacade.getInstance();
+

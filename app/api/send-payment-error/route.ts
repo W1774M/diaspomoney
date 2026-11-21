@@ -2,6 +2,7 @@ import { config } from "@/config/env";
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { logger } from '@/lib/logger';
 
 // Configuration du transporteur email
 const transporter = nodemailer.createTransport({
@@ -28,9 +29,8 @@ const generateRetryToken = () => {
 const sendEmail = async (to: string, subject: string, html: string) => {
   // En mode développement, simuler l'envoi d'email
   if (config.isDevelopment) {
-    console.log("📧 [DEV] Email simulé :", { to, subject });
-    console.log("📧 [DEV] Contenu HTML :", html.substring(0, 200) + "...");
-    return { messageId: "dev-" + Date.now() };
+    logger.debug({ to, subject, htmlPreview: html.substring(0, 200) }, 'Email simulé en mode développement');
+    return { messageId: `dev-${  Date.now()}` };
   }
 
   return await transporter.sendMail({
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (!appointment || !paymentData) {
       return NextResponse.json(
         { error: "Données manquantes" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -62,9 +62,9 @@ export async function POST(request: NextRequest) {
     const { token, expiresAt } = generateRetryToken();
 
     // URL de retry (à adapter selon votre structure)
-    const retryUrl = `${
-      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-    }/provider/${
+    const { cleanUrl } = await import('@/lib/utils');
+    const baseUrl = cleanUrl(process.env["NEXT_PUBLIC_APP_URL"]);
+    const retryUrl = `${baseUrl}/providers/${
       appointment.provider.id
     }?retry=${token}&expires=${expiresAt.getTime()}`;
 
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
             <div class="highlight">
                 <h2>🚨 Action requise</h2>
                 <p><strong>Date de l'erreur :</strong> ${new Date().toLocaleDateString(
-                  "fr-FR"
+                  "fr-FR",
                 )} à ${new Date().toLocaleTimeString("fr-FR")}</p>
                 <p><strong>Erreur :</strong> ${errorMessage}</p>
             </div>
@@ -133,8 +133,8 @@ export async function POST(request: NextRequest) {
             <div class="section">
                 <h3>👤 Informations du demandeur</h3>
                 <p><strong>Nom :</strong> ${appointment.requester.firstName} ${
-      appointment.requester.lastName
-    }</p>
+                  appointment.requester.lastName
+                }</p>
                 <p><strong>Téléphone :</strong> ${
                   appointment.requester.phone
                 }</p>
@@ -144,8 +144,8 @@ export async function POST(request: NextRequest) {
             <div class="section">
                 <h3>👥 Informations du bénéficiaire</h3>
                 <p><strong>Nom :</strong> ${appointment.recipient.firstName} ${
-      appointment.recipient.lastName
-    }</p>
+                  appointment.recipient.lastName
+                }</p>
                 <p><strong>Téléphone :</strong> ${
                   appointment.recipient.phone
                 }</p>
@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
             <div class="warning">
                 <h3>⏰ Lien valide 15 minutes</h3>
                 <p>Ce lien expirera le <strong>${expiresAt.toLocaleString(
-                  "fr-FR"
+                  "fr-FR",
                 )}</strong></p>
                 <p>Si le lien expire, vous devrez refaire votre réservation.</p>
             </div>
@@ -299,16 +299,16 @@ export async function POST(request: NextRequest) {
 
     // Envoi à l'équipe DiaspoMoney
     await sendEmail(
-      process.env.EMAIL_CONTACT || "contact@diaspomoney.fr",
+      process.env["EMAIL_CONTACT"] || "contact@diaspomoney.fr",
       adminSubject,
-      adminEmailContent
+      adminEmailContent,
     );
 
     // Envoi au client
     await sendEmail(
       appointment.requester.email,
       clientSubject,
-      clientEmailContent
+      clientEmailContent,
     );
 
     return NextResponse.json(
@@ -319,13 +319,13 @@ export async function POST(request: NextRequest) {
         expiresAt: expiresAt.toISOString(),
         retryUrl: retryUrl,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
-    console.error("Erreur lors de l'envoi des emails d'erreur:", error);
+    logger.error({ error }, "Erreur lors de l'envoi des emails d'erreur");
     return NextResponse.json(
       { error: "Erreur lors de l'envoi des emails d'erreur" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  appointmentSchema,
+  bookingSchema,
   loginSchema,
   paymentSchema,
   registerSchema,
@@ -11,7 +11,8 @@ export function sanitizeInput(input: unknown): unknown {
   if (typeof input === "string") {
     return input
       .trim()
-      .replace(/[<>]/g, "") // Supprimer les balises HTML
+      .replace(/<script[^>]*>.*?<\/script>/gi, "") // Supprimer les balises script complètes
+      .replace(/<[^>]*>/g, "") // Supprimer toutes les autres balises HTML
       .replace(/javascript:/gi, "") // Supprimer les protocoles dangereux
       .replace(/on\w+\s*=/gi, ""); // Supprimer les événements inline
   }
@@ -34,7 +35,7 @@ export function sanitizeInput(input: unknown): unknown {
 // Fonction de validation avec sanitisation
 export async function validateAndSanitize<T extends z.ZodTypeAny>(
   schema: T,
-  data: unknown
+  data: unknown,
 ): Promise<
   { success: true; data: z.infer<T> } | { success: false; errors: string[] }
 > {
@@ -53,7 +54,7 @@ export async function validateAndSanitize<T extends z.ZodTypeAny>(
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        errors: error.errors.map((err) => err.message),
+        errors: error.issues.map(err => err.message),
       };
     }
 
@@ -70,7 +71,7 @@ export const validateLogin = (data: unknown) =>
 export const validateRegister = (data: unknown) =>
   validateAndSanitize(registerSchema, data);
 export const validateAppointment = (data: unknown) =>
-  validateAndSanitize(appointmentSchema, data);
+  validateAndSanitize(bookingSchema, data);
 export const validatePayment = (data: unknown) =>
   validateAndSanitize(paymentSchema, data);
 
@@ -152,7 +153,7 @@ export function validateCardNumber(cardNumber: string): boolean {
   let isEven = false;
 
   for (let i = cleaned.length - 1; i >= 0; i--) {
-    let digit = parseInt(cleaned[i]);
+    let digit = parseInt(cleaned[i] as string);
 
     if (isEven) {
       digit *= 2;
@@ -178,8 +179,12 @@ export function validateExpiryDate(expiryDate: string): boolean {
   const currentYear = currentDate.getFullYear() % 100;
   const currentMonth = currentDate.getMonth() + 1;
 
-  const expYear = parseInt(year);
-  const expMonth = parseInt(month);
+  if (typeof year === "undefined" || typeof month === "undefined") return false;
+
+  const expYear = parseInt(year, 10);
+  const expMonth = parseInt(month, 10);
+
+  if (isNaN(expYear) || isNaN(expMonth)) return false;
 
   if (expYear < currentYear) return false;
   if (expYear === currentYear && expMonth < currentMonth) return false;

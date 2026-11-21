@@ -1,0 +1,1 @@
+export { InfiniteCarousel } from "./InfiniteCarousel";

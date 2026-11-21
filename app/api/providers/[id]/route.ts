@@ -1,28 +1,54 @@
-import { connectDatabase } from "@/config/database";
-import Provider from "@/models/Provider";
-import { NextRequest, NextResponse } from "next/server";
+import { userService } from '@/services/user/user.service';
+import { ROLES, USER_STATUSES, HTTP_STATUS_CODES } from '@/lib/constants';
+import mongoose from 'mongoose';
+import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  _request: NextRequest,
+  { params }: { params: { id: string } },
 ) {
   try {
-    await connectDatabase();
-    const { id } = await params;
+    logger.debug({ providerId: params.id }, 'API Provider [id] - Récupération');
 
-    // Essayer de trouver le prestataire avec l'ID comme string ou number
-    const numericId = parseInt(id);
-    const provider = await Provider.findOne({
-      $or: [{ id: id }, { id: numericId }],
-    });
-
-    if (!provider) {
+    // Vérifier que l'ID est un ObjectId valide
+    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+      logger.warn({ providerId: params.id }, 'ID invalide');
       return NextResponse.json(
-        {
-          success: false,
-          error: "Prestataire non trouvé",
-        },
-        { status: 404 }
+        { error: 'ID de prestataire invalide' },
+        { status: HTTP_STATUS_CODES.BAD_REQUEST },
+      );
+    }
+
+    // Récupérer l'utilisateur par ID
+    const provider = await userService.getUserProfile(params.id);
+
+    logger.debug({
+      id: provider._id,
+      email: provider.email,
+      roles: provider.roles,
+      status: provider.status,
+    }, 'Provider trouvé');
+
+    // Vérifier que l'utilisateur a le rôle PROVIDER
+    if (
+      !provider.roles ||
+      !Array.isArray(provider.roles) ||
+      !provider.roles.includes(ROLES.PROVIDER)
+    ) {
+      logger.warn({ roles: provider.roles }, 'Provider non trouvé - rôle PROVIDER manquant');
+      return NextResponse.json(
+        { error: 'Prestataire non trouvé' },
+        { status: HTTP_STATUS_CODES.NOT_FOUND },
+      );
+    }
+
+    // Vérifier que le provider est actif
+    if (provider.status !== USER_STATUSES.ACTIVE) {
+      logger.warn({ status: provider.status }, 'Provider inactif');
+      return NextResponse.json(
+        { error: 'Prestataire non disponible' },
+        { status: HTTP_STATUS_CODES.NOT_FOUND },
       );
     }
 
@@ -31,97 +57,19 @@ export async function GET(
       data: provider,
     });
   } catch (error) {
-    console.error("Erreur lors de la récupération du prestataire:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Erreur lors de la récupération du prestataire",
-      },
-      { status: 500 }
-    );
-  }
-}
+    logger.error({ error }, 'Erreur lors de la récupération du prestataire');
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    await connectDatabase();
-    const { id } = await params;
-
-    const body = await request.json();
-    const numericId = parseInt(id);
-    const provider = await Provider.findOneAndUpdate(
-      { $or: [{ id: id }, { id: numericId }] },
-      body,
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
-
-    if (!provider) {
+    // Gérer le cas où l'utilisateur n'est pas trouvé
+    if (error instanceof Error && error.message === 'Utilisateur non trouvé') {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Prestataire non trouvé",
-        },
-        { status: 404 }
+        { error: 'Prestataire non trouvé' },
+        { status: HTTP_STATUS_CODES.NOT_FOUND },
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: provider,
-    });
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour du prestataire:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Erreur lors de la mise à jour du prestataire",
-      },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    await connectDatabase();
-    const { id } = await params;
-
-    const numericId = parseInt(id);
-    const provider = await Provider.findOneAndDelete({
-      $or: [{ id: id }, { id: numericId }],
-    });
-
-    if (!provider) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Prestataire non trouvé",
-        },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: "Prestataire supprimé avec succès",
-    });
-  } catch (error) {
-    console.error("Erreur lors de la suppression du prestataire:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Erreur lors de la suppression du prestataire",
-      },
-      { status: 500 }
+      { error: 'Erreur interne du serveur' },
+      { status: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR },
     );
   }
 }

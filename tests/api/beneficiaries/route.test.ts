@@ -1,0 +1,408 @@
+/**
+ * Tests unitaires pour /api/beneficiaries
+ * 
+ * Implémente les tests pour :
+ * - GET /api/beneficiaries
+ * - POST /api/beneficiaries
+ * - Validation avec CreateBeneficiaryApiSchema
+ * - Utilisation de beneficiaryFacade
+ * - Authentification
+ * - Gestion d'erreurs
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { GET, POST } from '@/app/api/beneficiaries/route';
+import { NextRequest } from 'next/server';
+
+// ApiErrors/ApiError doivent être définis via vi.hoisted() car utilisés dans un factory vi.mock() (hoist)
+const { ApiErrors, ApiError } = vi.hoisted(() => {
+  class ApiError extends Error {
+    status: number;
+    statusCode: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.name = 'ApiError';
+      this.status = status;
+      this.statusCode = status;
+    }
+  }
+  const make = (status: number, message: string) => new ApiError(status, message) as any;
+  const ApiErrors = {
+    UNAUTHORIZED: make(401, 'Non autorisé'),
+    FORBIDDEN: make(403, 'Accès non autorisé'),
+    NOT_FOUND: make(404, 'Ressource non trouvée'),
+    VALIDATION_ERROR: (msg: string) => make(400, msg || 'Erreur de validation'),
+  };
+  return { ApiErrors, ApiError };
+});
+
+// Mock de auth - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
+const { mockAuth } = vi.hoisted(() => {
+  return {
+    mockAuth: vi.fn(),
+  };
+});
+
+vi.mock('@/auth', () => ({
+  auth: mockAuth,
+}));
+
+// Mock de beneficiaryFacade - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
+const { mockGetBeneficiaries, mockCreateBeneficiary } = vi.hoisted(() => {
+  return {
+    mockGetBeneficiaries: vi.fn(),
+    mockCreateBeneficiary: vi.fn(),
+  };
+});
+
+vi.mock('@/facades', () => ({
+  beneficiaryFacade: {
+    getBeneficiaries: mockGetBeneficiaries,
+    createBeneficiary: mockCreateBeneficiary,
+  },
+}));
+
+// Mock de getUserRepository - utiliser vi.hoisted() pour que les variables soient disponibles dans vi.mock
+const { mockFindByEmail } = vi.hoisted(() => {
+  return {
+    mockFindByEmail: vi.fn(),
+  };
+});
+
+vi.mock('@/repositories', () => ({
+  getUserRepository: vi.fn(() => ({
+    findByEmail: mockFindByEmail,
+    // recherche d’un compte par téléphone du bénéficiaire
+    findUsersWithFilters: vi.fn(async () => ({ data: [] })),
+  })),
+}));
+
+// Mock de handleApiRoute
+vi.mock('@/lib/api/error-handler', () => ({
+  handleApiRoute: vi.fn(async (_request, handler) => {
+    try {
+      const result = await handler();
+      // Si le résultat a déjà une méthode json(), le retourner tel quel
+      if (result && typeof result === 'object' && 'json' in result) {
+        return result;
+      }
+      // Sinon, envelopper dans un objet avec json()
+      return {
+        json: async () => result,
+        status: 200,
+      };
+    } catch (error: any) {
+      // Gérer les erreurs ApiError
+      if (error.status || error.statusCode) {
+        return {
+          json: async () => ({ error: error.message || 'Erreur', success: false }),
+          status: error.status || error.statusCode,
+        };
+      }
+      // Autres erreurs
+      return {
+        json: async () => ({ error: error.message || 'Erreur interne du serveur', success: false }),
+        status: 500,
+      };
+    }
+  }),
+  validateBody: vi.fn((body) => body),
+  ApiError,
+  ApiErrors,
+}));
+
+// Mock de createListResponse et createResourceResponse
+vi.mock('@/lib/api/response', () => ({
+  createListResponse: vi.fn((data) => ({
+    json: async () => ({
+      success: true,
+      data,
+    }),
+    status: 200,
+  })),
+  createResourceResponse: vi.fn((data, metadata) => ({
+    json: async () => ({
+      success: true,
+      data,
+      ...metadata,
+    }),
+    status: 200,
+  })),
+}));
+
+describe('GET /api/beneficiaries', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('devrait récupérer les bénéficiaires de l\'utilisateur avec succès', async () => {
+    const mockUser = {
+      id: 'user123',
+      email: 'test@example.com',
+    };
+
+    const mockBeneficiaries = [
+      {
+        id: 'ben1',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john@example.com',
+        phone: '+33123456789',
+        relationship: 'OTHER',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    mockAuth.mockResolvedValueOnce({
+      user: { email: 'test@example.com' },
+    });
+    mockFindByEmail.mockResolvedValueOnce(mockUser);
+    mockGetBeneficiaries.mockResolvedValueOnce(mockBeneficiaries);
+
+    const request = new NextRequest('http://localhost:3000/api/beneficiaries');
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(mockGetBeneficiaries).toHaveBeenCalledWith('user123');
+  });
+
+  it('devrait retourner 401 si non authentifié', async () => {
+    mockAuth.mockResolvedValueOnce(null);
+
+    const request = new NextRequest('http://localhost:3000/api/beneficiaries');
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toBe('Non autorisé');
+  });
+
+  it('devrait retourner 404 si l\'utilisateur n\'existe pas', async () => {
+    mockAuth.mockResolvedValueOnce({
+      user: { email: 'test@example.com' },
+    });
+    mockFindByEmail.mockResolvedValueOnce(null);
+
+    const request = new NextRequest('http://localhost:3000/api/beneficiaries');
+    const response = await GET(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(data.error).toBe('Ressource non trouvée');
+  });
+
+  it('devrait mapper les bénéficiaires vers le format attendu', async () => {
+    const mockUser = {
+      id: 'user123',
+      email: 'test@example.com',
+    };
+
+    const mockBeneficiaries = [
+      {
+        id: 'ben1',
+        firstName: 'John',
+        lastName: 'Doe',
+        relationship: 'OTHER',
+        isActive: true,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+      },
+    ];
+
+    mockAuth.mockResolvedValueOnce({
+      user: { email: 'test@example.com' },
+    });
+    mockFindByEmail.mockResolvedValueOnce(mockUser);
+    mockGetBeneficiaries.mockResolvedValueOnce(mockBeneficiaries);
+
+    const request = new NextRequest('http://localhost:3000/api/beneficiaries');
+    await GET(request);
+
+    const { createListResponse } = await import('@/lib/api/response');
+    expect(createListResponse).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'John Doe',
+          firstName: 'John',
+          lastName: 'Doe',
+          status: 'active',
+        }),
+      ]),
+    );
+  });
+});
+
+describe('POST /api/beneficiaries', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('devrait créer un bénéficiaire avec succès', async () => {
+    const mockUser = {
+      id: 'user123',
+      email: 'test@example.com',
+      countryOfResidence: 'FR',
+    };
+
+    const mockCreatedBeneficiary = {
+      id: 'ben1',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      relationship: 'OTHER',
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    mockAuth.mockResolvedValueOnce({
+      user: { email: 'test@example.com' },
+    });
+    mockFindByEmail.mockResolvedValueOnce(mockUser);
+    mockCreateBeneficiary.mockResolvedValueOnce({
+      success: true,
+      beneficiary: mockCreatedBeneficiary,
+    });
+
+    const request = new NextRequest('http://localhost:3000/api/beneficiaries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        relationship: 'OTHER',
+        email: 'jane@example.com',
+        location: { address: '1 rue de Paris', city: 'Paris', country: 'FR' },
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(mockCreateBeneficiary).toHaveBeenCalled();
+  });
+
+  it('devrait appeler createBeneficiary avec firstName/lastName', async () => {
+    const mockUser = {
+      id: 'user123',
+      email: 'test@example.com',
+      countryOfResidence: 'FR',
+    };
+
+    mockAuth.mockResolvedValueOnce({
+      user: { email: 'test@example.com' },
+    });
+    mockFindByEmail.mockResolvedValueOnce(mockUser);
+    mockCreateBeneficiary.mockResolvedValueOnce({
+      success: true,
+      beneficiary: { id: 'ben1' },
+    });
+
+    const request = new NextRequest('http://localhost:3000/api/beneficiaries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        relationship: 'OTHER',
+        location: { address: '1 rue de Paris', city: 'Paris', country: 'FR' },
+      }),
+    });
+
+    await POST(request);
+
+    expect(mockCreateBeneficiary).toHaveBeenCalled();
+  });
+
+  it('devrait retourner 401 si non authentifié', async () => {
+    mockAuth.mockResolvedValueOnce(null);
+
+    const request = new NextRequest('http://localhost:3000/api/beneficiaries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        relationship: 'OTHER',
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(data.error).toBe('Non autorisé');
+  });
+
+  it('devrait valider le body avec CreateBeneficiaryApiSchema', async () => {
+    const { validateBody } = await import('@/lib/api/error-handler');
+    const mockUser = {
+      id: 'user123',
+      email: 'test@example.com',
+      countryOfResidence: 'FR',
+    };
+
+    mockAuth.mockResolvedValueOnce({
+      user: { email: 'test@example.com' },
+    });
+    mockFindByEmail.mockResolvedValueOnce(mockUser);
+    mockCreateBeneficiary.mockResolvedValueOnce({
+      success: true,
+      beneficiary: { id: 'ben1' },
+    });
+
+    const request = new NextRequest('http://localhost:3000/api/beneficiaries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        relationship: 'OTHER',
+        location: { address: '1 rue de Paris', city: 'Paris', country: 'FR' },
+      }),
+    });
+
+    await POST(request);
+
+    expect(validateBody).toHaveBeenCalled();
+  });
+
+  it('devrait retourner une erreur si la création échoue', async () => {
+    const mockUser = {
+      id: 'user123',
+      email: 'test@example.com',
+      countryOfResidence: 'FR',
+    };
+
+    mockAuth.mockResolvedValueOnce({
+      user: { email: 'test@example.com' },
+    });
+    mockFindByEmail.mockResolvedValueOnce(mockUser);
+    mockCreateBeneficiary.mockResolvedValueOnce({
+      success: false,
+      error: 'Erreur de création',
+    });
+
+    const request = new NextRequest('http://localhost:3000/api/beneficiaries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        relationship: 'OTHER',
+        location: { address: '1 rue de Paris', city: 'Paris', country: 'FR' },
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
+  });
+});
+

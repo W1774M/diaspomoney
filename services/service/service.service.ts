@@ -1,0 +1,372 @@
+/**
+ * Service Service - DiaspoMoney
+ * Service de gestion des services utilisant le Service Layer Pattern
+ * Utilise les constantes, types, schémas et mappers centralisés
+ */
+
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
+import { Authorize } from '@/lib/decorators/authorize.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
+import { SPECIALITY_TYPES, ROLES } from '@/lib/constants';
+import { logger } from '@/lib/logger';
+import {
+  CreateServiceSchema,
+  UpdateServiceSchema,
+  type CreateServiceInput,
+  type UpdateServiceInput,
+} from '@/lib/validations/service.schema';
+import {
+  CreateServiceOptionSchema,
+  UpdateServiceOptionSchema,
+  type CreateServiceOptionInput,
+  type UpdateServiceOptionInput,
+} from '@/lib/validations/service-options.schema';
+import { getServiceRepository, getServiceOptionRepository, IServiceRepository, IServiceOptionRepository } from '@/repositories';
+import { z } from 'zod';
+
+export class ServiceService {
+  private static instance: ServiceService;
+  private serviceRepository: IServiceRepository;
+  private serviceOptionRepository: IServiceOptionRepository;
+
+  private constructor() {
+    this.serviceRepository = getServiceRepository();
+    this.serviceOptionRepository = getServiceOptionRepository();
+  }
+
+  static getInstance(): ServiceService {
+    if (!ServiceService.instance) {
+      ServiceService.instance = new ServiceService();
+    }
+    return ServiceService.instance;
+  }
+
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: CreateServiceSchema,
+        paramName: 'data',
+      },
+    ],
+  })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
+  @Audit({ eventType: 'SERVICE_CREATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
+  @InvalidateCache('ServiceRepository:*')
+  async createService(data: CreateServiceInput) {
+    try {
+      // Invariants Catalog (domaine)
+      const { CatalogService } = await import('@/domain/catalog');
+      const offer = CatalogService.create({
+        id: data.id,
+        name: data.label,
+        category: data.category,
+        price: data.price,
+        description: data.description,
+        isActive: data.isActive ?? true,
+      });
+
+      // Vérifier si le service existe déjà
+      const existing = await this.serviceRepository.findByCustomId(offer.id);
+      if (existing) {
+        throw new Error(`Service with id ${offer.id} already exists`);
+      }
+
+      const snapshot = offer.toCreateInput();
+      const service = await this.serviceRepository.create({
+        ...data,
+        id: snapshot.id,
+        label: snapshot.name,
+        category: snapshot.category,
+        price: snapshot.price,
+        isActive: snapshot.isActive,
+        description: snapshot.description ?? data.description,
+      } as any);
+      logger.info({ serviceId: service.id }, 'Service created successfully');
+      return service;
+    } catch (error) {
+      logger.error({ error, data }, 'Error creating service');
+      throw error;
+    }
+  }
+
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string(),
+        paramName: 'id',
+      },
+      {
+        paramIndex: 1,
+        schema: UpdateServiceSchema,
+        paramName: 'data',
+      },
+    ],
+  })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
+  @Audit({ eventType: 'SERVICE_UPDATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
+  @InvalidateCache('ServiceRepository:*')
+  async updateService(id: string, data: UpdateServiceInput) {
+    try {
+      const existing =
+        (await this.serviceRepository.findByCustomId(id)) ||
+        (await this.serviceRepository.findById(id));
+      if (!existing) {
+        throw new Error(`Service ${id} not found`);
+      }
+
+      // Invariants Catalog (domaine) sur le patch
+      const { CatalogService } = await import('@/domain/catalog');
+      const offer = CatalogService.create({
+        id: String((existing as { id?: string }).id || id),
+        name: String(
+          data.label ??
+            (existing as { label?: string }).label ??
+            (existing as { name?: string }).name ??
+            id,
+        ),
+        category: String(
+          data.category ?? (existing as { category?: string }).category ?? 'HEALTH',
+        ),
+        price: Number(
+          data.price ?? (existing as { price?: number }).price ?? 0,
+        ),
+        isActive:
+          data.isActive ??
+          (existing as { isActive?: boolean }).isActive ??
+          true,
+        ...(data.description !== undefined
+          ? { description: data.description }
+          : {}),
+      });
+      const snapshot = offer.toCreateInput();
+
+      const service = await this.serviceRepository.update(id, {
+        ...data,
+        label: snapshot.name,
+        category: snapshot.category,
+        price: snapshot.price,
+        isActive: snapshot.isActive,
+      } as never);
+      logger.info({ serviceId: id }, 'Service updated successfully');
+      return service;
+    } catch (error) {
+      logger.error({ error, id, data }, 'Error updating service');
+      throw error;
+    }
+  }
+
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
+  @Audit({ eventType: 'SERVICE_DELETED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
+  @InvalidateCache('ServiceRepository:*')
+  async deleteService(id: string) {
+    try {
+      const deleted = await this.serviceRepository.delete(id);
+      logger.info({ serviceId: id }, 'Service deleted successfully');
+      return deleted;
+    } catch (error) {
+      logger.error({ error, id }, 'Error deleting service');
+      throw error;
+    }
+  }
+
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'ServiceService:getService' })
+  async getService(id: string) {
+    try {
+      const service = await this.serviceRepository.findByCustomId(id) || 
+                      await this.serviceRepository.findById(id);
+      return service;
+    } catch (error) {
+      logger.error({ error, id }, 'Error getting service');
+      throw error;
+    }
+  }
+
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Performance({ warningThreshold: 500, errorThreshold: 2000 })
+  @Cacheable(300, { prefix: 'ServiceService:getAllServices' })
+  async getAllServices(filters?: { category?: typeof SPECIALITY_TYPES[keyof typeof SPECIALITY_TYPES]; isActive?: boolean }) {
+    try {
+      if (filters?.category) {
+        return await this.serviceRepository.findByCategory(filters.category as 'HEALTH' | 'EDUCATION' | 'BTP');
+      }
+      if (filters?.isActive !== undefined) {
+        return filters.isActive 
+          ? await this.serviceRepository.findActive()
+          : await this.serviceRepository.findAll({ isActive: false });
+      }
+      return await this.serviceRepository.findAll();
+    } catch (error) {
+      logger.error({ error, filters }, 'Error getting services');
+      throw error;
+    }
+  }
+
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: CreateServiceOptionSchema,
+        paramName: 'data',
+      },
+    ],
+  })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
+  @Audit({ eventType: 'SERVICE_OPTION_CREATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
+  @InvalidateCache('ServiceOptionRepository:*')
+  async createServiceOption(data: CreateServiceOptionInput) {
+    try {
+      // Invariants Catalog — category si fournie
+      if (data.category) {
+        const { assertCatalogCategory } = await import('@/domain/catalog');
+        assertCatalogCategory(String(data.category));
+      }
+
+      // Générer un ID basé sur le label (sans catégorie car une option peut être multi-catégories)
+      const optionId = data.label.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const option = await this.serviceOptionRepository.create({
+        ...data,
+        id: optionId,
+        // Ne pas inclure category si elle n'est pas fournie
+        ...(data.category ? { category: data.category } : {}),
+      } as any);
+      logger.info({ optionId: option.id }, 'Service option created successfully');
+      return option;
+    } catch (error) {
+      logger.error({ error, data }, 'Error creating service option');
+      throw error;
+    }
+  }
+
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'ServiceService:getServiceOptionById' })
+  async getServiceOptionById(id: string) {
+    try {
+      // Essayer d'abord par ID personnalisé
+      let option = await this.serviceOptionRepository.findByCustomId(id);
+      
+      // Si non trouvé, essayer par _id
+      if (!option) {
+        option = await this.serviceOptionRepository.findById(id);
+      }
+      
+      return option;
+    } catch (error) {
+      logger.error({ error, id }, 'Error getting service option by id');
+      throw error;
+    }
+  }
+
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string(),
+        paramName: 'id',
+      },
+      {
+        paramIndex: 1,
+        schema: UpdateServiceOptionSchema,
+        paramName: 'data',
+      },
+    ],
+  })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
+  @Audit({ eventType: 'SERVICE_OPTION_UPDATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
+  @InvalidateCache('ServiceOptionRepository:*')
+  async updateServiceOption(id: string, data: UpdateServiceOptionInput) {
+    try {
+      const option = await this.serviceOptionRepository.update(id, data as any);
+      logger.info({ optionId: id }, 'Service option updated successfully');
+      return option;
+    } catch (error) {
+      logger.error({ error, id, data }, 'Error updating service option');
+      throw error;
+    }
+  }
+
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
+  @Audit({ eventType: 'SERVICE_OPTION_DELETED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
+  @InvalidateCache('ServiceOptionRepository:*')
+  async deleteServiceOption(id: string) {
+    try {
+      const deleted = await this.serviceOptionRepository.delete(id);
+      logger.info({ optionId: id }, 'Service option deleted successfully');
+      return deleted;
+    } catch (error) {
+      logger.error({ error, id }, 'Error deleting service option');
+      throw error;
+    }
+  }
+
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  @Cacheable(300, { prefix: 'ServiceService:getAllOptions' })
+  async getAllOptions(filters?: { category?: typeof SPECIALITY_TYPES[keyof typeof SPECIALITY_TYPES]; isActive?: boolean }) {
+    try {
+      if (filters?.category) {
+        return await this.serviceOptionRepository.findByCategory(filters.category as 'HEALTH' | 'EDUCATION' | 'BTP');
+      }
+      if (filters?.isActive !== undefined) {
+        return filters.isActive 
+          ? await this.serviceOptionRepository.findActive()
+          : await this.serviceOptionRepository.findAll({ isActive: false });
+      }
+      return await this.serviceOptionRepository.findAll();
+    } catch (error) {
+      logger.error({ error, filters }, 'Error getting service options');
+      throw error;
+    }
+  }
+
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
+  @Audit({ eventType: 'SERVICE_OPTION_ASSOCIATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
+  @InvalidateCache('ServiceRepository:*')
+  @InvalidateCache('ServiceOptionRepository:*')
+  async associateOptionToService(serviceId: string, optionId: string) {
+    try {
+      await this.serviceOptionRepository.associateToService(optionId, serviceId);
+      logger.info({ serviceId, optionId }, 'Option associated to service successfully');
+    } catch (error) {
+      logger.error({ error, serviceId, optionId }, 'Error associating option to service');
+      throw error;
+    }
+  }
+
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Authorize({ roles: [ROLES.ADMIN, ROLES.SUPERADMIN] })
+  @Audit({ eventType: 'SERVICE_OPTION_DISSOCIATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 5000 })
+  @InvalidateCache('ServiceRepository:*')
+  @InvalidateCache('ServiceOptionRepository:*')
+  async dissociateOptionFromService(serviceId: string, optionId: string) {
+    try {
+      await this.serviceOptionRepository.dissociateFromService(optionId, serviceId);
+      logger.info({ serviceId, optionId }, 'Option dissociated from service successfully');
+    } catch (error) {
+      logger.error({ error, serviceId, optionId }, 'Error dissociating option from service');
+      throw error;
+    }
+  }
+}
+
+export const serviceService = ServiceService.getInstance();
+

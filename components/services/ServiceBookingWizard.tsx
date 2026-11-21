@@ -1,0 +1,1811 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { Check, ArrowRight, ArrowLeft, CreditCard, User, Phone, Mail, MapPin, Heart, GraduationCap, Home, Clock, ShoppingCart, Star } from "lucide-react";
+import { StripeCheckout } from "@/components/payments/StripeCheckout";
+import { ServiceBookingSidebar } from "./ServiceBookingSidebar";
+import { useNotificationManager } from "@/components/ui/Notification";
+import { childLogger } from "@/lib/logger";
+import { useServices } from "@/hooks/services/useServices";
+import { useServiceOptions } from "@/hooks/services/useServiceOptions";
+import { usePromotionCodeValidation } from "@/hooks/services/usePromotionCodeValidation";
+import {
+  createEmptyServiceBookingState,
+  useServiceBookingDraft,
+} from "@/hooks/services/useServiceBookingDraft";
+import { PhoneInput } from "react-international-phone";
+import type {
+  ServiceBookingState,
+  ServiceBookingWizardProps,
+  ServiceBookingRequestData,
+  ServiceBookingApiResponse,
+  ValidationError,
+} from "@/lib/types/service-booking.types";
+import { SPECIALITY_TYPES, CURRENCIES } from "@/lib/constants";
+import { ServiceDescription } from "@/components/common/ServiceDescription";
+
+// Créer un logger avec contexte pour ce composant
+const logger = childLogger({ component: 'ServiceBookingWizard' });
+
+export function ServiceBookingWizard({
+  initialServiceType,
+  initialClinic,
+  onComplete,
+  onCancel,
+}: ServiceBookingWizardProps) {
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+  const bookingDraft = useServiceBookingDraft(initialServiceType ?? null);
+  const {
+    discountAmount,
+    promotionCodeData,
+    promotionCodeError,
+    resetPromotionCode,
+    validatePromotionCode,
+    validatingCode,
+  } = usePromotionCodeValidation();
+  const notificationManager = useNotificationManager();
+
+  const [currentStep, setCurrentStep] = useState(1);
+  const [state, setState] = useState<ServiceBookingState>(bookingDraft.getInitialState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
+  const [confirmedReservationNumber, setConfirmedReservationNumber] = useState<string | null>(null);
+  const [draftBookingId, setDraftBookingId] = useState<string | null>(null);
+  
+  // États pour le code promotionnel
+  const [promotionCode, setPromotionCode] = useState('');
+
+  useEffect(() => {
+    if (!initialClinic) return;
+
+    setState((prev) => {
+      if (prev.selectedClinic?.id === initialClinic.id) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        selectedClinic: initialClinic,
+      };
+    });
+  }, [initialClinic]);
+  
+  // Récupérer les services depuis la base de données
+  const { 
+    services: availableServices, 
+    loading: servicesLoading, 
+    error: servicesError,
+    refetch: refetchServices,
+  } = useServices({
+    category: state.serviceType || undefined,
+    isActive: true, // Seulement les services actifs
+  });
+
+  const visibleServices = [...availableServices].sort((a, b) => {
+    if (a.important === b.important) return 0;
+    return a.important ? -1 : 1;
+  });
+  
+  // Récupérer les options supplémentaires depuis la base de données
+  const { 
+    options: additionalOptions, 
+    loading: optionsLoading, 
+    error: optionsError,
+    refetch: refetchOptions,
+  } = useServiceOptions({
+    isActive: true, // Seulement les options actives
+  });
+
+  // Restaurer l'étape depuis le cache
+  // Nettoyer le cache si le paiement est déjà confirmé (pour éviter les doublons)
+  useEffect(() => {
+    const saved = bookingDraft.loadDraft();
+    if (saved) {
+      // Si le paiement est confirmé, nettoyer le cache pour éviter les réservations en double
+      if (saved.paymentConfirmed && saved.paymentIntentId) {
+        bookingDraft.clearDraft();
+        // Réinitialiser l'état
+        setState(createEmptyServiceBookingState(initialServiceType || null));
+        setCurrentStep(1);
+      } else if (saved.currentStep) {
+        setCurrentStep(saved.currentStep);
+      }
+    }
+  }, [bookingDraft, initialServiceType]);
+
+  // Pré-remplir les informations client si connecté (seulement si pas déjà dans le cache)
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const saved = bookingDraft.loadDraft();
+      // Ne pré-remplir que si les données ne sont pas déjà dans le cache
+      if (!saved || !saved.clientInfo?.email) {
+        const nameParts = user.name?.split(" ") || [];
+        setState((prev) => ({
+          ...prev,
+          clientInfo: {
+            firstName: nameParts[0] || prev.clientInfo?.firstName || "",
+            lastName: nameParts.slice(1).join(" ") || prev.clientInfo?.lastName || "",
+            phone: user.phone || prev.clientInfo?.phone || "",
+            email: user.email || prev.clientInfo?.email || "",
+          },
+        }));
+      }
+    }
+  }, [bookingDraft, isAuthenticated, user]);
+
+  // Sauvegarder dans localStorage à chaque modification du state
+  // Restaurer le draftBookingId depuis le localStorage
+  useEffect(() => {
+    const savedDraftBookingId = bookingDraft.readDraftBookingId();
+    if (savedDraftBookingId) {
+      setDraftBookingId(savedDraftBookingId);
+    }
+  }, [bookingDraft]);
+
+  // Ne plus sauvegarder automatiquement à chaque modification
+  // La sauvegarde se fera uniquement lors de la validation d'étape (handleNext)
+
+  // Calculer le montant total
+  useEffect(() => {
+    const basePrice = state.selectedService?.price || 0;
+    const optionsPrice = state.additionalOptions.reduce(
+      (sum, opt) => sum + opt.price,
+      0,
+    );
+    const subtotal = basePrice + optionsPrice;
+    const finalAmount = subtotal - discountAmount;
+    setState((prev) => ({
+      ...prev,
+      totalAmount: Math.max(0, finalAmount),
+    }));
+  }, [state.selectedService, state.additionalOptions, discountAmount]);
+
+  const getPromotionCodeAmount = () =>
+    (state.selectedService?.price || 0) +
+    state.additionalOptions.reduce((sum, opt) => sum + opt.price, 0);
+
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 1: { // Informations client, bénéficiaire et disponibilités (uniquement pour HEALTH)
+        const baseValidation = (
+          !!state.clientInfo.firstName &&
+          !!state.clientInfo.lastName &&
+          !!state.clientInfo.phone &&
+          !!state.clientInfo.email &&
+          !!state.beneficiaryInfo.firstName &&
+          !!state.beneficiaryInfo.lastName &&
+          !!state.beneficiaryInfo.phone
+        );
+        // Les disponibilités ne sont requises que pour le type HEALTH
+        if (state.serviceType === SPECIALITY_TYPES.HEALTH) {
+          return baseValidation && !!state.availability.selectedDate && !!state.availability.selectedTime;
+        }
+        return baseValidation;
+      }
+      case 2: // Sélection du service et options
+        return state.selectedService !== null; // Le service est requis, les options sont optionnelles
+      case 3: // Paiement
+        return state.paymentConfirmed && state.paymentIntentId !== null;
+      case 4: // Confirmation
+        return true;
+      default:
+        return false;
+    }
+  };
+
+  // Fonction pour enregistrer la progression de l'étape
+  const trackProgress = async (step: number, stepName: string) => {
+    try {
+      const response = await fetch('/api/bookings/track-progress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          step,
+          stepName,
+          serviceType: state.serviceType,
+          clientInfo: state.clientInfo,
+          beneficiaryInfo: state.beneficiaryInfo,
+          selectedService: state.selectedService
+            ? {
+                serviceId: state.selectedService.serviceId,
+                label: state.selectedService.label,
+                price: state.selectedService.price,
+              }
+            : undefined,
+          selectedClinic: state.selectedClinic
+            ? {
+                id: state.selectedClinic.id,
+                name: state.selectedClinic.name,
+                location: state.selectedClinic.location,
+              }
+            : undefined,
+          paymentIntentId: state.paymentIntentId || undefined,
+          bookingId: draftBookingId || undefined,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.bookingId && !draftBookingId) {
+          setDraftBookingId(data.bookingId);
+        }
+        logger.debug({ step, stepName, bookingId: data.bookingId }, 'Progress tracked');
+      } else {
+        logger.warn({ step, stepName, status: response.status }, 'Failed to track progress');
+      }
+    } catch (error) {
+      logger.error({ error, step, stepName }, 'Error tracking progress');
+      // Ne pas bloquer le processus si l'enregistrement de progression échoue
+    }
+  };
+
+  const handleNext = async () => {
+    if (validateStep(currentStep)) {
+      // Définir les noms des étapes
+      const stepNames: Record<number, string> = {
+        1: 'Sélection du type de service',
+        2: 'Informations client et bénéficiaire',
+        3: 'Paiement',
+        4: 'Confirmation',
+      };
+
+      // Sauvegarder les données dans localStorage lors de la validation de l'étape
+      const stateToSave = {
+        ...state,
+        additionalOptions: Array.isArray(state.additionalOptions) ? state.additionalOptions : [],
+        currentStep, // Inclure l'étape actuelle dans la sauvegarde
+        draftBookingId, // Inclure le draftBookingId
+      } as ServiceBookingState & { draftBookingId?: string | null };
+      
+      logger.debug(
+        {
+          currentStep,
+          stepName: stepNames[currentStep] || `Étape ${currentStep}`,
+          additionalOptionsCount: stateToSave.additionalOptions.length,
+        },
+        'Sauvegarde lors de la validation de l\'étape',
+      );
+      
+      bookingDraft.saveDraft(stateToSave);
+
+      // Enregistrer la progression de l'étape actuelle avant de passer à la suivante
+      await trackProgress(currentStep, stepNames[currentStep] || `Étape ${currentStep}`);
+
+      setCurrentStep((prev) => Math.min(prev + 1, 4));
+      setState((prev) => ({ ...prev, currentStep: currentStep + 1 }));
+    }
+  };
+
+  const handleBack = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+    setState((prev) => ({ ...prev, currentStep: currentStep - 1 }));
+  };
+
+
+  const handleServiceSelect = (service: { id: string; category: string; label: string; description: string; price: number; optional?: boolean }) => {
+    setState((prev) => ({
+      ...prev,
+      selectedService: {
+        serviceId: service.id,
+        category: service.category,
+        label: service.label,
+        description: service.description,
+        price: service.price,
+        options: [],
+      },
+    }));
+  };
+
+  const handleToggleOption = (option: { id: string; category: string; label: string; description: string; price: number; optional?: boolean }) => {
+    setState((prev) => {
+      const exists = prev.additionalOptions.some((opt) => opt.id === option.id);
+      const newState = exists
+        ? {
+            ...prev,
+            additionalOptions: prev.additionalOptions.filter(
+              (opt) => opt.id !== option.id,
+            ),
+          }
+        : {
+            ...prev,
+            additionalOptions: [...prev.additionalOptions, {
+              id: option.id,
+              category: option.category,
+              label: option.label,
+              description: option.description,
+              price: option.price,
+              optional: option.optional ?? true,
+            }],
+          };
+      
+      // Logger pour déboguer
+      logger.debug(
+        {
+          optionId: option.id,
+          optionLabel: option.label,
+          action: exists ? 'removed' : 'added',
+          totalOptions: newState.additionalOptions.length,
+          options: newState.additionalOptions.map(opt => ({ id: opt.id, label: opt.label, price: opt.price })),
+        },
+        'Option toggled',
+      );
+      
+      return newState;
+    });
+  };
+
+  const handlePaymentSuccess = async (paymentIntentId: string) => {
+    logger.info({ paymentIntentId }, 'Payment succeeded, proceeding to final submit');
+    
+    // Le paiement a été confirmé avec succès dans StripeCheckout
+    // On met à jour l'état pour indiquer que le paiement est confirmé
+    setState((prev) => ({ 
+      ...prev, 
+      paymentIntentId,
+      paymentConfirmed: true, 
+    }));
+    
+    // Passer automatiquement à l'étape suivante (confirmation) et soumettre la réservation
+    // Passer directement le paymentIntentId pour éviter les problèmes de timing avec setState
+    try {
+      await handleFinalSubmit(paymentIntentId);
+    } catch (error) {
+      logger.error({ error, paymentIntentId }, 'Error in handleFinalSubmit after payment success');
+      // Même en cas d'erreur, on passe à l'étape 4 car le paiement a réussi
+      // L'utilisateur pourra voir la confirmation et l'admin pourra gérer la réservation manuellement
+      setCurrentStep(4);
+      setIsSubmitting(false);
+      notificationManager.addWarning(
+        'Paiement confirmé, mais erreur lors de l\'enregistrement. Notre équipe va traiter votre réservation.',
+      );
+    }
+  };
+
+  const handleFinalSubmit = async (paymentIntentIdOverride?: string) => {
+    // Empêcher les doubles soumissions
+    if (isSubmitting) {
+      return;
+    }
+
+    // Utiliser le paymentIntentId passé en paramètre ou celui de l'état
+    const paymentIntentId = paymentIntentIdOverride || state.paymentIntentId;
+
+    // Validation côté client avant l'envoi
+    if (!state.serviceType) {
+      alert("Veuillez sélectionner un type de service");
+      return;
+    }
+    
+    if (!state.clientInfo.firstName || !state.clientInfo.lastName || !state.clientInfo.phone || !state.clientInfo.email) {
+      alert("Veuillez remplir toutes les informations client (prénom, nom, téléphone, email)");
+      return;
+    }
+    
+    if (!state.beneficiaryInfo.firstName || !state.beneficiaryInfo.lastName || !state.beneficiaryInfo.phone) {
+      alert("Veuillez remplir toutes les informations bénéficiaire (prénom, nom, téléphone)");
+      return;
+    }
+    
+    if (!state.selectedService) {
+      alert("Veuillez sélectionner un service");
+      return;
+    }
+    
+    if (!paymentIntentId) {
+      alert("Le paiement n'a pas été validé. Veuillez compléter le paiement avant de confirmer.");
+      return;
+    }
+    
+    // Les disponibilités ne sont requises que pour le type HEALTH
+    if (state.serviceType === SPECIALITY_TYPES.HEALTH) {
+      if (!state.availability.selectedDate || !state.availability.selectedTime) {
+        alert("Veuillez sélectionner une date et une heure de disponibilité");
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+    
+    // Préparer les données avec tous les champs requis (déclaré avant le try pour être accessible dans le catch)
+    let requestData: ServiceBookingRequestData;
+    
+    try {
+      // Construire les données de requête avec validation
+      const baseRequestData = {
+        serviceType: state.serviceType!,
+        clientInfo: {
+          firstName: state.clientInfo.firstName!,
+          lastName: state.clientInfo.lastName!,
+          phone: state.clientInfo.phone!,
+          email: state.clientInfo.email!,
+        },
+        beneficiaryInfo: {
+          firstName: state.beneficiaryInfo.firstName!,
+          lastName: state.beneficiaryInfo.lastName!,
+          phone: state.beneficiaryInfo.phone!,
+          ...(state.beneficiaryInfo.email && { email: state.beneficiaryInfo.email }),
+          ...(state.beneficiaryInfo.location && { location: state.beneficiaryInfo.location }),
+        },
+        selectedService: {
+          serviceId: state.selectedService!.serviceId,
+          category: state.selectedService!.category,
+          label: state.selectedService!.label,
+          description: state.selectedService!.description,
+          price: state.selectedService!.price,
+          options: state.selectedService!.options || [],
+        },
+        additionalOptions: state.additionalOptions,
+        paymentIntentId: paymentIntentId,
+        metadata: {
+          ...(draftBookingId && { draftBookingId }),
+          ...(state.selectedClinic && {
+            clinicId: state.selectedClinic.id,
+            clinicName: state.selectedClinic.name,
+            clinicLocation: state.selectedClinic.location,
+            clinicSpecialties: state.selectedClinic.specialties.join(', '),
+            clinicGeneralistPrice: state.selectedClinic.generalistPrice || '',
+            clinicSpecialistPrice: state.selectedClinic.specialistPrice || '',
+          }),
+          ...(promotionCodeData && {
+            promotionCode: promotionCodeData.label,
+            promotionCodeId: promotionCodeData._id || promotionCodeData.id,
+            discountAmount: discountAmount,
+            discountPercentage: promotionCodeData.percentage,
+          }),
+        },
+      };
+
+      // Ajouter les disponibilités uniquement pour HEALTH
+      if (state.serviceType === SPECIALITY_TYPES.HEALTH) {
+        requestData = {
+          ...baseRequestData,
+          appointmentDate: state.availability.selectedDate!,
+          appointmentTime: state.availability.selectedTime!,
+        } as ServiceBookingRequestData;
+      } else {
+        requestData = baseRequestData as ServiceBookingRequestData;
+      }
+
+      // Logger détaillé pour vérifier que les options sont bien présentes
+      logger.info(
+        {
+          serviceType: state.serviceType,
+          additionalOptionsCount: state.additionalOptions.length,
+          additionalOptions: state.additionalOptions.map(opt => ({
+            id: opt.id,
+            label: opt.label,
+            price: opt.price,
+          })),
+          basePrice: state.selectedService?.price,
+          totalAmount: state.totalAmount,
+          bookingData: {
+            ...requestData,
+            additionalOptions: requestData.additionalOptions.map(opt => ({
+              id: opt.id,
+              label: opt.label,
+              price: opt.price,
+            })),
+          },
+        },
+        'Envoi des données de réservation',
+      );
+
+      // Enregistrer la progression de l'étape 4 (confirmation) avant la soumission finale
+      await trackProgress(4, 'Confirmation');
+
+      const response = await fetch("/api/services/book", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestData),
+      });
+
+      // Lire la réponse même en cas d'erreur pour obtenir le message détaillé
+      let data: ServiceBookingApiResponse;
+      try {
+        data = await response.json() as ServiceBookingApiResponse;
+      } catch (_jsonError) {
+        // Si la réponse n'est pas du JSON valide, utiliser le texte brut
+        const text = await response.text();
+        logger.error(
+          {
+            status: response.status,
+            statusText: response.statusText,
+            responseText: text,
+            serviceType: state.serviceType,
+            paymentIntentId,
+          },
+          'Erreur lors de la création de la réservation - Réponse non-JSON',
+        );
+        
+        // Si le paiement a réussi mais la réponse n'est pas valide, passer à l'étape 4 quand même
+        if (paymentIntentId) {
+          logger.warn({ 
+            paymentIntentId,
+            status: response.status,
+          }, 'Payment succeeded but API response is invalid JSON, passing to step 4 anyway');
+          
+          // Nettoyer le cache
+          bookingDraft.clearDraft();
+          
+          // Passer à l'étape 4 avec un avertissement
+          setCurrentStep(4);
+          setIsSubmitting(false);
+          notificationManager.addWarning(
+            'Paiement confirmé, mais erreur lors de l\'enregistrement. Notre équipe va traiter votre réservation manuellement.',
+          );
+          return;
+        }
+        
+        notificationManager.addError(
+          `Erreur lors de l'enregistrement: ${response.statusText || 'Erreur inconnue'} (${response.status})`,
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!response.ok) {
+        // Afficher le message d'erreur détaillé de l'API
+        let errorMessage: string = typeof data.error === 'string' 
+          ? data.error 
+          : data.message || `Erreur HTTP: ${response.status}`;
+        
+        // Si c'est une erreur de validation, afficher les détails
+        if (data.errors && Array.isArray(data.errors)) {
+          const validationErrors = data.errors.map((err: string | ValidationError) => {
+            if (typeof err === 'string') return err;
+            return err.path ? `${err.path.join('.')}: ${err.message}` : err.message;
+          }).join('\n');
+          errorMessage = `Erreurs de validation:\n${validationErrors}`;
+        } else if (data.error && typeof data.error === 'object' && !('path' in data.error)) {
+          // Si l'erreur est un objet avec des détails (mais pas une ValidationError)
+          errorMessage = JSON.stringify(data.error, null, 2);
+        }
+        
+        logger.error(
+          {
+            status: response.status,
+            statusText: response.statusText,
+            error: data.error,
+            errors: data.errors,
+            serviceType: state.serviceType,
+            errorMessage,
+            requestData: {
+              serviceType: requestData.serviceType,
+              serviceId: requestData.selectedService.serviceId,
+              hasPaymentIntentId: !!requestData.paymentIntentId,
+            },
+            paymentIntentId,
+          },
+          'Erreur lors de la création de la réservation',
+        );
+        
+        // Si le paiement a réussi mais l'API retourne une erreur, passer à l'étape 4 quand même
+        // L'admin pourra gérer la réservation manuellement
+        if (paymentIntentId) {
+          logger.warn({ 
+            paymentIntentId, 
+            errorMessage,
+            status: response.status,
+          }, 'Payment succeeded but booking API returned error, passing to step 4 anyway');
+          
+          // Nettoyer le cache
+          bookingDraft.clearDraft();
+          
+          // Passer à l'étape 4 avec un avertissement
+          setCurrentStep(4);
+          setIsSubmitting(false);
+          notificationManager.addWarning(
+            'Paiement confirmé, mais erreur lors de l\'enregistrement. Notre équipe va traiter votre réservation manuellement.',
+          );
+          return;
+        }
+        
+        // Si pas de paiement, afficher l'erreur normalement
+        notificationManager.addError(`Erreur lors de l'enregistrement: ${errorMessage}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (data.success) {
+        logger.info({ responseData: data }, 'Booking API response received with success=true');
+        
+        // Extraire l'ID de la réservation depuis différentes structures de réponse possibles
+        const bookingId = data.bookingId || 
+                         data.booking?.id || 
+                         data.booking?._id ||
+                         (data.booking as any)?.id ||
+                         (typeof data.bookingId === 'string' ? data.bookingId : null);
+        
+        // Extraire le numéro de réservation si disponible
+        const reservationNumber = data.reservationNumber ||
+                                 data.booking?.reservationNumber || 
+                                 (data.booking as any)?.reservationNumber ||
+                                 null;
+        
+        logger.info({ 
+          bookingId, 
+          reservationNumber, 
+          hasBooking: !!data.booking,
+          bookingKeys: data.booking ? Object.keys(data.booking) : [],
+        }, 'Extracted booking information from response');
+        
+        // 1. Nettoyer le cache IMMÉDIATEMENT après une soumission réussie
+        // Cela empêche le useEffect de sauvegarder l'état réinitialisé
+        bookingDraft.clearDraft();
+        
+        // 2. Stocker les informations de confirmation pour l'affichage
+        if (bookingId) {
+          setConfirmedBookingId(bookingId);
+          if (reservationNumber) {
+            setConfirmedReservationNumber(reservationNumber);
+          }
+          
+          logger.info({
+            bookingId,
+            reservationNumber,
+            serviceType: state.serviceType,
+            totalAmount: state.totalAmount,
+          }, 'Réservation créée avec succès');
+          
+          notificationManager.addSuccess(
+            `Réservation confirmée ! Numéro: ${reservationNumber || bookingId}`,
+          );
+          
+          onComplete?.(bookingId);
+        } else {
+          logger.warn({ responseData: data }, 'Booking created but no bookingId in response');
+          // Même sans bookingId, on passe à l'étape 4 pour afficher la confirmation
+          notificationManager.addSuccess('Réservation confirmée !');
+        }
+        
+        // 3. Passer à l'étape de confirmation (étape 4) - TOUJOURS si success=true
+        // Les données restent dans l'état pour l'affichage de confirmation
+        logger.info({ currentStepBefore: currentStep }, 'Passing to step 4 (confirmation)');
+        setCurrentStep(4);
+        setIsSubmitting(false);
+        
+        // Note: L'état n'est pas réinitialisé immédiatement pour permettre l'affichage
+        // des informations de confirmation. Il sera réinitialisé quand l'utilisateur
+        // quittera la page ou cliquera sur "Voir mes réservations"
+      } else {
+        const errorMessage = data.error || "Une erreur est survenue lors de l'enregistrement de la réservation";
+        logger.error({ 
+          responseData: data, 
+          errorMessage,
+          paymentIntentId,
+          currentStep,
+        }, 'Booking API returned success=false');
+        
+        // Même si l'API retourne une erreur, si le paiement a réussi, on passe à l'étape 4
+        // L'admin pourra gérer la réservation manuellement
+        if (paymentIntentId) {
+          logger.warn('Payment succeeded but booking creation failed, passing to step 4 anyway');
+          setCurrentStep(4);
+          setIsSubmitting(false);
+          notificationManager.addWarning(
+            'Paiement confirmé, mais erreur lors de l\'enregistrement. Notre équipe va traiter votre réservation.',
+          );
+        } else {
+          alert(errorMessage);
+          setIsSubmitting(false);
+        }
+      }
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        
+        logger.error({
+          error: errorMessage,
+          serviceType: state.serviceType,
+          stack: errorStack,
+        }, 'Erreur lors de la soumission de la réservation');
+        
+        notificationManager.addError(
+          `Une erreur est survenue lors de la soumission: ${errorMessage}. Veuillez réessayer.`,
+        );
+        setIsSubmitting(false);
+      }
+  };
+
+  // Configuration du type de service pour l'affichage
+  const getServiceTypeConfig = () => {
+    if (!state.serviceType) return null;
+    
+    switch (state.serviceType) {
+      case SPECIALITY_TYPES.HEALTH:
+        return {
+          label: 'Santé',
+          icon: <Heart className="w-5 h-5" />,
+          color: 'bg-red-100 text-red-800 border-red-200',
+        };
+      case SPECIALITY_TYPES.EDUCATION:
+        return {
+          label: 'Éducation',
+          icon: <GraduationCap className="w-5 h-5" />,
+          color: 'bg-blue-100 text-blue-800 border-blue-200',
+        };
+      case SPECIALITY_TYPES.BTP:
+        return {
+          label: 'Immobilier',
+          icon: <Home className="w-5 h-5" />,
+          color: 'bg-green-100 text-green-800 border-green-200',
+        };
+      default:
+        return null;
+    }
+  };
+
+  const serviceTypeConfig = getServiceTypeConfig();
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section avec rappel du type de service */}
+      {serviceTypeConfig && (
+        <div className={`bg-gradient-to-r ${
+          state.serviceType === SPECIALITY_TYPES.HEALTH 
+            ? 'from-red-50 to-red-100' 
+            : state.serviceType === SPECIALITY_TYPES.EDUCATION
+            ? 'from-blue-50 to-blue-100'
+            : 'from-green-50 to-green-100'
+        } border-b border-gray-200`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-xl ${
+                  state.serviceType === SPECIALITY_TYPES.HEALTH 
+                    ? 'bg-red-100' 
+                    : state.serviceType === SPECIALITY_TYPES.EDUCATION
+                    ? 'bg-blue-100'
+                    : 'bg-green-100'
+                }`}>
+                  {serviceTypeConfig.icon}
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 mb-1">
+                    Réservation - Service {serviceTypeConfig.label}
+                  </h1>
+                  <p className="text-gray-600">
+                    {state.serviceType === SPECIALITY_TYPES.HEALTH && 
+                      "Accès à un réseau de professionnels de santé certifiés pour vous et vos proches"}
+                    {state.serviceType === SPECIALITY_TYPES.EDUCATION && 
+                      "Paiement direct et sécurisé des frais d'éducation pour vos proches"}
+                    {state.serviceType === SPECIALITY_TYPES.BTP && 
+                      "Accompagnement dans la recherche, la location et la construction de biens immobiliers"}
+                  </p>
+                </div>
+              </div>
+              <div className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-lg border ${serviceTypeConfig.color} bg-white`}>
+                {serviceTypeConfig.icon}
+                <span className="font-semibold">{serviceTypeConfig.label}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Colonne gauche - Formulaire */}
+          <div className="lg:col-span-2">
+            {/* Step Content */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+              {/* Message informatif sur la sauvegarde automatique */}
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-sm text-blue-700">
+                <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <span>Vos données sont sauvegardées automatiquement. Vous pouvez quitter et revenir plus tard sans perdre vos informations.</span>
+              </div>
+
+              {/* Step 1: Client and Beneficiary Info */}
+              {currentStep === 1 && (
+          <div>
+            <h2 className="text-2xl font-bold mb-6">Informations</h2>
+            <div className="space-y-6">
+              {/* Client Info */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Vos informations
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="client-firstname" className="block text-sm font-medium mb-1">
+                      Prénom *
+                    </label>
+                    <input
+                      id="client-firstname"
+                      type="text"
+                      value={state.clientInfo.firstName || ""}
+                      onChange={(e) =>
+                        setState((prev) => ({
+                          ...prev,
+                          clientInfo: {
+                            ...prev.clientInfo,
+                            firstName: e.target.value,
+                          },
+                        }))
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      required
+                      aria-label="Prénom du client"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="client-lastname" className="block text-sm font-medium mb-1">
+                      Nom *
+                    </label>
+                    <input
+                      id="client-lastname"
+                      type="text"
+                      value={state.clientInfo.lastName || ""}
+                      onChange={(e) =>
+                        setState((prev) => ({
+                          ...prev,
+                          clientInfo: {
+                            ...prev.clientInfo,
+                            lastName: e.target.value,
+                          },
+                        }))
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      required
+                      aria-label="Nom du client"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="client-phone" className="text-sm font-medium mb-1 flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      Téléphone *
+                    </label>
+                    <PhoneInput
+                      defaultCountry="fr"
+                      value={state.clientInfo.phone || ""}
+                      onChange={(phone) =>
+                        setState((prev) => ({
+                          ...prev,
+                          clientInfo: {
+                            ...prev.clientInfo,
+                            phone: phone,
+                          },
+                        }))
+                      }
+                      className="w-full"
+                      inputClassName="w-full px-4 py-2 border rounded-lg"
+                      required
+                      aria-label="Téléphone du client"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="client-email" className="text-sm font-medium mb-1 flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Email *
+                    </label>
+                    <input
+                      id="client-email"
+                      type="email"
+                      value={state.clientInfo.email || ""}
+                      onChange={(e) =>
+                        setState((prev) => ({
+                          ...prev,
+                          clientInfo: {
+                            ...prev.clientInfo,
+                            email: e.target.value,
+                          },
+                        }))
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      required
+                      aria-label="Email du client"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Beneficiary Info */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Informations du bénéficiaire {state.serviceType === SPECIALITY_TYPES.EDUCATION ? "ou Élève" : (state.serviceType === SPECIALITY_TYPES.BTP ? "ou Contact Local" : "")}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="beneficiary-firstname" className="block text-sm font-medium mb-1">
+                      Prénom *
+                    </label>
+                    <input
+                      id="beneficiary-firstname"
+                      type="text"
+                      value={state.beneficiaryInfo.firstName || ""}
+                      onChange={(e) =>
+                        setState((prev) => ({
+                          ...prev,
+                          beneficiaryInfo: {
+                            ...prev.beneficiaryInfo,
+                            firstName: e.target.value,
+                          },
+                        }))
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      required
+                      aria-label="Prénom du bénéficiaire"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="beneficiary-lastname" className="block text-sm font-medium mb-1">
+                      Nom *
+                    </label>
+                    <input
+                      id="beneficiary-lastname"
+                      type="text"
+                      value={state.beneficiaryInfo.lastName || ""}
+                      onChange={(e) =>
+                        setState((prev) => ({
+                          ...prev,
+                          beneficiaryInfo: {
+                            ...prev.beneficiaryInfo,
+                            lastName: e.target.value,
+                          },
+                        }))
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      required
+                      aria-label="Nom du bénéficiaire"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="beneficiary-phone" className="block text-sm font-medium mb-1">
+                      Téléphone *
+                    </label>
+                    <PhoneInput
+                      defaultCountry="fr"
+                      value={state.beneficiaryInfo.phone || ""}
+                      onChange={(phone) =>
+                        setState((prev) => ({
+                          ...prev,
+                          beneficiaryInfo: {
+                            ...prev.beneficiaryInfo,
+                            phone: phone,
+                          },
+                        }))
+                      }
+                      className="w-full"
+                      inputClassName="w-full px-4 py-2 border rounded-lg"
+                      required
+                      aria-label="Téléphone du bénéficiaire"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="beneficiary-email" className="block text-sm font-medium mb-1">
+                      Email
+                    </label>
+                    <input
+                      id="beneficiary-email"
+                      type="email"
+                      value={state.beneficiaryInfo.email || ""}
+                      onChange={(e) =>
+                        setState((prev) => ({
+                          ...prev,
+                          beneficiaryInfo: {
+                            ...prev.beneficiaryInfo,
+                            email: e.target.value,
+                          },
+                        }))
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      aria-label="Email du bénéficiaire"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label htmlFor="beneficiary-location" className="text-sm font-medium mb-1 block">
+                      <span className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        Localisation
+                      </span>
+                    </label>
+                    <input
+                      id="beneficiary-location"
+                      type="text"
+                      placeholder="Adresse, ville, pays"
+                      value={
+                        state.beneficiaryInfo.location?.address ||
+                        state.beneficiaryInfo.location?.city ||
+                        ""
+                      }
+                      onChange={(e) =>
+                        setState((prev) => ({
+                          ...prev,
+                          beneficiaryInfo: {
+                            ...prev.beneficiaryInfo,
+                            location: {
+                              address: e.target.value,
+                              city: "",
+                              country: "",
+                            },
+                          },
+                        }))
+                      }
+                      className="w-full px-4 py-2 border rounded-lg"
+                      aria-label="Localisation du bénéficiaire"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Disponibilités - Uniquement pour le type HEALTH */}
+              {state.serviceType === SPECIALITY_TYPES.HEALTH && (
+                <div className="mt-8 pt-8 border-t border-gray-200">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Clock className="w-5 h-5" />
+                    Disponibilités du bénéficiaire
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Choisissez la date et l&apos;heure de disponibilité de votre bénéficiaire
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="availability-date" className="block text-sm font-medium mb-2">
+                        Date * 
+                      </label>
+                      <input
+                        id="availability-date"
+                        type="date"
+                        min={new Date().toISOString().split("T")[0]}
+                        value={state.availability.selectedDate || ""}
+                        onChange={(e) =>
+                          setState((prev) => ({
+                            ...prev,
+                            availability: {
+                              ...prev.availability,
+                              selectedDate: e.target.value,
+                            },
+                          }))
+                        }
+                        className="w-full px-4 py-2 border rounded-lg"
+                        required
+                        aria-label="Date de disponibilité"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="availability-time" className="block text-sm font-medium mb-2">
+                        Heure *
+                      </label>
+                      <input
+                        id="availability-time"
+                        type="time"
+                        value={state.availability.selectedTime || ""}
+                        onChange={(e) =>
+                          setState((prev) => ({
+                            ...prev,
+                            availability: {
+                              ...prev.availability,
+                              selectedTime: e.target.value,
+                            },
+                          }))
+                        }
+                        className="w-full px-4 py-2 border rounded-lg"
+                        required
+                        aria-label="Heure de disponibilité"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      💡 Vous pouvez également utiliser un outil externe comme Calendly pour la sélection des disponibilités
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+              {/* Step 2: Service Selection et Options */}
+              {currentStep === 2 && state.serviceType && (
+                <div className="space-y-8">
+                  {/* Sélection du service */}
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">
+                      Sélectionnez le service
+                    </h2>
+                    <p className="text-gray-600 mb-6">
+                      Choisissez le service qui correspond à vos besoins
+                    </p>
+                    {servicesLoading ? (
+                      <div className="text-center py-12">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]"></div>
+                        <p className="mt-4 text-gray-600">Chargement des services...</p>
+                      </div>
+                    ) : servicesError ? (
+                      <div className="text-center py-12 bg-red-50 rounded-lg border-2 border-red-200">
+                        <p className="text-red-700 mb-2">Erreur lors du chargement des services</p>
+                        <p className="text-sm text-red-600 mb-4">{servicesError}</p>
+                        <button
+                          onClick={() => refetchServices()}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                          type="button"
+                        >
+                          Réessayer
+                        </button>
+                      </div>
+                    ) : visibleServices.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                        {visibleServices.map((service) => (
+                          <button
+                            key={service.id}
+                            onClick={() => handleServiceSelect(service)}
+                            className={`relative flex h-96 max-h-96 flex-col overflow-hidden p-6 rounded-xl border-2 text-left transition-all hover:shadow-md ${
+                              state.selectedService?.serviceId === service.id
+                                ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] shadow-md"
+                                : service.important
+                                ? "border-amber-300 bg-gradient-to-br from-amber-50 to-white shadow-sm hover:border-amber-400"
+                                : "border-gray-200 hover:border-gray-300 bg-white"
+                            }`}
+                            type="button"
+                          >
+                            {service.important && (
+                              <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                                <Star className="h-3.5 w-3.5 fill-current" aria-hidden />
+                                Important
+                              </span>
+                            )}
+                            {/* En-tête : titre aligné en haut sur toutes les cartes */}
+                            <div className="service-card-header flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 pb-3 pr-24">
+                              <h3 className="font-semibold text-lg leading-snug text-gray-900">
+                                {service.label}
+                              </h3>
+                              {state.selectedService?.serviceId === service.id && (
+                                <Check className="h-6 w-6 shrink-0 text-[hsl(25,100%,53%)]" aria-hidden />
+                              )}
+                            </div>
+                            {/* Corps : hauteur fixe implicite (flex-1), texte long → défilement */}
+                            <div className="service-card-body flex min-h-0 flex-1 flex-col overflow-hidden py-3">
+                              <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1 text-left [scrollbar-gutter:stable]">
+                                <ServiceDescription
+                                  content={service.description}
+                                  variant="compact"
+                                />
+                              </div>
+                            </div>
+                            {/* Pied : prix aligné en bas */}
+                            <div className="service-card-footer flex shrink-0 items-center justify-between gap-2 border-t border-gray-100 pt-4">
+                              <p className="text-xl font-bold text-[hsl(25,100%,53%)]">
+                                {service.price === 0
+                                  ? "Sur devis"
+                                  : `${service.price}€`}
+                              </p>
+                              {service.optional && (
+                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  Optionnel
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <p className="text-gray-500 mb-2">Aucun service disponible pour ce type</p>
+                        <p className="text-sm text-gray-400">Veuillez contacter le support</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Options supplémentaires */}
+                  {state.selectedService && (
+                    <div className="border-t pt-8">
+                      <h2 className="text-2xl font-bold mb-2">
+                        Options supplémentaires
+                      </h2>
+                      <p className="text-gray-600 mb-6">
+                        Personnalisez votre service avec des options additionnelles (optionnel)
+                      </p>
+                      {optionsLoading ? (
+                        <div className="text-center py-8">
+                          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-[hsl(25,100%,53%)]"></div>
+                          <p className="mt-2 text-sm text-gray-600">Chargement des options...</p>
+                        </div>
+                      ) : optionsError ? (
+                        <div className="text-center py-8 bg-red-50 rounded-lg border-2 border-red-200">
+                          <p className="text-red-700 mb-2 text-sm">Erreur lors du chargement des options</p>
+                          <p className="text-xs text-red-600 mb-4">{optionsError}</p>
+                          <button
+                            onClick={() => refetchOptions()}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+                            type="button"
+                          >
+                            Réessayer
+                          </button>
+                        </div>
+                      ) : (() => {
+                        // Filtrer les options pour n'afficher que celles associées au service courant
+                        const serviceSpecificOptions = additionalOptions.filter((option) => {
+                          const associatedServices = (option as any).associatedServices as string[] | undefined;
+                          
+                          // Si aucune association n'est définie, considérer l'option comme globale
+                          if (!associatedServices || associatedServices.length === 0) {
+                            return true;
+                          }
+                          
+                          // Sinon, n'afficher que si l'option est liée au service sélectionné
+                          return associatedServices.includes(state.selectedService!.serviceId);
+                        });
+
+                        if (serviceSpecificOptions.length === 0) {
+                          return (
+                            <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                              <p className="text-gray-500 text-sm">
+                                Aucune option supplémentaire disponible pour ce service
+                              </p>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="grid grid-cols-1 gap-4 items-stretch md:grid-cols-2">
+                            {serviceSpecificOptions.map((option) => {
+                              const isSelected = state.additionalOptions.some(
+                                (opt) => opt.id === option.id,
+                              );
+                              return (
+                                <button
+                                  key={option.id}
+                                  onClick={() => handleToggleOption(option)}
+                                  className={`flex h-96 max-h-96 flex-col overflow-hidden p-5 rounded-xl border-2 text-left transition-all hover:shadow-md ${
+                                    isSelected
+                                      ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] shadow-md"
+                                      : "border-gray-200 hover:border-gray-300 bg-white"
+                                  }`}
+                                  type="button"
+                                >
+                                  <div className="service-option-card-header flex shrink-0 items-start justify-between gap-3 border-b border-gray-100 pb-2">
+                                    <h3 className="font-semibold leading-snug text-gray-900">
+                                      {option.label}
+                                    </h3>
+                                    {isSelected && (
+                                      <Check className="h-5 w-5 shrink-0 text-[hsl(25,100%,53%)]" aria-hidden />
+                                    )}
+                                  </div>
+                                  <div className="service-option-card-body flex min-h-0 flex-1 flex-col overflow-hidden py-2">
+                                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain pr-1 text-left [scrollbar-gutter:stable]">
+                                      <ServiceDescription
+                                        content={option.description}
+                                        variant="compact"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="service-option-card-footer shrink-0 border-t border-gray-100 pt-3">
+                                    <p className="text-lg font-bold text-[hsl(25,100%,53%)]">
+                                      +{option.price}€
+                                    </p>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Récapitulatif du total */}
+                  {state.selectedService && (
+                    <div className="mt-6 p-6 bg-gradient-to-r from-[hsl(25,100%,95%)] to-[hsl(25,100%,98%)] rounded-xl border-2 border-[hsl(25,100%,53%)]">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-gray-600 text-sm block mb-1">Montant total</span>
+                          <span className="font-semibold text-lg text-gray-900">
+                            {state.selectedService.label}
+                            {state.additionalOptions.length > 0 && ` + ${state.additionalOptions.length} option${state.additionalOptions.length > 1 ? 's' : ''}`}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-3xl font-bold text-[hsl(25,100%,53%)]">
+                            {state.totalAmount}€
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 3: Payment */}
+              {currentStep === 3 && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-3xl font-bold mb-2 text-gray-900">Paiement sécurisé</h2>
+              <p className="text-gray-600">
+                Complétez votre réservation en effectuant le paiement de manière sécurisée
+              </p>
+            </div>
+
+            {/* Code promotionnel */}
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 mb-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">Code promotionnel</h3>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promotionCode}
+                    onChange={(e) => {
+                      setPromotionCode(e.target.value);
+                      if (e.target.value.trim() === '') {
+                        resetPromotionCode();
+                      }
+                    }}
+                    onBlur={() => {
+                      if (promotionCode.trim()) {
+                        validatePromotionCode(promotionCode, { amount: getPromotionCodeAmount() });
+                      }
+                    }}
+                    placeholder="Entrez votre code promotionnel"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent uppercase"
+                    disabled={validatingCode}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => validatePromotionCode(promotionCode, { amount: getPromotionCodeAmount() })}
+                    disabled={validatingCode || !promotionCode.trim()}
+                    className="px-6 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    {validatingCode ? 'Validation...' : 'Appliquer'}
+                  </button>
+                </div>
+                {promotionCodeError && (
+                  <p className="text-sm text-red-600">{promotionCodeError}</p>
+                )}
+                {promotionCodeData && (
+                  <div className="p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800">
+                    ✓ Code appliqué : {promotionCodeData.percentage}% de réduction
+                    {discountAmount > 0 && ` (-${discountAmount.toFixed(2)}€)`}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Récapitulatif de la commande */}
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900">Récapitulatif de la commande</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium text-gray-900">{state.selectedService?.label}</p>
+                    <div className="text-sm text-gray-600 max-h-32 overflow-y-auto mt-1">
+                      <ServiceDescription
+                        content={state.selectedService?.description || ""}
+                        variant="compact"
+                      />
+                    </div>
+                  </div>
+                  <span className="font-semibold text-gray-900 ml-4">
+                    {state.selectedService?.price || 0}€
+                  </span>
+                </div>
+                
+                {state.additionalOptions.length > 0 && (
+                  <div className="pt-3 border-t border-gray-200">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Options supplémentaires:</p>
+                    <ul className="space-y-2">
+                      {state.additionalOptions.map((opt) => (
+                        <li key={opt.id} className="flex justify-between items-center text-sm">
+                          <span className="text-gray-600">{opt.label}</span>
+                          <span className="font-medium text-gray-900">+{opt.price}€</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {state.selectedClinic && (
+                  <div className="pt-3 border-t border-gray-200">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Clinique sélectionnée</p>
+                    <div className="rounded-lg bg-orange-50 p-3 text-sm">
+                      <p className="font-semibold text-gray-900">{state.selectedClinic.name}</p>
+                      <p className="text-gray-600">{state.selectedClinic.location}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {promotionCodeData && discountAmount > 0 && (
+                  <div className="pt-3 border-t border-gray-200 flex justify-between items-center text-green-600">
+                    <span className="text-sm font-medium">Réduction ({promotionCodeData.percentage}%)</span>
+                    <span className="text-sm font-semibold">-{discountAmount.toFixed(2)}€</span>
+                  </div>
+                )}
+                
+                <div className="pt-4 border-t-2 border-gray-300">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold text-gray-900">Total à payer</span>
+                    <span className="text-3xl font-bold text-[hsl(23,100%,53%)]">
+                      {state.totalAmount.toFixed(2)}€
+                    </span>
+                  </div>
+                  {promotionCodeData && (
+                    <p className="text-xs text-gray-500 mt-1">Code: {promotionCodeData.label}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Formulaire de paiement Stripe */}
+            {state.totalAmount > 0 ? (
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-[hsl(23,100%,53%)]" />
+                      Informations de paiement
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                      </svg>
+                      <span>Paiement sécurisé</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Vos informations de paiement sont cryptées et sécurisées par Stripe. 
+                    Nous ne stockons jamais vos données bancaires.
+                  </p>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <p className="text-sm text-blue-800">
+                      <strong>Note :</strong> Si vous avez une carte enregistrée, vous pouvez la sélectionner ou en ajouter une nouvelle. 
+                      Le formulaire Stripe vous permet de choisir parmi vos moyens de paiement enregistrés.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Conteneur pour Stripe avec bouton Précédent */}
+                <StripeCheckout
+                  amountInMinorUnit={Math.round(state.totalAmount * 100)}
+                  currency={CURRENCIES.EUR.code}
+                  customerEmail={state.clientInfo.email || ""}
+                  metadata={{
+                    serviceType: state.serviceType || "",
+                    serviceId: state.selectedService?.serviceId || "",
+                    serviceLabel: state.selectedService?.label || "",
+                    clinicId: state.selectedClinic?.id || "",
+                    clinicName: state.selectedClinic?.name || "",
+                  }}
+                  onSuccess={handlePaymentSuccess}
+                  onError={(error: string) => {
+                    alert(`Erreur de paiement: ${error}`);
+                  }}
+                  renderActions={({ submitting }) => (
+                    <button
+                      onClick={handleBack}
+                      disabled={submitting}
+                      className="flex items-center gap-2 px-6 py-4 border rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      type="button"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                      Précédent
+                    </button>
+                  )}
+                />
+
+                {/* Badges de sécurité */}
+                <div className="mt-6 pt-6 border-t border-gray-200 flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>SSL sécurisé</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                    <span>Stripe</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>3D Secure</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center bg-gray-50">
+                <CreditCard className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <p className="text-lg font-medium text-gray-700 mb-2">
+                  Montant invalide
+                </p>
+                <p className="text-gray-500">
+                  Le montant doit être supérieur à 0€ pour procéder au paiement.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+              {/* Step 4: Confirmation avec récapitulatif complet */}
+              {currentStep === 4 && (
+                <div className="space-y-6">
+                  {/* En-tête de confirmation */}
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Check className="w-8 h-8 text-green-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold mb-2">
+                      Réservation confirmée !
+                    </h2>
+                    <p className="text-gray-600">
+                      Votre réservation a été enregistrée avec succès
+                    </p>
+                  </div>
+
+                  {/* Numéro de réservation */}
+                  {(confirmedReservationNumber || confirmedBookingId) && (
+                    <div className="bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(41,86%,46%)] text-white rounded-xl p-6 text-center">
+                      <p className="text-sm font-medium mb-2">Numéro de réservation</p>
+                      <p className="text-2xl font-bold">
+                        {confirmedReservationNumber || confirmedBookingId}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Récapitulatif de la commande */}
+                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <ShoppingCart className="w-5 h-5 text-[hsl(23,100%,53%)]" />
+                      Récapitulatif de la commande
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      {/* Service sélectionné */}
+                      {state.selectedService && (
+                        <div className="border-b pb-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900">
+                                {state.selectedService.label}
+                              </p>
+                              <div className="mt-1 max-h-40 overflow-y-auto text-gray-600">
+                                <ServiceDescription
+                                  content={state.selectedService.description}
+                                  variant="compact"
+                                />
+                              </div>
+                            </div>
+                            <p className="text-lg font-semibold text-gray-900 ml-4">
+                              {state.selectedService.price}€
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {state.selectedClinic && (
+                        <div className="border-b pb-4">
+                          <p className="text-sm font-medium text-gray-700 mb-2">
+                            Clinique sélectionnée
+                          </p>
+                          <div className="rounded-lg bg-orange-50 p-4">
+                            <p className="font-semibold text-gray-900">{state.selectedClinic.name}</p>
+                            <p className="text-sm text-gray-700">{state.selectedClinic.location}</p>
+                            <p className="mt-2 text-xs text-gray-600">
+                              {state.selectedClinic.specialties.join(', ')}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Options supplémentaires */}
+                      {state.additionalOptions.length > 0 && (
+                        <div className="border-b pb-4">
+                          <p className="text-sm font-medium text-gray-700 mb-2">
+                            Options supplémentaires:
+                          </p>
+                          <div className="space-y-2">
+                            {state.additionalOptions.map((option) => (
+                              <div key={option.id} className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600">{option.label}</span>
+                                <span className="text-sm font-semibold text-gray-900">
+                                  +{option.price}€
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Total */}
+                      <div className="flex justify-between items-center pt-4 border-t">
+                        <span className="text-lg font-semibold text-gray-900">Total à payer</span>
+                        <span className="text-2xl font-bold text-[hsl(25,100%,53%)]">
+                          {state.totalAmount.toFixed(2)}€
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Informations du bénéficiaire */}
+                  <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <User className="w-5 h-5 text-[hsl(23,100%,53%)]" />
+                      Informations du bénéficiaire
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Nom complet</p>
+                        <p className="font-medium text-gray-900">
+                          {state.beneficiaryInfo.firstName} {state.beneficiaryInfo.lastName}
+                        </p>
+                      </div>
+                      {state.beneficiaryInfo.phone && (
+                        <div>
+                          <p className="text-sm text-gray-500">Téléphone</p>
+                          <p className="font-medium text-gray-900">
+                            {state.beneficiaryInfo.phone}
+                          </p>
+                        </div>
+                      )}
+                      {state.beneficiaryInfo.email && (
+                        <div>
+                          <p className="text-sm text-gray-500">Email</p>
+                          <p className="font-medium text-gray-900">
+                            {state.beneficiaryInfo.email}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Informations de rendez-vous */}
+                  {(state.availability.selectedDate || state.availability.selectedTime) && (
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-[hsl(23,100%,53%)]" />
+                        Rendez-vous
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {state.availability.selectedDate && (
+                          <div>
+                            <p className="text-sm text-gray-500">Date</p>
+                            <p className="font-medium text-gray-900">
+                              {new Date(state.availability.selectedDate).toLocaleDateString('fr-FR', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                        )}
+                        {state.availability.selectedTime && (
+                          <div>
+                            <p className="text-sm text-gray-500">Heure</p>
+                            <p className="font-medium text-gray-900">
+                              {state.availability.selectedTime}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Message de confirmation email */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                    <div className="flex items-start gap-3">
+                      <Mail className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-semibold text-blue-900 mb-1">
+                          Email de confirmation envoyé
+                        </p>
+                        <p className="text-sm text-blue-700">
+                          Un récapitulatif détaillé de votre réservation a été envoyé à{" "}
+                          <strong>{state.clientInfo.email}</strong>
+                        </p>
+                        {state.beneficiaryInfo.email && state.beneficiaryInfo.email !== state.clientInfo.email && (
+                          <p className="text-sm text-blue-700 mt-1">
+                            Une notification a également été envoyée à{" "}
+                            <strong>{state.beneficiaryInfo.email}</strong>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Message de suivi */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                    <p className="text-sm text-gray-700 text-center">
+                      <strong>Prochaines étapes :</strong> Notre équipe va traiter votre réservation
+                      et vous recontactera dans les 24-72 heures ouvrables pour finaliser les détails
+                      de votre rendez-vous.
+                    </p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    {confirmedBookingId && (
+                      <button
+                        onClick={() => {
+                          router.push(`/dashboard/bookings/${confirmedBookingId}`);
+                        }}
+                        className="flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)] rounded-lg font-semibold hover:bg-[hsl(25,100%,53%)] hover:text-white transition"
+                        type="button"
+                      >
+                        Voir les détails
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        // Réinitialiser l'état avant de rediriger
+                        setState({
+                          currentStep: 1,
+                          serviceType: null,
+                          clientInfo: {},
+                          beneficiaryInfo: {},
+                          selectedClinic: null,
+                          selectedService: null,
+                          additionalOptions: [],
+                          paymentIntentId: null,
+                          paymentConfirmed: false,
+                          availability: {
+                            selectedDate: null,
+                            selectedTime: null,
+                          },
+                          totalAmount: 0,
+                        });
+                        setConfirmedBookingId(null);
+                        setConfirmedReservationNumber(null);
+                        // Rediriger vers le dashboard
+                        router.push("/dashboard/bookings");
+                      }}
+                      className="flex items-center justify-center gap-2 px-6 py-3 bg-[hsl(25,100%,53%)] text-white rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition"
+                      type="button"
+                    >
+                      Voir mes réservations
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Buttons */}
+              {currentStep < 4 && currentStep !== 3 && (
+                <div className="flex justify-between mt-6">
+                  <button
+                    onClick={currentStep > 1 ? handleBack : onCancel}
+                    className="flex items-center gap-2 px-6 py-3 border rounded-lg hover:bg-gray-50 transition"
+                    type="button"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                    {currentStep > 1 ? "Précédent" : "Annuler"}
+                  </button>
+                  <button
+                    onClick={handleNext}
+                    disabled={!validateStep(currentStep)}
+                    className="flex items-center gap-2 px-6 py-3 bg-[hsl(25,100%,53%)] text-white rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    type="button"
+                  >
+                    Suivant
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Colonne droite - Sidebar fixe */}
+          {state.serviceType && (
+            <div className="lg:col-span-1">
+              <ServiceBookingSidebar
+                serviceType={state.serviceType}
+                currentStep={currentStep}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+

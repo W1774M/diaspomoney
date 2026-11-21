@@ -1,0 +1,184 @@
+import { logger } from '@sentry/nextjs';
+import { getNextAuthSecret } from '@/lib/auth/next-auth-secret';
+import { handleStagingAccess } from '@/lib/staging-access';
+import { getToken } from 'next-auth/jwt';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+
+async function hasValidSession(request: NextRequest): Promise<boolean> {
+  const secret = getNextAuthSecret();
+
+  if (!secret) {
+    return false;
+  }
+
+  try {
+    const token = await getToken({
+      req: request,
+      secret,
+    });
+
+    return Boolean(token);
+  } catch {
+    return false;
+  }
+}
+
+function buildLoginRedirect(request: NextRequest): NextResponse {
+  const loginUrl = new URL("/login", request.url);
+  loginUrl.searchParams.set(
+    'callbackUrl',
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+  );
+
+  return NextResponse.redirect(loginUrl);
+}
+
+// Proxy Next.js 16
+// Gère les redirections HTTPS et l'authentification
+export default async function proxy(request: NextRequest) {
+  const host = request.headers.get('host') || '';
+  const xForwardedFor = request.headers.get('x-forwarded-for');
+  const xRealIp = request.headers.get('x-real-ip');
+  const xfProto = request.headers.get('x-forwarded-proto');
+  const contentType = request.headers.get('content-type') || '';
+  
+  // Check if host is an IP address or localhost (internal request)
+  const isIpAddress = /^\d+\.\d+\.\d+\.\d+(:\d+)?$/.test(host);
+  const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+  const isInternalHost = isIpAddress || isLocalhost;
+  
+  // Detect if request is from Traefik (internal) or external
+  // Traefik adds x-forwarded-for and x-real-ip headers
+  // If these are missing AND host is IP/localhost, it's an internal request
+  const isInternalRequest = (!xForwardedFor && !xRealIp) || isInternalHost;
+  
+  // ---- HTTPS ENFORCEMENT ONLY ----
+  // IMPORTANT: Never redirect between different hostnames
+  // Each environment (dev, rct, prod) must work independently
+  // Only enforce HTTPS redirect for the SAME hostname
+  
+  // List of allowed hosts (each environment is independent)
+  const allowedHosts = ['diaspomoney.fr', 'dev.diaspomoney.fr', 'rct.diaspomoney.fr'];
+  const isAllowedHost = allowedHosts.some(allowed => host === allowed || host.startsWith(`${allowed}:`));
+
+    // Only enforce HTTPS redirect for external HTTP requests coming through Traefik
+  // CRITICAL: Use the same hostname, never change it
+  if (!isInternalRequest && isAllowedHost && xfProto === 'http' && xForwardedFor) {
+    // Build URL using the current request hostname to ensure it stays the same
+    const currentUrl = request.nextUrl;
+    const redirectUrl = new URL(currentUrl.pathname + currentUrl.search, `https://${host}`);
+    // Ensure hostname stays the same (no canonical redirect)
+    logger.info('[MIDDLEWARE] HTTPS redirect:', {
+      from: request.url,
+      to: redirectUrl.toString(),
+      host,
+    });
+    return NextResponse.redirect(redirectUrl, 308);
+    }
+  
+  // Explicitly prevent any hostname redirection
+  // If host is not in allowed list, just continue (don't redirect)
+  
+  // Log for debugging (can be removed in production)
+  if (process.env['NODE_ENV'] !== 'production') {
+    logger.info('[MIDDLEWARE] Request:', {
+      host,
+      xForwardedFor,
+      xRealIp,
+      xfProto,
+      isInternalRequest,
+      isAllowedHost,
+      url: request.nextUrl.toString(),
+    });
+  }
+
+  // ---- ACCESS CONTROL & SESSION CHECKS ----
+  // Attach a request-id (existing or generated) to the response
+  const incomingReqId = request.headers.get("x-request-id");
+  const requestId =
+    incomingReqId ||
+    globalThis.crypto?.randomUUID?.() ||
+    `${Date.now()}-${Math.random()}`;
+
+  const { pathname } = request.nextUrl;
+
+  // ---- ACCÈS PROTÉGÉ dev / rct (cookie 30 jours, voir lib/staging-access.ts) ----
+  // Les requêtes internes (healthcheck Docker) ne passent pas par Traefik et restent libres.
+  if (!isInternalRequest) {
+    const stagingResponse = await handleStagingAccess(request);
+    if (stagingResponse) return stagingResponse;
+  }
+
+  // --- TEMPORARY HARDENING (CVE-2025-55182 / RSC multipart vectors) ---
+  // Bloquer multipart/form-data en POST sur les routes non-API.
+  // (Les uploads doivent passer par /api/*, ex: /api/users/me/avatar)
+  if (
+    request.method === 'POST' &&
+    contentType.toLowerCase().includes('multipart/form-data') &&
+    !pathname.startsWith('/api/')
+  ) {
+    logger.warn('[MIDDLEWARE] Blocked multipart/form-data POST on non-API route', {
+      host,
+      pathname,
+    });
+    return NextResponse.json({ error: 'Unsupported content type' }, { status: 415 });
+  }
+
+  // Check if this is a protected path
+  const protectedPaths = ["/dashboard"];
+  const isProtectedPath = protectedPaths.some(path =>
+    pathname.startsWith(path),
+  );
+
+  // If protected path, check for session token
+  if (isProtectedPath) {
+    const isAuthenticated = await hasValidSession(request);
+
+    if (!isAuthenticated) {
+      // Not authenticated, redirect to login
+      // IMPORTANT: Use the same hostname
+      const loginUrl = buildLoginRedirect(request);
+      logger.info('[MIDDLEWARE] Redirecting to login:', {
+        from: request.url,
+        to: loginUrl.headers.get('location'),
+        host,
+      });
+      return loginUrl;
+    }
+  }
+
+  // If on login and already authenticated, redirect to dashboard
+  if (pathname === "/login") {
+    const sessionToken =
+      request.cookies.get("next-auth.session-token") ||
+      request.cookies.get("__Secure-next-auth.session-token") ||
+      request.cookies.get("authjs.session-token") ||
+      request.cookies.get("__Secure-authjs.session-token");
+    if (sessionToken) {
+      // IMPORTANT: Use the same hostname
+      const dashboardUrl = new URL("/dashboard", request.url);
+      logger.info('[MIDDLEWARE] Redirecting to dashboard:', {
+        from: request.url,
+        to: dashboardUrl.toString(),
+        host,
+      });
+      return NextResponse.redirect(dashboardUrl);
+    }
+  }
+
+  // Continue request and set x-request-id header
+  const response = NextResponse.next();
+  response.headers.set("x-request-id", requestId);
+  return response;
+}
+
+// Export config for Next.js proxy
+export const config = {
+  // Les fichiers statiques de /public (images, manifeste, robots) ne passent pas par le proxy :
+  // l'optimiseur d'images les lit par une requête interne que le proxy rendait vide.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|img/|.*\\.(?:png|jpe?g|webp|avif|gif|svg|ico)$).*)',
+  ],
+};
+

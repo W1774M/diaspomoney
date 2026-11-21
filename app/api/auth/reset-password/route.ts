@@ -1,76 +1,87 @@
-import { connectDatabase } from "@/config/database";
-import PasswordResetToken from "@/models/PasswordResetToken";
-import User from "@/models/User";
-import bcrypt from "bcryptjs";
+import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
+
+import { ResetPasswordSchema, type ResetPasswordInput } from '@/lib/validations/auth.schema';
 import { NextRequest, NextResponse } from "next/server";
+import { mongoClient } from "@/lib/mongodb";
+import bcrypt from "bcryptjs";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-  try {
-    await connectDatabase();
+  return handleApiRoute(request, async () => {
+    // Validation avec Zod
+    const body = await request.json();
+    const data: ResetPasswordInput = validateBody(body, ResetPasswordSchema);
+    
+    const { token, password } = data;
 
-    const { token, password } = await request.json();
+    // Connexion à la base de données
+    const client = await mongoClient;
+    const db = client.db();
+    const usersCollection = db.collection("users");
 
-    if (!token || !password) {
-      return NextResponse.json(
-        { error: "Token et nouveau mot de passe requis" },
-        { status: 400 }
-      );
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: "Le mot de passe doit contenir au moins 6 caractères" },
-        { status: 400 }
-      );
-    }
-
-    // Vérifier le token
-    const resetToken = await PasswordResetToken.findOne({
-      token,
-      used: false,
-      expiresAt: { $gt: new Date() },
+    // Recherche de l'utilisateur avec le token de réinitialisation
+    const user = await usersCollection.findOne({
+      passwordResetToken: token,
     });
 
-    if (!resetToken) {
-      return NextResponse.json(
-        { error: "Token invalide ou expiré" },
-        { status: 400 }
-      );
-    }
-
-    // Trouver l'utilisateur
-    const user = await User.findOne({ email: resetToken.email });
     if (!user) {
+      logger.error({ token }, 'Invalid token');
       return NextResponse.json(
-        { error: "Utilisateur non trouvé" },
-        { status: 404 }
+        { 
+          error: "Token de réinitialisation invalide",
+          reason: "invalid_token",
+        },
+        { status: 400 },
       );
     }
 
-    // Hasher le nouveau mot de passe
-    const salt = await bcrypt.genSalt(12);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // Vérification de l'expiration du token
+    if (user['passwordResetExpires'] && new Date() > user['passwordResetExpires']) {
+      logger.error({ user }, 'Expired token');
+      return NextResponse.json(
+        { 
+          error: "Le lien de réinitialisation a expiré",
+          reason: "expired_token",
+        },
+        { status: 400 },
+      );
+    }
 
-    // Mettre à jour le mot de passe
-    user.password = hashedPassword;
-    await user.save();
+    // Hachage du nouveau mot de passe
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Marquer le token comme utilisé
-    resetToken.used = true;
-    await resetToken.save();
+    // Mise à jour de l'utilisateur
+    const updateResult = await usersCollection.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          password: hashedPassword,
+          updatedAt: new Date(),
+        },
+        $unset: {
+          passwordResetToken: "",
+          passwordResetExpires: "",
+        },
+      },
+    );
+
+    if (updateResult.modifiedCount === 0) {
+      logger.error({ user }, 'Error updating password');
+      return NextResponse.json(
+        { error: "Erreur lors de la mise à jour du mot de passe" },
+        { status: 500 },
+      );
+    }
+
+    logger.info({ user }, 'Password reset successfully');
 
     return NextResponse.json(
       {
         success: true,
-        message: "Mot de passe mis à jour avec succès",
+        message: "Mot de passe réinitialisé avec succès",
       },
-      { status: 200 }
+      { status: 200 },
     );
-  } catch (error) {
-    console.error("Erreur réinitialisation mot de passe:", error);
-    return NextResponse.json(
-      { error: "Erreur interne du serveur" },
-      { status: 500 }
-    );
-  }
+  }, 'api/auth/reset-password');
 }

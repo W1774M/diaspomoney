@@ -1,165 +1,161 @@
-import { connectDatabase } from "@/config/database";
-import { sendEmailVerification } from "@/lib/email";
-import EmailVerificationToken from "@/models/EmailVerificationToken";
-import User from "@/models/User";
-import crypto from "crypto";
-import { NextRequest, NextResponse } from "next/server";
+/**
+ * API Route - Register
+ * Endpoint d'inscription
+ *
+ * Implémente les design patterns :
+ * - Service Layer Pattern (via authService)
+ * - Facade Pattern (via authService qui utilise userFacade pour orchestrer la création d'utilisateur)
+ * - Repository Pattern (via authService qui utilise les repositories via userFacade)
+ * - Dependency Injection (via authService singleton)
+ * - Logger Pattern (structured logging avec childLogger + @Log decorator dans le service)
+ * - Error Handling Pattern (via handleApiRoute + Sentry)
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache, @Audit, @Performance dans authService et userFacade)
+ * - Singleton Pattern (authService, userFacade)
+ */
+
+import { handleApiRoute, validateBody, ApiError } from '@/lib/api/error-handler';
+import { getPublicBaseUrl } from '@/lib/api/public-url';
+import { childLogger } from '@/lib/logger';
+import { RegisterSchema, type RegisterInput } from '@/lib/validations/auth.schema';
+import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
+import { authService } from '@/services/auth/auth.service';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
-  try {
-    // Connexion à la base de données
-    await connectDatabase();
+  const reqId = request.headers.get('x-request-id') || undefined;
+  const log = childLogger({
+    requestId: reqId,
+    route: 'api/auth/register',
+  });
 
-    // Récupération des données du body
-    const {
-      firstName,
-      lastName,
-      email,
-      password,
-      phone,
-      dateOfBirth,
-      countryOfResidence,
-      targetCountry,
-      targetCity,
-      selectedServices,
-      monthlyBudget,
-      securityQuestion,
-      securityAnswer,
-      termsAccepted,
-      marketingConsent,
-      kycConsent,
-    } = await request.json();
+  return handleApiRoute(
+    request,
+    async () => {
+      // Validation avec Zod
+      const body = await request.json();
+      const data: RegisterInput = validateBody(body, RegisterSchema);
 
-    // Validation des données
-    if (
-      !firstName ||
-      !lastName ||
-      !email ||
-      !password ||
-      !phone ||
-      !dateOfBirth ||
-      !countryOfResidence ||
-      !targetCountry ||
-      !targetCity ||
-      !selectedServices ||
-      !securityQuestion ||
-      !securityAnswer ||
-      !termsAccepted ||
-      !kycConsent
-    ) {
-      return NextResponse.json(
-        { error: "Tous les champs obligatoires doivent être remplis" },
-        { status: 400 }
+      // Sanitisation des entrées
+      const sanitizedData = {
+        email: data.email.trim().toLowerCase(),
+        password: data.password, // Ne pas modifier le mot de passe ici
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
+        phone: data.phone?.trim(),
+        country: data.countryOfResidence?.trim(),
+        dateOfBirth: data.dateOfBirth,
+        targetCountry: data.targetCountry,
+        targetCity: data.targetCity,
+        monthlyBudget: data.monthlyBudget,
+        securityQuestion: data.securityQuestion,
+        securityAnswer: data.securityAnswer,
+        termsAccepted: data.termsAccepted,
+        marketingConsent: data.marketingConsent || false,
+        selectedServices: data.selectedServices,
+        oauth: data.oauth,
+      };
+
+      // Extraire IP et User-Agent pour l'audit
+      const ipAddress =
+        request.headers.get('x-forwarded-for')?.split(',')[0] ||
+        request.headers.get('x-real-ip') ||
+        'unknown';
+      const userAgent = request.headers.get('user-agent') || 'unknown';
+      const publicBaseUrl = getPublicBaseUrl(request);
+
+      log.debug(
+        {
+          email: sanitizedData.email,
+          country: sanitizedData.country,
+          hasPhone: !!sanitizedData.phone,
+          hasOAuth: !!sanitizedData.oauth,
+          ipAddress,
+        },
+        'Attempting user registration',
       );
-    }
 
-    // Vérification de la longueur du mot de passe
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Le mot de passe doit contenir au moins 8 caractères" },
-        { status: 400 }
+      // Tentative d'inscription
+      let result;
+      try {
+        result = await authService.register(sanitizedData as any, {
+          ipAddress,
+          userAgent,
+          baseUrl: publicBaseUrl,
+        });
+      } catch (error: any) {
+        // Détecter les erreurs de duplication et retourner un statut 409 (Conflict)
+        const errorMessage = error?.message || error?.error || String(error || '');
+        const errorCode = error?.code;
+        const isDuplicate = error?.isDuplicate;
+        const errorErrorCode = error?.errorCode;
+        
+        const isDuplicateError =
+          isDuplicate === true ||
+          errorMessage.includes('existe déjà') ||
+          errorMessage.includes('duplicate') ||
+          errorMessage.includes('already exists') ||
+          errorCode === 11000 ||
+          errorCode === 11001 ||
+          errorErrorCode === 'DUPLICATE_EMAIL';
+        
+        if (isDuplicateError) {
+          log.warn(
+            {
+              email: sanitizedData.email,
+              errorMessage,
+              errorCode,
+              isDuplicate,
+            },
+            'Registration failed: duplicate email detected',
+          );
+          throw new ApiError(
+            409,
+            errorMessage.includes('existe déjà') || errorMessage.includes('duplicate') || errorMessage.includes('already exists')
+              ? errorMessage
+              : 'Un compte avec cet email existe déjà',
+            'DUPLICATE_EMAIL',
+          );
+        }
+        // Relancer les autres erreurs telles quelles
+        throw error;
+      }
+
+      // Enregistrer les métriques
+      monitoringManager.recordMetric({
+        name: 'auth_registrations_successful',
+        value: 1,
+        timestamp: new Date(),
+        labels: {
+          country: sanitizedData.country || '',
+          has_phone: sanitizedData.phone ? 'true' : 'false',
+        },
+        type: 'counter',
+      });
+
+      log.info(
+        {
+          userId: result.user.id,
+          email: result.user.email,
+          country: sanitizedData.country || '',
+          ipAddress,
+        },
+        'User registration successful',
       );
-    }
 
-    // Vérification de l'âge (18 ans minimum)
-    const birthDate = new Date(dateOfBirth);
-    const today = new Date();
-    const age = today.getFullYear() - birthDate.getFullYear();
-    if (age < 18) {
+      // Retourner la réponse
       return NextResponse.json(
-        { error: "Vous devez avoir au moins 18 ans pour créer un compte" },
-        { status: 400 }
+        {
+          success: true,
+          user: result.user,
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+          expiresIn: result.expiresIn,
+          message:
+            'Compte créé avec succès. Vérifiez votre email pour activer votre compte.',
+        },
+        { status: 201 },
       );
-    }
-
-    // Vérification si l'utilisateur existe déjà
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "Un compte avec cet email existe déjà" },
-        { status: 409 }
-      );
-    }
-
-    // Création du nouvel utilisateur avec tous les nouveaux champs
-    const newUser = new User({
-      firstName,
-      lastName,
-      email: email.toLowerCase(),
-      password,
-      phone,
-      dateOfBirth,
-      countryOfResidence,
-      targetCountry,
-      targetCity,
-      selectedServices,
-      monthlyBudget,
-      securityQuestion,
-      securityAnswer,
-      marketingConsent: marketingConsent || false,
-      kycConsent,
-      role: "user",
-      isEmailVerified: false,
-    });
-
-    // Sauvegarde de l'utilisateur
-    await newUser.save();
-
-    // Générer un token de vérification d'email
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 heures
-
-    // Sauvegarder le token
-    const emailToken = new EmailVerificationToken({
-      email: email.toLowerCase(),
-      token: verificationToken,
-      expiresAt,
-    });
-    await emailToken.save();
-
-    // Envoyer l'email de vérification
-    try {
-      await sendEmailVerification(email, verificationToken, firstName);
-    } catch (emailError) {
-      console.error("Erreur envoi email de vérification:", emailError);
-      // Ne pas bloquer l'inscription si l'email échoue
-    }
-
-    // Retourner les informations de l'utilisateur (sans le mot de passe)
-    const userResponse = {
-      id: newUser._id,
-      firstName: newUser.firstName,
-      lastName: newUser.lastName,
-      email: newUser.email,
-      phone: newUser.phone,
-      dateOfBirth: newUser.dateOfBirth,
-      countryOfResidence: newUser.countryOfResidence,
-      targetCountry: newUser.targetCountry,
-      targetCity: newUser.targetCity,
-      selectedServices: newUser.selectedServices,
-      monthlyBudget: newUser.monthlyBudget,
-      marketingConsent: newUser.marketingConsent,
-      kycConsent: newUser.kycConsent,
-      role: newUser.role,
-      isEmailVerified: newUser.isEmailVerified,
-      createdAt: newUser.createdAt,
-    };
-
-    return NextResponse.json(
-      {
-        success: true,
-        user: userResponse,
-        message:
-          "Compte créé avec succès. Vérifiez votre email pour activer votre compte.",
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("Erreur lors de l'inscription:", error);
-    return NextResponse.json(
-      { error: "Erreur interne du serveur" },
-      { status: 500 }
-    );
-  }
+    },
+    'api/auth/register',
+  );
 }

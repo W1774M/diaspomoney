@@ -1,5 +1,5 @@
 "use client";
-import { AppointmentData } from "@/lib/definitions";
+import { AppointmentData } from "@/lib/types";
 import { createContext, useContext, useState } from "react";
 
 interface AppointmentContextType {
@@ -8,14 +8,14 @@ interface AppointmentContextType {
 }
 
 const AppointmentContext = createContext<AppointmentContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export function useAppointment() {
   const context = useContext(AppointmentContext);
   if (context === undefined) {
     throw new Error(
-      "useAppointment must be used within an AppointmentProvider"
+      "useAppointment must be used within an AppointmentProvider",
     );
   }
   return context;
@@ -23,9 +23,13 @@ export function useAppointment() {
 
 interface AppointmentProviderProps {
   children: React.ReactNode;
+  data?: AppointmentData;
 }
 
-export function AppointmentProvider({ children }: AppointmentProviderProps) {
+export function AppointmentProvider({
+  children,
+  data: _data,
+}: AppointmentProviderProps) {
   const [data, setData] = useState<AppointmentData | null>(null);
 
   return (

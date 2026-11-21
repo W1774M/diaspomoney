@@ -1,13 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UseFormProps, useForm as useHookForm } from "react-hook-form";
-import { z, ZodTypeAny } from "zod";
+import { FieldValues, UseFormProps, useForm as useHookForm } from "react-hook-form";
+import { ZodType, ZodTypeAny } from "zod";
 
 export function useForm<TSchema extends ZodTypeAny>({
   schema,
   ...props
-}: UseFormProps<z.infer<TSchema>> & { schema: TSchema }) {
-  return useHookForm<z.infer<TSchema>>({
-    resolver: zodResolver(schema),
+}: UseFormProps<FieldValues> & { schema: TSchema }) {
+  const form = useHookForm<FieldValues>({
+    resolver: zodResolver(schema as ZodType<FieldValues, any, any>),
     ...props,
   });
+  
+  return form;
 }

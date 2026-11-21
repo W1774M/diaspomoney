@@ -1,178 +1,157 @@
 // Script d'initialisation MongoDB pour DiaspoMoney
-// Ce script s'exécute automatiquement lors du premier démarrage du conteneur MongoDB
+// Ce script s'exécute automatiquement au premier démarrage du conteneur MongoDB
 
-// Sélectionner la base de données
-db = db.getSiblingDB("diaspomoney");
+// Se connecter à la base de données diaspomoney
+db = db.getSiblingDB('diaspomoney');
 
 // Créer un utilisateur pour l'application
 db.createUser({
-  user: "diaspomoney_user",
-  pwd: "diaspomoney_app_password",
+  user: 'diaspomoney',
+  pwd: 'password123',
   roles: [
     {
-      role: "readWrite",
-      db: "diaspomoney",
+      role: 'readWrite',
+      db: 'diaspomoney',
     },
   ],
 });
 
-// Créer les collections avec des données de base
+// Créer les collections de base avec des index
+print('Création des collections de base...');
 
-// Collection des prestataires
-db.createCollection("providers");
-db.providers.insertMany([
-  {
-    id: 1,
-    name: "Cabinet Médical Dr. Martin",
-    type: { id: "medical", value: "Médecine générale" },
-    specialty: "Médecine générale et consultations",
-    description:
-      "Cabinet médical moderne offrant des soins de qualité pour toute la famille. Consultations sur rendez-vous avec des médecins expérimentés.",
-    services: [
-      { id: 1, name: "Consultation générale", price: 25 },
-      { id: 2, name: "Certificat médical", price: 15 },
-      { id: 3, name: "Vaccination", price: 20 },
-    ],
-    apiGeo: [
-      {
-        display_name: "123 Rue de la Paix, 75001 Paris, France",
-        lat: "48.8566",
-        lon: "2.3522",
-      },
-    ],
-    images: [
-      "/img/providers/cabinet-medical-1.jpg",
-      "/img/providers/cabinet-medical-2.jpg",
-    ],
-    rating: 4.5,
-    reviews: 127,
-    distance: "2.3 km",
-    recommended: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 2,
-    name: "Institut de Beauté Élégance",
-    type: { id: "beauty", value: "Beauté & Bien-être" },
-    specialty: "Soins esthétiques et beauté",
-    description:
-      "Institut de beauté haut de gamme proposant des soins personnalisés et des traitements innovants pour votre bien-être.",
-    services: [
-      { id: 1, name: "Soin du visage", price: 45 },
-      { id: 2, name: "Manucure", price: 25 },
-      { id: 3, name: "Massage relaxant", price: 60 },
-    ],
-    apiGeo: [
-      {
-        display_name: "456 Avenue des Champs, 75008 Paris, France",
-        lat: "48.8698",
-        lon: "2.3077",
-      },
-    ],
-    images: ["/img/providers/beaute-1.jpg", "/img/providers/beaute-2.jpg"],
-    rating: 4.8,
-    reviews: 89,
-    distance: "1.7 km",
-    recommended: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: 3,
-    name: "Restaurant Le Gourmet",
-    type: { id: "restaurant", value: "Restauration" },
-    specialty: "Cuisine française traditionnelle",
-    description:
-      "Restaurant gastronomique proposant une cuisine française raffinée dans un cadre élégant et chaleureux.",
-    services: [
-      { id: 1, name: "Menu dégustation", price: 85 },
-      { id: 2, name: "Réservation table", price: 0 },
-      { id: 3, name: "Traiteur événements", price: 150 },
-    ],
-    apiGeo: [
-      {
-        display_name: "789 Boulevard Saint-Germain, 75006 Paris, France",
-        lat: "48.8534",
-        lon: "2.3488",
-      },
-    ],
-    images: [
-      "/img/providers/restaurant-1.jpg",
-      "/img/providers/restaurant-2.jpg",
-    ],
-    rating: 4.6,
-    reviews: 203,
-    distance: "3.1 km",
-    recommended: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-]);
-
-// Collection des réservations
-db.createCollection("appointments");
-db.appointments.createIndex({ "requester.email": 1 });
-db.appointments.createIndex({ "provider.id": 1 });
-db.appointments.createIndex({ timeslot: 1 });
-db.appointments.createIndex({ status: 1 });
-
-// Collection des utilisateurs
-db.createCollection("users");
+// Collection des utilisateurs (modèle mis à jour)
+db.createCollection('users');
 db.users.createIndex({ email: 1 }, { unique: true });
-db.users.insertMany([
-  {
-    email: "admin@diaspomoney.fr",
-    password: "$2b$10$hashed_password_here", // À remplacer par un vrai hash
-    firstName: "Admin",
-    lastName: "DiaspoMoney",
-    role: "admin",
-    phone: "+33123456789",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-]);
+db.users.createIndex({ phone: 1 });
+db.users.createIndex({ roles: 1 }); // Changé de 'role' à 'roles' (array)
+db.users.createIndex({ status: 1 });
+db.users.createIndex({ createdAt: 1 });
+db.users.createIndex({ emailVerified: 1 });
+db.users.createIndex({ isEmailVerified: 1 });
 
-// Collection des paiements
-db.createCollection("payments");
-db.payments.createIndex({ appointmentId: 1 });
-db.payments.createIndex({ status: 1 });
-db.payments.createIndex({ createdAt: 1 });
+// Collection des services
+db.createCollection('services');
+db.services.createIndex({ name: 1 });
+db.services.createIndex({ category: 1 });
+db.services.createIndex({ providerId: 1 });
+db.services.createIndex({ isActive: 1 });
+
+// Collection des rendez-vous
+db.createCollection('bookings');
+db.bookings.createIndex({ providerId: 1 });
+db.bookings.createIndex({ requesterId: 1 });
+db.bookings.createIndex({ date: 1 });
+db.bookings.createIndex({ status: 1 });
+db.bookings.createIndex({ createdAt: 1 });
+
+// Collection des factures
+db.createCollection('invoices');
+db.invoices.createIndex({ userId: 1 });
+db.invoices.createIndex({ bookingId: 1 });
+db.invoices.createIndex({ status: 1 });
+db.invoices.createIndex({ createdAt: 1 });
+
+// Collection des transactions
+db.createCollection('transactions');
+db.transactions.createIndex({ userId: 1 });
+db.transactions.createIndex({ type: 1 });
+db.transactions.createIndex({ status: 1 });
+db.transactions.createIndex({ createdAt: 1 });
+
+// Collection des partenaires
+db.createCollection('partners');
+db.partners.createIndex({ name: 1 });
+db.partners.createIndex({ category: 1 });
+db.partners.createIndex({ isActive: 1 });
+
+// Collection des spécialités
+db.createCollection('specialities');
+db.specialities.createIndex({ name: 1 });
+db.specialities.createIndex({ category: 1 });
+
+// Collection des tokens de vérification email
+db.createCollection('emailverificationtokens');
+db.emailverificationtokens.createIndex({ token: 1 }, { unique: true });
+db.emailverificationtokens.createIndex({ userId: 1 });
+db.emailverificationtokens.createIndex(
+  { expiresAt: 1 },
+  { expireAfterSeconds: 0 }
+);
+
+// Collection des tokens de réinitialisation de mot de passe
+db.createCollection('passwordresettokens');
+db.passwordresettokens.createIndex({ token: 1 }, { unique: true });
+db.passwordresettokens.createIndex({ userId: 1 });
+db.passwordresettokens.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Collection des tokens de retry
-db.createCollection("retry_tokens");
-db.retry_tokens.createIndex({ token: 1 }, { unique: true });
-db.retry_tokens.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index
+db.createCollection('retrytokens');
+db.retrytokens.createIndex({ token: 1 }, { unique: true });
+db.retrytokens.createIndex({ userId: 1 });
+db.retrytokens.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-// Collection des logs d'emails
-db.createCollection("email_logs");
-db.email_logs.createIndex({ recipient: 1 });
-db.email_logs.createIndex({ type: 1 });
-db.email_logs.createIndex({ createdAt: 1 });
+// Insérer des données de test
+print('Insertion des données de test...');
 
-// Collection des erreurs de paiement
-db.createCollection("payment_errors");
-db.payment_errors.createIndex({ appointmentId: 1 });
-db.payment_errors.createIndex({ errorType: 1 });
-db.payment_errors.createIndex({ createdAt: 1 });
-
-// Collection des statistiques
-db.createCollection("statistics");
-db.statistics.insertOne({
-  type: "global",
-  totalAppointments: 0,
-  totalRevenue: 0,
-  totalProviders: 3,
-  totalUsers: 1,
-  lastUpdated: new Date(),
+// Utilisateur admin par défaut (modèle mis à jour)
+db.users.insertOne({
+  _id: ObjectId(),
+  name: 'Admin DiaspoMoney',
+  firstName: 'Admin',
+  lastName: 'DiaspoMoney',
+  email: 'admin@diaspomoney.fr',
+  phone: '+33123456789',
+  password:
+    '$2a$10$XZ6FQellqQWydUCEcBhPjutqJqJqJqJqJqJqJqJqJqJqJqJqJqJqJqJqJqJq', // password123 (sera mis à jour par le script)
+  roles: ['ADMIN'], // Changé de 'role' à 'roles' (array)
+  status: 'ACTIVE',
+  emailVerified: true,
+  isEmailVerified: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
 });
 
-print("✅ Base de données DiaspoMoney initialisée avec succès !");
+// Spécialités par défaut
+const specialities = [
+  { name: 'Médecine générale', category: 'HEALTH' },
+  { name: 'Cardiologie', category: 'HEALTH' },
+  { name: 'Dermatologie', category: 'HEALTH' },
+  { name: 'Gynécologie', category: 'HEALTH' },
+  { name: 'Pédiatrie', category: 'HEALTH' },
+  { name: 'Psychiatrie', category: 'HEALTH' },
+  { name: 'Radiologie', category: 'HEALTH' },
+  { name: 'Chirurgie', category: 'HEALTH' },
+  { name: 'Ophtalmologie', category: 'HEALTH' },
+  { name: 'ORL', category: 'HEALTH' },
+  { name: 'Neurologie', category: 'HEALTH' },
+  { name: 'Urologie', category: 'HEALTH' },
+  { name: 'Orthopédie', category: 'HEALTH' },
+  { name: 'Anesthésie', category: 'HEALTH' },
+  { name: 'Médecine du travail', category: 'HEALTH' },
+  { name: 'Médecine du sport', category: 'HEALTH' },
+  { name: "Médecine d'urgence", category: 'HEALTH' },
+  { name: 'Médecine interne', category: 'HEALTH' },
+  { name: 'Endocrinologie', category: 'HEALTH' },
+  { name: 'Gastro-entérologie', category: 'HEALTH' },
+  { name: 'Hématologie', category: 'HEALTH' },
+  { name: 'Infectiologie', category: 'HEALTH' },
+  { name: 'Néphrologie', category: 'HEALTH' },
+  { name: 'Oncologie', category: 'HEALTH' },
+  { name: 'Pneumologie', category: 'HEALTH' },
+  { name: 'Rhumatologie', category: 'HEALTH' },
+  { name: 'Médecine légale', category: 'HEALTH' },
+  { name: 'Médecine préventive', category: 'HEALTH' },
+  { name: 'Médecine de famille', category: 'HEALTH' },
+];
+
+db.specialities.insertMany(specialities);
+
+print('✅ Initialisation MongoDB terminée avec succès!');
 print(
-  "📊 Collections créées : providers, appointments, users, payments, retry_tokens, email_logs, payment_errors, statistics"
+  '📊 Collections créées: users, services, bookings, invoices, transactions, partners, specialities'
 );
-print("👤 Utilisateur admin créé : admin@diaspomoney.fr");
-print("🏥 3 prestataires de démonstration ajoutés");
+print('👤 Utilisateur admin créé: admin@diaspomoney.fr / password123');
+print('🏥 Spécialités médicales insérées');
 print(
-  "🔗 Connexion MongoDB : mongodb://diaspomoney_user:diaspomoney_app_password@localhost:27017/diaspomoney"
+  '🔗 Connexion: mongodb://diaspomoney:password123@localhost:27017/diaspomoney'
 );

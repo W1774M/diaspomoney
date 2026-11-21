@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     if (!token || !expires) {
       return NextResponse.json(
         { error: "Token ou date d'expiration manquant" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
             "Le lien de retry a expiré. Veuillez refaire votre réservation.",
           expired: true,
         },
-        { status: 410 }
+        { status: 410 },
       );
     }
 
@@ -40,13 +40,13 @@ export async function GET(request: NextRequest) {
         expiresAt: expiresAt.toISOString(),
         valid: true,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Erreur lors de la validation du token:", error);
     return NextResponse.json(
       { error: "Erreur lors de la validation du token" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

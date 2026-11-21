@@ -1,4 +1,5 @@
 export { Button } from "./Button";
+export { default as Breadcrumb } from "./Breadcrumb";
 export {
   Card,
   CardContent,
@@ -7,10 +8,15 @@ export {
   CardHeader,
   CardTitle,
 } from "./Card";
+export { default as ConfirmDialog } from "./ConfirmDialog";
+export type { ConfirmDialogProps } from "./ConfirmDialog";
 export { Form, FormDescription, FormField, FormLabel } from "./Form";
 export { Input } from "./Input";
-export { NotificationContainer } from "./Notification";
+export { default as Logo } from "./Logo";
+export { default as NotificationContainer } from "./Notification";
 export { PageTransition } from "./PageTransition";
 export { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
+export { PhoneInput } from "./PhoneInput";
 export { SecurityCaptcha } from "./SecurityCaptcha";
+export { StatusBadge } from "./StatusBadge";
 export { ThemeToggle } from "./ThemeToggle";

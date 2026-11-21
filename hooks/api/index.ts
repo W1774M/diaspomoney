@@ -1,3 +1,6 @@
-export { useAppointments } from "./useAppointments";
-export { useProvider } from "./useProvider";
-export { useProviders } from "./useProviders";
+export { useProvidersOptimized } from './useProvidersOptimized';
+export type {
+  Provider,
+  ProviderFilters,
+  UseProvidersReturn,
+} from './useProvidersOptimized';

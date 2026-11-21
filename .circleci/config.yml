@@ -1,0 +1,333 @@
+version: 2.1
+
+# =====================================================================================
+# CI/CD DiaspoMoney
+#
+#   toutes branches : installation → tests (lint, types, couverture globale) → build → E2E
+#   dev             : … → déploiement dev → ouverture de la PR dev → rct
+#   rct             : … → déploiement rct → ouverture de la PR rct → main
+#                       → [Approve dans CircleCI] → fusion de la PR rct → main
+#   main            : … → déploiement prod
+#
+# Variables du projet CircleCI (Project Settings → Environment Variables) :
+#   DEPLOY_HOST, DEPLOY_USER, DEPLOY_KNOWN_HOSTS  accès SSH au serveur
+#   GITHUB_TOKEN                                  jeton GitHub (pull requests en écriture)
+# Clé SSH (Project Settings → SSH Keys → Additional SSH Keys) : clé « circleci-deploy »,
+# limitée côté serveur à scripts/server/ci-deploy.sh (déploiement uniquement).
+#
+# Notes :
+# - Ne pas redéfinir PATH dans `environment:` : CircleCI n'y développe ni `~` ni `$PATH`.
+# - Next 16 exige Node >= 20.9 : image cimg/node:20.19 (Node 20, comme le Dockerfile).
+# - pnpm-lock.yaml est versionné : la CI installe exactement les versions de la prod.
+# =====================================================================================
+
+executors:
+  node:
+    docker:
+      - image: cimg/node:20.19
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+
+  # Node + MongoDB de test sur le port attendu par tests/setup.mongo.ts (127.0.0.1:27018).
+  node-mongo:
+    docker:
+      - image: cimg/node:20.19-browsers
+      - image: mongo:7
+        command: ["mongod", "--port", "27018", "--bind_ip_all"]
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+      MONGODB_URI: mongodb://127.0.0.1:27018/diaspomoney_test
+
+  base:
+    docker:
+      - image: cimg/base:current
+
+commands:
+  attach-deps:
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: 📦 Versions
+          command: node --version && pnpm --version
+
+  wait-for-mongo:
+    steps:
+      - run:
+          name: ⏳ Attente de MongoDB
+          command: |
+            for i in $(seq 1 30); do
+              node -e "require('net').connect(27018,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))" && exit 0
+              sleep 2
+            done
+            echo "❌ MongoDB n'a pas démarré" && exit 1
+
+jobs:
+  # ---------------------------------------------------------------------------
+  install-dependencies:
+    executor: node
+    steps:
+      - checkout
+      - run:
+          name: 📦 pnpm
+          command: pnpm --version && pnpm config set store-dir ~/.pnpm-store
+      - restore_cache:
+          keys:
+            - v2-pnpm-{{ checksum "pnpm-lock.yaml" }}
+            - v2-pnpm-
+      - run:
+          name: 📚 Install dependencies
+          command: pnpm install --frozen-lockfile
+      - save_cache:
+          key: v2-pnpm-{{ checksum "pnpm-lock.yaml" }}
+          paths:
+            - ~/.pnpm-store
+      - persist_to_workspace:
+          root: .
+          paths:
+            - node_modules
+
+  # ---------------------------------------------------------------------------
+  # Lint, types, puis les trois suites via CircleCI Smarter Testing
+  # (.circleci/test-suites.yml) : résultats JUnit téléversés (onglet Tests, Test Insights),
+  # « Rerun failed tests » ne relance que les tests en échec, découpage statique possible
+  # en ajoutant parallelism. Aucune fonction payante activée.
+  tests:
+    executor: node-mongo
+    steps:
+      - attach-deps
+      - run:
+          name: 🔍 Lint
+          command: pnpm lint
+      - run:
+          name: 📝 TypeScript Check
+          command: pnpm tsc:check
+      - run:
+          name: 🧪 Tests client
+          command: circleci testsuite run "unit-client"
+      - wait-for-mongo
+      - run:
+          name: 🧪 Tests serveur
+          command: circleci testsuite run "unit-server"
+      - run:
+          name: 🔗 Tests d'intégration
+          command: circleci testsuite run "integration"
+          environment:
+            NODE_ENV: test
+
+  # ---------------------------------------------------------------------------
+  # Couverture globale : les trois suites en entier, rapports fusionnés, échec sous les
+  # seuils de coverage-thresholds.json (cliquet). Séparé de « tests » pour qu'un rerun
+  # partiel (tests en échec seulement) ne fausse jamais la mesure.
+  coverage:
+    executor: node-mongo
+    steps:
+      - attach-deps
+      - wait-for-mongo
+      - run:
+          name: 📊 Couverture globale (cliquet)
+          command: pnpm test:coverage
+      - store_artifacts:
+          path: coverage
+          destination: coverage
+
+  # ---------------------------------------------------------------------------
+  build:
+    executor: node
+    environment:
+      NODE_ENV: production
+      APP_URL: https://dev.diaspomoney.fr
+      API_URL: https://dev.diaspomoney.fr/api
+      NEXTAUTH_URL: https://dev.diaspomoney.fr
+      NEXT_PUBLIC_APP_URL: https://dev.diaspomoney.fr
+      NEXT_PUBLIC_API_URL: https://dev.diaspomoney.fr/api
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+    steps:
+      - attach-deps
+      - run:
+          name: 🏗️ Build application
+          command: pnpm build && rm -rf .next/cache
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .next
+            - public/styles.css
+
+  # ---------------------------------------------------------------------------
+  # E2E Playwright (Chromium) sur le build de production, avec une base MongoDB vide.
+  e2e:
+    executor: node-mongo
+    environment:
+      NODE_ENV: production
+      AUTH_SECRET: e2e-ci-secret-not-used-anywhere-else
+      NEXTAUTH_SECRET: e2e-ci-secret-not-used-anywhere-else
+      NEXTAUTH_URL: http://localhost:3000
+      PORT: "3000"
+    steps:
+      - attach-deps
+      - wait-for-mongo
+      - run:
+          name: 🎭 Navigateur Chromium
+          command: pnpm exec playwright install --with-deps chromium
+      - run:
+          name: 🎭 Tests E2E
+          command: pnpm test:e2e
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: playwright-report
+          destination: playwright-report
+
+  # ---------------------------------------------------------------------------
+  # Déploiement + marqueurs CircleCI Deploys (plan → déploiement → RUNNING → SUCCESS/FAILED).
+  # Plan « deploy-<env> », composant « diaspomoney », version = SHA git complet (c'est ce que
+  # le pipeline de rollback redéploie). Quand la validation est active (production), le job
+  # ne marque pas SUCCESS : c'est le job « type: release » qui le fait après la fenêtre
+  # d'observation.
+  deploy:
+    executor: base
+    parameters:
+      env:
+        type: enum
+        enum: [dev, rct, prod]
+      environment-name:
+        type: enum
+        enum: [development, staging, production]
+      validated:
+        type: boolean
+        default: false
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:IEBaaimc2F7J9Mr2G0P15yQFZ0p88DKWQcOZa2oujxY"
+      - run:
+          name: Plan deployment
+          command: |
+            circleci run release plan deploy-<< parameters.env >> \
+              --environment-name="<< parameters.environment-name >>" \
+              --component-name="diaspomoney" \
+              --target-version="${CIRCLE_SHA1}"
+      - run:
+          name: 🚀 Déploiement << parameters.env >>
+          command: |
+            : "${DEPLOY_HOST:?DEPLOY_HOST manquant}" "${DEPLOY_USER:?DEPLOY_USER manquant}" "${DEPLOY_KNOWN_HOSTS:?DEPLOY_KNOWN_HOSTS manquant}"
+            mkdir -p ~/.ssh && echo "$DEPLOY_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+            ssh -o BatchMode=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "deploy << parameters.env >> $CIRCLE_SHA1"
+          no_output_timeout: 30m
+      - run:
+          name: Update deployment status to running
+          command: circleci run release update deploy-<< parameters.env >> --status=RUNNING
+      - unless:
+          condition: << parameters.validated >>
+          steps:
+            - run:
+                name: Update deployment status to success
+                command: circleci run release update deploy-<< parameters.env >> --status=SUCCESS
+                when: on_success
+      - run:
+          name: Update deployment status to failed
+          command: circleci run release update deploy-<< parameters.env >> --status=FAILED
+          when: on_fail
+
+  # Validation de la mise en production : CircleCI écoute les alertes du webhook
+  # « sentry-errors » pendant 20 min ; une alerte qui tombe fait échouer la release et
+  # déclenche le pipeline de rollback (.circleci/rollback.yml) vers la version précédente.
+  release-production:
+    type: release
+    plan_name: deploy-prod
+    validation:
+      enabled: true
+      auto_rollback_on_failure: true
+      webhooks:
+        - name: sentry-errors
+          provider: custom
+          # Envoyé par le relais docker/sentry-relay : status "firing" | "resolved".
+          fail_when: criteria == "firing"
+
+  # ---------------------------------------------------------------------------
+  open-pr:
+    executor: node
+    parameters:
+      head: { type: string }
+      base: { type: string }
+    steps:
+      - checkout
+      - run:
+          name: 🔀 PR << parameters.head >> → << parameters.base >>
+          command: bash scripts/ci/github-pr.sh open << parameters.head >> << parameters.base >>
+
+  merge-pr:
+    executor: node
+    parameters:
+      head: { type: string }
+      base: { type: string }
+    steps:
+      - checkout
+      - run:
+          name: ✅ Fusion << parameters.head >> → << parameters.base >>
+          command: bash scripts/ci/github-pr.sh merge << parameters.head >> << parameters.base >> "$CIRCLE_SHA1"
+
+# =====================================================================================
+workflows:
+  ci-cd:
+    jobs:
+      - install-dependencies
+      - tests:
+          requires: [install-dependencies]
+      - coverage:
+          requires: [install-dependencies]
+      - build:
+          requires: [install-dependencies]
+      - e2e:
+          requires: [build]
+
+      # ---- dev : déploiement puis PR vers rct -----------------------------------
+      - deploy:
+          name: deploy-dev
+          env: dev
+          environment-name: development
+          requires: [tests, coverage, e2e]
+          filters: { branches: { only: dev } }
+      - open-pr:
+          name: pr-dev-vers-rct
+          head: dev
+          base: rct
+          requires: [deploy-dev]
+          filters: { branches: { only: dev } }
+
+      # ---- rct : déploiement, PR vers main, validation, fusion ------------------
+      - deploy:
+          name: deploy-rct
+          env: rct
+          environment-name: staging
+          requires: [tests, coverage, e2e]
+          filters: { branches: { only: rct } }
+      - open-pr:
+          name: pr-rct-vers-main
+          head: rct
+          base: main
+          requires: [deploy-rct]
+          filters: { branches: { only: rct } }
+      - valider-mise-en-prod:
+          type: approval
+          requires: [pr-rct-vers-main]
+          filters: { branches: { only: rct } }
+      - merge-pr:
+          name: fusion-rct-vers-main
+          head: rct
+          base: main
+          requires: [valider-mise-en-prod]
+          filters: { branches: { only: rct } }
+
+      # ---- main : déploiement prod ----------------------------------------------
+      - deploy:
+          name: deploy-prod
+          env: prod
+          environment-name: production
+          validated: true
+          requires: [tests, coverage, e2e]
+          filters: { branches: { only: main } }
+      - release-production:
+          requires: [deploy-prod]
+          filters: { branches: { only: main } }

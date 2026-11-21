@@ -1,0 +1,248 @@
+/**
+ * Speciality Service - DiaspoMoney
+ * Service de gestion des spécialités utilisant le Service Layer Pattern
+ * Utilise le Repository Pattern pour l'accès aux données
+ */
+
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Authorize } from '@/lib/decorators/authorize.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
+import { logger } from '@/lib/logger';
+import { CreateSpecialitySchema, UpdateSpecialitySchema } from '@/lib/validations/speciality.schema';
+import { getSpecialityRepository, ISpecialityRepository } from '@/repositories';
+import { ISpeciality } from '@/lib/types';
+import { z } from 'zod';
+
+/**
+ * SpecialityService utilisant le Service Layer Pattern
+ * Utilise le Repository Pattern pour l'accès aux données (Dependency Injection)
+ */
+export class SpecialityService {
+  private static instance: SpecialityService;
+  private specialityRepository: ISpecialityRepository;
+
+  private constructor() {
+    // Dependency Injection : injecter le repository
+    this.specialityRepository = getSpecialityRepository();
+  }
+
+  static getInstance(): SpecialityService {
+    if (!SpecialityService.instance) {
+      SpecialityService.instance = new SpecialityService();
+    }
+    return SpecialityService.instance;
+  }
+
+  /**
+   * Récupérer toutes les spécialités
+   */
+  @Log({ level: 'info', logArgs: true })
+  @Cacheable(300, { prefix: 'specialities' }) // Cache 5 minutes
+  async getAllSpecialities(filters?: { group?: string; isActive?: boolean }): Promise<ISpeciality[]> {
+    try {
+      const queryFilters: Record<string, any> = {};
+      if (filters?.group) {
+        queryFilters['group'] = filters.group;
+      }
+      if (filters?.isActive !== undefined) {
+        queryFilters['isActive'] = filters.isActive;
+      }
+      return await this.specialityRepository.findAll(Object.keys(queryFilters).length > 0 ? queryFilters : undefined);
+    } catch (error) {
+      logger.error(
+        { error, filters },
+        'Erreur lors de la récupération des spécialités',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Récupérer une spécialité par ID
+   */
+  @Log({ level: 'info', logArgs: true })
+  @Cacheable(300, { prefix: 'speciality' }) // Cache 5 minutes
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Speciality ID is required'),
+        paramName: 'id',
+      },
+    ],
+  })
+  async getSpecialityById(id: string): Promise<ISpeciality | null> {
+    try {
+      // Utiliser le repository au lieu d'accéder directement au modèle
+      return await this.specialityRepository.findById(id);
+    } catch (error) {
+      logger.error(
+        { error, id },
+        'Erreur lors de la récupération de la spécialité',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Créer une nouvelle spécialité
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: CreateSpecialitySchema.pick({ name: true, description: true, category: true, isActive: true }).extend({
+          group: z.string().min(1, 'Group is required'),
+        }).passthrough(),
+        paramName: 'data',
+      },
+    ],
+  })
+  @Authorize({ roles: ['ADMIN', 'SUPER_ADMIN'] })
+  @Audit({ eventType: 'SPECIALITY_CREATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
+  @InvalidateCache('speciality:*')
+  async createSpeciality(data: { name: string; description: string; group: string; isActive?: boolean }): Promise<ISpeciality> {
+    try {
+      // Invariants Catalog (domaine) — group → category
+      const { Speciality: SpecialityAggregate } = await import('@/domain/catalog');
+      const offer = SpecialityAggregate.create({
+        name: data.name,
+        category: data.group,
+        isActive: data.isActive !== undefined ? data.isActive : true,
+      });
+
+      // Vérifier si une spécialité avec le même nom existe déjà (Repository Pattern)
+      const existing = await this.specialityRepository.findByName(offer.name);
+      if (existing) {
+        throw new Error('Une spécialité avec ce nom existe déjà');
+      }
+
+      // Créer la spécialité via le repository
+      return await this.specialityRepository.create({
+        name: offer.name,
+        description: data.description,
+        group: offer.category,
+        isActive: offer.isActive,
+      });
+    } catch (error) {
+      logger.error(
+        { error, data },
+        'Erreur lors de la création de la spécialité',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Mettre à jour une spécialité
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Speciality ID is required'),
+        paramName: 'id',
+      },
+      {
+        paramIndex: 1,
+        schema: UpdateSpecialitySchema.extend({
+          group: z.string().min(1).optional(),
+        }).passthrough(),
+        paramName: 'data',
+      },
+    ],
+  })
+  @Authorize({ roles: ['ADMIN', 'SUPER_ADMIN'] })
+  @Audit({ eventType: 'SPECIALITY_UPDATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
+  @InvalidateCache('speciality:*')
+  async updateSpeciality(
+    id: string,
+    data: { name?: string; description?: string; group?: string; isActive?: boolean },
+  ): Promise<ISpeciality> {
+    try {
+      // Vérifier que la spécialité existe (Repository Pattern)
+      const speciality = await this.specialityRepository.findById(id);
+      if (!speciality) {
+        throw new Error('Spécialité non trouvée');
+      }
+
+      // Invariants Catalog si name/group/isActive changent
+      if (data.name !== undefined || data.group !== undefined || data.isActive !== undefined) {
+        const { Speciality: SpecialityAggregate } = await import('@/domain/catalog');
+        SpecialityAggregate.create({
+          name: data.name ?? speciality.name,
+          category: data.group ?? speciality.group,
+          isActive: data.isActive ?? speciality.isActive,
+        });
+      }
+
+      // Vérifier si le nom est modifié et s'il existe déjà (Repository Pattern)
+      if (data.name && data.name !== speciality.name) {
+        const existing = await this.specialityRepository.findByName(data.name);
+        if (existing) {
+          throw new Error('Une spécialité avec ce nom existe déjà');
+        }
+      }
+
+      // Mettre à jour via le repository
+      const updated = await this.specialityRepository.update(id, data);
+      if (!updated) {
+        throw new Error('Erreur lors de la mise à jour');
+      }
+
+      return updated;
+    } catch (error) {
+      logger.error(
+        { error, id, data },
+        'Erreur lors de la mise à jour de la spécialité',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Supprimer une spécialité
+   */
+  @Log({ level: 'info', logArgs: true })
+  @InvalidateCache('speciality:*')
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Speciality ID is required'),
+        paramName: 'id',
+      },
+    ],
+  })
+  @Authorize({ roles: ['ADMIN', 'SUPER_ADMIN'] })
+  @Audit({ eventType: 'SPECIALITY_DELETED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
+  async deleteSpeciality(id: string): Promise<boolean> {
+    try {
+      // Vérifier que la spécialité existe (Repository Pattern)
+      const speciality = await this.specialityRepository.findById(id);
+      if (!speciality) {
+        throw new Error('Spécialité non trouvée');
+      }
+
+      // Supprimer via le repository
+      return await this.specialityRepository.delete(id);
+    } catch (error) {
+      logger.error(
+        { error, id },
+        'Erreur lors de la suppression de la spécialité',
+      );
+      throw error;
+    }
+  }
+}
+
+// Singleton instance
+export const specialityService = SpecialityService.getInstance();

@@ -1,73 +1,55 @@
-import { connectDatabase } from "@/config/database";
-import { sendPasswordResetEmail } from "@/lib/email";
-import PasswordResetToken from "@/models/PasswordResetToken";
-import User from "@/models/User";
-import crypto from "crypto";
-import { NextRequest, NextResponse } from "next/server";
+import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
+
+import { logger } from '@/lib/logger';
+import { ForgotPasswordSchema, type ForgotPasswordInput } from '@/lib/validations/auth.schema';
+import { requestPasswordReset } from '@/services/auth/auth.service';
+import { userService } from '@/services/user/user.service';
+import * as crypto from 'crypto';
+import { NextRequest, NextResponse } from 'next/server';
+
+;
 
 export async function POST(request: NextRequest) {
-  try {
-    await connectDatabase();
-
-    const { email } = await request.json();
-
-    if (!email) {
-      return NextResponse.json({ error: "Email requis" }, { status: 400 });
+  return handleApiRoute(request, async () => {
+    // Skip during build time
+    const isBuildTime = process.env['NEXT_PHASE'] === 'phase-production-build' || 
+                        process.env['NEXT_PHASE'] === 'phase-development-build';
+    if (isBuildTime) {
+      return NextResponse.json({ success: true, message: 'Service temporarily unavailable' }, { status: 503 });
     }
 
-    // Vérifier si l'utilisateur existe
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      // Pour des raisons de sécurité, on ne révèle pas si l'email existe ou non
-      return NextResponse.json(
-        {
-          success: true,
-          message: "Si cet email existe, vous recevrez un lien de récupération",
-        },
-        { status: 200 }
-      );
-    }
+    // Validation avec Zod
+    const body = await request.json();
+    const data: ForgotPasswordInput = validateBody(body, ForgotPasswordSchema);
+    
+    const { email } = data;
 
-    // Supprimer les anciens tokens pour cet email
-    await PasswordResetToken.deleteMany({ email: email.toLowerCase() });
-
-    // Générer un nouveau token
-    const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 heure
-
-    // Sauvegarder le token
-    const resetToken = new PasswordResetToken({
-      email: email.toLowerCase(),
-      token,
-      expiresAt,
-    });
-    await resetToken.save();
-
-    // Envoyer l'email
     try {
-      await sendPasswordResetEmail(email, token, user.firstName);
-    } catch (emailError) {
-      console.error("Erreur envoi email:", emailError);
-      // Supprimer le token si l'email n'a pas pu être envoyé
-      await resetToken.deleteOne();
-      return NextResponse.json(
-        { error: "Erreur lors de l'envoi de l'email" },
-        { status: 500 }
-      );
+      // Vérifier si l'utilisateur existe dans la base de données
+      const user = await userService.getUserProfile(email.toLowerCase());
+
+      // Si on arrive ici, l'utilisateur existe
+      // Générer un token de récupération
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetExpires = new Date(Date.now() + 3600000); // 1 heure
+
+      // Mettre à jour l'utilisateur avec le token
+      await userService.updateUserProfile(user.id, {
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetExpires,
+      });
+
+      // Envoyer l'email de réinitialisation (seulement si Resend est configuré)
+      if (process.env['RESEND_API_KEY']) {
+        await requestPasswordReset(email);
+        logger.info({ email: email }, 'Email de récupération envoyé');
+      } else {
+        logger.warn({ email: email, resetToken: resetToken }, 'Token de récupération généré (email non envoyé - RESEND_API_KEY non configuré)');
+      }
+    } catch (error) {
+      logger.error({ error: error }, 'Error requesting password reset');
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Si cet email existe, vous recevrez un lien de récupération",
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Erreur récupération mot de passe:", error);
-    return NextResponse.json(
-      { error: "Erreur interne du serveur" },
-      { status: 500 }
-    );
-  }
+    return NextResponse.json({ success: true, message: 'Si cet email existe, vous recevrez un lien de récupération' }, { status: 200 });
+  }, 'api/auth/forgot-password');
 }

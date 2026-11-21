@@ -1,4 +1,14 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Cross-browser text size adjust support */
+html,
+:host {
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
 
 :root {
   --background: 0 0% 100%;
@@ -54,4 +64,118 @@ body {
   background: hsl(var(--background));
 }
 
-/* (Les animations et styles custom peuvent être réinsérés ici si besoin) */
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Couleurs de l'interface native (barres de défilement, champs) : site en thème clair */
+:root {
+  color-scheme: light;
+  accent-color: hsl(25 100% 53%);
+}
+
+/* ---- Lien d'évitement : invisible jusqu'au premier Tab ---- */
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: #1c1917;
+  color: #fff;
+  font-weight: 600;
+  translate: 0 -200%;
+}
+
+.skip-link:focus-visible {
+  translate: 0 0;
+  outline: 2px solid hsl(25 100% 53%);
+  outline-offset: 2px;
+}
+
+/* Mode contraste élevé : les anneaux en box-shadow disparaissent, on garde un contour réel */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid CanvasText !important;
+    outline-offset: 2px;
+  }
+}
+
+/* ---- Modales natives <dialog> ---- */
+dialog:modal {
+  /* empêche le défilement dans la modale de se propager à la page */
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  background-color: rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(4px);
+  /* ::backdrop doit être un conteneur de défilement pour respecter overscroll-behavior */
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* ---- Défilement continu (components/ui/Marquee.tsx) ---- */
+@keyframes diaspo-marquee {
+  to {
+    translate: -50% 0;
+  }
+}
+
+.marquee {
+  /* sans animation : bande défilable au doigt / clavier */
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+}
+
+.marquee-set {
+  display: contents;
+}
+
+.marquee-set[data-marquee-clone] {
+  display: none;
+}
+
+.marquee-control {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .marquee {
+    overflow-x: hidden;
+  }
+
+  .marquee-track {
+    animation: diaspo-marquee 40s linear infinite;
+  }
+
+  .marquee-set[data-marquee-clone] {
+    display: contents;
+  }
+
+  .marquee-control {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  .marquee:hover .marquee-track,
+  .marquee:focus-within .marquee-track,
+  .marquee[data-paused] .marquee-track {
+    animation-play-state: paused;
+  }
+}

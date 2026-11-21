@@ -1,0 +1,267 @@
+/**
+ * Complaint Service - DiaspoMoney
+ * Service de gestion des réclamations utilisant le Service Layer Pattern
+ * Utilise le Repository Pattern pour l'accès aux données
+ *
+ * Implémente les design patterns :
+ * - Service Layer Pattern
+ * - Repository Pattern (via IComplaintRepository)
+ * - Dependency Injection (via constructor injection)
+ * - Singleton Pattern
+ * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache, @Validate)
+ */
+
+import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { Log } from '@/lib/decorators/log.decorator';
+import { Validate } from '@/lib/decorators/validate.decorator';
+import { Audit } from '@/lib/decorators/audit.decorator';
+import { Performance } from '@/lib/decorators/performance.decorator';
+import { logger } from '@/lib/logger';
+import {
+  Complaint,
+  ComplaintFilters,
+  getComplaintRepository,
+  IComplaintRepository,
+} from '@/repositories';
+import type {
+  ComplaintServiceFilters,
+  CreateComplaintData,
+  UpdateComplaintData,
+  PaginationOptions,
+} from '@/lib/types';
+import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
+import { CreateComplaintSchema } from '@/lib/validations/complaint.schema';
+import { Authorize } from '@/lib/decorators';
+
+/**
+ * ComplaintService utilisant le Service Layer Pattern
+ * Utilise le Repository Pattern pour l'accès aux données (Dependency Injection)
+ */
+export class ComplaintService {
+  private static instance: ComplaintService;
+  private complaintRepository: IComplaintRepository;
+
+  private constructor() {
+    // Dependency Injection : injecter le repository
+    this.complaintRepository = getComplaintRepository();
+  }
+
+  static getInstance(): ComplaintService {
+    if (!ComplaintService.instance) {
+      ComplaintService.instance = new ComplaintService();
+    }
+    return ComplaintService.instance;
+  }
+
+  /**
+   * Récupérer une réclamation par ID
+   */
+  @Log({ level: 'info', logArgs: true })
+  @Cacheable(300, { prefix: 'ComplaintService:getComplaintById' }) // Cache 5 minutes
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: z.string().min(1, 'Complaint ID is required'),
+        paramName: 'id',
+      },
+    ],
+  })
+  async getComplaintById(id: string): Promise<Complaint | null> {
+    try {
+      return await this.complaintRepository.findById(id);
+    } catch (error) {
+      logger.error(
+        { error, id },
+        'Erreur lors de la récupération de la réclamation',
+      );
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupérer les réclamations avec filtres
+   */
+  @Log({ level: 'info', logArgs: true })
+  @Cacheable(600, { prefix: 'ComplaintService:getComplaints' }) // Cache 10 minutes
+  async getComplaints(filters: ComplaintServiceFilters = {}): Promise<{
+    data: Complaint[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    try {
+      const repositoryFilters: ComplaintFilters = {
+        userId: filters.userId || undefined,
+        provider: filters.provider || undefined,
+        appointmentId: filters.appointmentId,
+        type: filters.type || undefined,
+        priority: filters.priority || undefined,
+        status: filters.status || undefined,
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo || undefined,
+      } as ComplaintFilters;
+
+      const pagination: PaginationOptions = {
+        limit: filters.limit || 50,
+        page: filters.page || 1,
+        ...(filters.offset !== undefined && { offset: filters.offset }),
+      };
+
+      const result = await this.complaintRepository.findComplaintsWithFilters(
+        repositoryFilters,
+        pagination,
+      );
+
+      return {
+        data: result.data,
+        total: result.total,
+        limit: result.pagination.limit,
+        offset: result.pagination.offset || 0,
+      };
+    } catch (error) {
+      logger.error({ error, filters }, 'Erreur getComplaints');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Créer une nouvelle réclamation
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Validate({
+    rules: [
+      {
+        paramIndex: 0,
+        schema: CreateComplaintSchema,
+        paramName: 'data',
+      },
+    ],
+  })
+  @Audit({ eventType: 'COMPLAINT_CREATED', includeArgs: true })
+  @Performance({ warningThreshold: 1500, errorThreshold: 4000 })
+  @InvalidateCache('ComplaintService:*')
+  async createComplaint(data: CreateComplaintData): Promise<Complaint> {
+    try {
+      // Invariants CRM — bookingId canonique (ACL appointmentId → bookingId)
+      const bookingId = data.bookingId || data.appointmentId;
+      if (!bookingId) {
+        throw new Error('Complaint requires bookingId (or appointmentId)');
+      }
+      if (!data.userId) {
+        throw new Error('Complaint requires userId');
+      }
+
+      const { Complaint: ComplaintAggregate } = await import('@/domain/crm');
+      const domainComplaint = ComplaintAggregate.open({
+        clientId: data.userId,
+        bookingId,
+        type: data.type,
+      });
+
+      // Générer un numéro de réclamation unique
+      const number = await this.complaintRepository.generateComplaintNumber();
+
+      // Créer la réclamation via le repository (dual-write bookingId + appointmentId)
+      const complaint = await this.complaintRepository.create({
+        number,
+        title: data.title,
+        type: domainComplaint.type || data.type,
+        priority: data.priority,
+        status: domainComplaint.currentStatus,
+        description: data.description,
+        provider: data.provider,
+        appointmentId: bookingId,
+        bookingId,
+        userId: domainComplaint.clientId,
+      } as Partial<Complaint>);
+
+      return complaint;
+    } catch (error) {
+      logger.error({ error, data }, 'Erreur createComplaint');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mettre à jour une réclamation
+   */
+  @Log({ level: 'info', logArgs: true })
+  @Audit({ eventType: 'COMPLAINT_UPDATED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
+  @InvalidateCache('ComplaintService:*')
+  async updateComplaint(
+    id: string,
+    data: UpdateComplaintData,
+  ): Promise<Complaint> {
+    try {
+      const existing = await this.complaintRepository.findById(id);
+      if (!existing) {
+        throw new Error('Réclamation non trouvée');
+      }
+
+      const updatePayload: Partial<Complaint> = {
+        ...(data as Partial<Complaint>),
+      };
+
+      // Si le statut change : rehydrate domaine + transitionTo (ACL lowercase → UPPER)
+      if (data.status !== undefined && data.status !== existing.status) {
+        const { Complaint: ComplaintAggregate } = await import('@/domain/crm');
+        const bookingId =
+          (existing as { bookingId?: string }).bookingId ||
+          existing.appointmentId;
+        const aggregate = ComplaintAggregate.rehydrate({
+          clientId: String(existing.userId || ''),
+          bookingId: String(bookingId || ''),
+          type: String(existing.type || ''),
+          status: String(existing.status),
+        });
+        const target = ComplaintAggregate.mapPersistenceStatus(
+          String(data.status),
+        );
+        aggregate.transitionTo(target);
+        updatePayload.status = aggregate.currentStatus;
+      }
+
+      const updatedComplaint = await this.complaintRepository.update(
+        id,
+        updatePayload,
+      );
+
+      if (!updatedComplaint) {
+        throw new Error('Réclamation non trouvée');
+      }
+
+      return updatedComplaint;
+    } catch (error) {
+      logger.error({ error, id }, 'Erreur updateComplaint');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Supprimer une réclamation
+   */
+  @Log({ level: 'info', logArgs: true })
+  @Authorize({ roles: ['ADMIN', 'SUPERADMIN'] })
+  @Audit({ eventType: 'COMPLAINT_DELETED', includeArgs: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
+  @InvalidateCache('ComplaintService:*')
+  async deleteComplaint(id: string): Promise<boolean> {
+    try {
+      return await this.complaintRepository.delete(id);
+    } catch (error) {
+      logger.error({ error, id }, 'Erreur deleteComplaint');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+}
+
+// Export singleton
+export const complaintService = ComplaintService.getInstance();

@@ -1,5 +1,11 @@
-import { PasswordResetToken } from "@/lib/definitions";
 import mongoose, { Schema } from "mongoose";
+
+interface PasswordResetToken {
+  email: string;
+  token: string;
+  expiresAt: Date;
+  used?: boolean;
+}
 
 const PasswordResetTokenSchema = new Schema<PasswordResetToken>(
   {
@@ -26,7 +32,7 @@ const PasswordResetTokenSchema = new Schema<PasswordResetToken>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index pour améliorer les performances
@@ -34,8 +40,8 @@ const PasswordResetTokenSchema = new Schema<PasswordResetToken>(
 // PasswordResetTokenSchema.index({ token: 1 });
 // PasswordResetTokenSchema.index({ expiresAt: 1 });
 
-export default mongoose.models.PasswordResetToken ||
+export default mongoose.models["PasswordResetToken"] ||
   mongoose.model<PasswordResetToken>(
     "PasswordResetToken",
-    PasswordResetTokenSchema
+    PasswordResetTokenSchema,
   );

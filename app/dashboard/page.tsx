@@ -1,142 +1,177 @@
-import DefaultTemplate from "@/template/DefaultTemplate";
-import { Calendar, CheckCircle, CreditCard, User } from "lucide-react";
+'use client';
 
-export default function DashboardPage() {
+import { useAuth } from '@/hooks';
+import { ROLES } from '@/lib/constants';
+import { AuthorizedRoute } from '@/components/auth';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import DashboardHeader from '@/components/dashboard/DashboardHeader';
+import { LayoutDashboard } from 'lucide-react';
+
+/**
+ * Détermine les dashboards disponibles selon les rôles de l'utilisateur
+ * Ne jumelle pas ADMIN et SUPERADMIN
+ */
+function getAvailableDashboards(userRoles: string[] = []): Array<{ name: string; href: string; role: string }> {
+  const dashboards: Array<{ name: string; href: string; role: string }> = [];
+
+  if (userRoles.length === 0) {
+    return [{ name: 'Dashboard', href: '/dashboard', role: 'default' }];
+  }
+
+  // Super Admin
+  if (userRoles.includes(ROLES.SUPERADMIN)) {
+    dashboards.push({
+      name: 'Super Admin',
+      href: '/dashboard/superadmin',
+      role: ROLES.SUPERADMIN,
+    });
+  }
+
+  // Admin - peut apparaître même si SUPERADMIN est présent
+  if (userRoles.includes(ROLES.ADMIN)) {
+    dashboards.push({
+      name: 'Admin',
+      href: '/dashboard/admin',
+      role: ROLES.ADMIN,
+    });
+  }
+
+  // CSM
+  if (userRoles.includes(ROLES.CSM)) {
+    dashboards.push({
+      name: 'CSM',
+      href: '/dashboard/csm',
+      role: ROLES.CSM,
+    });
+  }
+
+  // Provider
+  if (userRoles.includes(ROLES.PROVIDER)) {
+    dashboards.push({
+      name: 'Prestataire',
+      href: '/dashboard/provider',
+      role: ROLES.PROVIDER,
+    });
+  }
+
+  // Customer
+  if (userRoles.includes(ROLES.CUSTOMER)) {
+    dashboards.push({
+      name: 'Client',
+      href: '/dashboard/customer',
+      role: ROLES.CUSTOMER,
+    });
+  }
+
+  return dashboards.length > 0
+    ? dashboards
+    : [{ name: 'Dashboard', href: '/dashboard', role: 'default' }];
+}
+
+/**
+ * Contenu de la page dashboard principale avec switch entre les dashboards
+ */
+function DashboardPageContent() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  const availableDashboards = useMemo(() => {
+    return getAvailableDashboards(user?.roles || []);
+  }, [user?.roles]);
+
+  const [selectedDashboard, setSelectedDashboard] = useState<string>(() => {
+    // Déterminer le dashboard initial selon l'URL ou le rôle
+    if (pathname && pathname !== '/dashboard') {
+      return pathname;
+    }
+    
+    // Par défaut, rediriger vers le premier dashboard disponible
+    if (availableDashboards.length > 0 && availableDashboards[0]) {
+      return availableDashboards[0].href;
+    }
+    return '/dashboard';
+  });
+
+  // Rediriger vers le dashboard sélectionné si on est sur /dashboard
+  useEffect(() => {
+    if (pathname === '/dashboard' && availableDashboards.length > 0 && availableDashboards[0]) {
+      const defaultDashboard = availableDashboards[0].href;
+      if (selectedDashboard !== defaultDashboard) {
+        setSelectedDashboard(defaultDashboard);
+      }
+      router.replace(defaultDashboard);
+    }
+  }, [pathname, availableDashboards, router, selectedDashboard]);
+
+  // Si un seul dashboard, rediriger directement
+  if (availableDashboards.length === 1 && availableDashboards[0]) {
+    router.replace(availableDashboards[0].href);
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
+      </div>
+    );
+  }
+
+  // Si plusieurs dashboards, afficher le switch
   return (
-    <DefaultTemplate>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Tableau de bord
-            </h1>
-            <p className="text-gray-600">
-              Bienvenue sur votre espace personnel DiaspoMoney
-            </p>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <Calendar className="h-8 w-8 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">
-                    Réservations
-                  </p>
-                  <p className="text-2xl font-semibold text-gray-900">12</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">
-                    Confirmées
-                  </p>
-                  <p className="text-2xl font-semibold text-gray-900">8</p>
+    <div className='space-y-6'>
+      <DashboardHeader
+        userName={user?.name || 'Utilisateur'}
+        subtitle='Tableau de bord - Sélectionnez votre vue'
+      />
+      
+      {/* Switch entre les dashboards */}
+      <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
+        <div className='flex items-center gap-2 mb-4'>
+          <LayoutDashboard className='h-5 w-5 text-gray-600' />
+          <h2 className='text-lg font-semibold text-gray-900'>Sélectionner un tableau de bord</h2>
+        </div>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+          {availableDashboards.map((dashboard) => (
+            <button
+              key={dashboard.href}
+              onClick={() => {
+                setSelectedDashboard(dashboard.href);
+                router.push(dashboard.href);
+              }}
+              className={`p-4 rounded-lg border-2 transition-all text-left ${
+                selectedDashboard === dashboard.href
+                  ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,53%)]/5'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <div className='flex items-center gap-3'>
+                <LayoutDashboard className={`h-6 w-6 ${
+                  selectedDashboard === dashboard.href
+                    ? 'text-[hsl(25,100%,53%)]'
+                    : 'text-gray-400'
+                }`} />
+                <div>
+                  <h3 className='font-semibold text-gray-900'>{dashboard.name}</h3>
+                  <p className='text-sm text-gray-500'>Tableau de bord {dashboard.name.toLowerCase()}</p>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <CreditCard className="h-8 w-8 text-purple-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Paiements</p>
-                  <p className="text-2xl font-semibold text-gray-900">€1,250</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <User className="h-8 w-8 text-orange-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">
-                    Prestataires
-                  </p>
-                  <p className="text-2xl font-semibold text-gray-900">5</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Activité récente
-              </h2>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
-                      Réservation confirmée
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Consultation Dr. Martin - 15/12/2024
-                    </p>
-                  </div>
-                  <div className="text-sm text-gray-500">Il y a 2h</div>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <CreditCard className="h-4 w-4 text-blue-600" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
-                      Paiement effectué
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      €150 - Service de consultation
-                    </p>
-                  </div>
-                  <div className="text-sm text-gray-500">Il y a 1j</div>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
-                      <Calendar className="h-4 w-4 text-orange-600" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
-                      Nouvelle réservation
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Service immobilier - 20/12/2024
-                    </p>
-                  </div>
-                  <div className="text-sm text-gray-500">Il y a 2j</div>
-                </div>
-              </div>
-            </div>
-          </div>
+            </button>
+          ))}
         </div>
       </div>
-    </DefaultTemplate>
+    </div>
+  );
+}
+
+/**
+ * Page dashboard principale
+ * Implémente les design patterns :
+ * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
+ * - Switch Pattern pour basculer entre les dashboards selon les rôles
+ */
+export default function DashboardPage() {
+  return (
+    <AuthorizedRoute redirectTo="/login">
+      <DashboardPageContent />
+    </AuthorizedRoute>
   );
 }
