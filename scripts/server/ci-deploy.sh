@@ -48,7 +48,10 @@ if [[ -d "$wt/.git" || -f "$wt/.git" ]]; then
 else
   git -C "$BASE" worktree add --quiet --detach "$wt" "$sha"
 fi
-ln -sfn "$BASE/.env" "$wt/.env"
+# Copie réelle (pas un lien) : un lien vers l'extérieur du contexte de build est
+# embarqué cassé dans l'image Docker et next build échoue (ENOENT /app/.env).
+rm -f "$wt/.env"
+install -m 600 "$BASE/.env" "$wt/.env"
 
 cd "$wt"
 service="app-$env"
