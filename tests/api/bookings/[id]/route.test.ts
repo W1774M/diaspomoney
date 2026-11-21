@@ -69,7 +69,9 @@ vi.mock('@/auth', () => ({
 }));
 
 // validateBody mock
-vi.mock('@/lib/api/error-handler', () => ({
+// Mock partiel : la route passe par handleApiRoute (vrai), seul validateBody est neutralisé.
+vi.mock('@/lib/api/error-handler', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/api/error-handler')>()),
   validateBody: vi.fn((body) => body),
 }));
 
@@ -216,6 +218,8 @@ describe('PUT /api/bookings/[id]', () => {
       appointmentDate: new Date('2024-01-15').toISOString(),
     });
 
+    // La route lit la réservation existante avant de la modifier.
+    vi.mocked(bookingService.getBookingById).mockResolvedValueOnce(createMockBooking());
     vi.mocked(bookingService.updateBooking).mockResolvedValueOnce(mockUpdatedBooking);
     vi.mocked(bookingMapper.map).mockReturnValueOnce(mockMappedBooking);
 
@@ -281,6 +285,7 @@ describe('PUT /api/bookings/[id]', () => {
     const mockUpdatedBooking = createMockBooking();
     const mockMappedBooking = createMockBookingResponse();
 
+    vi.mocked(bookingService.getBookingById).mockResolvedValueOnce(createMockBooking());
     vi.mocked(bookingService.updateBooking).mockResolvedValueOnce(mockUpdatedBooking);
     vi.mocked(bookingMapper.map).mockReturnValueOnce(mockMappedBooking);
 
@@ -301,7 +306,8 @@ describe('PUT /api/bookings/[id]', () => {
       user: { id: 'user123' },
     } as any);
 
-    vi.mocked(bookingService.updateBooking).mockResolvedValueOnce(null as any);
+    // Réservation absente : la route s’arrête avant updateBooking.
+    vi.mocked(bookingService.getBookingById).mockResolvedValueOnce(null as any);
 
     const validId = new mongoose.Types.ObjectId().toString();
     const request = new NextRequest(`http://localhost:3000/api/bookings/${validId}`, {
@@ -323,6 +329,7 @@ describe('PUT /api/bookings/[id]', () => {
       user: { id: 'user123' },
     } as any);
 
+    vi.mocked(bookingService.getBookingById).mockResolvedValueOnce(createMockBooking());
     vi.mocked(bookingService.updateBooking).mockRejectedValueOnce(new Error('Database error'));
 
     const validId = new mongoose.Types.ObjectId().toString();
@@ -348,6 +355,7 @@ describe('PUT /api/bookings/[id]', () => {
     const mockUpdatedBooking = createMockBooking();
     const mockMappedBooking = createMockBookingResponse();
 
+    vi.mocked(bookingService.getBookingById).mockResolvedValueOnce(createMockBooking());
     vi.mocked(bookingService.updateBooking).mockResolvedValueOnce(mockUpdatedBooking);
     vi.mocked(bookingMapper.map).mockReturnValueOnce(mockMappedBooking);
 

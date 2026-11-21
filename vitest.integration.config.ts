@@ -9,6 +9,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/setup.integration.ts', './tests/setup.mongo.ts'],
     hookTimeout: 60000,
+    // Tous les fichiers partagent la base diaspomoney_test, vidée après chaque test :
+    // en parallèle, un fichier effaçait les données d’un autre en cours d’exécution.
+    fileParallelism: false,
     testTimeout: 30000, // 30 secondes pour les tests d'intégration
     include: ['tests/integration/**/*.test.{ts,tsx}'],
     coverage: {
