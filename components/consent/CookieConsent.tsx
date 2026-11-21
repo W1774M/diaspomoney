@@ -42,7 +42,6 @@ function readConsent(): StoredConsent | null {
 function gtag(..._args: unknown[]) {
   const w = window as unknown as { dataLayer?: unknown[] };
   w.dataLayer = w.dataLayer || [];
-  // eslint-disable-next-line prefer-rest-params
   w.dataLayer.push(arguments);
 }
 

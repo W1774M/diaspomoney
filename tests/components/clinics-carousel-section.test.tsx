@@ -16,9 +16,10 @@ describe('ClinicsCarouselSection', () => {
     expect(screen.getAllByText(/Bonaberi - Douala/i)).not.toHaveLength(0);
     expect(screen.queryByText('Médecin généraliste : 19€')).not.toBeInTheDocument();
     expect(screen.queryByText('Médecin spécialiste : 29€')).not.toBeInTheDocument();
-    expect(
-      screen.getAllByRole('img', { name: /CLINIQUE SAINT PETERSBOURG à Bonaberi - Douala/i }),
-    ).not.toHaveLength(0);
+    // Carte = article dont le titre contient le bouton (pas de <h3> dans un <button>).
+    const heading = screen.getAllByRole('heading', { level: 3, name: 'CLINIQUE SAINT PETERSBOURG' })[0];
+    expect(heading?.querySelector('button')).not.toBeNull();
+    expect(heading?.closest('button')).toBeNull();
   });
 
   it('ouvre le détail complet et propose de choisir une clinique', () => {
