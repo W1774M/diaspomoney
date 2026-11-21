@@ -202,6 +202,9 @@ export async function expectElementVisibleForRole(
  */
 export async function clearSession(page: Page) {
   await page.context().clearCookies();
+  // Avant toute navigation (about:blank), le stockage n'est pas accessible :
+  // il est de toute façon vide, chaque test ayant son propre contexte.
+  if (!page.url().startsWith('http')) return;
   await page.evaluate(() => {
     localStorage.clear();
     sessionStorage.clear();

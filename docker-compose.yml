@@ -92,6 +92,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
+      SENTRY_ENVIRONMENT: development
       NEXTAUTH_URL: https://dev.diaspomoney.fr
       STAGING_ACCESS_PASSWORD: ${STAGING_ACCESS_PASSWORD:?STAGING_ACCESS_PASSWORD manquant dans .env}
       STAGING_ACCESS_SECRET: ${STAGING_ACCESS_SECRET:?STAGING_ACCESS_SECRET manquant dans .env}
@@ -143,6 +144,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
+      SENTRY_ENVIRONMENT: staging
       NEXTAUTH_URL: https://rct.diaspomoney.fr
       STAGING_ACCESS_PASSWORD: ${STAGING_ACCESS_PASSWORD:?STAGING_ACCESS_PASSWORD manquant dans .env}
       STAGING_ACCESS_SECRET: ${STAGING_ACCESS_SECRET:?STAGING_ACCESS_SECRET manquant dans .env}
@@ -194,6 +196,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
+      SENTRY_ENVIRONMENT: production
       NEXTAUTH_URL: https://diaspomoney.fr
       NEXT_PUBLIC_APP_URL: https://diaspomoney.fr
       NEXT_PUBLIC_API_URL: https://diaspomoney.fr/api
@@ -219,6 +222,38 @@ services:
       - traefik.http.middlewares.diaspomoney-strip-powered-by.headers.customresponseheaders.X-Powered-By=
       - traefik.http.routers.diaspomoney-prod.middlewares=diaspomoney-strip-powered-by
       - traefik.http.services.diaspomoney-prod.loadbalancer.server.port=3000
+
+  # Relais Sentry → validation des déploiements CircleCI (voir docker/sentry-relay).
+  # Indépendant des applications : il relaie les alertes même si l'app est tombée.
+  # Démarrage : docker compose up -d sentry-relay (depuis le checkout principal).
+  sentry-relay:
+    image: node:20-alpine
+    container_name: diaspomoney-sentry-relay
+    restart: unless-stopped
+    command: ['node', '/relay/server.mjs']
+    read_only: true
+    volumes:
+      - ./docker/sentry-relay:/relay:ro
+    environment:
+      SENTRY_CLIENT_SECRET: ${SENTRY_RELAY_CLIENT_SECRET:-}
+      CIRCLECI_VALIDATION_URL: ${CIRCLECI_VALIDATION_URL:-}
+      CIRCLECI_VALIDATION_SECRET: ${CIRCLECI_VALIDATION_SECRET:-}
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/__hooks/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.diaspomoney-sentry-relay.rule=Host(`diaspomoney.fr`) && PathPrefix(`/__hooks/`)
+      - traefik.http.routers.diaspomoney-sentry-relay.priority=1000
+      - traefik.http.routers.diaspomoney-sentry-relay.entrypoints=websecure
+      - traefik.http.routers.diaspomoney-sentry-relay.tls=true
+      - traefik.http.routers.diaspomoney-sentry-relay.tls.certresolver=le
+      - traefik.http.services.diaspomoney-sentry-relay.loadbalancer.server.port=8080
 
   mongo-express:
     image: mongo-express:latest

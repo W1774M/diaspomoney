@@ -74,7 +74,7 @@ describe('useBookings', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.error).toBeDefined();
+    expect(result.current.error).not.toBeNull(); // toBeDefined() acceptait null
     expect(result.current.bookings).toHaveLength(0);
   });
 

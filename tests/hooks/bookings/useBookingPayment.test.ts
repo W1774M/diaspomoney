@@ -235,7 +235,7 @@ describe('useBookingPayment', () => {
       await result.current.confirmPayment(mockAppointment, mockPaymentData);
 
       await waitFor(() => {
-        expect(result.current.error).toBeDefined();
+        expect(result.current.error).not.toBeNull(); // toBeDefined() acceptait null
       });
 
       expect(result.current.error).toBe('Erreur de test');
@@ -396,7 +396,10 @@ describe('useBookingPayment', () => {
       );
 
       expect(sendResult).toBe(false);
-      expect(result.current.error).toBeDefined();
+      // L’erreur est posée par setState : attendre le rendu suivant.
+      await waitFor(() => {
+        expect(result.current.error).toBe('Erreur d\x27envoi d\x27email');
+      });
     });
   });
 });
