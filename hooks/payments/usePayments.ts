@@ -4,7 +4,7 @@
  * Custom Hook pour les paiements — thin API client via fetchJson.
  */
 
-import { fetchJson } from '@/lib/api/fetchJson';
+import { fetchJson, FetchJsonError } from '@/lib/api/fetchJson';
 import { CURRENCIES } from '@/lib/constants';
 import type { UsePaymentsReturn } from '@/lib/types';
 import type {
@@ -13,6 +13,19 @@ import type {
   UIPaymentMethod,
 } from '@/lib/types';
 import { useCallback, useState } from 'react';
+
+/**
+ * Message affiché à l'utilisateur : celui renvoyé par l'API s'il existe,
+ * sinon un message lisible plutôt qu'un code « HTTP 500 ».
+ */
+function userMessage(err: unknown, fallback: string): string {
+  if (err instanceof FetchJsonError) {
+    const body = err.body as { error?: unknown; message?: unknown } | undefined;
+    const apiMessage = typeof body?.error === 'string' ? body.error : body?.message;
+    return typeof apiMessage === 'string' && apiMessage ? apiMessage : fallback;
+  }
+  return err instanceof Error && err.message ? err.message : fallback;
+}
 
 export function usePayments(): UsePaymentsReturn & { isLoading: boolean } {
   const [paymentMethods, setPaymentMethods] = useState<UIPaymentMethod[]>([]);
@@ -147,7 +160,7 @@ export function usePayments(): UsePaymentsReturn & { isLoading: boolean } {
           prev.filter(method => !(method.id === id && method.type === type)),
         );
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erreur inconnue');
+        setError(userMessage(err, 'Erreur lors de la suppression'));
         throw err;
       }
     },
@@ -162,7 +175,7 @@ export function usePayments(): UsePaymentsReturn & { isLoading: boolean } {
 
       setBillingAddresses(prev => prev.filter(address => address.id !== id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      setError(userMessage(err, 'Erreur lors de la suppression'));
       throw err;
     }
   }, []);

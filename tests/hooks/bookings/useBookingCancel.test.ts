@@ -43,7 +43,7 @@ describe('useBookingCancel', () => {
     expect(fetch).toHaveBeenCalledWith('/api/bookings/booking123', {
       method: 'DELETE',
       headers: {
-        'Content-Type': 'application/json',
+        Accept: 'application/json',
       },
     });
   });
@@ -217,7 +217,7 @@ describe('useBookingCancel', () => {
     await expect(result.current.cancelBooking('booking123')).rejects.toThrow('Erreur de propagation');
   });
 
-  it('devrait avoir les headers Content-Type corrects', async () => {
+  it('devrait envoyer l’en-tête Accept JSON (DELETE sans corps)', async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -234,7 +234,7 @@ describe('useBookingCancel', () => {
       '/api/bookings/booking123',
       expect.objectContaining({
         headers: {
-          'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
       }),
     );
