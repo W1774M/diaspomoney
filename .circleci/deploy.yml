@@ -80,6 +80,8 @@ jobs:
       webhooks:
         - name: sentry-errors
           provider: custom
+          # Envoyé par le relais docker/sentry-relay : status "firing" | "resolved".
+          fail_when: criteria == "firing"
 
 workflows:
   # Production : validation par les alertes, rollback automatique en cas d'échec.
