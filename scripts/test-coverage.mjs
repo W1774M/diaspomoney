@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global process, console */
 /**
  * Couverture globale : lance les trois suites (client, serveur, intégration) avec
  * couverture, fusionne les rapports et applique les seuils de coverage-thresholds.json.
