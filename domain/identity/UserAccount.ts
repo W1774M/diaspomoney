@@ -8,13 +8,13 @@ import { Email } from './Email';
 import { RoleSet } from './RoleSet';
 
 export interface UserAccountProps {
-  id?: string;
+  id?: string | undefined;
   email: Email;
   firstName: string;
   lastName: string;
   status: AccountStatus;
   roles: RoleSet;
-  passwordLength?: number;
+  passwordLength?: number | undefined;
 }
 
 export class UserAccount {

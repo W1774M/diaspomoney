@@ -19,20 +19,20 @@ import {
 
 export interface BookingProps {
   id: string;
-  reservationNumber?: string;
+  reservationNumber?: string | undefined;
   clientId: string;
   status: DomainBookingStatus;
   paymentStatus: DomainPaymentStatus;
-  paymentIntentId?: string;
-  checkoutSessionId?: string;
-  expectedAmount?: number;
-  expectedCurrency?: string;
-  clientEmail?: string;
-  serviceLabel?: string;
-  confirmationEmailSent?: boolean;
+  paymentIntentId?: string | undefined;
+  checkoutSessionId?: string | undefined;
+  expectedAmount?: number | undefined;
+  expectedCurrency?: string | undefined;
+  clientEmail?: string | undefined;
+  serviceLabel?: string | undefined;
+  confirmationEmailSent?: boolean | undefined;
   /** Events domaine déjà émis (idempotence API ↔ webhook) */
-  paymentEventsEmitted?: boolean;
-  metadata?: Record<string, unknown>;
+  paymentEventsEmitted?: boolean | undefined;
+  metadata?: Record<string, unknown> | undefined;
 }
 
 export class Booking {

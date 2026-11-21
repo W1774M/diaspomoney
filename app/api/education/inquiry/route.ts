@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (data.academicInfo) {
-      inquiryData.academicInfo = {
+      inquiryData['academicInfo'] = {
         ...(data.academicInfo.currentLevel
           ? { currentLevel: data.academicInfo.currentLevel }
           : {}),
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       };
     }
     if (data.preferences) {
-      inquiryData.preferences = {
+      inquiryData['preferences'] = {
         ...(data.preferences.language
           ? { language: data.preferences.language }
           : {}),
@@ -116,8 +116,8 @@ export async function POST(request: NextRequest) {
           : {}),
       };
     }
-    if (data.questions) inquiryData.questions = data.questions;
-    if (data.schoolId) inquiryData.schoolId = data.schoolId;
+    if (data.questions) inquiryData['questions'] = data.questions;
+    if (data.schoolId) inquiryData['schoolId'] = data.schoolId;
 
     // CRM Quote — invariants domaine via quoteFacade (délègue ensuite à educationService)
     const result = await quoteFacade.createQuote({
