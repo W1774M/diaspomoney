@@ -109,6 +109,14 @@ services:
       - traefik.http.routers.diaspomoney-dev.tls=true
       - traefik.http.routers.diaspomoney-dev.tls.certresolver=le
       - traefik.http.services.diaspomoney-dev.loadbalancer.server.port=3000
+      # Accès protégé (basic auth) ; le webhook Stripe reste joignable sans identifiants
+      - traefik.http.middlewares.diaspomoney-dev-auth.basicauth.users=${STAGING_BASIC_AUTH:?STAGING_BASIC_AUTH manquant dans .env}
+      - traefik.http.routers.diaspomoney-dev.middlewares=diaspomoney-dev-auth
+      - traefik.http.routers.diaspomoney-dev-webhook.rule=Host(`dev.diaspomoney.fr`) && Path(`/api/stripe/webhook`)
+      - traefik.http.routers.diaspomoney-dev-webhook.entrypoints=websecure
+      - traefik.http.routers.diaspomoney-dev-webhook.tls=true
+      - traefik.http.routers.diaspomoney-dev-webhook.tls.certresolver=le
+      - traefik.http.routers.diaspomoney-dev-webhook.service=diaspomoney-dev
 
   app-rct:
     <<: *app-common
@@ -155,6 +163,14 @@ services:
       - traefik.http.routers.diaspomoney-rct.tls=true
       - traefik.http.routers.diaspomoney-rct.tls.certresolver=le
       - traefik.http.services.diaspomoney-rct.loadbalancer.server.port=3000
+      # Accès protégé (basic auth) ; le webhook Stripe reste joignable sans identifiants
+      - traefik.http.middlewares.diaspomoney-rct-auth.basicauth.users=${STAGING_BASIC_AUTH:?STAGING_BASIC_AUTH manquant dans .env}
+      - traefik.http.routers.diaspomoney-rct.middlewares=diaspomoney-rct-auth
+      - traefik.http.routers.diaspomoney-rct-webhook.rule=Host(`rct.diaspomoney.fr`) && Path(`/api/stripe/webhook`)
+      - traefik.http.routers.diaspomoney-rct-webhook.entrypoints=websecure
+      - traefik.http.routers.diaspomoney-rct-webhook.tls=true
+      - traefik.http.routers.diaspomoney-rct-webhook.tls.certresolver=le
+      - traefik.http.routers.diaspomoney-rct-webhook.service=diaspomoney-rct
 
   app-prod:
     <<: *app-common
