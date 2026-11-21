@@ -175,6 +175,10 @@ export default async function proxy(request: NextRequest) {
 
 // Export config for Next.js proxy
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Les fichiers statiques de /public (images, manifeste, robots) ne passent pas par le proxy :
+  // l'optimiseur d'images les lit par une requête interne que le proxy rendait vide.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|img/|.*\\.(?:png|jpe?g|webp|avif|gif|svg|ico)$).*)',
+  ],
 };
 

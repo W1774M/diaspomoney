@@ -81,7 +81,7 @@ export function RoadmapSection() {
                 fontFamily: 'Plus Jakarta Sans, sans-serif',
               }}
             >
-              L&apos;avenir de <span style={{ color: '#F97015' }}>Diaspomoney</span>
+              L’avenir de <span style={{ color: '#F97015' }}>Diaspomoney</span>
             </h2>
 
             {/* Description */}

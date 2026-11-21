@@ -110,9 +110,10 @@ export default function BookingNavigation({ currentBookingId }: BookingNavigatio
         onClick={goToPrevious}
         disabled={!hasPrevious}
         className="flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        title="Réservation précédente"
+        type="button"
+        aria-label="Réservation précédente"
       >
-        <ChevronLeft className="w-4 h-4 text-gray-700" />
+        <ChevronLeft className="w-4 h-4 text-gray-700" aria-hidden />
       </button>
 
       {/* Sélecteur de réservation */}
@@ -211,9 +212,10 @@ export default function BookingNavigation({ currentBookingId }: BookingNavigatio
         onClick={goToNext}
         disabled={!hasNext}
         className="flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        title="Réservation suivante"
+        type="button"
+        aria-label="Réservation suivante"
       >
-        <ChevronRight className="w-4 h-4 text-gray-700" />
+        <ChevronRight className="w-4 h-4 text-gray-700" aria-hidden />
       </button>
 
       {/* Indicateur de position */}

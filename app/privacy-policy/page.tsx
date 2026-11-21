@@ -1,10 +1,12 @@
 import { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import Link from 'next/link';
 
-export const metadata: Metadata = {
-  title: 'Politique de Confidentialité (P2C) - DiaspoMoney',
-  description: 'Politique de Confidentialité de DiaspoMoney',
-};
+export const metadata: Metadata = pageMetadata({
+  path: "/privacy-policy",
+  title: "Politique de confidentialité",
+  description: "Politique de confidentialité de DiaspoMoney : données collectées, finalités, durées de conservation et droits.",
+});
 
 export default function PrivacyPolicyPage() {
   return (
