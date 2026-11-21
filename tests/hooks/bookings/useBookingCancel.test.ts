@@ -84,7 +84,7 @@ describe('useBookingCancel', () => {
     await expect(result.current.cancelBooking('booking123')).rejects.toThrow();
 
     await waitFor(() => {
-      expect(result.current.error).toBeDefined();
+      expect(result.current.error).not.toBeNull(); // toBeDefined() acceptait null
     });
 
     expect(result.current.error).toContain('annulation');
@@ -104,7 +104,7 @@ describe('useBookingCancel', () => {
     await expect(result.current.cancelBooking('booking123')).rejects.toThrow();
 
     await waitFor(() => {
-      expect(result.current.error).toBeDefined();
+      expect(result.current.error).not.toBeNull(); // toBeDefined() acceptait null
     });
 
     expect(result.current.error).toBe('Réservation déjà annulée');
@@ -124,7 +124,7 @@ describe('useBookingCancel', () => {
     await expect(result.current.cancelBooking('booking123')).rejects.toThrow();
 
     await waitFor(() => {
-      expect(result.current.error).toBeDefined();
+      expect(result.current.error).not.toBeNull(); // toBeDefined() acceptait null
     });
   });
 
@@ -197,7 +197,7 @@ describe('useBookingCancel', () => {
     }
 
     await waitFor(() => {
-      expect(result.current.error).toBeDefined();
+      expect(result.current.error).not.toBeNull(); // toBeDefined() acceptait null
     });
 
     expect(result.current.error).toBe('Erreur de test');
