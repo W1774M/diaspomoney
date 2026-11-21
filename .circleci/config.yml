@@ -180,16 +180,34 @@ jobs:
           destination: playwright-report
 
   # ---------------------------------------------------------------------------
+  # Déploiement + marqueurs CircleCI Deploys (plan → déploiement → RUNNING → SUCCESS/FAILED).
+  # Plan « deploy-<env> », composant « diaspomoney », version = SHA git complet (c'est ce que
+  # le pipeline de rollback redéploie). Quand la validation est active (production), le job
+  # ne marque pas SUCCESS : c'est le job « type: release » qui le fait après la fenêtre
+  # d'observation.
   deploy:
     executor: base
     parameters:
       env:
         type: enum
         enum: [dev, rct, prod]
+      environment-name:
+        type: enum
+        enum: [development, staging, production]
+      validated:
+        type: boolean
+        default: false
     steps:
       - add_ssh_keys:
           fingerprints:
             - "SHA256:IEBaaimc2F7J9Mr2G0P15yQFZ0p88DKWQcOZa2oujxY"
+      - run:
+          name: Plan deployment
+          command: |
+            circleci run release plan deploy-<< parameters.env >> \
+              --environment-name="<< parameters.environment-name >>" \
+              --component-name="diaspomoney" \
+              --target-version="${CIRCLE_SHA1}"
       - run:
           name: 🚀 Déploiement << parameters.env >>
           command: |
@@ -197,6 +215,33 @@ jobs:
             mkdir -p ~/.ssh && echo "$DEPLOY_KNOWN_HOSTS" >> ~/.ssh/known_hosts
             ssh -o BatchMode=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "deploy << parameters.env >> $CIRCLE_SHA1"
           no_output_timeout: 30m
+      - run:
+          name: Update deployment status to running
+          command: circleci run release update deploy-<< parameters.env >> --status=RUNNING
+      - unless:
+          condition: << parameters.validated >>
+          steps:
+            - run:
+                name: Update deployment status to success
+                command: circleci run release update deploy-<< parameters.env >> --status=SUCCESS
+                when: on_success
+      - run:
+          name: Update deployment status to failed
+          command: circleci run release update deploy-<< parameters.env >> --status=FAILED
+          when: on_fail
+
+  # Validation de la mise en production : CircleCI écoute les alertes du webhook
+  # « sentry-errors » pendant 20 min ; une alerte qui tombe fait échouer la release et
+  # déclenche le pipeline de rollback (.circleci/rollback.yml) vers la version précédente.
+  release-production:
+    type: release
+    plan_name: deploy-prod
+    validation:
+      enabled: true
+      auto_rollback_on_failure: true
+      webhooks:
+        - name: sentry-errors
+          provider: custom
 
   # ---------------------------------------------------------------------------
   open-pr:
@@ -239,6 +284,7 @@ workflows:
       - deploy:
           name: deploy-dev
           env: dev
+          environment-name: development
           requires: [tests, coverage, e2e]
           filters: { branches: { only: dev } }
       - open-pr:
@@ -252,6 +298,7 @@ workflows:
       - deploy:
           name: deploy-rct
           env: rct
+          environment-name: staging
           requires: [tests, coverage, e2e]
           filters: { branches: { only: rct } }
       - open-pr:
@@ -275,5 +322,10 @@ workflows:
       - deploy:
           name: deploy-prod
           env: prod
+          environment-name: production
+          validated: true
           requires: [tests, coverage, e2e]
+          filters: { branches: { only: main } }
+      - release-production:
+          requires: [deploy-prod]
           filters: { branches: { only: main } }

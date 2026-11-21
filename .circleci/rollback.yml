@@ -1,0 +1,75 @@
+version: 2.1
+
+# Pipeline « rollback » : déclenché depuis l'écran Deploys (manuellement) ou par le rollback
+# automatique d'une validation en échec. Redéploie la version choisie (SHA git complet)
+# avec le même mécanisme que le déploiement : script serveur via la clé SSH restreinte,
+# qui n'accepte qu'un commit présent sur la branche de l'environnement.
+# Pas de validation ici : une alerte ne doit pas annuler un rollback en plein incident.
+
+jobs:
+  deploy-rollback:
+    docker:
+      - image: cimg/base:current
+    environment:
+      COMPONENT_NAME: "<< pipeline.deploy.component_name >>"
+      ENVIRONMENT_NAME: "<< pipeline.deploy.environment_name >>"
+      TARGET_VERSION: "<< pipeline.deploy.target_version >>"
+      CURRENT_VERSION: "<< pipeline.deploy.current_version >>"
+      ROLLBACK_REASON: "<< pipeline.deploy.reason >>"
+    steps:
+      - run:
+          name: Plan rollback
+          command: |
+            echo "Rollback ${COMPONENT_NAME} (${ENVIRONMENT_NAME}) : ${CURRENT_VERSION} → ${TARGET_VERSION}"
+            echo "Raison : ${ROLLBACK_REASON:-non précisée}"
+            circleci run release plan deploy-rollback \
+              --environment-name="${ENVIRONMENT_NAME}" \
+              --component-name="${COMPONENT_NAME}" \
+              --target-version="${TARGET_VERSION}" \
+              --rollback
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:IEBaaimc2F7J9Mr2G0P15yQFZ0p88DKWQcOZa2oujxY"
+      - run:
+          name: Perform rollback
+          command: |
+            : "${DEPLOY_HOST:?DEPLOY_HOST manquant}" "${DEPLOY_USER:?DEPLOY_USER manquant}" "${DEPLOY_KNOWN_HOSTS:?DEPLOY_KNOWN_HOSTS manquant}"
+            case "${ENVIRONMENT_NAME}" in
+              development) target=dev ;;
+              staging) target=rct ;;
+              production) target=prod ;;
+              *) echo "Environnement inconnu : '${ENVIRONMENT_NAME}'" >&2; exit 1 ;;
+            esac
+            mkdir -p ~/.ssh && echo "$DEPLOY_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+            ssh -o BatchMode=yes -o ServerAliveInterval=30 "$DEPLOY_USER@$DEPLOY_HOST" "deploy ${target} ${TARGET_VERSION}"
+          no_output_timeout: 30m
+      - run:
+          name: Update deployment status to running
+          command: circleci run release update deploy-rollback --status=RUNNING
+      - run:
+          name: Update deployment status to success
+          command: circleci run release update deploy-rollback --status=SUCCESS
+          when: on_success
+      - run:
+          name: Update deployment status to failed
+          command: circleci run release update deploy-rollback --status=FAILED
+          when: on_fail
+
+  cancel-deploy-rollback:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - run:
+          name: Update planned release to CANCELED
+          command: |
+            circleci run release update deploy-rollback \
+              --status=CANCELED
+
+workflows:
+  rollback:
+    jobs:
+      - deploy-rollback
+      - cancel-deploy-rollback:
+          requires:
+            - deploy-rollback:
+              - canceled
