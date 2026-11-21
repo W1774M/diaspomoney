@@ -95,3 +95,50 @@ MongoDB de test en local : `pnpm -s test:db:up`. La base est `127.0.0.1:27018/di
 - Pas de `networkidle` ni de délai fixe : uniquement des assertions qui se réessaient seules (`expect(...).toBeVisible()`, `toHaveURL`).
 - Chaque test part d'un contexte vierge. Les comptes de test sont créés par `tests/e2e/global-setup.ts`, qui refuse toute base dont le nom ne contient pas « test ».
 - En CI : Chromium, sur le build de production. En local : Chromium, Firefox et WebKit.
+
+## Déploiements CircleCI (Deploys), rollback et validation
+
+### Ce qui est en place
+
+- **Marqueurs** sur les jobs `deploy-dev`, `deploy-rct` et `deploy-prod` :
+  - composant `diaspomoney` ;
+  - environnements `development`, `staging` et `production` ;
+  - version = SHA git complet.
+- **Validation en production** : le job `release-production` (`type: release`, plan `deploy-prod`) écoute pendant 20 min les alertes du webhook `sentry-errors`. Si une alerte arrive, la release échoue et le **rollback automatique** redéploie la version précédente.
+- **`.circleci/deploy.yml`** : déploie une version choisie dans l'écran Deploys. La validation s'applique si l'environnement est `production`.
+- **`.circleci/rollback.yml`** : redéploie la version cible, sans validation.
+- **Sentry côté serveur** (`instrumentation.ts`) : les erreurs sont étiquetées par `SENTRY_ENVIRONMENT`.
+- **Relais `docker/sentry-relay`** : Sentry ne peut pas ajouter d'en-tête `Authorization` à ses webhooks. Le relais vérifie la signature Sentry et renvoie l'alerte à CircleCI avec le secret.
+
+### À faire une fois (dans l'ordre)
+
+1. **Connecter la CLI CircleCI** avec le droit d'écriture : `circleci auth login`, en choisissant **Write** sur l'écran d'autorisation.
+   - Ensuite, les pipelines `deploy` (`.circleci/deploy.yml`) et `rollback` (`.circleci/rollback.yml`) peuvent être enregistrés avec la CLI.
+   - Si l'enregistrement échoue, l'organisation n'a pas l'app GitHub CircleCI. Il faut l'ajouter depuis **CircleCI → Organization Settings → VCS Connections → GitHub App** (pas depuis GitHub).
+2. **Désigner les pipelines.** Ouvrir https://app.circleci.com/settings/project/github/W1774M/diaspomoney/deploys :
+   - carte **Deploy pipeline** : choisir `deploy` ;
+   - carte **Rollback pipeline** : choisir `rollback`.
+3. **Créer le secret de validation.** Ouvrir https://app.circleci.com/settings/organization/github/W1774M/deploys, carte **Webhook secrets**, puis **Generate**. Le copier aussitôt : il n'est affiché qu'une fois. **Ne jamais le coller dans une conversation.**
+4. **Créer l'intégration Sentry** : Settings → Developer Settings → Custom Integrations → **Create New Integration → Internal Integration** :
+   - nom : `CircleCI deploy validation` ;
+   - Webhook URL : `https://diaspomoney.fr/__hooks/sentry` ;
+   - cocher **Alert Rule Action** ;
+   - enregistrer, puis copier le **Client Secret**.
+5. **Renseigner le `.env` du serveur**, dans `/root/Lab/diaspomoney/.env`, puis démarrer le relais :
+
+   ```
+   SENTRY_RELAY_CLIENT_SECRET='<Client Secret Sentry>'
+   CIRCLECI_VALIDATION_URL='https://circleci.com/api/v3/deploy/hooks/<UUID de l'organisation CircleCI>/validate'
+   CIRCLECI_VALIDATION_SECRET='<secret CCIVWH_… de l'étape 3>'
+   ```
+
+   ```
+   cd /root/Lab/diaspomoney && docker compose up -d sentry-relay
+   ```
+
+   `https://diaspomoney.fr/__hooks/health` doit répondre `{"ok":true}`.
+6. **Créer les alertes Sentry** sur l'environnement `production`. Par exemple : nombre d'erreurs supérieur à un seuil sur 5 min, ou nouvelle issue. Action : *Send a notification via* `CircleCI deploy validation`.
+   - Le relais n'envoie à CircleCI que les environnements `development`, `staging` et `production`.
+7. **Faire un vrai déploiement en production** pour prouver le branchement : seul un déploiement réel montre qu'une alerte s'attache à la release. Vérifier ensuite dans l'écran Deploys qu'une validation est créée.
+
+Tant que les étapes 3 à 6 ne sont pas faites, la validation n'a aucun signal : une mise en production passe en succès à la fin de la fenêtre de 20 min.
