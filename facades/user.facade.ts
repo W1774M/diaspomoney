@@ -45,6 +45,8 @@ const CreateUserFacadeSchema = z.object({
     })
     .optional(),
   sendWelcomeNotification: z.boolean().optional(),
+  // Profil complémentaire (pays, ville, préférences, société…) enregistré à plat sur l'utilisateur
+  metadata: z.record(z.unknown()).optional(),
 });
 
 /**
@@ -125,7 +127,10 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
       const userRepository = getUserRepository();
       
       // Préparer les données en excluant les propriétés undefined pour exactOptionalPropertyTypes
+      // Le profil complémentaire est enregistré à plat (champs lus au premier niveau partout
+      // ailleurs) ; il ne peut pas écraser les champs d'identité ci-dessous.
       const userDataToCreate: Partial<User> = {
+        ...((userData.metadata ?? {}) as Partial<User>),
         email: userData.email,
         name: userData.name,
         roles: (userData.roles || []) as UserRole[],
@@ -133,7 +138,6 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
         ...(userData.firstName && { firstName: userData.firstName }),
         ...(userData.lastName && { lastName: userData.lastName }),
         ...(userData.phone && { phone: userData.phone }),
-        ...(userData.metadata && { metadata: userData.metadata }),
       };
       
       // Utiliser createWithPassword si un password est fourni (pour l'inscription)

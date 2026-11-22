@@ -68,6 +68,21 @@ describe('Integration: /api/auth/register', () => {
       if (data.accessToken) {
         expect(data.accessToken).toBeDefined();
       }
+
+      // Le profil saisi à l'inscription est bien enregistré en base
+      const { mongoClient } = await import('@/lib/mongodb');
+      const saved = await (await mongoClient).db().collection('users').findOne({ email: registerData.email.toLowerCase() });
+      expect(saved).toMatchObject({
+        countryOfResidence: 'FR',
+        targetCountry: 'CA',
+        targetCity: 'Montreal',
+        securityQuestion: 'What is your favorite color?',
+      });
+      expect(saved?.['dateOfBirth']).toBeInstanceOf(Date);
+      // La réponse de sécurité n'est jamais stockée en clair
+      expect(saved?.['securityAnswer']).not.toBe('Blue');
+      const bcrypt = (await import('bcryptjs')).default;
+      expect(await bcrypt.compare('blue', String(saved?.['securityAnswer']))).toBe(true);
     });
 
     it('devrait sanitiser l\'email en minuscules', async () => {
