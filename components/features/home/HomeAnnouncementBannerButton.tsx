@@ -1,15 +1,18 @@
 'use client';
 
-export function HomeAnnouncementBannerButton() {
+export const OPEN_HOME_ANNOUNCEMENT_EVENT = 'diaspomoney:open-home-announcement';
+
+export function HomeAnnouncementBannerButton({ label = "voir l'offre" }: { label?: string }) {
   return (
     <button
       type="button"
       onClick={() => {
-        window.dispatchEvent(new Event('diaspomoney:open-home-announcement'));
+        window.dispatchEvent(new Event(OPEN_HOME_ANNOUNCEMENT_EVENT));
       }}
+      aria-haspopup="dialog"
       className="underline underline-offset-2 hover:opacity-90 font-semibold"
     >
-      voir l&apos;offre
+      {label}
     </button>
   );
 }
