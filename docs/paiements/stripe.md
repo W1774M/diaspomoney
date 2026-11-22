@@ -1,6 +1,6 @@
-# Intégration Stripe - Documentation
+# Intégration Stripe
 
-**Doc canonique** du chemin paiement Stripe. Les autres fichiers `docs/stripe-*.md` sont des aides ops (env, debug, check-config).
+**Doc canonique** du chemin paiement Stripe. Pour le diagnostic, voir [`stripe-depannage.md`](./stripe-depannage.md).
 
 ## Chemin canonique (ne pas contourner)
 
@@ -31,20 +31,24 @@ Client / API
 
 ### Variables d'environnement
 
-Les clés API Stripe doivent être configurées dans les variables d'environnement :
+En local, dans `.env.local` (modèle : `env.example`) :
 
 ```bash
-# Mode test
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-
-# Mode production
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_PUBLISHABLE_KEY=pk_live_...
-
-# Webhook secret (pour valider les webhooks)
-STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_SECRET_KEY=sk_test_...                    # serveur uniquement
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...   # lisible côté client
+STRIPE_WEBHOOK_SECRET=whsec_...                  # signature des webhooks
 ```
+
+Sur le serveur, toutes les valeurs sont dans le `.env` de `/root/Lab/diaspomoney`, lu par `docker-compose.yml` :
+
+| Environnement | Clé secrète | Clé publique | Webhook |
+| --- | --- | --- | --- |
+| dev, rct (mode test) | `STRIPE_SECRET_KEY` | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `STRIPE_WEBHOOK_SECRET` |
+| prod (mode live) | `STRIPE_SECRET_KEY_PROD` | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD` | `STRIPE_WEBHOOK_SECRET_PROD` |
+
+La clé publique est gravée dans l'image au build (`NEXT_PUBLIC_*`) : la changer impose de reconstruire l'image, pas seulement de redémarrer le conteneur. `STRIPE_PUBLISHABLE_KEY` (sans préfixe) est dépréciée.
+
+Diagnostic et erreurs fréquentes : [`stripe-depannage.md`](./stripe-depannage.md).
 
 ### Validation des clés
 
@@ -187,8 +191,7 @@ import { StripePaymentStrategy } from '@/strategies/payment/implementations/Stri
 ### 3. Performance
 
 - ✅ Utiliser l'instance singleton pour éviter les réinitialisations
-- ✅ Implémenter un timeout approprié (20s par défaut)
-- ✅ Configurer `maxNetworkRetries` pour les retries automatiques
+- ✅ Timeout de 30 s et 3 retries réseau par défaut (`lib/stripe-config.ts`)
 
 ### 4. Monitoring
 

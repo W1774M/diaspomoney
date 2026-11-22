@@ -52,7 +52,7 @@ flowchart TB
 | Concern | Canonique | Legacy |
 | --- | --- | --- |
 | Mongo | `@/lib/mongodb` (`dbConnect`, `getMongoClient`, `getCollection`) | `@/lib/database/mongodb` = re-export déprécié |
-| Stripe | Voir [`docs/stripe-integration.md`](../stripe-integration.md) | `lib/stripe.ts` (sim) **supprimé** |
+| Stripe | Voir [`docs/paiements/stripe.md`](../../paiements/stripe.md) | `lib/stripe.ts` (sim) **supprimé** |
 
 ## Fuites documentées (à éliminer)
 
