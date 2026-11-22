@@ -24,6 +24,7 @@ const { mockUserRepository } = vi.hoisted(() => {
       findByEmail: vi.fn(),
       create: vi.fn(),
       findUsersWithFilters: vi.fn(),
+      findWithPagination: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
     },
@@ -173,7 +174,7 @@ describe('UserFacade', () => {
         },
       ];
 
-      mockUserRepository.findUsersWithFilters.mockResolvedValue({
+      mockUserRepository.findWithPagination.mockResolvedValue({
         data: mockUsers as any,
         total: 2,
         pagination: {
@@ -204,7 +205,7 @@ describe('UserFacade', () => {
         page: 2,
       };
 
-      mockUserRepository.findUsersWithFilters.mockResolvedValue({
+      mockUserRepository.findWithPagination.mockResolvedValue({
         data: [] as any,
         total: 25,
         pagination: {
@@ -227,7 +228,7 @@ describe('UserFacade', () => {
     });
 
     it('devrait gérer les erreurs lors de la récupération', async () => {
-      mockUserRepository.findUsersWithFilters.mockRejectedValue(
+      mockUserRepository.findWithPagination.mockRejectedValue(
         new Error('Erreur de connexion à la base de données'),
       );
 
