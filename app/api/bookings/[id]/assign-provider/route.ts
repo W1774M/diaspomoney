@@ -97,17 +97,23 @@ export async function POST(
     if (parsed.data.mode === 'registered') {
       assignedProviderType = 'REGISTERED';
       nextProviderId = parsed.data.providerId;
+      let providerFound = true; // reste vrai si la recherche échoue techniquement
 
       try {
         const { getUserRepository } = await import('@/repositories');
         const userRepository = getUserRepository();
         const providerUser = await userRepository.findById(parsed.data.providerId);
+        providerFound = Boolean(providerUser);
         if (providerUser) {
           assignedProviderName = providerUser.name || `${providerUser.firstName || ''} ${providerUser.lastName || ''}`.trim() || undefined;
           assignedProviderEmail = providerUser.email || undefined;
         }
       } catch (e) {
         log.warn({ error: e, providerId: parsed.data.providerId }, 'Unable to fetch provider user details');
+      }
+      // Avant : la réservation était attribuée à un identifiant qui ne correspond à aucun compte.
+      if (!providerFound) {
+        return NextResponse.json({ error: 'Prestataire non trouvé' }, { status: 404 });
       }
     } else {
       assignedProviderType = 'EXTERNAL';

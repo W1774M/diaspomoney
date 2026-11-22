@@ -1,4 +1,5 @@
 import { auth } from '@/auth';
+import dbConnect from '@/lib/mongodb';
 import { BOOKING_STATUSES } from '@/lib/constants';
 import { getMongoClient } from '@/lib/mongodb';
 import { childLogger } from '@/lib/logger';
@@ -55,6 +56,8 @@ export async function GET(request: NextRequest) {
     );
 
     // Récupérer les données brutes depuis MongoDB pour avoir selectedService, beneficiary, etc.
+    // Connexion Mongoose ouverte avant tout modèle (sinon requête bloquée 10 s puis 500 après un redémarrage).
+    await dbConnect();
     const Booking = (await import('@/models/Booking')).default;
     const bookingIds = historicalBookings.map(b => b.id || b._id);
     const bookingDocs = await (Booking as any)

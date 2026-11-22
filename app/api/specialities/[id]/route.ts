@@ -1,4 +1,5 @@
 import { auth } from '@/auth';
+import { ObjectId } from 'mongodb';
 import { validateBody } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
 import { UpdateSpecialitySchema, type UpdateSpecialityInput } from '@/lib/validations/speciality.schema';
@@ -34,7 +35,8 @@ export async function GET(
     }
 
     const { id } = params;
-    if (!id) {
+    // Identifiant mal formé : 400 plutôt qu'une erreur 500 à la conversion en ObjectId.
+    if (!id || !ObjectId.isValid(id)) {
       log.warn({ msg: 'Missing speciality ID' });
       return NextResponse.json(
         { error: 'ID de spécialité requis' },
@@ -104,7 +106,8 @@ export async function PUT(
     }
 
     const { id } = params;
-    if (!id) {
+    // Identifiant mal formé : 400 plutôt qu'une erreur 500 à la conversion en ObjectId.
+    if (!id || !ObjectId.isValid(id)) {
       log.warn({ msg: 'Missing speciality ID' });
       return NextResponse.json(
         { error: 'ID de spécialité requis' },
@@ -201,7 +204,8 @@ export async function DELETE(
     }
 
     const { id } = params;
-    if (!id) {
+    // Identifiant mal formé : 400 plutôt qu'une erreur 500 à la conversion en ObjectId.
+    if (!id || !ObjectId.isValid(id)) {
       log.warn({ msg: 'Missing speciality ID' });
       return NextResponse.json(
         { error: 'ID de spécialité requis' },
