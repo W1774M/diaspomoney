@@ -35,7 +35,3 @@ Voir [`docs/paiements/stripe-depannage.md`](../docs/paiements/stripe-depannage.m
 | `cleanup-unused-images.sh` | `--dry-run` / `--delete` | Variante shell du précédent |
 | `fix-booking-payment-status.sh` | ponctuel | Migration : commandes CONFIRMED/FINISHED restées en `paymentStatus: pending` |
 | `remove-dynamic-exports.sh` | ponctuel | Retire les `export const dynamic` par route (désormais global) |
-
-## Héritage Kubernetes (inopérant)
-
-`check-stripe-key.sh`, `update-stripe-key.sh`, `remove-maintenance.sh`, `rollback.sh`, `watch-logs.sh`, `setup-circleci.sh` et `Makefile` appellent `kubectl` et ne fonctionnent plus depuis le passage à Docker Compose. Équivalents actuels : `check-stripe-secrets.sh`, le pipeline `rollback` de CircleCI, `docker logs -f diaspomoney-app-<env>`.
