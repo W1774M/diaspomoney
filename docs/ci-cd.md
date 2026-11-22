@@ -18,19 +18,24 @@ local ──push──▶ dev ──PR auto──▶ rct ──PR auto + « Appr
    - lance les tests, le build et l'E2E ;
    - déploie l'image `diaspomoney:dev` (dev.diaspomoney.fr) ;
    - ouvre la PR `dev → rct` si elle n'existe pas déjà.
-3. **Valider la PR `dev → rct` sur GitHub**, en la fusionnant.
+3. **Valider la PR `dev → rct` sur GitHub**, en la fusionnant avec « Create a merge commit » (pas de squash ni de rebase : le contrôle de promotion exige une fusion).
 4. **CircleCI sur `rct`** :
-   - relance les tests et déploie `diaspomoney:rct` (rct.diaspomoney.fr) ;
+   - ne relance pas les tests : le job `promotion-depuis-dev` contrôle que le commit est une fusion dont le code est identique au commit `dev` déjà testé (sinon tout s'arrête) ;
+   - déploie `diaspomoney:rct` (rct.diaspomoney.fr) ;
    - ouvre la PR `rct → main` ;
    - attend le bouton **Approve** du job `valider-mise-en-prod` ;
    - après le clic, fusionne la PR `rct → main`.
-5. **CircleCI sur `main`** : ne relance pas les tests. Le job `verifier-promotion` contrôle que le commit est une fusion dont le code est identique au commit `rct` déjà testé (sinon tout s'arrête), puis déploie `diaspomoney:prod` (diaspomoney.fr) et lance la validation Sentry.
+5. **CircleCI sur `main`** : ne relance pas les tests. Le job `promotion-depuis-rct` contrôle que le commit est une fusion dont le code est identique au commit `rct` déjà validé (sinon tout s'arrête), puis déploie `diaspomoney:prod` (diaspomoney.fr) et lance la validation Sentry.
 
 ## Protection des branches
 
 `main` et `rct` sont protégées sur GitHub, administrateurs compris :
 - pas de push direct ni de force-push : tout passe par une PR ;
-- checks requis avant fusion : `ci/circleci: tests`, `ci/circleci: build` et `ci/circleci: e2e`.
+- checks requis avant fusion :
+  - sur `rct` (PR `dev → rct`, tête = commit `dev`) : `ci/circleci: tests` (qui inclut la couverture), `ci/circleci: build` et `ci/circleci: e2e` ;
+  - sur `main` (PR `rct → main`, tête = commit `rct`) : `ci/circleci: promotion-depuis-dev`, qui prouve que ce commit `rct` est exactement un commit `dev` ayant passé ces trois contrôles.
+
+La chaîne de confiance : le code n'est testé qu'une fois, sur `dev` ; chaque promotion vérifie ensuite qu'elle déploie exactement ce code.
 
 ## Configuration CircleCI (à faire une fois)
 
@@ -66,7 +71,7 @@ Next.js grave au build les URL et la clé Stripe publique (test en dev et rct, l
 
 1. Après un déploiement rct réussi, `ci-deploy.sh` construit en arrière-plan l'image prod du même code : `diaspomoney:prod-candidate`. Elle porte le label `fr.diaspomoney.candidate` = arbre git du commit + empreinte du `.env`. Ce build ne touche ni `diaspomoney:prod` ni le conteneur de production.
 2. Le job CircleCI `deploy-rct` n'attend pas ce build. En revanche, le verrou de déploiement reste pris jusqu'à sa fin : un déploiement lancé entre-temps attend (30 min au plus).
-3. Au clic **Approve**, `deploy-prod` compare l'arbre git du commit `main` (identique à celui de `rct`, voir `verifier-promotion`) et le `.env` au label. S'ils correspondent, l'image est simplement renommée `diaspomoney:prod` et démarrée en quelques secondes. Sinon, c'est un build normal (cas d'un rollback, ou d'un `.env` modifié entre-temps).
+3. Au clic **Approve**, `deploy-prod` compare l'arbre git du commit `main` (identique à celui de `rct`, voir `promotion-depuis-rct`) et le `.env` au label. S'ils correspondent, l'image est simplement renommée `diaspomoney:prod` et démarrée en quelques secondes. Sinon, c'est un build normal (cas d'un rollback, ou d'un `.env` modifié entre-temps).
 
 Le nettoyage horaire `scripts/server/docker-cleanup.sh` (installé dans `/root/Lab/scripts/docker-cleanup.sh`) épargne les images portant ce label. Il n'y en a qu'une à la fois : l'ancienne candidate devient orpheline et part au déploiement suivant.
 
@@ -79,14 +84,9 @@ install -m 755 scripts/server/docker-cleanup.sh /root/Lab/scripts/docker-cleanup
 
 ## Tests
 
-En CI, les trois suites passent par **CircleCI Smarter Testing** (`.circleci/test-suites.yml`, commande `circleci testsuite run "<suite>"`). Fonctions gratuites actives :
-- résultats téléversés (onglet Tests, Test Insights) ;
-- « Rerun failed tests » ne relance que les tests en échec ;
-- découpage statique par durée si l'on ajoute `parallelism` au job `tests`.
+En CI, le job `tests` lance le lint, la vérification TypeScript, puis `pnpm test:coverage` : une seule exécution des trois suites, avec couverture. Les rapports sont fusionnés et le job échoue sous les seuils du cliquet. Chaque suite écrit aussi un rapport JUnit dans `test-results/`, téléversé dans l'onglet Tests de CircleCI (Test Insights).
 
-Aucune fonction payante n'est activée (analyse d'impact, découpage dynamique, rerun automatique). Vérification locale d'une suite : `circleci testsuite doctor "<suite>"`.
-
-La couverture globale tourne dans un job `coverage` séparé, sur des exécutions complètes : un rerun partiel ne fausse jamais la mesure.
+Avant, un job `tests` (via Smarter Testing) et un job `coverage` relançaient les mêmes suites. Ils sont regroupés pour ne faire le travail qu'une fois. Contrepartie : « Rerun failed tests » n'est plus disponible. En cas d'échec, on relance le job entier (« Rerun workflow from failed »).
 
 | Suite | Commande | Contenu |
 | --- | --- | --- |
