@@ -6,7 +6,7 @@
 # l'environnement du conteneur (jamais sur une ligne de commande ni dans la crontab).
 #
 # Installation (une fois, sur le serveur) : voir docs/exploitation/taches-planifiees.md
-#   30 3 * * * /root/Lab/diaspomoney/docker/cron/purge-audit-logs.sh >> /var/log/diaspomoney-purge-audit.log 2>&1
+#   30 3 * * * /root/Lab/scripts/purge-audit-logs.sh >> /var/log/diaspomoney-purge-audit.log 2>&1
 
 set -u
 
@@ -24,7 +24,7 @@ for container in $CONTAINERS; do
       method: "POST",
       headers: { authorization: "Bearer " + (process.env.MAINTENANCE_CRON_SECRET || "") },
     })
-      .then(async (r) => { console.log(r.status, await r.text()); process.exit(r.ok ? 0 : 1); })
+      .then(async (r) => { console.log(r.status, (await r.text()).slice(0, 300)); process.exit(r.ok ? 0 : 1); })
       .catch((e) => { console.log("erreur", e.message); process.exit(1); });
   ' 2>&1); then
     echo "$(date -Iseconds) $container : $output"

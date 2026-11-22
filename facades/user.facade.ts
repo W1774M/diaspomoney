@@ -343,10 +343,13 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
         }
       }
       if (filters.search) {
+        // Texte saisi par l'admin : échappé, pour ne jamais être interprété comme une expression
+        // régulière (motif invalide ou coûteux).
+        const pattern = filters.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         queryBuilder.whereOr([
-          { firstName: { $regex: filters.search, $options: 'i' } },
-          { lastName: { $regex: filters.search, $options: 'i' } },
-          { email: { $regex: filters.search, $options: 'i' } },
+          { firstName: { $regex: pattern, $options: 'i' } },
+          { lastName: { $regex: pattern, $options: 'i' } },
+          { email: { $regex: pattern, $options: 'i' } },
         ]);
       }
 
@@ -366,7 +369,9 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
         ...(query.sort && { sort: query.sort }),
       };
 
-      const result = await userRepository.findUsersWithFilters(
+      // query.filters est déjà une requête MongoDB : findUsersWithFilters la reconstruirait à
+      // partir de ses propres clés et perdrait le rôle et la recherche.
+      const result = await userRepository.findWithPagination(
         query.filters,
         normalizedPagination,
       );
