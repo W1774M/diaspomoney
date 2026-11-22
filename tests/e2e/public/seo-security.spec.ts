@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test';
 
 test.describe('Référencement', () => {
   test('chaque page publique déclare sa propre URL canonique', async ({ page }) => {
-    for (const path of ['/', '/services', '/about', '/privacy-policy']) {
+    for (const path of ['/', '/services/health', '/about', '/privacy-policy']) {
       await page.goto(path);
       const canonical = await page.locator('link[rel="canonical"]').getAttribute('href');
       expect(canonical, `canonical de ${path}`).toBeTruthy();

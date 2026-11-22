@@ -23,6 +23,7 @@ export const loginSchema = z.object({
   email: z
     .string()
     .min(1, "L'email est requis")
+    .trim() // avant .email() : sinon un espace final (autocomplétion mobile) rend l'email invalide
     .email("Format d'email invalide")
     .transform(sanitizeString)
     .refine(email => email.length <= 254, "Email trop long"),
@@ -52,6 +53,7 @@ export const registerSchema = z
     email: z
       .string()
       .min(1, "L'email est requis")
+      .trim() // avant .email() : sinon un espace final (autocomplétion mobile) rend l'email invalide
       .email("Format d'email invalide")
       .transform(sanitizeString)
       .refine(email => email.length <= 254, "Email trop long"),
@@ -141,6 +143,7 @@ export const forgotPasswordSchema = z.object({
   email: z
     .string()
     .min(1, "L'email est requis")
+    .trim() // avant .email() : sinon un espace final (autocomplétion mobile) rend l'email invalide
     .email("Format d'email invalide")
     .transform(sanitizeString)
     .refine(email => email.length <= 254, "Email trop long"),
@@ -162,6 +165,7 @@ export const bookingSchema = z.object({
       .refine(name => /^[a-zA-ZÀ-ÿ\s'-]+$/.test(name), "Nom invalide"),
     email: z
       .string()
+      .trim() // avant .email() : sinon un espace final (autocomplétion mobile) rend l'email invalide
       .email("Format d'email invalide")
       .transform(sanitizeString)
       .refine(email => email.length <= 254, "Email trop long"),

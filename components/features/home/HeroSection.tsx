@@ -37,7 +37,7 @@ export function HeroSection() {
   const router = useRouter();
 
   const handleGetStarted = () => {
-    router.push("/services");
+    router.push("/#services");
   };
 
   const handleCreateAccount = () => {

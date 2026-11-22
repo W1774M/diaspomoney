@@ -42,7 +42,11 @@ const nextConfig = {
 
   // Ancienne adresse dupliquée de la politique de confidentialité.
   async redirects() {
-    return [{ source: '/privacy', destination: '/privacy-policy', permanent: true }];
+    return [
+      { source: '/privacy', destination: '/privacy-policy', permanent: true },
+      // La page « Nos offres » a été fusionnée dans la home.
+      { source: '/services', destination: '/#services', permanent: true },
+    ];
   },
 
   // Optimisation des images

@@ -13,4 +13,4 @@ export { VideoTestimonialsSection2 } from "./VideoTestimonialsSection2";
 export { default as HomeAnnouncementDialog } from "./HomeAnnouncementDialog";
 export { HomeAnnouncementBannerButton } from "./HomeAnnouncementBannerButton";
 export { RoadmapSection } from "./RoadmapSection";
-export { CareForLovedOnesSection } from "./CareForLovedOnesSection";
+export { CareForLovedOnesSection } from "./CareForLovedOnesSection";export { OffersSection } from "./OffersSection";
