@@ -1,5 +1,6 @@
 
 import { auth } from '@/auth';
+import dbConnect from '@/lib/mongodb';
 import SupportTicket from '@/models/SupportTicket';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,6 +11,8 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 
 export async function GET(_request: NextRequest) {
+  // Connexion Mongoose ouverte avant tout modèle (sinon requête bloquée 10 s puis 500 après un redémarrage).
+  await dbConnect();
   try {
     const session = await auth();
     if (!session?.user?.id) {

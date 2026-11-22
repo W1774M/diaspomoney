@@ -158,7 +158,8 @@ export async function POST(
       if (error.message.includes('déjà complétée') || 
           error.message.includes('ne peut pas être validée') ||
           error.message.includes('déjà passée') ||
-          error.message.includes('ne peut valider que')) {
+          error.message.includes('ne peut valider que') ||
+          error.message.startsWith('Impossible de valider')) {
         return NextResponse.json(
           { 
             error: error.message,

@@ -11,6 +11,7 @@
  */
 
 import { auth } from '@/auth';
+import { ObjectId } from 'mongodb';
 import { validateBody } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
 import { ROLES } from '@/lib/constants';
@@ -43,7 +44,7 @@ export async function GET(
     const userId = resolvedParams?.id;
 
     // Validation de l'ID
-    if (!userId || userId === 'null' || userId === 'undefined' || userId === 'undefined' || typeof userId !== 'string' || userId.trim() === '') {
+    if (!userId || userId === 'null' || userId === 'undefined' || userId === 'undefined' || typeof userId !== 'string' || userId.trim() === '' || !ObjectId.isValid(userId)) {
       log.warn({ userId: userId || 'undefined', params: resolvedParams }, 'Invalid user ID provided');
       return NextResponse.json(
         { error: 'ID utilisateur invalide' },
@@ -113,7 +114,7 @@ export async function PUT(
     const targetUserId = resolvedParams?.id;
 
     // Validation de l'ID
-    if (!targetUserId || targetUserId === 'null' || targetUserId === 'undefined' || typeof targetUserId !== 'string' || targetUserId.trim() === '') {
+    if (!targetUserId || targetUserId === 'null' || targetUserId === 'undefined' || typeof targetUserId !== 'string' || targetUserId.trim() === '' || !ObjectId.isValid(targetUserId)) {
       log.warn({ targetUserId: targetUserId || 'undefined', params: resolvedParams }, 'Invalid user ID provided');
       return NextResponse.json(
         { error: 'ID utilisateur invalide' },
@@ -262,7 +263,7 @@ export async function DELETE(
     const targetUserId = resolvedParams?.id;
 
     // Validation de l'ID
-    if (!targetUserId || targetUserId === 'null' || targetUserId === 'undefined' || typeof targetUserId !== 'string' || targetUserId.trim() === '') {
+    if (!targetUserId || targetUserId === 'null' || targetUserId === 'undefined' || typeof targetUserId !== 'string' || targetUserId.trim() === '' || !ObjectId.isValid(targetUserId)) {
       log.warn({ targetUserId: targetUserId || 'undefined', params: resolvedParams }, 'Invalid user ID provided');
       return NextResponse.json(
         { error: 'ID utilisateur invalide' },
