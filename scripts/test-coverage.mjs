@@ -8,12 +8,12 @@
  * de CircleCI) : c'est l'unique exécution des tests du pipeline.
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 
 const REPORTS = '.vitest-reports';
 const JUNIT = process.env.CI === 'true';
 const thresholds = JSON.parse(readFileSync('coverage-thresholds.json', 'utf8'));
-const vitest = process.platform === 'win32' ? 'node_modules/.bin/vitest.CMD' : 'node_modules/.bin/vitest';
+const vitest = process.platform === 'win32' ? 'node_modules\\.bin\\vitest.CMD' : 'node_modules/.bin/vitest';
 const run = (args) => execFileSync(vitest, args, { stdio: 'inherit', shell: process.platform === 'win32' });
 
 rmSync(REPORTS, { recursive: true, force: true });
@@ -23,9 +23,11 @@ for (const [name, config] of [
   ['server', 'vitest.server.config.ts'],
   ['integration', 'vitest.integration.config.ts'],
 ]) {
+  // Poste local : vitest.<suite>.local.mts (non versionné) remplace la config CI s'il existe.
+  const local = `vitest.${name}.local.mts`;
   console.log(`\n▶ Suite ${name}`);
   run([
-    'run', '--config', config, '--coverage',
+    'run', '--config', existsSync(local) ? local : config, '--coverage',
     '--reporter=default', '--reporter=blob', `--outputFile.blob=${REPORTS}/${name}.json`,
     ...(JUNIT ? ['--reporter=junit', `--outputFile.junit=test-results/${name}.xml`] : []),
   ]);
