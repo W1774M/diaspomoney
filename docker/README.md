@@ -1,4 +1,6 @@
-# Déploiement Docker Compose - DiaspoMoney
+# Infrastructure Docker Compose - DiaspoMoney
+
+Accès SSH et emplacements sur le serveur : [`docs/exploitation/acces-serveur.md`](../docs/exploitation/acces-serveur.md). En temps normal, c'est CircleCI qui déploie : [`docs/exploitation/ci-cd.md`](../docs/exploitation/ci-cd.md).
 
 DiaspoMoney utilise deux stacks Compose :
 
@@ -19,7 +21,7 @@ La stack infra crée le réseau `traefik`. La stack applicative crée le réseau
 Depuis le repo applicatif :
 
 ```bash
-cp .env.example .env
+cp env.example .env
 ```
 
 Remplacer toutes les valeurs `CHANGE_ME` dans `.env`, puis démarrer l'infra globale depuis `/root/Lab` :
@@ -114,7 +116,7 @@ Grafana et Prometheus rejoignent `traefik` pour l'exposition HTTP et `diaspomone
 
 ## Variables d'environnement
 
-Le fichier `.env.example` contient le template non sensible. Le fichier `.env` réel doit rester uniquement sur le serveur.
+Le fichier `env.example` contient le template non sensible. Le fichier `.env` réel doit rester uniquement sur le serveur.
 
 Variables principales :
 

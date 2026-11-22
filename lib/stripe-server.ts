@@ -6,7 +6,7 @@
  * - Confirmation booking : `ConfirmBookingPayment` + webhook `app/api/stripe/webhook`
  * - Checkout email : `lib/stripe-checkout` → `getStripeInstance`
  *
- * Voir `docs/stripe-integration.md` § Chemin canonique.
+ * Voir `docs/paiements/stripe.md` § Chemin canonique.
  */
 
 import Stripe from 'stripe';

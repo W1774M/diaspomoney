@@ -1,117 +1,41 @@
-# Scripts d'automatisation - DiaspoMoney
+# Scripts
 
-## Scripts disponibles
+## Déploiement et serveur
 
-### `setup-kubectl.sh`
-Configure kubectl pour se connecter au cluster K3s.
+| Script | Usage | Rôle |
+| --- | --- | --- |
+| `deploy-compose.sh` | `pnpm deploy:dev\|rct\|prod\|all` ou `./scripts/deploy-compose.sh prod --no-cache` | Build et redémarrage manuel d'un service Compose (en temps normal, CircleCI déploie) |
+| `deploy.sh` | idem | Alias de `deploy-compose.sh` |
+| `server/ci-deploy.sh` | appelé par CircleCI | Déploiement sur le serveur (installé dans `/root/Lab/scripts/`) — voir [`docs/exploitation/ci-cd.md`](../docs/exploitation/ci-cd.md) |
+| `server/docker-cleanup.sh` | cron horaire | Nettoyage Docker du serveur, épargne l'image prod candidate |
+| `server/configure-sentry-relay.sh` | `ssh -t diaspomoney-server /root/Lab/scripts/configure-sentry-relay.sh` | Configure le relais Sentry → validation CircleCI |
+| `ci/github-pr.sh` | appelé par CircleCI | Ouverture et fusion des PR de promotion |
 
-**Usage:**
-```bash
-./scripts/setup-kubectl.sh
-```
+## Stripe
 
-### `init-k8s.sh`
-Initialise le cluster K3s : crée le namespace, vérifie la configuration du registry, etc.
+| Script | Rôle |
+| --- | --- |
+| `check-stripe-secrets.sh <dev\|rct\|prod>` | Vérifie les clés Stripe du `.env` (préfixes test/live) |
+| `fix-stripe-secrets.sh <dev\|rct\|prod>` | Affiche la marche à suivre pour corriger |
 
-**Usage:**
-```bash
-./scripts/init-k8s.sh
-```
+Voir [`docs/paiements/stripe-depannage.md`](../docs/paiements/stripe-depannage.md).
 
-### `check-registry.sh`
-Vérifie que le registry Docker est accessible et configuré correctement.
+## Tests
 
-**Usage:**
-```bash
-./scripts/check-registry.sh [registry-url]
-# Exemple:
-./scripts/check-registry.sh localhost:5000
-```
+| Script | Rôle |
+| --- | --- |
+| `test-coverage.mjs` | `pnpm test:coverage` : les trois suites avec couverture fusionnée et seuils du cliquet |
 
-### `deploy.sh`
-Déploie automatiquement l'application dans l'environnement spécifié.
+## Maintenance
 
-**Usage:**
-```bash
-./scripts/deploy.sh [dev|rct|prod] [image-tag]
-# Exemples:
-./scripts/deploy.sh dev
-./scripts/deploy.sh prod v1.0.0
-```
+| Script | Usage | Rôle |
+| --- | --- | --- |
+| `cleanup-docker.sh` | `pnpm cleanup:docker` (dry-run), `pnpm cleanup:docker:all` ; options `--images`, `--containers`, `--volumes`, `--build-cache` | Nettoyage Docker en local |
+| `find-unused-images.js` | `pnpm cleanup:images` (dry-run), `pnpm cleanup:images:delete` | Images de `public/` jamais référencées (exclut `public/uploads/` et les images de providers) |
+| `cleanup-unused-images.sh` | `--dry-run` / `--delete` | Variante shell du précédent |
+| `fix-booking-payment-status.sh` | ponctuel | Migration : commandes CONFIRMED/FINISHED restées en `paymentStatus: pending` |
+| `remove-dynamic-exports.sh` | ponctuel | Retire les `export const dynamic` par route (désormais global) |
 
-## Ordre d'exécution recommandé
+## Héritage Kubernetes (inopérant)
 
-1. **Configurer kubectl** (première fois seulement)
-   ```bash
-   ./scripts/setup-kubectl.sh
-   ```
-
-2. **Initialiser le cluster**
-   ```bash
-   ./scripts/init-k8s.sh
-   ```
-
-3. **Vérifier le registry**
-   ```bash
-   ./scripts/check-registry.sh
-   ```
-
-4. **Build et push l'image**
-   ```bash
-   pnpm k8s:dev
-   ```
-
-5. **Déployer l'application**
-   ```bash
-   ./scripts/deploy.sh dev
-   ```
-
-## Variables d'environnement
-
-Les scripts utilisent les variables d'environnement suivantes (avec valeurs par défaut) :
-
-- `REGISTRY` : URL du registry Docker (défaut: `localhost:5000`)
-- `NAMESPACE` : Namespace Kubernetes (défaut: `diaspomoney`)
-- `IMAGE_NAME` : Nom de l'image Docker (défaut: `diaspomoney`)
-
-**Exemple:**
-```bash
-export REGISTRY=192.168.1.10:5000
-export NAMESPACE=diaspomoney-prod
-./scripts/deploy.sh prod
-```
-
-## Dépannage
-
-### kubectl ne peut pas se connecter
-
-```bash
-# Vérifier que K3s est démarré
-sudo systemctl status k3s
-
-# Reconfigurer kubectl
-./scripts/setup-kubectl.sh
-```
-
-### Registry non accessible
-
-```bash
-# Vérifier la connectivité
-curl http://localhost:5000/v2/
-
-# Vérifier la configuration K3s
-cat /etc/rancher/k3s/registries.yaml
-
-# Redémarrer K3s après modification
-sudo systemctl restart k3s
-```
-
-### Namespace n'existe pas
-
-```bash
-# Créer le namespace
-kubectl create namespace diaspomoney
-
-# Ou utiliser le script d'initialisation
-./scripts/init-k8s.sh
-```
+`check-stripe-key.sh`, `update-stripe-key.sh`, `remove-maintenance.sh`, `rollback.sh`, `watch-logs.sh`, `setup-circleci.sh` et `Makefile` appellent `kubectl` et ne fonctionnent plus depuis le passage à Docker Compose. Équivalents actuels : `check-stripe-secrets.sh`, le pipeline `rollback` de CircleCI, `docker logs -f diaspomoney-app-<env>`.
