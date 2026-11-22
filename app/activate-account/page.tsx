@@ -8,6 +8,17 @@ import { Eye, EyeOff, CheckCircle, AlertCircle, Lock } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
+/** Appelle l'activation ; sans mot de passe, le serveur répond PASSWORD_REQUIRED s'il en faut un. */
+async function activate(activationToken: string, newPassword?: string) {
+  const res = await fetch('/api/auth/activate-account', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: activationToken, ...(newPassword && { password: newPassword }) }),
+  });
+  const result = await res.json().catch(() => ({}));
+  return { ok: res.ok, code: result.code as string | undefined, error: result.error as string | undefined };
+}
+
 function ActivateAccountContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -20,18 +31,42 @@ function ActivateAccountContent() {
   const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  // Mot de passe déjà choisi à l'inscription : le lien suffit. Le formulaire n'apparaît
+  // que si le compte n'en a pas encore (compte créé par l'admin).
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     const tokenParam = searchParams.get('token');
     const callbackParam = searchParams.get('callbackUrl');
     if (!tokenParam || tokenParam.trim() === '') {
       setError('Token d\'activation manquant');
+      setIsChecking(false);
       return;
     }
     setToken(tokenParam);
     if (callbackParam && callbackParam.trim() !== '') {
       setCallbackUrl(callbackParam);
     }
+
+    let cancelled = false;
+    activate(tokenParam)
+      .then(({ ok, code, error: message }) => {
+        if (cancelled) return;
+        // Lien déjà utilisé : le compte est actif, l'utilisateur peut se connecter
+        if (ok || code === 'ALREADY_ACTIVATED') setSuccess(true);
+        else if (code === 'PASSWORD_REQUIRED') setNeedsPassword(true);
+        else setError(message || 'Erreur lors de l\'activation du compte');
+      })
+      .catch(() => {
+        if (!cancelled) setError('Erreur réseau ou serveur');
+      })
+      .finally(() => {
+        if (!cancelled) setIsChecking(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,18 +91,9 @@ function ActivateAccountContent() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/auth/activate-account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token,
-          password,
-        }),
-      });
+      const result = await activate(token, password);
 
-      const result = await res.json();
-
-      if (res.ok) {
+      if (result.ok) {
         setSuccess(true);
       } else {
         setError(result.error || 'Erreur lors de l\'activation du compte');
@@ -143,10 +169,21 @@ function ActivateAccountContent() {
               Activer votre compte
             </CardTitle>
             <p className="text-sm text-gray-600 mt-2">
-              Définissez votre mot de passe pour activer votre compte
+              {needsPassword
+                ? 'Définissez votre mot de passe pour activer votre compte'
+                : isChecking
+                  ? 'Activation de votre compte en cours…'
+                  : ''}
             </p>
           </CardHeader>
           <CardContent>
+            {!needsPassword && error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                <span className="text-sm">{error}</span>
+              </div>
+            )}
+            {needsPassword && (
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
@@ -218,6 +255,7 @@ function ActivateAccountContent() {
                 )}
               </Button>
             </form>
+            )}
           </CardContent>
           <CardFooter className="justify-center">
             <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">

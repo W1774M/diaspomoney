@@ -122,7 +122,7 @@ export function welcomeTemplate(
             <div class="content">
               <h2>Bonjour ${name},</h2>
               <p>Merci de vous être inscrit sur DiaspoMoney, la plateforme qui connecte les résidents européens aux services africains.</p>
-              <p>Pour activer votre compte et définir votre mot de passe, veuillez cliquer sur le bouton ci-dessous :</p>
+              <p>Pour activer votre compte, veuillez cliquer sur le bouton ci-dessous :</p>
               <div class="button-container">
                 <a href="${cleanVerificationUrl}" class="button" style="color: white !important; text-decoration: none;">Activer mon compte</a>
                 ${cleanLoginUrl ? `<a href="${cleanLoginUrl}" class="button-secondary" style="color: white !important; text-decoration: none;">Accéder à mon Dashboard</a>` : ''}
@@ -144,7 +144,7 @@ Bienvenue sur DiaspoMoney, ${name} !
 
 Merci de vous être inscrit sur DiaspoMoney, la plateforme qui connecte les résidents européens aux services africains.
 
-Pour activer votre compte et définir votre mot de passe, veuillez cliquer sur ce lien :
+Pour activer votre compte, veuillez cliquer sur ce lien :
 ${cleanVerificationUrl}
 
 ${cleanLoginUrl ? `\nAccéder à votre Dashboard : ${cleanLoginUrl}` : ''}
