@@ -8,14 +8,9 @@
  * - Logger Pattern (logging structuré côté serveur)
  */
 
-import NotificationSettings from '@/components/settings/NotificationSettings';
 import { useAuth } from '@/hooks';
-import {
-  useNotificationPreferences,
-  useNotifications,
-} from '@/hooks/notifications';
+import { useNotifications } from '@/hooks/notifications';
 import { UINotification } from '@/lib/types';
-import { PreferencesData } from '@/lib/types';
 import {
   Bell,
   Check,
@@ -28,6 +23,7 @@ import {
   Phone,
   Settings,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -54,16 +50,10 @@ export default function NotificationsPage() {
     markAllAsRead,
     setPage,
   } = useNotifications();
-  const {
-    preferences,
-    loading: preferencesLoading,
-    saving: preferencesSaving,
-    setPreferences,
-    updatePreferences,
-  } = useNotificationPreferences();
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+  // Les préférences de notification se règlent dans Paramètres > Notifications
   const [activeTab, setActiveTab] = useState<
-    'realtime' | 'actions' | 'history' | 'preferences'
+    'realtime' | 'actions' | 'history'
   >('realtime');
   const [categoryFilter, setCategoryFilter] =
     useState<NotificationCategory>('all');
@@ -242,6 +232,14 @@ export default function NotificationsPage() {
             Les emails importants (paiements, KYC) sont envoyés automatiquement. Le reste reste disponible ici.
           </p>
         </div>
+        <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
+        <Link
+          href='/dashboard/settings?tab=notifications'
+          className='flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm sm:text-base w-full sm:w-auto'
+        >
+          <Settings className='h-4 w-4 sm:h-5 sm:w-5' />
+          <span className='whitespace-nowrap'>Gérer les préférences</span>
+        </Link>
         {unreadCount > 0 && (
           <button
             onClick={markAllAsRead}
@@ -251,6 +249,7 @@ export default function NotificationsPage() {
             <span className='whitespace-nowrap'>Tout marquer comme lu</span>
           </button>
         )}
+        </div>
       </div>
 
       {/* Onglets */}
@@ -288,17 +287,6 @@ export default function NotificationsPage() {
           >
             <History className='h-3 w-3 sm:h-4 sm:w-4' />
             <span>Historique</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('preferences')}
-            className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 ${
-              activeTab === 'preferences'
-                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
-                : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-            }`}
-          >
-            <Settings className='h-3 w-3 sm:h-4 sm:w-4' />
-            <span>Préférences</span>
           </button>
         </div>
 
@@ -475,26 +463,6 @@ export default function NotificationsPage() {
             </div>
           )}
 
-          {activeTab === 'preferences' && (
-            <div className='space-y-4'>
-              {preferencesLoading ? (
-                <div className='flex items-center justify-center py-12'>
-                  <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
-                </div>
-              ) : (
-                <NotificationSettings
-                  data={preferences}
-                  setData={(newData: PreferencesData) => {
-                    setPreferences(newData);
-                  }}
-                  onSave={async () => {
-                    await updatePreferences(preferences);
-                  }}
-                  saving={preferencesSaving}
-                />
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>
