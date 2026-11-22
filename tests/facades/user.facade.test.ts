@@ -93,6 +93,29 @@ describe('UserFacade', () => {
       expect(result.user?.email).toBe(userData.email);
     });
 
+    it('hache le mot de passe d’inscription et enregistre le profil à plat, sans écraser l’identité', async () => {
+      const bcrypt = (await import('bcryptjs')).default;
+      mockUserRepository.create.mockResolvedValue({ id: '123', email: 'test@example.com' } as any);
+      const { userMapper } = await import('@/lib/mappers');
+      vi.mocked(userMapper.map).mockReturnValue({ id: '123', email: 'test@example.com' } as any);
+
+      await userFacade.execute({
+        email: 'test@example.com',
+        name: 'Test User',
+        roles: ['CUSTOMER'],
+        status: 'PENDING',
+        password: 'Secret-123!',
+        sendWelcomeNotification: false,
+        metadata: { countryOfResidence: 'FR', selectedServices: ['health'], email: 'pirate@test.fr', status: 'ACTIVE' },
+      } as UserFacadeData);
+
+      const created = mockUserRepository.create.mock.calls.at(-1)![0] as Record<string, any>;
+      expect(created).toMatchObject({ email: 'test@example.com', status: 'PENDING', countryOfResidence: 'FR', selectedServices: ['health'] });
+      expect(created['metadata']).toBeUndefined();
+      expect(created['password']).not.toBe('Secret-123!');
+      expect(await bcrypt.compare('Secret-123!', created['password'])).toBe(true);
+    });
+
     it('devrait gérer les erreurs lors de la création', async () => {
       const userData: UserFacadeData = {
         email: 'test@example.com',

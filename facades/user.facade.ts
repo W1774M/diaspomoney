@@ -5,6 +5,7 @@
  * Orchestre UserService, KYCService et NotificationService
  */
 
+import bcrypt from 'bcryptjs';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
@@ -45,6 +46,8 @@ const CreateUserFacadeSchema = z.object({
     })
     .optional(),
   sendWelcomeNotification: z.boolean().optional(),
+  // Mot de passe choisi à l'inscription (haché avant enregistrement, jamais stocké en clair)
+  password: z.string().min(8).optional(),
   // Profil complémentaire (pays, ville, préférences, société…) enregistré à plat sur l'utilisateur
   metadata: z.record(z.unknown()).optional(),
 });
@@ -140,13 +143,14 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
         ...(userData.phone && { phone: userData.phone }),
       };
       
-      // Utiliser createWithPassword si un password est fourni (pour l'inscription)
-      const user = data.password
-        ? await userRepository.createWithPassword({
-            ...userDataToCreate,
-            password: data.password,
-          })
-        : await userRepository.create(userDataToCreate);
+      // Mot de passe fourni (inscription) : haché ici puis enregistré avec le reste du profil.
+      // (createWithPassword passe par le modèle Mongoose, qui rejetterait certains champs du
+      // profil, comme la liste des services choisis.) Le compte reste en attente d'activation.
+      const user = await userRepository.create(
+        data.password
+          ? ({ ...userDataToCreate, password: await bcrypt.hash(data.password, 12) } as Partial<User>)
+          : userDataToCreate,
+      );
       const mappedUser = userMapper.map(user);
 
       // Créer les données KYC si fournies
