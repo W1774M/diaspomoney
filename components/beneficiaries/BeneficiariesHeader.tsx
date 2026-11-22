@@ -19,7 +19,7 @@ const BeneficiariesHeader = React.memo<BeneficiariesHeaderProps>(
         </div>
         <button
           onClick={onAddBeneficiary}
-          className="bg-[hsl(25,100%,53%)] text-white px-4 py-2 rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors flex items-center"
+          className="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors flex items-center"
         >
           <UserPlus className="h-5 w-5 mr-2" />
           Ajouter un bénéficiaire

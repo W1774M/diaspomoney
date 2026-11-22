@@ -43,7 +43,7 @@ export default function BookingProgressSection({
         {progress.isCompleted ? (
           <CheckCircle className="w-5 h-5 text-green-600" />
         ) : (
-          <Clock className="w-5 h-5 text-[hsl(25,100%,53%)]" />
+          <Clock className="w-5 h-5 text-brand-700" />
         )}
         Progression de la commande
       </h2>
@@ -79,7 +79,7 @@ export default function BookingProgressSection({
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className="bg-[hsl(25,100%,53%)] h-2 rounded-full transition-all duration-300"
+            className="bg-brand-600 h-2 rounded-full transition-all duration-300"
             style={{ width: `${progress.completionPercentage}%` }}
           />
         </div>
@@ -116,16 +116,16 @@ export default function BookingProgressSection({
                   ) : isPaymentWaiting ? (
                     <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
                   ) : isCurrent ? (
-                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-brand-700" />
                   ) : (
-                    <Circle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                    <Circle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p
                     className={`text-xs sm:text-sm font-medium break-words ${
                       isCurrent
-                        ? 'text-blue-900'
+                        ? 'text-brand-900'
                         : isPaymentWaiting
                         ? 'text-yellow-900'
                         : isCompleted
@@ -141,12 +141,12 @@ export default function BookingProgressSection({
                   <p
                     className={`text-xs mt-1 ${
                       isCurrent
-                        ? 'text-blue-700'
+                        ? 'text-brand-800'
                         : isPaymentWaiting
                         ? 'text-yellow-700'
                         : isCompleted
                         ? 'text-green-700'
-                        : 'text-gray-400'
+                        : 'text-gray-500'
                     }`}
                   >
                     {isPaymentWaiting
@@ -160,8 +160,8 @@ export default function BookingProgressSection({
                   )}
                   {isCurrent && stepHistory?.data && (
                     <div className="mt-2 p-2 bg-white rounded border border-blue-200">
-                      <p className="text-xs font-medium text-blue-900 mb-1">Informations enregistrées :</p>
-                      <ul className="text-xs text-blue-700 space-y-1">
+                      <p className="text-xs font-medium text-brand-900 mb-1">Informations enregistrées :</p>
+                      <ul className="text-xs text-brand-800 space-y-1">
                         {stepHistory.data.hasClientInfo && <li>✓ Informations client</li>}
                         {stepHistory.data.hasBeneficiaryInfo && <li>✓ Informations bénéficiaire</li>}
                         {stepHistory.data.hasSelectedService && <li>✓ Service sélectionné</li>}

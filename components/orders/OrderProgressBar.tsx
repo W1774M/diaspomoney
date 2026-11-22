@@ -18,7 +18,7 @@ export default function OrderProgressBar({
       <div className='relative'>
         <div className='h-2 bg-gray-200 rounded-full overflow-hidden'>
           <div
-            className='h-full bg-[hsl(25,100%,53%)] transition-all duration-300'
+            className='h-full bg-brand-600 transition-all duration-300'
             role='progressbar'
             aria-valuenow={progress.percentage}
             aria-valuemin={0}
@@ -39,7 +39,7 @@ export default function OrderProgressBar({
               {step.status === 'completed' ? (
                 <CheckCircle2 className='h-5 w-5 text-green-500 flex-shrink-0' />
               ) : step.status === 'in_progress' ? (
-                <div className='h-5 w-5 rounded-full border-2 border-[hsl(25,100%,53%)] border-t-transparent animate-spin flex-shrink-0' />
+                <div className='h-5 w-5 rounded-full border-2 border-brand-600 border-t-transparent animate-spin flex-shrink-0' />
               ) : (
                 <Circle className='h-5 w-5 text-gray-300 flex-shrink-0' />
               )}
@@ -49,14 +49,14 @@ export default function OrderProgressBar({
                     step.status === 'completed'
                       ? 'text-gray-900 font-medium line-through'
                       : step.status === 'in_progress'
-                      ? 'text-[hsl(25,100%,53%)] font-medium'
+                      ? 'text-brand-700 font-medium'
                       : 'text-gray-500'
                   }
                 >
                   {step.name}
                 </p>
                 {step.description && (
-                  <p className='text-xs text-gray-400'>{step.description}</p>
+                  <p className='text-xs text-gray-500'>{step.description}</p>
                 )}
               </div>
             </div>

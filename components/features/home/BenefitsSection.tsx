@@ -45,8 +45,8 @@ export function BenefitsSection() {
   return (
     <section className="py-20 md:pt-12 md:pb-1 bg-gray-50 relative overflow-hidden">
       {/* Decorative elements */}
-      <div className="absolute top-20 left-10 w-32 h-32 bg-[#F97015] opacity-10 rounded-full blur-3xl"></div>
-      <div className="absolute top-20 right-10 w-32 h-32 bg-[#F97015] opacity-10 rounded-full blur-3xl"></div>
+      <div className="absolute top-20 left-10 w-32 h-32 bg-brand-600 opacity-10 rounded-full blur-3xl"></div>
+      <div className="absolute top-20 right-10 w-32 h-32 bg-brand-600 opacity-10 rounded-full blur-3xl"></div>
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Tag */}
@@ -54,9 +54,9 @@ export function BenefitsSection() {
           <span
             className="inline-block px-4 py-1.5 rounded-full text-sm font-medium"
             style={{
-              backgroundColor: '#F97015',
+              backgroundColor: 'var(--brand-600)',
               color: '#1C1917',
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
             }}
           >
             Pourquoi Diaspomoney
@@ -68,17 +68,17 @@ export function BenefitsSection() {
           <h2
             className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
             style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
               color: '#1C1917',
             }}
           >
             <span style={{ color: '#1C1917' }}>Des avantages qui font la </span>
-            <span style={{ color: '#F97015' }}>différence</span>
+            <span className='text-brand-600'>différence</span>
           </h2>
           <p
             className="text-lg text-gray-600 max-w-2xl mx-auto"
             style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
             }}
           >
             Une solution pensée par et pour la diaspora africaine, pour prendre soin de vos proches en toute sérénité.
@@ -94,14 +94,14 @@ export function BenefitsSection() {
                 key={index}
                 className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-all duration-300"
                 style={{
-                  fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                   borderRadius: '16px',
                 }}
               >
                 {/* Icon */}
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-                  style={{ backgroundColor: '#F97015' }}
+                  style={{ backgroundColor: 'var(--brand-600)' }}
                 >
                   <IconComponent className="w-6 h-6 text-white" />
                 </div>
@@ -111,7 +111,7 @@ export function BenefitsSection() {
                   className="text-lg font-bold mb-3"
                   style={{
                     color: '#1C1917',
-                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                    fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                   }}
                 >
                   {benefit.title}
@@ -121,7 +121,7 @@ export function BenefitsSection() {
                 <p
                   className="text-gray-600 leading-relaxed text-sm"
                   style={{
-                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                    fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                   }}
                 >
                   {benefit.description}

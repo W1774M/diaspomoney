@@ -440,7 +440,7 @@ export default function CreateUserModal({
           <button
             onClick={onClose}
             disabled={loading}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-gray-500 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Fermer"
           >
             <X className="w-5 h-5" />
@@ -457,14 +457,14 @@ export default function CreateUserModal({
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor='create-user-modal-email' className="block text-sm font-medium text-gray-700 mb-2">
                     Email *
                   </label>
-                  <input
+                  <input id='create-user-modal-email'
                     type="email"
                     value={formData.email}
                     onChange={e => handleInputChange('email', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                     placeholder="jean.dupont@email.com"
                     required
                   />
@@ -482,7 +482,7 @@ export default function CreateUserModal({
                     value={formData.phone}
                     onChange={(phone) => handleInputChange('phone', phone)}
                     className="w-full"
-                    inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -500,7 +500,7 @@ export default function CreateUserModal({
                       type="checkbox"
                       checked={formData.roles.includes(role)}
                       onChange={e => handleRoleChange(role, e.target.checked)}
-                      className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
+                      className="h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded"
                     />
                     <span className="ml-2 text-sm text-gray-700">{role}</span>
                   </label>
@@ -516,28 +516,28 @@ export default function CreateUserModal({
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor='create-user-modal-first-name' className="block text-sm font-medium text-gray-700 mb-2">
                       Prénom *
                     </label>
-                    <input
+                    <input id='create-user-modal-first-name'
                       type="text"
                       value={formData.firstName}
                       onChange={e => handleInputChange('firstName', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                       placeholder="Jean"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor='create-user-modal-last-name' className="block text-sm font-medium text-gray-700 mb-2">
                       Nom *
                     </label>
-                    <input
+                    <input id='create-user-modal-last-name'
                       type="text"
                       value={formData.lastName}
                       onChange={e => handleInputChange('lastName', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                       placeholder="Dupont"
                       required
                     />
@@ -554,27 +554,27 @@ export default function CreateUserModal({
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor='create-user-modal-first-name-2' className="block text-sm font-medium text-gray-700 mb-2">
                       Prénom
                     </label>
-                    <input
+                    <input id='create-user-modal-first-name-2'
                       type="text"
                       value={formData.firstName}
                       onChange={e => handleInputChange('firstName', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                       placeholder="Jean"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor='create-user-modal-last-name-2' className="block text-sm font-medium text-gray-700 mb-2">
                       Nom
                     </label>
-                    <input
+                    <input id='create-user-modal-last-name-2'
                       type="text"
                       value={formData.lastName}
                       onChange={e => handleInputChange('lastName', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                       placeholder="Dupont"
                     />
                   </div>
@@ -605,7 +605,7 @@ export default function CreateUserModal({
                         value={ProviderType.INDIVIDUAL}
                         checked={formData.providerType === ProviderType.INDIVIDUAL}
                         onChange={e => handleInputChange('providerType', e.target.value as ProviderType)}
-                        className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300"
+                        className="h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300"
                       />
                       <span className="ml-2 text-sm text-gray-700">Individuel</span>
                     </label>
@@ -616,7 +616,7 @@ export default function CreateUserModal({
                         value={ProviderType.INSTITUTION}
                         checked={formData.providerType === ProviderType.INSTITUTION}
                         onChange={e => handleInputChange('providerType', e.target.value as ProviderType)}
-                        className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300"
+                        className="h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300"
                       />
                       <span className="ml-2 text-sm text-gray-700">Entreprise</span>
                     </label>
@@ -629,76 +629,76 @@ export default function CreateUserModal({
                     <h3 className="text-md font-semibold text-gray-800">Informations individuelles</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor='create-user-modal-individual-first-name' className="block text-sm font-medium text-gray-700 mb-2">
                           Prénom *
                         </label>
-                        <input
+                        <input id='create-user-modal-individual-first-name'
                           type="text"
                           value={formData.individualFirstName}
                           onChange={e => handleInputChange('individualFirstName', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                           placeholder="Jean"
                           required={isProvider && formData.providerType === ProviderType.INDIVIDUAL}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor='create-user-modal-individual-last-name' className="block text-sm font-medium text-gray-700 mb-2">
                           Nom *
                         </label>
-                        <input
+                        <input id='create-user-modal-individual-last-name'
                           type="text"
                           value={formData.individualLastName}
                           onChange={e => handleInputChange('individualLastName', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                           placeholder="Dupont"
                           required={isProvider && formData.providerType === ProviderType.INDIVIDUAL}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor='create-user-modal-individual-rcs' className="block text-sm font-medium text-gray-700 mb-2">
                           RCS
                         </label>
-                        <input
+                        <input id='create-user-modal-individual-rcs'
                           type="text"
                           value={formData.individualRcs}
                           onChange={e => handleInputChange('individualRcs', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                           placeholder="RCS Paris B 123 456 789"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor='create-user-modal-individual-tva' className="block text-sm font-medium text-gray-700 mb-2">
                           TVA
                         </label>
-                        <input
+                        <input id='create-user-modal-individual-tva'
                           type="text"
                           value={formData.individualTva}
                           onChange={e => handleInputChange('individualTva', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                           placeholder="FR 12 345678901"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor='create-user-modal-individual-siret' className="block text-sm font-medium text-gray-700 mb-2">
                           SIRET
                         </label>
-                        <input
+                        <input id='create-user-modal-individual-siret'
                           type="text"
                           value={formData.individualSiret}
                           onChange={e => handleInputChange('individualSiret', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                           placeholder="123 456 789 00012"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor='create-user-modal-individual-siren' className="block text-sm font-medium text-gray-700 mb-2">
                           SIREN
                         </label>
-                        <input
+                        <input id='create-user-modal-individual-siren'
                           type="text"
                           value={formData.individualSiren}
                           onChange={e => handleInputChange('individualSiren', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                           placeholder="123 456 789"
                         />
                       </div>
@@ -712,63 +712,63 @@ export default function CreateUserModal({
                     <h3 className="text-md font-semibold text-gray-800">Informations entreprise</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor='create-user-modal-institution-name' className="block text-sm font-medium text-gray-700 mb-2">
                           Nom de l&apos;entreprise *
                         </label>
-                        <input
+                        <input id='create-user-modal-institution-name'
                           type="text"
                           value={formData.institutionName}
                           onChange={e => handleInputChange('institutionName', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                           placeholder="Entreprise ABC"
                           required={isProvider && formData.providerType === ProviderType.INSTITUTION}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor='create-user-modal-institution-rcs' className="block text-sm font-medium text-gray-700 mb-2">
                           RCS
                         </label>
-                        <input
+                        <input id='create-user-modal-institution-rcs'
                           type="text"
                           value={formData.institutionRcs}
                           onChange={e => handleInputChange('institutionRcs', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                           placeholder="RCS Paris B 123 456 789"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor='create-user-modal-institution-tva' className="block text-sm font-medium text-gray-700 mb-2">
                           TVA
                         </label>
-                        <input
+                        <input id='create-user-modal-institution-tva'
                           type="text"
                           value={formData.institutionTva}
                           onChange={e => handleInputChange('institutionTva', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                           placeholder="FR 12 345678901"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor='create-user-modal-institution-siret' className="block text-sm font-medium text-gray-700 mb-2">
                           SIRET
                         </label>
-                        <input
+                        <input id='create-user-modal-institution-siret'
                           type="text"
                           value={formData.institutionSiret}
                           onChange={e => handleInputChange('institutionSiret', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                           placeholder="123 456 789 00012"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor='create-user-modal-institution-siren' className="block text-sm font-medium text-gray-700 mb-2">
                           SIREN
                         </label>
-                        <input
+                        <input id='create-user-modal-institution-siren'
                           type="text"
                           value={formData.institutionSiren}
                           onChange={e => handleInputChange('institutionSiren', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                           placeholder="123 456 789"
                         />
                       </div>
@@ -780,14 +780,14 @@ export default function CreateUserModal({
                 <div className="space-y-4">
                   <h3 className="text-md font-semibold text-gray-800">Adresse professionnelle *</h3>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor='create-user-modal-professional-address' className="block text-sm font-medium text-gray-700 mb-2">
                       Adresse complète *
                     </label>
-                    <input
+                    <input id='create-user-modal-professional-address'
                       type="text"
                       value={formData.professionalAddress}
                       onChange={e => handleInputChange('professionalAddress', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                       placeholder="123 Rue de la Paix, 75001 Paris, France"
                       required={isProvider}
                     />
@@ -799,13 +799,13 @@ export default function CreateUserModal({
 
                 {/* Catégorie */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor='create-user-modal-provider-category' className="block text-sm font-medium text-gray-700 mb-2">
                     Catégorie *
                   </label>
-                  <select
+                  <select id='create-user-modal-provider-category'
                     value={formData.providerCategory}
                     onChange={e => handleInputChange('providerCategory', e.target.value as ProviderCategory)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                     required={isProvider}
                   >
                     <option value={ProviderCategory.HEALTH}>Santé</option>
@@ -816,11 +816,11 @@ export default function CreateUserModal({
 
                 {/* Spécialités */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor='create-user-modal-specialty-input' className="block text-sm font-medium text-gray-700 mb-2">
                     Spécialités
                   </label>
                   <div className="flex gap-2 mb-2">
-                    <input
+                    <input id='create-user-modal-specialty-input'
                       type="text"
                       value={formData.specialtyInput}
                       onChange={e => handleInputChange('specialtyInput', e.target.value)}
@@ -830,13 +830,13 @@ export default function CreateUserModal({
                           handleAddSpecialty();
                         }
                       }}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                       placeholder="Ajouter une spécialité"
                     />
                     <button
                       type="button"
                       onClick={handleAddSpecialty}
-                      className="px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors"
+                      className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
                     >
                       <Plus className="h-4 w-4" />
                     </button>
@@ -846,13 +846,13 @@ export default function CreateUserModal({
                       {formData.specialties.map((specialty, index) => (
                         <span
                           key={index}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-[hsl(25,100%,53%)]/10 text-[hsl(25,100%,53%)]"
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-brand-500/10 text-brand-700"
                         >
                           {specialty}
                           <button
                             type="button"
                             onClick={() => handleRemoveSpecialty(index)}
-                            className="ml-2 text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]"
+                            className="ml-2 text-brand-700 hover:text-brand-800"
                           >
                             <XIcon className="h-3 w-3" />
                           </button>
@@ -869,7 +869,7 @@ export default function CreateUserModal({
                     id="recommended"
                     checked={formData.recommended}
                     onChange={e => handleInputChange('recommended', e.target.checked)}
-                    className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
+                    className="h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded"
                   />
                   <label htmlFor="recommended" className="ml-2 text-sm text-gray-700">
                     Prestataire recommandé
@@ -894,7 +894,7 @@ export default function CreateUserModal({
             type="submit"
             form="create-user-form"
             disabled={loading || formData.roles.length === 0}
-            className="px-6 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Création...' : "Créer l'utilisateur"}
           </button>

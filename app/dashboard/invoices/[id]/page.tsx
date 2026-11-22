@@ -50,7 +50,7 @@ export default function InvoiceDetailPage() {
   if (loading) {
     return (
       <div className='text-center py-12'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto'></div>
         <p className='mt-4 text-gray-600'>Chargement de la facture...</p>
       </div>
     );
@@ -62,7 +62,7 @@ export default function InvoiceDetailPage() {
         <p className='text-red-600 mb-4'>{error || 'Facture non trouvée'}</p>
         <Link
           href='/dashboard/invoices'
-          className='mt-4 inline-flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+          className='mt-4 inline-flex items-center text-brand-700 hover:text-brand-800'
         >
           <ArrowLeft className='h-4 w-4 mr-2' />
           Retour aux factures
@@ -78,7 +78,7 @@ export default function InvoiceDetailPage() {
         <div className='flex items-center justify-between mb-4'>
           <Link
             href='/dashboard/invoices'
-            className='flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+            className='flex items-center text-brand-700 hover:text-brand-800'
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Retour aux factures
@@ -110,7 +110,7 @@ export default function InvoiceDetailPage() {
             {isAdmin() && (
               <Link
                 href={`/dashboard/invoices/${invoice._id}/edit`}
-                className='flex items-center px-3 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors'
+                className='flex items-center px-3 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
               >
                 <Edit className='h-4 w-4 mr-2' />
                 Modifier
@@ -209,20 +209,21 @@ export default function InvoiceDetailPage() {
             <h2 className='text-lg font-semibold text-gray-900 mb-4'>
               Articles
             </h2>
-            <div className='overflow-x-auto'>
+            <div tabIndex={0} role='region' aria-labelledby='table-facture-1' className='overflow-x-auto'>
               <table className='min-w-full divide-y divide-gray-200'>
+<caption id='table-facture-1' className='visually-hidden'>Articles de la facture</caption>
                 <thead className='bg-gray-50'>
                   <tr>
-                    <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    <th scope='col' className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                       Description
                     </th>
-                    <th className='px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    <th scope='col' className='px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
                       Quantité
                     </th>
-                    <th className='px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    <th scope='col' className='px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
                       Prix unitaire
                     </th>
-                    <th className='px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    <th scope='col' className='px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
                       Total
                     </th>
                   </tr>

@@ -166,7 +166,7 @@ function FAQPageContent() {
       {/* Header */}
       <div>
         <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
-          <HelpCircle className='h-8 w-8 mr-3 text-[hsl(25,100%,53%)]' />
+          <HelpCircle className='h-8 w-8 mr-3 text-brand-700' />
           FAQ par rôle
         </h1>
         <p className='text-gray-600 mt-2'>
@@ -179,20 +179,20 @@ function FAQPageContent() {
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
         <div className='flex flex-col md:flex-row gap-4'>
           <div className='flex-1 relative'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400' />
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500' />
             <input
               type='text'
               placeholder='Rechercher dans la FAQ...'
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             />
           </div>
           <select
             value={selectedCategory || ''}
             onChange={e => setSelectedCategory(e.target.value || null)}
             aria-label='Filtrer par catégorie'
-            className='px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+            className='px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
           >
             <option value=''>Toutes les catégories</option>
             {categories.map(cat => (
@@ -208,7 +208,7 @@ function FAQPageContent() {
       <div className='space-y-4'>
         {filteredFAQs.length === 0 ? (
           <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center'>
-            <HelpCircle className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+            <HelpCircle className='h-12 w-12 text-gray-500 mx-auto mb-4' />
             <h3 className='text-lg font-medium text-gray-900 mb-2'>
               Aucune question trouvée
             </h3>
@@ -230,7 +230,7 @@ function FAQPageContent() {
                   {faq.question}
                 </span>
                 <ChevronDown
-                  className={`h-5 w-5 text-gray-400 transition-transform ${
+                  className={`h-5 w-5 text-gray-500 transition-transform ${
                     expandedItems.has(faq.id) ? 'rotate-180' : ''
                   }`}
                 />
@@ -238,7 +238,7 @@ function FAQPageContent() {
               {expandedItems.has(faq.id) && (
                 <div className='px-6 py-4 border-t border-gray-200 bg-gray-50'>
                   <p className='text-gray-700 leading-relaxed'>{faq.answer}</p>
-                  <span className='inline-block mt-3 px-3 py-1 bg-[hsl(25,100%,53%)]/10 text-[hsl(25,100%,53%)] text-xs font-medium rounded-full'>
+                  <span className='inline-block mt-3 px-3 py-1 bg-brand-500/10 text-brand-700 text-xs font-medium rounded-full'>
                     {faq.category}
                   </span>
                 </div>
@@ -249,7 +249,7 @@ function FAQPageContent() {
       </div>
 
       {/* Contact Support */}
-      <div className='bg-[hsl(25,100%,53%)]/10 border border-[hsl(25,100%,53%)]/20 rounded-lg p-6'>
+      <div className='bg-brand-500/10 border border-brand-500/20 rounded-lg p-6'>
         <h3 className='text-lg font-semibold text-gray-900 mb-2'>
           Vous ne trouvez pas la réponse ?
         </h3>
@@ -259,7 +259,7 @@ function FAQPageContent() {
         </p>
         <a
           href='/dashboard/settings/support'
-          className='inline-flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-md hover:bg-[hsl(25,100%,48%)] transition-colors'
+          className='inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors'
         >
           Contacter le support
         </a>

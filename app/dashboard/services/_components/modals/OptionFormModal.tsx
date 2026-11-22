@@ -1,5 +1,6 @@
 'use client';
 
+import { useNotificationManager } from '@/components/ui/Notification';
 import type { ServiceOption } from '@/hooks/services';
 import { MarkdownDescriptionField } from '@/components/common/MarkdownDescriptionField';
 import { X } from 'lucide-react';
@@ -25,6 +26,7 @@ export default function OptionFormModal({
   onCancel,
   isSubmitting,
 }: OptionFormModalProps) {
+  const notifier = useNotificationManager();
   const [formData, setFormData] = useState({
     label: option?.label || '',
     description: option?.description || '',
@@ -38,15 +40,15 @@ export default function OptionFormModal({
     e.preventDefault();
 
     if (!formData.label.trim()) {
-      alert('Le libellé est requis');
+      notifier.addWarning('Le libellé est requis');
       return;
     }
     if (!formData.description.trim()) {
-      alert('La description est requise');
+      notifier.addWarning('La description est requise');
       return;
     }
     if (formData.price < 0) {
-      alert('Le prix doit être positif');
+      notifier.addWarning('Le prix doit être positif');
       return;
     }
 
@@ -63,7 +65,7 @@ export default function OptionFormModal({
             </h2>
             <button
               onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-500 hover:text-gray-600 transition-colors"
               type="button"
               title="Fermer"
               aria-label="Fermer le formulaire"
@@ -75,21 +77,21 @@ export default function OptionFormModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
+            <p className="text-sm text-brand-800">
               <strong>Note :</strong> Cette option peut être associée à plusieurs services de catégories différentes.
               La catégorie sera déterminée automatiquement selon les services associés.
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor='option-form-modal-label' className="block text-sm font-medium text-gray-700 mb-2">
               Libellé <span className="text-red-500">*</span>
             </label>
-            <input
+            <input id='option-form-modal-label'
               type="text"
               value={formData.label}
               onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
               placeholder="ex: Consultation urgente"
               required
               maxLength={200}
@@ -111,10 +113,10 @@ export default function OptionFormModal({
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor='option-form-modal-price' className="block text-sm font-medium text-gray-700 mb-2">
               Prix (€) <span className="text-red-500">*</span>
             </label>
-            <input
+            <input id='option-form-modal-price'
               type="number"
               value={formData.price}
               onChange={(e) =>
@@ -123,7 +125,7 @@ export default function OptionFormModal({
                   price: parseFloat(e.target.value) || 0,
                 })
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
               placeholder="0"
               min="0"
               step="0.01"
@@ -137,7 +139,7 @@ export default function OptionFormModal({
               id="optional"
               checked={formData.optional}
               onChange={(e) => setFormData({ ...formData, optional: e.target.checked })}
-              className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
+              className="h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded"
             />
             <label htmlFor="optional" className="ml-2 block text-sm text-gray-700">
               Option facultative (l'utilisateur peut choisir de l'ajouter ou non)
@@ -150,7 +152,7 @@ export default function OptionFormModal({
               id="isActiveOption"
               checked={formData.isActive}
               onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
+              className="h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded"
             />
             <label htmlFor="isActiveOption" className="ml-2 block text-sm text-gray-700">
               Option active (visible pour les utilisateurs)
@@ -169,7 +171,7 @@ export default function OptionFormModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSubmitting ? (
                 <>

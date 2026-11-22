@@ -6,6 +6,8 @@ import { ManageCookiesButton } from '@/components/consent/CookieConsent';
 // Facebook icon component (replacement for deprecated lucide-react Facebook)
 const FacebookIcon = ({ size, style }: { size: number; style?: React.CSSProperties }) => (
   <svg
+    aria-hidden="true"
+    focusable="false"
     width={size}
     height={size}
     viewBox="0 0 24 24"
@@ -27,6 +29,8 @@ const FacebookIcon = ({ size, style }: { size: number; style?: React.CSSProperti
 // Instagram icon component (replacement for deprecated lucide-react Instagram)
 const InstagramIcon = ({ size, style }: { size: number; style?: React.CSSProperties }) => (
   <svg
+    aria-hidden="true"
+    focusable="false"
     width={size}
     height={size}
     viewBox="0 0 24 24"
@@ -43,6 +47,8 @@ const InstagramIcon = ({ size, style }: { size: number; style?: React.CSSPropert
 // LinkedIn icon component (replacement for deprecated lucide-react Linkedin)
 const LinkedinIcon = ({ size, style }: { size: number; style?: React.CSSProperties }) => (
   <svg
+    aria-hidden="true"
+    focusable="false"
     width={size}
     height={size}
     viewBox="0 0 24 24"
@@ -61,116 +67,68 @@ const LinkedinIcon = ({ size, style }: { size: number; style?: React.CSSProperti
   </svg>
 );
 
-const FooterLinks = ({
-  links,
-  label,
-}: {
-  links: { href: string; text: string; target?: string; rel?: string }[];
-  label?: string;
-}) => {
-  return (
-    <div className='flex flex-col'>
-      <h4 
-        className='text-base font-bold mb-4 tracking-wide'
-        style={{ 
-          color: '#1C1917',
-          fontFamily: 'Plus Jakarta Sans, sans-serif',
-        }}
-      >
-        {label}
-      </h4>
-      <ul className='space-y-2.5'>
-        {links.map((link, index) => (
-          <li key={`footer-link-${index}`}>
-            <Link
-              href={link.href}
-              className='text-sm transition-colors duration-200 hover:opacity-80'
-              style={{
-                color: '#555555',
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
-              }}
-              target={link?.target}
-              rel={link?.rel}
-            >
-              {link.text}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-};
+type FooterLink = { href: string; text: string };
+
+const linkClass =
+  'text-sm text-stone-600 underline-offset-4 transition-colors hover:text-brand-700 hover:underline';
+
+const FooterLinks = ({ links, label }: { links: FooterLink[]; label: string }) => (
+  <nav aria-label={label}>
+    {/* h2 : le pied de page suit le contenu, pas de saut de niveau */}
+    <h2 className='mb-4 text-base font-bold text-stone-900'>{label}</h2>
+    <ul className='space-y-2.5' role='list'>
+      {links.map(link => (
+        <li key={link.href}>
+          <Link href={link.href} className={linkClass}>
+            {link.text}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  </nav>
+);
+
+const SOCIAL = [
+  { href: 'https://www.facebook.com/profile.php?id=61586670864659', label: 'Facebook', Icon: FacebookIcon },
+  { href: 'https://www.instagram.com/diaspomoney.fr/', label: 'Instagram', Icon: InstagramIcon },
+  { href: 'https://www.linkedin.com/company/diaspomoney', label: 'LinkedIn', Icon: LinkedinIcon },
+] as const;
 
 const FooterComponent = ({ className = '' }: { className?: string }) => {
+  const year = new Date().getFullYear();
   return (
-    <footer 
-      className={`${className}`}
-      style={{ 
-        backgroundColor: '#FDF8F3',
-        fontFamily: 'Plus Jakarta Sans, sans-serif',
-      }}
-    >
-      <div className='container mx-auto px-4 sm:px-6 lg:px-8'>
-        {/* Section principale - 4 colonnes */}
-        <div className='py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12'>
-          {/* Colonne 1 : Logo et description avec réseaux sociaux */}
-          <div className='lg:col-span-1'>
-            {/* Logo */}
-            <Logo src='/img/diaspo/Logo_DispoMoney_horiz.webp' width={640} height={224} alt='Diaspomoney' className='h-20 w-auto mb-4' />
-            
-            {/* Description */}
-            <p 
-              className='text-sm leading-relaxed mb-6 max-w-xs'
-              style={{ color: '#555555' }}
-            >
-              La plateforme qui permet à la diaspora africaine de prendre soin de ses proches en payant directement leurs services de santé.
+    <footer className={`bg-[#FDF8F3] font-display ${className}`}>
+      <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
+        <div className='grid grid-cols-1 gap-10 py-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12'>
+          <div>
+            <Logo
+              src='/img/diaspo/Logo_DispoMoney_horiz.webp'
+              width={640}
+              height={224}
+              alt='DiaspoMoney'
+              className='mb-4 h-16 w-auto'
+            />
+            <p className='mb-6 max-w-xs text-sm leading-relaxed text-stone-600'>
+              La plateforme qui permet à la diaspora africaine de prendre soin de ses proches en
+              payant directement leurs services de santé.
             </p>
-            
-            {/* Réseaux sociaux */}
-            <div className='flex gap-3'>
-              <a
-                href='https://www.facebook.com/profile.php?id=61586670864659'
-                target='_blank'
-                rel='noopener noreferrer'
-                className='w-10 h-10 rounded-full border flex items-center justify-center transition-colors hover:bg-gray-100'
-                style={{ 
-                  backgroundColor: '#FDF8F3',
-                  borderColor: '#E5E5E5',
-                }}
-                aria-label='Facebook'
-              >
-                <FacebookIcon size={18} style={{ color: '#555555' }} />
-              </a>
-              <a
-                href='https://www.instagram.com/diaspomoney.fr/'
-                target='_blank'
-                rel='noopener noreferrer'
-                className='w-10 h-10 rounded-full border flex items-center justify-center transition-colors hover:bg-gray-100'
-                style={{ 
-                  backgroundColor: '#FDF8F3',
-                  borderColor: '#E5E5E5',
-                }}
-                aria-label='Instagram'
-              >
-                <InstagramIcon size={18} style={{ color: '#555555' }} />
-              </a>
-              <a
-                href='https://www.linkedin.com/company/diaspomoney'
-                target='_blank'
-                rel='noopener noreferrer'
-                className='w-10 h-10 rounded-full border flex items-center justify-center transition-colors hover:bg-gray-100'
-                style={{ 
-                  backgroundColor: '#FDF8F3',
-                  borderColor: '#E5E5E5',
-                }}
-                aria-label='LinkedIn'
-              >
-                <LinkedinIcon size={18} style={{ color: '#555555' }} />
-              </a>
-            </div>
+            <ul className='flex gap-2' role='list' aria-label='Réseaux sociaux'>
+              {SOCIAL.map(({ href, label, Icon }) => (
+                <li key={label}>
+                  <a
+                    href={href}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='flex size-11 items-center justify-center rounded-full border border-stone-300 text-stone-600 transition-colors hover:border-brand-600 hover:text-brand-700'
+                  >
+                    <Icon size={18} />
+                    <span className='visually-hidden'>{label} (nouvel onglet)</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* Colonne 2 : Services */}
           <FooterLinks
             label='Services'
             links={[
@@ -180,135 +138,57 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
             ]}
           />
 
-          {/* Colonne 3 : Entreprise */}
           <FooterLinks
             label='Entreprise'
             links={[
               { href: '/about', text: 'À propos' },
+              { href: '/support', text: 'Aide et contact' },
             ]}
           />
 
-          {/* Colonne 4 : Contact */}
-          <div className='flex flex-col'>
-            <h4 
-              className='text-base font-bold mb-4 tracking-wide'
-              style={{ 
-                color: '#1C1917',
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
-              }}
-            >
-              Contact
-            </h4>
-            <div className='space-y-3'>
-              {/* Email */}
-              <div className='flex items-center gap-3'>
-                <Mail size={18} style={{ color: '#F97015' }} />
-                <a
-                  href='mailto:contact@diaspomoney.fr'
-                  className='text-sm transition-colors hover:opacity-80'
-                  style={{
-                    color: '#555555',
-                    fontFamily: 'Plus Jakarta Sans, sans-serif',
-                  }}
-                >
+          <div>
+            <h2 className='mb-4 text-base font-bold text-stone-900'>Contact</h2>
+            <address className='space-y-3 not-italic'>
+              <p className='flex items-center gap-3'>
+                <Mail aria-hidden='true' className='size-[18px] shrink-0 text-brand-600' />
+                <a href='mailto:contact@diaspomoney.fr' className={linkClass}>
                   contact@diaspomoney.fr
                 </a>
-              </div>
-              
-              {/* Téléphone
-              <div className='flex items-center gap-3'>
-                <Phone size={18} style={{ color: '#F97015' }} />
-                <a
-                  href='tel:+33651276570'
-                  className='text-sm transition-colors hover:opacity-80'
-                  style={{
-                    color: '#555555',
-                    fontFamily: 'Plus Jakarta Sans, sans-serif',
-                  }}
-                >
-                  +33 6 51 27 65 70
-                </a>
-              </div> */}
-              
-              {/* Adresse */}
-              <div className='flex items-center gap-3'>
-                <MapPin size={18} style={{ color: '#F97015' }} />
-                <span
-                  className='text-sm'
-                  style={{
-                    color: '#555555',
-                    fontFamily: 'Plus Jakarta Sans, sans-serif',
-                  }}
-                >
-                  Seine Innopolis, 76140 Le Petit-Quevilly, France
-                </span>
-              </div>
-            </div>
+              </p>
+              <p className='flex items-start gap-3 text-sm text-stone-600'>
+                <MapPin aria-hidden='true' className='mt-0.5 size-[18px] shrink-0 text-brand-600' />
+                Seine Innopolis, 76140 Le Petit-Quevilly, France
+              </p>
+            </address>
           </div>
         </div>
 
-        {/* Section inférieure - Copyright et liens légaux */}
-        <div 
-          className='border-t pt-8 pb-8 flex flex-col md:flex-row justify-between items-center gap-4'
-          style={{ borderColor: '#E5E5E5' }}
-        >
-          {/* Copyright */}
-          <p 
-            className='text-xs text-center md:text-left'
-            style={{ 
-              color: '#999999',
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
-            }}
-          >
-            © 2026 DiaspoMoney. Tous droits réservés.
+        <div className='flex flex-col items-center justify-between gap-4 border-t border-stone-200 py-8 md:flex-row'>
+          <p className='text-center text-sm text-stone-600 md:text-start'>
+            © {year} DiaspoMoney. Tous droits réservés.
           </p>
-          
-          {/* Liens légaux */}
-          <div className='flex flex-wrap justify-center md:justify-end gap-4 md:gap-6'>
-            <Link
-              href='/terms-and-conditions'
-              className='text-xs transition-colors hover:opacity-80'
-              style={{
-                color: '#999999',
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
-              }}
-            >
-              Conditions d&apos;utilisation
-            </Link>
-            <Link
-              href='/terms-of-sale'
-              className='text-xs transition-colors hover:opacity-80'
-              style={{
-                color: '#999999',
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
-              }}
-            >
-              Conditions générales de vente
-            </Link>
-            <Link
-              href='/privacy-policy'
-              className='text-xs transition-colors hover:opacity-80'
-              style={{
-                color: '#999999',
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
-              }}
-            >
-              Politique de confidentialité
-            </Link>
-            <ManageCookiesButton
-              className='text-xs text-gray-600 underline-offset-2 transition-colors hover:underline'
-            />
-            {/* <Link
-              href='/legal'
-              className='text-xs transition-colors hover:opacity-80'
-              style={{
-                color: '#999999',
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
-              }}
-            >
-              Mentions légales
-            </Link> */}
-          </div>
+          <nav aria-label='Informations légales'>
+            <ul className='flex flex-wrap justify-center gap-x-6 gap-y-2 md:justify-end' role='list'>
+              <li>
+                <Link href='/terms-and-conditions' className={linkClass}>
+                  Conditions d&apos;utilisation
+                </Link>
+              </li>
+              <li>
+                <Link href='/terms-of-sale' className={linkClass}>
+                  Conditions générales de vente
+                </Link>
+              </li>
+              <li>
+                <Link href='/privacy-policy' className={linkClass}>
+                  Politique de confidentialité
+                </Link>
+              </li>
+              <li>
+                <ManageCookiesButton className={linkClass} />
+              </li>
+            </ul>
+          </nav>
         </div>
       </div>
     </footer>

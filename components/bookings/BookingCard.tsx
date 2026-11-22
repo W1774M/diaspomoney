@@ -50,7 +50,7 @@ const BookingCard = React.memo<BookingCardProps>(function BookingCard({
           </div>
           <div className="text-sm text-gray-500">{requesterName}</div>
           {metadata['clinicName'] && (
-            <div className="mt-1 text-xs font-medium text-[hsl(25,100%,45%)]">
+            <div className="mt-1 text-xs font-medium text-brand-800">
               {String(metadata['clinicName'])}
             </div>
           )}
@@ -87,7 +87,7 @@ const BookingCard = React.memo<BookingCardProps>(function BookingCard({
                     completionRate === 100
                       ? 'bg-green-500'
                       : completionRate >= 75
-                      ? 'bg-blue-500'
+                      ? 'bg-brand-600'
                       : completionRate >= 50
                       ? 'bg-yellow-500'
                       : 'bg-red-500'
@@ -110,7 +110,7 @@ const BookingCard = React.memo<BookingCardProps>(function BookingCard({
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <Link
           href={`/dashboard/bookings/${booking._id}`}
-          className="inline-flex items-center text-blue-600 hover:text-blue-900"
+          className="inline-flex items-center text-brand-700 hover:text-brand-900"
         >
           <Eye className="h-4 w-4 mr-1" />
           Voir

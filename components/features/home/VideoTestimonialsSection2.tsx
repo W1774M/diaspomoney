@@ -28,14 +28,14 @@ export function VideoTestimonialsSection2({ videoTestimonials }: { videoTestimon
         <div className="flex items-center justify-center gap-3 mb-12">
           <div
             className="w-12 h-12 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: '#F97015' }}
+            style={{ backgroundColor: 'var(--brand-600)' }}
           >
             <Play className="w-6 h-6 text-white fill-white" />
           </div>
           <h2
             className="text-3xl md:text-4xl lg:text-5xl font-bold"
             style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
               color: '#1C1917',
             }}
           >
@@ -73,7 +73,7 @@ export function VideoTestimonialsSection2({ videoTestimonials }: { videoTestimon
                 
                 {/* Play Button Overlay */}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
-                  <div className="w-16 h-16 bg-[#F97015] rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <div className="w-16 h-16 bg-brand-600 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                     <Play className="w-8 h-8 text-white ml-1" fill="white" />
                   </div>
                 </div>
@@ -87,11 +87,11 @@ export function VideoTestimonialsSection2({ videoTestimonials }: { videoTestimon
               {/* User Info Card - Dark background */}
               <div className="bg-gray-900 rounded-lg p-4 mt-4 flex items-center gap-3 border border-gray-700">
                 {/* User Initial/Avatar */}
-                <div className="w-12 h-12 bg-[#F97015] rounded-full flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 bg-brand-600 rounded-full flex items-center justify-center flex-shrink-0">
                   <span
                     className="text-white font-bold text-lg"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {testimonial.userInitial}
@@ -103,7 +103,7 @@ export function VideoTestimonialsSection2({ videoTestimonials }: { videoTestimon
                   <h3
                     className="text-base font-bold mb-1 truncate text-white"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {testimonial.userName}
@@ -111,7 +111,7 @@ export function VideoTestimonialsSection2({ videoTestimonials }: { videoTestimon
                   <p
                     className="text-sm text-gray-300 mb-1"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {testimonial.affiliation}
@@ -119,8 +119,8 @@ export function VideoTestimonialsSection2({ videoTestimonials }: { videoTestimon
                   <p
                     className="text-sm font-medium"
                     style={{
-                      color: '#F97015',
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      color: 'var(--brand-700)',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {testimonial.role}

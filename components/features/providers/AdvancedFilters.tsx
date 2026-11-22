@@ -76,7 +76,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-          className="flex items-center text-gray-700 hover:text-blue-600 transition-colors"
+          className="flex items-center text-gray-700 hover:text-brand-700 transition-colors"
         >
           <Filter className="w-4 h-4 mr-2" />
           Filtres avancés
@@ -110,7 +110,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                       type="checkbox"
                       checked={selectedStatus.includes(status.value)}
                       onChange={() => handleStatusChange(status.value)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 text-brand-700 focus-visible:ring-brand-600"
                     />
                     <span className={`ml-2 text-sm ${status.color}`}>
                       {status.label}
@@ -131,7 +131,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                       name="rating"
                       checked={selectedRating === rating.value}
                       onChange={() => handleRatingChange(rating.value)}
-                      className="rounded-full border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded-full border-gray-300 text-brand-700 focus-visible:ring-brand-600"
                     />
                     <span className="ml-2 text-sm text-gray-700">
                       {rating.label}
@@ -151,7 +151,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
                       type="checkbox"
                       checked={selectedPriceRange.includes(range.value)}
                       onChange={() => handlePriceRangeChange(range.value)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 text-brand-700 focus-visible:ring-brand-600"
                     />
                     <span className="ml-2 text-sm text-gray-700">
                       {range.label}

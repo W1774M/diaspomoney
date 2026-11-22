@@ -18,7 +18,7 @@ const QuotesHeader = React.memo<QuotesHeaderProps>(function QuotesHeader({
       {canCreate && (
         <button
           onClick={onAddQuote}
-          className='flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors'
+          className='flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
         >
           <Plus className='h-4 w-4 mr-2' />
           Nouveau devis

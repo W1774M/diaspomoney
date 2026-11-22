@@ -26,7 +26,7 @@ const QuoteCard = React.memo<QuoteCardProps>(function QuoteCard({
         <div className="flex-1">
           <div className="flex items-center space-x-3 mb-2">
             <div className="p-2 bg-blue-100 rounded-lg">
-              <FileText className="h-5 w-5 text-blue-600" />
+              <FileText className="h-5 w-5 text-brand-700" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">

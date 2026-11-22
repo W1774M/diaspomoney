@@ -1,95 +1,82 @@
 import { cn } from '@/lib/utils';
-import React from 'react';
+import React, { forwardRef } from 'react';
+import {
+  FieldError,
+  FieldLabel,
+  fieldClasses,
+  hintClasses,
+  useFieldIds,
+} from './Input';
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  className?: string;
+export interface SelectProps
+  extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string | undefined;
+  hint?: string | undefined;
+  error?: string | undefined;
+  /** Première option vide et non sélectionnable (« Choisir… »). */
+  placeholder?: string | undefined;
 }
 
-const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, children, ...props }, ref) => {
-    return (
+/**
+ * Liste déroulante native : clavier, lecteurs d'écran et sélecteur mobile du
+ * système fonctionnent sans JavaScript. Les enfants sont des <option>/<optgroup>.
+ */
+const Select = forwardRef<HTMLSelectElement, SelectProps>(
+  (
+    { className, children, label, hint, error, placeholder, id, required, ...props },
+    ref,
+  ) => {
+    const { fieldId, hintId, errorId, ariaDescribedBy } = useFieldIds(
+      id,
+      hint,
+      error,
+      props['aria-describedby'],
+    );
+
+    const select = (
       <select
+        ref={ref}
+        id={fieldId}
+        required={required}
         className={cn(
-          'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+          fieldClasses,
+          'appearance-none bg-[length:1.25rem] bg-[right_0.625rem_center] bg-no-repeat pe-10',
+          "bg-[url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3e%3cpath fill-rule='evenodd' d='M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z' clip-rule='evenodd'/%3e%3c/svg%3e\")]",
           className,
         )}
-        ref={ref}
         {...props}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={error ? true : props['aria-invalid']}
       >
+        {placeholder !== undefined && (
+          <option value='' disabled={required}>
+            {placeholder}
+          </option>
+        )}
         {children}
       </select>
+    );
+
+    if (!label && !hint && !error) return select;
+
+    return (
+      <div className='flex w-full flex-col gap-1.5'>
+        {label && (
+          <FieldLabel htmlFor={fieldId} required={required}>
+            {label}
+          </FieldLabel>
+        )}
+        {hint && (
+          <p id={hintId} className={hintClasses}>
+            {hint}
+          </p>
+        )}
+        {select}
+        {error && errorId && <FieldError id={errorId}>{error}</FieldError>}
+      </div>
     );
   },
 );
 Select.displayName = 'Select';
 
-const SelectTrigger = React.forwardRef<
-  HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement>
->(({ className, children, ...props }, ref) => {
-  return (
-    <button
-      className={cn(
-        'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-        className,
-      )}
-      ref={ref}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-});
-SelectTrigger.displayName = 'SelectTrigger';
-
-const SelectContent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, children, ...props }, ref) => {
-  return (
-    <div
-      className={cn(
-        'relative z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md',
-        className,
-      )}
-      ref={ref}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-});
-SelectContent.displayName = 'SelectContent';
-
-const SelectItem = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, children, ...props }, ref) => {
-  return (
-    <div
-      className={cn(
-        'relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-        className,
-      )}
-      ref={ref}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-});
-SelectItem.displayName = 'SelectItem';
-
-const SelectValue = React.forwardRef<
-  HTMLSpanElement,
-  React.HTMLAttributes<HTMLSpanElement>
->(({ className, children, ...props }, ref) => {
-  return (
-    <span className={cn('block truncate', className)} ref={ref} {...props}>
-      {children}
-    </span>
-  );
-});
-SelectValue.displayName = 'SelectValue';
-
-export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue };
+export { Select };

@@ -45,7 +45,7 @@ const ComplaintsSettings = React.memo<ComplaintsSettingsProps>(
         {/* Nouvelle réclamation */}
         <div className='bg-white border border-gray-200 rounded-lg p-6'>
           <div className='flex items-center mb-4'>
-            <Plus className='h-5 w-5 text-[hsl(25,100%,53%)] mr-2' />
+            <Plus className='h-5 w-5 text-brand-700 mr-2' />
             <h4 className='text-md font-medium text-gray-900'>
               Nouvelle réclamation
             </h4>
@@ -66,7 +66,7 @@ const ComplaintsSettings = React.memo<ComplaintsSettingsProps>(
                 onChange={e =>
                   setNewComplaint({ ...newComplaint, subject: e.target.value })
                 }
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 placeholder='Décrivez brièvement votre réclamation'
                 required
               />
@@ -85,7 +85,7 @@ const ComplaintsSettings = React.memo<ComplaintsSettingsProps>(
                 onChange={e =>
                   setNewComplaint({ ...newComplaint, priority: e.target.value })
                 }
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               >
                 <option value='low'>Faible</option>
                 <option value='medium'>Moyenne</option>
@@ -111,7 +111,7 @@ const ComplaintsSettings = React.memo<ComplaintsSettingsProps>(
                   })
                 }
                 rows={4}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 placeholder='Décrivez en détail votre réclamation...'
                 required
               />
@@ -121,7 +121,7 @@ const ComplaintsSettings = React.memo<ComplaintsSettingsProps>(
               <button
                 type='submit'
                 disabled={saving}
-                className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,45%)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[hsl(25,100%,53%)] disabled:opacity-50 disabled:cursor-not-allowed'
+                className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-600 disabled:opacity-50 disabled:cursor-not-allowed'
               >
                 {saving ? 'Envoi...' : 'Envoyer la réclamation'}
               </button>
@@ -139,7 +139,7 @@ const ComplaintsSettings = React.memo<ComplaintsSettingsProps>(
           </div>
 
           <div className='text-center py-8'>
-            <AlertTriangle className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+            <AlertTriangle className='h-12 w-12 text-gray-500 mx-auto mb-4' />
             <h3 className='text-lg font-medium text-gray-900 mb-2'>
               Aucune réclamation
             </h3>

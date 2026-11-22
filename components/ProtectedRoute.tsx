@@ -71,7 +71,7 @@ export default function ProtectedRoute({
   if (isLoading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
         <p className="mt-4 text-gray-600">Chargement...</p>
       </div>
     );

@@ -85,7 +85,7 @@ function BannerStrip({ messages }: { messages: HomeBannerMessage[] }) {
     );
   }
   return (
-    <div className="overflow-x-auto rounded-lg bg-[hsl(25,100%,53%)] py-3 text-sm font-medium text-white">
+    <div className="overflow-x-auto rounded-lg bg-brand-600 py-3 text-sm font-medium text-white">
       <div className="flex w-max whitespace-nowrap">
         {messages.map((message) => (
           <span key={message.id} className="mx-6 inline-flex items-center gap-1">
@@ -440,7 +440,7 @@ export function BannerMessagesPanel() {
               type="checkbox"
               checked={form.isActive}
               onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-              className="h-4 w-4 rounded border-gray-300 text-[hsl(25,100%,53%)]"
+              className="h-4 w-4 rounded border-gray-300 text-brand-700"
             />
             Actif
           </label>

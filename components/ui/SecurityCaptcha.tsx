@@ -120,7 +120,7 @@ export function SecurityCaptcha({
   if (!challenge) {
     return (
       <div className={`flex items-center justify-center p-8 ${className}`}>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
       </div>
     );
   }
@@ -131,7 +131,7 @@ export function SecurityCaptcha({
     >
       <div className="flex items-center space-x-3 mb-6">
         <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-          <Shield className="w-5 h-5 text-blue-600" />
+          <Shield className="w-5 h-5 text-brand-700" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-gray-900">
@@ -192,7 +192,7 @@ export function SecurityCaptcha({
           <Button
             type="submit"
             disabled={!userAnswer || isLoading}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200"
+            className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200"
           >
             {isLoading ? "Vérification..." : "Vérifier"}
           </Button>

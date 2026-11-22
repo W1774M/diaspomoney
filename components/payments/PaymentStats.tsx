@@ -47,7 +47,7 @@ export function PaymentStats({
         <div className='flex items-center'>
           <div className='flex-shrink-0'>
             <div className='w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center'>
-              <Download className='h-4 w-4 text-blue-600' />
+              <Download className='h-4 w-4 text-brand-700' />
             </div>
           </div>
           <div className='ml-4'>

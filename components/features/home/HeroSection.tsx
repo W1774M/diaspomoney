@@ -2,7 +2,7 @@
 
 import { Shield, Clock, Tag, ArrowRight } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { flagUrl, presenceBadgeLabel } from "@/lib/presence-countries";
 import { CLINICS_SECTION_ID, useHomeCountryFilter } from "./HomeCountryFilter";
 
@@ -25,7 +25,6 @@ const BADGE_CLASS =
   "inline-flex items-center gap-2 rounded-full border border-stone-200/80 bg-white/80 px-3 py-1.5 text-sm text-stone-700 shadow-sm";
 
 export function HeroSection() {
-  const router = useRouter();
   const { countries, country, setCountry } = useHomeCountryFilter();
 
   const handleCountryClick = (iso: string) => {
@@ -39,19 +38,11 @@ export function HeroSection() {
     });
   };
 
-  const handleGetStarted = () => {
-    router.push("/#services");
-  };
-
-  const handleCreateAccount = () => {
-    router.push("/register");
-  };
-
 
   return (
     <section className="relative bg-[#FDF8F3] overflow-hidden">
       {/* Curved bottom border */}
-      <div className="absolute bottom-0 left-0 right-0">
+      <div aria-hidden="true" className="absolute bottom-0 left-0 right-0">
         <svg
           viewBox="0 0 1440 120"
           fill="none"
@@ -76,15 +67,15 @@ export function HeroSection() {
                 className="flex items-center gap-2 px-4 py-2 rounded-full"
                 style={{
                   backgroundColor: '#FDF8F3',
-                  fontFamily: "Plus Jakarta Sans, sans-serif",
+                  fontFamily: "var(--font-plus-jakarta-sans), sans-serif",
                 }}
               >
-                <div className="w-2 h-2 rounded-full bg-[#F97015]"></div>
+                <span aria-hidden="true" className="block w-2 h-2 rounded-full bg-brand-600"></span>
                 <span
                   className="text-sm font-medium"
                   style={{
-                    color: '#F97015',
-                    fontFamily: "Plus Jakarta Sans, sans-serif",
+                    color: 'var(--brand-700)',
+                    fontFamily: "var(--font-plus-jakarta-sans), sans-serif",
                   }}
                 >
                   Nouveau : Application mobile bientôt disponible
@@ -96,19 +87,19 @@ export function HeroSection() {
             <h1
               className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight mb-6"
               style={{
-                fontFamily: "Plus Jakarta Sans, sans-serif",
+                fontFamily: "var(--font-plus-jakarta-sans), sans-serif",
                 color: "#1C1917",
               }}
             >
               Prenez soin de vos proches{" "}
-              <span style={{ color: "#F97015" }}>en Afrique</span>, depuis la
+              <span className='text-brand-600'>en Afrique</span>, depuis la
               France
             </h1>
 
             {/* Pays couverts */}
             <ul
               className="flex flex-wrap gap-2 sm:gap-3 mb-2 list-none p-0 m-0"
-              style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
+              style={{ fontFamily: "var(--font-plus-jakarta-sans), sans-serif" }}
               aria-label="Pays où DiaspoMoney est présent"
             >
               {countries.map((presenceCountry) => {
@@ -147,9 +138,9 @@ export function HeroSection() {
                           ? "Afficher toutes les cliniques"
                           : "Voir les cliniques disponibles dans ce pays"
                       }
-                      className={`${BADGE_CLASS} cursor-pointer transition-colors hover:border-[#F97015] hover:text-[#F97015] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F97015]/60 ${
+                      className={`${BADGE_CLASS} cursor-pointer transition-colors hover:border-brand-600 hover:text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                         active
-                          ? "border-[#F97015] bg-[#FFF1E6] text-[#C2410C]"
+                          ? "border-brand-600 bg-[#FFF1E6] text-[#C2410C]"
                           : ""
                       }`}
                     >
@@ -164,58 +155,50 @@ export function HeroSection() {
             <p
               className="text-lg md:text-xl text-gray-600 leading-relaxed mb-8 max-w-2xl"
               style={{
-                fontFamily: "Plus Jakarta Sans, sans-serif",
-                color: "#555555",
+                fontFamily: "var(--font-plus-jakarta-sans), sans-serif",
+                color: "#57534e",
               }}
             >
-              Payez directement les services essentiels pour vos proches : <a href="/services/health" className="text-[#F97015]">santé</a>, <a href="/services/edu" className="text-[#F97015]">éducation</a>, <a href="/services/immo" className="text-[#F97015]">immobilier</a>.
+              Payez directement les services essentiels pour vos proches : <a href="/services/health" className="font-medium text-brand-700 underline decoration-brand-500/50 underline-offset-4 hover:decoration-brand-700">santé</a>, <a href="/services/edu" className="font-medium text-brand-700 underline decoration-brand-500/50 underline-offset-4 hover:decoration-brand-700">éducation</a>, <a href="/services/immo" className="font-medium text-brand-700 underline decoration-brand-500/50 underline-offset-4 hover:decoration-brand-700">immobilier</a>.
               Fini les transferts d’argent et les détournements.
               Suivez chaque dépense en temps réel depuis votre tableau de bord, en toute transparence.
             </p>
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <button
-                onClick={handleGetStarted}
-                className="bg-[#F97015] text-white px-8 py-4 rounded-xl font-semibold hover:bg-[#E85F0A] transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 group focus:outline-none focus:ring-4 focus:ring-[#F97015]/50"
-                style={{
-                  fontFamily: "Plus Jakarta Sans, sans-serif",
-                }}
-                aria-label="Commencer maintenant"
+              <Link
+                href="/#services"
+                className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 px-8 py-3 font-display font-semibold text-white shadow-lg transition-colors hover:bg-brand-700 active:bg-brand-800"
               >
-                <span>Commencer maintenant</span>
-                <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
-              </button>
-              <button
-                onClick={handleCreateAccount}
-                className="border-2 border-[#F97015] text-[#F97015] bg-white px-8 py-4 rounded-xl font-semibold hover:bg-[#F97015]/10 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[#F97015]/50"
-                style={{
-                  fontFamily: "Plus Jakarta Sans, sans-serif",
-                }}
-                aria-label="Je crée mon compte gratuitement"
+                Commencer maintenant
+                <ArrowRight className="size-5 transition-transform group-hover:translate-x-1 motion-reduce:transition-none" />
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-brand-600 bg-white px-8 py-3 font-display font-semibold text-brand-700 transition-colors hover:bg-brand-50"
               >
                 Je crée mon compte gratuitement
-              </button>
+              </Link>
             </div>
 
             {/* Feature Highlights */}
-            <div className="flex flex-wrap gap-6">
+            <ul className="flex flex-wrap gap-6" role="list">
               {FEATURES.map((feature, index) => {
                 const IconComponent = feature.icon;
                 return (
-                  <div
+                  <li
                     key={index}
                     className="flex items-center gap-2"
                     style={{
-                      fontFamily: "Plus Jakarta Sans, sans-serif",
+                      fontFamily: "var(--font-plus-jakarta-sans), sans-serif",
                     }}
                   >
                     <IconComponent className="w-5 h-5 text-gray-600" />
                     <span className="text-sm text-gray-600">{feature.text}</span>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           </div>
 
           {/* Right Content - Illustration */}

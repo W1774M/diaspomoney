@@ -23,7 +23,7 @@ export default function BookingPaymentInfo({ booking }: BookingPaymentInfoProps)
   return (
     <div className="bg-white rounded-lg shadow border border-gray-200 p-4 sm:p-6">
       <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
-        <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-[hsl(25,100%,53%)]" />
+        <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-brand-700" />
         Paiement
       </h2>
       <div className="space-y-3">

@@ -107,7 +107,7 @@ function ActivateAccountContent() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center px-4">
+      <div className="min-h-dvh bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center px-4">
         <div className="w-full max-w-md">
           <Card className="shadow-xl border-0 backdrop-blur-sm bg-white/80">
             <CardHeader className="text-center pb-4">
@@ -127,7 +127,7 @@ function ActivateAccountContent() {
               {callbackUrl && (
                 <Button
                   variant="outline"
-                  className="sm:w-auto w-full border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,53%)]/5"
+                  className="sm:w-auto w-full border-brand-600 text-brand-700 hover:bg-brand-500/5"
                   onClick={() => {
                     router.push(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
                   }}
@@ -136,7 +136,7 @@ function ActivateAccountContent() {
                 </Button>
               )}
               <Button
-                className="bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)] sm:w-auto w-full"
+                className="bg-brand-600 hover:bg-brand-700 sm:w-auto w-full"
                 onClick={() => {
                   router.push('/login?callbackUrl=/dashboard');
                 }}
@@ -151,7 +151,7 @@ function ActivateAccountContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center px-4">
+    <div className="min-h-dvh bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <Card className="shadow-xl border-0 backdrop-blur-sm bg-white/80">
           <CardHeader className="text-center pb-4">
@@ -193,15 +193,15 @@ function ActivateAccountContent() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor='activate-account-password' className="block text-sm font-medium text-gray-700 mb-2">
                   Mot de passe *
                 </label>
                 <div className="relative">
-                  <input
+                  <input id='activate-account-password'
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-[hsl(25,100%,53%)] bg-gray-50 transition-all"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 bg-gray-50 transition-all"
                     placeholder="Minimum 8 caractères"
                     required
                     minLength={8}
@@ -217,15 +217,15 @@ function ActivateAccountContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor='activate-account-confirm-password' className="block text-sm font-medium text-gray-700 mb-2">
                   Confirmer le mot de passe *
                 </label>
                 <div className="relative">
-                  <input
+                  <input id='activate-account-confirm-password'
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-[hsl(25,100%,53%)] bg-gray-50 transition-all"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 bg-gray-50 transition-all"
                     placeholder="Confirmez votre mot de passe"
                     required
                     minLength={8}
@@ -243,7 +243,7 @@ function ActivateAccountContent() {
               <Button
                 type="submit"
                 disabled={isLoading || !token}
-                className="w-full bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)] text-white py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -272,7 +272,7 @@ export default function ActivateAccountPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center px-4">
+        <div className="min-h-dvh bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center px-4">
           <div className="w-full max-w-md">
             <Card className="shadow-xl border-0 backdrop-blur-sm bg-white/80">
               <CardHeader className="text-center pb-4">

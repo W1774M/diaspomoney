@@ -155,11 +155,11 @@ export function SimplifiedRegisterForm({
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8 px-4">
+    <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8 px-4">
       <div className="w-full max-w-2xl mx-auto">
         <div className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl overflow-hidden">
           {/* Header */}
-          <div className="relative bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white p-8 text-center">
+          <div className="relative bg-gradient-to-r from-brand-600 to-amber-700 text-white p-8 text-center">
             <div className="relative z-10">
               <h1 className="text-2xl font-bold mb-2">
                 Finalisez votre inscription
@@ -200,24 +200,24 @@ export function SimplifiedRegisterForm({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-2 font-semibold text-gray-700">
+                  <label htmlFor='simplified-register-form-password' className="block mb-2 font-semibold text-gray-700">
                     Mot de passe <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <input
+                    <input id='simplified-register-form-password'
                       autoComplete="new-password"
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={e =>
                         handleInputChange("password", e.target.value)
                       }
-                      className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                      className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 bg-gray-50 transition-all duration-300"
                       placeholder="••••••••"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600 transition-colors"
                     >
                       {showPassword ? (
                         <EyeOff className="h-5 w-5" />
@@ -228,19 +228,19 @@ export function SimplifiedRegisterForm({
                   </div>
                 </div>
                 <div>
-                  <label className="block mb-2 font-semibold text-gray-700">
+                  <label htmlFor='simplified-register-form-confirm-password' className="block mb-2 font-semibold text-gray-700">
                     Confirmer le mot de passe{" "}
                     <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <input
+                    <input id='simplified-register-form-confirm-password'
                       autoComplete="new-password"
                       type={showConfirmPassword ? "text" : "password"}
                       value={formData.confirmPassword}
                       onChange={e =>
                         handleInputChange("confirmPassword", e.target.value)
                       }
-                      className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                      className="w-full p-3 pr-12 border-2 border-gray-200 rounded-xl focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 bg-gray-50 transition-all duration-300"
                       placeholder="••••••••"
                     />
                     <button
@@ -248,7 +248,7 @@ export function SimplifiedRegisterForm({
                       onClick={() =>
                         setShowConfirmPassword(!showConfirmPassword)
                       }
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600 transition-colors"
                     >
                       {showConfirmPassword ? (
                         <EyeOff className="h-5 w-5" />
@@ -261,16 +261,16 @@ export function SimplifiedRegisterForm({
               </div>
 
               <div>
-                <label className="block mb-2 font-semibold text-gray-700">
+                <label htmlFor='simplified-register-form-security-question' className="block mb-2 font-semibold text-gray-700">
                   Question de sécurité <span className="text-red-500">*</span>
                 </label>
-                <select
+                <select id='simplified-register-form-security-question'
                   title="Question de sécurité"
                   value={formData.securityQuestion}
                   onChange={e =>
                     handleInputChange("securityQuestion", e.target.value)
                   }
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 bg-gray-50 transition-all duration-300"
                 >
                   <option value="">Choisissez une question</option>
                   <option value="pet">
@@ -287,17 +287,17 @@ export function SimplifiedRegisterForm({
               </div>
 
               <div>
-                <label className="block mb-2 font-semibold text-gray-700">
+                <label htmlFor='simplified-register-form-security-answer' className="block mb-2 font-semibold text-gray-700">
                   Réponse <span className="text-red-500">*</span>
                 </label>
-                <input
+                <input id='simplified-register-form-security-answer'
                   autoComplete="off"
                   type="text"
                   value={formData.securityAnswer}
                   onChange={e =>
                     handleInputChange("securityAnswer", e.target.value)
                   }
-                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 bg-gray-50 transition-all duration-300"
                   placeholder="Votre réponse"
                 />
               </div>
@@ -310,15 +310,15 @@ export function SimplifiedRegisterForm({
                     onChange={e =>
                       handleInputChange("termsAccepted", e.target.checked)
                     }
-                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    className="mt-1 w-4 h-4 text-brand-700 rounded focus-visible:ring-brand-600"
                   />
                   <span className="text-sm text-gray-700">
                     J&apos;accepte les{" "}
-                    <a href="#" className="text-blue-600 hover:underline">
+                    <a href="/terms-and-conditions" target="_blank" rel="noopener" className="text-brand-700 underline">
                       conditions générales d&apos;utilisation
                     </a>{" "}
                     et la{" "}
-                    <a href="#" className="text-blue-600 hover:underline">
+                    <a href="/privacy-policy" target="_blank" rel="noopener" className="text-brand-700 underline">
                       politique de confidentialité
                     </a>{" "}
                     de DiaspoMoney <span className="text-red-500">*</span>
@@ -332,7 +332,7 @@ export function SimplifiedRegisterForm({
                     onChange={e =>
                       handleInputChange("marketingConsent", e.target.checked)
                     }
-                    className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    className="mt-1 w-4 h-4 text-brand-700 rounded focus-visible:ring-brand-600"
                   />
                   <span className="text-sm text-gray-700">
                     Je souhaite recevoir des informations sur les nouveaux
@@ -353,7 +353,7 @@ export function SimplifiedRegisterForm({
                 <button
                   onClick={handleSubmit}
                   disabled={isLoading || !validateForm()}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white font-bold text-lg shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-brand-600 to-amber-700 text-white font-bold text-lg shadow-lg hover:from-brand-700 hover:to-amber-800 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? "Création du compte..." : "Créer mon compte"}
                 </button>
@@ -362,11 +362,11 @@ export function SimplifiedRegisterForm({
 
             {/* Footer */}
             <div className="text-center mt-8">
-              <p className="text-sm text-blue-700">
+              <p className="text-sm text-brand-800">
                 Déjà un compte ?{" "}
                 <a
                   href="/login"
-                  className="font-semibold underline hover:text-indigo-700 transition-colors duration-200"
+                  className="font-semibold underline hover:text-brand-700 transition-colors duration-200"
                 >
                   Se connecter
                 </a>

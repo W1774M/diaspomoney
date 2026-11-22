@@ -44,7 +44,7 @@ export function MarkdownDescriptionField({
         id={fieldId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent font-mono text-sm"
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent font-mono text-sm"
         placeholder={placeholder}
         rows={rows}
         required={required}
@@ -59,13 +59,13 @@ export function MarkdownDescriptionField({
         lien <code className="bg-gray-100 px-0.5 rounded">[texte](https://…)</code>.{' '}
         L’aperçu correspond à l’affichage public.
       </p>
-      <p className="text-xs text-gray-400 mt-0.5">
+      <p className="text-xs text-gray-500 mt-0.5">
         {value.length} / {maxLength}
       </p>
       <button
         type="button"
         onClick={() => setPreviewOpen((v) => !v)}
-        className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-[hsl(25,100%,45%)] hover:text-[hsl(25,100%,38%)]"
+        className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-brand-800 hover:text-brand-800"
       >
         {previewOpen ? (
           <>
@@ -86,7 +86,7 @@ export function MarkdownDescriptionField({
               <ServiceDescription content={value} variant="default" />
             </div>
           ) : (
-            <p className="text-sm text-gray-400 italic">Saisissez du texte pour voir l&apos;aperçu.</p>
+            <p className="text-sm text-gray-500 italic">Saisissez du texte pour voir l&apos;aperçu.</p>
           )}
         </div>
       )}

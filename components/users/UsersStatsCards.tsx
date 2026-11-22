@@ -35,7 +35,7 @@ export default function UsersStatsCards({
       icon: Users,
       change: percentageChange > 0 ? `+${percentageChange}%` : `${percentageChange}%`,
       changeLabel: "from last month",
-      iconColor: "text-blue-500",
+      iconColor: "text-brand-700",
       bgColor: "bg-blue-50",
     },
     {

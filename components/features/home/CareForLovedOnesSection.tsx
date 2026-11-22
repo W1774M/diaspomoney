@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckCircle2, ArrowRight } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const BENEFITS = [
   'Inscription gratuite en 2 minutes',
@@ -11,20 +11,10 @@ const BENEFITS = [
 ];
 
 export function CareForLovedOnesSection() {
-  const router = useRouter();
-
-  const handleCreateAccount = () => {
-    router.push('/register');
-  };
-
-  const handleContactTeam = () => {
-    window.open('mailto:contact@diaspomoney.fr', '_blank');
-  };
-
   return (
     <section className="py-20 md:pt-12 md:pb-1 relative overflow-hidden" style={{ backgroundColor: '#FDF8F3' }}>
       {/* Background glow effect */}
-      <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full opacity-30 blur-3xl" style={{ backgroundColor: '#FBE3CC' }}></div>
+      <div aria-hidden="true" className="absolute bottom-0 left-0 w-96 h-96 rounded-full opacity-30 blur-3xl" style={{ backgroundColor: '#FBE3CC' }}></div>
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Main Card */}
@@ -34,20 +24,20 @@ export function CareForLovedOnesSection() {
             <h2
               className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
               style={{
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                 color: '#1C1917',
               }}
             >
               Prêt à prendre soin de vos{' '}
-              <span style={{ color: '#F97015' }}>proches</span> ?
+              <span className='text-brand-600'>proches</span> ?
             </h2>
             
             {/* Description */}
             <p
               className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed"
               style={{
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
-                color: '#555555',
+                fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
+                color: '#57534e',
               }}
             >
               Rejoignez des milliers de membres de la diaspora qui font confiance à Diaspomoney pour accompagner leur famille en Afrique.
@@ -62,15 +52,15 @@ export function CareForLovedOnesSection() {
                 <div key={index} className="flex items-center gap-2">
                   <CheckCircle2
                     size={20}
-                    style={{ color: '#F97015' }}
-                    fill="#F97015"
+                    style={{ color: 'var(--brand-700)' }}
+                    fill="var(--brand-600)"
                     className="flex-shrink-0"
                   />
                   <span
                     className="text-base md:text-lg"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
-                      color: '#555555',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
+                      color: '#57534e',
                     }}
                   >
                     {benefit}
@@ -83,15 +73,15 @@ export function CareForLovedOnesSection() {
             <div className="flex items-center gap-2">
               <CheckCircle2
                 size={20}
-                style={{ color: '#F97015' }}
-                fill="#F97015"
+                style={{ color: 'var(--brand-700)' }}
+                fill="var(--brand-600)"
                 className="flex-shrink-0"
               />
               <span
                 className="text-base md:text-lg"
                 style={{
-                  fontFamily: 'Plus Jakarta Sans, sans-serif',
-                  color: '#555555',
+                  fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
+                  color: '#57534e',
                 }}
               >
                 {BENEFITS[3]}
@@ -102,25 +92,21 @@ export function CareForLovedOnesSection() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-10">
             {/* Primary Button */}
-            <button
-              onClick={handleCreateAccount}
-              className="bg-[#F97015] text-white px-8 py-4 rounded-xl font-semibold hover:bg-[#E85F0A] transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 group focus:outline-none focus:ring-4 focus:ring-[#F97015]/50"
-              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-              aria-label="Créer mon compte gratuitement"
+            <Link
+              href="/register"
+              className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 px-8 py-3 font-display font-semibold text-white shadow-lg transition-colors hover:bg-brand-700 active:bg-brand-800"
             >
-              <span>Créer mon compte gratuitement</span>
-              <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
-            </button>
+              Créer mon compte gratuitement
+              <ArrowRight className="size-5 transition-transform group-hover:translate-x-1 motion-reduce:transition-none" />
+            </Link>
 
             {/* Secondary Button */}
-            <button
-              onClick={handleContactTeam}
-              className="border-2 border-[#F97015] text-[#F97015] bg-white px-8 py-4 rounded-xl font-semibold hover:bg-[#F97015]/10 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[#F97015]/50"
-              style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
-              aria-label="Contacter l'équipe"
+            <a
+              href="mailto:contact@diaspomoney.fr"
+              className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-brand-600 bg-white px-8 py-3 font-display font-semibold text-brand-700 transition-colors hover:bg-brand-50"
             >
-              Contacter l'équipe
-            </button>
+              Contacter l&apos;équipe
+            </a>
           </div>
         </div>
       </div>

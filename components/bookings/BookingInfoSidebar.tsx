@@ -79,7 +79,7 @@ export default function BookingInfoSidebar({
             <p className="text-sm text-gray-500">Prise en charge par</p>
             <p className="font-semibold text-sm sm:text-base text-gray-900 break-words">
               {loadingTakenChargeUser ? (
-                <span className="text-gray-400">Chargement...</span>
+                <span className="text-gray-500">Chargement...</span>
               ) : takenChargeUser ? (
                 `${takenChargeUser.firstName || ''} ${takenChargeUser.lastName || ''}`.trim() || takenChargeUser.email || takenChargeBy
               ) : (

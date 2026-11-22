@@ -328,7 +328,7 @@ function EditUserPageContent() {
   if (loading) {
     return (
       <div className='text-center py-12'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto'></div>
         <p className='mt-4 text-gray-600'>Chargement de l'utilisateur...</p>
       </div>
     );
@@ -340,7 +340,7 @@ function EditUserPageContent() {
         <p className='text-gray-600'>{error || 'Utilisateur non trouvé'}</p>
         <Link
           href='/dashboard/users'
-          className='mt-4 inline-flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+          className='mt-4 inline-flex items-center text-brand-700 hover:text-brand-800'
         >
           <ArrowLeft className='h-4 w-4 mr-2' />
           Retour aux utilisateurs
@@ -356,7 +356,7 @@ function EditUserPageContent() {
         <div className='flex items-center mb-4'>
           <Link
             href={`/dashboard/users/${userId}`}
-            className='flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] mr-4'
+            className='flex items-center text-brand-700 hover:text-brand-800 mr-4'
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Retour à l'utilisateur
@@ -378,14 +378,14 @@ function EditUserPageContent() {
           </h2>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-email' className='block text-sm font-medium text-gray-700 mb-2'>
                 Email *
               </label>
-              <input
+              <input id='edit-email'
                 type='email'
                 value={formData.email}
                 onChange={e => handleInputChange('email', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 placeholder='jean.dupont@email.com'
                 required
               />
@@ -400,7 +400,7 @@ function EditUserPageContent() {
                 value={formData.phone}
                 onChange={(phone) => handleInputChange('phone', phone)}
                 className="w-full"
-                inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
               />
             </div>
           </div>
@@ -423,7 +423,7 @@ function EditUserPageContent() {
                       type='checkbox'
                       checked={formData.roles.includes(role)}
                       onChange={e => handleRoleChange(role, e.target.checked)}
-                      className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded'
+                      className='h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded'
                     />
                     <span className='ml-2 text-sm text-gray-700'>{role}</span>
                   </label>
@@ -432,14 +432,14 @@ function EditUserPageContent() {
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-status' className='block text-sm font-medium text-gray-700 mb-2'>
                 Statut
               </label>
-              <select
+              <select id='edit-status'
                 title='Statut'
                 value={formData.status}
                 onChange={e => handleInputChange('status', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               >
                 {USER_STATUSES.map(status => (
                   <option key={status} value={status}>
@@ -459,28 +459,28 @@ function EditUserPageContent() {
             </h2>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='edit-first-name' className='block text-sm font-medium text-gray-700 mb-2'>
                   Prénom *
                 </label>
-                <input
+                <input id='edit-first-name'
                   type='text'
                   value={formData.firstName}
                   onChange={e => handleInputChange('firstName', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   placeholder='Jean'
                   required
                 />
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='edit-last-name' className='block text-sm font-medium text-gray-700 mb-2'>
                   Nom *
                 </label>
-                <input
+                <input id='edit-last-name'
                   type='text'
                   value={formData.lastName}
                   onChange={e => handleInputChange('lastName', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   placeholder='Dupont'
                   required
                 />
@@ -497,27 +497,27 @@ function EditUserPageContent() {
             </h2>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='edit-first-name-2' className='block text-sm font-medium text-gray-700 mb-2'>
                   Prénom
                 </label>
-                <input
+                <input id='edit-first-name-2'
                   type='text'
                   value={formData.firstName}
                   onChange={e => handleInputChange('firstName', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   placeholder='Jean'
                 />
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='edit-last-name-2' className='block text-sm font-medium text-gray-700 mb-2'>
                   Nom
                 </label>
-                <input
+                <input id='edit-last-name-2'
                   type='text'
                   value={formData.lastName}
                   onChange={e => handleInputChange('lastName', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   placeholder='Dupont'
                 />
               </div>
@@ -548,7 +548,7 @@ function EditUserPageContent() {
                     value={ProviderType.INDIVIDUAL}
                     checked={formData.providerType === ProviderType.INDIVIDUAL}
                     onChange={e => handleInputChange('providerType', e.target.value as ProviderType)}
-                    className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300'
+                    className='h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300'
                   />
                   <span className='ml-2 text-sm text-gray-700'>Individuel</span>
                 </label>
@@ -559,7 +559,7 @@ function EditUserPageContent() {
                     value={ProviderType.INSTITUTION}
                     checked={formData.providerType === ProviderType.INSTITUTION}
                     onChange={e => handleInputChange('providerType', e.target.value as ProviderType)}
-                    className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300'
+                    className='h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300'
                   />
                   <span className='ml-2 text-sm text-gray-700'>Entreprise</span>
                 </label>
@@ -572,76 +572,76 @@ function EditUserPageContent() {
                 <h3 className='text-md font-semibold text-gray-800'>Informations individuelles</h3>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='edit-individual-first-name' className='block text-sm font-medium text-gray-700 mb-2'>
                       Prénom *
                     </label>
-                    <input
+                    <input id='edit-individual-first-name'
                       type='text'
                       value={formData.individualFirstName}
                       onChange={e => handleInputChange('individualFirstName', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='Jean'
                       required
                     />
                   </div>
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='edit-individual-last-name' className='block text-sm font-medium text-gray-700 mb-2'>
                       Nom *
                     </label>
-                    <input
+                    <input id='edit-individual-last-name'
                       type='text'
                       value={formData.individualLastName}
                       onChange={e => handleInputChange('individualLastName', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='Dupont'
                       required
                     />
                   </div>
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='edit-individual-rcs' className='block text-sm font-medium text-gray-700 mb-2'>
                       RCS
                     </label>
-                    <input
+                    <input id='edit-individual-rcs'
                       type='text'
                       value={formData.individualRcs}
                       onChange={e => handleInputChange('individualRcs', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='RCS Paris B 123 456 789'
                     />
                   </div>
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='edit-individual-tva' className='block text-sm font-medium text-gray-700 mb-2'>
                       TVA
                     </label>
-                    <input
+                    <input id='edit-individual-tva'
                       type='text'
                       value={formData.individualTva}
                       onChange={e => handleInputChange('individualTva', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='FR 12 345678901'
                     />
                   </div>
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='edit-individual-siret' className='block text-sm font-medium text-gray-700 mb-2'>
                       SIRET
                     </label>
-                    <input
+                    <input id='edit-individual-siret'
                       type='text'
                       value={formData.individualSiret}
                       onChange={e => handleInputChange('individualSiret', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='123 456 789 00012'
                     />
                   </div>
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='edit-individual-siren' className='block text-sm font-medium text-gray-700 mb-2'>
                       SIREN
                     </label>
-                    <input
+                    <input id='edit-individual-siren'
                       type='text'
                       value={formData.individualSiren}
                       onChange={e => handleInputChange('individualSiren', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='123 456 789'
                     />
                   </div>
@@ -655,63 +655,63 @@ function EditUserPageContent() {
                 <h3 className='text-md font-semibold text-gray-800'>Informations entreprise</h3>
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div className='md:col-span-2'>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='edit-institution-name' className='block text-sm font-medium text-gray-700 mb-2'>
                       Nom de l&apos;entreprise *
                     </label>
-                    <input
+                    <input id='edit-institution-name'
                       type='text'
                       value={formData.institutionName}
                       onChange={e => handleInputChange('institutionName', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='Entreprise ABC'
                       required
                     />
                   </div>
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='edit-institution-rcs' className='block text-sm font-medium text-gray-700 mb-2'>
                       RCS
                     </label>
-                    <input
+                    <input id='edit-institution-rcs'
                       type='text'
                       value={formData.institutionRcs}
                       onChange={e => handleInputChange('institutionRcs', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='RCS Paris B 123 456 789'
                     />
                   </div>
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='edit-institution-tva' className='block text-sm font-medium text-gray-700 mb-2'>
                       TVA
                     </label>
-                    <input
+                    <input id='edit-institution-tva'
                       type='text'
                       value={formData.institutionTva}
                       onChange={e => handleInputChange('institutionTva', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='FR 12 345678901'
                     />
                   </div>
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='edit-institution-siret' className='block text-sm font-medium text-gray-700 mb-2'>
                       SIRET
                     </label>
-                    <input
+                    <input id='edit-institution-siret'
                       type='text'
                       value={formData.institutionSiret}
                       onChange={e => handleInputChange('institutionSiret', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='123 456 789 00012'
                     />
                   </div>
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='edit-institution-siren' className='block text-sm font-medium text-gray-700 mb-2'>
                       SIREN
                     </label>
-                    <input
+                    <input id='edit-institution-siren'
                       type='text'
                       value={formData.institutionSiren}
                       onChange={e => handleInputChange('institutionSiren', e.target.value)}
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='123 456 789'
                     />
                   </div>
@@ -723,14 +723,14 @@ function EditUserPageContent() {
             <div className='space-y-4'>
               <h3 className='text-md font-semibold text-gray-800'>Adresse professionnelle *</h3>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='edit-professional-address' className='block text-sm font-medium text-gray-700 mb-2'>
                   Adresse complète *
                 </label>
-                <input
+                <input id='edit-professional-address'
                   type='text'
                   value={formData.professionalAddress}
                   onChange={e => handleInputChange('professionalAddress', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   placeholder='123 Rue de la Paix, 75001 Paris, France'
                   required
                 />
@@ -742,13 +742,13 @@ function EditUserPageContent() {
 
             {/* Catégorie */}
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-provider-category' className='block text-sm font-medium text-gray-700 mb-2'>
                 Catégorie *
               </label>
-              <select
+              <select id='edit-provider-category'
                 value={formData.providerCategory}
                 onChange={e => handleInputChange('providerCategory', e.target.value as ProviderCategory)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 required
               >
                 <option value={ProviderCategory.HEALTH}>Santé</option>
@@ -759,11 +759,11 @@ function EditUserPageContent() {
 
             {/* Spécialités */}
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-specialty-input' className='block text-sm font-medium text-gray-700 mb-2'>
                 Spécialités
               </label>
               <div className='flex gap-2 mb-2'>
-                <input
+                <input id='edit-specialty-input'
                   type='text'
                   value={formData.specialtyInput}
                   onChange={e => handleInputChange('specialtyInput', e.target.value)}
@@ -773,13 +773,13 @@ function EditUserPageContent() {
                       handleAddSpecialty();
                     }
                   }}
-                  className='flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='flex-1 px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   placeholder='Ajouter une spécialité'
                 />
                 <button
                   type='button'
                   onClick={handleAddSpecialty}
-                  className='px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors'
+                  className='px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
                 >
                   <Plus className='h-4 w-4' />
                 </button>
@@ -789,13 +789,13 @@ function EditUserPageContent() {
                   {formData.specialties.map((specialty, index) => (
                     <span
                       key={index}
-                      className='inline-flex items-center px-3 py-1 rounded-full text-sm bg-[hsl(25,100%,53%)]/10 text-[hsl(25,100%,53%)]'
+                      className='inline-flex items-center px-3 py-1 rounded-full text-sm bg-brand-500/10 text-brand-700'
                     >
                       {specialty}
                       <button
                         type='button'
                         onClick={() => handleRemoveSpecialty(index)}
-                        className='ml-2 text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+                        className='ml-2 text-brand-700 hover:text-brand-800'
                       >
                         <XIcon className='h-3 w-3' />
                       </button>
@@ -812,7 +812,7 @@ function EditUserPageContent() {
                 id='recommended'
                 checked={formData.recommended}
                 onChange={e => handleInputChange('recommended', e.target.checked)}
-                className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded'
+                className='h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded'
               />
               <label htmlFor='recommended' className='ml-2 text-sm text-gray-700'>
                 Prestataire recommandé
@@ -828,14 +828,14 @@ function EditUserPageContent() {
               Notes client
             </h2>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-client-notes' className='block text-sm font-medium text-gray-700 mb-2'>
                 Notes client
               </label>
-              <textarea
+              <textarea id='edit-client-notes'
                 value={formData.clientNotes}
                 onChange={e => handleInputChange('clientNotes', e.target.value)}
                 rows={3}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 placeholder='Notes sur le client...'
               />
             </div>
@@ -849,16 +849,16 @@ function EditUserPageContent() {
           </h2>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-language' className='block text-sm font-medium text-gray-700 mb-2'>
                 Langue
               </label>
-              <select
+              <select id='edit-language'
                 title='Langue'
                 value={formData.preferences.language}
                 onChange={e =>
                   handlePreferenceChange('language', e.target.value)
                 }
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               >
                 <option value='fr'>Français</option>
                 <option value='en'>English</option>
@@ -867,16 +867,16 @@ function EditUserPageContent() {
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-timezone' className='block text-sm font-medium text-gray-700 mb-2'>
                 Fuseau horaire
               </label>
-              <select
+              <select id='edit-timezone'
                 title='Fuseau horaire'
                 value={formData.preferences.timezone}
                 onChange={e =>
                   handlePreferenceChange('timezone', e.target.value)
                 }
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               >
                 <option value='Europe/Paris'>Europe/Paris</option>
                 <option value='UTC'>UTC</option>
@@ -892,7 +892,7 @@ function EditUserPageContent() {
                 onChange={e =>
                   handlePreferenceChange('notifications', e.target.checked)
                 }
-                className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded'
+                className='h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded'
               />
               <label className='ml-2 text-sm text-gray-700'>
                 Notifications activées
@@ -912,7 +912,7 @@ function EditUserPageContent() {
           <button
             type='submit'
             disabled={saving || formData.roles.length === 0}
-            className='px-6 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+            className='px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
           >
             {saving ? 'Sauvegarde...' : 'Sauvegarder'}
           </button>

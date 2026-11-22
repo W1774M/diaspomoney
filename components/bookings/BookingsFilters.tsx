@@ -54,7 +54,7 @@ const BookingsFilters = React.memo<BookingsFiltersProps>(
             title="Statut"
             value={filters.status}
             onChange={handleStatusChange}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
           >
             <option value="ALL">Tous les statuts</option>
             {availableStatuses.map((status: string, idx: number) => (
@@ -69,7 +69,7 @@ const BookingsFilters = React.memo<BookingsFiltersProps>(
             title="Statut du paiement"
             value={filters.paymentStatus}
             onChange={handlePaymentStatusChange}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
           >
             <option value="ALL">Tous les paiements</option>
             {availablePaymentStatuses.map((status: string, idx: number) => (
@@ -84,7 +84,7 @@ const BookingsFilters = React.memo<BookingsFiltersProps>(
             type="date"
             value={filters.dateRange.start}
             onChange={handleDateRangeChange("start")}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
             placeholder="Date de début"
           />
 
@@ -93,7 +93,7 @@ const BookingsFilters = React.memo<BookingsFiltersProps>(
             type="date"
             value={filters.dateRange.end}
             onChange={handleDateRangeChange("end")}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
             placeholder="Date de fin"
           />
         </div>

@@ -153,16 +153,16 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor='notification-settings-language' className="block text-sm font-medium text-gray-700 mb-2">
                 Langue
               </label>
               <div className="relative">
-                <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <select
+                <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <select id='notification-settings-language'
                   title="Langue"
                   value={data.language}
                   onChange={e => handleChange("language", e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
                 >
                   <option value="fr">Français</option>
                   <option value="en">English</option>
@@ -173,14 +173,14 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor='notification-settings-timezone' className="block text-sm font-medium text-gray-700 mb-2">
                 Fuseau horaire
               </label>
-              <select
+              <select id='notification-settings-timezone'
                 title="Fuseau horaire"
                 value={data.timezone}
                 onChange={e => handleChange("timezone", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
               >
                 <option value="Europe/Paris">Europe/Paris (UTC+1)</option>
                 <option value="Europe/London">Europe/London (UTC+0)</option>
@@ -200,7 +200,7 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Bell className="h-5 w-5 text-gray-400 mr-3" />
+                  <Bell className="h-5 w-5 text-gray-500 mr-3" />
                   <div>
                     <p className="text-sm font-medium text-gray-900">
                       Notifications générales
@@ -221,13 +221,13 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus-visible:outline-none peer-focus-visible:ring-4 peer-focus-visible:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
                 </label>
               </div>
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Bell className="h-5 w-5 text-gray-400 mr-3" />
+                  <Bell className="h-5 w-5 text-gray-500 mr-3" />
                   <div>
                     <p className="text-sm font-medium text-gray-900">
                       Notifications par email
@@ -250,7 +250,7 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus-visible:outline-none peer-focus-visible:ring-4 peer-focus-visible:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
                 </label>
               </div>
 
@@ -316,7 +316,7 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
                             onChange={e => setEmailTypePref(item.type, e.target.checked)}
                             className="sr-only peer"
                           />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          <div className="w-11 h-6 bg-gray-200 peer-focus-visible:outline-none peer-focus-visible:ring-4 peer-focus-visible:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
                         </label>
                       </div>
                     );
@@ -326,7 +326,7 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Bell className="h-5 w-5 text-gray-400 mr-3" />
+                  <Bell className="h-5 w-5 text-gray-500 mr-3" />
                   <div>
                     <p className="text-sm font-medium text-gray-900">
                       Notifications SMS
@@ -346,7 +346,7 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
                     }
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus-visible:outline-none peer-focus-visible:ring-4 peer-focus-visible:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
                 </label>
               </div>
             </div>
@@ -356,7 +356,7 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50"
+              className="flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
             >
               <Save className="h-4 w-4 mr-2" />
               {saving ? "Sauvegarde..." : "Sauvegarder"}

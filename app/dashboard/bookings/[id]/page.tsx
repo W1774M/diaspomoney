@@ -188,9 +188,9 @@ function BookingDetailPageContent() {
   // États de chargement et d'erreur
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-dvh bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Chargement de la réservation...</p>
         </div>
       </div>
@@ -199,12 +199,12 @@ function BookingDetailPageContent() {
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-dvh bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || 'Réservation non trouvée'}</p>
           <Link
             href={bookingsPageUrl}
-            className="inline-flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]"
+            className="inline-flex items-center text-brand-700 hover:text-brand-800"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Retour aux réservations
@@ -233,14 +233,14 @@ function BookingDetailPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-4 sm:py-6 lg:py-8">
+    <div className="min-h-dvh bg-gray-50 py-4 sm:py-6 lg:py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* En-tête */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center justify-between mb-4">
             <Link
               href={bookingsPageUrl}
-              className="flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] text-sm sm:text-base"
+              className="flex items-center text-brand-700 hover:text-brand-800 text-sm sm:text-base"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Retour aux réservations</span>

@@ -35,16 +35,16 @@ const BillingSettings = React.memo<BillingSettingsProps>(
         <form onSubmit={handleSubmit} className='space-y-6'>
           <div className='space-y-4'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='billing-settings-payment-method' className='block text-sm font-medium text-gray-700 mb-2'>
                 Méthode de paiement
               </label>
               <div className='relative'>
-                <CreditCard className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                <select
+                <CreditCard className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500' />
+                <select id='billing-settings-payment-method'
                   value={data.paymentMethod}
                   title='Méthode de paiement'
                   onChange={e => handleChange('paymentMethod', e.target.value)}
-                  className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                 >
                   <option value=''>Sélectionner une méthode</option>
                   <option value='card'>Carte bancaire</option>
@@ -56,27 +56,27 @@ const BillingSettings = React.memo<BillingSettingsProps>(
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='billing-settings-billing-address' className='block text-sm font-medium text-gray-700 mb-2'>
                 Adresse de facturation
               </label>
-              <textarea
+              <textarea id='billing-settings-billing-address'
                 value={data.billingAddress}
                 onChange={e => handleChange('billingAddress', e.target.value)}
                 rows={3}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                 placeholder='Votre adresse de facturation'
               />
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='billing-settings-tax-id' className='block text-sm font-medium text-gray-700 mb-2'>
                 Numéro de TVA / SIRET
               </label>
-              <input
+              <input id='billing-settings-tax-id'
                 type='text'
                 value={data.taxId}
                 onChange={e => handleChange('taxId', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                 placeholder='FR12345678901'
               />
             </div>
@@ -97,7 +97,7 @@ const BillingSettings = React.memo<BillingSettingsProps>(
             <button
               type='submit'
               disabled={saving}
-              className='flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50'
+              className='flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50'
             >
               <Save className='h-4 w-4 mr-2' />
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}

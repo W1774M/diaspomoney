@@ -51,8 +51,8 @@ export default function HowItWorks({ className }: { className?: string }) {
           <span
             className="inline-block px-4 py-1.5 rounded-full text-white text-sm font-medium"
             style={{
-              backgroundColor: '#F97015',
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              backgroundColor: 'var(--brand-600)',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
             }}
           >
             Comment ça marche
@@ -64,17 +64,17 @@ export default function HowItWorks({ className }: { className?: string }) {
           <h2
             className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
             style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
               color: '#1C1917',
             }}
           >
             Un parcours simple, transparent et{' '}
-            <span style={{ color: '#F97015' }}>sécurisé</span>
+            <span className='text-brand-600'>sécurisé</span>
           </h2>
           <p
             className="text-lg text-gray-600 max-w-2xl mx-auto"
             style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
             }}
           >
             De votre paiement en France jusqu&apos;aux soins de votre proche en Afrique, suivez chaque étape en temps réel.
@@ -82,18 +82,19 @@ export default function HowItWorks({ className }: { className?: string }) {
         </div>
 
         {/* Steps - Zig-zag layout */}
-        <div className="space-y-16 md:space-y-24 mt-12 max-w-6xl mx-auto">
+        <ol className="space-y-16 md:space-y-24 mt-12 max-w-6xl mx-auto" role="list">
           {steps.map((step, idx) => {
             const IconComponent = step.icon;
             const isEven = idx % 2 == 1; // Step 2 is even index (1)
             
             return (
-              <div
+              <li
                 key={idx}
+                id={`etape-${idx + 1}`}
                 data-step={idx + 1}
                 className={`flex flex-col ${isEven ? 'md:flex-row-reverse' : 'md:flex-row'} gap-8 lg:gap-12 items-center`}
                 style={{
-                  fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                 }}
               >
                 {/* Illustration : gauche (étape 1,3) / droite (étape 2) via flex-row vs flex-row-reverse */}
@@ -115,10 +116,11 @@ export default function HowItWorks({ className }: { className?: string }) {
                   <div className="flex items-center gap-4 mb-4">
                     {/* Large Number */}
                     <span
+                      aria-hidden="true"
                       className="text-6xl md:text-7xl font-bold"
                       style={{
                         color: '#E5E5E5',
-                        fontFamily: 'Plus Jakarta Sans, sans-serif',
+                        fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                       }}
                     >
                       {step.number}
@@ -127,7 +129,7 @@ export default function HowItWorks({ className }: { className?: string }) {
                     {/* Icon Square */}
                     <div
                       className="w-12 h-12 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: '#F97015' }}
+                      style={{ backgroundColor: 'var(--brand-600)' }}
                     >
                       <IconComponent className="w-6 h-6 text-white" />
                     </div>
@@ -138,7 +140,7 @@ export default function HowItWorks({ className }: { className?: string }) {
                     className="text-2xl md:text-3xl font-bold mb-4"
                     style={{
                       color: '#1C1917',
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {step.title}
@@ -148,7 +150,7 @@ export default function HowItWorks({ className }: { className?: string }) {
                   <p
                     className="text-gray-600 mb-6 leading-relaxed"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {step.description}
@@ -156,29 +158,19 @@ export default function HowItWorks({ className }: { className?: string }) {
 
                   {/* Next Step Link */}
                   {step.showNextStep && (
+                    // ancre native : défilement doux géré en CSS (désactivé si mouvement réduit)
                     <a
-                      href="#"
-                      className="inline-flex items-center text-[#F97015] font-medium hover:underline"
-                      style={{
-                        fontFamily: 'Plus Jakarta Sans, sans-serif',
-                      }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // Scroll to next step
-                        const nextStep = document.querySelector(`[data-step="${idx + 2}"]`);
-                        if (nextStep) {
-                          nextStep.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                      }}
+                      href={`#etape-${idx + 2}`}
+                      className="inline-flex min-h-6 items-center text-brand-700 font-medium underline-offset-4 hover:underline"
                     >
                       Étape suivante <ArrowRight className="w-4 h-4 ml-2" />
                     </a>
                   )}
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ol>
       </div>
     </section>
   );

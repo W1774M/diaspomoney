@@ -71,8 +71,8 @@ export function TestimonialsSection() {
           <span
             className="inline-block px-4 py-1.5 rounded-full text-white text-sm font-medium"
             style={{
-              backgroundColor: '#F97015',
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              backgroundColor: 'var(--brand-600)',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
             }}
           >
             Témoignages
@@ -84,16 +84,16 @@ export function TestimonialsSection() {
           <h2
             className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
             style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
             }}
           >
             <span style={{ color: '#1C1917' }}>Ils nous font </span>
-            <span style={{ color: '#F97015' }}>confiance</span>
+            <span className='text-brand-600'>confiance</span>
           </h2>
           <p
             className="text-lg text-gray-600 max-w-2xl mx-auto"
             style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
             }}
           >
             Découvrez les retours de nos utilisateurs et de nos partenaires de santé en Afrique.
@@ -105,18 +105,18 @@ export function TestimonialsSection() {
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: '#F97015', opacity: 0.1 }}
+              style={{ backgroundColor: 'var(--brand-600)', opacity: 0.1 }}
             >
               <User
                 size={20}
-                style={{ color: '#F97015' }}
+                style={{ color: 'var(--brand-700)' }}
               />
             </div>
             <h3
               className="text-xl font-bold"
               style={{
                 color: '#1C1917',
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
               }}
             >
               Nos utilisateurs
@@ -131,7 +131,7 @@ export function TestimonialsSection() {
               key={testimonial.id}
               className="bg-white rounded-lg shadow-md p-6 relative"
               style={{
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                 borderRadius: '16px',
               }}
             >
@@ -149,7 +149,7 @@ export function TestimonialsSection() {
                 className="text-gray-800 mb-6 mt-4 relative z-10 leading-relaxed"
                 style={{
                   color: '#1C1917',
-                  fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                 }}
               >
                 {testimonial.text}
@@ -161,8 +161,8 @@ export function TestimonialsSection() {
                   <Star
                     key={i}
                     size={16}
-                    style={{ color: '#F97015' }}
-                    fill="#F97015"
+                    style={{ color: 'var(--brand-700)' }}
+                    fill="var(--brand-600)"
                   />
                 ))}
               </div>
@@ -172,7 +172,7 @@ export function TestimonialsSection() {
                 {/* Avatar */}
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
-                  style={{ backgroundColor: '#F97015' }}
+                  style={{ backgroundColor: 'var(--brand-600)' }}
                 >
                   {testimonial.initial}
                 </div>
@@ -183,7 +183,7 @@ export function TestimonialsSection() {
                     className="font-bold text-sm"
                     style={{
                       color: '#1C1917',
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {testimonial.name}
@@ -191,7 +191,7 @@ export function TestimonialsSection() {
                   <p
                     className="text-xs text-gray-600 mt-0.5"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {testimonial.location}
@@ -199,7 +199,7 @@ export function TestimonialsSection() {
                   <p
                     className="text-xs text-gray-500 mt-0.5"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {testimonial.role}
@@ -226,7 +226,7 @@ export function TestimonialsSection() {
               className="text-xl font-bold"
               style={{
                 color: '#1C1917',
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
               }}
             >
               Nos prestataires partenaires
@@ -241,7 +241,7 @@ export function TestimonialsSection() {
               key={testimonial.id}
               className="rounded-lg p-6 relative shadow-md"
               style={{
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                 backgroundColor: '#1C1917',
                 borderRadius: '16px',
               }}
@@ -259,7 +259,7 @@ export function TestimonialsSection() {
               <p
                 className="text-white mb-6 mt-4 relative z-10 leading-relaxed"
                 style={{
-                  fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                 }}
               >
                 {testimonial.text}
@@ -271,8 +271,8 @@ export function TestimonialsSection() {
                   <Star
                     key={i}
                     size={16}
-                    style={{ color: '#F97015' }}
-                    fill="#F97015"
+                    style={{ color: 'var(--brand-700)' }}
+                    fill="var(--brand-600)"
                   />
                 ))}
               </div>
@@ -282,7 +282,7 @@ export function TestimonialsSection() {
                 {/* Avatar */}
                 <div
                   className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
-                  style={{ backgroundColor: '#F97015' }}
+                  style={{ backgroundColor: 'var(--brand-600)' }}
                 >
                   {testimonial.initial}
                 </div>
@@ -292,7 +292,7 @@ export function TestimonialsSection() {
                   <p
                     className="font-bold text-sm text-white"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {testimonial.name}
@@ -300,15 +300,15 @@ export function TestimonialsSection() {
                   <p
                     className="text-xs text-gray-300 mt-0.5"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {testimonial.location}
                   </p>
                   <p
-                    className="text-xs text-gray-400 mt-0.5"
+                    className="text-xs text-gray-500 mt-0.5"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {testimonial.role}

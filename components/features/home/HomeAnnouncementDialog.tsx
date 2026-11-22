@@ -91,8 +91,8 @@ export function AnnouncementContent({
     <>
       <div className="flex items-start justify-between gap-4 border-b border-gray-200 p-6">
         <div className="flex items-center gap-3">
-          <div className="rounded-full bg-[#F97015]/10 p-2">
-            <Bell className="h-5 w-5 text-[#F97015]" aria-hidden="true" />
+          <div className="rounded-full bg-brand-500/10 p-2">
+            <Bell className="h-5 w-5 text-brand-700" aria-hidden="true" />
           </div>
           <h2 id={titleId} className="text-lg font-semibold text-gray-900">
             {title}
@@ -102,7 +102,7 @@ export function AnnouncementContent({
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 transition-colors hover:text-gray-600"
+            className="text-gray-500 transition-colors hover:text-gray-600"
             aria-label="Fermer"
           >
             <X className="h-5 w-5" aria-hidden="true" />
@@ -133,7 +133,7 @@ export function AnnouncementContent({
           <AnnouncementLink
             href={href}
             {...(onClose ? { onClick: onClose } : {})}
-            className="flex w-full items-center justify-center rounded-xl bg-[#F97015] px-5 py-3 font-semibold text-white hover:bg-[#E85F0A]"
+            className="flex w-full items-center justify-center rounded-xl bg-brand-600 px-5 py-3 font-semibold text-white hover:bg-brand-700"
             autoFocus
           >
             {ctaLabel}

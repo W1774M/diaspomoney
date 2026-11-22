@@ -9,8 +9,8 @@ export function PartnersSection() {
           <span
             className="inline-block px-4 py-1.5 rounded-full text-white text-sm font-medium"
             style={{
-              backgroundColor: '#F97015',
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              backgroundColor: 'var(--brand-600)',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
             }}
           >
             Partenaires
@@ -22,7 +22,7 @@ export function PartnersSection() {
           <h2
             className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
             style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
               color: '#1C1917',
             }}
           >
@@ -31,7 +31,7 @@ export function PartnersSection() {
           <p
             className="text-lg text-gray-600 max-w-2xl mx-auto"
             style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
             }}
           >
             Nous travaillons avec des partenaires de confiance pour vous offrir le meilleur service.

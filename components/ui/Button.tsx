@@ -1,14 +1,60 @@
 import { cn } from '@/lib/utils';
 import React, { forwardRef } from 'react';
 
-// Inline ButtonProps for this file to fix import/lint errors
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  size?: 'sm' | 'md' | 'lg' | 'icon';
   loading?: boolean;
   loadingText?: string;
 }
+
+/**
+ * Classes des boutons, réutilisables sur un <Link> (navigation = lien, action = bouton).
+ * Hauteurs minimales (pas fixes) : le libellé peut passer à la ligne ou grossir au zoom.
+ */
+export function buttonClasses({
+  variant = 'primary',
+  size = 'md',
+  className,
+}: Pick<ButtonProps, 'variant' | 'size' | 'className'> = {}) {
+  const base =
+    'inline-flex items-center justify-center gap-2 rounded-lg font-semibold text-center transition-[color,background-color,border-color,box-shadow] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 [&_svg]:shrink-0';
+
+  const variants = {
+    primary:
+      'bg-primary text-primary-foreground shadow-sm hover:bg-brand-700 active:bg-brand-800',
+    secondary:
+      'bg-secondary text-secondary-foreground hover:bg-stone-200 active:bg-stone-300',
+    outline:
+      'border border-input bg-background text-foreground hover:border-primary hover:bg-accent hover:text-accent-foreground',
+    ghost: 'text-foreground hover:bg-muted',
+    danger:
+      'bg-destructive text-destructive-foreground shadow-sm hover:bg-red-800 active:bg-red-900',
+  } as const;
+
+  const sizes = {
+    sm: 'min-h-9 px-3 py-1.5 text-sm',
+    md: 'min-h-11 px-4 py-2 text-base',
+    lg: 'min-h-12 px-6 py-3 text-lg',
+    icon: 'size-11 p-0',
+  } as const;
+
+  return cn(base, variants[variant], sizes[size], className);
+}
+
+const Spinner = () => (
+  <svg
+    aria-hidden='true'
+    className='size-4 animate-spin'
+    xmlns='http://www.w3.org/2000/svg'
+    fill='none'
+    viewBox='0 0 24 24'
+  >
+    <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' />
+    <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4Z' />
+  </svg>
+);
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -24,54 +70,16 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
-    const baseStyles =
-      'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
-
-    const variants = {
-      primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
-      secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-      outline:
-        'border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground',
-      ghost: 'hover:bg-muted text-foreground',
-    };
-
-    const sizes = {
-      sm: 'h-8 px-3 text-sm',
-      md: 'h-10 px-4',
-      lg: 'h-12 px-6 text-lg',
-    };
-
     return (
       <button
-        className={cn(baseStyles, variants[variant], sizes[size], className)}
+        className={buttonClasses({ variant, size, className })}
         ref={ref}
+        // désactivé après un envoi valide : évite le double envoi
         disabled={loading || disabled}
+        aria-busy={loading || undefined}
         {...props}
       >
-        {loading && loadingText && (
-          <span className='mr-2'>
-            <svg
-              className='animate-spin h-4 w-4'
-              xmlns='http://www.w3.org/2000/svg'
-              fill='none'
-              viewBox='0 0 24 24'
-            >
-              <circle
-                className='opacity-25'
-                cx='12'
-                cy='12'
-                r='10'
-                stroke='currentColor'
-                strokeWidth='4'
-              />
-              <path
-                className='opacity-75'
-                fill='currentColor'
-                d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-              />
-            </svg>
-          </span>
-        )}
+        {loading && <Spinner />}
         {loading ? loadingText || children : children}
       </button>
     );

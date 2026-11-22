@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from '@/components/ui/ConfirmProvider';
 import { useBeneficiaryFilters } from "@/hooks/beneficiaries";
 import { useBeneficiaries } from "@/hooks/beneficiaries/useBeneficiaries";
 import { Beneficiary, BeneficiaryFormData, CreateBeneficiaryData } from "@/lib/types";
@@ -11,6 +12,7 @@ import BeneficiariesTable from "./BeneficiariesTable";
 import BeneficiaryForm from "./BeneficiaryForm";
 
 const BeneficiariesPage = React.memo(function BeneficiariesPage() {
+  const confirmer = useConfirm();
   const {
     beneficiaries,
     loading,
@@ -48,11 +50,11 @@ const BeneficiariesPage = React.memo(function BeneficiariesPage() {
 
   const handleDeleteBeneficiary = useCallback(
     async (id: string) => {
-      if (confirm("Êtes-vous sûr de vouloir supprimer ce bénéficiaire ?")) {
+      if ((await confirmer({ message: "Êtes-vous sûr de vouloir supprimer ce bénéficiaire ?", variant: 'danger' }))) {
         await deleteBeneficiary(id);
       }
     },
-    [deleteBeneficiary],
+    [deleteBeneficiary, confirmer],
   );
 
   const handleFormSubmit = useCallback(
@@ -174,7 +176,7 @@ const BeneficiariesPage = React.memo(function BeneficiariesPage() {
             <span className="text-sm text-gray-600">Filtres appliqués</span>
             <button
               onClick={clearFilters}
-              className="text-sm text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,48%)] transition-colors"
+              className="text-sm text-brand-700 hover:text-brand-800 transition-colors"
             >
               Effacer
             </button>

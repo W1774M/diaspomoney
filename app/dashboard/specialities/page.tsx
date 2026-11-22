@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirm } from '@/components/ui/ConfirmProvider';
+import { useNotificationManager } from '@/components/ui/Notification';
 import { ROLES } from "@/lib/constants";
 import { AuthorizedRoute } from "@/components/auth";
 import { Building, Edit, Eye, Plus, Search, Trash2 } from "lucide-react";
@@ -12,6 +14,8 @@ import { useSpeciality } from "@/hooks/specialities/useSpeciality";
  * Contenu de la page des spécialités
  */
 function SpecialitiesPageContent() {
+  const confirmer = useConfirm();
+  const notifier = useNotificationManager();
   const { specialities, loading, error, refetch } = useSpecialities();
   const { deleteSpeciality } = useSpeciality();
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,14 +30,14 @@ function SpecialitiesPageContent() {
   });
 
   const handleDelete = async (id: string) => {
-    if (confirm("Êtes-vous sûr de vouloir supprimer cette spécialité ?")) {
+    if ((await confirmer({ message: "Êtes-vous sûr de vouloir supprimer cette spécialité ?", variant: 'danger' }))) {
       try {
         await deleteSpeciality(id);
         // Recharger la liste après suppression
         await refetch();
       } catch (error) {
         console.error("Erreur lors de la suppression:", error);
-        alert("Erreur lors de la suppression de la spécialité");
+        notifier.addError("Erreur lors de la suppression de la spécialité");
       }
     }
   };
@@ -62,7 +66,7 @@ function SpecialitiesPageContent() {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
         <p className="mt-4 text-gray-600">Chargement des spécialités...</p>
       </div>
     );
@@ -74,7 +78,7 @@ function SpecialitiesPageContent() {
         <div className="text-red-600 mb-4">Erreur: {error}</div>
         <button
           onClick={() => refetch()}
-          className="px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)]"
+          className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700"
         >
           Réessayer
         </button>
@@ -98,20 +102,20 @@ function SpecialitiesPageContent() {
       <div className="bg-white rounded-lg shadow border border-gray-200 p-4 sm:p-6 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="relative sm:col-span-2">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
             <input
               type="text"
               placeholder="Rechercher une spécialité..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
             />
           </div>
           <select
             title="Type de spécialité"
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
           >
             <option value="ALL">Tous les types</option>
             <option value="sante">Santé</option>
@@ -161,7 +165,7 @@ function SpecialitiesPageContent() {
             <div className="p-4 sm:p-6 space-y-4">
               {/* Type Info */}
               <div className="flex items-start space-x-3">
-                <Building className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                <Building className="h-5 w-5 text-gray-500 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">
                     Type de service
@@ -183,7 +187,7 @@ function SpecialitiesPageContent() {
                 <div className="flex space-x-2">
                   <Link
                     href={`/dashboard/specialities/${speciality._id}`}
-                    className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] p-1"
+                    className="text-brand-700 hover:text-brand-800 p-1"
                     title="Voir"
                   >
                     <Eye className="h-4 w-4" />
@@ -192,7 +196,7 @@ function SpecialitiesPageContent() {
                 <div className="flex space-x-2">
                   <Link
                     href={`/dashboard/specialities/${speciality._id}/edit`}
-                    className="text-indigo-600 hover:text-indigo-900 p-1"
+                    className="text-brand-700 hover:text-indigo-900 p-1"
                     title="Modifier"
                   >
                     <Edit className="h-4 w-4" />
@@ -214,7 +218,7 @@ function SpecialitiesPageContent() {
       {/* Empty State */}
       {filteredSpecialities.length === 0 && (
         <div className="text-center py-12 bg-white rounded-lg shadow border border-gray-200">
-          <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <Building className="h-12 w-12 text-gray-500 mx-auto mb-4" />
           <div className="text-gray-500 mb-4">
             {searchTerm || typeFilter !== "ALL"
               ? "Aucune spécialité trouvée avec ces critères"
@@ -223,7 +227,7 @@ function SpecialitiesPageContent() {
           {!searchTerm && typeFilter === "ALL" && (
             <Link
               href="/dashboard/specialities/new"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)]"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700"
             >
               <Plus className="h-4 w-4 mr-2" />
               Créer votre première spécialité
@@ -235,7 +239,7 @@ function SpecialitiesPageContent() {
       {/* Floating Action Button */}
       <Link
         href="/dashboard/specialities/new"
-        className="fixed bottom-6 right-6 bg-[hsl(25,100%,53%)] text-white p-4 rounded-full shadow-lg hover:bg-[hsl(25,90%,48%)] transition-colors z-10"
+        className="fixed bottom-6 right-6 bg-brand-600 text-white p-4 rounded-full shadow-lg hover:bg-brand-700 transition-colors z-10"
         title="Créer une spécialité"
       >
         <Plus className="h-6 w-6" />
