@@ -18,6 +18,7 @@ export default defineConfig({
       'tests/api/**/*.test.ts',
       'tests/facades/**/*.test.ts',
       'tests/services/**/*.test.ts',
+      'tests/domain/**/*.test.ts',
     ],
     coverage: {
       provider: 'v8',
