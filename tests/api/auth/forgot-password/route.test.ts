@@ -1,284 +1,104 @@
+// @vitest-environment node
 /**
- * Tests unitaires pour /api/auth/forgot-password
- * 
- * Implémente les tests pour :
- * - POST /api/auth/forgot-password
- * - Validation avec ForgotPasswordSchema
- * - Utilisation de userService
- * - Génération de token de réinitialisation
- * - Envoi d'email (si RESEND_API_KEY configuré)
- * - Gestion d'erreurs
+ * POST /api/auth/forgot-password : recherche par e-mail, jeton stocké sous forme d'empreinte,
+ * lien envoyé avec le jeton en clair, réponse identique que le compte existe ou non.
  */
-
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { POST } from '@/app/api/auth/forgot-password/route';
+import { createHash } from 'crypto';
 import { NextRequest } from 'next/server';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock de userService
-vi.mock('@/services/user/user.service', () => ({
-  userService: {
-    getUserProfile: vi.fn(),
-    updateUserProfile: vi.fn(),
-  },
+const h = vi.hoisted(() => ({
+  findByEmail: vi.fn(),
+  update: vi.fn(),
+  sendPasswordResetEmail: vi.fn(),
+  invalidateAppCache: vi.fn(),
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-// Mock de requestPasswordReset
-vi.mock('@/services/auth/auth.service', () => ({
-  requestPasswordReset: vi.fn(),
-}));
-
-// Mock de handleApiRoute
+vi.mock('@/repositories', () => ({ getUserRepository: () => ({ findByEmail: h.findByEmail, update: h.update }) }));
+vi.mock('@/lib/email/resend', () => ({ sendPasswordResetEmail: h.sendPasswordResetEmail }));
+vi.mock('@/lib/cache/redis', () => ({ invalidateAppCache: h.invalidateAppCache }));
+vi.mock('@/lib/logger', () => ({ logger: h.logger }));
 vi.mock('@/lib/api/error-handler', () => ({
-  handleApiRoute: vi.fn((_request, handler) => handler()),
-  validateBody: vi.fn((body) => body),
+  handleApiRoute: (_req: unknown, handler: () => unknown) => handler(),
+  validateBody: (body: unknown) => body,
 }));
 
-// Mock de logger
-vi.mock('@/lib/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
-}));
+import { POST } from '@/app/api/auth/forgot-password/route';
 
-// Mock de crypto
-vi.mock('crypto', () => ({
-  randomBytes: vi.fn(() => ({
-    toString: vi.fn(() => 'random-token-hex'),
-  })),
-}));
+const post = (email: string) =>
+  POST(new NextRequest('http://localhost/api/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }));
+const sha = (t: string) => createHash('sha256').update(t).digest('hex');
+const OK = { success: true, message: 'Si cet email existe, vous recevrez un lien de récupération' };
 
-describe('POST /api/auth/forgot-password', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    // Reset env
-    delete process.env['RESEND_API_KEY'];
-  });
-
-  it('devrait générer un token de réinitialisation avec succès', async () => {
-    const mockUser = {
-      id: 'user123',
-      email: 'test@example.com',
-      firstName: 'John',
-      lastName: 'Doe',
-    };
-
-    const { userService } = await import('@/services/user/user.service');
-    vi.mocked(userService.getUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(mockUser);
-
-    const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'test@example.com',
-      }),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.message).toBe('Si cet email existe, vous recevrez un lien de récupération');
-    expect(vi.mocked(userService.getUserProfile)).toHaveBeenCalledWith('test@example.com');
-    expect(vi.mocked(userService.updateUserProfile)).toHaveBeenCalledWith(
-      'user123',
-      expect.objectContaining({
-        passwordResetToken: 'random-token-hex',
-        passwordResetExpires: expect.any(Date),
-      }),
-    );
-  });
-
-  it('devrait convertir l\'email en minuscules', async () => {
-    const mockUser = {
-      id: 'user123',
-      email: 'TEST@EXAMPLE.COM',
-      firstName: 'John',
-      lastName: 'Doe',
-    };
-
-    const { userService } = await import('@/services/user/user.service');
-    vi.mocked(userService.getUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(mockUser);
-
-    const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'TEST@EXAMPLE.COM',
-      }),
-    });
-
-    await POST(request);
-
-    expect(vi.mocked(userService.getUserProfile)).toHaveBeenCalledWith('test@example.com');
-  });
-
-  it('devrait envoyer un email si RESEND_API_KEY est configuré', async () => {
-    process.env['RESEND_API_KEY'] = 'test-key';
-
-    const mockUser = {
-      id: 'user123',
-      email: 'test@example.com',
-      firstName: 'John',
-      lastName: 'Doe',
-    };
-
-    const { userService } = await import('@/services/user/user.service');
-    const { requestPasswordReset } = await import('@/services/auth/auth.service');
-    
-    vi.mocked(userService.getUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(requestPasswordReset).mockResolvedValueOnce(true);
-
-    const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'test@example.com',
-      }),
-    });
-
-    await POST(request);
-
-    expect(vi.mocked(requestPasswordReset)).toHaveBeenCalledWith('test@example.com');
-  });
-
-  it('ne devrait pas envoyer d\'email si RESEND_API_KEY n\'est pas configuré', async () => {
-    const mockUser = {
-      id: 'user123',
-      email: 'test@example.com',
-      firstName: 'John',
-      lastName: 'Doe',
-    };
-
-    const { userService } = await import('@/services/user/user.service');
-    vi.mocked(userService.getUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(mockUser);
-
-    const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'test@example.com',
-      }),
-    });
-
-    await POST(request);
-
-    const { requestPasswordReset } = await import('@/services/auth/auth.service');
-    expect(vi.mocked(requestPasswordReset)).not.toHaveBeenCalled();
-  });
-
-  it('devrait retourner un succès même si l\'utilisateur n\'existe pas (sécurité)', async () => {
-    const { userService } = await import('@/services/user/user.service');
-    vi.mocked(userService.getUserProfile).mockRejectedValueOnce(new Error('User not found'));
-
-    const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'nonexistent@example.com',
-      }),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    // Pour des raisons de sécurité, on retourne toujours un succès
-    expect(response.status).toBe(200);
-    expect(data.success).toBe(true);
-    expect(data.message).toBe('Si cet email existe, vous recevrez un lien de récupération');
-  });
-
-  it('devrait valider le body avec ForgotPasswordSchema', async () => {
-    const { validateBody } = await import('@/lib/api/error-handler');
-    const mockUser = {
-      id: 'user123',
-      email: 'test@example.com',
-      firstName: 'John',
-      lastName: 'Doe',
-    };
-
-    const { userService } = await import('@/services/user/user.service');
-    vi.mocked(userService.getUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(mockUser);
-
-    const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'test@example.com',
-      }),
-    });
-
-    await POST(request);
-
-    expect(validateBody).toHaveBeenCalled();
-  });
-
-  it('devrait générer un token avec expiration de 1 heure', async () => {
-    const mockUser = {
-      id: 'user123',
-      email: 'test@example.com',
-      firstName: 'John',
-      lastName: 'Doe',
-    };
-
-    const { userService } = await import('@/services/user/user.service');
-    vi.mocked(userService.getUserProfile).mockResolvedValueOnce(mockUser);
-    vi.mocked(userService.updateUserProfile).mockResolvedValueOnce(mockUser);
-
-    const beforeTime = Date.now();
-    const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'test@example.com',
-      }),
-    });
-
-    await POST(request);
-    const afterTime = Date.now();
-
-    expect(vi.mocked(userService.updateUserProfile)).toHaveBeenCalledWith(
-      'user123',
-      expect.objectContaining({
-        passwordResetExpires: expect.any(Date),
-      }),
-    );
-
-    const expiresDate = (vi.mocked(userService.updateUserProfile).mock.calls[0]?.[1] as any)?.passwordResetExpires;
-    const expiresTime = expiresDate.getTime();
-    const expectedMinTime = beforeTime + 3600000; // 1 heure
-    const expectedMaxTime = afterTime + 3600000;
-
-    expect(expiresTime).toBeGreaterThanOrEqual(expectedMinTime);
-    expect(expiresTime).toBeLessThanOrEqual(expectedMaxTime);
-  });
-
-  it('devrait retourner 503 pendant le build time', async () => {
-    const originalPhase = process.env['NEXT_PHASE'];
-    process.env['NEXT_PHASE'] = 'phase-production-build';
-
-    const request = new NextRequest('http://localhost:3000/api/auth/forgot-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: 'test@example.com',
-      }),
-    });
-
-    const response = await POST(request);
-    const data = await response.json();
-
-    expect(response.status).toBe(503);
-    expect(data.message).toBe('Service temporarily unavailable');
-
-    process.env['NEXT_PHASE'] = originalPhase;
-  });
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.stubEnv('NEXT_PHASE', '');
+  vi.stubEnv('NEXTAUTH_URL', 'https://app.test');
+  vi.stubEnv('RESEND_API_KEY', 're_test');
+  h.findByEmail.mockResolvedValue({ id: 'u1', email: 'awa@test.fr', name: 'Awa Diallo' });
+  h.update.mockResolvedValue({});
+  h.sendPasswordResetEmail.mockResolvedValue(true);
 });
 
+describe('POST /api/auth/forgot-password', () => {
+  it('stocke l’empreinte du jeton et envoie le lien avec le jeton en clair', async () => {
+    const res = await post(' Awa@Test.FR ');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(OK);
+    expect(h.findByEmail).toHaveBeenCalledWith('awa@test.fr');
+
+    const [to, name, url] = h.sendPasswordResetEmail.mock.calls[0]!;
+    expect([to, name]).toEqual(['awa@test.fr', 'Awa Diallo']);
+    expect(url).toMatch(/^https:\/\/app\.test\/reset-password\?token=[0-9a-f]{64}$/);
+    const token = new URL(url).searchParams.get('token')!;
+
+    const [id, stored] = h.update.mock.calls[0]!;
+    expect(id).toBe('u1');
+    expect(stored.passwordResetToken).toBe(sha(token));
+    expect(stored.passwordResetToken).not.toBe(token);
+    expect(stored.passwordResetExpires.getTime()).toBeGreaterThan(Date.now() + 59 * 60_000);
+    expect(h.invalidateAppCache).toHaveBeenCalledWith('UserRepository');
+  });
+
+  it('compose le nom à partir du prénom et du nom', async () => {
+    h.findByEmail.mockResolvedValueOnce({ id: 'u1', email: 'awa@test.fr', firstName: 'Awa', lastName: 'Diallo' });
+    await post('awa@test.fr');
+    expect(h.sendPasswordResetEmail.mock.calls[0]![1]).toBe('Awa Diallo');
+  });
+
+  it('répond pareil pour un e-mail inconnu, sans rien écrire ni envoyer', async () => {
+    h.findByEmail.mockResolvedValueOnce(null);
+    const res = await post('inconnu@test.fr');
+    expect(await res.json()).toEqual(OK);
+    expect(h.update).not.toHaveBeenCalled();
+    expect(h.sendPasswordResetEmail).not.toHaveBeenCalled();
+  });
+
+  it('n’envoie rien sans Resend et n’écrit jamais le jeton dans les journaux', async () => {
+    vi.stubEnv('RESEND_API_KEY', '');
+    await post('awa@test.fr');
+    expect(h.update).toHaveBeenCalled();
+    expect(h.sendPasswordResetEmail).not.toHaveBeenCalled();
+    const logged = JSON.stringify([h.logger.info.mock.calls, h.logger.warn.mock.calls]);
+    expect(logged).not.toContain(h.update.mock.calls[0]![1].passwordResetToken);
+    expect(logged).not.toMatch(/[0-9a-f]{64}/);
+  });
+
+  it('répond 200 même si l’envoi ou la base échoue', async () => {
+    h.sendPasswordResetEmail.mockResolvedValueOnce(false);
+    expect((await post('awa@test.fr')).status).toBe(200);
+    expect(h.logger.warn).toHaveBeenCalled();
+
+    h.findByEmail.mockRejectedValueOnce(new Error('mongo HS'));
+    const res = await post('awa@test.fr');
+    expect(await res.json()).toEqual(OK);
+    expect(h.logger.error).toHaveBeenCalled();
+  });
+
+  it('renvoie 503 pendant la compilation', async () => {
+    vi.stubEnv('NEXT_PHASE', 'phase-production-build');
+    expect((await post('awa@test.fr')).status).toBe(503);
+    expect(h.findByEmail).not.toHaveBeenCalled();
+  });
+});

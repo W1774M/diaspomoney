@@ -11,6 +11,7 @@
  * - Gestion d'erreurs
  */
 
+import { createHash } from 'crypto';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '@/app/api/auth/reset-password/route';
 import { NextRequest } from 'next/server';
@@ -133,8 +134,9 @@ describe('POST /api/auth/reset-password', () => {
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
     expect(data.message).toBe('Mot de passe réinitialisé avec succès');
+    // La base ne stocke que l'empreinte SHA-256 du jeton envoyé par e-mail
     expect(vi.mocked(mockFindOne)).toHaveBeenCalledWith({
-      passwordResetToken: 'valid-token',
+      passwordResetToken: createHash('sha256').update('valid-token').digest('hex'),
     });
     expect(vi.mocked(bcryptModule.default.hash)).toHaveBeenCalledWith('NewPassword123!', 12);
     expect(vi.mocked(mockUpdateOne)).toHaveBeenCalledWith(

@@ -25,12 +25,14 @@ import {
   Cog,
   CreditCard,
   FileText,
+  Globe2,
   GraduationCap,
   Headphones,
   HelpCircle,
   LayoutDashboard,
   LogOut,
   Mail,
+  Megaphone,
   MessageSquare,
   Package,
   Paperclip,
@@ -504,6 +506,22 @@ function buildNavigationSections(
       key: 'services',
       href: '/dashboard/services',
       icon: Settings2,
+      show: true,
+    });
+
+    adminGestionItems.push({
+      name: 'Contenu de la home',
+      key: 'home-content',
+      href: '/dashboard/home-content',
+      icon: Megaphone,
+      show: true,
+    });
+
+    adminGestionItems.push({
+      name: 'Pays de présence',
+      key: 'presence-countries',
+      href: '/dashboard/presence-countries',
+      icon: Globe2,
       show: true,
     });
   }

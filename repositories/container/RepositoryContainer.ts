@@ -5,6 +5,10 @@
 
 import { MongoAttachmentRepository } from '../implementations/MongoAttachmentRepository';
 import { MongoAuditLogRepository } from '../implementations/MongoAuditLogRepository';
+import { MongoDataProcessingRecordRepository } from '../implementations/MongoDataProcessingRecordRepository';
+import { MongoDataSubjectRequestRepository } from '../implementations/MongoDataSubjectRequestRepository';
+import { MongoGDPRConsentRepository } from '../implementations/MongoGDPRConsentRepository';
+import { MongoPCIAuditLogRepository } from '../implementations/MongoPCIAuditLogRepository';
 import { MongoBeneficiaryRepository } from '../implementations/MongoBeneficiaryRepository';
 import { MongoBookingRepository } from '../implementations/MongoBookingRepository';
 import { MongoComplaintRepository } from '../implementations/MongoComplaintRepository';
@@ -111,6 +115,11 @@ class RepositoryContainer {
     this.repositories.set('serviceOption', new MongoServiceOptionRepository());
     // Repository audit
     this.repositories.set('auditLog', new MongoAuditLogRepository());
+    this.repositories.set('pciAuditLog', new MongoPCIAuditLogRepository());
+    // Repositories RGPD
+    this.repositories.set('gdprConsent', new MongoGDPRConsentRepository());
+    this.repositories.set('dataProcessingRecord', new MongoDataProcessingRecordRepository());
+    this.repositories.set('dataSubjectRequest', new MongoDataSubjectRequestRepository());
   }
 
   /**

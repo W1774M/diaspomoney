@@ -283,7 +283,8 @@ export class MongoNotificationRepository implements INotificationRepository {
         builder.offset(options.offset);
       }
       if (options.page) {
-        builder.page(options.page);
+        // La taille de page demandée est conservée (page() la remettrait sinon à 50)
+        builder.page(options.page, options.limit || 50);
       }
       if (options.sort) {
         Object.entries(options.sort).forEach(([field, direction]) => {
@@ -456,31 +457,9 @@ export class MongoNotificationRepository implements INotificationRepository {
     options?: PaginationOptions,
   ): Promise<PaginatedFindResult<NotificationWithId>> {
     try {
-      const query: Record<string, any> = {};
-
-      if (filters.recipient) {
-        query['recipient'] = filters.recipient;
-      }
-      if (filters.type) {
-        query['type'] = filters.type;
-      }
-      if (filters.status) {
-        query['status'] = filters.status;
-      }
-      if (filters.channelType) {
-        query['channels.type'] = filters.channelType;
-      }
-      if (filters.dateFrom || filters.dateTo) {
-        query['createdAt'] = {};
-        if (filters.dateFrom) {
-          query['createdAt'].$gte = filters.dateFrom;
-        }
-        if (filters.dateTo) {
-          query['createdAt'].$lte = filters.dateTo;
-        }
-      }
-
-      const result = await this.findWithPagination(query, options);
+      // findWithPagination traduit lui-même les filtres (canal, période…) en requête MongoDB :
+      // lui passer une requête déjà construite faisait ignorer le canal et les dates.
+      const result = await this.findWithPagination(filters, options);
       this.log.debug(
         {
           count: result.data.length,

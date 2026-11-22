@@ -1,9 +1,10 @@
 "use client";
 
-import { CM, CG, CI, SN, CD, RW } from "country-flag-icons/react/3x2";
 import { Shield, Clock, Tag, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { flagUrl, presenceBadgeLabel } from "@/lib/presence-countries";
+import { CLINICS_SECTION_ID, useHomeCountryFilter } from "./HomeCountryFilter";
 
 const FEATURES = [
   {
@@ -20,21 +21,23 @@ const FEATURES = [
   },
 ];
 
-/**
- * Pays couverts — drapeaux en SVG (les emojis drapeaux ne s’affichent pas sous Windows
- * sur Chrome/Edge : lettres « CM », « CI », etc. à la place).
- */
-const PRESENCE_COUNTRIES: { Flag: typeof CM; iso: string; label: string }[] = [
-  { Flag: CM, iso: "CM", label: "Présent au Cameroun" },
-  { Flag: CG, iso: "CG", label: "Présent au Congo" },
-  { Flag: CI, iso: "CI", label: "Bientôt en Côte d’Ivoire" },
-  { Flag: SN, iso: "SN", label: "Bientôt au Sénégal" },
-  { Flag: CD, iso: "CD", label: "Bientôt en RDC" },
-  { Flag: RW, iso: "RW", label: "Bientôt au Rwanda" },
-];
+const BADGE_CLASS =
+  "inline-flex items-center gap-2 rounded-full border border-stone-200/80 bg-white/80 px-3 py-1.5 text-sm text-stone-700 shadow-sm";
 
 export function HeroSection() {
   const router = useRouter();
+  const { countries, country, setCountry } = useHomeCountryFilter();
+
+  const handleCountryClick = (iso: string) => {
+    // Second clic sur le pays actif : on retire le filtre.
+    setCountry(country === iso ? null : iso);
+    document.getElementById(CLINICS_SECTION_ID)?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "start",
+    });
+  };
 
   const handleGetStarted = () => {
     router.push("/#services");
@@ -108,23 +111,53 @@ export function HeroSection() {
               style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
               aria-label="Pays où DiaspoMoney est présent"
             >
-              {PRESENCE_COUNTRIES.map(({ Flag, iso, label }) => (
-                <li
-                  key={iso}
-                  className="inline-flex items-center gap-2 rounded-full border border-stone-200/80 bg-white/80 px-3 py-1.5 text-sm text-stone-700 shadow-sm"
-                >
-                  <span
-                    className="relative h-[14px] w-[21px] shrink-0 overflow-hidden rounded-[2px] shadow-sm ring-1 ring-black/10"
-                    aria-hidden
-                  >
-                    <Flag
-                      title=""
-                      className="absolute inset-0 h-full w-full object-cover"
+              {countries.map((presenceCountry) => {
+                const { id, iso } = presenceCountry;
+                const present = presenceCountry.status === "present";
+                const content = (
+                  <>
+                    {/* Drapeau SVG : les emojis drapeaux ne s’affichent pas sous Windows. */}
+                    <img
+                      src={flagUrl(iso)}
+                      alt=""
+                      width={21}
+                      height={14}
+                      className="h-[14px] w-[21px] shrink-0 rounded-[2px] object-cover shadow-sm ring-1 ring-black/10"
                     />
-                  </span>
-                  <span>{label}</span>
-                </li>
-              ))}
+                    <span>{presenceBadgeLabel(presenceCountry)}</span>
+                  </>
+                );
+                if (!present) {
+                  return (
+                    <li key={id} className={BADGE_CLASS}>
+                      {content}
+                    </li>
+                  );
+                }
+                const active = country === iso;
+                return (
+                  <li key={id}>
+                    <button
+                      type="button"
+                      onClick={() => handleCountryClick(iso)}
+                      aria-pressed={active}
+                      aria-controls={CLINICS_SECTION_ID}
+                      title={
+                        active
+                          ? "Afficher toutes les cliniques"
+                          : "Voir les cliniques disponibles dans ce pays"
+                      }
+                      className={`${BADGE_CLASS} cursor-pointer transition-colors hover:border-[#F97015] hover:text-[#F97015] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F97015]/60 ${
+                        active
+                          ? "border-[#F97015] bg-[#FFF1E6] text-[#C2410C]"
+                          : ""
+                      }`}
+                    >
+                      {content}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
 
             {/* Description */}

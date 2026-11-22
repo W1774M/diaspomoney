@@ -5,6 +5,7 @@
  * Orchestre UserService, KYCService et NotificationService
  */
 
+import bcrypt from 'bcryptjs';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Retry, RetryHelpers } from '@/lib/decorators/retry.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
@@ -45,6 +46,10 @@ const CreateUserFacadeSchema = z.object({
     })
     .optional(),
   sendWelcomeNotification: z.boolean().optional(),
+  // Mot de passe choisi à l'inscription (haché avant enregistrement, jamais stocké en clair)
+  password: z.string().min(8).optional(),
+  // Profil complémentaire (pays, ville, préférences, société…) enregistré à plat sur l'utilisateur
+  metadata: z.record(z.unknown()).optional(),
 });
 
 /**
@@ -125,7 +130,10 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
       const userRepository = getUserRepository();
       
       // Préparer les données en excluant les propriétés undefined pour exactOptionalPropertyTypes
+      // Le profil complémentaire est enregistré à plat (champs lus au premier niveau partout
+      // ailleurs) ; il ne peut pas écraser les champs d'identité ci-dessous.
       const userDataToCreate: Partial<User> = {
+        ...((userData.metadata ?? {}) as Partial<User>),
         email: userData.email,
         name: userData.name,
         roles: (userData.roles || []) as UserRole[],
@@ -133,16 +141,16 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
         ...(userData.firstName && { firstName: userData.firstName }),
         ...(userData.lastName && { lastName: userData.lastName }),
         ...(userData.phone && { phone: userData.phone }),
-        ...(userData.metadata && { metadata: userData.metadata }),
       };
       
-      // Utiliser createWithPassword si un password est fourni (pour l'inscription)
-      const user = data.password
-        ? await userRepository.createWithPassword({
-            ...userDataToCreate,
-            password: data.password,
-          })
-        : await userRepository.create(userDataToCreate);
+      // Mot de passe fourni (inscription) : haché ici puis enregistré avec le reste du profil.
+      // (createWithPassword passe par le modèle Mongoose, qui rejetterait certains champs du
+      // profil, comme la liste des services choisis.) Le compte reste en attente d'activation.
+      const user = await userRepository.create(
+        data.password
+          ? ({ ...userDataToCreate, password: await bcrypt.hash(data.password, 12) } as Partial<User>)
+          : userDataToCreate,
+      );
       const mappedUser = userMapper.map(user);
 
       // Créer les données KYC si fournies
@@ -335,10 +343,13 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
         }
       }
       if (filters.search) {
+        // Texte saisi par l'admin : échappé, pour ne jamais être interprété comme une expression
+        // régulière (motif invalide ou coûteux).
+        const pattern = filters.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         queryBuilder.whereOr([
-          { firstName: { $regex: filters.search, $options: 'i' } },
-          { lastName: { $regex: filters.search, $options: 'i' } },
-          { email: { $regex: filters.search, $options: 'i' } },
+          { firstName: { $regex: pattern, $options: 'i' } },
+          { lastName: { $regex: pattern, $options: 'i' } },
+          { email: { $regex: pattern, $options: 'i' } },
         ]);
       }
 
@@ -358,7 +369,9 @@ export class UserFacade implements IFacade<UserFacadeData, UserFacadeResult> {
         ...(query.sort && { sort: query.sort }),
       };
 
-      const result = await userRepository.findUsersWithFilters(
+      // query.filters est déjà une requête MongoDB : findUsersWithFilters la reconstruirait à
+      // partir de ses propres clés et perdrait le rôle et la recherche.
+      const result = await userRepository.findWithPagination(
         query.filters,
         normalizedPagination,
       );

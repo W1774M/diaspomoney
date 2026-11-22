@@ -654,7 +654,7 @@ export interface UserFacadeData extends FacadeData {
 
   /**
    * Mot de passe (pour l'inscription)
-   * Si fourni, utilise createWithPassword au lieu de create
+   * Si fourni, haché par la facade puis enregistré (le compte reste en attente d’activation)
    */
   password?: string | undefined;
 }

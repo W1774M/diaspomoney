@@ -528,9 +528,12 @@ export class MongoUserRepository implements IUserRepository {
   async verifyPassword(userId: string, password: string): Promise<boolean> {
     try {
       const UserModel = (await import('@/models/User')).default;
-      const objectId = ObjectId.isValid(userId) ? new ObjectId(userId) : userId;
+      if (!ObjectId.isValid(userId)) return false;
+      // Identifiant passé en texte : Mongoose le convertit lui-même. Un ObjectId du pilote
+      // mongodb (autre version de BSON) faisait échouer la requête (BSONVersionError),
+      // et la vérification renvoyait toujours false.
       const userDoc = await (UserModel as any)
-        .findOne({ _id: objectId })
+        .findOne({ _id: String(userId) })
         .exec();
 
       if (!userDoc || !userDoc.password) {
@@ -781,6 +784,12 @@ export class MongoUserRepository implements IUserRepository {
     }
     if (filters.email) {
       builder.byEmail(filters.email);
+    }
+    // Recherche d'un compte par téléphone (bénéficiaires) : sans ce filtre, la requête
+    // renvoyait n'importe quel utilisateur.
+    const phone = (filters as UserFilters & { phone?: string }).phone;
+    if (phone) {
+      builder.where('phone', phone);
     }
     if (filters.country) {
       builder.byCountry(filters.country);
