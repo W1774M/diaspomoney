@@ -7,6 +7,11 @@
 - Chaque environnement a sa base Redis, lue dans `REDIS_URL` : `/0` dev, `/1` rct, `/2` prod.
 - Toutes les clés de cache sont sous `cache:`. Un vidage ne touche jamais les clés de sécurité de `lib/redis/redis-client` (force brute, liste noire de jetons, fraude).
 
+## Données sensibles
+
+- Un résultat qui contient un champ secret (`password`, `twoFactorSecret`, `twoFactorBackupCodes`, jetons de réinitialisation ou de vérification, `accessToken`/`refreshToken`) n'est **jamais** mis en cache : `@Cacheable` le renvoie sans le stocker et journalise un avertissement.
+- `MongoUserRepository` n'est pas mis en cache : ses documents contiennent le hash du mot de passe et les secrets 2FA. Les services au-dessus (profils, listes) construisent des objets sans secrets et restent en cache.
+
 ## Invalidation
 
 - **Écriture ordinaire** : toute méthode `@InvalidateCache(...)` vide **tout** le cache de l'environnement. Une même donnée est en cache à plusieurs niveaux (dépôt, service, façade, statistiques), et un motif ciblé en oublie. Le motif passé au décorateur sert seulement à reconnaître le domaine.
