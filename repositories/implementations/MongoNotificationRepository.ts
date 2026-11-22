@@ -16,6 +16,7 @@ import { mongoClient } from '@/lib/mongodb';
 import type { Notification, NotificationWithId, NotificationStatus } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import type {
   INotificationRepository,
   NotificationFilters,
@@ -158,8 +159,8 @@ export class MongoNotificationRepository implements INotificationRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      const updated = result?.['value']
-        ? (this.mapToNotification(result['value']) as NotificationWithId)
+      const updated = unwrapFindOne(result)
+        ? (this.mapToNotification(unwrapFindOne(result)!) as NotificationWithId)
         : null;
       if (updated) {
         this.log.info(

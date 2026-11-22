@@ -16,6 +16,7 @@ import { transactionMapper } from '@/lib/mappers';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import type {
   PaginatedFindResult,
   PaginationOptions,
@@ -138,8 +139,8 @@ export class MongoTransactionRepository implements ITransactionRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      const mapped = result?.['value']
-        ? this.mapToTransaction(result['value'])
+      const mapped = unwrapFindOne(result)
+        ? this.mapToTransaction(unwrapFindOne(result)!)
         : null;
       if (mapped) {
         this.log.info(

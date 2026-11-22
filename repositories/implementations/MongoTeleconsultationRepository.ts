@@ -14,6 +14,7 @@ import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import type {
   PaginatedFindResult,
   PaginationOptions,
@@ -162,8 +163,8 @@ export class MongoTeleconsultationRepository
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      const updated = result?.['value']
-        ? this.mapToTeleconsultation(result['value'])
+      const updated = unwrapFindOne(result)
+        ? this.mapToTeleconsultation(unwrapFindOne(result)!)
         : null;
       if (updated) {
         this.log.info(

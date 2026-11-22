@@ -16,6 +16,7 @@ import { mongoClient } from '@/lib/mongodb';
 import type { Beneficiary, BeneficiaryFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import type { IBeneficiaryRepository } from '../interfaces/IBeneficiaryRepository';
 import type {
   PaginatedFindResult,
@@ -139,8 +140,8 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      const mapped = result?.['value']
-        ? this.mapToBeneficiary(result['value'])
+      const mapped = unwrapFindOne(result)
+        ? this.mapToBeneficiary(unwrapFindOne(result)!)
         : null;
       if (mapped) {
         this.log.info(
@@ -410,7 +411,7 @@ export class MongoBeneficiaryRepository implements IBeneficiaryRepository {
         },
         { returnDocument: 'after' },
       );
-      const deactivated = result?.['value'] !== null;
+      const deactivated = unwrapFindOne(result) !== null;
       if (deactivated) {
         this.log.info(
           { beneficiaryId, payerId },
