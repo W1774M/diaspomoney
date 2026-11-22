@@ -11,7 +11,7 @@ import { childLogger } from '@/lib/logger';
 import type { EmailOptions, EmailTemplate } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Resend } from 'resend';
-import { welcomeTemplate, passwordResetTemplate, accountActivationTemplate, loginSuccessTemplate, paymentConfirmationTemplate, bookingTakeChargeTemplate, paymentLinkTemplate, providerAssignmentTemplate, feedbackRequestTemplate } from './templates';
+import { welcomeTemplate, passwordResetTemplate, accountActivationTemplate,paymentConfirmationTemplate, bookingTakeChargeTemplate, paymentLinkTemplate, providerAssignmentTemplate, feedbackRequestTemplate } from './templates';
 
 const log = childLogger({ component: 'EmailService' });
 
@@ -388,52 +388,6 @@ export async function sendAccountActivationEmail(
     text: template.text,
     tags: [
       { name: 'type', value: 'account_activation' },
-      { name: 'user_email', value: sanitizeTagValue(email) },
-    ],
-  });
-}
-
-/**
- * Envoyer un email de notification de connexion réussie
- */
-export async function sendLoginSuccessEmail(
-  email: string,
-  name: string,
-): Promise<boolean> {
-  // En développement, utiliser l'email autorisé par Resend
-  // En production, utiliser l'email original
-  const targetEmail =
-    process.env['NODE_ENV'] === 'development'
-      ? 'malarbillaudrey@gmail.com'
-      : email;
-
-  log.debug({ targetEmail, originalEmail: email }, 'Sending login success email');
-
-  // Construire l'URL de dashboard
-  const { cleanUrl } = await import('@/lib/utils');
-  const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
-  const dashboardUrl = `${baseUrl}/dashboard`;
-
-  // Formater la date et l'heure
-  const loginTime = new Date().toLocaleString('fr-FR', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Europe/Paris',
-  });
-
-  const template = loginSuccessTemplate(name, loginTime, dashboardUrl);
-
-  return await sendEmail({
-    to: targetEmail,
-    subject: template.subject,
-    html: template.html,
-    text: template.text,
-    tags: [
-      { name: 'type', value: 'login_success' },
       { name: 'user_email', value: sanitizeTagValue(email) },
     ],
   });

@@ -364,6 +364,43 @@ export class NotificationService {
   }
 
   /**
+   * Notification de connexion réussie : in-app uniquement (aucun e-mail).
+   * Visible dans le centre de notifications du dashboard.
+   */
+  @Log({ level: 'info', logArgs: true, logExecutionTime: true })
+  @Performance({ warningThreshold: 1000, errorThreshold: 3000 })
+  async sendLoginNotification(
+    userId: string,
+    email: string,
+    timestamp: Date = new Date(),
+    locale: string = LOCALE.DEFAULT,
+  ): Promise<void> {
+    try {
+      await this.sendNotification({
+        recipient: userId,
+        type: 'LOGIN_SUCCESS',
+        template: 'login_success',
+        data: {
+          email,
+          timestamp: timestamp.toLocaleString('fr-FR', {
+            dateStyle: 'long',
+            timeStyle: 'short',
+            timeZone: 'Europe/Paris',
+          }),
+          supportEmail: 'support@diaspomoney.fr',
+        },
+        channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+        locale,
+        priority: 'LOW',
+      });
+    } catch (error) {
+      this.log.error({ error, userId }, 'Error sending login notification');
+      Sentry.captureException(error);
+      throw error;
+    }
+  }
+
+  /**
    * Envoyer une notification de succès de paiement
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
@@ -711,7 +748,7 @@ export class NotificationService {
           content:
             'Bonjour, vous vous êtes connecté avec succès à votre compte DiaspoMoney le {{timestamp}}. Si ce n\'était pas vous, veuillez contacter {{supportEmail}} immédiatement.',
           variables: ['email', 'timestamp', 'supportEmail'],
-          channels: [{ type: 'EMAIL', enabled: true, priority: 'LOW' }, { type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
+          channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
           locale,
           createdAt: new Date(),
           updatedAt: new Date(),

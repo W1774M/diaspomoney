@@ -619,4 +619,41 @@ export const authConfig: NextAuthOptions = {
       }
     },
   },
+
+  events: {
+    /**
+     * Connexion réussie (credentials ou OAuth) : notification in-app, pas d'e-mail.
+     * Ne bloque jamais la connexion en cas d'échec.
+     */
+    async signIn({ user, account }) {
+      const log = childLogger({
+        component: 'NextAuth',
+        action: 'events.signIn',
+        provider: account?.provider,
+      });
+
+      try {
+        let userId = user?.id ? String(user.id) : '';
+        const email = user?.email?.toLowerCase() ?? '';
+        if (!userId && email) {
+          const dbUser = await getUserRepository().findByEmail(email);
+          userId = dbUser?.id ? String(dbUser.id) : '';
+        }
+        if (!userId) {
+          log.warn('No user id available, login notification skipped');
+          return;
+        }
+
+        const { notificationService } = await import(
+          '@/services/notification/notification.service'
+        );
+        await notificationService.sendLoginNotification(userId, email);
+      } catch (error) {
+        log.warn({ error, userId: user?.id }, 'Login notification failed');
+        Sentry.captureException(error, {
+          tags: { component: 'NextAuth', action: 'loginNotification' },
+        });
+      }
+    },
+  },
 };
