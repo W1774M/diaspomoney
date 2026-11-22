@@ -104,7 +104,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      # Cache @Cacheable : activé sur dev seulement (déploiement progressif, voir docs/ci-cd.md)
+      # Cache @Cacheable (voir docs/cache-redis.md)
       CACHE_REDIS_ENABLED: "true"
     labels:
       - traefik.enable=true
@@ -158,6 +158,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # Cache @Cacheable (voir docs/cache-redis.md)
+      CACHE_REDIS_ENABLED: "true"
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik
@@ -212,6 +214,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # Cache @Cacheable (voir docs/cache-redis.md)
+      CACHE_REDIS_ENABLED: "true"
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY_PROD}
       STRIPE_SECRET_KEY_PROD: ${STRIPE_SECRET_KEY_PROD}
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD:-pk_live_placeholder}

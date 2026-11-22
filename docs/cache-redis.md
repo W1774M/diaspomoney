@@ -17,10 +17,6 @@
 
 Interrupteur `CACHE_REDIS_ENABLED=true`, à mettre dans le bloc `environment` du service de `docker-compose.yml`. Le cache n'est jamais actif en test (`NODE_ENV=test`) ni pendant `next build`. Désactivé, `@Cacheable` appelle simplement la méthode.
 
-Déploiement progressif :
-
-1. **dev** : activé.
-2. **rct** : ajouter `CACHE_REDIS_ENABLED: "true"` à `app-rct` après observation sur dev (données périmées, erreurs de type sur les valeurs relues, logs « Redis »).
-3. **prod** : même chose pour `app-prod`, après la recette.
+État (22 novembre 2026) : activé sur **dev**, **rct** et **prod**. Dev a été activé en premier et observé avant les deux autres : connexion établie, invalidations effectives, aucune erreur.
 
 Retour arrière : retirer la variable et redéployer, le cache cesse d'être lu immédiatement.
