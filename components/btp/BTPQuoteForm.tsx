@@ -1,9 +1,9 @@
+'use client';
 import { useNotificationManager } from '@/components/ui/Notification';
 /**
  * BTP Quote Form - DiaspoMoney
  * Formulaire de demande de devis BTP
  */
-'use client';
 import { Button } from '@/components/ui/Button';
 import {
   Card,

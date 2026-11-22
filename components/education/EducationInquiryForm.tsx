@@ -1,9 +1,9 @@
+'use client';
 import { useNotificationManager } from '@/components/ui/Notification';
 /**
  * Education Inquiry Form - DiaspoMoney
  * Formulaire de demande de renseignements éducation
  */
-'use client';
 import {
   Card,
   CardContent,

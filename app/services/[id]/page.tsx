@@ -1,10 +1,10 @@
+'use client';
 import Link from 'next/link';
 /**
  * Page de détails d'un service
  * Utilise les types, constantes et schémas centralisés
  */
 
-'use client';
 
 import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
