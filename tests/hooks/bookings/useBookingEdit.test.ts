@@ -177,7 +177,9 @@ describe('useBookingEdit : enregistrement', () => {
     vi.mocked(fetch).mockResolvedValueOnce(json({ success: true }));
     const { result } = setup(booking({ paymentStatus: 'confirmed', totalAmount: 99 }, { recipient: undefined }));
     expect(result.current.isPaymentCompleted).toBe(true);
-    act(() => result.current.setEditData({ ...result.current.editData, servicePrice: undefined, additionalOptions: [], appointmentDate: null }));
+    // Prix retiré du formulaire (propriété omise : exactOptionalPropertyTypes interdit undefined).
+    const { servicePrice: _retire, ...sansPrix } = result.current.editData;
+    act(() => result.current.setEditData({ ...sansPrix, additionalOptions: [], appointmentDate: null }));
     await act(() => result.current.saveBooking());
 
     const body = lastBody();
