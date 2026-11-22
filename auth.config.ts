@@ -257,6 +257,19 @@ export const authConfig: NextAuthOptions = {
             user.id = newUser.id;
             log.info({ userId: user.id, email }, 'New OAuth user created');
           } else {
+            // Même règle que la connexion par mot de passe : seul un compte actif se connecte.
+            // Un compte en attente d'activation est activé : le fournisseur a vérifié l'e-mail,
+            // ce qui vaut le lien d'activation. Suspendu ou inactif : refusé, avec le message dédié.
+            const status = existingUser.status ?? 'ACTIVE';
+            if (status !== 'ACTIVE' && status !== 'PENDING') {
+              log.warn(
+                { userId: existingUser.id, status, provider: account.provider },
+                'OAuth sign in refused: account is not active',
+              );
+              // L'identité est prouvée par le fournisseur : on peut dire pourquoi (message dédié)
+              return '/login?status=suspended';
+            }
+
             log.debug(
               { userId: existingUser.id, email },
               'Existing user found, updating OAuth info',
@@ -264,6 +277,7 @@ export const authConfig: NextAuthOptions = {
 
             // Mettre à jour les informations OAuth via le repository
             await userRepository.update(existingUser.id, {
+              ...(status === 'PENDING' && { status: 'ACTIVE', emailVerified: new Date() }),
               [`oauth.${account.provider}.linked`]: true,
               [`oauth.${account.provider}.providerAccountId`]:
                 account.providerAccountId,
