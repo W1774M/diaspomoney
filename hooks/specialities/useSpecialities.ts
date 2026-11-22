@@ -30,8 +30,11 @@ export function useSpecialities(options: UseSpecialitiesOptions = {}): UseSpecia
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Mémoriser les options pour éviter les re-renders inutiles
-  const memoizedOptions = useMemo(() => options, [options]);
+  // Dépendre des valeurs des filtres, pas de l'objet : `useSpecialities()` crée un nouvel
+  // objet `{}` à chaque rendu, ce qui relançait le chargement en boucle (page bloquée sur
+  // « Chargement des spécialités… » et requêtes /api/specialities en continu).
+  const { group, isActive } = options;
+  const memoizedOptions = useMemo<UseSpecialitiesOptions>(() => ({ group, isActive }), [group, isActive]);
 
   const fetchSpecialities = useCallback(async () => {
     try {
