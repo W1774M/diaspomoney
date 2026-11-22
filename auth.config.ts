@@ -74,6 +74,14 @@ export const authConfig: NextAuthOptions = {
             return null;
           }
 
+          // Anti force brute : après 5 échecs en 15 min, le compte est bloqué 30 min
+          // (SECURITY_CONFIG.BRUTE_FORCE). Import dynamique : dépendances chargées à l'usage.
+          const { securityManager } = await import('@/lib/security/advanced-security');
+          if (await securityManager.isUserBlocked(user.id)) {
+            log.warn({ email, userId: user.id }, 'Login refused: account temporarily blocked');
+            return null; // même réponse qu'un mauvais mot de passe : rien à apprendre pour l'attaquant
+          }
+
           log.debug(
             { userId: user.id, email },
             'User found, checking password',
@@ -102,6 +110,11 @@ export const authConfig: NextAuthOptions = {
           const valid = await bcrypt.compare(password, storedPassword);
           if (!valid) {
             log.warn({ email }, 'Invalid password');
+            // Compte l'échec (et bloque au seuil) ; ne fait jamais échouer la réponse.
+            await securityManager.detectAnomalies(user.id, 'LOGIN_FAILED', {
+              email,
+              reason: 'invalid_password',
+            });
             return null;
           }
 
@@ -111,6 +124,7 @@ export const authConfig: NextAuthOptions = {
             return null;
           }
 
+          await securityManager.resetLoginAttempts(user.id);
           log.info({ email, userId: user.id }, 'Authentication successful');
 
           // Émettre l'événement de connexion réussie
