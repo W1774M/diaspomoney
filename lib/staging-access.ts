@@ -14,7 +14,7 @@ const COOKIE_NAME = 'diaspomoney_staging_access';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 jours
 
 /** Chemins joignables sans mot de passe (appels serveur à serveur). */
-const PUBLIC_PATHS = ['/api/stripe/webhook', '/api/health'];
+const PUBLIC_PATHS = ['/api/stripe/webhook', '/api/health', '/api/maintenance'];
 
 function getConfig(): { password: string; secret: string } | null {
   const password = process.env['STAGING_ACCESS_PASSWORD'];

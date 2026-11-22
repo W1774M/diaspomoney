@@ -22,4 +22,5 @@ Présentation du projet et démarrage rapide : [`README.md`](../README.md) à la
 
 - [CI/CD](./exploitation/ci-cd.md) : dev → rct → main, déploiements, rollback, validation Sentry
 - [Accès au serveur](./exploitation/acces-serveur.md)
+- [Tâches planifiées](./exploitation/taches-planifiees.md) : purge nocturne des journaux d’audit
 - [Infrastructure Docker Compose](../docker/README.md)

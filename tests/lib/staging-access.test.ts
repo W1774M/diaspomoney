@@ -42,6 +42,11 @@ describe('handleStagingAccess', () => {
     expect(
       await handleStagingAccess(new NextRequest(`${BASE}/api/stripe/webhook`, { method: 'POST' })),
     ).toBeNull();
+    // Tâches planifiées : protégées par leur propre secret (MAINTENANCE_CRON_SECRET)
+    expect(
+      await handleStagingAccess(new NextRequest(`${BASE}/api/maintenance/purge-audit-logs`, { method: 'POST' })),
+    ).toBeNull();
+    expect((await handleStagingAccess(new NextRequest(`${BASE}/api/maintenance-x`)))?.status).toBe(401);
   });
 
   it('refuse un mauvais mot de passe', async () => {

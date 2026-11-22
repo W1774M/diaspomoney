@@ -562,7 +562,8 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
                 { $multiply: ['$retentionPeriod', 24 * 60 * 60 * 1000] },
               ],
             },
-            now.getTime(),
+            // Comparer à une date : MongoDB classe toujours les nombres avant les dates
+            now,
           ],
         },
       };
