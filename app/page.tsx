@@ -8,6 +8,7 @@ import {
   HeroSection,
   HomeAnnouncementBannerButton,
   HomeAnnouncementDialog,
+  OffersSection,
   PartnersSection,
   PhotoTestimonialsSection,
   RoadmapSection,
@@ -110,6 +111,7 @@ export default function HomePage() {
       </Marquee>
       <HeroSection />
       <ClinicsCarouselSection />
+      <OffersSection />
       <HowItWorks className="py-20 md:pt-12 md:pb-1 bg-white relative overflow-hidden" />
       <BenefitsSection />
       <TestimonialsSection />

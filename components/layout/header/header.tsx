@@ -43,11 +43,7 @@ function Header() {
           <div className='flex items-center space-x-4'>
             {/* Bouton "Transférer un service" - toujours visible */}
             <Link
-              href='/services'
-              onClick={() => {
-                // Reset les filtres en naviguant vers /services sans paramètres
-                window.history.replaceState({}, '', '/services');
-              }}
+              href='/#services'
               className='hidden md:inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,45%)] transition-colors'
             >
               Transférer un service
@@ -147,13 +143,9 @@ function Header() {
                     Factures
                   </Link>
                   <Link
-                    href='/services'
+                    href='/#services'
                     className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700'
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      // Reset les filtres en naviguant vers /services sans paramètres
-                      window.history.replaceState({}, '', '/services');
-                    }}
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     Transférer un service
                   </Link>
@@ -179,13 +171,9 @@ function Header() {
                 /* Menu mobile pour utilisateur non connecté */
                 <>
                   <Link
-                    href='/services'
+                    href='/#services'
                     className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700'
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      // Reset les filtres en naviguant vers /services sans paramètres
-                      window.history.replaceState({}, '', '/services');
-                    }}
+                    onClick={() => setIsMenuOpen(false)}
                   >
                     Transférer un service
                   </Link>

@@ -706,11 +706,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               <button
                 type='button'
                 onClick={() => {
-                  const category = provider['category'];
-                  const url = category
-                    ? `/services?type=${category}`
-                    : '/services';
-                  window.location.href = url;
+                  window.location.href = "/#services";
                 }}
                 className='flex-1 bg-[hsl(25,100%,53%)] text-white py-3 px-4 rounded-md font-medium hover:bg-[hsl(25,100%,45%)] transition-colors'
               >
@@ -1972,7 +1968,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 provider.acceptsVideoConsultation === false &&
                 !watchedValues['consultationMode']
               ) {
-                window.location.href = '/services';
+                window.location.href = '/#services';
                 return;
               }
               nextStep();
