@@ -384,6 +384,10 @@ export async function POST(
     });
   } catch (error) {
     const resolvedParams = await Promise.resolve(params).catch(() => ({ id: 'unknown' }));
+    // Le service lève « Réservation non trouvée » (il ne renvoie pas null).
+    if (error instanceof Error && error.message === 'Réservation non trouvée') {
+      return NextResponse.json({ error: 'Réservation non trouvée' }, { status: 404 });
+    }
     log.error({ error, bookingId: resolvedParams.id }, 'Error generating summary PDF');
     return NextResponse.json(
       { error: 'Erreur lors de la génération du résumé' },

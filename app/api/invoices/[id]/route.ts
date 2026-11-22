@@ -1,4 +1,5 @@
 import { auth } from '@/auth';
+import dbConnect from '@/lib/mongodb';
 import { validateBody } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
 import { UpdateInvoiceSchema, type UpdateInvoiceInput } from '@/lib/validations/invoice.schema';
@@ -63,6 +64,8 @@ export async function GET(
 
     // Transformer le format Invoice (repository) vers IInvoice (frontend)
     // Récupérer les données complètes depuis MongoDB si nécessaire
+    // Connexion Mongoose ouverte avant tout modèle (sinon requête bloquée 10 s puis 500 après un redémarrage).
+    await dbConnect();
     const Invoice = (await import('@/models/Invoice')).default;
     const invoiceDoc = await (Invoice as any)
       .findById(new mongoose.Types.ObjectId(invoiceId))
@@ -183,6 +186,8 @@ export async function PUT(
 
     // Mettre à jour les champs supplémentaires via le repository directement
     // (invoiceNumber, status, issueDate, paidDate, notes, providerId)
+    // Connexion Mongoose ouverte avant tout modèle (sinon requête bloquée 10 s puis 500 après un redémarrage).
+    await dbConnect();
     const Invoice = (await import('@/models/Invoice')).default;
     const additionalUpdates: any = {};
     if (data.invoiceNumber)

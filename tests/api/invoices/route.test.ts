@@ -160,6 +160,9 @@ vi.mock('@sentry/nextjs', () => {
 });
 
 // Mock de mongoose
+// La route ouvre la connexion Mongoose (dbConnect) avant d’utiliser le modèle.
+vi.mock('@/lib/mongodb', () => ({ default: vi.fn(async () => undefined) }));
+
 vi.mock('mongoose', () => ({
   default: {
     Types: {
