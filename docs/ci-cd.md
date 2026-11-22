@@ -53,12 +53,29 @@ La clé `circleci-deploy` est limitée côté serveur à `scripts/server/ci-depl
 
 `scripts/server/ci-deploy.sh` est installé dans `/root/Lab/scripts/ci-deploy.sh`. Pour chaque déploiement, il :
 - vérifie que le commit appartient bien à la branche (`dev`, `rct` ou `main`) ;
-- prépare un worktree par environnement, `/root/Lab/deploy/<env>`, avec un lien vers le `.env` du checkout principal ;
+- prépare un worktree par environnement, `/root/Lab/deploy/<env>`, avec une copie du `.env` du checkout principal ;
 - enchaîne `docker compose build` puis `up`, pour que le nettoyage Docker horaire ne supprime pas l'image entre les deux ;
 - attend le healthcheck du conteneur ;
 - n'autorise qu'un déploiement à la fois (verrou `flock`).
 
 Journal : `/root/Lab/scripts/ci-deploy.log`.
+
+### Image prod pré-construite
+
+Next.js grave au build les URL et la clé Stripe publique (test en dev et rct, live en prod). Il faut donc une image par environnement : dev, rct et prod ne peuvent pas partager la même. Pour que la mise en prod ne refasse pas un build d'environ 4 min 30 :
+
+1. Après un déploiement rct réussi, `ci-deploy.sh` construit en arrière-plan l'image prod du même code : `diaspomoney:prod-candidate`. Elle porte le label `fr.diaspomoney.candidate` = arbre git du commit + empreinte du `.env`. Ce build ne touche ni `diaspomoney:prod` ni le conteneur de production.
+2. Le job CircleCI `deploy-rct` n'attend pas ce build. En revanche, le verrou de déploiement reste pris jusqu'à sa fin : un déploiement lancé entre-temps attend (30 min au plus).
+3. Au clic **Approve**, `deploy-prod` compare l'arbre git du commit `main` (identique à celui de `rct`, voir `verifier-promotion`) et le `.env` au label. S'ils correspondent, l'image est simplement renommée `diaspomoney:prod` et démarrée en quelques secondes. Sinon, c'est un build normal (cas d'un rollback, ou d'un `.env` modifié entre-temps).
+
+Le nettoyage horaire `scripts/server/docker-cleanup.sh` (installé dans `/root/Lab/scripts/docker-cleanup.sh`) épargne les images portant ce label. Il n'y en a qu'une à la fois : l'ancienne candidate devient orpheline et part au déploiement suivant.
+
+Pour installer ou mettre à jour les deux scripts sur le serveur :
+
+```bash
+install -m 755 scripts/server/ci-deploy.sh /root/Lab/scripts/ci-deploy.sh
+install -m 755 scripts/server/docker-cleanup.sh /root/Lab/scripts/docker-cleanup.sh
+```
 
 ## Tests
 
