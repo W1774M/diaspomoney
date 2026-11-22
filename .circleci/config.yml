@@ -289,7 +289,7 @@ workflows:
       # Contrôles qualité sur toutes les branches sauf rct et main : leur code est toujours
       # un commit dev (pour rct) ou rct (pour main) déjà testé (voir « verifier-promotion »).
       - install-dependencies:
-          filters: &hors-promotions { branches: { ignore: [rct, main] } }
+          filters: &hors-promotions { branches: { ignore: [rct, main, /promotion\/.*/] } }
       - tests:
           requires: [install-dependencies]
           filters: *hors-promotions
