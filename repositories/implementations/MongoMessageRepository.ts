@@ -62,7 +62,8 @@ export class MongoMessageRepository implements IMessageRepository {
       if (options) {
         if (options.limit) builder.limit(options.limit);
         if (options.offset) builder.offset(options.offset);
-        if (options.page) builder.page(options.page, options.limit || 50);
+        // Un décalage explicite prime : page() le remettrait à (page - 1) × limit
+        if (options.page && !options.offset) builder.page(options.page, options.limit || 50);
         if (options.sort) {
           Object.entries(options.sort).forEach(([field, direction]) => {
             builder.orderBy(field, direction === 1 ? 'asc' : 'desc');
