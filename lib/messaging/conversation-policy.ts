@@ -1,0 +1,124 @@
+/**
+ * Politique de la messagerie interne - DiaspoMoney
+ *
+ * La messagerie interne ne contient que des échanges entre personnes.
+ * Les notifications système (connexion, paiement, rendez-vous…) restent dans
+ * le centre de notifications et ne sont jamais des conversations.
+ *
+ * Paires de rôles autorisées (dans les deux sens) :
+ * - client / bénéficiaire ↔ prestataire
+ * - client ↔ bénéficiaire
+ * - client / bénéficiaire / prestataire ↔ support (ADMIN, SUPERADMIN)
+ * - CSM ↔ prestataires (portefeuille CSM) et clients / bénéficiaires
+ * - équipe interne (ADMIN, SUPERADMIN, CSM) entre elle
+ *
+ * Non autorisé : client ↔ client, prestataire ↔ prestataire,
+ * bénéficiaire ↔ bénéficiaire (sauf si l'un des deux a aussi un autre rôle).
+ */
+
+export type MessagingRole =
+  | 'SUPERADMIN'
+  | 'ADMIN'
+  | 'CSM'
+  | 'PROVIDER'
+  | 'CUSTOMER'
+  | 'BENEFICIARY';
+
+const STAFF_ROLES: readonly MessagingRole[] = ['ADMIN', 'SUPERADMIN', 'CSM'];
+
+const ALLOWED_PAIRS: ReadonlyArray<readonly [MessagingRole, MessagingRole]> = [
+  // Client / bénéficiaire ↔ prestataire
+  ['CUSTOMER', 'PROVIDER'],
+  ['BENEFICIARY', 'PROVIDER'],
+  // Client ↔ bénéficiaire
+  ['CUSTOMER', 'BENEFICIARY'],
+  // Support (admin) ↔ tous les utilisateurs
+  ['CUSTOMER', 'ADMIN'],
+  ['CUSTOMER', 'SUPERADMIN'],
+  ['BENEFICIARY', 'ADMIN'],
+  ['BENEFICIARY', 'SUPERADMIN'],
+  ['PROVIDER', 'ADMIN'],
+  ['PROVIDER', 'SUPERADMIN'],
+  // CSM ↔ ses clients (prestataires du portefeuille, clients des commandes)
+  ['CSM', 'PROVIDER'],
+  ['CSM', 'CUSTOMER'],
+  ['CSM', 'BENEFICIARY'],
+  // Équipe interne
+  ['ADMIN', 'ADMIN'],
+  ['ADMIN', 'SUPERADMIN'],
+  ['SUPERADMIN', 'SUPERADMIN'],
+  ['CSM', 'ADMIN'],
+  ['CSM', 'SUPERADMIN'],
+  ['CSM', 'CSM'],
+];
+
+const KNOWN_ROLES = new Set<string>([
+  'SUPERADMIN',
+  'ADMIN',
+  'CSM',
+  'PROVIDER',
+  'CUSTOMER',
+  'BENEFICIARY',
+]);
+
+/** Normalise une liste de rôles (casse, valeurs inconnues ignorées). */
+export function normalizeMessagingRoles(
+  roles: ReadonlyArray<string | null | undefined> | null | undefined,
+): MessagingRole[] {
+  if (!Array.isArray(roles)) return [];
+  return roles
+    .map(r => (typeof r === 'string' ? r.trim().toUpperCase() : ''))
+    .filter((r): r is MessagingRole => KNOWN_ROLES.has(r));
+}
+
+function isPairAllowed(a: MessagingRole, b: MessagingRole): boolean {
+  return ALLOWED_PAIRS.some(
+    ([x, y]) => (x === a && y === b) || (x === b && y === a),
+  );
+}
+
+/**
+ * Indique si deux utilisateurs (via leurs rôles) peuvent échanger dans la
+ * messagerie interne. Il suffit qu'un couple de rôles soit autorisé.
+ */
+export function canUsersMessage(
+  rolesA: ReadonlyArray<string | null | undefined> | null | undefined,
+  rolesB: ReadonlyArray<string | null | undefined> | null | undefined,
+): boolean {
+  const a = normalizeMessagingRoles(rolesA);
+  const b = normalizeMessagingRoles(rolesB);
+  return a.some(ra => b.some(rb => isPairAllowed(ra, rb)));
+}
+
+/** Rôles internes (support / équipe). */
+export function isStaffRole(
+  roles: ReadonlyArray<string | null | undefined> | null | undefined,
+): boolean {
+  return normalizeMessagingRoles(roles).some(r => STAFF_ROLES.includes(r));
+}
+
+export interface ConversationLike {
+  type?: string | null;
+  participants?: ReadonlyArray<unknown> | null;
+}
+
+/**
+ * Une conversation de la messagerie interne est un échange entre personnes :
+ * type « user » (les tickets support ont leur propre page) et au moins deux
+ * participants distincts.
+ */
+export function isPersonToPersonConversation(conv: ConversationLike): boolean {
+  if (!conv) return false;
+  if (conv.type && conv.type !== 'user') return false;
+  const ids = new Set(
+    (conv.participants || [])
+      .map(p => {
+        if (!p) return '';
+        if (typeof p === 'string') return p;
+        const obj = p as { _id?: { toString(): string }; toString(): string };
+        return obj._id ? obj._id.toString() : obj.toString();
+      })
+      .filter(Boolean),
+  );
+  return ids.size >= 2;
+}

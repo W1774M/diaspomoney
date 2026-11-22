@@ -14,6 +14,10 @@ import { Log } from '@/lib/decorators/log.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
+import {
+  canUsersMessage,
+  isPersonToPersonConversation,
+} from '@/lib/messaging/conversation-policy';
 import { z } from 'zod';
 import {
   getAttachmentRepository,
@@ -96,8 +100,18 @@ export class MessagingService {
       );
 
       // Fix: Only take conversations that include the user and non-empty other participant
+      const { getUserRepository } = await import('@/repositories');
+      const userRepo = getUserRepository();
+      const currentUser = await userRepo.findById(userId);
+
       const uiConversations: UIConversation[] = await Promise.all(
         conversations.data.map(async conv => {
+          // Messagerie interne = échanges entre personnes uniquement
+          // (les tickets support et notifications système n'y figurent pas)
+          if (!isPersonToPersonConversation(conv as any)) {
+            return null as any;
+          }
+
           // Identify all participants except the user
           const otherParticipants = (conv.participants || [])
             .filter((p: any) => p.toString() !== userId);
@@ -110,11 +124,18 @@ export class MessagingService {
           }
 
           // Récupérer les infos de l'autre participant
-          const { getUserRepository } = await import('@/repositories');
-          const userRepo = getUserRepository();
           const otherUser = await userRepo.findById(
             otherParticipantId.toString(),
           );
+
+          // Participant supprimé ou paire de rôles non autorisée
+          if (
+            !otherUser ||
+            (currentUser &&
+              !canUsersMessage(currentUser.roles, otherUser.roles))
+          ) {
+            return null as any;
+          }
 
           // Récupérer le dernier message
           const messages = await this.messageRepository.findByConversation(
