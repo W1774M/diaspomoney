@@ -409,8 +409,10 @@ export class StatisticsService {
 
       // Calculer les statistiques de bookings
       const totalBookings = allBookings.length;
+      // Active : ni terminée ni annulée (les annulées étaient comptées ici)
       const activeBookings = allBookings.filter(
-        (b: StatisticsBooking) => b.status !== BOOKING_STATUSES.FINISHED,
+        (b: StatisticsBooking) =>
+          b.status !== BOOKING_STATUSES.FINISHED && b.status !== BOOKING_STATUSES.CANCELLED,
       ).length;
       const completedBookings = allBookings.filter(
         (b: StatisticsBooking) => b.status === BOOKING_STATUSES.FINISHED,
