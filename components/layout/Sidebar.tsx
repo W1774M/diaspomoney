@@ -402,7 +402,9 @@ function buildNavigationSections(
   });
 
 
-  // Messagerie Interne (menu déroulant)
+  // Messagerie Interne (menu déroulant) : uniquement les échanges entre personnes.
+  // Le support est l'équipe admin : le chat support n'a de sens que pour
+  // les utilisateurs (client, bénéficiaire, prestataire, CSM).
   const messagingItem: NavigationItem = {
     name: 'Messagerie Interne',
     key: 'messaging',
@@ -410,29 +412,18 @@ function buildNavigationSections(
     show: true,
     values: [
       {
+        name: 'Messages',
+        key: 'user-messages',
+        href: '/dashboard/messaging/users',
+        icon: Users,
+        show: true,
+      },
+      {
         name: 'Chat avec support',
         key: 'support-chat',
         href: '/dashboard/messaging/support',
         icon: Headphones,
-        show: false,
-      },
-      {
-        name: 'Messages utilisateurs',
-        key: 'user-messages',
-        href: '/dashboard/messaging/users',
-        icon: Users,
-        show: false,
-      },
-      {
-        name: 'Notifications',
-        key: 'notifications',
-        href: '/dashboard/notifications',
-        icon: Bell,
-        show: true,
-        ...(unreadNotificationsCount !== undefined &&
-        unreadNotificationsCount > 0
-          ? { badge: unreadNotificationsCount }
-          : {}),
+        show: !isAuthorizedAdmin && !isAuthorizedSuperAdmin,
       },
       {
         name: 'Pièces jointes',
@@ -445,6 +436,20 @@ function buildNavigationSections(
   };
 
   principalItems.push(messagingItem);
+
+  // Centre de notifications (notifications système : connexion, paiement,
+  // rendez-vous…). Séparé de la messagerie, qui ne contient que des échanges
+  // entre personnes. Les préférences se règlent dans Paramètres > Notifications.
+  principalItems.push({
+    name: 'Notifications',
+    key: 'notifications',
+    href: '/dashboard/notifications',
+    icon: Bell,
+    show: true,
+    ...(unreadNotificationsCount !== undefined && unreadNotificationsCount > 0
+      ? { badge: unreadNotificationsCount }
+      : {}),
+  });
 
   // ----------------------------
   // PRINCIPAL : onglets accessibles par au moins un des rôles listés (Admin/CSM/Provider/Customer)
@@ -1128,7 +1133,6 @@ export default function Sidebar() {
       '/dashboard/messaging',
       '/dashboard/messaging/support',
       '/dashboard/messaging/users',
-      '/dashboard/notifications',
       '/dashboard/messaging/attachments',
     ];
     if (messagingPaths.some(path => pathname.startsWith(path))) {

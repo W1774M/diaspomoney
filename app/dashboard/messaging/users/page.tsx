@@ -12,6 +12,7 @@ import { useNotificationManager } from '@/components/ui/Notification';
 import { useAuth } from '@/hooks';
 import { useMessaging } from '@/hooks/messaging/useMessaging';
 import { MessageSquare, Paperclip, Search, Send, User, X } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -208,10 +209,10 @@ export default function UserMessagesPage() {
       <div>
         <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
           <MessageSquare className='h-8 w-8 mr-3 text-[hsl(25,100%,53%)]' />
-          Messages utilisateurs
+          Messages
         </h1>
         <p className='text-gray-600 mt-2'>
-          Communiquez avec les autres utilisateurs de la plateforme
+          Vos conversations avec vos interlocuteurs sur la plateforme
         </p>
       </div>
 
@@ -243,6 +244,20 @@ export default function UserMessagesPage() {
                     ? 'Aucune conversation trouvée'
                     : 'Aucune conversation'}
                 </p>
+                {!searchQuery && (
+                  <p className='text-xs text-gray-500 mt-2'>
+                    Vos échanges avec vos interlocuteurs (prestataires,
+                    clients, bénéficiaires, support) apparaîtront ici. Les
+                    alertes de connexion, paiement ou rendez-vous sont dans le{' '}
+                    <Link
+                      href='/dashboard/notifications'
+                      className='text-[hsl(25,100%,53%)] hover:underline'
+                    >
+                      centre de notifications
+                    </Link>
+                    .
+                  </p>
+                )}
               </div>
             ) : (
               filteredConversations.map(conversation => (

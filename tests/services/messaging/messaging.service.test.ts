@@ -41,14 +41,20 @@ beforeEach(() => {
 });
 
 describe('MessagingService.getConversations', () => {
-  it('construit la liste vue par l’utilisateur, triée par dernier message', async () => {
+  it('construit la liste vue par l’utilisateur (échanges entre personnes autorisés), triée par dernier message', async () => {
     h.conv.findByParticipant.mockResolvedValue(page([
       conv('c1', ['u1', 'u2'], { unreadCount: { u1: 3 }, lastMessageAt: d('01') }),
       conv('c2', ['u3', 'u1'], { lastMessageAt: d('15') }),
       conv('c3', ['u1']), // seul participant : ignorée
+      conv('c4', ['u1', 'u4']), // client ↔ client : paire non autorisée
+      conv('c5', ['u1', 'u2'], { type: 'support' }), // ticket support : hors messagerie
     ]));
     h.users.findById.mockImplementation(async (id: string) =>
-      id === 'u2' ? { id: 'u2', name: 'Awa', roles: ['PROVIDER'], avatar: 'a.png' } : null);
+      id === 'u1' ? { id: 'u1', name: 'Moi', roles: ['CUSTOMER'] }
+        : id === 'u2' ? { id: 'u2', name: 'Awa', roles: ['PROVIDER'], avatar: 'a.png' }
+          : id === 'u3' ? { id: 'u3', name: 'Support', roles: ['ADMIN'] }
+            : id === 'u4' ? { id: 'u4', name: 'Autre client', roles: ['CUSTOMER'] }
+              : null);
     h.msg.findByConversation.mockImplementation(async (id: string) => (id === 'c1' ? page([message('m1', 'u2', { createdAt: d('21') })]) : page([])));
     h.msg.countUnread.mockResolvedValue(2);
 
@@ -57,7 +63,7 @@ describe('MessagingService.getConversations', () => {
     expect(h.conv.findByParticipant).toHaveBeenCalledWith('u1', { page: 2, limit: 5, sort: { lastMessageAt: -1 } });
     expect(list).toEqual([
       { id: 'c1', participant: { id: 'u2', name: 'Awa', avatar: 'a.png', role: 'PROVIDER' }, lastMessage: 'texte m1', lastMessageTime: d('21'), unreadCount: 3 },
-      { id: 'c2', participant: { id: 'u3', name: 'Utilisateur', avatar: undefined, role: 'USER' }, lastMessage: '', lastMessageTime: d('15'), unreadCount: 2 },
+      { id: 'c2', participant: { id: 'u3', name: 'Support', avatar: undefined, role: 'ADMIN' }, lastMessage: '', lastMessageTime: d('15'), unreadCount: 2 },
     ]);
     expect(h.msg.countUnread).toHaveBeenCalledTimes(1); // seulement c2, c1 a déjà son compteur
   });
@@ -74,6 +80,8 @@ describe('MessagingService.getConversations', () => {
 
 describe('MessagingService.createConversation', () => {
   it('réutilise une conversation existante', async () => {
+    h.users.findById.mockImplementation(async (id: string) =>
+      ({ id, name: id, roles: [id === 'u1' ? 'CUSTOMER' : 'PROVIDER'] }));
     h.conv.findByParticipants.mockResolvedValueOnce(conv('c1', ['u1', 'u2']));
     h.conv.findByParticipant.mockResolvedValueOnce(page([conv('c1', ['u1', 'u2'])]));
     expect(await svc.createConversation({ participants: ['u1', 'u2'], type: 'user' })).toMatchObject({ id: 'c1', participant: { id: 'u2' } });

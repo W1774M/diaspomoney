@@ -10,11 +10,29 @@ import {
 } from '@/lib/types';
 import { useCallback, useEffect, useState } from 'react';
 
+const SETTINGS_TABS = [
+  'profile',
+  'security',
+  'notifications',
+  'privacy',
+  'complaints',
+];
+
 export function useSettings() {
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState('profile');
   const [saving, setSaving] = useState(false);
+
+  // Ouvrir directement un onglet via l'URL (ex. /dashboard/settings?tab=notifications,
+  // lien « Gérer les préférences » du centre de notifications)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab && SETTINGS_TABS.includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, []);
 
   // États pour les formulaires
   const [profileData, setProfileData] = useState<ProfileData>({
