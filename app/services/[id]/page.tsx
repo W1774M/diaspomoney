@@ -136,7 +136,7 @@ export default function ServiceDetailPage() {
             Le type de service "{serviceId}" n'est pas reconnu.
           </p>
           <button
-            onClick={() => router.push('/services')}
+            onClick={() => router.push('/#services')}
             className="bg-[hsl(25,100%,53%)] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition"
             type="button"
           >
@@ -184,7 +184,7 @@ export default function ServiceDetailPage() {
             {/* Header avec bouton retour */}
             <div className="mb-6">
               <button
-                onClick={() => router.push('/services')}
+                onClick={() => router.push('/#services')}
                 className="flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,48%)] transition"
                 type="button"
               >

@@ -29,7 +29,7 @@ function CustomerDashboardPageContent() {
       {/* Actions rapides spécifiques aux clients */}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
         <Link
-          href='/services'
+          href='/#services'
           className='bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow'
         >
           <div className='flex items-center justify-between mb-4'>

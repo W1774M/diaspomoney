@@ -28,9 +28,9 @@ export default function Homepage() {
 
   function handleRedirect(serviceType?: string) {
     if (serviceType) {
-      router.push(`/services?t=${serviceType}`);
+      router.push(`/services/${serviceType}`);
     } else {
-      router.push("/services");
+      router.push("/#services");
     }
   }
 

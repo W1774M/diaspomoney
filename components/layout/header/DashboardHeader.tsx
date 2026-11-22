@@ -217,7 +217,7 @@ export default function DashboardHeader({ className = '' }: { className?: string
           <div className='flex items-center space-x-4'>
             {/* Bouton Transférer un service */}
             <Link
-              href='/services'
+              href='/#services'
               className='hidden md:inline-flex items-center px-6 py-2.5 text-sm font-medium text-white rounded-full bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,48%)] hover:from-[hsl(25,100%,50%)] hover:to-[hsl(25,100%,45%)] transition-all shadow-lg hover:shadow-xl'
             >
               Transférer un service
