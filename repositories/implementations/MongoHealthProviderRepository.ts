@@ -14,6 +14,7 @@ import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import type {
   HealthProvider,
   HealthProviderFilters,
@@ -147,8 +148,8 @@ export class MongoHealthProviderRepository
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      const updated = result?.['value']
-        ? this.mapToHealthProvider(result['value'])
+      const updated = unwrapFindOne(result)
+        ? this.mapToHealthProvider(unwrapFindOne(result)!)
         : null;
       if (updated) {
         this.log.info(

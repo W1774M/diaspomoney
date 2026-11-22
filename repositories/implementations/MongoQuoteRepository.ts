@@ -14,6 +14,7 @@ import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import { IQuoteRepository, Quote } from '../interfaces/IQuoteRepository';
 
 export class MongoQuoteRepository implements IQuoteRepository {
@@ -173,7 +174,7 @@ export class MongoQuoteRepository implements IQuoteRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      return result?.['value'] ? this.mapToQuote(result['value']) : null;
+      return unwrapFindOne(result) ? this.mapToQuote(unwrapFindOne(result)!) : null;
     } catch (error) {
       this.log.error({ error, id, data }, 'Error in update');
       Sentry.captureException(error as Error, {

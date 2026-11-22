@@ -17,6 +17,7 @@ import { mongoClient } from '@/lib/mongodb';
 import { mapBookingToResponse } from '@/lib/mappers/booking.mapper';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import type {
   Booking,
   BookingFilters,
@@ -201,7 +202,7 @@ export class MongoBookingRepository implements IBookingRepository {
       );
       
       // Vérifier si le document a été trouvé et mis à jour
-      if (!result || !result['value']) {
+      if (!result || !unwrapFindOne(result)!) {
         this.log.warn({ id, data }, 'Document not found during update');
         return null;
       }
@@ -209,20 +210,20 @@ export class MongoBookingRepository implements IBookingRepository {
       this.log.debug(
         {
           id,
-          rawStatus: result['value']?.status,
+          rawStatus: unwrapFindOne(result)?.['status'],
           requestedStatus: updateData.status,
-          fullRawDocument: result['value'],
+          fullRawDocument: unwrapFindOne(result)!,
         },
         'MongoDB update: after findOneAndUpdate',
       );
       
       try {
-        const mapped = this.mapToBooking(result['value']);
+        const mapped = this.mapToBooking(unwrapFindOne(result)!);
         this.log.debug(
           {
             id,
             mappedStatus: mapped.status,
-            rawStatus: result['value']?.status,
+            rawStatus: unwrapFindOne(result)?.['status'],
             requestedStatus: updateData.status,
           },
           'MongoDB update: after mapping',
@@ -230,7 +231,7 @@ export class MongoBookingRepository implements IBookingRepository {
         return mapped;
       } catch (mappingError) {
         this.log.error(
-          { error: mappingError, id, rawDocument: result['value'] },
+          { error: mappingError, id, rawDocument: unwrapFindOne(result)! },
           'Error mapping booking document',
         );
         // Si le mapping échoue, on retourne null plutôt que de lancer une erreur
