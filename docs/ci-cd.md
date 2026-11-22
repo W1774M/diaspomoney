@@ -24,7 +24,7 @@ local ──push──▶ dev ──PR auto──▶ rct ──PR auto + « Appr
    - ouvre la PR `rct → main` ;
    - attend le bouton **Approve** du job `valider-mise-en-prod` ;
    - après le clic, fusionne la PR `rct → main`.
-5. **CircleCI sur `main`** : relance les tests et déploie `diaspomoney:prod` (diaspomoney.fr).
+5. **CircleCI sur `main`** : ne relance pas les tests. Le job `verifier-promotion` contrôle que le commit est une fusion dont le code est identique au commit `rct` déjà testé (sinon tout s'arrête), puis déploie `diaspomoney:prod` (diaspomoney.fr) et lance la validation Sentry.
 
 ## Protection des branches
 

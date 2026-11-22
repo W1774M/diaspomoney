@@ -3,11 +3,11 @@ version: 2.1
 # =====================================================================================
 # CI/CD DiaspoMoney
 #
-#   toutes branches : installation → tests (lint, types, couverture globale) → build → E2E
+#   toutes branches sauf main : installation → tests (lint, types, couverture globale) → build → E2E
 #   dev             : … → déploiement dev → ouverture de la PR dev → rct
 #   rct             : … → déploiement rct → ouverture de la PR rct → main
 #                       → [Approve dans CircleCI] → fusion de la PR rct → main
-#   main            : … → déploiement prod
+#   main            : contrôle « main = commit rct testé » → déploiement prod → validation Sentry
 #
 # Variables du projet CircleCI (Project Settings → Environment Variables) :
 #   DEPLOY_HOST, DEPLOY_USER                      accès SSH au serveur (clé d'hôte inscrite dans ce fichier)
@@ -167,9 +167,17 @@ jobs:
     steps:
       - attach-deps
       - wait-for-mongo
+      # Navigateur mis en cache par version du lockfile (évite ~150 Mo de téléchargement).
+      - restore_cache:
+          keys:
+            - v1-playwright-{{ checksum "pnpm-lock.yaml" }}
       - run:
           name: 🎭 Navigateur Chromium
           command: pnpm exec playwright install --with-deps chromium
+      - save_cache:
+          key: v1-playwright-{{ checksum "pnpm-lock.yaml" }}
+          paths:
+            - ~/.cache/ms-playwright
       - run:
           name: 🎭 Tests E2E
           command: pnpm test:e2e
@@ -247,6 +255,24 @@ jobs:
           fail_when: criteria == "firing"
 
   # ---------------------------------------------------------------------------
+  # Garde-fou de la prod, qui remplace les tests sur main : le commit à déployer doit être
+  # une fusion dont le code est identique à son second parent, et ce parent doit être un
+  # commit de rct (donc testé, couvert et validé en E2E par le pipeline rct et par les
+  # contrôles obligatoires de la PR rct → main). Toute autre arrivée de code sur main bloque.
+  verifier-promotion:
+    executor: base
+    steps:
+      - checkout
+      - run:
+          name: 🔒 main = commit rct déjà testé
+          command: |
+            git fetch --quiet $([ -f "$(git rev-parse --git-dir)/shallow" ] && echo --unshallow) origin "+refs/heads/rct:refs/remotes/origin/rct"
+            parent=$(git rev-parse --verify --quiet HEAD^2) || { echo "❌ $CIRCLE_SHA1 n'est pas une fusion rct → main"; exit 1; }
+            git merge-base --is-ancestor "$parent" origin/rct || { echo "❌ $parent n'appartient pas à rct"; exit 1; }
+            [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "$parent^{tree}")" ] || { echo "❌ le code de main diffère du commit rct $parent"; git diff --stat "$parent" HEAD; exit 1; }
+            echo "✅ main = rct $parent : déploiement sans nouveaux tests"
+
+  # ---------------------------------------------------------------------------
   open-pr:
     executor: node
     parameters:
@@ -273,15 +299,22 @@ jobs:
 workflows:
   ci-cd:
     jobs:
-      - install-dependencies
+      # Contrôles qualité sur toutes les branches sauf main : le code de main est
+      # toujours le commit rct déjà testé (voir « verifier-promotion »).
+      - install-dependencies:
+          filters: &hors-main { branches: { ignore: main } }
       - tests:
           requires: [install-dependencies]
+          filters: *hors-main
       - coverage:
           requires: [install-dependencies]
+          filters: *hors-main
       - build:
           requires: [install-dependencies]
+          filters: *hors-main
       - e2e:
           requires: [build]
+          filters: *hors-main
 
       # ---- dev : déploiement puis PR vers rct -----------------------------------
       - deploy:
@@ -321,13 +354,15 @@ workflows:
           requires: [valider-mise-en-prod]
           filters: { branches: { only: rct } }
 
-      # ---- main : déploiement prod ----------------------------------------------
+      # ---- main : pas de nouveaux tests, contrôle de promotion puis prod ---------
+      - verifier-promotion:
+          filters: { branches: { only: main } }
       - deploy:
           name: deploy-prod
           env: prod
           environment-name: production
           validated: true
-          requires: [tests, coverage, e2e]
+          requires: [verifier-promotion]
           filters: { branches: { only: main } }
       - release-production:
           requires: [deploy-prod]
