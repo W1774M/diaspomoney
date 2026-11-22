@@ -15,6 +15,7 @@ import { mongoClient } from '@/lib/mongodb';
 import type { KYCData, KYCFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import type { IKYCRepository } from '../interfaces/IKYCRepository';
 import type {
   PaginatedFindResult,
@@ -130,7 +131,7 @@ export class MongoKYCRepository implements IKYCRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      const mapped = result?.['value'] ? this.mapToKYC(result['value']) : null;
+      const mapped = unwrapFindOne(result) ? this.mapToKYC(unwrapFindOne(result)!) : null;
       if (mapped) {
         this.log.info({ kycId: id }, 'KYC updated successfully');
       } else {
@@ -370,7 +371,7 @@ export class MongoKYCRepository implements IKYCRepository {
         { returnDocument: 'after' },
       );
 
-      const mapped = result?.['value'] ? this.mapToKYC(result['value']) : null;
+      const mapped = unwrapFindOne(result) ? this.mapToKYC(unwrapFindOne(result)!) : null;
       if (mapped) {
         this.log.info(
           { kycId, documentIndex, status },

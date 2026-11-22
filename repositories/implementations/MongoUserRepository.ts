@@ -16,6 +16,7 @@ import { USER_STATUSES, ROLES, KYC_STATUSES } from '@/lib/constants';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import type {
   PaginatedFindResult,
   PaginationOptions,
@@ -348,11 +349,8 @@ export class MongoUserRepository implements IUserRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      type FindOneAndUpdateResult = {
-        value?: Document | null;
-      };
-      const typedResult = result as FindOneAndUpdateResult;
-      return typedResult.value ? this.mapToUser(typedResult.value) : null;
+      const updated = unwrapFindOne(result);
+      return updated ? this.mapToUser(updated) : null;
     } catch (error) {
       this.log.error({ error, id, data }, 'Error in update');
       Sentry.captureException(error as Error, {

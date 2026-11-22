@@ -15,6 +15,7 @@ import { complaintMapper } from '@/lib/mappers';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import type {
   Complaint,
   ComplaintFilters,
@@ -149,7 +150,7 @@ export class MongoComplaintRepository implements IComplaintRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      return result?.['value'] ? this.mapToComplaint(result['value']) : null;
+      return unwrapFindOne(result) ? this.mapToComplaint(unwrapFindOne(result)!) : null;
     } catch (error) {
       this.log.error({ error, id, data }, 'Error in update');
       Sentry.captureException(error as Error, {

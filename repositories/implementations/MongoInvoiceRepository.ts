@@ -18,6 +18,7 @@ import { InvoiceStatus } from '@/lib/types';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import type {
   IInvoiceRepository,
   Invoice,
@@ -157,7 +158,7 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      return result?.['value'] ? this.mapToInvoice(result['value']) : null;
+      return unwrapFindOne(result) ? this.mapToInvoice(unwrapFindOne(result)!) : null;
     } catch (error) {
       this.log.error({ error, id, data }, 'Error in update');
       Sentry.captureException(error as Error, {

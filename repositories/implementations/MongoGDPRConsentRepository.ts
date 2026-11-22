@@ -44,9 +44,12 @@ export class MongoGDPRConsentRepository implements IGDPRConsentRepository {
       const collection = await this.getCollection();
       const now = new Date();
 
+      const objectId = data.id ? new ObjectId(data.id) : new ObjectId();
+
       const document = {
-        _id: data.id ? new ObjectId(data.id) : new ObjectId(),
-        id: data.id || new ObjectId().toString(),
+        // Un seul identifiant pour _id et id (avant : deux ObjectId différents).
+        _id: objectId,
+        id: objectId.toString(),
         userId: data.userId || '',
         purpose: data.purpose || '',
         granted: data.granted ?? true,
