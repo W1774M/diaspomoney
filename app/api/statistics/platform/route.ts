@@ -9,6 +9,11 @@ import {
   getInvoiceRepository,
 } from '@/repositories';
 import { TRANSACTION_STATUSES, BOOKING_STATUSES } from '@/lib/constants';
+import {
+  collectPlatformPayments,
+  countPayments,
+  sumRevenue,
+} from '@/services/statistics/platform-revenue';
 
 /**
  * API Route pour récupérer les statistiques de la plateforme (Super Admin uniquement)
@@ -110,16 +115,12 @@ export async function GET(request: NextRequest) {
     const completedTransactions = allTransactions.filter(t => 
       t.status === TRANSACTION_STATUSES.COMPLETED,
     ).length;
-    const totalRevenue = allTransactions
-      .filter(t => t.status === TRANSACTION_STATUSES.COMPLETED)
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-    
-    const revenueThisMonth = allTransactions
-      .filter(t => {
-        const createdAt = new Date(t.createdAt);
-        return createdAt >= startOfMonth && t.status === TRANSACTION_STATUSES.COMPLETED;
-      })
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
+    // Revenus : transactions COMPLETED + réservations au paiement Stripe confirmé
+    // (le chemin canonique ne crée pas de transaction), dédoublonnés.
+    const payments = collectPlatformPayments(allTransactions, allBookings);
+    const totalRevenue = sumRevenue(payments);
+    const revenueThisMonth = sumRevenue(payments, { from: startOfMonth });
+    const totalPayments = countPayments(payments);
 
     // Statistiques des factures
     const totalInvoices = allInvoices.length;
@@ -132,12 +133,8 @@ export async function GET(request: NextRequest) {
       const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
       
-      const monthTransactions = allTransactions.filter(t => {
-        const createdAt = new Date(t.createdAt);
-        return createdAt >= monthDate && createdAt < nextMonthDate && 
-               t.status === TRANSACTION_STATUSES.COMPLETED;
-      });
-      
+      const monthRange = { from: monthDate, to: nextMonthDate };
+
       const monthBookings = allBookings.filter((b) => {
         const createdAt = new Date(b.createdAt || Date.now());
         return createdAt >= monthDate && createdAt < nextMonthDate;
@@ -150,8 +147,8 @@ export async function GET(request: NextRequest) {
 
       monthlyData.push({
         month: monthDate.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
-        revenue: monthTransactions.reduce((sum, t) => sum + (t.amount || 0), 0),
-        transactions: monthTransactions.length,
+        revenue: sumRevenue(payments, monthRange),
+        transactions: countPayments(payments, monthRange),
         bookings: monthBookings.length,
         newUsers: monthUsers.length,
       });
@@ -197,6 +194,7 @@ export async function GET(request: NextRequest) {
         completedTransactions,
         totalRevenue,
         revenueThisMonth,
+        totalPayments,
         totalInvoices,
         paidInvoices,
         pendingInvoices,

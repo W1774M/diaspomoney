@@ -2,8 +2,9 @@
  * Application use case — ConfirmBookingPayment
  *
  * Point unique pour confirm-payment API + webhook Stripe.
- * Flux : preuve Stripe → agrégat Booking → email → events serveur.
- * Idempotent : second passage (API ↔ webhook) ne re-émet ni events ni email.
+ * Flux : preuve Stripe → agrégat Booking → email → events → facture acquittée.
+ * Idempotent : second passage (API ↔ webhook) ne re-émet ni events, ni email,
+ * ni facture (une seule facture par paymentIntentId).
  */
 
 import { Booking } from '@/domain/booking';
@@ -13,6 +14,7 @@ import { bookingEvents, paymentEvents } from '@/lib/events';
 import { childLogger } from '@/lib/logger';
 import { bookingService } from '@/services/booking/booking.service';
 import { emailService } from '@/services/email/email.service';
+import { invoiceService } from '@/services/invoice/invoice.service';
 import {
   paymentService,
   type VerifyPaymentProofOptions,
@@ -53,6 +55,10 @@ export interface ConfirmBookingPaymentResult {
   eventsEmitted?: boolean | undefined;
   /** True si déjà confirmé pour la même preuve (replay API↔webhook) */
   idempotent?: boolean | undefined;
+  /** Facture acquittée liée au paiement (créée ou retrouvée) */
+  invoiceId?: string | undefined;
+  /** True si la facture a été créée lors de cet appel */
+  invoiceCreated?: boolean | undefined;
   alreadyConfirmed?: boolean | undefined;
   proof?: PaymentProofEvaluation | undefined;
 }
@@ -130,6 +136,8 @@ export class ConfirmBookingPaymentService {
     let eventsEmitted = false;
     let alreadyConfirmed = false;
     let mutated = false;
+    let invoiceId: string | undefined;
+    let invoiceCreated = false;
 
     try {
       if (input.bookingId) {
@@ -198,6 +206,24 @@ export class ConfirmBookingPaymentService {
           mutated = true;
         }
 
+        // Facture acquittée (= reçu) une seule fois par paiement.
+        // Le flag booking évite l'appel ; le repository garantit l'unicité
+        // par paymentIntentId si webhook et confirmation se croisent.
+        if (proof.paymentStatus === 'confirmed' && !bookingDomain.invoiceId) {
+          const issued = await this.issueInvoice(input, proof, bookingDomain, raw);
+          if (issued) {
+            bookingDomain.recordInvoiceIssued(
+              issued.invoice.id,
+              issued.invoice.invoiceNumber,
+            );
+            invoiceId = issued.invoice.id;
+            invoiceCreated = issued.created;
+            mutated = true;
+          }
+        } else {
+          invoiceId = bookingDomain.invoiceId;
+        }
+
         if (mutated) {
           const persistence = bookingDomain.toPersistenceUpdate();
           await bookingService.updateBooking(input.bookingId, {
@@ -231,7 +257,8 @@ export class ConfirmBookingPaymentService {
         Boolean(input.bookingId) &&
         alreadyConfirmed &&
         !eventsEmitted &&
-        !emailSent;
+        !emailSent &&
+        !invoiceCreated;
 
       this.log.info(
         {
@@ -242,6 +269,8 @@ export class ConfirmBookingPaymentService {
           eventsEmitted,
           alreadyConfirmed,
           idempotent,
+          invoiceId,
+          invoiceCreated,
         },
         'ConfirmBookingPayment completed',
       );
@@ -256,6 +285,8 @@ export class ConfirmBookingPaymentService {
         eventsEmitted,
         alreadyConfirmed,
         idempotent,
+        invoiceId,
+        invoiceCreated,
         proof,
       };
     } catch (error: unknown) {
@@ -314,6 +345,75 @@ export class ConfirmBookingPaymentService {
         .catch((error) => {
           this.log.error({ error }, 'Error emitting bookingConfirmed');
         });
+    }
+  }
+
+  /**
+   * Émet la facture acquittée du paiement. Un échec ne doit pas annuler la
+   * confirmation (le paiement Stripe est acquis) : on journalise, on remonte
+   * à Sentry, et le prochain passage (webhook ou confirmation) réessaiera
+   * puisque le booking n'aura pas d'invoiceId.
+   */
+  private async issueInvoice(
+    input: ConfirmBookingPaymentInput,
+    proof: PaymentProofEvaluation,
+    booking: Booking,
+    raw: unknown,
+  ): Promise<{ invoice: { id: string; invoiceNumber: string }; created: boolean } | null> {
+    const paymentKey = proof.paymentIntentId || input.proofId;
+    const amount = proof.amount ?? booking.expectedAmount ?? input.expectedAmount;
+    const userId = booking.clientId;
+    if (!paymentKey || amount == null || !userId) {
+      this.log.warn(
+        { bookingId: booking.id, hasAmount: amount != null, hasUser: Boolean(userId) },
+        'Invoice not issued: missing payment key, amount or client',
+      );
+      return null;
+    }
+
+    const rawBooking = (raw || {}) as {
+      providerId?: unknown;
+      metadata?: Record<string, unknown>;
+    };
+    const providerIdRaw =
+      rawBooking.providerId ?? rawBooking.metadata?.['providerId'];
+    const providerId = providerIdRaw ? String(providerIdRaw) : undefined;
+
+    try {
+      const { invoice, created } = await invoiceService.issuePaidInvoiceForPayment({
+        paymentIntentId: paymentKey,
+        userId,
+        amount,
+        currency: (
+          proof.currency ||
+          booking.expectedCurrency ||
+          input.expectedCurrency ||
+          'EUR'
+        ).toUpperCase(),
+        description: booking.serviceLabel || 'Service DiaspoMoney',
+        bookingId: booking.id,
+        providerId,
+        metadata: {
+          source: 'confirm-booking-payment',
+          ...(booking.reservationNumber
+            ? { reservationNumber: booking.reservationNumber }
+            : {}),
+          ...(proof.checkoutSessionId
+            ? { checkoutSessionId: proof.checkoutSessionId }
+            : {}),
+        },
+      });
+      return { invoice: { id: invoice.id, invoiceNumber: invoice.invoiceNumber }, created };
+    } catch (error) {
+      this.log.error(
+        { error, bookingId: booking.id, paymentIntentId: paymentKey },
+        'Invoice issuance failed after confirmed payment',
+      );
+      Sentry.captureException(error, {
+        tags: { component: 'ConfirmBookingPaymentService', action: 'issueInvoice' },
+        extra: { bookingId: booking.id, paymentIntentId: paymentKey },
+      });
+      return null;
     }
   }
 

@@ -173,6 +173,24 @@ export class Booking {
     );
   }
 
+  /** Facture acquittée déjà émise pour ce paiement (idempotence) */
+  get invoiceId(): string | undefined {
+    const id = this.props.metadata?.['invoiceId'];
+    return typeof id === 'string' && id ? id : undefined;
+  }
+
+  recordInvoiceIssued(invoiceId: string, invoiceNumber?: string): void {
+    if (!invoiceId) {
+      throw new Error('invoiceId is required');
+    }
+    const metadata = { ...(this.props.metadata || {}) };
+    metadata['invoiceId'] = invoiceId;
+    if (invoiceNumber) {
+      metadata['invoiceNumber'] = invoiceNumber;
+    }
+    this.props.metadata = metadata;
+  }
+
   markPaymentEventsEmitted(): void {
     this.props.paymentEventsEmitted = true;
     const metadata = { ...(this.props.metadata || {}) };

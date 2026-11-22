@@ -24,7 +24,8 @@ import { CreateComplaintSchema } from '@/lib/validations/complaint.schema';
 import { getComplaintRepository } from '@/repositories';
 import { complaintService } from '@/services/complaint/complaint.service';
 import { NextRequest } from 'next/server';
-import { DATABASE, ROLES } from '@/lib/constants';
+import { DATABASE } from '@/lib/constants';
+import { getComplaintsScope } from '@/lib/complaints/access';
 import { getMongoClient } from '@/lib/database/mongodb';
 import { ObjectId } from 'mongodb';
 /**
@@ -37,7 +38,9 @@ export async function GET(request: NextRequest) {
       throw ApiErrors.UNAUTHORIZED;
     }
     const userRoles = session.user.roles || [];
-    const isCSM = userRoles.includes(ROLES.CSM);
+    // L'admin prime sur le CSM : un ADMIN qui est aussi CSM voit tout.
+    const scope = getComplaintsScope(userRoles);
+    const isCSM = scope === 'csm-portfolio';
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -72,10 +75,15 @@ export async function GET(request: NextRequest) {
       }
 
       queryBuilder.whereIn('provider', provider ? [provider] : ids);
+    } else if (scope === 'all') {
+      // ADMIN / SUPERADMIN : toutes les réclamations, filtre utilisateur optionnel
+      if (userId) {
+        queryBuilder.byUser(userId);
+      }
     } else {
-      // Par défaut, récupérer les réclamations de l'utilisateur connecté
-      const targetUserId = userId || session.user.id;
-      queryBuilder.byUser(targetUserId);
+      // CUSTOMER / PROVIDER : uniquement ses propres réclamations.
+      // Le paramètre userId est ignoré pour ne pas exposer celles d'un autre.
+      queryBuilder.byUser(session.user.id);
     }
 
     // Appliquer les filtres (provider déjà géré pour CSM via whereIn)
