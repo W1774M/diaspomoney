@@ -9,8 +9,10 @@
  * - client / bénéficiaire ↔ prestataire
  * - client ↔ bénéficiaire
  * - client / bénéficiaire / prestataire ↔ support (ADMIN, SUPERADMIN)
- * - CSM ↔ prestataires de son portefeuille (csmPortfolioProviderIds,
- *   voir canPartiesMessage) et clients / bénéficiaires
+ * - CSM ↔ prestataires de son portefeuille (csmPortfolioProviderIds) et
+ *   ses clients / bénéficiaires, c'est-à-dire les demandeurs de commandes
+ *   auprès de ces prestataires (csmClientIds, voir csm-clients.ts) ;
+ *   vérifié par canPartiesMessage
  * - équipe interne (ADMIN, SUPERADMIN, CSM) entre elle
  *
  * Non autorisé : client ↔ client, prestataire ↔ prestataire,
@@ -97,20 +99,39 @@ export interface MessagingParty {
   roles?: ReadonlyArray<string | null | undefined> | null;
   /** Prestataires suivis par un CSM (champ utilisateur csmPortfolioProviderIds). */
   csmPortfolioProviderIds?: ReadonlyArray<string | null | undefined> | null;
+  /**
+   * Clients d'un CSM : demandeurs des commandes passées auprès des
+   * prestataires de son portefeuille (voir getCsmClientIds).
+   */
+  csmClientIds?: ReadonlyArray<string | null | undefined> | null;
+}
+
+function includesId(
+  ids: ReadonlyArray<string | null | undefined> | null | undefined,
+  id: string,
+): boolean {
+  return (ids || []).some(x => x != null && String(x) === id);
 }
 
 function inPortfolio(csm: MessagingParty, providerId: string): boolean {
-  return (csm.csmPortfolioProviderIds || []).some(
-    id => id != null && String(id) === providerId,
-  );
+  return includesId(csm.csmPortfolioProviderIds, providerId);
 }
 
+function isCsmClient(csm: MessagingParty, clientId: string): boolean {
+  return includesId(csm.csmClientIds, clientId);
+}
+
+const CSM_CLIENT_ROLES: readonly MessagingRole[] = ['CUSTOMER', 'BENEFICIARY'];
+
 /**
- * Comme canUsersMessage, en tenant compte du lien métier :
- * un CSM n'échange avec un prestataire que si celui-ci est dans son
- * portefeuille (csmPortfolioProviderIds). Les autres paires restent au niveau
- * des rôles. Pour un utilisateur multi-rôles, il suffit qu'un couple de rôles
- * soit autorisé et, le cas échéant, que son lien métier soit vérifié.
+ * Comme canUsersMessage, en tenant compte du lien métier du CSM :
+ * - avec un prestataire : celui-ci doit être dans son portefeuille
+ *   (csmPortfolioProviderIds) ;
+ * - avec un client ou un bénéficiaire : celui-ci doit être l'un de ses clients
+ *   (csmClientIds, calculé par l'appelant).
+ * Les autres paires restent au niveau des rôles. Pour un utilisateur
+ * multi-rôles, il suffit qu'un couple de rôles soit autorisé et, le cas
+ * échéant, que son lien métier soit vérifié.
  */
 export function canPartiesMessage(a: MessagingParty, b: MessagingParty): boolean {
   const rolesA = normalizeMessagingRoles(a.roles);
@@ -120,6 +141,8 @@ export function canPartiesMessage(a: MessagingParty, b: MessagingParty): boolean
       if (!isPairAllowed(ra, rb)) return false;
       if (ra === 'CSM' && rb === 'PROVIDER') return inPortfolio(a, b.id);
       if (ra === 'PROVIDER' && rb === 'CSM') return inPortfolio(b, a.id);
+      if (ra === 'CSM' && CSM_CLIENT_ROLES.includes(rb)) return isCsmClient(a, b.id);
+      if (CSM_CLIENT_ROLES.includes(ra) && rb === 'CSM') return isCsmClient(b, a.id);
       return true;
     }),
   );

@@ -5,6 +5,7 @@ import {
   canPartiesMessage,
   isPersonToPersonConversation,
 } from '@/lib/messaging/conversation-policy';
+import { withCsmClients } from '@/lib/messaging/csm-clients';
 import dbConnect from '@/lib/mongodb';
 import Conversation from '@/models/Conversation';
 import Message from '@/models/Message';
@@ -35,6 +36,10 @@ export async function GET(_request: NextRequest) {
       .populate('participants', 'name email avatar roles csmPortfolioProviderIds')
       .lean();
 
+    // Clients des CSM (commandes auprès des prestataires de leur portefeuille),
+    // calculés une seule fois par CSM pour cette requête
+    const csmClientsCache = new Map<string, Promise<string[]>>();
+
     // Transformer les conversations pour l'UI
     const uiConversations = await Promise.all(
       conversations.map(async (conv: any) => {
@@ -53,7 +58,7 @@ export async function GET(_request: NextRequest) {
         if (!otherParticipant) return null;
 
         // Paire de rôles autorisée (ex. client ↔ prestataire, prestataire ↔ support)
-        // et lien métier (CSM ↔ prestataire de son portefeuille)
+        // et lien métier du CSM (prestataires de son portefeuille, ses clients)
         const self = participants.find(
           (p: any) => p._id.toString() === userId,
         );
@@ -61,18 +66,25 @@ export async function GET(_request: NextRequest) {
           Array.isArray(self?.roles) && self.roles.length > 0
             ? self.roles
             : sessionRoles;
-        const allowed = canPartiesMessage(
-          {
-            id: userId,
-            roles: selfRoles,
-            csmPortfolioProviderIds: self?.csmPortfolioProviderIds,
-          },
-          {
-            id: otherParticipant._id.toString(),
-            roles: otherParticipant.roles,
-            csmPortfolioProviderIds: otherParticipant.csmPortfolioProviderIds,
-          },
-        );
+        const [selfParty, otherParty] = await Promise.all([
+          withCsmClients(
+            {
+              id: userId,
+              roles: selfRoles,
+              csmPortfolioProviderIds: self?.csmPortfolioProviderIds,
+            },
+            csmClientsCache,
+          ),
+          withCsmClients(
+            {
+              id: otherParticipant._id.toString(),
+              roles: otherParticipant.roles,
+              csmPortfolioProviderIds: otherParticipant.csmPortfolioProviderIds,
+            },
+            csmClientsCache,
+          ),
+        ]);
+        const allowed = canPartiesMessage(selfParty, otherParty);
         if (!allowed) return null;
 
         // Récupérer le dernier message
@@ -170,7 +182,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier que les deux personnes peuvent échanger (paires de rôles autorisées,
-    // CSM ↔ prestataire limité au portefeuille du CSM)
+    // CSM limité aux prestataires de son portefeuille et à ses clients)
     const fields = 'roles status csmPortfolioProviderIds';
     const [currentUser, recipient] = await Promise.all([
       (User as any).findById(userId).select(fields).lean(),
@@ -189,18 +201,19 @@ export async function POST(request: NextRequest) {
         ? currentUser.roles
         : ((session.user as any).roles || []);
 
-    const allowed = canPartiesMessage(
-      {
+    const [currentParty, recipientParty] = await Promise.all([
+      withCsmClients({
         id: userId,
         roles: currentRoles,
         csmPortfolioProviderIds: currentUser?.csmPortfolioProviderIds,
-      },
-      {
+      }),
+      withCsmClients({
         id: participantId,
         roles: recipient.roles,
         csmPortfolioProviderIds: recipient.csmPortfolioProviderIds,
-      },
-    );
+      }),
+    ]);
+    const allowed = canPartiesMessage(currentParty, recipientParty);
 
     if (!allowed) {
       return NextResponse.json(

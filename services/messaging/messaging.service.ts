@@ -103,6 +103,8 @@ export class MessagingService {
       const { getUserRepository } = await import('@/repositories');
       const userRepo = getUserRepository();
       const currentUser = await userRepo.findById(userId);
+      const { withCsmClients } = await import('@/lib/messaging/csm-clients');
+      const csmClientsCache = new Map<string, Promise<string[]>>();
 
       const uiConversations: UIConversation[] = await Promise.all(
         conversations.data.map(async conv => {
@@ -128,27 +130,37 @@ export class MessagingService {
             otherParticipantId.toString(),
           );
 
-          // Participant supprimé, paire de rôles non autorisée ou
-          // prestataire hors du portefeuille du CSM
-          if (
-            !otherUser ||
-            (currentUser &&
-              !canPartiesMessage(
+          // Participant supprimé
+          if (!otherUser) {
+            return null as any;
+          }
+
+          // Paire de rôles non autorisée ou hors périmètre du CSM
+          // (prestataires de son portefeuille, ses clients)
+          if (currentUser) {
+            const [selfParty, otherParty] = await Promise.all([
+              withCsmClients(
                 {
                   id: userId,
                   roles: currentUser.roles,
                   csmPortfolioProviderIds: (currentUser as any)
                     .csmPortfolioProviderIds,
                 },
+                csmClientsCache,
+              ),
+              withCsmClients(
                 {
                   id: otherParticipantId.toString(),
                   roles: otherUser.roles,
                   csmPortfolioProviderIds: (otherUser as any)
                     .csmPortfolioProviderIds,
                 },
-              ))
-          ) {
-            return null as any;
+                csmClientsCache,
+              ),
+            ]);
+            if (!canPartiesMessage(selfParty, otherParty)) {
+              return null as any;
+            }
           }
 
           // Récupérer le dernier message

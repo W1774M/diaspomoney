@@ -171,6 +171,18 @@ vi.mock('@/models/User', () => ({
   },
 }));
 
+// Mock de la collection bookings (clients d'un CSM = demandeurs des commandes
+// auprès des prestataires de son portefeuille)
+const { mockBookingsDistinct } = vi.hoisted(() => ({
+  mockBookingsDistinct: vi.fn(async () => [] as string[]),
+}));
+
+vi.mock('@/lib/database/mongodb', () => ({
+  getMongoClient: vi.fn(async () => ({
+    db: () => ({ collection: () => ({ distinct: mockBookingsDistinct }) }),
+  })),
+}));
+
 // Mock de mongoose
 vi.mock('mongoose', () => ({
   default: {
@@ -317,6 +329,45 @@ describe('GET /api/messaging/conversations', () => {
     expect(data.conversations.map((c: any) => c.id)).toEqual(['conv-p1']);
   });
 
+  it('CSM : ne liste que les clients ayant commandé dans son portefeuille (une seule requête)', async () => {
+    mockBookingsDistinct.mockResolvedValueOnce(['c1']);
+    const csm = {
+      _id: { toString: () => 'csm1' },
+      name: 'CSM',
+      roles: ['CSM'],
+      csmPortfolioProviderIds: ['p1'],
+    };
+    const mockConversations = [
+      {
+        _id: { toString: () => 'conv-c1' },
+        type: 'user',
+        participants: [csm, { _id: { toString: () => 'c1' }, name: 'Client suivi', roles: ['CUSTOMER'] }],
+      },
+      {
+        _id: { toString: () => 'conv-c2' },
+        type: 'user',
+        participants: [csm, { _id: { toString: () => 'c2' }, name: 'Autre client', roles: ['CUSTOMER'] }],
+      },
+    ];
+
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'csm1', roles: ['CSM'] },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+    mockConversationFind.mockReturnValueOnce(mockConversations);
+    mockMessageFindOne.mockReturnValue(null);
+    mockMessageCountDocuments.mockReturnValue(0);
+
+    const request = new NextRequest('http://localhost:3000/api/messaging/conversations');
+    const response = await GET_CONVERSATIONS(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.conversations.map((c: any) => c.id)).toEqual(['conv-c1']);
+    expect(mockBookingsDistinct).toHaveBeenCalledTimes(1);
+  });
+
   it('devrait retourner 401 si non authentifié', async () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce(null);
@@ -366,6 +417,66 @@ describe('POST /api/messaging/conversations', () => {
 
     const response = await POST_CONVERSATIONS(request);
     expect(response.status).toBe(200);
+  });
+
+  it('autorise un CSM à écrire à un client ayant commandé chez un prestataire de son portefeuille', async () => {
+    mockBookingsDistinct.mockResolvedValueOnce(['user123']);
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'csm1', roles: ['CSM'] },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+    mockConversationFindOne.mockReturnValueOnce(null);
+    mockConversationSave.mockReturnValueOnce({ _id: { toString: () => 'conv-csm-client' } } as any);
+
+    const request = new NextRequest('http://localhost:3000/api/messaging/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participantId: 'user123' }),
+    });
+
+    const response = await POST_CONVERSATIONS(request);
+    expect(response.status).toBe(200);
+    expect(mockBookingsDistinct).toHaveBeenCalledWith('requesterId', {
+      providerId: { $in: ['user456'] },
+    });
+  });
+
+  it('refuse (403) un CSM vers un client sans commande dans son portefeuille', async () => {
+    mockBookingsDistinct.mockResolvedValueOnce(['someoneElse']);
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'csm1', roles: ['CSM'] },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+
+    const request = new NextRequest('http://localhost:3000/api/messaging/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participantId: 'user789' }),
+    });
+
+    const response = await POST_CONVERSATIONS(request);
+    expect(response.status).toBe(403);
+    expect(mockConversationSave).not.toHaveBeenCalled();
+  });
+
+  it('refuse (403) un client qui écrit à un CSM dont il n’est pas client', async () => {
+    mockBookingsDistinct.mockResolvedValueOnce([]);
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user789', roles: ['CUSTOMER'] },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+
+    const request = new NextRequest('http://localhost:3000/api/messaging/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participantId: 'csm1' }),
+    });
+
+    const response = await POST_CONVERSATIONS(request);
+    expect(response.status).toBe(403);
   });
 
   it('refuse (403) un CSM vers un prestataire hors de son portefeuille', async () => {

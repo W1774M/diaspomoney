@@ -66,15 +66,27 @@ describe('conversation-policy — canPartiesMessage (lien métier CSM)', () => {
     expect(canPartiesMessage({ id: 'csm2', roles: ['CSM'] }, providerInPortfolio)).toBe(false);
   });
 
+  it('CSM ↔ client / bénéficiaire : seulement ses clients (csmClientIds)', () => {
+    const csmWithClients = { ...csm, csmClientIds: ['c1', 'b1'] };
+    expect(canPartiesMessage(csmWithClients, { id: 'c1', roles: ['CUSTOMER'] })).toBe(true);
+    expect(canPartiesMessage({ id: 'b1', roles: ['BENEFICIARY'] }, csmWithClients)).toBe(true);
+    expect(canPartiesMessage(csmWithClients, { id: 'c9', roles: ['CUSTOMER'] })).toBe(false);
+    expect(canPartiesMessage({ id: 'b9', roles: ['BENEFICIARY'] }, csmWithClients)).toBe(false);
+    // Sans liste de clients calculée : refus
+    expect(canPartiesMessage(csm, { id: 'c1', roles: ['CUSTOMER'] })).toBe(false);
+  });
+
   it('laisse les autres paires au niveau des rôles', () => {
-    expect(canPartiesMessage(csm, { id: 'c1', roles: ['CUSTOMER'] })).toBe(true);
     expect(canPartiesMessage(csm, { id: 'a1', roles: ['ADMIN'] })).toBe(true);
+    expect(canPartiesMessage(csm, { id: 'csm2', roles: ['CSM'] })).toBe(true);
     expect(canPartiesMessage({ id: 'c1', roles: ['CUSTOMER'] }, providerOutside)).toBe(true);
     expect(canPartiesMessage({ id: 'c1', roles: ['CUSTOMER'] }, { id: 'c2', roles: ['CUSTOMER'] })).toBe(false);
   });
 
-  it('multi-rôles : un prestataire hors portefeuille qui est aussi client reste joignable', () => {
-    expect(canPartiesMessage(csm, { id: 'p2', roles: ['PROVIDER', 'CUSTOMER'] })).toBe(true);
+  it('multi-rôles : un prestataire hors portefeuille qui est aussi client du CSM reste joignable', () => {
+    const csmWithClients = { ...csm, csmClientIds: ['p2'] };
+    expect(canPartiesMessage(csmWithClients, { id: 'p2', roles: ['PROVIDER', 'CUSTOMER'] })).toBe(true);
+    expect(canPartiesMessage(csm, { id: 'p2', roles: ['PROVIDER', 'CUSTOMER'] })).toBe(false);
   });
 });
 
