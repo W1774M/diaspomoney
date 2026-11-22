@@ -11,6 +11,34 @@ import { logger } from '@/lib/logger';
 import type { CacheableDecoratorOptions, InvalidateCacheDecoratorOptions } from '@/lib/types';
 
 /**
+ * Champs qui ne doivent jamais être copiés dans Redis (hash de mot de passe, secrets 2FA,
+ * jetons). Un résultat qui en contient n'est pas mis en cache : il est renvoyé tel quel.
+ */
+const SECRET_KEYS = new Set([
+  'password',
+  'passwordHash',
+  'twoFactorSecret',
+  'twoFactorBackupCodes',
+  'passwordResetToken',
+  'resetToken',
+  'emailVerificationToken',
+  'verificationToken',
+  'refreshToken',
+  'accessToken',
+]);
+
+/** Le résultat contient-il un champ secret (recherche bornée en profondeur) ? */
+export function containsSecret(value: unknown, depth = 0): boolean {
+  if (depth > 6 || value === null || typeof value !== 'object') return false;
+  if (Array.isArray(value)) return value.some((v) => containsSecret(v, depth + 1));
+  for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+    if (SECRET_KEYS.has(key) && v !== undefined && v !== null && v !== '') return true;
+    if (containsSecret(v, depth + 1)) return true;
+  }
+  return false;
+}
+
+/**
  * Decorator Cacheable pour ajouter du caching aux méthodes
  * 
  * @param ttl - Durée de vie du cache en secondes (défaut: 300 = 5 minutes)
@@ -67,6 +95,12 @@ export function Cacheable(ttl: number = 300, options: CacheableDecoratorOptions 
 
       // Exécuter la méthode originale
       const result = await originalMethod.apply(this, args);
+
+      // Jamais de secret dans le cache (Redis est persisté sur disque).
+      if (containsSecret(result)) {
+        logger.warn({ prefix }, 'Résultat non mis en cache : il contient un champ secret');
+        return result;
+      }
 
       // Mettre en cache le résultat
       try {
