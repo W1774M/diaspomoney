@@ -552,24 +552,35 @@ export class BTPService {
 
       const quote = await this.quoteRepository.create(quoteData);
 
-      // Envoyer une notification
+      // Envoyer une notification : son échec ne doit pas faire échouer la demande, déjà
+      // enregistrée (sinon le client voit une erreur et renvoie sa demande en double).
       if (data.contact.email) {
-        await notificationService.sendNotification({
-          recipient: data.contact.email,
-          type: 'QUOTE_REQUEST',
-          template: 'quote_request',
-          data: {
-            quoteId: quote.id,
-            projectType: data.projectType,
-            estimatedCost: costEstimate.estimatedCost,
-          },
-          channels: [
-            { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
-            { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
-          ],
-          locale: LOCALE.DEFAULT,
-          priority: 'MEDIUM',
-        });
+        try {
+          await notificationService.sendNotification({
+            recipient: data.contact.email,
+            type: 'QUOTE_REQUEST',
+            template: 'quote_request',
+            data: {
+              quoteId: quote.id,
+              projectType: data.projectType,
+              estimatedCost: costEstimate.estimatedCost,
+            },
+            channels: [
+              { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
+              { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
+            ],
+            locale: LOCALE.DEFAULT,
+            priority: 'MEDIUM',
+          });
+        } catch (notificationError) {
+          this.log.error(
+            { error: notificationError, quoteId: quote.id, template: 'quote_request' },
+            'Notification non envoyée (demande enregistrée)',
+          );
+          Sentry.captureException(notificationError as Error, {
+            tags: { component: 'BTPService', action: 'createBTPQuote', step: 'notification' },
+          });
+        }
       }
 
       // Enregistrer les métriques
