@@ -10,6 +10,7 @@
 import { childLogger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
 import Redis, { RedisOptions } from 'ioredis';
+import { redisConnectionFromEnv } from './redis-connection';
 
 const log = childLogger({ component: 'RedisClient' });
 
@@ -446,11 +447,9 @@ export class RedisClient {
 }
 
 // Configuration Redis
+// Base propre à chaque environnement (REDIS_URL …/0 dev, /1 rct, /2 prod).
 const redisConfig: RedisConfig = {
-  host: process.env['REDIS_HOST'] || 'localhost',
-  port: parseInt(process.env['REDIS_PORT'] || '6379', 10),
-  password: process.env['REDIS_PASSWORD'] || '',
-  db: parseInt(process.env['REDIS_DB'] || '0', 10),
+  ...redisConnectionFromEnv(),
   retryDelayOnFailover: 100,
   maxRetriesPerRequest: 3,
   lazyConnect: true,

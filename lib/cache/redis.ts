@@ -10,6 +10,7 @@
 import { childLogger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
 import Redis from 'ioredis';
+import { redisConnectionFromEnv } from '@/lib/redis/redis-connection';
 
 const log = childLogger({ component: 'RedisCache' });
 
@@ -21,10 +22,10 @@ const ERROR_RATE_LIMIT_MS = 60000; // 1 minute entre les logs d'erreur
 const MAX_ERRORS_BEFORE_SILENCE = 5; // Arrêter de logger après 5 erreurs
 
 // Configuration Redis
+// Base propre à chaque environnement (REDIS_URL …/0 dev, /1 rct, /2 prod).
+const connection = redisConnectionFromEnv();
 const redis = new Redis({
-  host: process.env['REDIS_HOST'] || 'localhost',
-  port: parseInt(process.env['REDIS_PORT'] || '6379'),
-  password: process.env['REDIS_PASSWORD'] ?? '',
+  ...connection,
   maxRetriesPerRequest: 3,
   lazyConnect: true,
   retryStrategy: (times: number) => {
