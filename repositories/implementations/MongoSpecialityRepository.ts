@@ -16,6 +16,7 @@ import { mongoClient } from '@/lib/mongodb';
 import { ISpeciality } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import { ISpecialityRepository } from '../interfaces/ISpecialityRepository';
 
 export class MongoSpecialityRepository implements ISpecialityRepository {
@@ -160,7 +161,7 @@ export class MongoSpecialityRepository implements ISpecialityRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      return result?.['value'] ? this.mapToSpeciality(result['value']) : null;
+      return unwrapFindOne(result) ? this.mapToSpeciality(unwrapFindOne(result)!) : null;
     } catch (error) {
       this.log.error({ error, id, data }, 'Error in update');
       Sentry.captureException(error as Error, {

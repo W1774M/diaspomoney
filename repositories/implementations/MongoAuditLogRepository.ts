@@ -16,6 +16,7 @@ import { mongoClient } from '@/lib/mongodb';
 import type { AuditLog, AuditLogWithId, AuditQuery } from '@/lib/security/audit-logging';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import type { IAuditLogRepository } from '../interfaces/IAuditLogRepository';
 import type {
   PaginatedFindResult,
@@ -143,8 +144,8 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      const updated = result?.['value']
-        ? (this.mapToAuditLog(result['value']) as AuditLogWithId)
+      const updated = unwrapFindOne(result)
+        ? (this.mapToAuditLog(unwrapFindOne(result)!) as AuditLogWithId)
         : null;
       if (updated) {
         this.log.info({ auditLogId: id }, 'Audit log updated successfully');

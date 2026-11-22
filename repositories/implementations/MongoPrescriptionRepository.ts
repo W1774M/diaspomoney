@@ -14,6 +14,7 @@ import { childLogger } from '@/lib/logger';
 import { mongoClient } from '@/lib/mongodb';
 import * as Sentry from '@sentry/nextjs';
 import { Document, ObjectId, OptionalId } from 'mongodb';
+import { unwrapFindOne } from '@/lib/database/find-one-result';
 import type {
   IPrescriptionRepository,
   Prescription,
@@ -141,8 +142,8 @@ export class MongoPrescriptionRepository implements IPrescriptionRepository {
         { $set: updateData },
         { returnDocument: 'after' },
       );
-      const updated = result?.['value']
-        ? this.mapToPrescription(result['value'])
+      const updated = unwrapFindOne(result)
+        ? this.mapToPrescription(unwrapFindOne(result)!)
         : null;
       if (updated) {
         this.log.info(
