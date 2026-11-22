@@ -76,3 +76,46 @@ describe('@InvalidateCache', () => {
     expect(h.invalidateAppCache).not.toHaveBeenCalled();
   });
 });
+
+describe('@Cacheable : jamais de secret dans le cache', () => {
+  class Utilisateurs {
+    @Cacheable(60, { prefix: 'Utilisateurs:trouver' })
+    async trouver(id: string) {
+      return { id, email: 'a@test.fr', password: '$2b$12$hash', profil: { nom: 'Awa' } };
+    }
+    @Cacheable(60, { prefix: 'Utilisateurs:liste' })
+    async liste() {
+      return [{ id: 'u1', securite: { twoFactorSecret: 'JBSWY3DP' } }];
+    }
+    @Cacheable(60, { prefix: 'Utilisateurs:profil' })
+    async profil(id: string) {
+      return { id, email: 'a@test.fr', password: undefined, refreshToken: '' };
+    }
+  }
+
+  it('renvoie le résultat sans le stocker s’il contient un secret, même imbriqué', async () => {
+    const u = new Utilisateurs();
+    expect(await u.trouver('u1')).toMatchObject({ password: '$2b$12$hash' });
+    expect(await u.liste()).toHaveLength(1);
+    expect(h.set).not.toHaveBeenCalled();
+  });
+
+  it('met en cache un résultat dont les champs secrets sont vides', async () => {
+    await new Utilisateurs().profil('u1');
+    expect(h.set).toHaveBeenCalledWith('Utilisateurs:profil:["u1"]', expect.objectContaining({ id: 'u1' }), 60);
+  });
+});
+
+describe('containsSecret', () => {
+  it('détecte les champs secrets connus, bornés en profondeur', async () => {
+    const { containsSecret } = await import('@/lib/decorators/cache.decorator');
+    expect(containsSecret({ twoFactorBackupCodes: ['a'] })).toBe(true);
+    expect(containsSecret([[{ passwordResetToken: 't' }]])).toBe(true);
+    expect(containsSecret({ email: 'a', nested: { ok: 1 } })).toBe(false);
+    expect(containsSecret(null)).toBe(false);
+    expect(containsSecret('password')).toBe(false);
+    let deep: Record<string, unknown> = { password: 'x' };
+    for (let i = 0; i < 8; i++) deep = { n: deep };
+    expect(containsSecret(deep)).toBe(false);
+  });
+});

@@ -4,12 +4,12 @@
  * - Repository Pattern
  * - Dependency Injection
  * - Logger Pattern (structured logging with childLogger)
- * - Decorator Pattern (@Log, @Cacheable, @InvalidateCache)
+ * - Decorator Pattern (@Log, @InvalidateCache)
  * - Error Handling Pattern (Sentry)
  */
 
 import { UserQueryBuilder } from '@/builders';
-import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
+import { InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { childLogger } from '@/lib/logger';
 import { USER_STATUSES, ROLES, KYC_STATUSES } from '@/lib/constants';
@@ -40,7 +40,8 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
-  @Cacheable(300, { prefix: 'UserRepository:findById' })
+  // Pas de @Cacheable sur ce dépôt : les documents contiennent le hash du mot de passe et les
+  // secrets 2FA, qui ne doivent pas être copiés dans Redis (voir docs/cache-redis.md).
   async findById(id: string): Promise<User | null> {
     try {
       const collection = await this.getCollection();
@@ -67,7 +68,6 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
-  @Cacheable(300, { prefix: 'UserRepository:findAll' })
   async findAll(filters?: UserFilters): Promise<User[]> {
     try {
       const collection = await this.getCollection();
@@ -86,7 +86,6 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
-  @Cacheable(300, { prefix: 'UserRepository:findOne' })
   async findOne(filters: UserFilters): Promise<User | null> {
     try {
       const collection = await this.getCollection();
@@ -686,7 +685,6 @@ export class MongoUserRepository implements IUserRepository {
    * Get a user's 2FA information
    */
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
-  @Cacheable(300, { prefix: 'UserRepository:get2FAInfo' })
   async get2FAInfo(userId: string): Promise<{
     twoFactorSecret?: string;
     twoFactorBackupCodes?: string[];
@@ -729,7 +727,6 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
-  @Cacheable(300, { prefix: 'UserRepository:findUsersWithFilters' })
   async findUsersWithFilters(
     filters: UserFilters,
     options?: PaginationOptions,
