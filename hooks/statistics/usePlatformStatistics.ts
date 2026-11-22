@@ -15,6 +15,8 @@ interface PlatformStatistics {
     completedTransactions: number;
     totalRevenue: number;
     revenueThisMonth: number;
+    /** Paiements encaissés (transactions + réservations au paiement confirmé) */
+    totalPayments: number;
     totalInvoices: number;
     paidInvoices: number;
     pendingInvoices: number;

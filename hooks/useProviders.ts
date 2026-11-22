@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { parseProvidersResponse } from "./providers-response";
 
 export interface Provider {
   _id: string;
@@ -59,9 +60,9 @@ export const useProviders = (filters: ProviderFilters = {}) => {
           throw new Error("Erreur lors de la récupération des prestataires");
         }
 
-        const data = await response.json();
-        setProviders(data.providers || []);
-        setTotal(data.total || 0);
+        const parsed = parseProvidersResponse<Provider>(await response.json());
+        setProviders(parsed.providers);
+        setTotal(parsed.total);
       } catch (error) {
         setError(error instanceof Error ? error.message : "Erreur inconnue");
         setProviders([]);

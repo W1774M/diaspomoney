@@ -9,13 +9,19 @@
 
 import { auth } from '@/auth';
 import { childLogger } from '@/lib/logger';
-import { ROLES, TRANSACTION_STATUSES } from '@/lib/constants';
+import { ROLES } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  getBookingRepository,
   getTransactionRepository,
   getUserRepository,
   getComplaintRepository,
 } from '@/repositories';
+import {
+  collectPlatformPayments,
+  countPayments,
+  sumRevenue,
+} from '@/services/statistics/platform-revenue';
 
 export async function GET(request: NextRequest) {
   const reqId = request.headers.get('x-request-id') || undefined;
@@ -81,22 +87,20 @@ export async function GET(request: NextRequest) {
       return createdAt >= startOfMonth;
     }).length;
 
-    // Transactions d'aujourd'hui
-    const todayTransactions = allTransactions.filter((t: any) => {
-      const createdAt = new Date(t.createdAt);
-      return createdAt >= today && t.status === TRANSACTION_STATUSES.COMPLETED;
-    }).length;
+    // Paiements encaissés : transactions COMPLETED + réservations au paiement
+    // Stripe confirmé (le chemin canonique ne crée pas de transaction), dédoublonnés.
+    const bookingsResult = await getBookingRepository().findBookingsWithFilters(
+      {},
+      { limit: 10000, page: 1, offset: 0 },
+    );
+    const payments = collectPlatformPayments(allTransactions, bookingsResult.data || []);
 
-    // Transactions du mois
-    const monthlyTransactions = allTransactions.filter((t: any) => {
-      const createdAt = new Date(t.createdAt);
-      return createdAt >= startOfMonth && t.status === TRANSACTION_STATUSES.COMPLETED;
-    }).length;
+    // Paiements d'aujourd'hui et du mois
+    const todayTransactions = countPayments(payments, { from: today });
+    const monthlyTransactions = countPayments(payments, { from: startOfMonth });
 
     // Revenus de la plateforme
-    const platformRevenue = allTransactions
-      .filter((t: any) => t.status === TRANSACTION_STATUSES.COMPLETED)
-      .reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+    const platformRevenue = sumRevenue(payments);
 
     // Récupérer les réclamations/tickets de support ouverts
     let openSupportTickets = 0;
