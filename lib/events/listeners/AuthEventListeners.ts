@@ -21,40 +21,8 @@ export function setupAuthEventListeners() {
     );
 
     try {
-      // 1. Envoyer une notification de bienvenue (si première connexion)
-      // Note: Vous pouvez ajouter une logique pour détecter si c'est la première connexion
-      // Vérifier d'abord si le template existe avant d'envoyer
-      try {
-        await notificationService.sendNotification({
-          recipient: data.userId,
-          type: 'LOGIN_SUCCESS',
-          template: 'login_success',
-          data: {
-            email: data.email,
-            timestamp: data.timestamp.toISOString(),
-          },
-          channels: [
-            { type: 'EMAIL', enabled: true, priority: 'LOW' },
-            { type: 'IN_APP', enabled: true, priority: 'MEDIUM' },
-          ],
-          locale: 'fr',
-          priority: 'LOW',
-        });
-      } catch (notificationError: unknown) {
-        // Si le template n'existe pas, on log mais on ne fait pas échouer l'événement de connexion
-        const errorMessage =
-          notificationError instanceof Error
-            ? notificationError.message
-            : 'Unknown notification error';
-        if (errorMessage.includes('Template non trouvé')) {
-          logger.warn(
-            { template: 'login_success', userId: data.userId },
-            '[AuthEventListeners] Template de notification non disponible, ignoré',
-          );
-        } else {
-          throw notificationError; // Re-lancer les autres erreurs
-        }
-      }
+      // 1. Notification « Connexion réussie » : créée (in-app uniquement, sans e-mail)
+      // par events.signIn de NextAuth (auth.config.ts), pas ici, pour éviter les doublons.
 
       // 2. Lier les commandes guest à l'utilisateur connecté
       // Si l'utilisateur a créé des commandes en tant que guest avec le même email,

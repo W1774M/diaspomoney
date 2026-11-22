@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { mongoClient } from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
 import { logger } from '@/lib/logger';
+import { invalidateAppCache } from '@/lib/cache/redis';
 
 export async function POST(request: NextRequest) {
   return handleApiRoute(request, async () => {
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
         },
       },
     );
+    await invalidateAppCache('UserRepository'); // écriture hors dépôt : vider le cache
 
     if (updateResult.modifiedCount === 0) {
       logger.error({ user }, 'Error updating password');

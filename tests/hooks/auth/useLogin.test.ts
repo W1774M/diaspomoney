@@ -13,9 +13,12 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { useLogin } from '@/hooks/auth/useLogin';
 import { signIn } from 'next-auth/react';
 
-// Éviter les imports réels Resend pendant les tests (le hook importe dynamiquement)
+// Garde-fou : la connexion ne doit plus envoyer d'e-mail (notification in-app côté serveur)
+const { mockSendEmail } = vi.hoisted(() => ({
+  mockSendEmail: vi.fn(async () => true),
+}));
 vi.mock('@/lib/email/resend', () => ({
-  sendLoginSuccessEmail: vi.fn(async () => {}),
+  sendEmail: mockSendEmail,
 }));
 
 // Mock de next-auth/react
@@ -133,6 +136,8 @@ describe('useLogin', () => {
     expect(mockAddSuccess).toHaveBeenCalled();
     expect(mockUpdate).toHaveBeenCalled();
     expect(mockReplace).toHaveBeenCalledWith('/dashboard');
+    // Aucun e-mail n'est envoyé à la connexion
+    expect(mockSendEmail).not.toHaveBeenCalled();
   });
 
   it('devrait gérer les erreurs CredentialsSignin', async () => {
@@ -242,7 +247,7 @@ describe('useLogin', () => {
       expect(success).toBe(true);
     });
 
-    expect(fetch).toHaveBeenCalledWith('/api/auth/session');
+    expect(fetch).toHaveBeenCalledWith('/api/auth/session', expect.anything());
     const { authEvents } = await import('@/lib/events');
     expect(vi.mocked(authEvents.emitUserLoggedIn)).toHaveBeenCalled();
   });

@@ -6,6 +6,7 @@ import { ObjectId } from 'mongodb';
 import { NextRequest, NextResponse } from 'next/server';
 import { join } from 'path';
 import { logger } from '@/lib/logger';
+import { invalidateAppCache } from '@/lib/cache/redis';
 
 // Configuration pour désactiver le body parsing automatique de Next.js
 // et permettre le parsing manuel du FormData
@@ -163,6 +164,7 @@ export async function POST(request: NextRequest) {
         },
       },
     );
+    await invalidateAppCache('UserRepository'); // écriture hors dépôt : vider le cache
 
     return NextResponse.json({
       success: true,
@@ -229,6 +231,7 @@ export async function DELETE() {
         },
       },
     );
+    await invalidateAppCache('UserRepository'); // écriture hors dépôt : vider le cache
 
     return NextResponse.json({
       success: true,
