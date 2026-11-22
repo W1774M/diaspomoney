@@ -54,7 +54,7 @@ export default function PublicHeader() {
               Comment ça marche
             </Link>
             <Link
-              href='/services'
+              href='/#services'
               className='text-white hover:text-[hsl(25,100%,53%)] transition-colors text-sm font-medium'
             >
               Nos services
@@ -127,7 +127,7 @@ export default function PublicHeader() {
                 </Link>
                 {/* Bouton "Commencer" - masqué en mobile */}
                 <Link
-                  href='/services'
+                  href='/#services'
                   className='hidden md:inline-flex items-center px-6 py-2.5 text-sm font-medium text-white rounded-full bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,48%)] hover:from-[hsl(25,100%,50%)] hover:to-[hsl(25,100%,45%)] transition-all shadow-lg hover:shadow-xl'
                 >
                   Commencer
@@ -171,7 +171,7 @@ export default function PublicHeader() {
               
               {/* Nos services */}
               <Link
-                href='/services'
+                href='/#services'
                 className='block px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800'
                 onClick={() => setIsMenuOpen(false)}
               >
@@ -218,7 +218,7 @@ export default function PublicHeader() {
                     Se connecter
                   </Link>
                   <Link
-                    href='/services'
+                    href='/#services'
                     className='block px-3 py-2 rounded-md text-base font-medium text-white bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,48%)] hover:from-[hsl(25,100%,50%)] hover:to-[hsl(25,100%,45%)] transition-all'
                     onClick={() => setIsMenuOpen(false)}
                   >

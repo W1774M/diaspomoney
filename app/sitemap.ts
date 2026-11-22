@@ -7,7 +7,6 @@ import { absoluteUrl } from '@/lib/seo';
  */
 const ROUTES: Array<{ path: string; changeFrequency: 'weekly' | 'monthly' | 'yearly'; priority: number }> = [
   { path: '/', changeFrequency: 'weekly', priority: 1 },
-  { path: '/services', changeFrequency: 'weekly', priority: 0.9 },
   { path: '/services/health', changeFrequency: 'weekly', priority: 0.9 },
   { path: '/services/edu', changeFrequency: 'weekly', priority: 0.8 },
   { path: '/services/immo', changeFrequency: 'weekly', priority: 0.8 },
