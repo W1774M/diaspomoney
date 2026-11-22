@@ -2,11 +2,13 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { MapPin, Stethoscope, X } from 'lucide-react';
 import { HEALTH_CLINICS, type ClinicOption } from '@/lib/clinics';
+import { inCountryLabel } from '@/lib/presence-countries';
 import { Marquee } from '@/components/ui/Marquee';
 import { NativeModal } from '@/components/ui/NativeModal';
+import { CLINICS_SECTION_ID, useHomeCountryFilter } from './HomeCountryFilter';
 
 function ClinicPrices({ clinic }: { clinic: ClinicOption }) {
   return (
@@ -34,6 +36,13 @@ function ClinicPrices({ clinic }: { clinic: ClinicOption }) {
 export function ClinicsCarouselSection() {
   const router = useRouter();
   const [selectedClinic, setSelectedClinic] = useState<ClinicOption | null>(null);
+  const { countries, country, setCountry } = useHomeCountryFilter();
+  const selectedCountry = country ? countries.find((c) => c.iso === country) : undefined;
+  const countryInfo = selectedCountry ? { inCountry: inCountryLabel(selectedCountry) } : undefined;
+  const clinics = useMemo(
+    () => (country ? HEALTH_CLINICS.filter((clinic) => clinic.country === country) : HEALTH_CLINICS),
+    [country],
+  );
 
   const handleChooseClinic = (clinic: ClinicOption) => {
     window.localStorage.setItem('diaspomoney.selectedClinic', JSON.stringify(clinic));
@@ -41,7 +50,10 @@ export function ClinicsCarouselSection() {
   };
 
   return (
-    <section className="py-16 md:py-20 bg-gradient-to-b from-white to-orange-50/40 relative overflow-hidden">
+    <section
+      id={CLINICS_SECTION_ID}
+      className="scroll-mt-4 py-16 md:py-20 bg-gradient-to-b from-white to-orange-50/40 relative overflow-hidden"
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-center mb-6">
           <span
@@ -51,7 +63,7 @@ export function ClinicsCarouselSection() {
               fontFamily: 'Plus Jakarta Sans, sans-serif',
             }}
           >
-            Santé à Douala
+            {countryInfo ? `Santé ${countryInfo.inCountry}` : 'Santé à Douala'}
           </span>
         </div>
 
@@ -74,14 +86,46 @@ export function ClinicsCarouselSection() {
             Des établissements de santé disponibles à Douala pour accompagner vos proches, avec des
             tarifs de consultation clairs.
           </p>
+
+          {countryInfo ? (
+            <p
+              className="mt-5 inline-flex flex-wrap items-center justify-center gap-2 text-sm text-gray-700"
+              role="status"
+            >
+              <span>
+                {clinics.length} clinique{clinics.length > 1 ? 's' : ''} disponible
+                {clinics.length > 1 ? 's' : ''} {countryInfo.inCountry}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCountry(null)}
+                className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-white px-3 py-1 font-medium text-[hsl(25,100%,40%)] hover:bg-orange-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(25,100%,45%)]"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden />
+                Voir tous les pays
+              </button>
+            </p>
+          ) : null}
         </div>
 
+        {clinics.length === 0 ? (
+          <div className="mx-auto max-w-md rounded-2xl border border-orange-100 bg-white p-8 text-center shadow-sm">
+            <h3 className="mb-2 text-lg font-semibold text-gray-900">
+              Aucune clinique disponible {countryInfo?.inCountry ?? ''} pour le moment
+            </h3>
+            <p className="text-gray-600">
+              Nos cliniques partenaires {countryInfo?.inCountry ?? ''} arrivent bientôt.
+            </p>
+          </div>
+        ) : (
         <Marquee
-          label="Cliniques partenaires"
+          // Remonte le défilement au changement de pays.
+          key={country ?? 'all'}
+          label={countryInfo ? `Cliniques partenaires ${countryInfo.inCountry}` : 'Cliniques partenaires'}
           trackClassName="gap-6 py-2"
           controlClassName="absolute right-3 top-4 z-10 rounded-full border border-orange-200 bg-white p-1.5 text-[hsl(25,100%,40%)] shadow-sm hover:bg-orange-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[hsl(25,100%,45%)]"
         >
-            {HEALTH_CLINICS.map((clinic) => (
+            {clinics.map((clinic) => (
               <article
                 key={clinic.name}
                 className="relative flex h-[450px] w-[320px] shrink-0 flex-col overflow-hidden rounded-2xl border border-orange-100 bg-white text-left shadow-sm transition-shadow hover:shadow-lg motion-safe:transition-transform motion-safe:duration-300 motion-safe:hover:-translate-y-1 md:h-[470px] md:w-[380px] focus-within:ring-2 focus-within:ring-[hsl(25,100%,45%)]"
@@ -141,6 +185,7 @@ export function ClinicsCarouselSection() {
               </article>
             ))}
         </Marquee>
+        )}
       </div>
 
       <NativeModal
