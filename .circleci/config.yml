@@ -3,9 +3,9 @@ version: 2.1
 # =====================================================================================
 # CI/CD DiaspoMoney
 #
-#   toutes branches sauf main : installation → tests (lint, types, couverture globale) → build → E2E
+#   toutes branches sauf rct et main : installation → tests (lint, types, tests + couverture) → build → E2E
 #   dev             : … → déploiement dev → ouverture de la PR dev → rct
-#   rct             : … → déploiement rct → ouverture de la PR rct → main
+#   rct             : contrôle « rct = commit dev testé » → déploiement rct → ouverture de la PR rct → main
 #                       → [Approve dans CircleCI] → fusion de la PR rct → main
 #   main            : contrôle « main = commit rct testé » → déploiement prod → validation Sentry
 #
@@ -89,10 +89,9 @@ jobs:
             - node_modules
 
   # ---------------------------------------------------------------------------
-  # Lint, types, puis les trois suites via CircleCI Smarter Testing
-  # (.circleci/test-suites.yml) : résultats JUnit téléversés (onglet Tests, Test Insights),
-  # « Rerun failed tests » ne relance que les tests en échec, découpage statique possible
-  # en ajoutant parallelism. Aucune fonction payante activée.
+  # Lint, types, puis une seule exécution des trois suites (client, serveur, intégration)
+  # avec couverture : rapports fusionnés, échec sous les seuils de coverage-thresholds.json
+  # (cliquet), résultats JUnit téléversés (onglet Tests, Test Insights).
   tests:
     executor: node-mongo
     steps:
@@ -103,31 +102,12 @@ jobs:
       - run:
           name: 📝 TypeScript Check
           command: pnpm tsc:check
-      - run:
-          name: 🧪 Tests client
-          command: circleci testsuite run "unit-client"
       - wait-for-mongo
       - run:
-          name: 🧪 Tests serveur
-          command: circleci testsuite run "unit-server"
-      - run:
-          name: 🔗 Tests d'intégration
-          command: circleci testsuite run "integration"
-          environment:
-            NODE_ENV: test
-
-  # ---------------------------------------------------------------------------
-  # Couverture globale : les trois suites en entier, rapports fusionnés, échec sous les
-  # seuils de coverage-thresholds.json (cliquet). Séparé de « tests » pour qu'un rerun
-  # partiel (tests en échec seulement) ne fausse jamais la mesure.
-  coverage:
-    executor: node-mongo
-    steps:
-      - attach-deps
-      - wait-for-mongo
-      - run:
-          name: 📊 Couverture globale (cliquet)
+          name: 🧪 Tests + 📊 couverture globale (cliquet)
           command: pnpm test:coverage
+      - store_test_results:
+          path: test-results
       - store_artifacts:
           path: coverage
           destination: coverage
@@ -255,22 +235,29 @@ jobs:
           fail_when: criteria == "firing"
 
   # ---------------------------------------------------------------------------
-  # Garde-fou de la prod, qui remplace les tests sur main : le commit à déployer doit être
-  # une fusion dont le code est identique à son second parent, et ce parent doit être un
-  # commit de rct (donc testé, couvert et validé en E2E par le pipeline rct et par les
-  # contrôles obligatoires de la PR rct → main). Toute autre arrivée de code sur main bloque.
+  # Garde-fou des promotions, qui remplace les tests sur rct et sur main : le commit à
+  # déployer doit être une fusion dont le code est identique à son second parent, et ce
+  # parent doit appartenir à la branche source (dev pour rct, rct pour main). Ce parent est
+  # la tête de la PR fusionnée, dont tests, build et e2e sont des contrôles obligatoires
+  # (protection GitHub) : le code déployé est donc exactement du code déjà testé.
+  # Toute autre arrivée de code (squash, commit direct, conflit résolu à la main) bloque.
   verifier-promotion:
     executor: base
+    parameters:
+      source:
+        type: enum
+        enum: [dev, rct]
     steps:
       - checkout
       - run:
-          name: 🔒 main = commit rct déjà testé
+          name: 🔒 code = commit << parameters.source >> déjà testé
           command: |
-            git fetch --quiet $([ -f "$(git rev-parse --git-dir)/shallow" ] && echo --unshallow) origin "+refs/heads/rct:refs/remotes/origin/rct"
-            parent=$(git rev-parse --verify --quiet HEAD^2) || { echo "❌ $CIRCLE_SHA1 n'est pas une fusion rct → main"; exit 1; }
-            git merge-base --is-ancestor "$parent" origin/rct || { echo "❌ $parent n'appartient pas à rct"; exit 1; }
-            [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "$parent^{tree}")" ] || { echo "❌ le code de main diffère du commit rct $parent"; git diff --stat "$parent" HEAD; exit 1; }
-            echo "✅ main = rct $parent : déploiement sans nouveaux tests"
+            src=<< parameters.source >>
+            git fetch --quiet $([ -f "$(git rev-parse --git-dir)/shallow" ] && echo --unshallow) origin "+refs/heads/$src:refs/remotes/origin/$src"
+            parent=$(git rev-parse --verify --quiet HEAD^2) || { echo "❌ $CIRCLE_SHA1 n'est pas une fusion $src → $CIRCLE_BRANCH"; exit 1; }
+            git merge-base --is-ancestor "$parent" "origin/$src" || { echo "❌ $parent n'appartient pas à $src"; exit 1; }
+            [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse "$parent^{tree}")" ] || { echo "❌ le code de $CIRCLE_BRANCH diffère du commit $src $parent"; git diff --stat "$parent" HEAD; exit 1; }
+            echo "✅ $CIRCLE_BRANCH = $src $parent : déploiement sans nouveaux tests"
 
   # ---------------------------------------------------------------------------
   open-pr:
@@ -299,29 +286,26 @@ jobs:
 workflows:
   ci-cd:
     jobs:
-      # Contrôles qualité sur toutes les branches sauf main : le code de main est
-      # toujours le commit rct déjà testé (voir « verifier-promotion »).
+      # Contrôles qualité sur toutes les branches sauf rct et main : leur code est toujours
+      # un commit dev (pour rct) ou rct (pour main) déjà testé (voir « verifier-promotion »).
       - install-dependencies:
-          filters: &hors-main { branches: { ignore: main } }
+          filters: &hors-promotions { branches: { ignore: [rct, main] } }
       - tests:
           requires: [install-dependencies]
-          filters: *hors-main
-      - coverage:
-          requires: [install-dependencies]
-          filters: *hors-main
+          filters: *hors-promotions
       - build:
           requires: [install-dependencies]
-          filters: *hors-main
+          filters: *hors-promotions
       - e2e:
           requires: [build]
-          filters: *hors-main
+          filters: *hors-promotions
 
       # ---- dev : déploiement puis PR vers rct -----------------------------------
       - deploy:
           name: deploy-dev
           env: dev
           environment-name: development
-          requires: [tests, coverage, e2e]
+          requires: [tests, e2e]
           filters: { branches: { only: dev } }
       - open-pr:
           name: pr-dev-vers-rct
@@ -331,11 +315,15 @@ workflows:
           filters: { branches: { only: dev } }
 
       # ---- rct : déploiement, PR vers main, validation, fusion ------------------
+      - verifier-promotion:
+          name: promotion-depuis-dev
+          source: dev
+          filters: { branches: { only: rct } }
       - deploy:
           name: deploy-rct
           env: rct
           environment-name: staging
-          requires: [tests, coverage, e2e]
+          requires: [promotion-depuis-dev]
           filters: { branches: { only: rct } }
       - open-pr:
           name: pr-rct-vers-main
@@ -356,13 +344,15 @@ workflows:
 
       # ---- main : pas de nouveaux tests, contrôle de promotion puis prod ---------
       - verifier-promotion:
+          name: promotion-depuis-rct
+          source: rct
           filters: { branches: { only: main } }
       - deploy:
           name: deploy-prod
           env: prod
           environment-name: production
           validated: true
-          requires: [verifier-promotion]
+          requires: [promotion-depuis-rct]
           filters: { branches: { only: main } }
       - release-production:
           requires: [deploy-prod]

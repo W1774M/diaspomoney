@@ -8,25 +8,33 @@ import '@/styles/globals.css';
 import 'react-international-phone/style.css';
 import { DefaultTemplate } from '@/template/DefaultTemplate';
 import type { Metadata, Viewport } from 'next';
-import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import { CookieConsent } from '@/components/consent/CookieConsent';
 import { CONSENT_DEFAULT_SCRIPT } from '@/lib/consent';
 import { serializeJsonLd, siteJsonLd } from '@/lib/seo';
 
-const geistSans = Inter({
+// Polices hébergées dans le projet (paquets @fontsource-variable, sous-ensemble latin) :
+// next/font/google les téléchargeait à chaque build, et un build échouait dès que
+// Google Fonts répondait de travers (CI comme images Docker du serveur).
+const geistSans = localFont({
+  src: '../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2',
   variable: '--font-geist-sans',
-  subsets: ['latin'],
+  weight: '100 900',
+  display: 'swap',
 });
 
-const geistMono = Inter({
+const geistMono = localFont({
+  src: '../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2',
   variable: '--font-geist-mono',
-  subsets: ['latin'],
+  weight: '100 900',
+  display: 'swap',
 });
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const plusJakartaSans = localFont({
+  src: '../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2',
   variable: '--font-plus-jakarta-sans',
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+  weight: '200 800',
+  display: 'swap',
 });
 
 const baseUrl =
