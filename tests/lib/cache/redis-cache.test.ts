@@ -1,6 +1,6 @@
 // @vitest-environment node
 import * as Sentry from '@sentry/nextjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Faux ioredis : `status` et les événements pilotent la disponibilité du cache.
 const h = vi.hoisted(() => ({ instance: null as any }));
@@ -9,6 +9,7 @@ vi.mock('ioredis', async () => {
   class FakeRedis extends EventEmitter {
     status = 'wait';
     options: any;
+    connect = vi.fn(async () => undefined);
     get = vi.fn(async () => null as string | null);
     setex = vi.fn(async () => 'OK');
     del = vi.fn(async () => 1);
@@ -31,6 +32,12 @@ async function load() {
   mod = await import('@/lib/cache/redis');
   raw = h.instance;
 }
+/** Cache activé (hors test et hors build) et connexion prête. */
+function enable() {
+  vi.stubEnv('CACHE_REDIS_ENABLED', 'true');
+  vi.stubEnv('NODE_ENV', 'production');
+  vi.stubEnv('NEXT_PHASE', '');
+}
 function connect() {
   raw.emit('connect');
   raw.status = 'ready';
@@ -42,30 +49,65 @@ beforeEach(async () => {
   vi.clearAllMocks();
   await load();
 });
+afterEach(() => vi.unstubAllEnvs());
 
-describe('cache Redis : disponibilité', () => {
+describe('cache Redis : activation', () => {
   it('configure ioredis sans file d’attente hors ligne, avec reprise progressive', () => {
     expect(raw.options).toMatchObject({ lazyConnect: true, enableOfflineQueue: false, maxRetriesPerRequest: 3, connectTimeout: 10000 });
     expect(raw.options.retryStrategy(1)).toBe(50);
     expect(raw.options.retryStrategy(100)).toBe(2000);
   });
 
-  it('n’envoie aucune commande tant que Redis n’est pas prêt', async () => {
-    // Aucune connexion n'est ouverte explicitement : avec lazyConnect, le statut reste « wait ».
-    expect(mod.isRedisConnected()).toBe(false);
-    expect(await mod.cache.get('k')).toBeNull();
-    await mod.cache.set('k', 1);
-    await mod.cache.del('k');
-    await mod.cache.clear();
-    expect(await mod.cache.users.get('k')).toBeNull();
-    await mod.cache.users.set('k', 1);
-    await mod.cache.users.del('k');
+  it('est désactivé par défaut, en test et pendant le build : aucune connexion, aucune commande', async () => {
+    const tries = [
+      {},
+      { CACHE_REDIS_ENABLED: 'true' }, // NODE_ENV=test
+      { CACHE_REDIS_ENABLED: 'true', NODE_ENV: 'production', NEXT_PHASE: 'phase-production-build' },
+      { CACHE_REDIS_ENABLED: '1', NODE_ENV: 'production' },
+    ];
+    for (const env of tries) {
+      vi.unstubAllEnvs();
+      for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v);
+      expect(mod.isCacheEnabled()).toBe(false);
+      raw.status = 'ready';
+      raw.emit('ready');
+      expect(mod.isRedisConnected()).toBe(false);
+      expect(await mod.cache.get('k')).toBeNull();
+      await mod.cache.set('k', 1);
+      await mod.cache.clear();
+      await mod.invalidateAppCache();
+    }
+    expect(raw.connect).not.toHaveBeenCalled();
     expect(raw.get).not.toHaveBeenCalled();
     expect(raw.setex).not.toHaveBeenCalled();
     expect(raw.keys).not.toHaveBeenCalled();
   });
 
+  it('activé, ouvre la connexion au premier usage puis sert le cache une fois prêt', async () => {
+    enable();
+    expect(mod.isCacheEnabled()).toBe(true);
+    expect(await mod.cache.get('k')).toBeNull(); // premier appel : connexion lancée, pas attendue
+    expect(raw.connect).toHaveBeenCalledTimes(1);
+    expect(raw.get).not.toHaveBeenCalled();
+
+    raw.status = 'connecting';
+    expect(mod.isRedisConnected()).toBe(false);
+    connect();
+    expect(mod.isRedisConnected()).toBe(true);
+    raw.get.mockResolvedValueOnce('{"a":1}');
+    expect(await mod.cache.get('k')).toEqual({ a: 1 });
+    expect(raw.connect).toHaveBeenCalledTimes(1);
+  });
+
+  it('survit à un échec de connexion', async () => {
+    enable();
+    raw.connect.mockRejectedValueOnce(err('ECONNREFUSED'));
+    expect(await mod.cache.get('k')).toBeNull();
+    await Promise.resolve();
+  });
+
   it('suit les événements de connexion', () => {
+    enable();
     connect();
     expect(mod.isRedisConnected()).toBe(true);
     raw.emit('reconnecting', 100);
@@ -97,17 +139,20 @@ describe('cache Redis : disponibilité', () => {
 });
 
 const namespaces = [
-  ['users', 'users:', 300],
-  ['services', 'services:', 3600],
-  ['stats', 'stats:', 1800],
-  ['appointments', 'appointments:', 900],
+  ['users', 'cache:users:', 300],
+  ['services', 'cache:services:', 3600],
+  ['stats', 'cache:stats:', 1800],
+  ['appointments', 'cache:appointments:', 900],
 ] as const;
 
 describe.each(namespaces)('cache.%s', (name, prefix, defaultTtl) => {
-  beforeEach(connect);
+  beforeEach(() => {
+    enable();
+    connect();
+  });
   const ns = () => mod.cache[name];
 
-  it('écrit (TTL par défaut ou donné), lit et supprime avec le préfixe', async () => {
+  it('écrit (TTL par défaut ou donné), lit et supprime sous « cache: »', async () => {
     await ns().set('k', { a: 1 });
     expect(raw.setex).toHaveBeenCalledWith(`${prefix}k`, defaultTtl, '{"a":1}');
     await ns().set('k', 'x', 5);
@@ -132,28 +177,58 @@ describe.each(namespaces)('cache.%s', (name, prefix, defaultTtl) => {
       await expect(ns().del('k')).resolves.toBeUndefined();
     }
   });
+
+  it('ne fait rien tant que Redis est indisponible', async () => {
+    raw.emit('close');
+    expect(await ns().get('k')).toBeNull();
+    await ns().set('k', 1);
+    await ns().del('k');
+    expect(raw.get).not.toHaveBeenCalled();
+    expect(raw.setex).not.toHaveBeenCalled();
+    expect(raw.del).not.toHaveBeenCalled();
+  });
 });
 
 describe('cache générique', () => {
-  beforeEach(connect);
+  beforeEach(() => {
+    enable();
+    connect();
+  });
 
-  it('écrit, lit et supprime sans préfixe', async () => {
-    await mod.cache.set('k', [1]);
-    expect(raw.setex).toHaveBeenCalledWith('k', 3600, '[1]');
+  it('écrit, lit et supprime sous « cache: », sans stocker undefined', async () => {
+    await mod.cache.set('UserRepository:findById:["u1"]', [1]);
+    expect(raw.setex).toHaveBeenCalledWith('cache:UserRepository:findById:["u1"]', 3600, '[1]');
+    await mod.cache.set('k', undefined);
+    expect(raw.setex).toHaveBeenCalledTimes(1);
     raw.get.mockResolvedValueOnce('[1]');
     expect(await mod.cache.get('k')).toEqual([1]);
     expect(await mod.cache.get('absente')).toBeNull();
     await mod.cache.del('k');
-    expect(raw.del).toHaveBeenCalledWith('k');
+    expect(raw.del).toHaveBeenCalledWith('cache:k');
   });
 
-  it('vide les clés correspondant à un motif', async () => {
+  it('restaure les dates relues (et seulement les dates ISO complètes)', async () => {
+    const original = { createdAt: new Date('2026-11-22T10:15:00.000Z'), jour: '2026-11-22', heure: '10:15', nested: [{ at: new Date('2026-01-01T00:00:00Z') }] };
+    await mod.cache.set('k', original);
+    raw.get.mockResolvedValueOnce(raw.setex.mock.calls[0]![2]);
+    const relu = await mod.cache.get('k');
+    expect(relu.createdAt).toBeInstanceOf(Date);
+    expect(relu.createdAt.getTime()).toBe(original.createdAt.getTime());
+    expect(relu.nested[0].at).toBeInstanceOf(Date);
+    expect(relu.jour).toBe('2026-11-22');
+    expect(relu.heure).toBe('10:15');
+    expect(mod.reviveDates('', '2026-11-22T10:15:00Z')).toEqual(new Date('2026-11-22T10:15:00Z'));
+    expect(mod.reviveDates('', 42)).toBe(42);
+  });
+
+  it('vide seulement les clés de cache correspondant au motif', async () => {
     await mod.cache.clear('rien:*');
+    expect(raw.keys).toHaveBeenCalledWith('cache:rien:*');
     expect(raw.del).not.toHaveBeenCalled();
-    raw.keys.mockResolvedValueOnce(['a', 'b']);
+    raw.keys.mockResolvedValueOnce(['cache:a', 'cache:b']);
     await mod.cache.clear();
-    expect(raw.keys).toHaveBeenLastCalledWith('*');
-    expect(raw.del).toHaveBeenCalledWith('a', 'b');
+    expect(raw.keys).toHaveBeenLastCalledWith('cache:*');
+    expect(raw.del).toHaveBeenCalledWith('cache:a', 'cache:b');
   });
 
   it('ne plante jamais sur une erreur Redis', async () => {
@@ -172,12 +247,31 @@ describe('cache générique', () => {
   it('exporte le client ioredis', () => {
     expect(mod.default).toBe(raw);
   });
+});
 
-  it.each(['stats', 'services', 'appointments'] as const)('ne lit pas %s tant que Redis est indisponible', async (name) => {
-    raw.emit('close');
-    expect(await mod.cache[name].get('k')).toBeNull();
-    await mod.cache[name].set('k', 1);
-    await mod.cache[name].del('k');
-    expect(raw.get).not.toHaveBeenCalled();
+describe('invalidateAppCache', () => {
+  beforeEach(() => {
+    enable();
+    connect();
+  });
+  const patterns = () => raw.keys.mock.calls.map(([p]: [string]) => p);
+
+  it('vide tout le cache de l’environnement après une écriture ordinaire', async () => {
+    for (const scope of [undefined, 'UserRepository:*', 'BookingService:*', 'speciality:*', 'GDPRConsentRepository']) {
+      raw.keys.mockClear();
+      await mod.invalidateAppCache(scope);
+      expect(patterns()).toEqual(['cache:*']);
+    }
+  });
+
+  it('ne vide que leur domaine pour les journaux d’audit et les notifications', async () => {
+    await mod.invalidateAppCache('AuditLoggingSystem:*');
+    expect(patterns()).toEqual(['cache:AuditLog*', 'cache:PCIAuditLog*']);
+    raw.keys.mockClear();
+    await mod.invalidateAppCache('PCIAuditLogRepository');
+    expect(patterns()).toEqual(['cache:AuditLog*', 'cache:PCIAuditLog*']);
+    raw.keys.mockClear();
+    await mod.invalidateAppCache('NotificationRepository:*');
+    expect(patterns()).toEqual(['cache:Notification*']);
   });
 });

@@ -83,6 +83,10 @@ vi.mock('@/lib/api/error-handler', async () => {
   };
 });
 
+// Cache applicatif : vidé après le changement de mot de passe (écriture hors dépôt).
+const { mockInvalidateAppCache } = vi.hoisted(() => ({ mockInvalidateAppCache: vi.fn(async () => undefined) }));
+vi.mock('@/lib/cache/redis', () => ({ invalidateAppCache: mockInvalidateAppCache }));
+
 // Mock de logger
 vi.mock('@/lib/logger', () => ({
   logger: {
@@ -145,6 +149,9 @@ describe('POST /api/auth/reset-password', () => {
         },
       }),
     );
+    // Sinon l'ancien hash resterait servi par le cache des utilisateurs.
+    expect(mockInvalidateAppCache).toHaveBeenCalledWith('UserRepository');
+    expect(mockInvalidateAppCache.mock.invocationCallOrder[0]!).toBeGreaterThan(vi.mocked(mockUpdateOne).mock.invocationCallOrder[0]!);
   });
 
   it('devrait retourner 400 si le token est invalide', async () => {

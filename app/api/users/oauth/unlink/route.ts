@@ -1,6 +1,7 @@
 import { auth } from '@/auth';
 import { mongoClient } from '@/lib/mongodb';
 import { NextRequest, NextResponse } from 'next/server';
+import { invalidateAppCache } from '@/lib/cache/redis';
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
     } as any;
 
     const result = await users.updateOne({ email }, update);
+    await invalidateAppCache('UserRepository'); // écriture hors dépôt : vider le cache
     if (result.matchedCount === 0) {
       return NextResponse.json(
         { error: 'Utilisateur introuvable' },

@@ -6,6 +6,7 @@ import { UserDocument } from '@/lib/types/user-document.types';
 import { getUserRepository } from '@/repositories';
 import { getMongoClient } from '@/lib/mongodb';
 import { NextRequest } from 'next/server';
+import { invalidateAppCache } from '@/lib/cache/redis';
 
 /**
  * GET /api/users/me - Récupérer le profil de l'utilisateur authentifié
@@ -125,6 +126,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const result = await users.updateOne({ email }, { $set: updateData });
+    await invalidateAppCache('UserRepository'); // écriture hors dépôt : vider le cache
 
     if (result.matchedCount === 0) {
       throw ApiErrors.NOT_FOUND;

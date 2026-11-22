@@ -104,6 +104,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      # Cache @Cacheable : activé sur dev seulement (déploiement progressif, voir docs/ci-cd.md)
+      CACHE_REDIS_ENABLED: "true"
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik
