@@ -443,33 +443,8 @@ export const useLogin = () => {
       await new Promise(resolve => setTimeout(resolve, 150));
     }
 
-    // Récupérer les informations utilisateur pour l'email
-    let userEmail = '';
-    let userName = '';
-    try {
-      const sessionResponse = await fetch('/api/auth/session');
-      if (sessionResponse.ok) {
-        const sessionData = await sessionResponse.json();
-        if (sessionData?.user) {
-          userEmail = sessionData.user.email || '';
-          userName = sessionData.user.name || `${sessionData.user.firstName || ''} ${sessionData.user.lastName || ''}`.trim() || 'Utilisateur';
-        }
-      }
-    } catch (error) {
-      logger.warn({ error }, 'Erreur lors de la récupération de la session pour l\'email');
-    }
-
-    // Envoyer l'email de notification de connexion (en arrière-plan, ne pas bloquer)
-    if (userEmail && userName) {
-      try {
-        const { sendLoginSuccessEmail } = await import('@/lib/email/resend');
-        sendLoginSuccessEmail(userEmail, userName).catch((emailError) => {
-          logger.warn({ error: emailError }, 'Erreur lors de l\'envoi de l\'email de connexion');
-        });
-      } catch (importError) {
-        logger.warn({ error: importError }, 'Erreur lors de l\'import de sendLoginSuccessEmail');
-      }
-    }
+    // Pas d'e-mail à la connexion : la notification in-app « Connexion réussie »
+    // est créée côté serveur (events.signIn de NextAuth, cf. auth.config.ts).
 
     // Afficher le toast de succès
     addSuccess('Connexion réussie ! Redirection vers votre dashboard...');
