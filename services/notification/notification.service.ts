@@ -38,6 +38,7 @@ import type {
 } from '@/lib/types';
 import type { Notification } from '@/lib/types/notifications.types';
 import * as Sentry from '@sentry/nextjs';
+import { getAdditionalTemplate } from './additional-templates';
 
 export class NotificationService {
   private static instance: NotificationService;
@@ -877,7 +878,8 @@ export class NotificationService {
         },
       };
 
-      const template = defaultTemplates[templateName] || null;
+      const template =
+        defaultTemplates[templateName] || getAdditionalTemplate(templateName, locale);
       if (template) {
         this.log.debug({ templateName, locale }, 'Using default template');
       } else {
