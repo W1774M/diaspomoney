@@ -30,7 +30,7 @@ local ──push──▶ dev ──PR auto──▶ rct ──PR auto + « Appr
 
 `main` et `rct` sont protégées sur GitHub, administrateurs compris :
 - pas de push direct ni de force-push : tout passe par une PR ;
-- checks requis avant fusion : `ci/circleci: tests`, `ci/circleci: build` et `ci/circleci: e2e`.
+- checks requis avant fusion : `ci/circleci: tests` (qui inclut la couverture), `ci/circleci: build` et `ci/circleci: e2e`.
 
 ## Configuration CircleCI (à faire une fois)
 
@@ -79,14 +79,9 @@ install -m 755 scripts/server/docker-cleanup.sh /root/Lab/scripts/docker-cleanup
 
 ## Tests
 
-En CI, les trois suites passent par **CircleCI Smarter Testing** (`.circleci/test-suites.yml`, commande `circleci testsuite run "<suite>"`). Fonctions gratuites actives :
-- résultats téléversés (onglet Tests, Test Insights) ;
-- « Rerun failed tests » ne relance que les tests en échec ;
-- découpage statique par durée si l'on ajoute `parallelism` au job `tests`.
+En CI, le job `tests` lance le lint, la vérification TypeScript, puis `pnpm test:coverage` : une seule exécution des trois suites, avec couverture. Les rapports sont fusionnés et le job échoue sous les seuils du cliquet. Chaque suite écrit aussi un rapport JUnit dans `test-results/`, téléversé dans l'onglet Tests de CircleCI (Test Insights).
 
-Aucune fonction payante n'est activée (analyse d'impact, découpage dynamique, rerun automatique). Vérification locale d'une suite : `circleci testsuite doctor "<suite>"`.
-
-La couverture globale tourne dans un job `coverage` séparé, sur des exécutions complètes : un rerun partiel ne fausse jamais la mesure.
+Avant, un job `tests` (via Smarter Testing) et un job `coverage` relançaient les mêmes suites. Ils sont regroupés pour ne faire le travail qu'une fois. Contrepartie : « Rerun failed tests » n'est plus disponible. En cas d'échec, on relance le job entier (« Rerun workflow from failed »).
 
 | Suite | Commande | Contenu |
 | --- | --- | --- |

@@ -3,7 +3,7 @@ version: 2.1
 # =====================================================================================
 # CI/CD DiaspoMoney
 #
-#   toutes branches sauf main : installation → tests (lint, types, couverture globale) → build → E2E
+#   toutes branches sauf main : installation → tests (lint, types, tests + couverture) → build → E2E
 #   dev             : … → déploiement dev → ouverture de la PR dev → rct
 #   rct             : … → déploiement rct → ouverture de la PR rct → main
 #                       → [Approve dans CircleCI] → fusion de la PR rct → main
@@ -89,10 +89,9 @@ jobs:
             - node_modules
 
   # ---------------------------------------------------------------------------
-  # Lint, types, puis les trois suites via CircleCI Smarter Testing
-  # (.circleci/test-suites.yml) : résultats JUnit téléversés (onglet Tests, Test Insights),
-  # « Rerun failed tests » ne relance que les tests en échec, découpage statique possible
-  # en ajoutant parallelism. Aucune fonction payante activée.
+  # Lint, types, puis une seule exécution des trois suites (client, serveur, intégration)
+  # avec couverture : rapports fusionnés, échec sous les seuils de coverage-thresholds.json
+  # (cliquet), résultats JUnit téléversés (onglet Tests, Test Insights).
   tests:
     executor: node-mongo
     steps:
@@ -103,31 +102,12 @@ jobs:
       - run:
           name: 📝 TypeScript Check
           command: pnpm tsc:check
-      - run:
-          name: 🧪 Tests client
-          command: circleci testsuite run "unit-client"
       - wait-for-mongo
       - run:
-          name: 🧪 Tests serveur
-          command: circleci testsuite run "unit-server"
-      - run:
-          name: 🔗 Tests d'intégration
-          command: circleci testsuite run "integration"
-          environment:
-            NODE_ENV: test
-
-  # ---------------------------------------------------------------------------
-  # Couverture globale : les trois suites en entier, rapports fusionnés, échec sous les
-  # seuils de coverage-thresholds.json (cliquet). Séparé de « tests » pour qu'un rerun
-  # partiel (tests en échec seulement) ne fausse jamais la mesure.
-  coverage:
-    executor: node-mongo
-    steps:
-      - attach-deps
-      - wait-for-mongo
-      - run:
-          name: 📊 Couverture globale (cliquet)
+          name: 🧪 Tests + 📊 couverture globale (cliquet)
           command: pnpm test:coverage
+      - store_test_results:
+          path: test-results
       - store_artifacts:
           path: coverage
           destination: coverage
@@ -306,9 +286,6 @@ workflows:
       - tests:
           requires: [install-dependencies]
           filters: *hors-main
-      - coverage:
-          requires: [install-dependencies]
-          filters: *hors-main
       - build:
           requires: [install-dependencies]
           filters: *hors-main
@@ -321,7 +298,7 @@ workflows:
           name: deploy-dev
           env: dev
           environment-name: development
-          requires: [tests, coverage, e2e]
+          requires: [tests, e2e]
           filters: { branches: { only: dev } }
       - open-pr:
           name: pr-dev-vers-rct
@@ -335,7 +312,7 @@ workflows:
           name: deploy-rct
           env: rct
           environment-name: staging
-          requires: [tests, coverage, e2e]
+          requires: [tests, e2e]
           filters: { branches: { only: rct } }
       - open-pr:
           name: pr-rct-vers-main

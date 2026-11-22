@@ -12,10 +12,7 @@ pnpm deploy:prod
 
 ## Workflows
 
-- `ci-dev-workflow` : push sur `dev`, exécute tests, couverture et build.
-- `ci-rct-workflow` : push sur `rct`, exécute tests, couverture et build.
-- `ci-prod-workflow` : push sur `main`, exécute tests, couverture et build.
-- `pr-workflow` : autres branches, exécute tests, couverture et build.
+- `ci-cd` : un seul workflow. Toutes les branches sauf `main` : `tests` (lint, types, tests + couverture), `build`, `e2e`. Ensuite, selon la branche : déploiement dev, rct (avec validation) ou prod. Détail complet : `docs/ci-cd.md`.
 
 ## Artifacts
 
