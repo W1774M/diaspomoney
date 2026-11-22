@@ -88,7 +88,7 @@ export function useBookingProgress(booking: BookingResponse | null | undefined):
     }> = {};
 
     for (let step = 1; step <= 4; step++) {
-      const stepHistory = progressHistory.find((h: any) => h.step === step);
+      const stepHistory = progressHistory.find((h: any) => h?.step === step);
       const isCompletedInHistory = stepHistory?.completed === true;
       const isPaymentPending = step === 3 && stepHistory?.data?.paymentPending === true;
       const isPaymentConfirmed = step === 3 && isPaymentCompleted;
