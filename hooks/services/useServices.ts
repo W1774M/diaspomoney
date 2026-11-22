@@ -174,11 +174,18 @@ export function useServices(options: UseServicesOptions = {}): UseServicesReturn
      
   }, [optionsKey, fetchServices]);
 
+  // Rechargement demandé (après une création, une modification…) : on oublie la clé du
+  // dernier chargement réussi, sinon fetchServices considère les données à jour et ne fait rien.
+  const refetch = useCallback(async () => {
+    lastFetchedKeyRef.current = '';
+    await fetchServices();
+  }, [fetchServices]);
+
   return {
     services,
     loading,
     error,
-    refetch: fetchServices,
+    refetch,
   };
 }
 
