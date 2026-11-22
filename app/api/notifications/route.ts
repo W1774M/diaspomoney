@@ -18,6 +18,7 @@ import { ObjectId } from 'mongodb';
 import { NextRequest } from 'next/server';
 import type { NotificationChannel } from '@/lib/types/notifications.types';
 import { API } from '@/lib/constants';
+import { invalidateAppCache } from '@/lib/cache/redis';
 
 /**
  * Interface pour une notification MongoDB
@@ -279,6 +280,7 @@ export async function PATCH(request: NextRequest) {
       { _id: notificationObjectId },
       { $set: { read: true, updatedAt: new Date() } },
     );
+    await invalidateAppCache('NotificationRepository'); // écriture hors dépôt : vider le cache
 
     return {
       success: true,
@@ -323,6 +325,7 @@ export async function PUT(request: NextRequest) {
     const result = await notificationsCollection.updateMany(userFilter, {
       $set: { read: true, updatedAt: new Date() },
     });
+    await invalidateAppCache('NotificationRepository'); // écriture hors dépôt : vider le cache
 
     return {
       success: true,

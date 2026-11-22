@@ -17,6 +17,7 @@ import { DATABASE, ROLES } from '@/lib/constants';
 import { getMongoClient } from '@/lib/database/mongodb';
 import { handleApiRoute, ApiErrors, validateBody } from '@/lib/api/error-handler';
 import { z } from 'zod';
+import { invalidateAppCache } from '@/lib/cache/redis';
 
 const BodySchema = z.object({
   providerId: z.string().regex(/^[a-f\\d]{24}$/i, 'Invalid provider ID format (must be MongoDB ObjectId)'),
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
       { _id: new ObjectId(session.user.id) },
       { $addToSet: { csmPortfolioProviderIds: providerId } },
     );
+    await invalidateAppCache('UserRepository'); // écriture hors dépôt : vider le cache
 
     return { success: true };
   }, 'api/csm/portfolio/providers:add');
@@ -86,6 +88,7 @@ export async function DELETE(request: NextRequest) {
       { _id: new ObjectId(session.user.id) },
       { $pull: { csmPortfolioProviderIds: providerId } as any },
     );
+    await invalidateAppCache('UserRepository'); // écriture hors dépôt : vider le cache
 
     return { success: true };
   }, 'api/csm/portfolio/providers:remove');

@@ -6,6 +6,7 @@ import { UpdateInvoiceSchema, type UpdateInvoiceInput } from '@/lib/validations/
 import { invoiceService } from '@/services/invoice/invoice.service';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
+import { invalidateAppCache } from '@/lib/cache/redis';
 
 /**
  * API Route pour récupérer et mettre à jour une facture par ID
@@ -205,6 +206,7 @@ export async function PUT(
         { $set: additionalUpdates },
         { new: true },
       );
+      await invalidateAppCache('InvoiceRepository'); // écriture hors dépôt : vider le cache
     }
 
     // Récupérer la facture mise à jour complète

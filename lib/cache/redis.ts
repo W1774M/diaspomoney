@@ -5,14 +5,29 @@
  * - Logger Pattern (structured logging avec childLogger)
  * - Error Handling Pattern (Sentry)
  * - Cache Pattern
+ *
+ * Activation : CACHE_REDIS_ENABLED=true (désactivé par défaut, jamais en test ni pendant
+ * `next build`). Désactivé, toutes les fonctions sont sans effet et `get` renvoie null.
+ *
+ * Toutes les clés sont rangées sous « cache: » : un vidage du cache ne touche jamais les
+ * autres clés de la base (compteurs anti force brute, liste noire de jetons, fraude).
  */
 
 import { childLogger } from '@/lib/logger';
+import { redisConnectionFromEnv } from '@/lib/redis/redis-connection';
 import * as Sentry from '@sentry/nextjs';
 import Redis from 'ioredis';
-import { redisConnectionFromEnv } from '@/lib/redis/redis-connection';
 
 const log = childLogger({ component: 'RedisCache' });
+
+/** Espace de noms de toutes les clés de cache. */
+export const CACHE_NAMESPACE = 'cache:';
+
+/** Le cache est-il activé pour ce processus ? (lu à chaque appel : modifiable en test) */
+export const isCacheEnabled = (): boolean =>
+  process.env['CACHE_REDIS_ENABLED'] === 'true' &&
+  process.env.NODE_ENV !== 'test' &&
+  process.env['NEXT_PHASE'] !== 'phase-production-build';
 
 // État de connexion Redis
 let isConnected = false;
@@ -21,17 +36,12 @@ let errorCount = 0;
 const ERROR_RATE_LIMIT_MS = 60000; // 1 minute entre les logs d'erreur
 const MAX_ERRORS_BEFORE_SILENCE = 5; // Arrêter de logger après 5 erreurs
 
-// Configuration Redis
 // Base propre à chaque environnement (REDIS_URL …/0 dev, /1 rct, /2 prod).
-const connection = redisConnectionFromEnv();
 const redis = new Redis({
-  ...connection,
+  ...redisConnectionFromEnv(),
   maxRetriesPerRequest: 3,
-  lazyConnect: true,
-  retryStrategy: (times: number) => {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
-  },
+  lazyConnect: true, // connexion ouverte au premier usage, seulement si le cache est activé
+  retryStrategy: (times: number) => Math.min(times * 50, 2000),
   enableOfflineQueue: false, // Ne pas mettre en queue les commandes si déconnecté
   connectTimeout: 10000, // 10 secondes timeout
 });
@@ -45,34 +55,18 @@ redis.on('error', err => {
   lastErrorTime = now;
 
   // Logger seulement si on n'a pas dépassé la limite ou si c'est une nouvelle erreur après un délai
-  if (
-    errorCount <= MAX_ERRORS_BEFORE_SILENCE ||
-    timeSinceLastError > ERROR_RATE_LIMIT_MS
-  ) {
+  if (errorCount <= MAX_ERRORS_BEFORE_SILENCE || timeSinceLastError > ERROR_RATE_LIMIT_MS) {
     if (errorCount > MAX_ERRORS_BEFORE_SILENCE) {
       errorCount = 1; // Reset counter après le délai
     }
 
     const errorCode = (err as any)?.code || 'UNKNOWN';
-    log.warn(
-      {
-        error: err,
-        code: errorCode,
-        errorCount,
-        host: process.env['REDIS_HOST'] || 'localhost',
-        port: process.env['REDIS_PORT'] || '6379',
-      },
-      'Redis connection error',
-    );
+    log.warn({ error: err, code: errorCode, errorCount }, 'Redis connection error');
 
     // Envoyer à Sentry seulement pour les premières erreurs ou erreurs critiques
     if (errorCount <= 3 || errorCode !== 'ECONNREFUSED') {
       Sentry.captureException(err, {
-        tags: {
-          component: 'RedisCache',
-          event: 'connection_error',
-          code: errorCode,
-        },
+        tags: { component: 'RedisCache', event: 'connection_error', code: errorCode },
         level: errorCount <= 1 ? 'error' : 'warning',
       });
     }
@@ -84,13 +78,7 @@ redis.on('error', err => {
 redis.on('connect', () => {
   isConnected = true;
   errorCount = 0; // Reset error count on successful connection
-  log.info(
-    {
-      host: process.env['REDIS_HOST'] || 'localhost',
-      port: process.env['REDIS_PORT'] || '6379',
-    },
-    'Redis connected successfully',
-  );
+  log.info('Redis connected successfully');
 });
 
 redis.on('ready', () => {
@@ -107,297 +95,119 @@ redis.on('reconnecting', (delay: number) => {
   log.info({ delay }, 'Redis reconnecting...');
 });
 
-// Helper pour vérifier si Redis est disponible
+/**
+ * Redis est-il utilisable maintenant ? Ouvre la connexion au premier appel (sans attendre :
+ * cet appel-là et les suivants, jusqu'à « ready », se passent du cache).
+ */
 const isRedisAvailable = (): boolean => {
+  if (!isCacheEnabled()) return false;
+  if (redis.status === 'wait') {
+    redis.connect().catch(() => undefined); // erreurs déjà traitées par le handler 'error'
+    return false;
+  }
   return isConnected && redis.status === 'ready';
 };
 
 // Export helper pour vérifier le statut Redis
-export const isRedisConnected = (): boolean => {
-  return isRedisAvailable();
+export const isRedisConnected = (): boolean => isRedisAvailable();
+
+/** Les dates passent par JSON en texte ISO : on les restaure en Date à la lecture. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
+export const reviveDates = (_key: string, value: unknown): unknown =>
+  typeof value === 'string' && ISO_DATE.test(value) ? new Date(value) : value;
+
+/** Erreurs de connexion : déjà journalisées par le handler 'error', inutile de les répéter. */
+const logCommandError = (error: unknown, context: Record<string, unknown>, msg: string) => {
+  const code = (error as any)?.code;
+  if (code !== 'ECONNREFUSED' && code !== 'ENOTFOUND') log.error({ error, ...context }, msg);
 };
+
+/** Cache sous un préfixe (« users: », etc. ; vide pour le cache générique). */
+function namespace(prefix: string, defaultTtl: number, label: string) {
+  const fullKey = (key: string) => `${CACHE_NAMESPACE}${prefix}${key}`;
+  return {
+    set: async (key: string, data: any, ttl: number = defaultTtl) => {
+      if (data === undefined || !isRedisAvailable()) return;
+      try {
+        await redis.setex(fullKey(key), ttl, JSON.stringify(data));
+        log.debug({ key, ttl }, `${label} cache set`);
+      } catch (error) {
+        logCommandError(error, { key }, `Cache ${label} set error`);
+      }
+    },
+
+    get: async (key: string) => {
+      if (!isRedisAvailable()) return null;
+      try {
+        const data = await redis.get(fullKey(key));
+        if (data) log.debug({ key }, `${label} cache hit`);
+        return data ? JSON.parse(data, reviveDates) : null;
+      } catch (error) {
+        logCommandError(error, { key }, `Cache ${label} get error`);
+        return null;
+      }
+    },
+
+    del: async (key: string) => {
+      if (!isRedisAvailable()) return;
+      try {
+        await redis.del(fullKey(key));
+        log.debug({ key }, `${label} cache deleted`);
+      } catch (error) {
+        logCommandError(error, { key }, `Cache ${label} del error`);
+      }
+    },
+  };
+}
+
+const generic = namespace('', 3600, 'Generic');
 
 // Cache helper functions
 export const cache = {
-  // Cache des utilisateurs (5 minutes)
-  users: {
-    set: async (key: string, data: any, ttl: number = 300) => {
-      if (!isRedisAvailable()) {
-        return; // Fail silently if Redis is not available
-      }
-      try {
-        await redis.setex(`users:${key}`, ttl, JSON.stringify(data));
-        log.debug({ key, ttl }, 'Users cache set');
-      } catch (error) {
-        // Only log if it's not a connection error (already handled by error handler)
-        const errorCode = (error as any)?.code;
-        if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-          log.error({ error, key }, 'Cache users set error');
-        }
-      }
-    },
-
-    get: async (key: string) => {
-      if (!isRedisAvailable()) {
-        return null; // Fail silently if Redis is not available
-      }
-      try {
-        const data = await redis.get(`users:${key}`);
-        if (data) {
-          log.debug({ key }, 'Users cache hit');
-        }
-        return data ? JSON.parse(data) : null;
-      } catch (error) {
-        // Only log if it's not a connection error
-        const errorCode = (error as any)?.code;
-        if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-          log.error({ error, key }, 'Cache users get error');
-        }
-        return null;
-      }
-    },
-
-    del: async (key: string) => {
-      if (!isRedisAvailable()) {
-        return; // Fail silently if Redis is not available
-      }
-      try {
-        await redis.del(`users:${key}`);
-        log.debug({ key }, 'Users cache deleted');
-      } catch (error) {
-        // Only log if it's not a connection error
-        const errorCode = (error as any)?.code;
-        if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-          log.error({ error, key }, 'Cache users del error');
-        }
-      }
-    },
-  },
-
-  // Cache des services (1 heure)
-  services: {
-    set: async (key: string, data: any, ttl: number = 3600) => {
-      if (!isRedisAvailable()) {
-        return;
-      }
-      try {
-        await redis.setex(`services:${key}`, ttl, JSON.stringify(data));
-        log.debug({ key, ttl }, 'Services cache set');
-      } catch (error) {
-        const errorCode = (error as any)?.code;
-        if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-          log.error({ error, key }, 'Cache services set error');
-        }
-      }
-    },
-
-    get: async (key: string) => {
-      if (!isRedisAvailable()) {
-        return null;
-      }
-      try {
-        const data = await redis.get(`services:${key}`);
-        if (data) {
-          log.debug({ key }, 'Services cache hit');
-        }
-        return data ? JSON.parse(data) : null;
-      } catch (error) {
-        const errorCode = (error as any)?.code;
-        if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-          log.error({ error, key }, 'Cache services get error');
-        }
-        return null;
-      }
-    },
-
-    del: async (key: string) => {
-      if (!isRedisAvailable()) {
-        return;
-      }
-      try {
-        await redis.del(`services:${key}`);
-        log.debug({ key }, 'Services cache deleted');
-      } catch (error) {
-        const errorCode = (error as any)?.code;
-        if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-          log.error({ error, key }, 'Cache services del error');
-        }
-      }
-    },
-  },
-
-  // Cache des statistiques (30 minutes)
-  stats: {
-    set: async (key: string, data: any, ttl: number = 1800) => {
-      if (!isRedisAvailable()) {
-        return;
-      }
-      try {
-        await redis.setex(`stats:${key}`, ttl, JSON.stringify(data));
-        log.debug({ key, ttl }, 'Stats cache set');
-      } catch (error) {
-        const errorCode = (error as any)?.code;
-        if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-          log.error({ error, key }, 'Cache stats set error');
-        }
-      }
-    },
-
-    get: async (key: string) => {
-      if (!isRedisAvailable()) {
-        return null;
-      }
-      try {
-        const data = await redis.get(`stats:${key}`);
-        if (data) {
-          log.debug({ key }, 'Stats cache hit');
-        }
-        return data ? JSON.parse(data) : null;
-      } catch (error) {
-        const errorCode = (error as any)?.code;
-        if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-          log.error({ error, key }, 'Cache stats get error');
-        }
-        return null;
-      }
-    },
-
-    del: async (key: string) => {
-      if (!isRedisAvailable()) {
-        return;
-      }
-      try {
-        await redis.del(`stats:${key}`);
-        log.debug({ key }, 'Stats cache deleted');
-      } catch (error) {
-        const errorCode = (error as any)?.code;
-        if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-          log.error({ error, key }, 'Cache stats del error');
-        }
-      }
-    },
-  },
-
-  // Cache des rendez-vous (15 minutes)
-  appointments: {
-    set: async (key: string, data: any, ttl: number = 900) => {
-      if (!isRedisAvailable()) {
-        return;
-      }
-      try {
-        await redis.setex(`appointments:${key}`, ttl, JSON.stringify(data));
-        log.debug({ key, ttl }, 'Appointments cache set');
-      } catch (error) {
-        const errorCode = (error as any)?.code;
-        if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-          log.error({ error, key }, 'Cache appointments set error');
-        }
-      }
-    },
-
-    get: async (key: string) => {
-      if (!isRedisAvailable()) {
-        return null;
-      }
-      try {
-        const data = await redis.get(`appointments:${key}`);
-        if (data) {
-          log.debug({ key }, 'Appointments cache hit');
-        }
-        return data ? JSON.parse(data) : null;
-      } catch (error) {
-        const errorCode = (error as any)?.code;
-        if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-          log.error({ error, key }, 'Cache appointments get error');
-        }
-        return null;
-      }
-    },
-
-    del: async (key: string) => {
-      if (!isRedisAvailable()) {
-        return;
-      }
-      try {
-        await redis.del(`appointments:${key}`);
-        log.debug({ key }, 'Appointments cache deleted');
-      } catch (error) {
-        const errorCode = (error as any)?.code;
-        if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-          log.error({ error, key }, 'Cache appointments del error');
-        }
-      }
-    },
-  },
+  users: namespace('users:', 300, 'Users'), // 5 minutes
+  services: namespace('services:', 3600, 'Services'), // 1 heure
+  stats: namespace('stats:', 1800, 'Stats'), // 30 minutes
+  appointments: namespace('appointments:', 900, 'Appointments'), // 15 minutes
 
   // Cache générique
-  set: async (key: string, data: any, ttl: number = 3600) => {
-    if (!isRedisAvailable()) {
-      return;
-    }
-    try {
-      await redis.setex(key, ttl, JSON.stringify(data));
-      log.debug({ key, ttl }, 'Generic cache set');
-    } catch (error) {
-      const errorCode = (error as any)?.code;
-      if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-        log.error({ error, key }, 'Cache set error');
-      }
-    }
-  },
+  ...generic,
 
-  get: async (key: string) => {
-    if (!isRedisAvailable()) {
-      return null;
-    }
-    try {
-      const data = await redis.get(key);
-      if (data) {
-        log.debug({ key }, 'Generic cache hit');
-      }
-      return data ? JSON.parse(data) : null;
-    } catch (error) {
-      const errorCode = (error as any)?.code;
-      if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-        log.error({ error, key }, 'Cache get error');
-      }
-      return null;
-    }
-  },
-
-  del: async (key: string) => {
-    if (!isRedisAvailable()) {
-      return;
-    }
-    try {
-      await redis.del(key);
-      log.debug({ key }, 'Generic cache deleted');
-    } catch (error) {
-      const errorCode = (error as any)?.code;
-      if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-        log.error({ error, key }, 'Cache del error');
-      }
-    }
-  },
-
-  // Nettoyage du cache
+  /** Supprime les clés de cache correspondant au motif (dans l'espace « cache: » seulement). */
   clear: async (pattern: string = '*') => {
-    if (!isRedisAvailable()) {
-      return;
-    }
+    if (!isRedisAvailable()) return;
     try {
-      const keys = await redis.keys(pattern);
+      const keys = await redis.keys(`${CACHE_NAMESPACE}${pattern}`);
       if (keys.length > 0) {
         await redis.del(...keys);
         log.info({ pattern, keysCount: keys.length }, 'Cache cleared');
       }
     } catch (error) {
-      const errorCode = (error as any)?.code;
-      if (errorCode !== 'ECONNREFUSED' && errorCode !== 'ENOTFOUND') {
-        log.error({ error, pattern }, 'Cache clear error');
-      }
+      logCommandError(error, { pattern }, 'Cache clear error');
     }
   },
 };
+
+/**
+ * Domaines écrits à presque chaque requête et lus seulement par eux-mêmes : une écriture ne
+ * vide que leurs propres clés (sinon le cache serait vidé en permanence).
+ */
+const SELF_CONTAINED_DOMAINS: ReadonlyArray<readonly [RegExp, readonly string[]]> = [
+  [/^(AuditLog|PCIAuditLog)/, ['AuditLog*', 'PCIAuditLog*']],
+  [/^Notification/, ['Notification*']],
+];
+
+/**
+ * Invalidation après une écriture. Une donnée est souvent mise en cache à plusieurs niveaux
+ * (dépôt, service, façade, statistiques) : on vide tout le cache de l'environnement, sauf pour
+ * les domaines autonomes ci-dessus. Plus sûr que des motifs ciblés, faciles à rater.
+ *
+ * @param scope motif ou préfixe d'origine (ex. « UserRepository:* ») ; absent = tout vider
+ */
+export async function invalidateAppCache(scope?: string): Promise<void> {
+  const domain = scope ? SELF_CONTAINED_DOMAINS.find(([re]) => re.test(scope)) : undefined;
+  for (const pattern of domain ? domain[1] : ['*']) {
+    await cache.clear(pattern);
+  }
+}
 
 export default redis;

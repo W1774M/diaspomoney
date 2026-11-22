@@ -6,7 +6,7 @@
  */
 
 import { memoryCache } from '@/lib/cache/memory-fallback';
-import { cache } from '@/lib/cache/redis';
+import { cache, invalidateAppCache } from '@/lib/cache/redis';
 import { logger } from '@/lib/logger';
 import type { CacheableDecoratorOptions, InvalidateCacheDecoratorOptions } from '@/lib/types';
 
@@ -120,9 +120,11 @@ export function InvalidateCache(pattern: string, _options?: InvalidateCacheDecor
       // Exécuter la méthode originale
       const result = await originalMethod.apply(this, args);
 
-      // Invalider le cache après l'opération
+      // Invalider le cache après l'opération : tout le cache de l'environnement (sauf domaines
+      // autonomes, voir invalidateAppCache). Le motif ne sert qu'à identifier le domaine :
+      // une donnée est mise en cache à plusieurs niveaux, un motif ciblé en oublie.
       try {
-        await cache.clear(pattern);
+        await invalidateAppCache(pattern);
       } catch (error) {
         logger.error({ pattern, error }, 'Cache invalidation error');
         // Essayer aussi avec le cache mémoire
