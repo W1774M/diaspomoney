@@ -27,7 +27,7 @@ const QuoteActions = React.memo<QuoteActionsProps>(function QuoteActions({
       <div className="flex items-center space-x-2">
         <button
           onClick={onView}
-          className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+          className="p-2 text-gray-500 hover:text-brand-700 transition-colors"
           title="Voir les détails"
         >
           <Eye className="h-4 w-4" />
@@ -35,7 +35,7 @@ const QuoteActions = React.memo<QuoteActionsProps>(function QuoteActions({
 
         <button
           onClick={onEdit}
-          className="p-2 text-gray-400 hover:text-yellow-600 transition-colors"
+          className="p-2 text-gray-500 hover:text-yellow-600 transition-colors"
           title="Modifier"
         >
           <Edit className="h-4 w-4" />
@@ -43,7 +43,7 @@ const QuoteActions = React.memo<QuoteActionsProps>(function QuoteActions({
 
         <button
           onClick={onDownload}
-          className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+          className="p-2 text-gray-500 hover:text-green-600 transition-colors"
           title="Télécharger"
         >
           <Download className="h-4 w-4" />
@@ -51,7 +51,7 @@ const QuoteActions = React.memo<QuoteActionsProps>(function QuoteActions({
 
         <button
           onClick={onDelete}
-          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+          className="p-2 text-gray-500 hover:text-red-600 transition-colors"
           title="Supprimer"
         >
           <Trash2 className="h-4 w-4" />

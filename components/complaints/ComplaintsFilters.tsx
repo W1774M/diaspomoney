@@ -39,7 +39,7 @@ const ComplaintsFilters = React.memo<ComplaintsFiltersProps>(
           title="Statut"
           value={filters.status}
           onChange={handleStatusChange}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
         >
           <option value="all">Tous les statuts</option>
           {availableStatuses.map((status, idx) => (
@@ -59,7 +59,7 @@ const ComplaintsFilters = React.memo<ComplaintsFiltersProps>(
           title="Type"
           value={filters.type}
           onChange={handleTypeChange}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
         >
           <option value="all">Tous les types</option>
           {availableTypes.map((type, idx) => (
@@ -79,7 +79,7 @@ const ComplaintsFilters = React.memo<ComplaintsFiltersProps>(
           title="Priorité"
           value={filters.priority}
           onChange={handlePriorityChange}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
         >
           <option value="all">Toutes les priorités</option>
           {availablePriorities.map((priority, idx) => (

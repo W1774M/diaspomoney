@@ -109,8 +109,8 @@ function DashboardPageContent() {
   if (availableDashboards.length === 1 && availableDashboards[0]) {
     router.replace(availableDashboards[0].href);
     return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
+      <div className='min-h-dvh flex items-center justify-center'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600'></div>
       </div>
     );
   }
@@ -139,15 +139,15 @@ function DashboardPageContent() {
               }}
               className={`p-4 rounded-lg border-2 transition-all text-left ${
                 selectedDashboard === dashboard.href
-                  ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,53%)]/5'
+                  ? 'border-brand-600 bg-brand-500/5'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >
               <div className='flex items-center gap-3'>
                 <LayoutDashboard className={`h-6 w-6 ${
                   selectedDashboard === dashboard.href
-                    ? 'text-[hsl(25,100%,53%)]'
-                    : 'text-gray-400'
+                    ? 'text-brand-700'
+                    : 'text-gray-500'
                 }`} />
                 <div>
                   <h3 className='font-semibold text-gray-900'>{dashboard.name}</h3>

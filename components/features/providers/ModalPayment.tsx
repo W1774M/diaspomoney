@@ -232,8 +232,8 @@ export const ModalPayment = ({
         fieldValidations[fieldName as keyof typeof fieldValidations];
       if (validation === null) return 'border-gray-300';
       return validation
-        ? 'border-green-300 focus:ring-green-400 focus:border-green-400'
-        : 'border-red-300 focus:ring-red-400 focus:border-red-400';
+        ? 'border-green-300 focus-visible:ring-green-400 focus:border-green-400'
+        : 'border-red-300 focus-visible:ring-red-400 focus:border-red-400';
     },
     [fieldValidations],
   );
@@ -275,7 +275,7 @@ export const ModalPayment = ({
             Paiement sécurisé
           </h2>
           <button
-            className='text-gray-400 hover:text-gray-700 cursor-pointer text-2xl font-bold focus:outline-none transition-colors duration-200'
+            className='text-gray-500 hover:text-gray-700 cursor-pointer text-2xl font-bold focus-visible:outline-none transition-colors duration-200'
             onClick={handleClose}
             aria-label='Fermer'
           >
@@ -287,10 +287,10 @@ export const ModalPayment = ({
         <div className='flex-1 overflow-y-auto p-6 space-y-4'>
           {/* Résumé de la commande */}
           <div className='bg-blue-50 p-3 rounded-lg border border-blue-200'>
-            <h3 className='font-semibold text-blue-800 mb-2'>
+            <h3 className='font-semibold text-brand-800 mb-2'>
               Résumé de votre commande
             </h3>
-            <div className='space-y-1 text-sm text-blue-700'>
+            <div className='space-y-1 text-sm text-brand-800'>
               <div className='flex justify-between'>
                 <span>Service :</span>
                 <span>{appointment.selectedService?.name}</span>
@@ -320,16 +320,16 @@ export const ModalPayment = ({
 
             {/* Numéro de carte */}
             <div>
-              <label className='block text-sm font-medium text-gray-600 mb-1'>
+              <label htmlFor='modal-payment-card-number' className='block text-sm font-medium text-gray-600 mb-1'>
                 Numéro de carte
               </label>
               <div className='relative'>
-                <input
+                <input id='modal-payment-card-number'
                   type='text'
                   name='cardNumber'
                   value={paymentData.cardNumber}
                   onChange={handleInputChange}
-                  className={`w-full border rounded-lg px-2.5 py-2 pr-10 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 hover:border-blue-300 ${getFieldClassName(
+                  className={`w-full border rounded-lg px-2.5 py-2 pr-10 focus-visible:ring-2 focus-visible:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 hover:border-blue-300 ${getFieldClassName(
                     'cardNumber',
                   )}`}
                   placeholder='1234 5678 9012 3456'
@@ -337,7 +337,7 @@ export const ModalPayment = ({
                   maxLength={19}
                   required
                 />
-                <div className='absolute right-3 top-2.5 text-gray-400'>💳</div>
+                <div className='absolute right-3 top-2.5 text-gray-500'>💳</div>
                 {paymentData.cardNumber && (
                   <div className='absolute right-10 top-2.5'>
                     {getValidationIcon('cardNumber')}
@@ -352,16 +352,16 @@ export const ModalPayment = ({
             {/* Date d'expiration et CVV */}
             <div className='grid grid-cols-2 gap-4'>
               <div>
-                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                <label htmlFor='modal-payment-expiry-date' className='block text-sm font-medium text-gray-600 mb-1'>
                   Date d&apos;expiration
                 </label>
                 <div className='relative'>
-                  <input
+                  <input id='modal-payment-expiry-date'
                     type='text'
                     name='expiryDate'
                     value={paymentData.expiryDate}
                     onChange={handleInputChange}
-                    className={`w-full border rounded-lg px-2.5 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 hover:border-blue-300 ${getFieldClassName(
+                    className={`w-full border rounded-lg px-2.5 py-2 pr-8 focus-visible:ring-2 focus-visible:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 hover:border-blue-300 ${getFieldClassName(
                       'expiryDate',
                     )}`}
                     placeholder='MM/AA'
@@ -380,16 +380,16 @@ export const ModalPayment = ({
                 </p>
               </div>
               <div>
-                <label className='block text-sm font-medium text-gray-600 mb-1'>
+                <label htmlFor='modal-payment-cvv' className='block text-sm font-medium text-gray-600 mb-1'>
                   CVV
                 </label>
                 <div className='relative'>
-                  <input
+                  <input id='modal-payment-cvv'
                     type='text'
                     name='cvv'
                     value={paymentData.cvv}
                     onChange={handleInputChange}
-                    className={`w-full border rounded-lg px-2.5 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 hover:border-blue-300 ${getFieldClassName(
+                    className={`w-full border rounded-lg px-2.5 py-2 pr-8 focus-visible:ring-2 focus-visible:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 hover:border-blue-300 ${getFieldClassName(
                       'cvv',
                     )}`}
                     placeholder='123'
@@ -411,16 +411,16 @@ export const ModalPayment = ({
 
             {/* Nom du titulaire */}
             <div>
-              <label className='block text-sm font-medium text-gray-600 mb-1'>
+              <label htmlFor='modal-payment-cardholder-name' className='block text-sm font-medium text-gray-600 mb-1'>
                 Nom du titulaire
               </label>
               <div className='relative'>
-                <input
+                <input id='modal-payment-cardholder-name'
                   type='text'
                   name='cardholderName'
                   value={paymentData.cardholderName}
                   onChange={handleInputChange}
-                  className={`w-full border rounded-lg px-2.5 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 hover:border-blue-300 ${getFieldClassName(
+                  className={`w-full border rounded-lg px-2.5 py-2 pr-8 focus-visible:ring-2 focus-visible:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 hover:border-blue-300 ${getFieldClassName(
                     'cardholderName',
                   )}`}
                   placeholder='NOM PRENOM'

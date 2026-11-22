@@ -23,7 +23,7 @@ const BookingsTable = React.memo<BookingsTableProps>(function BookingsTable({
   const renderSortableHeader = (field: string, label: string) => {
     if (!onSort) {
       return (
-        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
           {label}
         </th>
       );
@@ -34,10 +34,16 @@ const BookingsTable = React.memo<BookingsTableProps>(function BookingsTable({
 
     return (
       <th
-        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-        onClick={() => onSort(field)}
+        scope='col'
+        aria-sort={isActive ? (isAsc ? 'ascending' : 'descending') : 'none'}
+        className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider"
       >
-        <div className="flex items-center gap-1">
+        {/* le tri est une action : bouton natif, état annoncé par aria-sort */}
+        <button
+          type="button"
+          onClick={() => onSort(field)}
+          className="inline-flex min-h-8 items-center gap-1 rounded px-3 py-1 uppercase tracking-wider hover:bg-gray-100"
+        >
           <span>{label}</span>
           {isActive ? (
             isAsc ? (
@@ -46,18 +52,16 @@ const BookingsTable = React.memo<BookingsTableProps>(function BookingsTable({
               <ArrowDown className="h-4 w-4" />
             )
           ) : (
-            <div className="h-4 w-4 opacity-30">
-              <ArrowUp className="h-4 w-4" />
-            </div>
+            <ArrowUp className="h-4 w-4 opacity-30" />
           )}
-        </div>
+        </button>
       </th>
     );
   };
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand-700" />
         <span className="ml-2 text-gray-600">
           Chargement des réservations...
         </span>
@@ -88,7 +92,7 @@ const BookingsTable = React.memo<BookingsTableProps>(function BookingsTable({
           <p className="text-gray-500 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            className="bg-brand-600 text-white px-4 py-2 rounded-md hover:bg-brand-700 transition-colors"
           >
             Réessayer
           </button>
@@ -100,7 +104,7 @@ const BookingsTable = React.memo<BookingsTableProps>(function BookingsTable({
   if (bookings.length === 0) {
     return (
       <div className="text-center py-12">
-        <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <Calendar className="h-12 w-12 text-gray-500 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">
           Aucune réservation trouvée
         </h3>
@@ -112,23 +116,24 @@ const BookingsTable = React.memo<BookingsTableProps>(function BookingsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div tabIndex={0} role='region' aria-labelledby='table-bookingstable-1' className="overflow-x-auto">
       <table className="min-w-full divide-y divide-gray-200">
+<caption id='table-bookingstable-1' className='visually-hidden'>Liste des réservations</caption>
         <thead className="bg-gray-50">
           <tr>
             {renderSortableHeader('reservationNumber', 'Réservation')}
             {renderSortableHeader('appointmentDate', 'Date')}
             {renderSortableHeader('amount', 'Montant')}
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
               Statut
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
               Paiement
             </th>
             <AuthorizedContent roles={[ROLES.ADMIN, ROLES.CSM]}>
               {renderSortableHeader('completionRate', 'Taux de remplissage')}
             </AuthorizedContent>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th scope='col' className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
               Actions
             </th>
           </tr>

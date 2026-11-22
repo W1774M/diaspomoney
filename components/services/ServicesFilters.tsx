@@ -29,14 +29,14 @@ const ServicesFilters = React.memo<ServiceFiltersProps>(
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor='services-filters-selected-specialty' className="block text-sm font-medium text-gray-700 mb-1">
               Spécialité
             </label>
-            <select
+            <select id='services-filters-selected-specialty'
               title="Spécialité"
               value={selectedSpecialty}
               onChange={handleSpecialtyChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
             >
               <option value="">Toutes les spécialités</option>
               {specialties.map((specialty, idx) => (
@@ -47,10 +47,10 @@ const ServicesFilters = React.memo<ServiceFiltersProps>(
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor='services-filters-min-rating' className="block text-sm font-medium text-gray-700 mb-1">
               Note minimum: {minRating} ⭐
             </label>
-            <input
+            <input id='services-filters-min-rating'
               title="Note minimum"
               type="range"
               min="0"

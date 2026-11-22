@@ -33,7 +33,7 @@ function CustomerDashboardPageContent() {
           className='bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow'
         >
           <div className='flex items-center justify-between mb-4'>
-            <Calendar className='h-8 w-8 text-blue-500' />
+            <Calendar className='h-8 w-8 text-brand-700' />
           </div>
           <h3 className='text-lg font-semibold text-gray-900 mb-2'>
             Services disponibles

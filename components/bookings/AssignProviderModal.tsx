@@ -221,7 +221,7 @@ export default function AssignProviderModal({
           <button
             onClick={onClose}
             disabled={submitting}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-gray-500 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Fermer"
           >
             <X className="w-5 h-5" />
@@ -255,24 +255,24 @@ export default function AssignProviderModal({
           {mode === 'registered' ? (
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rechercher</label>
-                <input
+                <label htmlFor='assign-provider-modal-search' className="block text-sm font-medium text-gray-700 mb-1">Rechercher</label>
+                <input id='assign-provider-modal-search'
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Nom ou email"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Prestataire</label>
+                <label htmlFor='assign-provider-modal-selected-provider-id' className="block text-sm font-medium text-gray-700 mb-1">Prestataire</label>
                 <div className="relative">
-                  <select
+                  <select id='assign-provider-modal-selected-provider-id'
                     value={selectedProviderId}
                     onChange={(e) => setSelectedProviderId(e.target.value)}
                     disabled={providersLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent disabled:opacity-50"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent disabled:opacity-50"
                   >
                     <option value="">Sélectionner un prestataire</option>
                     {filteredProviders.map((p) => (
@@ -283,7 +283,7 @@ export default function AssignProviderModal({
                   </select>
                   {providersLoading && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                      <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
                     </div>
                   )}
                 </div>
@@ -295,23 +295,23 @@ export default function AssignProviderModal({
           ) : (
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email du prestataire</label>
-                <input
+                <label htmlFor='assign-provider-modal-external-email' className="block text-sm font-medium text-gray-700 mb-1">Email du prestataire</label>
+                <input id='assign-provider-modal-external-email'
                   type="email"
                   value={externalEmail}
                   onChange={(e) => setExternalEmail(e.target.value)}
                   placeholder="prestataire@exemple.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nom (optionnel)</label>
-                <input
+                <label htmlFor='assign-provider-modal-external-name' className="block text-sm font-medium text-gray-700 mb-1">Nom (optionnel)</label>
+                <input id='assign-provider-modal-external-name'
                   type="text"
                   value={externalName}
                   onChange={(e) => setExternalName(e.target.value)}
                   placeholder="Nom du prestataire"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 />
               </div>
               <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -413,7 +413,7 @@ export default function AssignProviderModal({
             <button
               onClick={submit}
               disabled={submitting || !canSubmit}
-              className="px-4 py-2 text-sm font-medium text-white bg-[hsl(25,100%,53%)] rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {submitting ? (
                 <>

@@ -3,10 +3,10 @@
 import { scheduleState, type ScheduleState } from '@/lib/home-content';
 
 export const inputClass =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-[hsl(25,100%,53%)]';
+  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus-visible:ring-2 focus-visible:ring-brand-600';
 export const labelClass = 'block text-sm font-medium text-gray-700';
 export const primaryButtonClass =
-  'inline-flex items-center justify-center gap-2 rounded-lg bg-[hsl(25,100%,53%)] px-4 py-2 text-sm font-semibold text-white hover:bg-[hsl(25,90%,48%)] disabled:opacity-50';
+  'inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50';
 export const secondaryButtonClass =
   'inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50';
 export const iconButtonClass =

@@ -1,19 +1,18 @@
 "use client";
 
+import Link from 'next/link';
 import type { ComplaintsTableProps } from "@/lib/types";
 import { AlertTriangle, Loader2, Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import React from "react";
 import ComplaintCard from "./ComplaintCard";
 
 const ComplaintsTable = React.memo<ComplaintsTableProps>(
   function ComplaintsTable({ complaints, loading, error, onView, onComment }) {
-    const router = useRouter();
 
     if (loading) {
       return (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-[hsl(25,100%,53%)]" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand-700" />
           <span className="ml-2 text-gray-600">
             Chargement des réclamations...
           </span>
@@ -44,7 +43,7 @@ const ComplaintsTable = React.memo<ComplaintsTableProps>(
             <p className="text-gray-500 mb-4">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="bg-[hsl(25,100%,53%)] text-white px-4 py-2 rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors"
+              className="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
             >
               Réessayer
             </button>
@@ -56,20 +55,20 @@ const ComplaintsTable = React.memo<ComplaintsTableProps>(
     if (complaints.length === 0) {
       return (
         <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-          <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <AlertTriangle className="h-12 w-12 text-gray-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Aucune réclamation trouvée
           </h3>
           <p className="text-gray-600 mb-4">
             Vous n&apos;avez pas encore de réclamations.
           </p>
-          <button
-            onClick={() => router.push("/dashboard/complaints/new")}
-            className="bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,53%)]/90 text-white px-4 py-2 rounded-lg flex items-center mx-auto transition-colors"
+          <Link
+            href={"/dashboard/complaints/new"}
+            className="bg-brand-600 hover:bg-brand-700/90 text-white px-4 py-2 rounded-lg flex items-center mx-auto transition-colors"
           >
             <Plus className="h-4 w-4 mr-2" />
             Créer votre première réclamation
-          </button>
+          </Link>
         </div>
       );
     }

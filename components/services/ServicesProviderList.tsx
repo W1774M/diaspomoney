@@ -57,7 +57,7 @@ const ServicesProviderList = React.memo<ServiceProviderListProps>(
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-md hover:bg-[hsl(25,100%,48%)] transition-colors"
+            className="px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors"
           >
             Réessayer
           </button>
@@ -68,7 +68,7 @@ const ServicesProviderList = React.memo<ServiceProviderListProps>(
     if (providers.length === 0) {
       return (
         <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
+          <div className="text-gray-500 mb-4">
             <svg
               className="w-12 h-12 mx-auto"
               fill="none"

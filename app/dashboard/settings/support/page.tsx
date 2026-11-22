@@ -55,8 +55,8 @@ export default function SupportPage() {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
+      <div className='min-h-dvh flex items-center justify-center'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600'></div>
       </div>
     );
   }
@@ -70,7 +70,7 @@ export default function SupportPage() {
       {/* Header */}
       <div>
         <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
-          <Mail className='h-8 w-8 mr-3 text-[hsl(25,100%,53%)]' />
+          <Mail className='h-8 w-8 mr-3 text-brand-700' />
           Contact support
         </h1>
         <p className='text-gray-600 mt-2'>
@@ -82,32 +82,32 @@ export default function SupportPage() {
       {/* Contact Methods */}
       <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
         <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center'>
-          <Mail className='h-8 w-8 text-[hsl(25,100%,53%)] mx-auto mb-3' />
+          <Mail className='h-8 w-8 text-brand-700 mx-auto mb-3' />
           <h3 className='text-lg font-semibold text-gray-900 mb-2'>Email</h3>
           <p className='text-sm text-gray-600 mb-4'>
             Réponse sous 24-48 heures
           </p>
           <a
             href='mailto:support@diaspomoney.fr'
-            className='text-[hsl(25,100%,53%)] hover:underline font-medium'
+            className='text-brand-700 hover:underline font-medium'
           >
             support@diaspomoney.fr
           </a>
         </div>
 
         <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center'>
-          <MessageSquare className='h-8 w-8 text-[hsl(25,100%,53%)] mx-auto mb-3' />
+          <MessageSquare className='h-8 w-8 text-brand-700 mx-auto mb-3' />
           <h3 className='text-lg font-semibold text-gray-900 mb-2'>Chat</h3>
           <p className='text-sm text-gray-600 mb-4'>
             Disponible du lundi au vendredi, 9h-18h
           </p>
-          <button className='text-[hsl(25,100%,53%)] hover:underline font-medium'>
+          <button className='text-brand-700 hover:underline font-medium'>
             Ouvrir le chat
           </button>
         </div>
 
         <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center'>
-          <Phone className='h-8 w-8 text-[hsl(25,100%,53%)] mx-auto mb-3' />
+          <Phone className='h-8 w-8 text-brand-700 mx-auto mb-3' />
           <h3 className='text-lg font-semibold text-gray-900 mb-2'>
             Téléphone
           </h3>
@@ -116,7 +116,7 @@ export default function SupportPage() {
           </p>
           <a
             href='tel:+33123456789'
-            className='text-[hsl(25,100%,53%)] hover:underline font-medium'
+            className='text-brand-700 hover:underline font-medium'
           >
             +33 1 23 45 67 89
           </a>
@@ -141,30 +141,30 @@ export default function SupportPage() {
         <form onSubmit={handleSubmit} className='space-y-4'>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='support-subject' className='block text-sm font-medium text-gray-700 mb-2'>
                 Sujet
               </label>
-              <input
+              <input id='support-subject'
                 type='text'
                 name='subject'
                 value={formData.subject}
                 onChange={handleChange}
                 required
-                className='w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 placeholder='Ex: Problème de connexion'
               />
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='support-category' className='block text-sm font-medium text-gray-700 mb-2'>
                 Catégorie
               </label>
-              <select
+              <select id='support-category'
                 name='category'
                 value={formData.category}
                 onChange={handleChange}
                 aria-label='Sélectionner la catégorie'
-                className='w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               >
                 <option value='general'>Question générale</option>
                 <option value='technical'>Problème technique</option>
@@ -177,15 +177,15 @@ export default function SupportPage() {
           </div>
 
           <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
+            <label htmlFor='support-priority' className='block text-sm font-medium text-gray-700 mb-2'>
               Priorité
             </label>
-            <select
+            <select id='support-priority'
               name='priority'
               value={formData.priority}
               onChange={handleChange}
               aria-label='Sélectionner la priorité'
-              className='w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='w-full px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             >
               <option value='low'>Basse</option>
               <option value='medium'>Moyenne</option>
@@ -195,16 +195,16 @@ export default function SupportPage() {
           </div>
 
           <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
+            <label htmlFor='support-message' className='block text-sm font-medium text-gray-700 mb-2'>
               Message
             </label>
-            <textarea
+            <textarea id='support-message'
               name='message'
               value={formData.message}
               onChange={handleChange}
               required
               rows={6}
-              className='w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='w-full px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               placeholder='Décrivez votre problème ou votre question en détail...'
             />
           </div>
@@ -225,7 +225,7 @@ export default function SupportPage() {
             <button
               type='submit'
               disabled={isSubmitting}
-              className='px-6 py-2 bg-[hsl(25,100%,53%)] text-white rounded-md hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center'
+              className='px-6 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center'
             >
               <Send className='h-4 w-4 mr-2' />
               {isSubmitting ? 'Envoi en cours...' : 'Envoyer le message'}
@@ -235,7 +235,7 @@ export default function SupportPage() {
       </div>
 
       {/* FAQ Link */}
-      <div className='bg-[hsl(25,100%,53%)]/10 border border-[hsl(25,100%,53%)]/20 rounded-lg p-6'>
+      <div className='bg-brand-500/10 border border-brand-500/20 rounded-lg p-6'>
         <h3 className='text-lg font-semibold text-gray-900 mb-2'>
           Questions fréquentes
         </h3>
@@ -245,7 +245,7 @@ export default function SupportPage() {
         </p>
         <a
           href='/dashboard/settings/faq'
-          className='inline-flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-md hover:bg-[hsl(25,100%,48%)] transition-colors'
+          className='inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors'
         >
           Voir la FAQ
         </a>

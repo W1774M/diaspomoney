@@ -17,7 +17,7 @@ export const ProviderStats: React.FC<ProviderStatsProps> = ({
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
         <div className="flex items-center">
           <div className="p-2 bg-blue-100 rounded-lg">
-            <Users className="w-6 h-6 text-blue-600" />
+            <Users className="w-6 h-6 text-brand-700" />
           </div>
           <div className="ml-4">
             <p className="text-sm font-medium text-gray-600">

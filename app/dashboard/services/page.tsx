@@ -1,5 +1,6 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/ConfirmProvider';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useServices, useServiceOptions, type Service, type ServiceOption } from '@/hooks/services';
 import { SPECIALITY_TYPES, ROLES } from '@/lib/constants';
@@ -93,6 +94,7 @@ const getCategoryColor = (category?: string) => {
  * - Authorization Pattern (via AuthorizedRoute aligné avec @Authorize decorator backend)
  */
 function ServicesManagementPageContent() {
+  const confirmer = useConfirm();
   const { user } = useAuth();
   const notificationManager = useNotificationManager();
 
@@ -480,7 +482,7 @@ function ServicesManagementPageContent() {
 
   // Supprimer un service
   const handleDeleteService = async (service: Service) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce service ? Cette action est irréversible.')) {
+    if (!(await confirmer({ message: 'Êtes-vous sûr de vouloir supprimer ce service ? Cette action est irréversible.', variant: 'danger' }))) {
       return;
     }
 
@@ -531,7 +533,7 @@ function ServicesManagementPageContent() {
   };
 
   const handleDeletePack = async (packId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce pack ? Cette action est irréversible.')) {
+    if (!(await confirmer({ message: 'Êtes-vous sûr de vouloir supprimer ce pack ? Cette action est irréversible.', variant: 'danger' }))) {
       return;
     }
     try {
@@ -661,7 +663,7 @@ function ServicesManagementPageContent() {
 
   // Supprimer une option
   const handleDeleteOption = async (optionId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette option ? Cette action est irréversible.')) {
+    if (!(await confirmer({ message: 'Êtes-vous sûr de vouloir supprimer cette option ? Cette action est irréversible.', variant: 'danger' }))) {
       return;
     }
 
@@ -700,7 +702,7 @@ function ServicesManagementPageContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Settings2 className="h-8 w-8 text-[hsl(25,100%,53%)]" />
+            <Settings2 className="h-8 w-8 text-brand-700" />
             Gestion des services et options
           </h1>
           <p className="text-gray-600 mt-2">
@@ -711,7 +713,7 @@ function ServicesManagementPageContent() {
           {activeTab === 'services' && (
             <button
               onClick={handleCreateService}
-              className="flex items-center gap-2 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
             >
               <Plus className="h-5 w-5" />
               Nouveau service
@@ -720,7 +722,7 @@ function ServicesManagementPageContent() {
           {activeTab === 'options' && (
             <button
               onClick={handleCreateOption}
-              className="flex items-center gap-2 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
             >
               <Plus className="h-5 w-5" />
               Nouvelle option
@@ -729,7 +731,7 @@ function ServicesManagementPageContent() {
           {activeTab === 'packs' && (
             <button
               onClick={handleCreatePack}
-              className="flex items-center gap-2 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
             >
               <Plus className="h-5 w-5" />
               Nouveau pack
@@ -745,7 +747,7 @@ function ServicesManagementPageContent() {
             onClick={() => setActiveTab('services')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'services'
-                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
+                ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -758,7 +760,7 @@ function ServicesManagementPageContent() {
             onClick={() => setActiveTab('options')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'options'
-                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
+                ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -771,7 +773,7 @@ function ServicesManagementPageContent() {
             onClick={() => setActiveTab('associations')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'associations'
-                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
+                ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -784,7 +786,7 @@ function ServicesManagementPageContent() {
             onClick={() => setActiveTab('promotion-codes')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'promotion-codes'
-                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
+                ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -797,7 +799,7 @@ function ServicesManagementPageContent() {
             onClick={() => setActiveTab('packs')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'packs'
-                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
+                ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -817,13 +819,13 @@ function ServicesManagementPageContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Recherche */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
             <input
               type="text"
               placeholder="Rechercher un service..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
             />
           </div>
 
@@ -832,7 +834,7 @@ function ServicesManagementPageContent() {
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             title="Filtrer par catégorie"
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
           >
             <option value="">Toutes les catégories</option>
             <option value={SPECIALITY_TYPES.HEALTH}>Santé</option>
@@ -846,12 +848,12 @@ function ServicesManagementPageContent() {
       <div className="bg-white rounded-lg shadow">
         {loading ? (
           <div className="p-12 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Chargement des services...</p>
           </div>
         ) : filteredServices.length === 0 ? (
           <div className="p-12 text-center">
-            <Settings2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <Settings2 className="h-12 w-12 text-gray-500 mx-auto mb-4" />
             <p className="text-gray-500">Aucun service trouvé</p>
           </div>
         ) : (
@@ -864,20 +866,21 @@ function ServicesManagementPageContent() {
             onPageChange={handleServicesPageChange}
             placement="top"
           />
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role='region' aria-labelledby='table-services-1' className="overflow-x-auto">
             <table className="w-full min-w-[640px]">
+<caption id='table-services-1' className='visually-hidden'>Liste des services</caption>
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Service
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Catégorie
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Prix
                   </th>
-                  <th className="sticky right-0 z-20 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-l border-gray-200 shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.08)]">
+                  <th scope='col' className="sticky right-0 z-20 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-l border-gray-200 shadow-[-8px_0_12px_-4px_rgba(0,0,0,0.08)]">
                     Actions
                   </th>
                 </tr>
@@ -920,7 +923,7 @@ function ServicesManagementPageContent() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {service.price === 0 ? (
-                          <span className="text-gray-400">Gratuit</span>
+                          <span className="text-gray-500">Gratuit</span>
                         ) : (
                           <span className="font-medium">{service.price} €</span>
                         )}
@@ -944,7 +947,7 @@ function ServicesManagementPageContent() {
                           </button>
                           <button
                             onClick={() => handleEditService(service)}
-                            className="rounded-md p-1.5 text-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,95%)] hover:text-[hsl(25,90%,48%)] transition-colors"
+                            className="rounded-md p-1.5 text-brand-700 hover:bg-brand-50 hover:text-brand-800 transition-colors"
                             title="Modifier"
                             type="button"
                           >
@@ -991,7 +994,7 @@ function ServicesManagementPageContent() {
             </div>
             <div className="bg-white rounded-lg shadow p-4">
               <div className="text-sm text-gray-600">Éducation</div>
-              <div className="text-2xl font-bold text-blue-600 mt-1">
+              <div className="text-2xl font-bold text-brand-700 mt-1">
                 {services.filter(s => s.category === SPECIALITY_TYPES.EDUCATION).length}
               </div>
             </div>
@@ -1011,7 +1014,7 @@ function ServicesManagementPageContent() {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Options disponibles</h2>
             {options.length === 0 ? (
               <div className="text-center py-12">
-                <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <Package className="h-12 w-12 text-gray-500 mx-auto mb-4" />
                 <p className="text-gray-500">Aucune option disponible</p>
               </div>
             ) : (
@@ -1050,7 +1053,7 @@ function ServicesManagementPageContent() {
                             setSelectedOption(option);
                             setActiveTab('associations');
                           }}
-                          className="text-blue-600 hover:text-blue-900 transition-colors"
+                          className="text-brand-700 hover:text-brand-900 transition-colors"
                           title="Gérer les services"
                         >
                           <Link2 className="h-5 w-5" />
@@ -1078,7 +1081,7 @@ function ServicesManagementPageContent() {
                         <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-gray-200">
                           <button
                             onClick={() => handleEditOption(option)}
-                            className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] transition-colors"
+                            className="text-brand-700 hover:text-brand-800 transition-colors"
                             title="Modifier"
                           >
                             <Edit className="h-4 w-4" />
@@ -1113,17 +1116,17 @@ function ServicesManagementPageContent() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Sélection de service */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor='services-id' className="block text-sm font-medium text-gray-700 mb-2">
                 Sélectionner un service
               </label>
-              <select
+              <select id='services-id'
                 value={selectedService?.id || ''}
                 onChange={(e) => {
                   const service = services.find(s => s.id === e.target.value);
                   setSelectedService(service || null);
                 }}
                 title="Sélectionner un service"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
               >
                 <option value="">-- Choisir un service --</option>
                 {services.map(service => (
@@ -1136,17 +1139,17 @@ function ServicesManagementPageContent() {
 
             {/* Sélection d'option */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor='services-id-2' className="block text-sm font-medium text-gray-700 mb-2">
                 Sélectionner une option
               </label>
-              <select
+              <select id='services-id-2'
                 value={selectedOption?.id || ''}
                 onChange={(e) => {
                   const option = options.find(o => o.id === e.target.value);
                   setSelectedOption(option || null);
                 }}
                 title="Sélectionner une option"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
               >
                 <option value="">-- Choisir une option --</option>
                 {options.map(option => (
@@ -1182,7 +1185,7 @@ function ServicesManagementPageContent() {
                   ) : (
                     <button
                       onClick={() => handleAssociateOption(selectedService.id, selectedOption.id)}
-                      className="flex items-center gap-2 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors"
                     >
                       <Link2 className="h-4 w-4" />
                       Associer
@@ -1292,7 +1295,7 @@ function ServicesManagementPageContent() {
                 });
                 setShowPromotionCodeForm(true);
               }}
-              className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors min-h-[44px] shrink-0"
+              className="flex items-center justify-center gap-2 px-4 py-3 sm:py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors min-h-[44px] shrink-0"
             >
               <Plus className="h-5 w-5" />
               Nouveau code
@@ -1302,12 +1305,12 @@ function ServicesManagementPageContent() {
           {/* Liste des codes promotionnels */}
           {loadingCodes ? (
             <div className="p-12 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
               <p className="mt-4 text-gray-600">Chargement des codes...</p>
             </div>
           ) : promotionCodes.length === 0 ? (
             <div className="p-12 text-center bg-white rounded-lg shadow">
-              <Ticket className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <Ticket className="h-12 w-12 text-gray-500 mx-auto mb-4" />
               <p className="text-gray-500">Aucun code promotionnel</p>
             </div>
           ) : (
@@ -1356,7 +1359,7 @@ function ServicesManagementPageContent() {
                             });
                             setShowPromotionCodeForm(true);
                           }}
-                          className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)] font-medium min-h-[44px] active:bg-[hsl(25,100%,95%)]"
+                          className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 border-brand-600 text-brand-700 font-medium min-h-[44px] active:bg-brand-50"
                           type="button"
                         >
                           <Edit className="h-5 w-5 shrink-0" />
@@ -1364,7 +1367,7 @@ function ServicesManagementPageContent() {
                         </button>
                         <button
                           onClick={async () => {
-                            if (!confirm('Êtes-vous sûr de vouloir supprimer ce code ?')) {
+                            if (!(await confirmer({ message: 'Êtes-vous sûr de vouloir supprimer ce code ?', variant: 'danger' }))) {
                               return;
                             }
                             try {
@@ -1396,16 +1399,17 @@ function ServicesManagementPageContent() {
               </div>
 
               {/* Vue tableau - desktop */}
-              <div className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
+              <div tabIndex={0} role='region' aria-labelledby='table-services-2' className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
                 <table className="w-full min-w-[640px]">
+<caption id='table-services-2' className='visually-hidden'>Codes promotionnels</caption>
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Réduction</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validité</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Label</th>
+                      <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Réduction</th>
+                      <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validité</th>
+                      <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usage</th>
+                      <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                      <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -1454,7 +1458,7 @@ function ServicesManagementPageContent() {
                                   });
                                   setShowPromotionCodeForm(true);
                                 }}
-                                className="p-2 rounded-lg text-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,95%)] hover:text-[hsl(25,90%,48%)]"
+                                className="p-2 rounded-lg text-brand-700 hover:bg-brand-50 hover:text-brand-800"
                                 type="button"
                                 title="Modifier"
                               >
@@ -1462,7 +1466,7 @@ function ServicesManagementPageContent() {
                               </button>
                               <button
                                 onClick={async () => {
-                                  if (!confirm('Êtes-vous sûr de vouloir supprimer ce code ?')) {
+                                  if (!(await confirmer({ message: 'Êtes-vous sûr de vouloir supprimer ce code ?', variant: 'danger' }))) {
                                     return;
                                   }
                                   try {
@@ -1514,13 +1518,13 @@ function ServicesManagementPageContent() {
           <div className="bg-white rounded-lg shadow p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
                 <input
                   type="text"
                   placeholder="Rechercher un pack..."
                   value={packSearchTerm}
                   onChange={(e) => setPackSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 />
               </div>
 
@@ -1528,7 +1532,7 @@ function ServicesManagementPageContent() {
                 value={packCategoryFilter}
                 onChange={(e) => setPackCategoryFilter(e.target.value)}
                 title="Filtrer par catégorie"
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
               >
                 <option value="">Toutes les catégories</option>
                 <option value={SPECIALITY_TYPES.HEALTH}>Santé</option>
@@ -1541,24 +1545,25 @@ function ServicesManagementPageContent() {
           {/* Liste */}
           {loadingPacks ? (
             <div className="p-12 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
               <p className="mt-4 text-gray-600">Chargement des packs...</p>
             </div>
           ) : filteredPacks.length === 0 ? (
             <div className="p-12 text-center bg-white rounded-lg shadow">
-              <Layers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <Layers className="h-12 w-12 text-gray-500 mx-auto mb-4" />
               <p className="text-gray-500">Aucun pack</p>
             </div>
           ) : (
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <table className="w-full">
+<caption id='table-services-3' className='visually-hidden'>Liste des packs</caption>
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pack</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Services</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pack</th>
+                    <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
+                    <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Services</th>
+                    <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                    <th scope='col' className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -1593,7 +1598,7 @@ function ServicesManagementPageContent() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEditPack(pack)}
-                              className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]"
+                              className="text-brand-700 hover:text-brand-800"
                               type="button"
                               title="Modifier"
                             >
@@ -1653,7 +1658,7 @@ function ServicesManagementPageContent() {
                     setShowPromotionCodeForm(false);
                     setEditingPromotionCode(null);
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-500 hover:text-gray-600"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -1715,79 +1720,79 @@ function ServicesManagementPageContent() {
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor='services-label' className="block text-sm font-medium text-gray-700 mb-2">
                     Label (optionnel - généré automatiquement si vide)
                   </label>
-                  <input
+                  <input id='services-label'
                     type="text"
                     value={promotionCodeFormData.label}
                     onChange={(e) => setPromotionCodeFormData({ ...promotionCodeFormData, label: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                     placeholder="Ex: PROMO2024"
                     maxLength={50}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor='services-percentage' className="block text-sm font-medium text-gray-700 mb-2">
                     Pourcentage de réduction *
                   </label>
-                  <input
+                  <input id='services-percentage'
                     type="number"
                     min="0"
                     max="100"
                     value={promotionCodeFormData.percentage}
                     onChange={(e) => setPromotionCodeFormData({ ...promotionCodeFormData, percentage: Number(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor='services-valid-from' className="block text-sm font-medium text-gray-700 mb-2">
                     Date de début (optionnel)
                   </label>
-                  <input
+                  <input id='services-valid-from'
                     type="date"
                     value={promotionCodeFormData.validFrom}
                     onChange={(e) => setPromotionCodeFormData({ ...promotionCodeFormData, validFrom: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor='services-valid-until' className="block text-sm font-medium text-gray-700 mb-2">
                     Date de fin *
                   </label>
-                  <input
+                  <input id='services-valid-until'
                     type="date"
                     value={promotionCodeFormData.validUntil}
                     onChange={(e) => setPromotionCodeFormData({ ...promotionCodeFormData, validUntil: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor='services-max-usage' className="block text-sm font-medium text-gray-700 mb-2">
                     Usage maximum (optionnel - laisser vide pour illimité)
                   </label>
-                  <input
+                  <input id='services-max-usage'
                     type="number"
                     min="1"
                     value={promotionCodeFormData.maxUsage}
                     onChange={(e) => setPromotionCodeFormData({ ...promotionCodeFormData, maxUsage: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                     placeholder="Illimité"
                   />
                 </div>
 
                 {editingPromotionCode && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor='services-status' className="block text-sm font-medium text-gray-700 mb-2">
                       Statut
                     </label>
-                    <select
+                    <select id='services-status'
                       value={editingPromotionCode.status}
                       onChange={async (e) => {
                         try {
@@ -1805,7 +1810,7 @@ function ServicesManagementPageContent() {
                           notificationManager.addError('Erreur lors de la mise à jour');
                         }
                       }}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                     >
                       <option value="valid">Valide</option>
                       <option value="expired">Expiré</option>
@@ -1828,7 +1833,7 @@ function ServicesManagementPageContent() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex-1 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? 'Enregistrement...' : editingPromotionCode ? 'Modifier' : 'Créer'}
                   </button>

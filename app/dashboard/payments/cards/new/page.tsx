@@ -85,7 +85,7 @@ export default function NewCardPage() {
   );
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-dvh bg-gray-50'>
       {/* Header */}
       <div className='bg-white shadow-sm border-b border-gray-200'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
@@ -119,21 +119,21 @@ export default function NewCardPage() {
                 <div className='space-y-4'>
                   {/* Numéro de carte */}
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='new-card-number' className='block text-sm font-medium text-gray-700 mb-2'>
                       Numéro de carte *
                     </label>
                     <div className='relative'>
-                      <input
+                      <input id='new-card-number'
                         type='text'
                         value={formData.cardNumber}
                         onChange={e => handleCardNumberChange(e.target.value)}
-                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent pr-12'
+                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent pr-12'
                         placeholder='1234 5678 9012 3456'
                         maxLength={19}
                         required
                       />
                       <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
-                        <CreditCard className='h-5 w-5 text-gray-400' />
+                        <CreditCard className='h-5 w-5 text-gray-500' />
                       </div>
                     </div>
                     {formData.cardNumber && (
@@ -145,16 +145,16 @@ export default function NewCardPage() {
 
                   {/* Nom du titulaire */}
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='new-cardholder-name' className='block text-sm font-medium text-gray-700 mb-2'>
                       Nom du titulaire *
                     </label>
-                    <input
+                    <input id='new-cardholder-name'
                       type='text'
                       value={formData.cardholderName}
                       onChange={e =>
                         handleInputChange('cardholderName', e.target.value)
                       }
-                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='Jean Dupont'
                       required
                     />
@@ -163,17 +163,17 @@ export default function NewCardPage() {
                   {/* Date d'expiration et CVV */}
                   <div className='grid grid-cols-2 gap-4'>
                     <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      <label htmlFor='new-expiry-month' className='block text-sm font-medium text-gray-700 mb-2'>
                         Date d'expiration *
                       </label>
                       <div className='grid grid-cols-2 gap-2'>
-                        <select
+                        <select id='new-expiry-month'
                           title="Mois d'expiration"
                           value={formData.expiryMonth}
                           onChange={e =>
                             handleInputChange('expiryMonth', e.target.value)
                           }
-                          className='px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                          className='px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                           required
                         >
                           <option value=''>Mois</option>
@@ -189,7 +189,7 @@ export default function NewCardPage() {
                           onChange={e =>
                             handleInputChange('expiryYear', e.target.value)
                           }
-                          className='px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                          className='px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                           required
                         >
                           <option value=''>Année</option>
@@ -203,17 +203,17 @@ export default function NewCardPage() {
                     </div>
 
                     <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      <label htmlFor='new-cvv' className='block text-sm font-medium text-gray-700 mb-2'>
                         Code de sécurité (CVV) *
                       </label>
                       <div className='relative'>
-                        <input
+                        <input id='new-cvv'
                           type={showCvv ? 'text' : 'password'}
                           value={formData.cvv}
                           onChange={e =>
                             handleInputChange('cvv', e.target.value)
                           }
-                          className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent pr-12'
+                          className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent pr-12'
                           placeholder='123'
                           maxLength={4}
                           required
@@ -224,9 +224,9 @@ export default function NewCardPage() {
                           className='absolute inset-y-0 right-0 flex items-center pr-3'
                         >
                           {showCvv ? (
-                            <EyeOff className='h-5 w-5 text-gray-400' />
+                            <EyeOff className='h-5 w-5 text-gray-500' />
                           ) : (
-                            <Eye className='h-5 w-5 text-gray-400' />
+                            <Eye className='h-5 w-5 text-gray-500' />
                           )}
                         </button>
                       </div>
@@ -242,7 +242,7 @@ export default function NewCardPage() {
                       onChange={e =>
                         handleInputChange('isDefault', e.target.checked)
                       }
-                      className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded'
+                      className='h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded'
                     />
                     <label
                       htmlFor='isDefault'
@@ -255,7 +255,7 @@ export default function NewCardPage() {
               </div>
 
               {/* Aperçu de la carte */}
-              <div className='bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white'>
+              <div className='bg-gradient-to-r from-brand-600 to-purple-600 rounded-lg p-6 text-white'>
                 <div className='flex items-center justify-between mb-4'>
                   <CreditCard className='h-8 w-8' />
                   <span className='text-sm opacity-75'>
@@ -288,12 +288,12 @@ export default function NewCardPage() {
               {/* Sécurité */}
               <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
                 <div className='flex items-start'>
-                  <Shield className='h-5 w-5 text-blue-600 mt-0.5 mr-3' />
+                  <Shield className='h-5 w-5 text-brand-700 mt-0.5 mr-3' />
                   <div>
-                    <h3 className='text-sm font-medium text-blue-900'>
+                    <h3 className='text-sm font-medium text-brand-900'>
                       Sécurité garantie
                     </h3>
-                    <p className='text-sm text-blue-700 mt-1'>
+                    <p className='text-sm text-brand-800 mt-1'>
                       Vos informations de carte sont chiffrées et sécurisées.
                       Nous ne stockons jamais votre numéro de carte complet.
                     </p>
@@ -319,7 +319,7 @@ export default function NewCardPage() {
                     !formData.expiryYear ||
                     !formData.cvv
                   }
-                  className='px-6 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                  className='px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   {saving ? 'Ajout en cours...' : 'Ajouter la carte'}
                 </button>

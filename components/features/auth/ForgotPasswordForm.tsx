@@ -50,7 +50,7 @@ export default function ForgotPasswordForm() {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
         <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-          <Mail className="h-6 w-6 text-blue-600" />
+          <Mail className="h-6 w-6 text-brand-700" />
         </div>
         <CardTitle className="text-xl">Mot de passe oublié</CardTitle>
         <CardDescription>
@@ -87,7 +87,7 @@ export default function ForgotPasswordForm() {
           </Button>
 
           <div className="text-center">
-            <Link href="/login" className="text-sm text-blue-600 hover:text-blue-800">
+            <Link href="/login" className="text-sm text-brand-700 hover:text-brand-800">
               <ArrowLeft className="h-4 w-4 inline mr-1" />
               Retour à la connexion
             </Link>

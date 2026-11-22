@@ -38,9 +38,9 @@ export function SignOutButton({
       case "sidebar":
         return `${baseClasses} flex items-center px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg hover:text-gray-900 w-full disabled:opacity-50 disabled:cursor-not-allowed ${className}`;
       case "header":
-        return `${baseClasses} block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-[hsl(25,100%,53%)] disabled:opacity-50 disabled:cursor-not-allowed ${className}`;
+        return `${baseClasses} block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-brand-400 disabled:opacity-50 disabled:cursor-not-allowed ${className}`;
       case "mobile":
-        return `${baseClasses} block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed ${className}`;
+        return `${baseClasses} block w-full text-left px-3 py-2 rounded-md text-base font-medium text-white hover:text-brand-400 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed ${className}`;
       default:
         return `${baseClasses} ${className}`;
     }

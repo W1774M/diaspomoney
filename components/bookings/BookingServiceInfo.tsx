@@ -43,7 +43,7 @@ export default function BookingServiceInfo({ booking, getServiceTypeLabel }: Boo
         )}
         {booking.metadata?.['clinicName'] && (
           <div className="rounded-lg border border-orange-100 bg-orange-50 p-3">
-            <p className="text-sm text-[hsl(25,100%,40%)]">Clinique sélectionnée</p>
+            <p className="text-sm text-brand-800">Clinique sélectionnée</p>
             <p className="font-medium text-gray-900">{booking.metadata['clinicName']}</p>
             {booking.metadata?.['clinicLocation'] && (
               <p className="text-sm text-gray-700">{booking.metadata['clinicLocation']}</p>

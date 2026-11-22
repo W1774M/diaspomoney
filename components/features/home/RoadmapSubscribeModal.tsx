@@ -126,14 +126,14 @@ export function RoadmapSubscribeModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-[#F97015]/10">
-              <Mail className="w-5 h-5 text-[#F97015]" />
+            <div className="p-2 rounded-full bg-brand-500/10">
+              <Mail className="w-5 h-5 text-brand-700" />
             </div>
             <h3
               id="subscribe-modal-title"
               className="text-lg font-semibold text-gray-900"
               style={{
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
               }}
             >
               Être notifié des nouveautés
@@ -142,7 +142,7 @@ export function RoadmapSubscribeModal({
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-gray-500 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Fermer"
           >
             <X className="w-5 h-5" />
@@ -161,7 +161,7 @@ export function RoadmapSubscribeModal({
               <h4
                 className="text-lg font-semibold text-gray-900 mb-2"
                 style={{
-                  fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                 }}
               >
                 Inscription réussie !
@@ -175,7 +175,7 @@ export function RoadmapSubscribeModal({
               <p
                 className="text-gray-600 mb-6"
                 style={{
-                  fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                 }}
               >
                 Recevez les dernières actualités sur les nouvelles fonctionnalités
@@ -188,7 +188,7 @@ export function RoadmapSubscribeModal({
                     htmlFor="email"
                     className="block text-sm font-medium text-gray-700 mb-2"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     Adresse email
@@ -200,9 +200,9 @@ export function RoadmapSubscribeModal({
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="votre@email.com"
                     disabled={isSubmitting}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F97015] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                     required
                   />
@@ -218,9 +218,9 @@ export function RoadmapSubscribeModal({
                 <button
                   type="submit"
                   disabled={isSubmitting || !email.trim()}
-                  className="w-full bg-[#F97015] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#E85F0A] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-brand-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-brand-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   style={{
-                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                    fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                   }}
                 >
                   {isSubmitting ? (

@@ -34,8 +34,8 @@ export function ServiceCarouselCard({
     }
     if (serviceType === "Éducation") {
       return {
-        gradient: "from-blue-700 via-blue-600 to-blue-700",
-        buttonBg: "bg-blue-800",
+        gradient: "from-brand-700 via-brand-700 to-brand-700",
+        buttonBg: "bg-brand-800",
         buttonHover: "hover:bg-blue-900",
         buttonBorder: "border-blue-800",
         accent: "blue",
@@ -116,7 +116,7 @@ export function ServiceCarouselCard({
               e.stopPropagation();
               onClick();
             }}
-            className={`w-full ${colors.buttonBg} ${colors.buttonHover} border-2 border-white/20 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:border-white/40 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group/btn focus:outline-none focus:ring-4 focus:ring-white/50`}
+            className={`w-full ${colors.buttonBg} ${colors.buttonHover} border-2 border-white/20 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:border-white/40 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group/btn focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50`}
             aria-label={`Accéder au service ${title}`}
           >
             <span>Accéder</span>

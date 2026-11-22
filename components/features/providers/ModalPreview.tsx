@@ -250,7 +250,7 @@ export const ModalPreview = ({
             Confirmation de réservation
           </h2>
           <button
-            className='text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none transition-colors duration-200'
+            className='text-gray-500 hover:text-gray-700 text-2xl font-bold focus-visible:outline-none transition-colors duration-200'
             onClick={handleClose}
             aria-label='Fermer'
           >
@@ -279,7 +279,7 @@ export const ModalPreview = ({
           {/* Détails de la réservation */}
           <div className='space-y-4'>
             <h3 className='text-lg font-semibold text-gray-800 flex items-center gap-2'>
-              <div className='w-2 h-2 bg-blue-500 rounded-full'></div>
+              <div className='w-2 h-2 bg-brand-600 rounded-full'></div>
               Détails de votre réservation
             </h3>
 
@@ -287,19 +287,19 @@ export const ModalPreview = ({
               <div className='space-y-3'>
                 <div className='flex justify-between items-center'>
                   <span className='text-gray-700'>Service :</span>
-                  <span className='font-semibold text-blue-800'>
+                  <span className='font-semibold text-brand-800'>
                     {appointment.selectedService?.name}
                   </span>
                 </div>
                 <div className='flex justify-between items-center'>
                   <span className='text-gray-700'>Prestataire :</span>
-                  <span className='font-semibold text-blue-800'>
+                  <span className='font-semibold text-brand-800'>
                     {appointment.provider?.name}
                   </span>
                 </div>
                 <div className='flex justify-between items-center'>
                   <span className='text-gray-700'>Prix :</span>
-                  <span className='font-bold text-blue-800 text-lg'>
+                  <span className='font-bold text-brand-800 text-lg'>
                     {totalPrice} €
                   </span>
                 </div>
@@ -401,7 +401,7 @@ export const ModalPreview = ({
           </div>
 
           {/* Résumé final */}
-          <div className='bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-lg'>
+          <div className='bg-gradient-to-r from-brand-600 to-brand-700 text-white p-4 rounded-lg'>
             <div className='flex justify-between items-center'>
               <div>
                 <h4 className='font-bold text-lg'>Total à payer</h4>

@@ -71,7 +71,7 @@ export function ServiceBookingSidebar({
               key={stepInfo.step}
               className={`flex gap-3 p-3 rounded-lg transition ${
                 isActive
-                  ? 'bg-[hsl(25,100%,95%)] border-2 border-[hsl(25,100%,53%)]'
+                  ? 'bg-brand-50 border-2 border-brand-600'
                   : isCompleted
                   ? 'bg-green-50 border border-green-200'
                   : 'bg-gray-50 border border-gray-200'
@@ -80,7 +80,7 @@ export function ServiceBookingSidebar({
               <div
                 className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
                   isActive
-                    ? 'bg-[hsl(25,100%,53%)] text-white'
+                    ? 'bg-brand-600 text-white'
                     : isCompleted
                     ? 'bg-green-500 text-white'
                     : 'bg-gray-300 text-gray-600'
@@ -97,7 +97,7 @@ export function ServiceBookingSidebar({
                   <h4
                     className={`font-medium ${
                       isActive
-                        ? 'text-[hsl(25,100%,53%)]'
+                        ? 'text-brand-700'
                         : isCompleted
                         ? 'text-green-700'
                         : 'text-gray-700'
@@ -138,7 +138,7 @@ export function ServiceBookingSidebar({
         <div className="space-y-3">
           <div className="flex gap-3 p-3 bg-gray-50 rounded-lg">
             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-blue-600 font-semibold text-sm">3</span>
+              <span className="text-brand-700 font-semibold text-sm">3</span>
             </div>
             <div>
               <h4 className="font-medium text-gray-700 text-sm mb-1">
@@ -152,7 +152,7 @@ export function ServiceBookingSidebar({
 
           <div className="flex gap-3 p-3 bg-gray-50 rounded-lg">
             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-blue-600 font-semibold text-sm">4</span>
+              <span className="text-brand-700 font-semibold text-sm">4</span>
             </div>
             <div>
               <h4 className="font-medium text-gray-700 text-sm mb-1">
@@ -181,12 +181,12 @@ export function ServiceBookingSidebar({
         </div>
 
         <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-          <Lock className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <Lock className="w-5 h-5 text-brand-700 flex-shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-medium text-blue-900 text-sm mb-1">
+            <h4 className="font-medium text-brand-900 text-sm mb-1">
               Garantie DiaspoMoney
             </h4>
-            <p className="text-xs text-blue-700">
+            <p className="text-xs text-brand-800">
               Remboursement garanti si service non exécuté.
             </p>
           </div>
@@ -213,14 +213,14 @@ export function ServiceBookingSidebar({
         <div className="space-y-2">
           <a
             href="tel:+33651275570"
-            className="flex items-center gap-2 text-sm text-gray-600 hover:text-[hsl(25,100%,53%)] transition"
+            className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand-800 transition"
           >
             <Phone className="w-4 h-4" />
             <span>+33 6 51 27 55 70</span>
           </a>
           <a
             href="mailto:contact@diaspomoney.fr"
-            className="flex items-center gap-2 text-sm text-gray-600 hover:text-[hsl(25,100%,53%)] transition"
+            className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand-800 transition"
           >
             <Mail className="w-4 h-4" />
             <span>contact@diaspomoney.fr</span>

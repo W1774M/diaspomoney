@@ -1,3 +1,4 @@
+import { useNotificationManager } from '@/components/ui/Notification';
 /**
  * Education Inquiry Form - DiaspoMoney
  * Formulaire de demande de renseignements éducation
@@ -79,6 +80,7 @@ interface InquiryFormData {
 export default function EducationInquiryForm({
   school,
 }: EducationInquiryFormProps) {
+  const notifier = useNotificationManager();
   const [formData, setFormData] = useState<InquiryFormData>({
     studentType: 'SELF',
     studentInfo: {
@@ -156,7 +158,7 @@ export default function EducationInquiryForm({
       }
 
       // Afficher un message de succès
-      alert('Votre demande de renseignements a été envoyée avec succès !');
+      notifier.addSuccess('Votre demande de renseignements a été envoyée avec succès !');
 
       // Réinitialiser le formulaire
       setFormData({
@@ -190,11 +192,9 @@ export default function EducationInquiryForm({
       });
     } catch (error) {
       console.error('Erreur envoi demande:', error);
-      alert(
-        error instanceof Error
+      notifier.addError(error instanceof Error
           ? error.message
-          : "Erreur lors de l'envoi de la demande",
-      );
+          : "Erreur lors de l'envoi de la demande");
     } finally {
       setIsSubmitting(false);
     }
@@ -228,10 +228,10 @@ export default function EducationInquiryForm({
               <form onSubmit={handleSubmit} className='space-y-6'>
                 {/* Type d'étudiant */}
                 <div className='space-y-2'>
-                  <label className='text-sm font-medium'>
+                  <label htmlFor='education-inquiry-form-student-type' className='text-sm font-medium'>
                     Type de demande *
                   </label>
-                  <Input
+                  <Input id='education-inquiry-form-student-type'
                     value={formData.studentType}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                       setFormData(prev => ({
@@ -253,8 +253,8 @@ export default function EducationInquiryForm({
 
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>Prénom *</label>
-                      <Input
+                      <label htmlFor='education-inquiry-form-first-name' className='text-sm font-medium'>Prénom *</label>
+                      <Input id='education-inquiry-form-first-name'
                         placeholder="Prénom de l'étudiant"
                         value={formData.studentInfo.firstName}
                         onChange={e =>
@@ -269,8 +269,8 @@ export default function EducationInquiryForm({
                       />
                     </div>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>Nom *</label>
-                      <Input
+                      <label htmlFor='education-inquiry-form-last-name' className='text-sm font-medium'>Nom *</label>
+                      <Input id='education-inquiry-form-last-name'
                         placeholder="Nom de l'étudiant"
                         value={formData.studentInfo.lastName}
                         onChange={e =>
@@ -288,10 +288,10 @@ export default function EducationInquiryForm({
 
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>
+                      <label htmlFor='education-inquiry-form-date-of-birth' className='text-sm font-medium'>
                         Date de naissance *
                       </label>
-                      <Input
+                      <Input id='education-inquiry-form-date-of-birth'
                         type='date'
                         value={formData.studentInfo.dateOfBirth}
                         onChange={e =>
@@ -306,8 +306,8 @@ export default function EducationInquiryForm({
                       />
                     </div>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>Genre *</label>
-                      <Input
+                      <label htmlFor='education-inquiry-form-gender' className='text-sm font-medium'>Genre *</label>
+                      <Input id='education-inquiry-form-gender'
                         value={formData.studentInfo.gender}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setFormData(prev => ({
@@ -327,8 +327,8 @@ export default function EducationInquiryForm({
                   </div>
 
                   <div className='space-y-2'>
-                    <label className='text-sm font-medium'>Nationalité *</label>
-                    <Input
+                    <label htmlFor='education-inquiry-form-nationality' className='text-sm font-medium'>Nationalité *</label>
+                    <Input id='education-inquiry-form-nationality'
                       value={formData.studentInfo.nationality}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setFormData(prev => ({
@@ -352,10 +352,10 @@ export default function EducationInquiryForm({
 
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>
+                      <label htmlFor='education-inquiry-form-current-level' className='text-sm font-medium'>
                         Niveau actuel *
                       </label>
-                      <Input
+                      <Input id='education-inquiry-form-current-level'
                         value={formData.academicInfo.currentLevel}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setFormData(prev => ({
@@ -370,10 +370,10 @@ export default function EducationInquiryForm({
                       />
                     </div>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>
+                      <label htmlFor='education-inquiry-form-desired-program' className='text-sm font-medium'>
                         Programme souhaité *
                       </label>
-                      <Input
+                      <Input id='education-inquiry-form-desired-program'
                         value={formData.academicInfo.desiredProgram}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setFormData(prev => ({
@@ -390,10 +390,10 @@ export default function EducationInquiryForm({
                   </div>
 
                   <div className='space-y-2'>
-                    <label className='text-sm font-medium'>
+                    <label htmlFor='education-inquiry-form-academic-year' className='text-sm font-medium'>
                       Année académique souhaitée *
                     </label>
-                    <Input
+                    <Input id='education-inquiry-form-academic-year'
                       value={formData.academicInfo.academicYear}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setFormData(prev => ({
@@ -409,10 +409,10 @@ export default function EducationInquiryForm({
                   </div>
 
                   <div className='space-y-2'>
-                    <label className='text-sm font-medium'>
+                    <label htmlFor='education-inquiry-form-previous-education' className='text-sm font-medium'>
                       Formation précédente
                     </label>
-                    <Input
+                    <Input id='education-inquiry-form-previous-education'
                       placeholder='Décrivez votre formation précédente...'
                       value={formData.academicInfo.previousEducation}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -435,10 +435,10 @@ export default function EducationInquiryForm({
 
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>
+                      <label htmlFor='education-inquiry-form-language' className='text-sm font-medium'>
                         Langue d'enseignement
                       </label>
-                      <Input
+                      <Input id='education-inquiry-form-language'
                         value={formData.preferences.language}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setFormData(prev => ({
@@ -453,10 +453,10 @@ export default function EducationInquiryForm({
                       />
                     </div>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>
+                      <label htmlFor='education-inquiry-form-schedule' className='text-sm font-medium'>
                         Type de formation
                       </label>
-                      <Input
+                      <Input id='education-inquiry-form-schedule'
                         value={formData.preferences.schedule}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setFormData(prev => ({
@@ -473,10 +473,10 @@ export default function EducationInquiryForm({
                   </div>
 
                   <div className='space-y-2'>
-                    <label className='text-sm font-medium'>
+                    <label htmlFor='education-inquiry-form-budget' className='text-sm font-medium'>
                       Budget disponible (XOF)
                     </label>
-                    <Input
+                    <Input id='education-inquiry-form-budget'
                       type='number'
                       placeholder='Ex: 500000'
                       value={formData.preferences.budget || ''}
@@ -502,10 +502,10 @@ export default function EducationInquiryForm({
 
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>
+                      <label htmlFor='education-inquiry-form-name' className='text-sm font-medium'>
                         Nom complet *
                       </label>
-                      <Input
+                      <Input id='education-inquiry-form-name'
                         placeholder='Votre nom'
                         value={formData.contact.name}
                         onChange={e =>
@@ -517,8 +517,8 @@ export default function EducationInquiryForm({
                       />
                     </div>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>Email *</label>
-                      <Input
+                      <label htmlFor='education-inquiry-form-email' className='text-sm font-medium'>Email *</label>
+                      <Input id='education-inquiry-form-email'
                         type='email'
                         placeholder='votre@email.com'
                         value={formData.contact.email}
@@ -545,14 +545,14 @@ export default function EducationInquiryForm({
                           }))
                         }
                         className="w-full"
-                        inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                        inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                       />
                     </div>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>
+                      <label htmlFor='education-inquiry-form-relationship' className='text-sm font-medium'>
                         Relation avec l'étudiant
                       </label>
-                      <Input
+                      <Input id='education-inquiry-form-relationship'
                         value={formData.contact.relationship}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setFormData(prev => ({
@@ -571,10 +571,10 @@ export default function EducationInquiryForm({
 
                 {/* Questions */}
                 <div className='space-y-2'>
-                  <label className='text-sm font-medium'>
+                  <label htmlFor='education-inquiry-form-questions' className='text-sm font-medium'>
                     Questions spécifiques
                   </label>
-                  <Textarea
+                  <Textarea id='education-inquiry-form-questions'
                     placeholder="Avez-vous des questions spécifiques sur le programme, les frais, les conditions d'admission, etc. ?"
                     value={formData.questions}
                     onChange={e =>
@@ -638,7 +638,7 @@ export default function EducationInquiryForm({
                         href={school.contact.website}
                         target='_blank'
                         rel='noopener noreferrer'
-                        className='text-blue-600 hover:underline'
+                        className='text-brand-700 hover:underline'
                       >
                         Site web
                       </a>

@@ -72,7 +72,7 @@ export default function NewAddressPage() {
   ];
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-dvh bg-gray-50'>
       {/* Header */}
       <div className='bg-white shadow-sm border-b border-gray-200'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
@@ -110,21 +110,21 @@ export default function NewAddressPage() {
                       onClick={() => handleInputChange('type', value)}
                       className={`flex flex-col items-center p-4 border-2 rounded-lg transition-colors ${
                         formData.type === value
-                          ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,53%)]/5'
+                          ? 'border-brand-600 bg-brand-500/5'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <Icon
                         className={`h-6 w-6 mb-2 ${
                           formData.type === value
-                            ? 'text-[hsl(25,100%,53%)]'
-                            : 'text-gray-400'
+                            ? 'text-brand-700'
+                            : 'text-gray-500'
                         }`}
                       />
                       <span
                         className={`text-sm font-medium ${
                           formData.type === value
-                            ? 'text-[hsl(25,100%,53%)]'
+                            ? 'text-brand-700'
                             : 'text-gray-700'
                         }`}
                       >
@@ -144,14 +144,14 @@ export default function NewAddressPage() {
                 <div className='space-y-4'>
                   {/* Nom de l'adresse */}
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='new-name' className='block text-sm font-medium text-gray-700 mb-2'>
                       Nom de l'adresse *
                     </label>
-                    <input
+                    <input id='new-name'
                       type='text'
                       value={formData.name}
                       onChange={e => handleInputChange('name', e.target.value)}
-                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='Ex: Adresse principale, Bureau, etc.'
                       required
                     />
@@ -159,16 +159,16 @@ export default function NewAddressPage() {
 
                   {/* Adresse principale */}
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='new-address' className='block text-sm font-medium text-gray-700 mb-2'>
                       Adresse *
                     </label>
-                    <input
+                    <input id='new-address'
                       type='text'
                       value={formData.address}
                       onChange={e =>
                         handleInputChange('address', e.target.value)
                       }
-                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='123 Rue de la Paix'
                       required
                     />
@@ -176,16 +176,16 @@ export default function NewAddressPage() {
 
                   {/* Adresse complémentaire */}
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='new-address2' className='block text-sm font-medium text-gray-700 mb-2'>
                       Complément d'adresse
                     </label>
-                    <input
+                    <input id='new-address2'
                       type='text'
                       value={formData.address2 || ''}
                       onChange={e =>
                         handleInputChange('address2', e.target.value)
                       }
-                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder='Appartement, bureau, etc. (optionnel)'
                     />
                   </div>
@@ -193,31 +193,31 @@ export default function NewAddressPage() {
                   {/* Ville et État/Région */}
                   <div className='grid grid-cols-2 gap-4'>
                     <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      <label htmlFor='new-city' className='block text-sm font-medium text-gray-700 mb-2'>
                         Ville *
                       </label>
-                      <input
+                      <input id='new-city'
                         type='text'
                         value={formData.city}
                         onChange={e =>
                           handleInputChange('city', e.target.value)
                         }
-                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                         placeholder='Paris'
                         required
                       />
                     </div>
                     <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      <label htmlFor='new-state' className='block text-sm font-medium text-gray-700 mb-2'>
                         État/Région
                       </label>
-                      <input
+                      <input id='new-state'
                         type='text'
                         value={formData.state || ''}
                         onChange={e =>
                           handleInputChange('state', e.target.value)
                         }
-                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                         placeholder='Île-de-France'
                       />
                     </div>
@@ -226,31 +226,31 @@ export default function NewAddressPage() {
                   {/* Code postal et Pays */}
                   <div className='grid grid-cols-2 gap-4'>
                     <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      <label htmlFor='new-postal-code' className='block text-sm font-medium text-gray-700 mb-2'>
                         Code postal *
                       </label>
-                      <input
+                      <input id='new-postal-code'
                         type='text'
                         value={formData.postalCode}
                         onChange={e =>
                           handleInputChange('postalCode', e.target.value)
                         }
-                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                         placeholder='75001'
                         required
                       />
                     </div>
                     <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      <label htmlFor='new-country' className='block text-sm font-medium text-gray-700 mb-2'>
                         Pays *
                       </label>
-                      <select
+                      <select id='new-country'
                         title='Pays'
                         value={formData.country}
                         onChange={e =>
                           handleInputChange('country', e.target.value)
                         }
-                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                         required
                       >
                         {countries.map(country => (
@@ -272,7 +272,7 @@ export default function NewAddressPage() {
                       value={formData.phone || ''}
                       onChange={(phone) => handleInputChange('phone', phone)}
                       className="w-full"
-                      inputClassName="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      inputClassName="w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                     />
                   </div>
 
@@ -285,7 +285,7 @@ export default function NewAddressPage() {
                       onChange={e =>
                         handleInputChange('isDefault', e.target.checked)
                       }
-                      className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded'
+                      className='h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded'
                     />
                     <label
                       htmlFor='isDefault'
@@ -326,12 +326,12 @@ export default function NewAddressPage() {
               {/* Sécurité */}
               <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
                 <div className='flex items-start'>
-                  <Shield className='h-5 w-5 text-blue-600 mt-0.5 mr-3' />
+                  <Shield className='h-5 w-5 text-brand-700 mt-0.5 mr-3' />
                   <div>
-                    <h3 className='text-sm font-medium text-blue-900'>
+                    <h3 className='text-sm font-medium text-brand-900'>
                       Protection des données
                     </h3>
-                    <p className='text-sm text-blue-700 mt-1'>
+                    <p className='text-sm text-brand-800 mt-1'>
                       Votre adresse est utilisée uniquement pour la facturation
                       et n'est jamais partagée avec des tiers.
                     </p>
@@ -357,7 +357,7 @@ export default function NewAddressPage() {
                     !formData.postalCode ||
                     !formData.country
                   }
-                  className='px-6 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                  className='px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   {saving ? 'Ajout en cours...' : "Ajouter l'adresse"}
                 </button>

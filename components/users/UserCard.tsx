@@ -98,7 +98,7 @@ const UserCard = React.memo<UserCardProps>(function UserCard({
                 {user.email && (
                   <button
                     onClick={() => onSendEmail(user)}
-                    className="flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors"
+                    className="flex items-center text-sm text-gray-600 hover:text-brand-700 transition-colors"
                   >
                     <Mail className="h-4 w-4 mr-1" />
                     Email

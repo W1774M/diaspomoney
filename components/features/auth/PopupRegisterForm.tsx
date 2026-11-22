@@ -148,7 +148,7 @@ export function PopupRegisterForm({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="relative bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white p-6 text-center rounded-t-2xl">
+        <div className="relative bg-gradient-to-r from-brand-600 to-amber-700 text-white p-6 text-center rounded-t-2xl">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors"
@@ -197,43 +197,43 @@ export function PopupRegisterForm({
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block mb-1 font-semibold text-gray-700 text-sm">
+                <label htmlFor='popup-register-form-first-name' className="block mb-1 font-semibold text-gray-700 text-sm">
                   Prénom <span className="text-red-500">*</span>
                 </label>
-                <input
+                <input id='popup-register-form-first-name'
                   autoComplete="given-name"
                   type="text"
                   value={formData.firstName}
                   onChange={e => handleInputChange("firstName", e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
                   placeholder="Votre prénom"
                 />
               </div>
               <div>
-                <label className="block mb-1 font-semibold text-gray-700 text-sm">
+                <label htmlFor='popup-register-form-last-name' className="block mb-1 font-semibold text-gray-700 text-sm">
                   Nom <span className="text-red-500">*</span>
                 </label>
-                <input
+                <input id='popup-register-form-last-name'
                   autoComplete="family-name"
                   type="text"
                   value={formData.lastName}
                   onChange={e => handleInputChange("lastName", e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
                   placeholder="Votre nom"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block mb-1 font-semibold text-gray-700 text-sm">
+              <label htmlFor='popup-register-form-email' className="block mb-1 font-semibold text-gray-700 text-sm">
                 Email <span className="text-red-500">*</span>
               </label>
-              <input
+              <input id='popup-register-form-email'
                 autoComplete="email" spellCheck={false}
                 type="email"
                 value={formData.email}
                 onChange={e => handleInputChange("email", e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                className="w-full p-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
                 placeholder="exemple@email.com"
               />
             </div>
@@ -247,20 +247,20 @@ export function PopupRegisterForm({
                 value={formData.phone}
                 onChange={(phone) => handleInputChange("phone", phone)}
                 className="w-full"
-                inputClassName="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                inputClassName="w-full p-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
               />
             </div>
 
             <div>
-              <label className="block mb-1 font-semibold text-gray-700 text-sm">
+              <label htmlFor='popup-register-form-country-of-residence' className="block mb-1 font-semibold text-gray-700 text-sm">
                 Pays de résidence <span className="text-red-500">*</span>
               </label>
-              <select
+              <select id='popup-register-form-country-of-residence'
                 value={formData.countryOfResidence}
                 onChange={e =>
                   handleInputChange("countryOfResidence", e.target.value)
                 }
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                className="w-full p-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
               >
                 <option value="">Sélectionnez votre pays</option>
                 <option value="france">France</option>
@@ -273,59 +273,59 @@ export function PopupRegisterForm({
             </div>
 
             <div>
-              <label className="block mb-1 font-semibold text-gray-700 text-sm">
+              <label htmlFor='popup-register-form-address1' className="block mb-1 font-semibold text-gray-700 text-sm">
                 Adresse 1 <span className="text-red-500">*</span>
               </label>
-              <input
+              <input id='popup-register-form-address1'
                 autoComplete="address-line1"
                 type="text"
                 value={formData.address1}
                 onChange={e => handleInputChange("address1", e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                className="w-full p-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
                 placeholder="Votre adresse principale"
               />
             </div>
 
             <div>
-              <label className="block mb-1 font-semibold text-gray-700 text-sm">
+              <label htmlFor='popup-register-form-address2' className="block mb-1 font-semibold text-gray-700 text-sm">
                 Adresse 2 (optionnel)
               </label>
-              <input
+              <input id='popup-register-form-address2'
                 autoComplete="address-line2"
                 type="text"
                 value={formData.address2}
                 onChange={e => handleInputChange("address2", e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                className="w-full p-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
                 placeholder="Complément d'adresse"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block mb-1 font-semibold text-gray-700 text-sm">
+                <label htmlFor='popup-register-form-postal-code' className="block mb-1 font-semibold text-gray-700 text-sm">
                   Code postal <span className="text-red-500">*</span>
                 </label>
-                <input
+                <input id='popup-register-form-postal-code'
                   autoComplete="postal-code"
                   type="text"
                   value={formData.postalCode}
                   onChange={e =>
                     handleInputChange("postalCode", e.target.value)
                   }
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
                   placeholder="Code postal"
                 />
               </div>
               <div>
-                <label className="block mb-1 font-semibold text-gray-700 text-sm">
+                <label htmlFor='popup-register-form-city' className="block mb-1 font-semibold text-gray-700 text-sm">
                   Ville <span className="text-red-500">*</span>
                 </label>
-                <input
+                <input id='popup-register-form-city'
                   autoComplete="address-level2"
                   type="text"
                   value={formData.city}
                   onChange={e => handleInputChange("city", e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
                   placeholder="Votre ville"
                 />
               </div>
@@ -333,24 +333,24 @@ export function PopupRegisterForm({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block mb-1 font-semibold text-gray-700 text-sm">
+                <label htmlFor='popup-register-form-password' className="block mb-1 font-semibold text-gray-700 text-sm">
                   Mot de passe <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <input
+                  <input id='popup-register-form-password'
                     autoComplete="new-password"
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={e =>
                       handleInputChange("password", e.target.value)
                     }
-                    className="w-full p-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                    className="w-full p-2 pr-10 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600 transition-colors"
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -361,25 +361,25 @@ export function PopupRegisterForm({
                 </div>
               </div>
               <div>
-                <label className="block mb-1 font-semibold text-gray-700 text-sm">
+                <label htmlFor='popup-register-form-confirm-password' className="block mb-1 font-semibold text-gray-700 text-sm">
                   Confirmer le mot de passe{" "}
                   <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <input
+                  <input id='popup-register-form-confirm-password'
                     autoComplete="new-password"
                     type={showConfirmPassword ? "text" : "password"}
                     value={formData.confirmPassword}
                     onChange={e =>
                       handleInputChange("confirmPassword", e.target.value)
                     }
-                    className="w-full p-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                    className="w-full p-2 pr-10 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600 transition-colors"
                   >
                     {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -392,15 +392,15 @@ export function PopupRegisterForm({
             </div>
 
             <div>
-              <label className="block mb-1 font-semibold text-gray-700 text-sm">
+              <label htmlFor='popup-register-form-security-question' className="block mb-1 font-semibold text-gray-700 text-sm">
                 Question de sécurité <span className="text-red-500">*</span>
               </label>
-              <select
+              <select id='popup-register-form-security-question'
                 value={formData.securityQuestion}
                 onChange={e =>
                   handleInputChange("securityQuestion", e.target.value)
                 }
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                className="w-full p-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
               >
                 <option value="">Choisissez une question</option>
                 <option value="pet">
@@ -415,17 +415,17 @@ export function PopupRegisterForm({
             </div>
 
             <div>
-              <label className="block mb-1 font-semibold text-gray-700 text-sm">
+              <label htmlFor='popup-register-form-security-answer' className="block mb-1 font-semibold text-gray-700 text-sm">
                 Réponse <span className="text-red-500">*</span>
               </label>
-              <input
+              <input id='popup-register-form-security-answer'
                 autoComplete="off"
                 type="text"
                 value={formData.securityAnswer}
                 onChange={e =>
                   handleInputChange("securityAnswer", e.target.value)
                 }
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+                className="w-full p-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 text-sm"
                 placeholder="Votre réponse"
               />
             </div>
@@ -438,15 +438,15 @@ export function PopupRegisterForm({
                   onChange={e =>
                     handleInputChange("termsAccepted", e.target.checked)
                   }
-                  className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  className="mt-1 w-4 h-4 text-brand-700 rounded focus-visible:ring-brand-600"
                 />
                 <span className="text-xs text-gray-700">
                   J&apos;accepte les{" "}
-                  <a href="#" className="text-blue-600 hover:underline">
+                  <a href="#" className="text-brand-700 hover:underline">
                     conditions générales d&apos;utilisation
                   </a>{" "}
                   et la{" "}
-                  <a href="#" className="text-blue-600 hover:underline">
+                  <a href="#" className="text-brand-700 hover:underline">
                     politique de confidentialité
                   </a>{" "}
                   de DiaspoMoney <span className="text-red-500">*</span>
@@ -460,7 +460,7 @@ export function PopupRegisterForm({
                   onChange={e =>
                     handleInputChange("marketingConsent", e.target.checked)
                   }
-                  className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  className="mt-1 w-4 h-4 text-brand-700 rounded focus-visible:ring-brand-600"
                 />
                 <span className="text-xs text-gray-700">
                   Je souhaite recevoir des informations sur les nouveaux
@@ -481,7 +481,7 @@ export function PopupRegisterForm({
               <button
                 onClick={handleSubmit}
                 disabled={isLoading || !validateForm()}
-                className="w-full py-3 rounded-lg bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white font-bold shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 rounded-lg bg-gradient-to-r from-brand-600 to-amber-700 text-white font-bold shadow-lg hover:from-brand-700 hover:to-brand-800 transition-all duration-200 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Création du compte..." : "Créer mon compte"}
               </button>

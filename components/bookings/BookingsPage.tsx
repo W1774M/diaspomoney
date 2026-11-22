@@ -1,5 +1,6 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/ConfirmProvider';
 import { useBookings } from '@/hooks';
 import { useBookingCancel, useBookingFilters } from '@/hooks/bookings';
 import type { BookingResponse } from '@/lib/mappers/booking.mapper';
@@ -30,6 +31,7 @@ import { useBookingsPagination } from '@/contexts/BookingsPaginationContext';
  * - Singleton Pattern (bookingService)
  */
 const BookingsPage = React.memo(function BookingsPage() {
+  const confirmer = useConfirm();
   const router = useRouter();
   const { user } = useAuth();
   const { currentPage, itemsPerPage, setCurrentPage, setItemsPerPage } = useBookingsPagination();
@@ -122,13 +124,13 @@ const BookingsPage = React.memo(function BookingsPage() {
 
   const handleCancelBooking = useCallback(
     async (booking: BookingResponse) => {
-      if (!confirm('Êtes-vous sûr de vouloir annuler cette réservation ?')) {
+      if (!(await confirmer({ message: 'Êtes-vous sûr de vouloir annuler cette réservation ?', variant: 'danger' }))) {
         return;
       }
 
       await cancelBooking(booking._id || booking['id']);
     },
-    [cancelBooking],
+    [cancelBooking, confirmer],
   );
 
   const handleSearchChange = useCallback(
@@ -198,7 +200,7 @@ const BookingsPage = React.memo(function BookingsPage() {
                   }}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'customer'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-brand-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -211,7 +213,7 @@ const BookingsPage = React.memo(function BookingsPage() {
                   }}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'provider'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-brand-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -237,7 +239,7 @@ const BookingsPage = React.memo(function BookingsPage() {
                     }}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       roleFilter === role.value
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-brand-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -263,7 +265,7 @@ const BookingsPage = React.memo(function BookingsPage() {
               value={statusFilter}
               title='Filtrer par statut'
               onChange={e => handleStatusChange(e.target.value)}
-              className='px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+              className='px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             >
               <option value='ALL'>Tous les statuts</option>
               {Object.values(BOOKING_STATUSES).map((status) => (
@@ -282,7 +284,7 @@ const BookingsPage = React.memo(function BookingsPage() {
                 handlePaymentStatusChange(e.target.value);
                 setCurrentPage(1);
               }}
-              className='px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+              className='px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             >
               <option value='ALL'>Tous les paiements</option>
               {Object.values(TRANSACTION_STATUSES).map((status) => (
@@ -313,7 +315,7 @@ const BookingsPage = React.memo(function BookingsPage() {
                 const newItemsPerPage = parseInt(e.target.value);
                 setItemsPerPage(newItemsPerPage);
               }}
-              className='px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm'
+              className='px-3 py-1.5 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent text-sm'
             >
               {[5, 10, 15, 20, 25, 30, 50, 100].map((value) => (
                 <option key={value} value={value}>

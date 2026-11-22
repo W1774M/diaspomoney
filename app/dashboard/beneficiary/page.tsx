@@ -27,8 +27,8 @@ export default function BeneficiaryDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
+      <div className='min-h-dvh flex items-center justify-center'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600'></div>
       </div>
     );
   }
@@ -52,7 +52,7 @@ export default function BeneficiaryDashboardPage() {
           className='bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow'
         >
           <div className='flex items-center justify-between mb-4'>
-            <Calendar className='h-8 w-8 text-blue-500' />
+            <Calendar className='h-8 w-8 text-brand-700' />
           </div>
           <h3 className='text-lg font-semibold text-gray-900 mb-2'>
             Mes rendez-vous

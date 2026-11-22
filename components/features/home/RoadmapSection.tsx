@@ -55,7 +55,7 @@ export function RoadmapSection() {
   return (
     <section className="py-20 md:pt-12 md:pb-8 bg-black relative overflow-hidden">
       {/* Decorative element */}
-      <div className="absolute top-20 left-10 w-64 h-64 bg-[#F97015] opacity-5 rounded-full blur-3xl"></div>
+      <div className="absolute top-20 left-10 w-64 h-64 bg-brand-600 opacity-5 rounded-full blur-3xl"></div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start max-w-6xl mx-auto">
@@ -66,8 +66,8 @@ export function RoadmapSection() {
               <span
                 className="inline-block px-4 py-1.5 rounded-full text-sm font-medium text-white"
                 style={{
-                  backgroundColor: '#F97015',
-                  fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  backgroundColor: 'var(--brand-600)',
+                  fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                 }}
               >
                 Roadmap
@@ -78,17 +78,17 @@ export function RoadmapSection() {
             <h2
               className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-white"
               style={{
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
               }}
             >
-              L’avenir de <span style={{ color: '#F97015' }}>Diaspomoney</span>
+              L’avenir de <span className='text-brand-600'>Diaspomoney</span>
             </h2>
 
             {/* Description */}
             <p
               className="text-lg text-gray-300 mb-8 leading-relaxed"
               style={{
-                fontFamily: 'Plus Jakarta Sans, sans-serif',
+                fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
               }}
             >
               Nous construisons la plateforme de demain. Application mobile, API pour les développeurs, expansion géographique... Votre avis compte dans notre évolution.
@@ -98,9 +98,9 @@ export function RoadmapSection() {
             <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={handleGetNotified}
-                className="bg-[#F97015] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#E85F0A] transition-all duration-300"
+                className="bg-brand-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-700 transition-all duration-300"
                 style={{
-                  fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                 }}
               >
                 Être notifié des nouveautés
@@ -109,7 +109,7 @@ export function RoadmapSection() {
                 onClick={handleBecomeProvider}
                 className="border-2 border-white text-white bg-transparent px-6 py-3 rounded-xl font-semibold hover:bg-white/10 transition-all duration-300"
                 style={{
-                  fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                 }}
               >
                 Devenir Prestataire
@@ -126,7 +126,7 @@ export function RoadmapSection() {
                   key={index}
                   className="bg-gray-900 rounded-lg p-6 hover:bg-gray-800 transition-all duration-300 relative"
                   style={{
-                    fontFamily: 'Plus Jakarta Sans, sans-serif',
+                    fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                   }}
                 >
                   {/* Status Tag */}
@@ -134,8 +134,8 @@ export function RoadmapSection() {
                     <span
                       className="inline-block px-2 py-1 rounded text-xs font-medium text-white"
                       style={{
-                        backgroundColor: '#F97015',
-                        fontFamily: 'Plus Jakarta Sans, sans-serif',
+                        backgroundColor: 'var(--brand-600)',
+                        fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                       }}
                     >
                       {item.status}
@@ -147,7 +147,7 @@ export function RoadmapSection() {
                     <IconComponent
                       className="w-8 h-8"
                       style={{
-                        color: '#F97015',
+                        color: 'var(--brand-700)',
                         strokeWidth: 1.5,
                       }}
                     />
@@ -157,7 +157,7 @@ export function RoadmapSection() {
                   <h3
                     className="text-lg font-bold mb-2 text-white"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {item.title}
@@ -167,7 +167,7 @@ export function RoadmapSection() {
                   <p
                     className="text-sm text-gray-300"
                     style={{
-                      fontFamily: 'Plus Jakarta Sans, sans-serif',
+                      fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
                     }}
                   >
                     {item.description}

@@ -69,7 +69,7 @@ export default function HistoricalOrderCard({
           </div>
           <button
             onClick={() => onView(order)}
-            className='text-gray-400 hover:text-gray-600 transition-colors'
+            className='text-gray-500 hover:text-gray-600 transition-colors'
             title='Voir les détails'
           >
             <ChevronRight className='h-5 w-5' />
@@ -149,7 +149,7 @@ export default function HistoricalOrderCard({
             {order.status === 'finished' && !order.rating && (
               <button
                 onClick={() => onRate(order)}
-                className='flex items-center gap-2 px-3 py-2 text-sm font-medium text-[hsl(25,100%,53%)] hover:bg-orange-50 rounded-md transition-colors'
+                className='flex items-center gap-2 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-orange-50 rounded-md transition-colors'
               >
                 <Star className='h-4 w-4' />
                 Noter
@@ -158,7 +158,7 @@ export default function HistoricalOrderCard({
             {order.canReorder && (
               <button
                 onClick={() => onReorder(order)}
-                className='flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,48%)] rounded-md transition-colors'
+                className='flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-md transition-colors'
               >
                 <RefreshCw className='h-4 w-4' />
                 Réserver à nouveau

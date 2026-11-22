@@ -101,7 +101,7 @@ export function OAuthProfileCompletion({
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8">
+    <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8">
       <div className="max-w-md w-full mx-4">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
@@ -129,15 +129,15 @@ export function OAuthProfileCompletion({
                   setFormData(prev => ({ ...prev, phone: phone }))
                 }
                 className="w-full"
-                inputClassName="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                inputClassName="w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor='oauth-profile-completion-country-of-residence' className="block text-sm font-medium text-gray-700 mb-2">
                 Pays de résidence
               </label>
-              <select
+              <select id='oauth-profile-completion-country-of-residence'
                 value={formData.countryOfResidence}
                 onChange={e =>
                   setFormData(prev => ({
@@ -145,7 +145,7 @@ export function OAuthProfileCompletion({
                     countryOfResidence: e.target.value,
                   }))
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 aria-label="Pays de résidence"
               >
                 <option value="">Sélectionnez votre pays</option>
@@ -158,10 +158,10 @@ export function OAuthProfileCompletion({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor='oauth-profile-completion-target-country' className="block text-sm font-medium text-gray-700 mb-2">
                 Pays cible
               </label>
-              <select
+              <select id='oauth-profile-completion-target-country'
                 value={formData.targetCountry}
                 onChange={e =>
                   setFormData(prev => ({
@@ -170,7 +170,7 @@ export function OAuthProfileCompletion({
                     targetCity: "", // Reset city when country changes
                   }))
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 aria-label="Pays cible"
               >
                 <option value="">Sélectionnez le pays cible</option>
@@ -185,10 +185,10 @@ export function OAuthProfileCompletion({
             {formData.targetCountry &&
               cities[formData.targetCountry as keyof typeof cities] && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor='oauth-profile-completion-target-city' className="block text-sm font-medium text-gray-700 mb-2">
                     Ville cible
                   </label>
-                  <select
+                  <select id='oauth-profile-completion-target-city'
                     value={formData.targetCity}
                     onChange={e =>
                       setFormData(prev => ({
@@ -196,7 +196,7 @@ export function OAuthProfileCompletion({
                         targetCity: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                     aria-label="Ville cible"
                   >
                     <option value="">Sélectionnez la ville</option>
@@ -212,10 +212,10 @@ export function OAuthProfileCompletion({
               )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor='oauth-profile-completion-monthly-budget' className="block text-sm font-medium text-gray-700 mb-2">
                 Budget mensuel (optionnel)
               </label>
-              <select
+              <select id='oauth-profile-completion-monthly-budget'
                 value={formData.monthlyBudget}
                 onChange={e =>
                   setFormData(prev => ({
@@ -223,7 +223,7 @@ export function OAuthProfileCompletion({
                     monthlyBudget: e.target.value,
                   }))
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 aria-label="Budget mensuel"
               >
                 <option value="">Sélectionnez votre budget</option>
@@ -238,7 +238,7 @@ export function OAuthProfileCompletion({
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="flex-1 bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,45%)] text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+                className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
               >
                 {isLoading ? "Mise à jour..." : "Compléter le profil"}
               </Button>

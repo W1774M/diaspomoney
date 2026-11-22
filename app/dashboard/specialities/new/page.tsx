@@ -57,7 +57,7 @@ function NewSpecialityPageContent() {
         <div className='flex items-center mb-4'>
           <Link
             href='/dashboard/specialities'
-            className='flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] mr-4'
+            className='flex items-center text-brand-700 hover:text-brand-800 mr-4'
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Retour
@@ -89,7 +89,7 @@ function NewSpecialityPageContent() {
                 required
                 value={formData.name}
                 onChange={e => handleInputChange('name', e.target.value)}
-                className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 placeholder='Ex: Cardiologie, Dermatologie, Orthodontie...'
               />
             </div>
@@ -108,7 +108,7 @@ function NewSpecialityPageContent() {
                 required
                 value={formData.group}
                 onChange={e => handleInputChange('group', e.target.value)}
-                className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               >
                 <option value='sante'>Santé</option>
                 <option value='immo'>Immobilier</option>
@@ -129,7 +129,7 @@ function NewSpecialityPageContent() {
             <button
               type='submit'
               disabled={loading || !formData.name}
-              className='flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+              className='flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
             >
               {loading ? (
                 <>

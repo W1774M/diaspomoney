@@ -41,14 +41,14 @@ const BeneficiariesFilters = React.memo<BeneficiariesFiltersProps>(
       <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor='beneficiaries-filters-relationship' className="block text-sm font-medium text-gray-700 mb-1">
               Relation
             </label>
-            <select
+            <select id='beneficiaries-filters-relationship'
               title="Relation"
               value={filters.relationship ?? ""}
               onChange={handleRelationshipChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
             >
               <option value="">Toutes les relations</option>
               {availableRelationships.map((relationship: BeneficiaryRelationship, idx: number) => (
@@ -60,14 +60,14 @@ const BeneficiariesFilters = React.memo<BeneficiariesFiltersProps>(
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor='beneficiaries-filters-champ' className="block text-sm font-medium text-gray-700 mb-1">
               Statut du compte
             </label>
-            <select
+            <select id='beneficiaries-filters-champ'
               title="Statut du compte"
               value={filters.hasAccount === undefined ? "" : (filters.hasAccount ? "true" : "false")}
               onChange={handleAccountStatusChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
             >
               <option value="">Tous les statuts</option>
               <option value="with">Avec compte</option>

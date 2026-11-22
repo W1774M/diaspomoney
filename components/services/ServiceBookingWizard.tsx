@@ -377,34 +377,34 @@ export function ServiceBookingWizard({
 
     // Validation côté client avant l'envoi
     if (!state.serviceType) {
-      alert("Veuillez sélectionner un type de service");
+      notificationManager.addWarning("Veuillez sélectionner un type de service");
       return;
     }
     
     if (!state.clientInfo.firstName || !state.clientInfo.lastName || !state.clientInfo.phone || !state.clientInfo.email) {
-      alert("Veuillez remplir toutes les informations client (prénom, nom, téléphone, email)");
+      notificationManager.addWarning("Veuillez remplir toutes les informations client (prénom, nom, téléphone, email)");
       return;
     }
     
     if (!state.beneficiaryInfo.firstName || !state.beneficiaryInfo.lastName || !state.beneficiaryInfo.phone) {
-      alert("Veuillez remplir toutes les informations bénéficiaire (prénom, nom, téléphone)");
+      notificationManager.addWarning("Veuillez remplir toutes les informations bénéficiaire (prénom, nom, téléphone)");
       return;
     }
     
     if (!state.selectedService) {
-      alert("Veuillez sélectionner un service");
+      notificationManager.addWarning("Veuillez sélectionner un service");
       return;
     }
     
     if (!paymentIntentId) {
-      alert("Le paiement n'a pas été validé. Veuillez compléter le paiement avant de confirmer.");
+      notificationManager.addWarning("Le paiement n'a pas été validé. Veuillez compléter le paiement avant de confirmer.");
       return;
     }
     
     // Les disponibilités ne sont requises que pour le type HEALTH
     if (state.serviceType === SPECIALITY_TYPES.HEALTH) {
       if (!state.availability.selectedDate || !state.availability.selectedTime) {
-        alert("Veuillez sélectionner une date et une heure de disponibilité");
+        notificationManager.addWarning("Veuillez sélectionner une date et une heure de disponibilité");
         return;
       }
     }
@@ -691,7 +691,7 @@ export function ServiceBookingWizard({
             'Paiement confirmé, mais erreur lors de l\'enregistrement. Notre équipe va traiter votre réservation.',
           );
         } else {
-          alert(errorMessage);
+          notificationManager.addError(typeof errorMessage === "string" ? errorMessage : "Erreur lors de l’enregistrement de la réservation.");
           setIsSubmitting(false);
         }
       }
@@ -743,7 +743,7 @@ export function ServiceBookingWizard({
   const serviceTypeConfig = getServiceTypeConfig();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-dvh bg-gray-50">
       {/* Hero Section avec rappel du type de service */}
       {serviceTypeConfig && (
         <div className={`bg-gradient-to-r ${
@@ -1095,7 +1095,7 @@ export function ServiceBookingWizard({
                     </div>
                   </div>
                   <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-800">
+                    <p className="text-sm text-brand-800">
                       💡 Vous pouvez également utiliser un outil externe comme Calendly pour la sélection des disponibilités
                     </p>
                   </div>
@@ -1118,7 +1118,7 @@ export function ServiceBookingWizard({
                     </p>
                     {servicesLoading ? (
                       <div className="text-center py-12">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]"></div>
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
                         <p className="mt-4 text-gray-600">Chargement des services...</p>
                       </div>
                     ) : servicesError ? (
@@ -1141,7 +1141,7 @@ export function ServiceBookingWizard({
                             onClick={() => handleServiceSelect(service)}
                             className={`relative flex h-96 max-h-96 flex-col overflow-hidden p-6 rounded-xl border-2 text-left transition-all hover:shadow-md ${
                               state.selectedService?.serviceId === service.id
-                                ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] shadow-md"
+                                ? "border-brand-600 bg-brand-50 shadow-md"
                                 : service.important
                                 ? "border-amber-300 bg-gradient-to-br from-amber-50 to-white shadow-sm hover:border-amber-400"
                                 : "border-gray-200 hover:border-gray-300 bg-white"
@@ -1160,7 +1160,7 @@ export function ServiceBookingWizard({
                                 {service.label}
                               </h3>
                               {state.selectedService?.serviceId === service.id && (
-                                <Check className="h-6 w-6 shrink-0 text-[hsl(25,100%,53%)]" aria-hidden />
+                                <Check className="h-6 w-6 shrink-0 text-brand-700" aria-hidden />
                               )}
                             </div>
                             {/* Corps : hauteur fixe implicite (flex-1), texte long → défilement */}
@@ -1174,7 +1174,7 @@ export function ServiceBookingWizard({
                             </div>
                             {/* Pied : prix aligné en bas */}
                             <div className="service-card-footer flex shrink-0 items-center justify-between gap-2 border-t border-gray-100 pt-4">
-                              <p className="text-xl font-bold text-[hsl(25,100%,53%)]">
+                              <p className="text-xl font-bold text-brand-700">
                                 {service.price === 0
                                   ? "Sur devis"
                                   : `${service.price}€`}
@@ -1191,7 +1191,7 @@ export function ServiceBookingWizard({
                     ) : (
                       <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                         <p className="text-gray-500 mb-2">Aucun service disponible pour ce type</p>
-                        <p className="text-sm text-gray-400">Veuillez contacter le support</p>
+                        <p className="text-sm text-gray-500">Veuillez contacter le support</p>
                       </div>
                     )}
                   </div>
@@ -1207,7 +1207,7 @@ export function ServiceBookingWizard({
                       </p>
                       {optionsLoading ? (
                         <div className="text-center py-8">
-                          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-[hsl(25,100%,53%)]"></div>
+                          <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-brand-600"></div>
                           <p className="mt-2 text-sm text-gray-600">Chargement des options...</p>
                         </div>
                       ) : optionsError ? (
@@ -1258,7 +1258,7 @@ export function ServiceBookingWizard({
                                   onClick={() => handleToggleOption(option)}
                                   className={`flex h-96 max-h-96 flex-col overflow-hidden p-5 rounded-xl border-2 text-left transition-all hover:shadow-md ${
                                     isSelected
-                                      ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] shadow-md"
+                                      ? "border-brand-600 bg-brand-50 shadow-md"
                                       : "border-gray-200 hover:border-gray-300 bg-white"
                                   }`}
                                   type="button"
@@ -1268,7 +1268,7 @@ export function ServiceBookingWizard({
                                       {option.label}
                                     </h3>
                                     {isSelected && (
-                                      <Check className="h-5 w-5 shrink-0 text-[hsl(25,100%,53%)]" aria-hidden />
+                                      <Check className="h-5 w-5 shrink-0 text-brand-700" aria-hidden />
                                     )}
                                   </div>
                                   <div className="service-option-card-body flex min-h-0 flex-1 flex-col overflow-hidden py-2">
@@ -1280,7 +1280,7 @@ export function ServiceBookingWizard({
                                     </div>
                                   </div>
                                   <div className="service-option-card-footer shrink-0 border-t border-gray-100 pt-3">
-                                    <p className="text-lg font-bold text-[hsl(25,100%,53%)]">
+                                    <p className="text-lg font-bold text-brand-700">
                                       +{option.price}€
                                     </p>
                                   </div>
@@ -1295,7 +1295,7 @@ export function ServiceBookingWizard({
 
                   {/* Récapitulatif du total */}
                   {state.selectedService && (
-                    <div className="mt-6 p-6 bg-gradient-to-r from-[hsl(25,100%,95%)] to-[hsl(25,100%,98%)] rounded-xl border-2 border-[hsl(25,100%,53%)]">
+                    <div className="mt-6 p-6 bg-gradient-to-r from-brand-50 to-brand-50 rounded-xl border-2 border-brand-600">
                       <div className="flex justify-between items-center">
                         <div>
                           <span className="text-gray-600 text-sm block mb-1">Montant total</span>
@@ -1305,7 +1305,7 @@ export function ServiceBookingWizard({
                           </span>
                         </div>
                         <div className="text-right">
-                          <span className="text-3xl font-bold text-[hsl(25,100%,53%)]">
+                          <span className="text-3xl font-bold text-brand-700">
                             {state.totalAmount}€
                           </span>
                         </div>
@@ -1345,14 +1345,14 @@ export function ServiceBookingWizard({
                       }
                     }}
                     placeholder="Entrez votre code promotionnel"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent uppercase"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent uppercase"
                     disabled={validatingCode}
                   />
                   <button
                     type="button"
                     onClick={() => validatePromotionCode(promotionCode, { amount: getPromotionCodeAmount() })}
                     disabled={validatingCode || !promotionCode.trim()}
-                    className="px-6 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    className="px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                   >
                     {validatingCode ? 'Validation...' : 'Appliquer'}
                   </button>
@@ -1422,7 +1422,7 @@ export function ServiceBookingWizard({
                 <div className="pt-4 border-t-2 border-gray-300">
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-bold text-gray-900">Total à payer</span>
-                    <span className="text-3xl font-bold text-[hsl(23,100%,53%)]">
+                    <span className="text-3xl font-bold text-brand-700">
                       {state.totalAmount.toFixed(2)}€
                     </span>
                   </div>
@@ -1439,7 +1439,7 @@ export function ServiceBookingWizard({
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      <CreditCard className="w-5 h-5 text-[hsl(23,100%,53%)]" />
+                      <CreditCard className="w-5 h-5 text-brand-700" />
                       Informations de paiement
                     </h3>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -1454,7 +1454,7 @@ export function ServiceBookingWizard({
                     Nous ne stockons jamais vos données bancaires.
                   </p>
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                    <p className="text-sm text-blue-800">
+                    <p className="text-sm text-brand-800">
                       <strong>Note :</strong> Si vous avez une carte enregistrée, vous pouvez la sélectionner ou en ajouter une nouvelle. 
                       Le formulaire Stripe vous permet de choisir parmi vos moyens de paiement enregistrés.
                     </p>
@@ -1475,7 +1475,7 @@ export function ServiceBookingWizard({
                   }}
                   onSuccess={handlePaymentSuccess}
                   onError={(error: string) => {
-                    alert(`Erreur de paiement: ${error}`);
+                    notificationManager.addError(`Erreur de paiement: ${error}`);
                   }}
                   renderActions={({ submitting }) => (
                     <button
@@ -1499,7 +1499,7 @@ export function ServiceBookingWizard({
                     <span>SSL sécurisé</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-4 h-4 text-brand-700" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                       <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                     </svg>
@@ -1515,7 +1515,7 @@ export function ServiceBookingWizard({
               </div>
             ) : (
               <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center bg-gray-50">
-                <CreditCard className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <CreditCard className="w-16 h-16 mx-auto mb-4 text-gray-500" />
                 <p className="text-lg font-medium text-gray-700 mb-2">
                   Montant invalide
                 </p>
@@ -1545,7 +1545,7 @@ export function ServiceBookingWizard({
 
                   {/* Numéro de réservation */}
                   {(confirmedReservationNumber || confirmedBookingId) && (
-                    <div className="bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(41,86%,46%)] text-white rounded-xl p-6 text-center">
+                    <div className="bg-gradient-to-r from-brand-600 to-amber-700 text-white rounded-xl p-6 text-center">
                       <p className="text-sm font-medium mb-2">Numéro de réservation</p>
                       <p className="text-2xl font-bold">
                         {confirmedReservationNumber || confirmedBookingId}
@@ -1556,7 +1556,7 @@ export function ServiceBookingWizard({
                   {/* Récapitulatif de la commande */}
                   <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <ShoppingCart className="w-5 h-5 text-[hsl(23,100%,53%)]" />
+                      <ShoppingCart className="w-5 h-5 text-brand-700" />
                       Récapitulatif de la commande
                     </h3>
                     
@@ -1620,7 +1620,7 @@ export function ServiceBookingWizard({
                       {/* Total */}
                       <div className="flex justify-between items-center pt-4 border-t">
                         <span className="text-lg font-semibold text-gray-900">Total à payer</span>
-                        <span className="text-2xl font-bold text-[hsl(25,100%,53%)]">
+                        <span className="text-2xl font-bold text-brand-700">
                           {state.totalAmount.toFixed(2)}€
                         </span>
                       </div>
@@ -1630,7 +1630,7 @@ export function ServiceBookingWizard({
                   {/* Informations du bénéficiaire */}
                   <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <User className="w-5 h-5 text-[hsl(23,100%,53%)]" />
+                      <User className="w-5 h-5 text-brand-700" />
                       Informations du bénéficiaire
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1663,7 +1663,7 @@ export function ServiceBookingWizard({
                   {(state.availability.selectedDate || state.availability.selectedTime) && (
                     <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-[hsl(23,100%,53%)]" />
+                        <Clock className="w-5 h-5 text-brand-700" />
                         Rendez-vous
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1695,17 +1695,17 @@ export function ServiceBookingWizard({
                   {/* Message de confirmation email */}
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
                     <div className="flex items-start gap-3">
-                      <Mail className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <Mail className="w-5 h-5 text-brand-700 mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="font-semibold text-blue-900 mb-1">
+                        <p className="font-semibold text-brand-900 mb-1">
                           Email de confirmation envoyé
                         </p>
-                        <p className="text-sm text-blue-700">
+                        <p className="text-sm text-brand-800">
                           Un récapitulatif détaillé de votre réservation a été envoyé à{" "}
                           <strong>{state.clientInfo.email}</strong>
                         </p>
                         {state.beneficiaryInfo.email && state.beneficiaryInfo.email !== state.clientInfo.email && (
-                          <p className="text-sm text-blue-700 mt-1">
+                          <p className="text-sm text-brand-800 mt-1">
                             Une notification a également été envoyée à{" "}
                             <strong>{state.beneficiaryInfo.email}</strong>
                           </p>
@@ -1730,7 +1730,7 @@ export function ServiceBookingWizard({
                         onClick={() => {
                           router.push(`/dashboard/bookings/${confirmedBookingId}`);
                         }}
-                        className="flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)] rounded-lg font-semibold hover:bg-[hsl(25,100%,53%)] hover:text-white transition"
+                        className="flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-brand-600 text-brand-700 rounded-lg font-semibold hover:bg-brand-700 hover:text-white transition"
                         type="button"
                       >
                         Voir les détails
@@ -1760,7 +1760,7 @@ export function ServiceBookingWizard({
                         // Rediriger vers le dashboard
                         router.push("/dashboard/bookings");
                       }}
-                      className="flex items-center justify-center gap-2 px-6 py-3 bg-[hsl(25,100%,53%)] text-white rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition"
+                      className="flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 text-white rounded-lg font-semibold hover:bg-brand-700 transition"
                       type="button"
                     >
                       Voir mes réservations
@@ -1783,7 +1783,7 @@ export function ServiceBookingWizard({
                   <button
                     onClick={handleNext}
                     disabled={!validateStep(currentStep)}
-                    className="flex items-center gap-2 px-6 py-3 bg-[hsl(25,100%,53%)] text-white rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-6 py-3 bg-brand-600 text-white rounded-lg font-semibold hover:bg-brand-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     type="button"
                   >
                     Suivant

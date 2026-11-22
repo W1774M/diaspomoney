@@ -85,7 +85,7 @@ export function ServiceCarousel({
               role="tab"
               aria-selected={index === currentIndex}
               aria-label={`Aller au service ${index + 1}: ${service.title}`}
-              className={`rounded-full transition-all duration-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/50 ${
+              className={`rounded-full transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${
                 index === currentIndex
                   ? "w-10 h-2.5 bg-white shadow-lg"
                   : "w-2.5 h-2.5 bg-white/40 hover:bg-white/60"

@@ -69,7 +69,7 @@ function ProviderContactsPageContent() {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
         <p className="mt-4 text-gray-600">Chargement des contacts...</p>
       </div>
     );
@@ -82,7 +82,7 @@ function ProviderContactsPageContent() {
         <div className="flex items-center justify-between mb-4">
           <Link
             href="/dashboard/users"
-            className="flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]"
+            className="flex items-center text-brand-700 hover:text-brand-800"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Retour aux utilisateurs
@@ -99,13 +99,13 @@ function ProviderContactsPageContent() {
       {/* Search */}
       <div className="bg-white rounded-lg shadow border border-gray-200 p-4 mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
           <input
             type="text"
             placeholder="Rechercher un prestataire..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
           />
         </div>
         <div className="mt-4 text-sm text-gray-500">
@@ -154,7 +154,7 @@ function ProviderContactsPageContent() {
               {/* Contact Info */}
               <div className="space-y-3">
                 <div className="flex items-center">
-                  <Mail className="h-4 w-4 text-gray-400 mr-3" />
+                  <Mail className="h-4 w-4 text-gray-500 mr-3" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-900 truncate">
                       {provider.email}
@@ -162,7 +162,7 @@ function ProviderContactsPageContent() {
                   </div>
                   <button
                     onClick={() => handleSendEmail(provider)}
-                    className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] p-1"
+                    className="text-brand-700 hover:text-brand-800 p-1"
                     title="Envoyer un email"
                   >
                     <Mail className="h-4 w-4" />
@@ -171,13 +171,13 @@ function ProviderContactsPageContent() {
 
                 {provider.phone && (
                   <div className="flex items-center">
-                    <Phone className="h-4 w-4 text-gray-400 mr-3" />
+                    <Phone className="h-4 w-4 text-gray-500 mr-3" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-900">{provider.phone}</p>
                     </div>
                     <button
                       onClick={() => handleCall(provider)}
-                      className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] p-1"
+                      className="text-brand-700 hover:text-brand-800 p-1"
                       title="Appeler"
                     >
                       <Phone className="h-4 w-4" />
@@ -187,7 +187,7 @@ function ProviderContactsPageContent() {
 
                 {provider.specialties && provider.specialties.length > 0 && (
                   <div className="flex items-start">
-                    <MapPin className="h-4 w-4 text-gray-400 mr-3 mt-0.5" />
+                    <MapPin className="h-4 w-4 text-gray-500 mr-3 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-900">
                         {provider.specialties.join(", ")}
@@ -211,7 +211,7 @@ function ProviderContactsPageContent() {
               <div className="flex justify-between items-center">
                 <Link
                   href={`/dashboard/users/${provider['id']}`}
-                  className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] text-sm font-medium"
+                  className="text-brand-700 hover:text-brand-800 text-sm font-medium"
                 >
                   Voir le profil complet
                 </Link>
@@ -242,7 +242,7 @@ function ProviderContactsPageContent() {
       {/* Empty State */}
       {filteredProviders.length === 0 && (
         <div className="text-center py-12 bg-white rounded-lg shadow border border-gray-200">
-          <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <User className="h-12 w-12 text-gray-500 mx-auto mb-4" />
           <div className="text-gray-500 mb-4">
             {searchTerm
               ? "Aucun prestataire trouvé avec ces critères"

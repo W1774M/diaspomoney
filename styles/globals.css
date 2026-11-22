@@ -11,57 +11,201 @@ html,
 
 
 :root {
+  /* Jetons shadcn (HSL sans hsl()) alignés sur la marque. Contrastes sur blanc :
+     primary 4,7:1 (texte blanc dessus OK), muted-foreground 4,8:1, border des champs 3:1+ */
   --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --foreground: 24 10% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 24 10% 10%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222.2 84% 4.9%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
-  --radius: 0.5rem;
+  --popover-foreground: 24 10% 10%;
+  --primary: 25 100% 38%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 30 20% 96%;
+  --secondary-foreground: 24 10% 10%;
+  --muted: 30 20% 96%;
+  --muted-foreground: 220 9% 40%;
+  --accent: 25 100% 96%;
+  --accent-foreground: 25 100% 28%;
+  --destructive: 0 72% 42%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 13% 88%;
+  --input: 220 9% 46%;
+  --ring: 25 100% 38%;
+  --radius: 0.75rem;
+
+  /* Orange de marque utilisable en style en ligne (mêmes valeurs que tailwind brand-*) */
+  --brand-500: #f97015;
+  --brand-600: hsl(25 100% 38%);
+  --brand-700: hsl(25 100% 33%);
 }
 
-.dark {
-  /*--background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 84% 4.9%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 94.1%;*/
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    /* ancre les cibles #id sous l'en-tête collant */
+    scroll-padding-block-start: 5rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    color: hsl(var(--foreground));
+    background: hsl(var(--background));
+    line-height: 1.5;
+    /* les longues URL / IBAN ne débordent plus en mobile (reflow 320 px) */
+    overflow-wrap: break-word;
+  }
+
+  /* ---- Typographie ---- */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-plus-jakarta-sans), var(--font-inter), system-ui, sans-serif;
+    text-wrap: balance;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  p,
+  li,
+  blockquote,
+  figcaption,
+  dd {
+    text-wrap: pretty;
+  }
+
+  /* chiffres alignés pour montants, tableaux et compteurs */
+  table,
+  time,
+  data,
+  output {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- Liens : soulignement lisible, jamais la couleur seule ---- */
+  a {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: from-font;
+  }
+
+  /* ---- Focus : anneau visible au clavier, contraste 3:1 ---- */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* ---- Formulaires ---- */
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+  }
+
+  /* ≥ 16 px : iOS ne zoome plus à la saisie ; suit un conteneur plus grand */
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
+  select,
+  textarea {
+    font-size: max(1rem, 1em);
+  }
+
+  textarea {
+    field-sizing: content;
+    min-block-size: 5lh;
+    max-block-size: 20lh;
+    resize: vertical;
+  }
+
+  /* Erreur affichée seulement après interaction (pas au chargement) */
+  :where(input, select, textarea):user-invalid {
+    border-color: hsl(var(--destructive));
+  }
+
+  :where(input, select, textarea)[aria-invalid='true'] {
+    border-color: hsl(var(--destructive));
+  }
+
+  ::placeholder {
+    color: hsl(220 9% 46%);
+    opacity: 1;
+  }
+
+  [type='checkbox'],
+  [type='radio'] {
+    accent-color: hsl(var(--primary));
+  }
+
+  :disabled {
+    cursor: not-allowed;
+  }
+
+  /* ---- Cibles tactiles : 44 px minimum au doigt ---- */
+  @media (pointer: coarse) {
+    :where(button, [role='button'], select, summary, input:not([type='checkbox'], [type='radio'], [type='hidden'])) {
+      min-block-size: 44px;
+    }
+  }
+
+  /* ---- Mouvement réduit : coupe animations et transitions décoratives ---- */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* hidden doit gagner contre les classes d'affichage (flex, grid…) */
+  [hidden]:not([hidden='until-found']) {
+    display: none !important;
+  }
 }
 
-* {
-  border-color: hsl(var(--border));
-}
+@layer utilities {
+  /* Masqué à l'écran, lu par les lecteurs d'écran (réapparaît au focus) */
+  .visually-hidden:where(:not(:focus-within, :active)) {
+    position: absolute !important;
+    clip-path: inset(50%) !important;
+    overflow: hidden !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    white-space: nowrap !important;
+  }
 
-body {
-  color: hsl(var(--foreground));
-  background: hsl(var(--background));
+  /* Longueur de ligne confortable pour les textes longs */
+  .measure {
+    max-inline-size: 70ch;
+  }
+
+  /* Cible minimale 24 px (WCAG 2.5.8) pour les petits boutons icônes */
+  .tap-target {
+    min-inline-size: 2.75rem;
+    min-block-size: 2.75rem;
+  }
+
+  /* Tableau défilable au clavier (voir components/ui/DataTable) */
+  .table-scroll {
+    overflow: auto;
+    max-inline-size: 100%;
+    overscroll-behavior-inline: contain;
+  }
 }
 
 /* Scrollbar hide utility */
@@ -77,7 +221,7 @@ body {
 /* Couleurs de l'interface native (barres de défilement, champs) : site en thème clair */
 :root {
   color-scheme: light;
-  accent-color: hsl(25 100% 53%);
+  accent-color: hsl(25 100% 38%);
 }
 
 /* ---- Lien d'évitement : invisible jusqu'au premier Tab ---- */
@@ -96,7 +240,7 @@ body {
 
 .skip-link:focus-visible {
   translate: 0 0;
-  outline: 2px solid hsl(25 100% 53%);
+  outline: 2px solid hsl(25 100% 38%);
   outline-offset: 2px;
 }
 
@@ -105,6 +249,43 @@ body {
   :focus-visible {
     outline: 2px solid CanvasText !important;
     outline-offset: 2px;
+  }
+
+  /* les cartes et boutons dessinés en ombre/fond gardent une bordure */
+  :where(button, [role='button'], .card-surface) {
+    border: 1px solid ButtonText;
+  }
+
+  [aria-current='page'] {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* ---- Contraste renforcé à la demande : bordures et textes secondaires plus marqués ---- */
+@media (prefers-contrast: more) {
+  :root {
+    --border: 220 9% 46%;
+    --muted-foreground: 220 13% 26%;
+  }
+}
+
+/* ---- En-tête public : se retire en défilant vers le bas, revient au moindre retour ----
+   La classe is-hidden est posée par PublicHeader (les requêtes scroll-state ne passent pas
+   encore le compilateur CSS de Next). Jamais masqué s'il contient le focus ou un menu ouvert. */
+@media (prefers-reduced-motion: no-preference) {
+  .site-top-bar {
+    transition: translate 0.25s ease;
+  }
+}
+
+.site-top-bar.is-hidden:not(:focus-within, :has([aria-expanded='true'])) {
+  translate: 0 -100%;
+}
+
+/* ---- Transitions entre pages (navigations complètes, progressif) ---- */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
   }
 }
 
@@ -177,5 +358,19 @@ dialog::backdrop {
   .marquee:focus-within .marquee-track,
   .marquee[data-paused] .marquee-track {
     animation-play-state: paused;
+  }
+}
+
+/* ---- Notifications : entrée douce, sans mouvement si réduit ---- */
+@media (prefers-reduced-motion: no-preference) {
+  .toast-item {
+    animation: toast-in 0.2s ease-out;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
   }
 }

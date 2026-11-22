@@ -52,7 +52,7 @@ export function CustomImage({
         className={`bg-gray-200 flex items-center justify-center ${className}`}
         style={fill ? {} : { width, height }}
       >
-        <div className='text-gray-400 text-sm text-center p-2'>
+        <div className='text-gray-500 text-sm text-center p-2'>
           {alt || 'Image non disponible'}
         </div>
       </div>

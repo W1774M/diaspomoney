@@ -160,8 +160,8 @@ export default function DocumentationPage() {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
+      <div className='min-h-dvh flex items-center justify-center'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600'></div>
       </div>
     );
   }
@@ -175,7 +175,7 @@ export default function DocumentationPage() {
       {/* Header */}
       <div>
         <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
-          <Book className='h-8 w-8 mr-3 text-[hsl(25,100%,53%)]' />
+          <Book className='h-8 w-8 mr-3 text-brand-700' />
           Documentation
         </h1>
         <p className='text-gray-600 mt-2'>
@@ -186,13 +186,13 @@ export default function DocumentationPage() {
       {/* Search */}
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
         <div className='relative'>
-          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400' />
+          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500' />
           <input
             type='text'
             placeholder='Rechercher dans la documentation...'
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
           />
         </div>
       </div>
@@ -209,7 +209,7 @@ export default function DocumentationPage() {
               className='w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors'
             >
               <div className='flex items-center space-x-3'>
-                <div className='text-[hsl(25,100%,53%)]'>{section.icon}</div>
+                <div className='text-brand-700'>{section.icon}</div>
                 <div className='text-left'>
                   <h2 className='text-lg font-semibold text-gray-900'>
                     {section.title}
@@ -218,7 +218,7 @@ export default function DocumentationPage() {
                 </div>
               </div>
               <ChevronRight
-                className={`h-5 w-5 text-gray-400 transition-transform ${
+                className={`h-5 w-5 text-gray-500 transition-transform ${
                   expandedSections.has(section.id) ? 'rotate-90' : ''
                 }`}
               />
@@ -236,15 +236,15 @@ export default function DocumentationPage() {
                       <a
                         key={article.id}
                         href={article.url}
-                        className='block p-4 bg-white rounded-md border border-gray-200 hover:border-[hsl(25,100%,53%)] hover:shadow-sm transition-all group'
+                        className='block p-4 bg-white rounded-md border border-gray-200 hover:border-brand-600 hover:shadow-sm transition-all group'
                       >
                         <div className='flex items-start justify-between'>
                           <div className='flex-1'>
                             <div className='flex items-center space-x-2 mb-1'>
-                              <h3 className='text-base font-semibold text-gray-900 group-hover:text-[hsl(25,100%,53%)] transition-colors'>
+                              <h3 className='text-base font-semibold text-gray-900 group-hover:text-brand-800 transition-colors'>
                                 {article.title}
                               </h3>
-                              <span className='text-xs font-medium text-[hsl(25,100%,53%)] bg-[hsl(25,100%,53%)]/10 px-2 py-0.5 rounded'>
+                              <span className='text-xs font-medium text-brand-700 bg-brand-500/10 px-2 py-0.5 rounded'>
                                 {article.category}
                               </span>
                             </div>
@@ -252,7 +252,7 @@ export default function DocumentationPage() {
                               {article.description}
                             </p>
                           </div>
-                          <ExternalLink className='h-5 w-5 text-gray-400 group-hover:text-[hsl(25,100%,53%)] transition-colors ml-4 flex-shrink-0' />
+                          <ExternalLink className='h-5 w-5 text-gray-500 group-hover:text-brand-800 transition-colors ml-4 flex-shrink-0' />
                         </div>
                       </a>
                     ))}
@@ -266,7 +266,7 @@ export default function DocumentationPage() {
 
       {/* Quick Links */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-        <div className='bg-[hsl(25,100%,53%)]/10 border border-[hsl(25,100%,53%)]/20 rounded-lg p-6'>
+        <div className='bg-brand-500/10 border border-brand-500/20 rounded-lg p-6'>
           <h3 className='text-lg font-semibold text-gray-900 mb-2'>
             Tutoriels vidéo
           </h3>
@@ -275,14 +275,14 @@ export default function DocumentationPage() {
           </p>
           <a
             href='/dashboard/settings/tutorials'
-            className='inline-flex items-center text-[hsl(25,100%,53%)] hover:underline font-medium'
+            className='inline-flex items-center text-brand-700 hover:underline font-medium'
           >
             Voir les tutoriels
             <ChevronRight className='h-4 w-4 ml-1' />
           </a>
         </div>
 
-        <div className='bg-[hsl(25,100%,53%)]/10 border border-[hsl(25,100%,53%)]/20 rounded-lg p-6'>
+        <div className='bg-brand-500/10 border border-brand-500/20 rounded-lg p-6'>
           <h3 className='text-lg font-semibold text-gray-900 mb-2'>
             Besoin d'aide ?
           </h3>
@@ -291,7 +291,7 @@ export default function DocumentationPage() {
           </p>
           <a
             href='/dashboard/settings/support'
-            className='inline-flex items-center text-[hsl(25,100%,53%)] hover:underline font-medium'
+            className='inline-flex items-center text-brand-700 hover:underline font-medium'
           >
             Contacter le support
             <ChevronRight className='h-4 w-4 ml-1' />

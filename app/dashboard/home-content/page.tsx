@@ -22,7 +22,7 @@ function HomeContentPageContent() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 sm:text-3xl">
-            <Megaphone className="h-7 w-7 text-[hsl(25,100%,53%)]" aria-hidden />
+            <Megaphone className="h-7 w-7 text-brand-700" aria-hidden />
             Contenu de la page d’accueil
           </h1>
           <p className="mt-2 text-gray-600">
@@ -33,7 +33,7 @@ function HomeContentPageContent() {
           href="/"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm font-medium text-[hsl(25,100%,40%)] hover:underline"
+          className="inline-flex items-center gap-2 text-sm font-medium text-brand-800 hover:underline"
         >
           Voir la page d’accueil
           <ExternalLink className="h-4 w-4" aria-hidden />
@@ -53,7 +53,7 @@ function HomeContentPageContent() {
             onClick={() => setTab(key)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold transition-colors ${
               tab === key
-                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,40%)]'
+                ? 'border-brand-600 text-brand-800'
                 : 'border-transparent text-gray-500 hover:text-gray-800'
             }`}
           >

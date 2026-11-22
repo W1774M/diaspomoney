@@ -207,8 +207,8 @@ export default function NotificationsPage() {
 
   if (isLoading || loading) {
     return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
+      <div className='min-h-dvh flex items-center justify-center'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600'></div>
       </div>
     );
   }
@@ -243,7 +243,7 @@ export default function NotificationsPage() {
         {unreadCount > 0 && (
           <button
             onClick={markAllAsRead}
-            className='flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors text-sm sm:text-base w-full sm:w-auto'
+            className='flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm sm:text-base w-full sm:w-auto'
           >
             <CheckCheck className='h-4 w-4 sm:h-5 sm:w-5' />
             <span className='whitespace-nowrap'>Tout marquer comme lu</span>
@@ -259,7 +259,7 @@ export default function NotificationsPage() {
             onClick={() => setActiveTab('realtime')}
             className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 ${
               activeTab === 'realtime'
-                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
+                ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
             }`}
           >
@@ -270,7 +270,7 @@ export default function NotificationsPage() {
             onClick={() => setActiveTab('actions')}
             className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 ${
               activeTab === 'actions'
-                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
+                ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
             }`}
           >
@@ -281,7 +281,7 @@ export default function NotificationsPage() {
             onClick={() => setActiveTab('history')}
             className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex-shrink-0 ${
               activeTab === 'history'
-                ? 'border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)]'
+                ? 'border-brand-600 text-brand-700'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
             }`}
           >
@@ -305,7 +305,7 @@ export default function NotificationsPage() {
                     onClick={() => setFilter('all')}
                     className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                       filter === 'all'
-                        ? 'bg-[hsl(25,100%,53%)] text-white'
+                        ? 'bg-brand-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -315,7 +315,7 @@ export default function NotificationsPage() {
                     onClick={() => setFilter('unread')}
                     className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                       filter === 'unread'
-                        ? 'bg-[hsl(25,100%,53%)] text-white'
+                        ? 'bg-brand-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -325,7 +325,7 @@ export default function NotificationsPage() {
                     onClick={() => setFilter('read')}
                     className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                       filter === 'read'
-                        ? 'bg-[hsl(25,100%,53%)] text-white'
+                        ? 'bg-brand-600 text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
@@ -362,7 +362,7 @@ export default function NotificationsPage() {
                         onClick={() => setCategoryFilter(item.key)}
                         className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                           categoryFilter === item.key
-                            ? 'bg-[hsl(25,100%,53%)] text-white'
+                            ? 'bg-brand-600 text-white'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                       >
@@ -440,7 +440,7 @@ export default function NotificationsPage() {
 
               {historyLoading ? (
                 <div className='flex items-center justify-center py-12'>
-                  <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
+                  <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600'></div>
                 </div>
               ) : (
                 <>
@@ -502,7 +502,7 @@ function NotificationsList({
   if (loading) {
     return (
       <div className='flex items-center justify-center py-12'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600'></div>
       </div>
     );
   }
@@ -511,7 +511,7 @@ function NotificationsList({
     <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
       {notifications.length === 0 ? (
         <div className='p-6 sm:p-12 text-center'>
-          <Bell className='h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4' />
+          <Bell className='h-8 w-8 sm:h-12 sm:w-12 text-gray-500 mx-auto mb-4' />
           <h3 className='text-base sm:text-lg font-medium text-gray-900 mb-2'>
             Aucune notification
           </h3>
@@ -541,7 +541,7 @@ function NotificationsList({
                       {notification.subject}
                     </h3>
                     {!notification.read && (
-                      <span className='h-2 w-2 bg-[hsl(25,100%,53%)] rounded-full flex-shrink-0 mt-2'></span>
+                      <span className='h-2 w-2 bg-brand-600 rounded-full flex-shrink-0 mt-2'></span>
                     )}
                   </div>
                   <p className='text-sm sm:text-base text-gray-600 mb-3 break-words'>{notification.content}</p>
@@ -558,7 +558,7 @@ function NotificationsList({
                       {notification.channels.map((channel, idx) => (
                         <div
                           key={idx}
-                          className='flex items-center text-gray-400'
+                          className='flex items-center text-gray-500'
                           title={channel.type}
                         >
                           {getChannelIcon(channel.type)}
@@ -589,7 +589,7 @@ function NotificationsList({
                 {!notification.read && (
                   <button
                     onClick={() => markAsRead(notification.id)}
-                    className='ml-2 sm:ml-4 p-2 text-gray-400 hover:text-[hsl(25,100%,53%)] transition-colors flex-shrink-0'
+                    className='ml-2 sm:ml-4 p-2 text-gray-500 hover:text-brand-800 transition-colors flex-shrink-0'
                     title='Marquer comme lu'
                   >
                     <Check className='h-4 w-4 sm:h-5 sm:w-5' />

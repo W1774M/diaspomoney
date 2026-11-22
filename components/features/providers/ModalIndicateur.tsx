@@ -10,13 +10,13 @@ export const ModalIndicator = ({ steps }: ModalIndicatorProps) => {
       <div className="flex items-center gap-3">
         <div
           className={`flex items-center gap-2 ${
-            steps >= 0 ? "text-blue-600" : "text-gray-400"
+            steps >= 0 ? "text-brand-700" : "text-gray-500"
           }`}
         >
           <div
             className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 progress-indicator ${
               steps >= 0
-                ? "active bg-blue-600 text-white"
+                ? "active bg-brand-600 text-white"
                 : "bg-gray-200 text-gray-500"
             }`}
           >
@@ -29,19 +29,19 @@ export const ModalIndicator = ({ steps }: ModalIndicatorProps) => {
 
         <div
           className={`w-6 h-1 rounded-full transition-all duration-300 ${
-            steps >= 1 ? "bg-blue-600" : "bg-gray-200"
+            steps >= 1 ? "bg-brand-600" : "bg-gray-200"
           }`}
         ></div>
 
         <div
           className={`flex items-center gap-2 ${
-            steps >= 1 ? "text-blue-600" : "text-gray-400"
+            steps >= 1 ? "text-brand-700" : "text-gray-500"
           }`}
         >
           <div
             className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 progress-indicator ${
               steps >= 1
-                ? "active bg-blue-600 text-white"
+                ? "active bg-brand-600 text-white"
                 : "bg-gray-200 text-gray-500"
             }`}
           >
@@ -52,19 +52,19 @@ export const ModalIndicator = ({ steps }: ModalIndicatorProps) => {
 
         <div
           className={`w-6 h-1 rounded-full transition-all duration-300 ${
-            steps >= 2 ? "bg-blue-600" : "bg-gray-200"
+            steps >= 2 ? "bg-brand-600" : "bg-gray-200"
           }`}
         ></div>
 
         <div
           className={`flex items-center gap-2 ${
-            steps >= 2 ? "text-blue-600" : "text-gray-400"
+            steps >= 2 ? "text-brand-700" : "text-gray-500"
           }`}
         >
           <div
             className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 progress-indicator ${
               steps >= 2
-                ? "active bg-blue-600 text-white"
+                ? "active bg-brand-600 text-white"
                 : "bg-gray-200 text-gray-500"
             }`}
           >
