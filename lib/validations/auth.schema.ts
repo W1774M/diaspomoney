@@ -16,6 +16,8 @@ export const RegisterSchema = z
     lastName: z.string().min(1, 'Last name is required').max(50),
     phone: z.string().max(20, 'Phone number is too long').optional(),
     countryOfResidence: z.string().max(100).optional(),
+    // Nom interne transmis par la route d'inscription au service (countryOfResidence normalisé)
+    country: z.string().max(100).optional(),
     targetCountry: z.string().max(100).optional(),
     targetCity: z.string().max(100).optional(),
     dateOfBirth: z
@@ -26,7 +28,7 @@ export const RegisterSchema = z
         z.string().optional(),
       ])
       .optional(),
-    monthlyBudget: z.string().optional(),
+    monthlyBudget: z.union([z.string(), z.number()]).optional(),
     securityQuestion: z.string().optional(),
     securityAnswer: z.string().optional(),
     termsAccepted: z.boolean().refine((val) => val === true, {

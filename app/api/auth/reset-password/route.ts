@@ -6,6 +6,7 @@ import { mongoClient } from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
 import { logger } from '@/lib/logger';
 import { invalidateAppCache } from '@/lib/cache/redis';
+import { hashResetToken } from '@/lib/auth/reset-token';
 
 export async function POST(request: NextRequest) {
   return handleApiRoute(request, async () => {
@@ -20,13 +21,13 @@ export async function POST(request: NextRequest) {
     const db = client.db();
     const usersCollection = db.collection("users");
 
-    // Recherche de l'utilisateur avec le token de réinitialisation
+    // Recherche par empreinte : la base ne stocke jamais le jeton en clair
     const user = await usersCollection.findOne({
-      passwordResetToken: token,
+      passwordResetToken: hashResetToken(token),
     });
 
     if (!user) {
-      logger.error({ token }, 'Invalid token');
+      logger.warn('Invalid password reset token');
       return NextResponse.json(
         { 
           error: "Token de réinitialisation invalide",
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     // Vérification de l'expiration du token
     if (user['passwordResetExpires'] && new Date() > user['passwordResetExpires']) {
-      logger.error({ user }, 'Expired token');
+      logger.warn({ userId: String(user._id) }, 'Expired password reset token');
       return NextResponse.json(
         { 
           error: "Le lien de réinitialisation a expiré",
@@ -69,14 +70,14 @@ export async function POST(request: NextRequest) {
     await invalidateAppCache('UserRepository'); // écriture hors dépôt : vider le cache
 
     if (updateResult.modifiedCount === 0) {
-      logger.error({ user }, 'Error updating password');
+      logger.error({ userId: String(user._id) }, 'Error updating password');
       return NextResponse.json(
         { error: "Erreur lors de la mise à jour du mot de passe" },
         { status: 500 },
       );
     }
 
-    logger.info({ user }, 'Password reset successfully');
+    logger.info({ userId: String(user._id) }, 'Password reset successfully');
 
     return NextResponse.json(
       {

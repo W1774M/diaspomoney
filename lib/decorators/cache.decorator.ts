@@ -19,6 +19,7 @@ const SECRET_KEYS = new Set([
   'passwordHash',
   'twoFactorSecret',
   'twoFactorBackupCodes',
+  'securityAnswer',
   'passwordResetToken',
   'resetToken',
   'emailVerificationToken',

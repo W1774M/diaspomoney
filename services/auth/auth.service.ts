@@ -334,6 +334,11 @@ class AuthService {
       });
       const registration = account.toRegistrationSnapshot();
 
+      // Budget mensuel : nombre (modèle User) même s'il arrive en texte depuis le formulaire
+      const rawBudget = typeof data.monthlyBudget === 'string' ? Number.parseFloat(data.monthlyBudget) : data.monthlyBudget;
+      const monthlyBudget =
+        typeof rawBudget === 'number' && Number.isFinite(rawBudget) && rawBudget >= 0 ? rawBudget : undefined;
+
       // Utiliser UserFacade pour créer l'utilisateur (Facade Pattern)
       // La facade gère la vérification de duplication, la création, l'audit, etc.
       const { userFacade } = await import('@/facades');
@@ -385,15 +390,18 @@ class AuthService {
           }),
           ...(data.targetCountry && { targetCountry: data.targetCountry }),
           ...(data.targetCity && { targetCity: data.targetCity }),
-          ...(data.monthlyBudget !== undefined && typeof data.monthlyBudget === 'number' && { monthlyBudget: data.monthlyBudget }),
+          ...(monthlyBudget !== undefined && { monthlyBudget }),
           ...(data.securityQuestion && { securityQuestion: data.securityQuestion }),
-          ...(data.securityAnswer && { securityAnswer: data.securityAnswer }),
+          // Réponse de sécurité : jamais en clair (normalisée puis hachée, comme un mot de passe)
+          ...(data.securityAnswer?.trim() && {
+            securityAnswer: await bcrypt.hash(data.securityAnswer.trim().toLowerCase(), 12),
+          }),
           ...(data.selectedServices && Array.isArray(data.selectedServices) && { selectedServices: data.selectedServices }),
           isEmailVerified: false,
           marketingConsent: data.marketingConsent || false,
           ...(data.termsAccepted !== undefined && { kycConsent: data.termsAccepted }),
           kycStatus: KYC_STATUSES.PENDING,
-          ...(data.oauth && { oauth: data.oauth }),
+          // data.oauth n'est pas repris : il vient du client et ne doit pas lier un compte OAuth.
         },
       };
 
@@ -1011,13 +1019,8 @@ class AuthService {
         }
       } else {
         log.info(
-          {
-            email: user.email,
-            userId: user.id,
-            resetToken,
-            resetUrl,
-          },
-          'Password reset token generated (email service not configured - token logged for development)',
+          { userId: user.id },
+          'Password reset token generated (email service not configured)',
         );
       }
 
@@ -1116,5 +1119,3 @@ class AuthService {
 // Export de l'instance singleton
 export const authService = AuthService.getInstance();
 
-// Export des méthodes individuelles pour compatibilité
-export const { requestPasswordReset, resetPassword } = authService;
