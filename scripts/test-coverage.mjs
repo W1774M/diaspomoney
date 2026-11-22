@@ -4,11 +4,14 @@
  * Couverture globale : lance les trois suites (client, serveur, intégration) avec
  * couverture, fusionne les rapports et applique les seuils de coverage-thresholds.json.
  * Les suites serveur et intégration ont besoin de MongoDB (MONGODB_URI, port 27018 par défaut).
+ * En CI (CI=true), écrit aussi un rapport JUnit par suite dans test-results/ (onglet Tests
+ * de CircleCI) : c'est l'unique exécution des tests du pipeline.
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync, rmSync } from 'node:fs';
 
 const REPORTS = '.vitest-reports';
+const JUNIT = process.env.CI === 'true';
 const thresholds = JSON.parse(readFileSync('coverage-thresholds.json', 'utf8'));
 const vitest = process.platform === 'win32' ? 'node_modules/.bin/vitest.CMD' : 'node_modules/.bin/vitest';
 const run = (args) => execFileSync(vitest, args, { stdio: 'inherit', shell: process.platform === 'win32' });
@@ -24,6 +27,7 @@ for (const [name, config] of [
   run([
     'run', '--config', config, '--coverage',
     '--reporter=default', '--reporter=blob', `--outputFile.blob=${REPORTS}/${name}.json`,
+    ...(JUNIT ? ['--reporter=junit', `--outputFile.junit=test-results/${name}.xml`] : []),
   ]);
 }
 
