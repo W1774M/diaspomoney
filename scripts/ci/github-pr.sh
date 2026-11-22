@@ -4,7 +4,10 @@
 #
 #   github-pr.sh open  <head> <base>          ouvre la PR head → base si aucune n'est ouverte
 #   github-pr.sh merge <head> <base> <sha>    fusionne la PR head → base, uniquement si son
-#                                             dernier commit est <sha> (celui qui a été validé)
+#                                             dernier commit est <sha> (celui qui a été validé).
+#                                             Si <head> a avancé depuis (promotion plus récente),
+#                                             ou si <base> contient déjà <sha> : rien n'est
+#                                             fusionné et le job reste vert.
 #
 # La fusion respecte la protection de branche : GitHub refuse si les checks requis échouent.
 set -euo pipefail
@@ -58,7 +61,26 @@ case "$action" in
   merge)
     sha=${4:?sha du commit validé requis}
     number=$(find_pr "$head" "$base")
-    [[ -n "$number" ]] || { echo "Aucune PR ouverte $head → $base." >&2; exit 1; }
+    if [[ -z "$number" ]]; then
+      # Une promotion plus récente a déjà fusionné la PR en emportant ce commit : rien à faire.
+      status=$(gh_api GET "/compare/$base...$sha" | sed '$d' \
+        | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log(JSON.parse(d).status||"")}catch{console.log("")}})')
+      if [[ "$status" == behind || "$status" == identical ]]; then
+        echo "Déjà promu : $base contient déjà $sha (fusionné par une promotion plus récente)."
+        exit 0
+      fi
+      echo "Aucune PR ouverte $head → $base." >&2
+      exit 1
+    fi
+    # La PR doit pointer sur le commit validé. Si $head a avancé depuis (nouvelle promotion),
+    # cette validation est caduque : ne rien fusionner, sans faire échouer le pipeline.
+    current=$(gh_api GET "/pulls/$number" | sed '$d' \
+      | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{try{console.log(JSON.parse(d).head.sha||"")}catch{console.log("")}})')
+    if [[ -n "$current" && "$current" != "$sha" ]]; then
+      echo "Promotion remplacée par une plus récente : la PR #$number pointe maintenant sur $current (validé ici : $sha)."
+      echo "Rien n'est fusionné. Valider le pipeline $head du commit $current pour promouvoir."
+      exit 0
+    fi
     body=$(node -e 'console.log(JSON.stringify({merge_method:"merge",sha:process.argv[1],commit_title:`Promotion ${process.argv[2]} → ${process.argv[3]} (validée dans CircleCI)`}))' "$sha" "$head" "$base")
     response=$(gh_api PUT "/pulls/$number/merge" "$body")
     code=$(tail -n1 <<<"$response")
