@@ -1,21 +1,26 @@
 export const HOME_DIALOG_INTERVAL_MS = 60 * 60 * 1000;
 
+/**
+ * @param intervalMs délai avant réaffichage ; 0 = à chaque visite.
+ */
 export function shouldShowHomeDialog(
   lastShownAt: number | null,
   now: number,
+  intervalMs: number = HOME_DIALOG_INTERVAL_MS,
 ): boolean {
   if (lastShownAt === null || !Number.isFinite(lastShownAt)) {
     return true;
   }
 
-  return now - lastShownAt >= HOME_DIALOG_INTERVAL_MS;
+  return now - lastShownAt >= intervalMs;
 }
 
 export function getHomeDialogDelay(
   lastShownAt: number | null,
   now: number,
+  intervalMs: number = HOME_DIALOG_INTERVAL_MS,
 ): number {
-  if (shouldShowHomeDialog(lastShownAt, now)) {
+  if (shouldShowHomeDialog(lastShownAt, now, intervalMs)) {
     return 0;
   }
 
@@ -25,5 +30,5 @@ export function getHomeDialogDelay(
 
   const elapsed = now - lastShownAt;
 
-  return Math.max(HOME_DIALOG_INTERVAL_MS - elapsed, 0);
+  return Math.max(intervalMs - elapsed, 0);
 }
