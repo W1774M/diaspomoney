@@ -282,7 +282,7 @@ export class MongoNotificationRepository implements INotificationRepository {
       if (options.offset) {
         builder.offset(options.offset);
       }
-      if (options.page) {
+      if (options.page && !options.offset) {
         // La taille de page demandée est conservée (page() la remettrait sinon à 50)
         builder.page(options.page, options.limit || 50);
       }
