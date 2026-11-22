@@ -7,7 +7,7 @@ Vitest pour les tests unitaires et d'intégration, Playwright pour l'E2E. En CI,
 | Suite | Commande | Config | Dossiers |
 | --- | --- | --- | --- |
 | Client (jsdom) | `pnpm test:unit:client` | `vitest.config.ts` | `tests/components`, `tests/hooks`, `tests/lib` |
-| Serveur (Node + MongoDB) | `pnpm test:unit:server` | `vitest.server.config.ts` | `tests/api`, `tests/facades`, `tests/services` |
+| Serveur (Node + MongoDB) | `pnpm test:unit:server` | `vitest.server.config.ts` | `tests/api`, `tests/facades`, `tests/services`, `tests/domain` |
 | Intégration (MongoDB réel) | `pnpm test:integration` | `vitest.integration.config.ts` | `tests/integration` |
 | Les trois, avec couverture | `pnpm test:coverage` | `scripts/test-coverage.mjs` | — |
 | E2E | `pnpm test:e2e` | `playwright.config.ts` | `tests/e2e` |
