@@ -73,7 +73,7 @@ function UserDetailPageContent() {
   if (loading) {
     return (
       <div className='text-center py-12'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto'></div>
         <p className='mt-4 text-gray-600'>
           Chargement de l&apos;utilisateur...
         </p>
@@ -87,7 +87,7 @@ function UserDetailPageContent() {
         <p className='text-gray-600'>{error || 'Utilisateur non trouvé'}</p>
         <Link
           href='/dashboard/users'
-          className='mt-4 inline-flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+          className='mt-4 inline-flex items-center text-brand-700 hover:text-brand-800'
         >
           <ArrowLeft className='h-4 w-4 mr-2' />
           Retour aux utilisateurs
@@ -103,7 +103,7 @@ function UserDetailPageContent() {
         <div className='flex items-center mb-4'>
           <Link
             href='/dashboard/users'
-            className='flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+            className='flex items-center text-brand-700 hover:text-brand-800'
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Retour aux utilisateurs
@@ -275,7 +275,7 @@ function UserDetailPageContent() {
                     {((user.providerInfo as any)?.specialties || user.specialties || []).map((specialty: string, index: number) => (
                       <span
                         key={index}
-                        className='inline-flex items-center px-3 py-1 rounded-full text-sm bg-[hsl(25,100%,53%)]/10 text-[hsl(25,100%,53%)]'
+                        className='inline-flex items-center px-3 py-1 rounded-full text-sm bg-brand-500/10 text-brand-700'
                       >
                         {specialty}
                       </span>
@@ -541,7 +541,7 @@ function UserDetailPageContent() {
             <div className='space-y-2'>
               <Link
                 href={`/dashboard/users/${user._id}/edit`}
-                className='w-full flex items-center justify-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors'
+                className='w-full flex items-center justify-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
               >
                 <Edit className='h-4 w-4 mr-2' />
                 Modifier l'utilisateur
@@ -559,7 +559,7 @@ function UserDetailPageContent() {
               {user.email && (
                 <a
                   href={`mailto:${user.email}`}
-                  className='w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+                  className='w-full flex items-center justify-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
                 >
                   <Mail className='h-4 w-4 mr-2' />
                   Envoyer un email

@@ -126,7 +126,7 @@ const Pagination = React.memo<PaginationProps>(function Pagination({
             <button
               onClick={handlePrevious}
               disabled={currentPage === 1}
-              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-500 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="sr-only">Précédent</span>
               <ChevronLeft className="h-5 w-5" aria-hidden="true" />
@@ -153,7 +153,7 @@ const Pagination = React.memo<PaginationProps>(function Pagination({
                   aria-current={isCurrent ? "page" : undefined}
                   className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
                     isCurrent
-                      ? "z-10 bg-[hsl(25,100%,53%)] text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(25,100%,53%)]"
+                      ? "z-10 bg-brand-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
                       : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
                   }`}
                 >
@@ -164,7 +164,7 @@ const Pagination = React.memo<PaginationProps>(function Pagination({
             <button
               onClick={handleNext}
               disabled={currentPage === totalPages}
-              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-500 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="sr-only">Suivant</span>
               <ChevronRight className="h-5 w-5" aria-hidden="true" />

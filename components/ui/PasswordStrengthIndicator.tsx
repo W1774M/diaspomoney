@@ -68,7 +68,7 @@ export function PasswordStrengthIndicator({
     if (strengthPercentage <= 20) return "bg-red-500";
     if (strengthPercentage <= 40) return "bg-orange-500";
     if (strengthPercentage <= 60) return "bg-yellow-500";
-    if (strengthPercentage <= 80) return "bg-blue-500";
+    if (strengthPercentage <= 80) return "bg-brand-600";
     return "bg-green-500";
   };
 
@@ -86,7 +86,7 @@ export function PasswordStrengthIndicator({
     if (strengthPercentage <= 20) return "text-red-500";
     if (strengthPercentage <= 40) return "text-orange-500";
     if (strengthPercentage <= 60) return "text-yellow-600";
-    if (strengthPercentage <= 80) return "text-blue-500";
+    if (strengthPercentage <= 80) return "text-brand-700";
     return "text-green-500";
   };
 

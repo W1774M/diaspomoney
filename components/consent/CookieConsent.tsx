@@ -85,7 +85,7 @@ export function CookieConsent() {
   }, [consent]);
 
   const buttonBase =
-    'min-h-11 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(25,100%,40%)]';
+    'min-h-11 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600';
 
   return (
     <>
@@ -111,7 +111,7 @@ export function CookieConsent() {
             Avec votre accord, nous utilisons des cookies de mesure d’audience (Google) pour
             améliorer le site. Les cookies nécessaires au fonctionnement (connexion, paiement)
             restent actifs. Vous pouvez changer d’avis à tout moment via « Gérer les cookies ».{' '}
-            <Link href="/privacy-policy" className="font-medium text-[hsl(25,100%,35%)] underline">
+            <Link href="/privacy-policy" className="font-medium text-brand-800 underline">
               En savoir plus
             </Link>
           </p>
@@ -119,14 +119,14 @@ export function CookieConsent() {
             <button
               type="button"
               onClick={() => decide('granted')}
-              className={`${buttonBase} bg-[hsl(25,100%,45%)] text-white hover:bg-[hsl(25,100%,40%)]`}
+              className={`${buttonBase} bg-brand-700 text-white hover:bg-brand-700`}
             >
               Accepter
             </button>
             <button
               type="button"
               onClick={() => decide('denied')}
-              className={`${buttonBase} bg-[hsl(25,100%,45%)] text-white hover:bg-[hsl(25,100%,40%)]`}
+              className={`${buttonBase} bg-brand-700 text-white hover:bg-brand-700`}
             >
               Refuser
             </button>

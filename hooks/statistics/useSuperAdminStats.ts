@@ -4,9 +4,8 @@ import { useMemo } from 'react';
 import { usePlatformStatistics } from './usePlatformStatistics';
 
 export interface SuperAdminStats {
-  platformHealth: number;
-  systemUptime: number;
-  serverPerformance: number;
+  /** Paiements encaissés (transactions + réservations au paiement confirmé) */
+  totalPayments: number;
   totalRevenue: number;
   operatingCosts: number;
   loading: boolean;
@@ -61,9 +60,7 @@ export function useSuperAdminStats({ enabled }: UseSuperAdminStatsParams) {
 
     if (statsLoading || !platformStats) {
       return {
-        platformHealth: 0,
-        systemUptime: 0,
-        serverPerformance: 0,
+        totalPayments: 0,
         totalRevenue: 0,
         operatingCosts: 0,
         loading: true,
@@ -71,25 +68,11 @@ export function useSuperAdminStats({ enabled }: UseSuperAdminStatsParams) {
     }
 
     const { overview } = platformStats;
-    const platformHealth =
-      overview.totalUsers > 0
-        ? Math.round(
-            (overview.completedTransactions / Math.max(overview.totalTransactions, 1)) * 100,
-          )
-        : 0;
-    const systemUptime =
-      overview.totalTransactions > 0
-        ? Math.round((overview.completedTransactions / overview.totalTransactions) * 100)
-        : 0;
-    const serverPerformance =
-      overview.totalBookings > 0
-        ? Math.round((overview.completedBookings / overview.totalBookings) * 100)
-        : 0;
-
+    // Santé, uptime et performance étaient des ratios de transactions présentés
+    // comme des métriques système (0 % en prod) : retirés. Les métriques serveur
+    // vivent dans /dashboard/superadmin (endpoint santé) et le monitoring.
     return {
-      platformHealth,
-      systemUptime,
-      serverPerformance,
+      totalPayments: overview.totalPayments ?? 0,
       totalRevenue: overview.totalRevenue,
       operatingCosts: overview.totalRevenue * 0.1, // Estimation: 10% des revenus
       loading: false,

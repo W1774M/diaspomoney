@@ -6,7 +6,7 @@ const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
     <div
       ref={ref}
       className={cn(
-        "rounded-lg border bg-card text-card-foreground shadow-sm",
+        "card-surface rounded-xl border bg-card text-card-foreground shadow-sm",
         className,
       )}
       {...props}
@@ -26,19 +26,20 @@ const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
 );
 CardHeader.displayName = "CardHeader";
 
-const CardTitle = forwardRef<
-  HTMLParagraphElement,
-  HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <h3
-    ref={ref}
-    className={cn(
-      "text-2xl font-semibold leading-none tracking-tight",
-      className,
-    )}
-    {...props}
-  />
-));
+interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {
+  /** Niveau de titre selon la place de la carte dans la page (h3 par défaut). */
+  as?: "h2" | "h3" | "h4";
+}
+
+const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
+  ({ className, as: Tag = "h3", ...props }, ref) => (
+    <Tag
+      ref={ref}
+      className={cn("text-xl font-semibold leading-tight", className)}
+      {...props}
+    />
+  ),
+);
 CardTitle.displayName = "CardTitle";
 
 const CardDescription = forwardRef<

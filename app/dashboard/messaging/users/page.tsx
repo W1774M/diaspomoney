@@ -189,8 +189,8 @@ export default function UserMessagesPage() {
 
   if (isLoading || loading) {
     return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
+      <div className='min-h-dvh flex items-center justify-center'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600'></div>
       </div>
     );
   }
@@ -208,7 +208,7 @@ export default function UserMessagesPage() {
       {/* Header */}
       <div>
         <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
-          <MessageSquare className='h-8 w-8 mr-3 text-[hsl(25,100%,53%)]' />
+          <MessageSquare className='h-8 w-8 mr-3 text-brand-700' />
           Messages
         </h1>
         <p className='text-gray-600 mt-2'>
@@ -217,19 +217,19 @@ export default function UserMessagesPage() {
       </div>
 
       {/* Main Container */}
-      <div className='bg-white rounded-lg shadow-sm border border-gray-200 flex h-[calc(100vh-300px)]'>
+      <div className='bg-white rounded-lg shadow-sm border border-gray-200 flex h-[calc(100dvh-300px)]'>
         {/* Conversations List */}
         <div className='w-1/3 border-r border-gray-200 flex flex-col'>
           {/* Search */}
           <div className='p-4 border-b border-gray-200'>
             <div className='relative'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400' />
+              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500' />
               <input
                 type='text'
                 placeholder='Rechercher une conversation...'
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               />
             </div>
           </div>
@@ -251,7 +251,7 @@ export default function UserMessagesPage() {
                     alertes de connexion, paiement ou rendez-vous sont dans le{' '}
                     <Link
                       href='/dashboard/notifications'
-                      className='text-[hsl(25,100%,53%)] hover:underline'
+                      className='text-brand-700 hover:underline'
                     >
                       centre de notifications
                     </Link>
@@ -266,12 +266,12 @@ export default function UserMessagesPage() {
                   onClick={() => setSelectedConversation(conversation.id)}
                   className={`w-full p-4 text-left border-b border-gray-100 hover:bg-gray-50 transition-colors ${
                     selectedConversation === conversation.id
-                      ? 'bg-[hsl(25,100%,53%)]/10 border-l-4 border-l-[hsl(25,100%,53%)]'
+                      ? 'bg-brand-500/10 border-l-4 border-l-brand-600'
                       : ''
                   }`}
                 >
                   <div className='flex items-center space-x-3'>
-                    <div className='w-10 h-10 bg-[hsl(25,100%,53%)] rounded-full flex items-center justify-center flex-shrink-0'>
+                    <div className='w-10 h-10 bg-brand-600 rounded-full flex items-center justify-center flex-shrink-0'>
                       {conversation.participant.avatar ? (
                         <img
                           src={conversation.participant.avatar}
@@ -288,7 +288,7 @@ export default function UserMessagesPage() {
                           {conversation.participant.name}
                         </h3>
                         {conversation.unreadCount > 0 && (
-                          <span className='flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-[hsl(25,100%,53%)] rounded-full'>
+                          <span className='flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-brand-600 rounded-full'>
                             {conversation.unreadCount}
                           </span>
                         )}
@@ -296,7 +296,7 @@ export default function UserMessagesPage() {
                       <p className='text-xs text-gray-600 truncate'>
                         {conversation.lastMessage}
                       </p>
-                      <p className='text-xs text-gray-400 mt-1'>
+                      <p className='text-xs text-gray-500 mt-1'>
                         {conversation.lastMessageTime.toLocaleTimeString(
                           'fr-FR',
                           {
@@ -320,7 +320,7 @@ export default function UserMessagesPage() {
               {/* Chat Header */}
               <div className='p-4 border-b border-gray-200 bg-gray-50'>
                 <div className='flex items-center space-x-3'>
-                  <div className='w-10 h-10 bg-[hsl(25,100%,53%)] rounded-full flex items-center justify-center flex-shrink-0'>
+                  <div className='w-10 h-10 bg-brand-600 rounded-full flex items-center justify-center flex-shrink-0'>
                     {currentConversation?.participant.avatar ? (
                       <img
                         src={currentConversation.participant.avatar}
@@ -356,7 +356,7 @@ export default function UserMessagesPage() {
                       <div
                         className={`max-w-[70%] rounded-lg p-4 ${
                           isOwnMessage
-                            ? 'bg-[hsl(25,100%,53%)] text-white'
+                            ? 'bg-brand-600 text-white'
                             : 'bg-gray-100 text-gray-900'
                         }`}
                       >
@@ -399,7 +399,7 @@ export default function UserMessagesPage() {
                         </span>
                         <button
                           onClick={() => handleRemoveAttachment(attachment.id)}
-                          className='text-gray-400 hover:text-red-500 transition-colors'
+                          className='text-gray-500 hover:text-red-500 transition-colors'
                           title='Retirer le fichier'
                         >
                           <X className='h-4 w-4' />
@@ -413,7 +413,7 @@ export default function UserMessagesPage() {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadingFiles}
-                    className='p-2 text-gray-400 hover:text-[hsl(25,100%,53%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='p-2 text-gray-500 hover:text-brand-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                     title='Joindre un fichier'
                   >
                     <Paperclip className='h-5 w-5' />
@@ -434,7 +434,7 @@ export default function UserMessagesPage() {
                     onKeyPress={handleKeyPress}
                     placeholder='Tapez votre message...'
                     rows={3}
-                    className='flex-1 resize-none border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                    className='flex-1 resize-none border border-gray-300 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   />
                   <button
                     onClick={handleSendMessage}
@@ -443,7 +443,7 @@ export default function UserMessagesPage() {
                         uploadedAttachments.length === 0) ||
                       uploadingFiles
                     }
-                    className='p-3 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='p-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                     title='Envoyer'
                   >
                     <Send className='h-5 w-5' />

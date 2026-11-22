@@ -22,9 +22,9 @@ const STATUS_LABELS: Record<PresenceStatus, string> = {
 };
 
 const inputClass =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-[hsl(25,100%,53%)]';
+  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus-visible:ring-2 focus-visible:ring-brand-600';
 const primaryButtonClass =
-  'inline-flex items-center justify-center gap-2 rounded-lg bg-[hsl(25,100%,53%)] px-4 py-2 text-sm font-semibold text-white hover:bg-[hsl(25,90%,48%)] disabled:opacity-50';
+  'inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50';
 const iconButtonClass =
   'inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-30';
 
@@ -186,7 +186,7 @@ function PresenceCountriesContent() {
     <div className="space-y-6">
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900 sm:text-3xl">
-          <Globe2 className="h-7 w-7 text-[hsl(25,100%,53%)]" aria-hidden />
+          <Globe2 className="h-7 w-7 text-brand-700" aria-hidden />
           Pays de présence
         </h1>
         <p className="mt-2 text-gray-600">

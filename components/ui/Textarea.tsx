@@ -1,22 +1,59 @@
 import { cn } from '@/lib/utils';
-import React from 'react';
+import React, { forwardRef } from 'react';
+import {
+  FieldError,
+  FieldLabel,
+  fieldClasses,
+  hintClasses,
+  useFieldIds,
+} from './Input';
 
-interface TextareaProps
+export interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  className?: string;
+  label?: string | undefined;
+  hint?: string | undefined;
+  error?: string | undefined;
 }
 
-const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, ...props }, ref) => {
-    return (
+/** Zone de texte qui grandit avec son contenu (field-sizing, progressif). */
+const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+  ({ className, label, hint, error, id, required, ...props }, ref) => {
+    const { fieldId, hintId, errorId, ariaDescribedBy } = useFieldIds(
+      id,
+      hint,
+      error,
+      props['aria-describedby'],
+    );
+
+    const textarea = (
       <textarea
-        className={cn(
-          'flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-          className,
-        )}
         ref={ref}
+        id={fieldId}
+        required={required}
+        className={cn(fieldClasses, 'min-h-28 resize-y', className)}
         {...props}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={error ? true : props['aria-invalid']}
       />
+    );
+
+    if (!label && !hint && !error) return textarea;
+
+    return (
+      <div className='flex w-full flex-col gap-1.5'>
+        {label && (
+          <FieldLabel htmlFor={fieldId} required={required}>
+            {label}
+          </FieldLabel>
+        )}
+        {hint && (
+          <p id={hintId} className={hintClasses}>
+            {hint}
+          </p>
+        )}
+        {textarea}
+        {error && errorId && <FieldError id={errorId}>{error}</FieldError>}
+      </div>
     );
   },
 );

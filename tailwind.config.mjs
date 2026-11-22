@@ -21,7 +21,24 @@ export default {
   theme: {
     extend: {
       colors: {
-        // DiaspoMoney Brand Colors
+        // Orange DiaspoMoney, teinte 25°. Contrastes mesurés sur fond blanc :
+        // 500 (#F97015, couleur du logo) = 2,9:1 -> décor, icônes, grandes surfaces uniquement ;
+        // 600 = 4,7:1 -> fonds de boutons à texte blanc, anneaux de focus, bordures actives ;
+        // 700 = 5,9:1 -> texte et liens (y compris sur brand-50) ; 400 -> texte sur fond sombre.
+        brand: {
+          50: 'hsl(25 100% 96%)',
+          100: 'hsl(25 100% 92%)',
+          200: 'hsl(25 100% 83%)',
+          300: 'hsl(25 100% 72%)',
+          400: 'hsl(25 100% 62%)',
+          500: '#F97015',
+          600: 'hsl(25 100% 38%)',
+          700: 'hsl(25 100% 33%)',
+          800: 'hsl(25 100% 28%)',
+          900: 'hsl(25 100% 21%)',
+          950: 'hsl(25 100% 12%)',
+        },
+        // Ancienne palette (bleu), conservée pour les rares usages existants
         diaspomoney: {
           50: '#f0f9ff',
           100: '#e0f2fe',
@@ -120,8 +137,14 @@ export default {
       },
       // DiaspoMoney Custom Fonts
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        // Variables posées par next/font sur <body> (app/layout.tsx)
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-plus-jakarta-sans)', 'var(--font-inter)', 'system-ui', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+      },
+      // 12 px est trop petit pour du texte courant : xs passe à 13 px (rem, suit le zoom)
+      fontSize: {
+        xs: ['0.8125rem', { lineHeight: '1.125rem' }],
       },
       // DiaspoMoney Custom Animations
       animation: {

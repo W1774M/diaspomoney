@@ -51,7 +51,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { X } from 'lucide-react';
 import { childLogger } from '@/lib/logger';
@@ -609,13 +609,12 @@ function NavigationLink({ item, pathname }: NavigationLinkProps) {
   
   if (!item.href) return null;
 
-  const isActive =
-    pathname === item.href ||
-    (item.key === 'dashboard' && pathname.startsWith('/dashboard'));
+  const isActive = pathname === item.href;
 
   return (
     <Link
       href={item.href}
+      aria-current={isActive ? 'page' : undefined}
       onClick={() => {
         // Fermer la sidebar sur mobile/tablette après un clic
         if (window.innerWidth < 1024) {
@@ -630,7 +629,7 @@ function NavigationLink({ item, pathname }: NavigationLinkProps) {
     >
       {/* Barre verticale orange pour l'élément actif */}
       {isActive && (
-        <div className='absolute left-0 top-0 bottom-0 w-1 bg-[hsl(25,100%,53%)]' />
+        <span aria-hidden='true' className='absolute left-0 top-0 bottom-0 w-1 bg-brand-500' />
       )}
 
       {item.icon && (
@@ -644,7 +643,7 @@ function NavigationLink({ item, pathname }: NavigationLinkProps) {
 
       {/* Badge de notification */}
       {item.badge !== undefined && item.badge > 0 && (
-        <span className='flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-[hsl(25,100%,53%)] rounded-full'>
+        <span className='flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-brand-600 rounded-full'>
           {item.badge > 9 ? '9+' : item.badge}
         </span>
       )}
@@ -660,6 +659,7 @@ function NavigationMenu({
 }: NavigationMenuProps) {
   const { close } = useSidebar();
   
+  const submenuId = useId();
   if (!item.values || item.values.length === 0) return null;
 
   const visibleSubItems = item.values.filter(
@@ -674,6 +674,9 @@ function NavigationMenu({
   return (
     <div className='flex flex-col'>
       <button
+        type='button'
+        aria-expanded={isExpanded}
+        aria-controls={submenuId}
         onClick={onToggle}
         className={`relative flex items-center justify-between w-full text-left px-4 py-3 transition-colors group ${
           hasActiveSubItem
@@ -683,10 +686,10 @@ function NavigationMenu({
       >
         {/* Barre verticale orange si un sous-item est actif */}
         {hasActiveSubItem && (
-          <div className='absolute left-0 top-0 bottom-0 w-1 bg-[hsl(25,100%,53%)]' />
+          <span aria-hidden='true' className='absolute left-0 top-0 bottom-0 w-1 bg-brand-500' />
         )}
 
-        <div className='flex items-center flex-1'>
+        <span className='flex items-center flex-1'>
           {item.icon && (
             <item.icon
               className={`h-5 w-5 mr-3 ${
@@ -697,7 +700,7 @@ function NavigationMenu({
             />
           )}
           <span className='text-sm font-medium'>{item.name}</span>
-        </div>
+        </span>
 
         {isExpanded ? (
           <ChevronDown className='h-4 w-4 text-slate-400' />
@@ -707,13 +710,14 @@ function NavigationMenu({
       </button>
 
       {isExpanded && (
-        <div className='flex flex-col bg-slate-800/50'>
+        <div id={submenuId} className='flex flex-col bg-slate-800/50'>
           {visibleSubItems.map((subItem: NavigationSubItem) => {
             const isActive = pathname === subItem.href;
             return (
               <Link
                 key={subItem.key}
                 href={subItem.href}
+                aria-current={isActive ? 'page' : undefined}
                 onClick={() => {
                   // Fermer la sidebar sur mobile/tablette après un clic
                   if (window.innerWidth < 1024) {
@@ -728,7 +732,7 @@ function NavigationMenu({
               >
                 {/* Barre verticale orange pour le sous-item actif */}
                 {isActive && (
-                  <div className='absolute left-0 top-0 bottom-0 w-1 bg-[hsl(25,100%,53%)]' />
+                  <span aria-hidden='true' className='absolute left-0 top-0 bottom-0 w-1 bg-brand-500' />
                 )}
 
                 {subItem.icon && (
@@ -744,7 +748,7 @@ function NavigationMenu({
 
                 {/* Badge de notification */}
                 {subItem.badge !== undefined && subItem.badge > 0 && (
-                  <span className='flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-[hsl(25,100%,53%)] rounded-full'>
+                  <span className='flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-brand-600 rounded-full'>
                     {subItem.badge > 9 ? '9+' : subItem.badge}
                   </span>
                 )}
@@ -796,7 +800,7 @@ function UserSection({ user }: UserSectionProps) {
   return (
     <div className='p-4 sm:p-5 lg:p-6 border-b border-slate-700 bg-slate-800'>
       <div className='flex items-start space-x-3'>
-        <div className='flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-[hsl(25,100%,53%)] rounded-full flex items-center justify-center overflow-hidden'>
+        <div className='flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-brand-600 rounded-full flex items-center justify-center overflow-hidden'>
           {avatarUrl && !avatarError ? (
             <Image
               src={avatarUrl}
@@ -906,20 +910,24 @@ function FooterActions({
     (item: NavigationItem) => pathname === item.href || pathname.startsWith(`${item.href}/`),
   );
 
+  const settingsId = 'sidebar-settings-menu';
   return (
     <div className='mt-auto border-t border-slate-700'>
       {/* Section Paramètres */}
       <div>
         <button
+          type='button'
+          aria-expanded={isSettingsExpanded}
+          aria-controls={settingsId}
           onClick={onToggleSettings}
           className={`w-full flex items-center justify-between px-4 py-3 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors ${
             hasActiveSettingsItem ? 'bg-slate-700/30' : ''
           }`}
         >
-          <div className='flex items-center'>
+          <span className='flex items-center'>
             <Settings className='h-5 w-5 mr-3 text-slate-400' />
             <span className='text-sm font-medium'>Paramètres</span>
-          </div>
+          </span>
           <ChevronRight
             className={`h-4 w-4 text-slate-400 transition-transform ${
               isSettingsExpanded ? 'rotate-90' : ''
@@ -928,7 +936,7 @@ function FooterActions({
         </button>
 
         {isSettingsExpanded && (
-          <div className='flex flex-col bg-slate-800/50'>
+          <div id={settingsId} className='flex flex-col bg-slate-800/50'>
             {visibleSettingsItems.map((item: NavigationItem) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -936,6 +944,7 @@ function FooterActions({
                 <Link
                   key={item.key}
                   href={item.href || ''}
+                  aria-current={pathname === item.href ? 'page' : undefined}
                   onClick={() => {
                     // Fermer la sidebar sur mobile/tablette après un clic
                     if (window.innerWidth < 1024) {
@@ -950,7 +959,7 @@ function FooterActions({
                 >
                   {/* Barre verticale orange pour l'élément actif */}
                   {isActive && (
-                    <div className='absolute left-0 top-0 bottom-0 w-1 bg-[hsl(25,100%,53%)]' />
+                    <span aria-hidden='true' className='absolute left-0 top-0 bottom-0 w-1 bg-brand-500' />
                   )}
 
                   {item.icon && (
@@ -974,20 +983,21 @@ function FooterActions({
       {onToggleTabs && (
         <div className='border-t border-slate-700'>
           <button
+            type='button'
+            role='switch'
+            aria-checked={tabsEnabled}
             onClick={onToggleTabs}
             className='flex items-center justify-between px-4 py-3 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors w-full'
-            title={tabsEnabled ? 'Désactiver les onglets' : 'Activer les onglets'}
           >
-            <div className='flex items-center'>
+            <span className='flex items-center'>
               {tabsEnabled ? (
                 <ToggleRight className='h-5 w-5 mr-3 text-slate-400' />
               ) : (
                 <ToggleLeft className='h-5 w-5 mr-3 text-slate-400' />
               )}
-              <span className='text-sm font-medium'>
-                {tabsEnabled ? 'Onglets activés' : 'Onglets désactivés'}
-              </span>
-            </div>
+              <span className='text-sm font-medium'>Onglets</span>
+            </span>
+            <span className='text-xs text-slate-400'>{tabsEnabled ? 'Activés' : 'Désactivés'}</span>
           </button>
         </div>
       )}
@@ -995,13 +1005,14 @@ function FooterActions({
       {/* Déconnexion */}
       <div className='border-t border-slate-700'>
         <button
+          type='button'
           onClick={onSignOut}
           disabled={isSigningOut}
           className='flex items-center px-4 py-3 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed'
         >
           <LogOut className='h-5 w-5 mr-3 text-slate-400' />
           <span className='text-sm font-medium'>
-            {isSigningOut ? 'Déconnexion...' : 'Déconnexion'}
+            {isSigningOut ? 'Déconnexion…' : 'Se déconnecter'}
           </span>
         </button>
       </div>
@@ -1016,6 +1027,44 @@ function FooterActions({
 export default function Sidebar() {
   const pathname = usePathname();
   const { isOpen, close } = useSidebar();
+  const asideRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [isDesktop, setIsDesktop] = useState(true);
+
+  // Bureau (≥ 1024 px) : barre fixe. En dessous : tiroir modal.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  // Tiroir fermé hors écran : retiré du parcours clavier et des lecteurs d'écran.
+  // Tiroir ouvert : le reste de la page devient inerte, Échap ferme, focus rendu au bouton.
+  useEffect(() => {
+    const aside = asideRef.current;
+    if (!aside) return;
+    const drawerClosed = !isDesktop && !isOpen;
+    if (drawerClosed) aside.setAttribute('inert', '');
+    else aside.removeAttribute('inert');
+
+    if (isDesktop || !isOpen) return;
+    const outside = document.querySelectorAll<HTMLElement>('[data-dashboard-chrome]');
+    outside.forEach(el => el.setAttribute('inert', ''));
+    const opener = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      outside.forEach(el => el.removeAttribute('inert'));
+      document.removeEventListener('keydown', onKey);
+      opener?.focus?.();
+    };
+  }, [isDesktop, isOpen, close]);
+
   const {
     user,
     isAuthenticated,
@@ -1255,26 +1304,32 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
+        ref={asideRef}
+        id='dashboard-sidebar'
+        aria-label='Navigation du tableau de bord'
+        {...(!isDesktop && isOpen ? { role: 'dialog', 'aria-modal': true } : {})}
         className={`
-          fixed lg:static
+          fixed lg:sticky lg:top-16
           top-0 left-0
           w-64 md:w-72 lg:w-64
-          h-screen
-          lg:h-full
+          h-dvh
+          lg:h-[calc(100dvh-4rem)]
           bg-slate-900
           flex flex-col
           flex-shrink-0
           border-r border-slate-800
           z-50 lg:z-auto
-          transform transition-transform duration-300 ease-in-out
+          transform transition-transform duration-300 ease-in-out motion-reduce:transition-none
           shadow-xl lg:shadow-none
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         {/* Bouton de fermeture pour mobile et tablette */}
         <button
+          ref={closeButtonRef}
+          type='button'
           onClick={close}
-          className='lg:hidden absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-md transition-colors z-10'
+          className='lg:hidden absolute top-3 right-3 inline-flex size-11 items-center justify-center text-slate-300 hover:text-white hover:bg-slate-700 rounded-md transition-colors z-10'
           aria-label='Fermer le menu'
         >
           <X className='h-5 w-5' />
@@ -1284,14 +1339,14 @@ export default function Sidebar() {
           <UserSection user={user} />
         </div>
 
-      <nav className='flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-contain pb-2'>
+      <nav aria-label='Rubriques' className='flex flex-col flex-1 min-h-0 overflow-y-auto overscroll-contain pb-2'>
         {sections.map((section, sectionIndex) => (
           <div key={section.title} className={sectionIndex > 0 ? 'mt-6' : ''}>
             {/* En-tête de section */}
             <div className='px-4 py-2'>
-              <h3 className='text-xs font-semibold text-slate-400 uppercase tracking-wider'>
+              <h2 className='text-xs font-semibold text-slate-400 uppercase tracking-wider'>
                 {section.title}
-              </h3>
+              </h2>
             </div>
 
             {/* Items de la section */}

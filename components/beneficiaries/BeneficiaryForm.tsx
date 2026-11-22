@@ -84,43 +84,43 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='beneficiary-form-first-name' className="block text-sm font-medium text-gray-700 mb-1">
                     Prénom *
                   </label>
-                  <input
+                  <input id='beneficiary-form-first-name'
                     title="Prénom"
                     type="text"
                     name="firstName"
                     required
                     defaultValue={beneficiary?.firstName || ""}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='beneficiary-form-last-name' className="block text-sm font-medium text-gray-700 mb-1">
                     Nom *
                   </label>
-                  <input
+                  <input id='beneficiary-form-last-name'
                     title="Nom"
                     type="text"
                     name="lastName"
                     required
                     defaultValue={beneficiary?.lastName || ""}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor='beneficiary-form-email' className="block text-sm font-medium text-gray-700 mb-1">
                   Email
                 </label>
-                <input
+                <input id='beneficiary-form-email'
                   title="Email"
                   type="email"
                   name="email"
                   defaultValue={beneficiary?.email || ""}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 />
               </div>
 
@@ -133,76 +133,76 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
                   value={phone}
                   onChange={(phoneValue) => setPhone(phoneValue)}
                   className="w-full"
-                  inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor='beneficiary-form-address' className="block text-sm font-medium text-gray-700 mb-1">
                   Adresse *
                 </label>
-                <input
+                <input id='beneficiary-form-address'
                   title="Adresse"
                   type="text"
                   name="address"
                   required
                   defaultValue={beneficiary?.location?.address || ""}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='beneficiary-form-city' className="block text-sm font-medium text-gray-700 mb-1">
                     Ville *
                   </label>
-                  <input
+                  <input id='beneficiary-form-city'
                     title="Ville"
                     type="text"
                     name="city"
                     required
                     defaultValue={beneficiary?.location?.city || ""}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='beneficiary-form-postal-code' className="block text-sm font-medium text-gray-700 mb-1">
                     Code postal
                   </label>
-                  <input
+                  <input id='beneficiary-form-postal-code'
                     title="Code postal"
                     type="text"
                     name="postalCode"
                     defaultValue={beneficiary?.location?.postalCode || ""}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor='beneficiary-form-country' className="block text-sm font-medium text-gray-700 mb-1">
                   Pays *
                 </label>
-                <input
+                <input id='beneficiary-form-country'
                   title="Pays"
                   type="text"
                   name="country"
                   required
                   defaultValue={beneficiary?.location?.country || ""}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor='beneficiary-form-relationship' className="block text-sm font-medium text-gray-700 mb-1">
                   Relation *
                 </label>
-                <select
+                <select id='beneficiary-form-relationship'
                   title="Relation"
                   name="relationship"
                   required
                   defaultValue={beneficiary?.relationship || ""}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 >
                   <option value="">Sélectionner une relation</option>
                   <option value="Époux/Épouse">Époux/Épouse</option>
@@ -226,7 +226,7 @@ const BeneficiaryForm = React.memo<BeneficiaryFormProps>(
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {isSubmitting ? (
                   <>

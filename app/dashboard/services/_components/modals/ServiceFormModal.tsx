@@ -1,5 +1,6 @@
 'use client';
 
+import { useNotificationManager } from '@/components/ui/Notification';
 import { SPECIALITY_TYPES } from '@/lib/constants';
 import type { Service } from '@/hooks/services';
 import { MarkdownDescriptionField } from '@/components/common/MarkdownDescriptionField';
@@ -29,6 +30,7 @@ export default function ServiceFormModal({
   onCancel,
   isSubmitting,
 }: ServiceFormModalProps) {
+  const notifier = useNotificationManager();
   const [formData, setFormData] = useState({
     id: service?.id || '',
     category: service?.category || SPECIALITY_TYPES.HEALTH,
@@ -45,19 +47,19 @@ export default function ServiceFormModal({
     e.preventDefault();
 
     if (!formData.id.trim()) {
-      alert("L'ID du service est requis");
+      notifier.addWarning("L'ID du service est requis");
       return;
     }
     if (!formData.label.trim()) {
-      alert('Le libellé est requis');
+      notifier.addWarning('Le libellé est requis');
       return;
     }
     if (!formData.description.trim()) {
-      alert('La description est requise');
+      notifier.addWarning('La description est requise');
       return;
     }
     if (formData.price < 0) {
-      alert('Le prix doit être positif');
+      notifier.addWarning('Le prix doit être positif');
       return;
     }
 
@@ -74,7 +76,7 @@ export default function ServiceFormModal({
             </h2>
             <button
               onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-500 hover:text-gray-600 transition-colors"
               type="button"
               title="Fermer"
               aria-label="Fermer le formulaire"
@@ -86,15 +88,15 @@ export default function ServiceFormModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor='service-form-modal-id' className="block text-sm font-medium text-gray-700 mb-2">
               ID du service <span className="text-red-500">*</span>
             </label>
-            <input
+            <input id='service-form-modal-id'
               type="text"
               value={formData.id}
               onChange={(e) => setFormData({ ...formData, id: e.target.value })}
               disabled={!!service}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
               placeholder="ex: consultation-general"
               required
             />
@@ -104,13 +106,13 @@ export default function ServiceFormModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor='service-form-modal-category' className="block text-sm font-medium text-gray-700 mb-2">
               Catégorie <span className="text-red-500">*</span>
             </label>
-            <select
+            <select id='service-form-modal-category'
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
               required
               title="Catégorie du service"
               aria-label="Catégorie du service"
@@ -122,14 +124,14 @@ export default function ServiceFormModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor='service-form-modal-label' className="block text-sm font-medium text-gray-700 mb-2">
               Libellé <span className="text-red-500">*</span>
             </label>
-            <input
+            <input id='service-form-modal-label'
               type="text"
               value={formData.label}
               onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
               placeholder="ex: Consultation générale"
               required
               maxLength={200}
@@ -157,10 +159,10 @@ Conditions : voir [nos CGU](https://diaspomoney.fr)."
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor='service-form-modal-price' className="block text-sm font-medium text-gray-700 mb-2">
               Prix (€) <span className="text-red-500">*</span>
             </label>
-            <input
+            <input id='service-form-modal-price'
               type="number"
               value={formData.price}
               onChange={(e) =>
@@ -169,7 +171,7 @@ Conditions : voir [nos CGU](https://diaspomoney.fr)."
                   price: parseFloat(e.target.value) || 0,
                 })
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
               placeholder="0"
               min="0"
               step="0.01"
@@ -186,7 +188,7 @@ Conditions : voir [nos CGU](https://diaspomoney.fr)."
               id="isActive"
               checked={formData.isActive}
               onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
+              className="h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded"
             />
             <label htmlFor="isActive" className="ml-2 block text-sm text-gray-700">
               Service actif (visible pour les utilisateurs)
@@ -200,7 +202,7 @@ Conditions : voir [nos CGU](https://diaspomoney.fr)."
                 id="important"
                 checked={formData.important}
                 onChange={(e) => setFormData({ ...formData, important: e.target.checked })}
-                className="mt-1 h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded"
               />
               <label htmlFor="important" className="ml-3 block text-sm text-gray-800">
                 <span className="font-semibold">Service important</span>
@@ -223,7 +225,7 @@ Conditions : voir [nos CGU](https://diaspomoney.fr)."
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSubmitting ? (
                 <>

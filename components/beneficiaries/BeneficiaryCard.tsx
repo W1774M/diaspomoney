@@ -23,8 +23,8 @@ const BeneficiaryCard = React.memo<BeneficiaryCardProps>(
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-[hsl(25,100%,53%)]/10 rounded-full flex items-center justify-center mr-4">
-                <User className="h-6 w-6 text-[hsl(25,100%,53%)]" />
+              <div className="w-12 h-12 bg-brand-500/10 rounded-full flex items-center justify-center mr-4">
+                <User className="h-6 w-6 text-brand-700" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -72,7 +72,7 @@ const BeneficiaryCard = React.memo<BeneficiaryCardProps>(
           <div className="flex space-x-2 ml-4">
             <button
               onClick={() => onEdit(beneficiary)}
-              className="px-3 py-1 text-sm text-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,53%)]/10 rounded-lg transition-colors flex items-center"
+              className="px-3 py-1 text-sm text-brand-700 hover:bg-brand-500/10 rounded-lg transition-colors flex items-center"
             >
               <Edit className="h-4 w-4 mr-1" />
               Modifier

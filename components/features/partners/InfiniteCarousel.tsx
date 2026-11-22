@@ -78,7 +78,7 @@ function PartnerModal({ partner, onClose }: { partner: Partner | null; onClose: 
                   {partner.services.map((service) => (
                     <li
                       key={service}
-                      className='rounded-full bg-orange-50 px-3 py-1 text-sm text-[hsl(25,100%,35%)]'
+                      className='rounded-full bg-orange-50 px-3 py-1 text-sm text-brand-800'
                     >
                       {service}
                     </li>
@@ -108,7 +108,7 @@ function PartnerModal({ partner, onClose }: { partner: Partner | null; onClose: 
                   href={partner.website}
                   target='_blank'
                   rel='noopener noreferrer'
-                  className='inline-flex items-center rounded-lg bg-[hsl(25,100%,45%)] px-6 py-3 font-semibold text-white transition-colors hover:bg-[hsl(25,100%,40%)]'
+                  className='inline-flex items-center rounded-lg bg-brand-700 px-6 py-3 font-semibold text-white transition-colors hover:bg-brand-700'
                 >
                   <ExternalLink className='mr-2 h-5 w-5' aria-hidden />
                   Visiter le site
@@ -125,7 +125,7 @@ function PartnerModal({ partner, onClose }: { partner: Partner | null; onClose: 
 
 function PartnerCard({ partner, onOpen }: { partner: Partner; onOpen: () => void }) {
   return (
-    <article className='group relative flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-lg transition-shadow focus-within:ring-2 focus-within:ring-[hsl(25,100%,45%)] hover:shadow-2xl'>
+    <article className='group relative flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-lg transition-shadow focus-within:ring-2 focus-within:ring-brand-600 hover:shadow-2xl'>
       <div className='flex aspect-video items-center justify-center bg-gradient-to-br from-orange-50 to-amber-100 p-4'>
         <ExternalImage
           src={partner.logo}
@@ -239,7 +239,7 @@ export function InfiniteCarousel() {
 
   const showControls = canPrev || canNext;
   const controlClass =
-    'inline-flex h-11 w-11 items-center justify-center rounded-full border border-orange-200 bg-white text-[hsl(25,100%,40%)] shadow-sm transition-colors hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40';
+    'inline-flex h-11 w-11 items-center justify-center rounded-full border border-orange-200 bg-white text-brand-800 shadow-sm transition-colors hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-40';
 
   return (
     <>

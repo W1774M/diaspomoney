@@ -244,7 +244,7 @@ export function StripeCheckout(props: StripeCheckoutProps) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center space-y-3">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(23,100%,53%)]"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
           <div>
             <p className="text-sm font-medium text-gray-700">Initialisation du paiement sécurisé…</p>
             <p className="text-xs text-gray-500 mt-1">Cela peut prendre quelques secondes</p>
@@ -651,7 +651,7 @@ function InnerCheckout({
             type="button"
             onClick={handleSubmit}
             disabled={!stripe || !elementReady || submitting || paymentConfirmed}
-            className="flex-1 bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white py-4 px-6 rounded-xl font-semibold hover:opacity-90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
+            className="flex-1 bg-gradient-to-r from-brand-600 to-amber-700 text-white py-4 px-6 rounded-xl font-semibold hover:opacity-90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
           >
             {submitting ? (
               <>
@@ -695,7 +695,7 @@ function InnerCheckout({
           type="button"
           onClick={handleSubmit}
           disabled={!stripe || !elementReady || submitting || paymentConfirmed}
-          className="w-full bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white py-4 px-6 rounded-xl font-semibold hover:opacity-90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
+          className="w-full bg-gradient-to-r from-brand-600 to-amber-700 text-white py-4 px-6 rounded-xl font-semibold hover:opacity-90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
         >
           {submitting ? (
             <>

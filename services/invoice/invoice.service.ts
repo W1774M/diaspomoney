@@ -44,6 +44,20 @@ export interface InvoiceData {
   metadata?: Record<string, any>;
 }
 
+export interface PaidInvoiceForPaymentInput {
+  /** Clé d'idempotence (pi_…) */
+  paymentIntentId: string;
+  userId: string;
+  amount: number;
+  currency: string;
+  description: string;
+  bookingId?: string | undefined;
+  providerId?: string | undefined;
+  paidAt?: Date | undefined;
+  paymentMethod?: string | undefined;
+  metadata?: Record<string, unknown> | undefined;
+}
+
 /**
  * InvoiceService utilisant le Repository Pattern
  */
@@ -388,6 +402,62 @@ export class InvoiceService {
       Sentry.captureException(error);
       throw error;
     }
+  }
+
+  /**
+   * Émettre la facture acquittée d'un paiement Stripe confirmé.
+   *
+   * Idempotent par paymentIntentId : le webhook et /api/bookings/confirm-payment
+   * peuvent tous deux appeler cette méthode, une seule facture est créée.
+   * La facture naît PAID : c'est aussi le reçu affiché dans
+   * /dashboard/payment-receipts (factures PAID de l'utilisateur).
+   */
+  @InvalidateCache('InvoiceService:*')
+  async issuePaidInvoiceForPayment(
+    input: PaidInvoiceForPaymentInput,
+  ): Promise<{ invoice: Invoice; created: boolean }> {
+    const { Invoice: InvoiceAggregate } = await import('@/domain/billing');
+    const paidAt = input.paidAt || new Date();
+    const aggregate = InvoiceAggregate.draft({
+      clientId: input.userId,
+      currency: input.currency,
+      items: [
+        {
+          description: input.description,
+          quantity: 1,
+          unitPrice: input.amount,
+        },
+      ],
+      dueDate: paidAt,
+    });
+    // DRAFT → SENT → PAID : la facture est émise puis réglée immédiatement.
+    aggregate.send();
+    aggregate.markPaid(paidAt);
+    const payload = aggregate.toCreatePayload();
+
+    return this.invoiceRepository.findOrCreateForPayment(input.paymentIntentId, {
+      userId: payload.userId,
+      customerId: payload.userId,
+      ...(input.providerId ? { providerId: input.providerId } : {}),
+      ...(input.bookingId ? { bookingId: input.bookingId } : {}),
+      amount: payload.amount,
+      currency: payload.currency,
+      tax: payload.tax,
+      totalAmount: payload.totalAmount,
+      status: payload.status,
+      issueDate: paidAt,
+      dueDate: payload.dueDate,
+      paidAt,
+      items: payload.items,
+      metadata: {
+        ...(input.metadata || {}),
+        paymentIntentId: input.paymentIntentId,
+        ...(input.bookingId ? { bookingId: input.bookingId } : {}),
+        ...(input.providerId ? { providerId: input.providerId } : {}),
+        serviceName: input.description,
+        paymentMethod: input.paymentMethod || 'Carte bancaire',
+      },
+    } as Partial<Invoice>);
   }
 }
 

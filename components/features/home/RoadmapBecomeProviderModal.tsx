@@ -105,10 +105,10 @@ export function RoadmapBecomeProviderModal({
   if (!isOpen) return null;
 
   const inputClass =
-    'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#F97015] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed';
+    'w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed';
   const labelClass =
     'block text-sm font-medium text-gray-700 mb-2';
-  const fontStyle = { fontFamily: 'Plus Jakarta Sans, sans-serif' };
+  const fontStyle = { fontFamily: 'var(--font-plus-jakarta-sans), sans-serif' };
 
   return (
     <div
@@ -127,8 +127,8 @@ export function RoadmapBecomeProviderModal({
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-[#F97015]/10">
-              <User className="w-5 h-5 text-[#F97015]" />
+            <div className="p-2 rounded-full bg-brand-500/10">
+              <User className="w-5 h-5 text-brand-700" />
             </div>
             <h3
               id="become-provider-modal-title"
@@ -141,7 +141,7 @@ export function RoadmapBecomeProviderModal({
           <button
             onClick={onClose}
             disabled={isSubmitting}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-gray-500 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Fermer"
           >
             <X className="w-5 h-5" />
@@ -175,7 +175,7 @@ export function RoadmapBecomeProviderModal({
                     Nom
                   </label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                     <input
                       id="become-provider-name"
                       type="text"
@@ -195,7 +195,7 @@ export function RoadmapBecomeProviderModal({
                     Email
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                     <input
                       id="become-provider-email"
                       type="email"
@@ -215,7 +215,7 @@ export function RoadmapBecomeProviderModal({
                     Téléphone
                   </label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                     <PhoneInput
                       defaultCountry="fr"
                       value={phone || ''}
@@ -236,7 +236,7 @@ export function RoadmapBecomeProviderModal({
                 <button
                   type="submit"
                   disabled={isSubmitting || !name.trim() || !email.trim() || !phone || phone === ''}
-                  className="w-full bg-[#F97015] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#E85F0A] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-brand-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-brand-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   style={fontStyle}
                 >
                   {isSubmitting ? (

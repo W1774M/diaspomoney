@@ -134,32 +134,31 @@ export default function Breadcrumb({ items, className = '' }: BreadcrumbProps) {
   }
 
   return (
-    <nav
-      className={`flex items-center space-x-2 text-sm ${className}`}
-      aria-label='Breadcrumb'
-    >
-      <ol className='flex items-center space-x-1 flex-wrap'>
+    <nav className={`text-sm ${className}`} aria-label="Fil d'Ariane">
+      <ol className='flex flex-wrap items-center gap-y-1'>
         {breadcrumbs.map((item, index) => {
           const isLast = index === breadcrumbs.length - 1;
 
           return (
             <li key={`${item.href}-${index}`} className='flex items-center'>
               {index > 0 && (
-                <ChevronRight className='h-4 w-4 text-gray-400 mx-1.5 flex-shrink-0' />
+                <ChevronRight className='h-4 w-4 text-gray-500 mx-1.5 flex-shrink-0' />
               )}
 
               {isLast ? (
-                <span className='text-gray-900 font-medium truncate max-w-xs'>
+                <span aria-current='page' className='text-gray-900 font-medium truncate max-w-xs'>
                   {item.label}
                 </span>
               ) : (
                 <Link
                   href={item.href}
-                  className='text-gray-600 hover:text-[hsl(25,100%,53%)] transition-colors flex items-center truncate max-w-xs'
-                  title={item.label}
+                  className='inline-flex min-h-6 items-center truncate max-w-xs rounded text-gray-600 underline-offset-4 hover:text-brand-700 hover:underline transition-colors'
                 >
                   {index === 0 ? (
-                    <Home className='h-4 w-4 flex-shrink-0' />
+                    <>
+                      <Home className='h-4 w-4 flex-shrink-0' />
+                      <span className='visually-hidden'>{item.label}</span>
+                    </>
                   ) : (
                     <span className='truncate'>{item.label}</span>
                   )}

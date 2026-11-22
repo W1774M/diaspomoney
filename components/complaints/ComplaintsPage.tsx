@@ -20,7 +20,10 @@ import {
   useComplaints,
 } from '@/hooks/complaints';
 import type { Complaint } from '@/lib/types';
-import { ROLES } from '@/lib/constants';
+import {
+  COMPLAINTS_ALLOWED_ROLES,
+  isComplaintsAdmin,
+} from '@/lib/complaints/access';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect } from 'react';
 import ComplaintsFilters from './ComplaintsFilters';
@@ -30,7 +33,7 @@ import ComplaintsStats from './ComplaintsStats';
 import ComplaintsTable from './ComplaintsTable';
 
 const ComplaintsPage = React.memo(function ComplaintsPage() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const { complaints, loading, error, fetchComplaints } = useComplaints();
 
@@ -45,12 +48,18 @@ const ComplaintsPage = React.memo(function ComplaintsPage() {
     hasActiveFilters,
   } = useComplaintFilters(complaints);
 
-  // Charger les réclamations au montage du composant
+  const userRoles = user?.roles;
+  const isAdminScope = isComplaintsAdmin(userRoles || []);
+
+  // Charger les réclamations au montage du composant.
+  // Admin : pas de filtre utilisateur (toutes les réclamations) ; sinon l'API
+  // restreint d'elle-même au compte connecté ou au portefeuille CSM.
   useEffect(() => {
-    if (user?.id) {
-      fetchComplaints({ userId: user.id, limit: 1000 });
-    }
-  }, [user?.id, fetchComplaints]);
+    if (!user?.id) return;
+    fetchComplaints(
+      isAdminScope ? { limit: 1000 } : { userId: user.id, limit: 1000 },
+    );
+  }, [user?.id, isAdminScope, fetchComplaints]);
 
   const stats = useComplaintStats(complaints);
 
@@ -97,8 +106,20 @@ const ComplaintsPage = React.memo(function ComplaintsPage() {
   // );
 
   // Utiliser useAuthorization pour vérifier les permissions
-  const { isAuthorized } = useAuthorization({ roles: [ROLES.CUSTOMER] });
-  
+  // Avant : roles [CUSTOMER] seul (CSM refusé) et aucun état de chargement,
+  // donc « Accès non autorisé » s'affichait tant que la session se chargeait.
+  const { isAuthorized } = useAuthorization({
+    roles: [...COMPLAINTS_ALLOWED_ROLES],
+  });
+
+  if (authLoading) {
+    return (
+      <div className='p-6 text-center text-gray-600'>
+        Vérification des autorisations...
+      </div>
+    );
+  }
+
   if (!isAuthorized) {
     return (
       <div className='p-6'>

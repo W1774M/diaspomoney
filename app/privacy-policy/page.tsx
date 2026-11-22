@@ -10,7 +10,7 @@ export const metadata: Metadata = pageMetadata({
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-dvh bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">
@@ -81,8 +81,8 @@ export default function PrivacyPolicyPage() {
                 <table className="min-w-full border border-gray-200 text-left text-gray-700 mb-4">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="border border-gray-200 px-4 py-2 font-semibold">Finalité</th>
-                      <th className="border border-gray-200 px-4 py-2 font-semibold">Base légale</th>
+                      <th scope='col' className="border border-gray-200 px-4 py-2 font-semibold">Finalité</th>
+                      <th scope='col' className="border border-gray-200 px-4 py-2 font-semibold">Base légale</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -172,7 +172,7 @@ export default function PrivacyPolicyPage() {
                   Réclamation auprès de la CNIL (
                   <Link
                     href="https://www.cnil.fr/"
-                    className="text-[hsl(25,100%,53%)] hover:underline"
+                    className="text-brand-700 hover:underline"
                   >
                     www.cnil.fr
                   </Link>
@@ -219,7 +219,7 @@ export default function PrivacyPolicyPage() {
           <div className="mt-8 pt-8 border-t border-gray-200">
             <Link
               href="/"
-              className="text-[hsl(25,100%,53%)] hover:underline font-medium"
+              className="text-brand-700 hover:underline font-medium"
             >
               ← Retour à l&apos;accueil
             </Link>

@@ -57,7 +57,7 @@ export function HomeBanner({ messages }: { messages: HomeBannerMessage[] }) {
   return (
     <Marquee
       label="Annonces DiaspoMoney"
-      className="w-full bg-[hsl(25,100%,53%)] text-white py-3 pr-10 text-sm font-medium"
+      className="w-full bg-brand-600 text-white py-3 pr-10 text-sm font-medium"
       trackClassName="whitespace-nowrap"
       controlClassName="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/20 p-1 text-white hover:bg-black/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
     >

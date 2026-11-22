@@ -185,7 +185,7 @@ const ServicesPage = React.memo(function ServicesPage() {
   }, []);
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-dvh bg-gray-50'>
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
         {/* Header */}
         <div className='mb-8'>
@@ -210,7 +210,7 @@ const ServicesPage = React.memo(function ServicesPage() {
               }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 !filters.category
-                  ? 'bg-[hsl(25,100%,53%)] text-white'
+                  ? 'bg-brand-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -299,7 +299,7 @@ const ServicesPage = React.memo(function ServicesPage() {
             </svg>
             Filtres avancés
             {hasActiveFilters && (
-              <span className='ml-2 px-2 py-1 bg-[hsl(25,100%,53%)] text-white text-xs rounded-full'>
+              <span className='ml-2 px-2 py-1 bg-brand-600 text-white text-xs rounded-full'>
                 Actifs
               </span>
             )}
@@ -341,7 +341,7 @@ const ServicesPage = React.memo(function ServicesPage() {
                 {filters.category && (
                   <span className='text-sm font-normal text-gray-600 ml-2'>
                     dans la catégorie{' '}
-                    <span className='text-[hsl(25,100%,53%)]'>
+                    <span className='text-brand-700'>
                       {filters.category === 'HEALTH' && 'Santé'}
                       {filters.category === 'EDU' && 'Éducation'}
                       {filters.category === 'IMMO' && 'Immobilier'}
@@ -367,7 +367,7 @@ const ServicesPage = React.memo(function ServicesPage() {
           <div className='text-center py-12'>
             <div className='mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4'>
               <svg
-                className='w-12 h-12 text-gray-400'
+                className='w-12 h-12 text-gray-500'
                 fill='none'
                 stroke='currentColor'
                 viewBox='0 0 24 24'
@@ -384,7 +384,7 @@ const ServicesPage = React.memo(function ServicesPage() {
               {filters.category ? (
                 <>
                   Aucun prestataire trouvé dans la catégorie{' '}
-                  <span className='text-[hsl(25,100%,53%)]'>
+                  <span className='text-brand-700'>
                     {filters.category === 'HEALTH' && 'Santé'}
                     {filters.category === 'EDU' && 'Éducation'}
                     {filters.category === 'IMMO' && 'Immobilier'}
@@ -416,7 +416,7 @@ const ServicesPage = React.memo(function ServicesPage() {
                     url.searchParams.delete('t');
                     window.history.replaceState({}, '', url.toString());
                   }}
-                  className='px-6 py-3 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors'
+                  className='px-6 py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
                 >
                   Voir tous les services
                 </button>
@@ -485,7 +485,7 @@ const ServicesPage = React.memo(function ServicesPage() {
                     onClick={() => handlePageChange(page)}
                     className={`px-3 py-2 text-sm font-medium rounded-md ${
                       currentPage === page
-                        ? 'bg-[hsl(25,100%,53%)] text-white'
+                        ? 'bg-brand-600 text-white'
                         : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
                     }`}
                   >

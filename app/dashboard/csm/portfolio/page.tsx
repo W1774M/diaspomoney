@@ -141,12 +141,12 @@ function CSMPorfolioPageContent() {
                 value={providerIdInput}
                 onChange={(e) => setProviderIdInput(e.target.value)}
                 placeholder='Ex: 64d2f9c3e6a1b2c3d4e5f678'
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent font-mono text-sm'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent font-mono text-sm'
               />
               <button
                 onClick={handleAdd}
                 disabled={loading}
-                className='inline-flex items-center justify-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50'
+                className='inline-flex items-center justify-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50'
               >
                 <UserPlus className='h-4 w-4 mr-2' />
                 Ajouter

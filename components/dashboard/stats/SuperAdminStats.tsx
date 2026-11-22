@@ -3,7 +3,6 @@
 import React from 'react';
 import {
   Activity,
-  Server,
   DollarSign,
   CreditCard,
   Users,
@@ -31,24 +30,12 @@ const SuperAdminStatsComponent = React.memo<SuperAdminStatsProps>(
     return (
       <div className='space-y-6'>
         {/* Cartes de statistiques principales */}
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6'>
+        <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
           <DashboardStatCard
-            title='Santé plateforme'
-            value={loading ? '...' : `${stats.platformHealth}%`}
+            title='Paiements encaissés'
+            value={loading ? '...' : stats.totalPayments}
             icon={Activity}
-            color='green'
-          />
-          <DashboardStatCard
-            title='Uptime système'
-            value={loading ? '...' : `${stats.systemUptime}%`}
-            icon={Server}
             color='blue'
-          />
-          <DashboardStatCard
-            title='Performance serveurs'
-            value={loading ? '...' : `${stats.serverPerformance}%`}
-            icon={Activity}
-            color='orange'
           />
           <DashboardStatCard
             title='Revenus totaux'

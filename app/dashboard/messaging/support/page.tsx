@@ -163,7 +163,7 @@ export default function SupportChatPage() {
       {/* Header */}
       <div>
         <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
-          <MessageSquare className='h-8 w-8 mr-3 text-[hsl(25,100%,53%)]' />
+          <MessageSquare className='h-8 w-8 mr-3 text-brand-700' />
           Chat avec support
         </h1>
         <p className='text-gray-600 mt-2'>
@@ -172,7 +172,7 @@ export default function SupportChatPage() {
       </div>
 
       {/* Chat Container */}
-      <div className='bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col h-[calc(100vh-300px)]'>
+      <div className='bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col h-[calc(100dvh-300px)]'>
         {/* Messages Area */}
         <div className='flex-1 overflow-y-auto p-6 space-y-4'>
           {messages.length === 0 ? (
@@ -197,7 +197,7 @@ export default function SupportChatPage() {
                   <div
                     className={`max-w-[70%] rounded-lg p-4 ${
                       isUser
-                        ? 'bg-[hsl(25,100%,53%)] text-white'
+                        ? 'bg-brand-600 text-white'
                         : 'bg-gray-100 text-gray-900'
                     }`}
                   >
@@ -239,7 +239,7 @@ export default function SupportChatPage() {
                   </span>
                   <button
                     onClick={() => handleRemoveAttachment(attachment.id)}
-                    className='text-gray-400 hover:text-red-500 transition-colors'
+                    className='text-gray-500 hover:text-red-500 transition-colors'
                     title='Retirer le fichier'
                   >
                     <X className='h-4 w-4' />
@@ -253,7 +253,7 @@ export default function SupportChatPage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingFiles}
-              className='p-2 text-gray-400 hover:text-[hsl(25,100%,53%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+              className='p-2 text-gray-500 hover:text-brand-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
               title='Joindre un fichier'
             >
               <Paperclip className='h-5 w-5' />
@@ -274,7 +274,7 @@ export default function SupportChatPage() {
               onKeyPress={handleKeyPress}
               placeholder='Tapez votre message...'
               rows={3}
-              className='flex-1 resize-none border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='flex-1 resize-none border border-gray-300 rounded-lg px-4 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             />
             <button
               onClick={handleSendMessage}
@@ -282,7 +282,7 @@ export default function SupportChatPage() {
                 (!inputMessage.trim() && uploadedAttachments.length === 0) ||
                 uploadingFiles
               }
-              className='p-3 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+              className='p-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
               title='Envoyer'
             >
               <Send className='h-5 w-5' />

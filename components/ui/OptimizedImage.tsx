@@ -77,7 +77,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         onClick={onClick}
       >
         <svg
-          className='w-8 h-8 text-gray-400'
+          className='w-8 h-8 text-gray-500'
           fill='currentColor'
           viewBox='0 0 20 20'
         >
@@ -165,7 +165,7 @@ export const UserAvatar: React.FC<{
   if (!src || hasError) {
     return (
       <div
-        className={`${sizeClasses[size]} bg-blue-500 text-white rounded-full flex items-center justify-center font-semibold ${className}`}
+        className={`${sizeClasses[size]} bg-brand-600 text-white rounded-full flex items-center justify-center font-semibold ${className}`}
       >
         {initials}
       </div>

@@ -145,7 +145,7 @@ export function RegisterForm() {
           Bienvenue dans la famille DiaspoMoney !
         </p>
         <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4'>
-          <p className='text-xs text-blue-800'>
+          <p className='text-xs text-brand-800'>
             Un email de confirmation a été envoyé à votre adresse.
           </p>
         </div>
@@ -163,34 +163,34 @@ export function RegisterForm() {
         {/* Nom et Prénom sur une ligne */}
         <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
           <div>
-            <label className='block mb-2 text-sm font-medium text-gray-700'>
+            <label htmlFor='register-form-first-name' className='block mb-2 text-sm font-medium text-gray-700'>
               Prénom <span className='text-red-500'>*</span>
             </label>
-            <input
+            <input id='register-form-first-name'
               autoComplete="given-name"
               type='text'
               value={formData.firstName}
               onChange={e =>
                 handleInputChange('firstName', e.target.value)
               }
-              className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-[hsl(25,100%,53%)] transition-all duration-200 text-base'
+              className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 transition-all duration-200 text-base'
               placeholder='Jean'
               required
               suppressHydrationWarning
             />
           </div>
           <div>
-            <label className='block mb-2 text-sm font-medium text-gray-700'>
+            <label htmlFor='register-form-last-name' className='block mb-2 text-sm font-medium text-gray-700'>
               Nom <span className='text-red-500'>*</span>
             </label>
-            <input
+            <input id='register-form-last-name'
               autoComplete="family-name"
               type='text'
               value={formData.lastName}
               onChange={e =>
                 handleInputChange('lastName', e.target.value)
               }
-              className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-[hsl(25,100%,53%)] transition-all duration-200 text-base'
+              className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 transition-all duration-200 text-base'
               placeholder='Dupont'
               required
               suppressHydrationWarning
@@ -200,15 +200,15 @@ export function RegisterForm() {
 
         {/* Email */}
         <div>
-          <label className='block mb-2 text-sm font-medium text-gray-700'>
+          <label htmlFor='register-form-email' className='block mb-2 text-sm font-medium text-gray-700'>
             Email <span className='text-red-500'>*</span>
           </label>
-          <input
+          <input id='register-form-email'
             autoComplete="email" spellCheck={false}
             type='email'
             value={formData.email}
             onChange={e => handleInputChange('email', e.target.value)}
-            className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-[hsl(25,100%,53%)] transition-all duration-200 text-base'
+            className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 transition-all duration-200 text-base'
             placeholder='jean.dupont@exemple.com'
             required
             suppressHydrationWarning
@@ -229,21 +229,21 @@ export function RegisterForm() {
                 value={formData.phone}
                 onChange={(phone) => handleInputChange('phone', phone)}
                 className="w-full"
-                inputClassName="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-[hsl(25,100%,53%)] transition-all duration-200 text-base"
+                inputClassName="w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 transition-all duration-200 text-base"
               />
             </div>
             <div>
-              <label className='block mb-2 text-sm font-medium text-gray-700'>
+              <label htmlFor='register-form-date-of-birth' className='block mb-2 text-sm font-medium text-gray-700'>
                 Date de naissance
               </label>
-              <input
+              <input id='register-form-date-of-birth'
                 autoComplete="bday"
                 type='date'
                 value={formData.dateOfBirth}
                 onChange={e =>
                   handleInputChange('dateOfBirth', e.target.value)
                 }
-                className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-[hsl(25,100%,53%)] transition-all duration-200 text-base'
+                className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 transition-all duration-200 text-base'
                 aria-label='Date de naissance'
                 title='Date de naissance'
               />
@@ -257,7 +257,7 @@ export function RegisterForm() {
         <button
           type='button'
           onClick={() => setShowOptionalFields(true)}
-          className='text-sm text-[hsl(25,100%,53%)] hover:underline font-medium'
+          className='text-sm text-brand-700 hover:underline font-medium'
         >
           + Ajouter des informations optionnelles
         </button>
@@ -272,7 +272,7 @@ export function RegisterForm() {
             onChange={e =>
               handleInputChange('termsAccepted', e.target.checked)
             }
-            className='mt-0.5 w-4 h-4 text-[hsl(25,100%,53%)] rounded focus:ring-[hsl(25,100%,53%)]'
+            className='mt-0.5 w-4 h-4 text-brand-700 rounded focus-visible:ring-brand-600'
             required
             aria-label="Accepter les conditions générales d'utilisation"
           />
@@ -280,14 +280,14 @@ export function RegisterForm() {
             J'accepte les{' '}
             <Link
               href='/terms'
-              className='text-[hsl(25,100%,53%)] hover:underline font-medium'
+              className='text-brand-700 hover:underline font-medium'
             >
               conditions générales
             </Link>{' '}
             et la{' '}
             <Link
               href='/privacy'
-              className='text-[hsl(25,100%,53%)] hover:underline font-medium'
+              className='text-brand-700 hover:underline font-medium'
             >
               politique de confidentialité
             </Link>{' '}
@@ -305,7 +305,7 @@ export function RegisterForm() {
                 e.target.checked,
               )
             }
-            className='mt-0.5 w-4 h-4 text-[hsl(25,100%,53%)] rounded focus:ring-[hsl(25,100%,53%)]'
+            className='mt-0.5 w-4 h-4 text-brand-700 rounded focus-visible:ring-brand-600'
             aria-label="Recevoir des informations marketing"
           />
           <span className='text-sm text-gray-600 leading-relaxed'>
@@ -326,7 +326,7 @@ export function RegisterForm() {
       <button
         onClick={handleSubmit}
         disabled={isLoading || !validateForm()}
-        className='w-full py-3.5 rounded-lg bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,45%)] text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-base'
+        className='w-full py-3.5 rounded-lg bg-gradient-to-r from-brand-600 to-brand-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-base'
       >
         {isLoading ? 'Création en cours...' : 'Créer mon compte'}
       </button>
@@ -337,7 +337,7 @@ export function RegisterForm() {
           Déjà un compte ?{' '}
           <Link
             href='/login'
-            className='font-semibold text-[hsl(25,100%,53%)] hover:underline transition-colors duration-200'
+            className='font-semibold text-brand-700 hover:underline transition-colors duration-200'
           >
             Se connecter
           </Link>

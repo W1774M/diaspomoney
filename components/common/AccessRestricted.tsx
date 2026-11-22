@@ -47,7 +47,7 @@ const AccessRestricted = React.memo<AccessRestrictedProps>(
           <div className='mt-6'>
             <button
               onClick={() => window.history.back()}
-              className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,48%)] transition-colors'
+              className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 transition-colors'
             >
               Retour
             </button>

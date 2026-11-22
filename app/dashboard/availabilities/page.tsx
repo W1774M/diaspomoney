@@ -1,5 +1,6 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/ConfirmProvider';
 import { useAvailabilities } from '@/hooks/availabilities';
 import { useNotificationManager } from '@/components/ui/Notification';
 import type { AvailabilityRule, AvailabilityTimeSlot } from '@/lib/types/availability.types';
@@ -16,6 +17,7 @@ const uniqueId = (() => {
  * Contenu de la page Disponibilités
  */
 export default function AvailabilitiesPageContent() {
+  const confirmer = useConfirm();
   const [activeTab, setActiveTab] = useState<'weekly' | 'monthly' | 'custom'>(
     'weekly',
   );
@@ -114,9 +116,7 @@ export default function AvailabilitiesPageContent() {
     async (id: string) => {
       // Utiliser une confirmation via toast warning (Toast Pattern)
       // Note: Pour une vraie confirmation, on pourrait utiliser un composant modal
-      const confirmed = window.confirm(
-        'Êtes-vous sûr de vouloir supprimer cette règle de disponibilité ?',
-      );
+      const confirmed = (await confirmer({ message: 'Êtes-vous sûr de vouloir supprimer cette règle de disponibilité ?', variant: 'danger' }));
 
       if (confirmed) {
         const deleted = await deleteAvailabilityRule(id);
@@ -131,7 +131,7 @@ export default function AvailabilitiesPageContent() {
         }
       }
     },
-    [deleteAvailabilityRule, editingRule, addSuccess, addError],
+    [deleteAvailabilityRule, editingRule, addSuccess, addError, confirmer],
   );
 
   // Toggle a rule's isActive status (useCallback Pattern)
@@ -159,7 +159,7 @@ export default function AvailabilitiesPageContent() {
   if (availabilitiesLoading) {
     return (
       <div className='text-center py-12'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto'></div>
         <p className='mt-4 text-gray-600'>Chargement...</p>
       </div>
     );
@@ -184,7 +184,7 @@ export default function AvailabilitiesPageContent() {
             onClick={() => setActiveTab('weekly')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'weekly'
-                ? 'bg-[hsl(25,100%,53%)] text-white'
+                ? 'bg-brand-600 text-white'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
             type='button'
@@ -196,7 +196,7 @@ export default function AvailabilitiesPageContent() {
             onClick={() => setActiveTab('monthly')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'monthly'
-                ? 'bg-[hsl(25,100%,53%)] text-white'
+                ? 'bg-brand-600 text-white'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
             type='button'
@@ -208,7 +208,7 @@ export default function AvailabilitiesPageContent() {
             onClick={() => setActiveTab('custom')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               activeTab === 'custom'
-                ? 'bg-[hsl(25,100%,53%)] text-white'
+                ? 'bg-brand-600 text-white'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
             type='button'
@@ -224,7 +224,7 @@ export default function AvailabilitiesPageContent() {
         {filteredAvailabilities.length === 0 ? (
           <div className='col-span-full text-center py-12'>
             <div className='bg-gray-50 border border-gray-200 rounded-lg p-8'>
-              <Calendar className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+              <Calendar className='h-12 w-12 text-gray-500 mx-auto mb-4' />
               <h3 className='text-lg font-medium text-gray-900 mb-2'>
                 Aucune règle de disponibilité
               </h3>
@@ -241,7 +241,7 @@ export default function AvailabilitiesPageContent() {
                   setShowForm(true);
                 }}
                 aria-label='Créer une nouvelle règle'
-                className='inline-flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors'
+                className='inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
                 type='button'
               >
                 <Plus className='h-4 w-4 mr-2' />
@@ -329,7 +329,7 @@ export default function AvailabilitiesPageContent() {
                     setShowForm(true);
                   }}
                   aria-label='Modifier la règle'
-                  className='text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] text-sm font-medium'
+                  className='text-brand-700 hover:text-brand-800 text-sm font-medium'
                   type='button'
                 >
                   Modifier
@@ -355,7 +355,7 @@ export default function AvailabilitiesPageContent() {
             setEditingRule(null);
             setShowForm(true);
           }}
-          className='inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)] transition-colors'
+          className='inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 transition-colors'
           type='button'
         >
           <Plus className='h-5 w-5 mr-2' />
@@ -545,28 +545,28 @@ function AvailabilityForm({
             {/* Basic Info */}
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='availabilities-name' className='block text-sm font-medium text-gray-700 mb-2'>
                   Nom de la règle <span className='text-red-400'>*</span>
                 </label>
-                <input
+                <input id='availabilities-name'
                   type='text'
                   required
                   value={formData.name}
                   onChange={e =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   placeholder='Ex: Planning hebdomadaire standard'
                 />
               </div>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='availabilities-type' className='block text-sm font-medium text-gray-700 mb-2'>
                   Type de planning
                 </label>
-                <select
+                <select id='availabilities-type'
                   value={formData.type}
                   onChange={e => handleTypeChange(e.target.value)}
-                  className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   title='Type de planning'
                 >
                   <option value='weekly'>Hebdomadaire</option>
@@ -579,10 +579,10 @@ function AvailabilityForm({
             {(formData.type === 'monthly' || formData.type === 'custom') && (
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  <label htmlFor='availabilities-start-date' className='block text-sm font-medium text-gray-700 mb-2'>
                     Début <span className='text-red-400'>*</span>
                   </label>
-                  <input
+                  <input id='availabilities-start-date'
                     type='date'
                     required
                     value={formData.startDate}
@@ -592,16 +592,16 @@ function AvailabilityForm({
                         startDate: e.target.value,
                       }))
                     }
-                    className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                    className='w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                     title='Début'
                     placeholder='JJ/MM/AAAA'
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                  <label htmlFor='availabilities-end-date' className='block text-sm font-medium text-gray-700 mb-2'>
                     Fin <span className='text-red-400'>*</span>
                   </label>
-                  <input
+                  <input id='availabilities-end-date'
                     type='date'
                     required
                     value={formData.endDate}
@@ -612,7 +612,7 @@ function AvailabilityForm({
                         endDate: e.target.value,
                       }))
                     }
-                    className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                    className='w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                     title='Fin'
                     placeholder='JJ/MM/AAAA'
                   />
@@ -639,7 +639,7 @@ function AvailabilityForm({
                         <button
                           type='button'
                           onClick={() => addTimeSlot(dayIndex)}
-                          className='text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] text-sm font-medium'
+                          className='text-brand-700 hover:text-brand-800 text-sm font-medium'
                           aria-label={`Ajouter un créneau pour ${day}`}
                         >
                           <Plus className='h-4 w-4 inline mr-1' />
@@ -665,7 +665,7 @@ function AvailabilityForm({
                                     startTime: e.target.value,
                                   })
                                 }
-                                className='px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                                className='px-3 py-1 border border-gray-300 rounded focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                                 required
                                 aria-label='Heure de début'
                               />
@@ -678,7 +678,7 @@ function AvailabilityForm({
                                     endTime: e.target.value,
                                   })
                                 }
-                                className='px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                                className='px-3 py-1 border border-gray-300 rounded focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                                 required
                                 aria-label='Heure de fin'
                               />
@@ -708,7 +708,7 @@ function AvailabilityForm({
                 onChange={e =>
                   setFormData({ ...formData, isActive: e.target.checked })
                 }
-                className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded'
+                className='h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded'
               />
               <label htmlFor='isActive' className='ml-2 text-sm text-gray-700'>
                 Activer cette règle
@@ -726,7 +726,7 @@ function AvailabilityForm({
             </button>
             <button
               type='submit'
-              className='flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors'
+              className='flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
             >
               <Save className='h-4 w-4 mr-2' />
               {rule ? 'Modifier' : 'Créer'}

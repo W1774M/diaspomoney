@@ -97,7 +97,7 @@ export default function BookingNavigation({ currentBookingId }: BookingNavigatio
   if (loading) {
     return (
       <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200">
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[hsl(25,100%,53%)]"></div>
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-600"></div>
         <span className="text-sm text-gray-600">Chargement...</span>
       </div>
     );
@@ -141,13 +141,13 @@ export default function BookingNavigation({ currentBookingId }: BookingNavigatio
             {/* Barre de recherche */}
             <div className="p-2 border-b border-gray-200">
               <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Rechercher une réservation..."
-                  className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   autoFocus
                 />
               </div>
@@ -168,13 +168,13 @@ export default function BookingNavigation({ currentBookingId }: BookingNavigatio
                         key={booking._id || booking.id}
                         onClick={() => goToBooking(booking._id || booking.id)}
                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors ${
-                          isActive ? 'bg-[hsl(25,100%,53%)]/10 border-l-2 border-[hsl(25,100%,53%)]' : ''
+                          isActive ? 'bg-brand-500/10 border-l-2 border-brand-600' : ''
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <div className={`text-sm font-medium truncate ${
-                                isActive ? 'text-[hsl(25,100%,53%)]' : 'text-gray-900'
+                                isActive ? 'text-brand-700' : 'text-gray-900'
                               }`}>
                                 {booking.reservationNumber || 'Sans numéro'}
                               </div>
@@ -182,13 +182,13 @@ export default function BookingNavigation({ currentBookingId }: BookingNavigatio
                                 {getRequesterName(booking)}
                               </div>
                               {booking.createdAt && (
-                                <div className="text-xs text-gray-400 mt-0.5">
+                                <div className="text-xs text-gray-500 mt-0.5">
                                   {new Date(booking.createdAt).toLocaleDateString('fr-FR')}
                                 </div>
                               )}
                             </div>
                           {isActive && (
-                            <div className="w-2 h-2 rounded-full bg-[hsl(25,100%,53%)] flex-shrink-0"></div>
+                            <div className="w-2 h-2 rounded-full bg-brand-600 flex-shrink-0"></div>
                           )}
                         </div>
                       </button>

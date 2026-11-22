@@ -80,6 +80,16 @@ export interface IInvoiceRepository
   markAsPaid(invoiceId: string, paidAt: Date): Promise<boolean>;
 
   /**
+   * Créer la facture d'un paiement Stripe, une seule fois.
+   * Clé d'idempotence : paymentIntentId (index unique partiel).
+   * Si une facture existe déjà pour ce paiement, elle est renvoyée telle quelle.
+   */
+  findOrCreateForPayment(
+    paymentIntentId: string,
+    data: Partial<Invoice>,
+  ): Promise<{ invoice: Invoice; created: boolean }>;
+
+  /**
    * Trouver des factures avec filtres avancés
    */
   findInvoicesWithFilters(

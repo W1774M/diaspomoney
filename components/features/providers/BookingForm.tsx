@@ -499,14 +499,14 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 className={`flex flex-col items-center justify-center p-6 border rounded-lg transition-colors
                 ${
                   watchedValues['consultationMode'] === 'video'
-                    ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]'
+                    ? 'border-brand-600 bg-brand-50'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
                 <svg
                   className={`w-8 h-8 mb-2 ${
                     watchedValues['consultationMode'] === 'video'
-                      ? 'text-[hsl(25,100%,53%)]'
+                      ? 'text-brand-700'
                       : 'text-gray-500'
                   }`}
                   fill='none'
@@ -532,14 +532,14 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 className={`flex flex-col items-center justify-center p-6 border rounded-lg transition-colors
                 ${
                   watchedValues['consultationMode'] === 'cabinet'
-                    ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]'
+                    ? 'border-brand-600 bg-brand-50'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
                 <svg
                   className={`w-8 h-8 mb-2 ${
                     watchedValues['consultationMode'] === 'cabinet'
-                      ? 'text-[hsl(25,100%,53%)]'
+                      ? 'text-brand-700'
                       : 'text-gray-500'
                   }`}
                   fill='none'
@@ -607,7 +607,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               <div className='opacity-50 cursor-not-allowed'>
                 <div className='flex flex-col items-center justify-center p-6 border border-gray-300 rounded-lg bg-gray-50'>
                   <svg
-                    className='w-8 h-8 mb-2 text-gray-400'
+                    className='w-8 h-8 mb-2 text-gray-500'
                     fill='none'
                     stroke='currentColor'
                     viewBox='0 0 24 24'
@@ -620,7 +620,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                     />
                   </svg>
                   <span className='font-medium text-gray-500'>Vidéo</span>
-                  <span className='text-sm text-gray-400'>Non disponible</span>
+                  <span className='text-sm text-gray-500'>Non disponible</span>
                 </div>
               </div>
 
@@ -631,14 +631,14 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 className={`flex flex-col items-center justify-center p-6 border rounded-lg transition-colors
                 ${
                   watchedValues['consultationMode'] === 'cabinet'
-                    ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]'
+                    ? 'border-brand-600 bg-brand-50'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
                 <svg
                   className={`w-8 h-8 mb-2 ${
                     watchedValues['consultationMode'] === 'cabinet'
-                      ? 'text-[hsl(25,100%,53%)]'
+                      ? 'text-brand-700'
                       : 'text-gray-500'
                   }`}
                   fill='none'
@@ -708,7 +708,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 onClick={() => {
                   window.location.href = "/#services";
                 }}
-                className='flex-1 bg-[hsl(25,100%,53%)] text-white py-3 px-4 rounded-md font-medium hover:bg-[hsl(25,100%,45%)] transition-colors'
+                className='flex-1 bg-brand-600 text-white py-3 px-4 rounded-md font-medium hover:bg-brand-700 transition-colors'
               >
                 Voir d&apos;autres prestataires
               </button>
@@ -741,7 +741,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 onClick={() => setValue('hasConsultedBefore', true)}
                 className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${
                   watchedValues['hasConsultedBefore'] === true
-                    ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] text-[hsl(25,100%,35%)]'
+                    ? 'border-brand-600 bg-brand-50 text-brand-800'
                     : 'border-gray-300 text-gray-700 hover:border-gray-400'
                 }`}
               >
@@ -752,7 +752,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 onClick={() => setValue('hasConsultedBefore', false)}
                 className={`px-4 py-2 rounded-md border text-sm font-medium transition-colors ${
                   watchedValues['hasConsultedBefore'] === false
-                    ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)] text-[hsl(25,100%,35%)]'
+                    ? 'border-brand-600 bg-brand-50 text-brand-800'
                     : 'border-gray-300 text-gray-700 hover:border-gray-400'
                 }`}
               >
@@ -785,14 +785,14 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               className={`flex flex-col items-center justify-center p-6 border rounded-lg transition-colors
                 ${
                   watchedValues['consultationMode'] === 'video'
-                    ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]'
+                    ? 'border-brand-600 bg-brand-50'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
             >
               <svg
                 className={`w-8 h-8 mb-2 ${
                   watchedValues['consultationMode'] === 'video'
-                    ? 'text-[hsl(25,100%,53%)]'
+                    ? 'text-brand-700'
                     : 'text-gray-500'
                 }`}
                 fill='none'
@@ -819,14 +819,14 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
             className={`flex flex-col items-center justify-center p-6 border rounded-lg transition-colors
               ${
                 watchedValues['consultationMode'] === 'cabinet'
-                  ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]'
+                  ? 'border-brand-600 bg-brand-50'
                   : 'border-gray-300 hover:border-gray-400'
               }`}
           >
             <svg
               className={`w-8 h-8 mb-2 ${
                 watchedValues['consultationMode'] === 'cabinet'
-                  ? 'text-[hsl(25,100%,53%)]'
+                  ? 'text-brand-700'
                   : 'text-gray-500'
               }`}
               fill='none'
@@ -905,7 +905,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                         shouldValidate: true,
                       })
                     }
-                    className={`px-3 py-2 rounded-md border text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    className={`px-3 py-2 rounded-md border text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                       selected
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
                         : 'border-gray-200 hover:bg-gray-50'
@@ -915,7 +915,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                     <span className='font-medium'>
                       {slot.start.slice(11, 16)}
                     </span>
-                    <span className='mx-1 text-gray-400'>–</span>
+                    <span className='mx-1 text-gray-500'>–</span>
                     <span>{slot.end.slice(11, 16)}</span>
                   </button>
                 );
@@ -953,14 +953,14 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 onClick={() => setValue('consultationMode', 'video')}
                 className={`flex flex-col items-center justify-center p-6 border rounded-lg transition-colors ${
                   watchedValues['consultationMode'] === 'video'
-                    ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]'
+                    ? 'border-brand-600 bg-brand-50'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
                 <svg
                   className={`w-8 h-8 mb-2 ${
                     watchedValues['consultationMode'] === 'video'
-                      ? 'text-[hsl(25,100%,53%)]'
+                      ? 'text-brand-700'
                       : 'text-gray-500'
                   }`}
                   fill='none'
@@ -986,14 +986,14 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               onClick={() => setValue('consultationMode', 'cabinet')}
               className={`flex flex-col items-center justify-center p-6 border rounded-lg transition-colors ${
                 watchedValues['consultationMode'] === 'cabinet'
-                  ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]'
+                  ? 'border-brand-600 bg-brand-50'
                   : 'border-gray-300 hover:border-gray-400'
               }`}
             >
               <svg
                 className={`w-8 h-8 mb-2 ${
                   watchedValues['consultationMode'] === 'cabinet'
-                    ? 'text-[hsl(25,100%,53%)]'
+                    ? 'text-brand-700'
                     : 'text-gray-500'
                 }`}
                 fill='none'
@@ -1033,7 +1033,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
             <div className='flex items-center'>
               <svg
-                className='w-5 h-5 text-blue-600 mr-3'
+                className='w-5 h-5 text-brand-700 mr-3'
                 fill='none'
                 stroke='currentColor'
                 viewBox='0 0 24 24'
@@ -1045,7 +1045,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                   d='M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'
                 />
               </svg>
-              <span className='text-sm font-medium text-blue-900'>
+              <span className='text-sm font-medium text-brand-900'>
                 Consultation vidéo sélectionnée
               </span>
             </div>
@@ -1090,7 +1090,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 className={`flex items-center justify-between p-4 border rounded-lg transition-colors
                   ${
                     watchedValues['selectedService']?.name === serviceName
-                      ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]'
+                      ? 'border-brand-600 bg-brand-50'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
               >
@@ -1140,7 +1140,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 className={`p-4 rounded-lg border-2 transition-all duration-200 ${
                   watchedValues['selectedService']?.id ===
                   (parseInt(service.id) || index)
-                    ? 'border-[hsl(25,100%,53%)] bg-[hsl(25,100%,95%)]'
+                    ? 'border-brand-600 bg-brand-50'
                     : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
               >
@@ -1165,7 +1165,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
             <p className='text-gray-500'>
               Aucun service spécifique disponible pour ce prestataire.
             </p>
-            <p className='text-sm text-gray-400 mt-2'>
+            <p className='text-sm text-gray-500 mt-2'>
               Vous pourrez préciser votre motif lors de la consultation.
             </p>
           </div>
@@ -1438,7 +1438,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               type='checkbox'
               checked={kycConsent}
               onChange={e => setKycConsent(e.target.checked)}
-              className='mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500'
+              className='mt-1 w-4 h-4 text-brand-700 rounded focus-visible:ring-brand-600'
             />
             <span className='text-sm text-gray-700'>
               J&apos;ai lu et j&apos;accepte toutes les consignes ci-dessus. Je
@@ -1524,7 +1524,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
       <div className='pt-4'>
         <button
           type='button'
-          className='text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,45%)] text-sm font-medium flex items-center'
+          className='text-brand-700 hover:text-brand-800 text-sm font-medium flex items-center'
         >
           <span className='mr-2'>+</span>
           Ajouter une autre adresse
@@ -1537,7 +1537,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           <input
             type='checkbox'
             {...register('isBillingDefault')}
-            className='rounded border-gray-300 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)]'
+            className='rounded border-gray-300 text-brand-700 focus-visible:ring-brand-600'
           />
           <span className='text-sm text-gray-700'>
             Utiliser cette adresse comme adresse par défaut de facturation
@@ -1547,7 +1547,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
 
       {/* Note pour l'API GeoLocation */}
       <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
-        <p className='text-sm text-blue-800'>
+        <p className='text-sm text-brand-800'>
           <strong>Note :</strong> À l&apos;avenir, vous pourrez remplir
           automatiquement ces informations grâce à l&apos;API GeoLocation.
         </p>
@@ -1571,12 +1571,12 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
 
           <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6'>
             <div className='flex items-start'>
-              <Lock className='w-5 h-5 text-blue-600 mt-0.5 mr-3' />
+              <Lock className='w-5 h-5 text-brand-700 mt-0.5 mr-3' />
               <div>
-                <h4 className='text-sm font-medium text-blue-900 mb-1'>
+                <h4 className='text-sm font-medium text-brand-900 mb-1'>
                   Vos informations sont sauvegardées
                 </h4>
-                <p className='text-sm text-blue-800'>
+                <p className='text-sm text-brand-800'>
                   Toutes les informations que vous avez saisies seront
                   conservées et pré-remplies lors de votre inscription ou
                   connexion.
@@ -1588,7 +1588,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           <div className='space-y-3'>
             <button
               type='button'
-              className='w-full bg-[hsl(25,100%,53%)] text-white py-3 px-4 rounded-md font-medium hover:bg-[hsl(25,100%,45%)] transition-colors'
+              className='w-full bg-brand-600 text-white py-3 px-4 rounded-md font-medium hover:bg-brand-700 transition-colors'
               onClick={() => {
                 const formData = {
                   requester: watchedValues['requester'],
@@ -1618,7 +1618,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
 
             <button
               type='button'
-              className='w-full bg-white border border-[hsl(25,100%,53%)] text-[hsl(25,100%,53%)] py-3 px-4 rounded-md font-medium hover:bg-[hsl(25,100%,53%)] hover:text-white transition-colors'
+              className='w-full bg-white border border-brand-600 text-brand-700 py-3 px-4 rounded-md font-medium hover:bg-brand-700 hover:text-white transition-colors'
               onClick={() => {
                 // Sauvegarder les données du formulaire
                 const formData = {
@@ -1800,7 +1800,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
               </div>
               <div className='border-t pt-2 flex justify-between font-semibold'>
                 <span>Total:</span>
-                <span className='text-[hsl(25,100%,53%)]'>
+                <span className='text-brand-700'>
                   {(() => {
                     // Calculer le prix de base selon le mode de consultation
                     let basePrice = 0;
@@ -1848,20 +1848,20 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                   <AlertCircle className='w-5 h-5 text-red-600 mr-2' />
                 )}
                 {paymentStatus === 'validating' && (
-                  <div className='w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2' />
+                  <div className='w-5 h-5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mr-2' />
                 )}
                 {paymentStatus === 'processing' && (
-                  <div className='w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2' />
+                  <div className='w-5 h-5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin mr-2' />
                 )}
 
                 <div>
                   {paymentStatus === 'validating' && (
-                    <p className='text-sm font-medium text-blue-900'>
+                    <p className='text-sm font-medium text-brand-900'>
                       Validation de votre carte en cours...
                     </p>
                   )}
                   {paymentStatus === 'processing' && (
-                    <p className='text-sm font-medium text-blue-900'>
+                    <p className='text-sm font-medium text-brand-900'>
                       Traitement du paiement en cours...
                     </p>
                   )}
@@ -1890,8 +1890,8 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
           {/* Sécurité */}
           <div className='bg-blue-50 border border-blue-200 rounded-lg p-3'>
             <div className='flex items-center'>
-              <Lock className='w-4 h-4 text-blue-600 mr-2' />
-              <p className='text-xs text-blue-800'>
+              <Lock className='w-4 h-4 text-brand-700 mr-2' />
+              <p className='text-xs text-brand-800'>
                 <strong>Sécurisé par Stripe</strong> - Vos informations de
                 paiement sont chiffrées et ne sont jamais stockées sur nos
                 serveurs.
@@ -2021,7 +2021,7 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
         <button
           title='Fermer'
           onClick={onClose}
-          className='text-gray-400 hover:text-gray-600'
+          className='text-gray-500 hover:text-gray-600'
           type='button'
         >
           <svg

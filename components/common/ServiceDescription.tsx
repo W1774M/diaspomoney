@@ -46,7 +46,7 @@ export function ServiceDescription({
           a: ({ children, href }) => (
             <a
               href={href}
-              className="font-medium text-[hsl(25,100%,45%)] underline decoration-1 underline-offset-2 hover:text-[hsl(25,100%,38%)]"
+              className="font-medium text-brand-800 underline decoration-1 underline-offset-2 hover:text-brand-800"
               target="_blank"
               rel="noopener noreferrer"
             >

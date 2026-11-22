@@ -246,8 +246,8 @@ export const ModalSelectService = ({
         ];
       if (validation === null) return 'border-gray-300';
       return validation
-        ? 'border-green-300 focus:ring-green-400 focus:border-green-400'
-        : 'border-red-300 focus:ring-red-400 focus:border-red-400';
+        ? 'border-green-300 focus-visible:ring-green-400 focus:border-green-400'
+        : 'border-red-300 focus-visible:ring-red-400 focus:border-red-400';
     },
     [fieldValidations],
   );
@@ -287,13 +287,13 @@ export const ModalSelectService = ({
         {/* Header */}
         <div className='flex items-center justify-between p-4 border-b border-gray-200'>
           <h2 className='text-xl font-bold text-gray-800 flex items-center gap-2'>
-            <div className='w-2 h-2 bg-blue-500 rounded-full'></div>
+            <div className='w-2 h-2 bg-brand-600 rounded-full'></div>
             {currentStep === 'timeslot' && 'Choisir un créneau'}
             {currentStep === 'service' && 'Choisir un service'}
             {currentStep === 'details' && 'Détails de la réservation'}
           </h2>
           <button
-            className='text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none transition-colors duration-200 cursor-pointer'
+            className='text-gray-500 hover:text-gray-700 text-2xl font-bold focus-visible:outline-none transition-colors duration-200 cursor-pointer'
             onClick={handleClose}
             aria-label='Fermer'
           >
@@ -395,10 +395,10 @@ export const ModalSelectService = ({
             <>
               {/* Résumé de la sélection */}
               <div className='bg-blue-50 p-4 rounded-lg border border-blue-200'>
-                <h3 className='font-semibold text-blue-800 mb-3'>
+                <h3 className='font-semibold text-brand-800 mb-3'>
                   Résumé de votre sélection
                 </h3>
-                <div className='space-y-2 text-sm text-blue-700'>
+                <div className='space-y-2 text-sm text-brand-800'>
                   <div className='flex justify-between'>
                     <span>Créneau :</span>
                     <span>
@@ -447,7 +447,7 @@ export const ModalSelectService = ({
                   appointment.requester?.lastName ||
                   appointment.requester?.email) && (
                   <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4'>
-                    <p className='text-sm text-blue-700'>
+                    <p className='text-sm text-brand-800'>
                       <span className='font-medium'>💡</span> Vos informations
                       de profil ont été automatiquement remplies. Vous pouvez
                       les modifier si nécessaire.
@@ -457,16 +457,16 @@ export const ModalSelectService = ({
 
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
-                    <label className='block text-sm font-medium text-gray-600 mb-1'>
+                    <label htmlFor='modals-requester-last-name' className='block text-sm font-medium text-gray-600 mb-1'>
                       Nom *
                     </label>
                     <div className='relative'>
-                      <input
+                      <input id='modals-requester-last-name'
                         type='text'
                         name='requester.lastName'
                         value={appointment.requester?.lastName}
                         onChange={handleChange}
-                        className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
+                        className={`w-full border rounded-lg px-3 py-2 pr-8 focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 outline-none transition-all duration-200 ${getFieldClassName(
                           'requester',
                           'lastName',
                         )}`}
@@ -484,16 +484,16 @@ export const ModalSelectService = ({
                   </div>
 
                   <div>
-                    <label className='block text-sm font-medium text-gray-600 mb-1'>
+                    <label htmlFor='modals-requester-first-name' className='block text-sm font-medium text-gray-600 mb-1'>
                       Prénom *
                     </label>
                     <div className='relative'>
-                      <input
+                      <input id='modals-requester-first-name'
                         type='text'
                         name='requester.firstName'
                         value={appointment.requester?.firstName}
                         onChange={handleChange}
-                        className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
+                        className={`w-full border rounded-lg px-3 py-2 pr-8 focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 outline-none transition-all duration-200 ${getFieldClassName(
                           'requester',
                           'firstName',
                         )}`}
@@ -529,7 +529,7 @@ export const ModalSelectService = ({
                           });
                         }}
                         className="w-full"
-                        inputClassName={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
+                        inputClassName={`w-full border rounded-lg px-3 py-2 pr-8 focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 outline-none transition-all duration-200 ${getFieldClassName(
                           'requester',
                           'phone',
                         )}`}
@@ -547,16 +547,16 @@ export const ModalSelectService = ({
                   </div>
 
                   <div>
-                    <label className='block text-sm font-medium text-gray-600 mb-1'>
+                    <label htmlFor='modals-requester-email' className='block text-sm font-medium text-gray-600 mb-1'>
                       Email *
                     </label>
                     <div className='relative'>
-                      <input
+                      <input id='modals-requester-email'
                         type='email'
                         name='requester.email'
                         value={appointment.requester?.email}
                         onChange={handleChange}
-                        className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
+                        className={`w-full border rounded-lg px-3 py-2 pr-8 focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 outline-none transition-all duration-200 ${getFieldClassName(
                           'requester',
                           'email',
                         )}`}
@@ -583,16 +583,16 @@ export const ModalSelectService = ({
 
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div>
-                    <label className='block text-sm font-medium text-gray-600 mb-1'>
+                    <label htmlFor='modals-recipient-last-name' className='block text-sm font-medium text-gray-600 mb-1'>
                       Nom *
                     </label>
                     <div className='relative'>
-                      <input
+                      <input id='modals-recipient-last-name'
                         type='text'
                         name='recipient.lastName'
                         value={appointment.recipient?.lastName}
                         onChange={handleChange}
-                        className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
+                        className={`w-full border rounded-lg px-3 py-2 pr-8 focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 outline-none transition-all duration-200 ${getFieldClassName(
                           'recipient',
                           'lastName',
                         )}`}
@@ -610,16 +610,16 @@ export const ModalSelectService = ({
                   </div>
 
                   <div>
-                    <label className='block text-sm font-medium text-gray-600 mb-1'>
+                    <label htmlFor='modals-recipient-first-name' className='block text-sm font-medium text-gray-600 mb-1'>
                       Prénom *
                     </label>
                     <div className='relative'>
-                      <input
+                      <input id='modals-recipient-first-name'
                         type='text'
                         name='recipient.firstName'
                         value={appointment.recipient?.firstName}
                         onChange={handleChange}
-                        className={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
+                        className={`w-full border rounded-lg px-3 py-2 pr-8 focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 outline-none transition-all duration-200 ${getFieldClassName(
                           'recipient',
                           'firstName',
                         )}`}
@@ -655,7 +655,7 @@ export const ModalSelectService = ({
                           });
                         }}
                         className="w-full"
-                        inputClassName={`w-full border rounded-lg px-3 py-2 pr-8 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 ${getFieldClassName(
+                        inputClassName={`w-full border rounded-lg px-3 py-2 pr-8 focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 outline-none transition-all duration-200 ${getFieldClassName(
                           'recipient',
                           'phone',
                         )}`}
@@ -679,10 +679,10 @@ export const ModalSelectService = ({
           {/* Résumé */}
           {appointment.selectedService && (
             <div className='bg-blue-50 p-4 rounded-lg border border-blue-200'>
-              <h4 className='font-semibold text-blue-800 mb-2'>
+              <h4 className='font-semibold text-brand-800 mb-2'>
                 Résumé de votre sélection
               </h4>
-              <div className='space-y-1 text-sm text-blue-700'>
+              <div className='space-y-1 text-sm text-brand-800'>
                 <div className='flex justify-between'>
                   <span>Service :</span>
                   <span>{appointment.selectedService?.name}</span>
@@ -712,7 +712,7 @@ export const ModalSelectService = ({
           </button>
           {currentStep === 'details' && (
             <button
-              className='px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium shadow-sm transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer'
+              className='px-6 py-2 rounded-lg bg-brand-600 text-white hover:bg-brand-700 font-medium shadow-sm transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer'
               onClick={handleSubmit}
               disabled={!isFormValid}
             >

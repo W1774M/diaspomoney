@@ -41,7 +41,7 @@ const UsersTable = React.memo<UsersTableProps>(function UsersTable({
   if (users.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="text-gray-400 mb-4">
+        <div className="text-gray-500 mb-4">
           <svg
             className="w-12 h-12 mx-auto"
             fill="none"

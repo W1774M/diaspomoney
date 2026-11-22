@@ -22,7 +22,7 @@ const BookingsHeader = React.memo<BookingsHeaderProps>(function BookingsHeader({
         <AuthorizedContent roles={[ROLES.ADMIN, ROLES.CSM]}>
           <Link
             href="/dashboard/bookings/new"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors"
           >
             <Plus className="h-4 w-4 mr-2" />
             Nouvelle réservation

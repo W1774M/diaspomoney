@@ -62,7 +62,7 @@ export default function NewProviderPage() {
         <div className='flex items-center justify-between mb-4'>
           <Link
             href='/dashboard/users'
-            className='flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+            className='flex items-center text-brand-700 hover:text-brand-800'
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Retour aux utilisateurs
@@ -87,10 +87,10 @@ export default function NewProviderPage() {
             </h2>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                <label htmlFor='new-first-name' className='block text-sm font-medium text-gray-700 mb-1'>
                   Nom complet *
                 </label>
-                <input
+                <input id='new-first-name'
                   type='text'
                   name='firstName'
                   value={formData.firstName}
@@ -100,7 +100,7 @@ export default function NewProviderPage() {
                       firstName: e.target.value,
                     }))
                   }
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   placeholder='Nom et prénom'
                   required
                 />
@@ -114,16 +114,16 @@ export default function NewProviderPage() {
                       lastName: e.target.value,
                     }))
                   }
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   placeholder='Nom et prénom'
                   required
                 />
               </div>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                <label htmlFor='new-email' className='block text-sm font-medium text-gray-700 mb-1'>
                   Email *
                 </label>
-                <input
+                <input id='new-email'
                   type='email'
                   name='email'
                   value={formData.email}
@@ -134,7 +134,7 @@ export default function NewProviderPage() {
                     }))
                   }
                   required
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   placeholder='email@exemple.com'
                 />
               </div>
@@ -152,14 +152,14 @@ export default function NewProviderPage() {
                     }))
                   }
                   className="w-full"
-                  inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                <label htmlFor='new-company' className='block text-sm font-medium text-gray-700 mb-1'>
                   Entreprise
                 </label>
-                <input
+                <input id='new-company'
                   type='text'
                   name='company'
                   onChange={e =>
@@ -168,7 +168,7 @@ export default function NewProviderPage() {
                       company: e.target.value,
                     }))
                   }
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   placeholder="Nom de l'entreprise"
                 />
               </div>
@@ -182,10 +182,10 @@ export default function NewProviderPage() {
               Adresse
             </h2>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
+              <label htmlFor='new-address' className='block text-sm font-medium text-gray-700 mb-1'>
                 Adresse complète
               </label>
-              <textarea
+              <textarea id='new-address'
                 name='address'
                 onChange={e =>
                   setFormData((prev: any) => ({
@@ -194,7 +194,7 @@ export default function NewProviderPage() {
                   }))
                 }
                 rows={3}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 placeholder='Adresse complète'
               />
             </div>
@@ -208,10 +208,10 @@ export default function NewProviderPage() {
             </h2>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                <label htmlFor='new-specialty' className='block text-sm font-medium text-gray-700 mb-1'>
                   Spécialité *
                 </label>
-                <input
+                <input id='new-specialty'
                   type='text'
                   name='specialty'
                   onChange={e =>
@@ -221,7 +221,7 @@ export default function NewProviderPage() {
                     }))
                   }
                   required
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                   placeholder='Ex: Cardiologie, Rénovation, Transport'
                 />
               </div>
@@ -237,7 +237,7 @@ export default function NewProviderPage() {
                     }))
                   }
                   checked={Boolean(formData['recommended'])}
-                  className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded'
+                  className='h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded'
                 />
                 <label className='ml-2 block text-sm text-gray-900'>
                   Prestataire recommandé
@@ -257,7 +257,7 @@ export default function NewProviderPage() {
             <button
               type='submit'
               disabled={loading}
-              className='px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center'
+              className='px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center'
             >
               {loading ? (
                 <>

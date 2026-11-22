@@ -95,13 +95,13 @@ function ProvidersPageContent() {
   };
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-dvh bg-gray-50'>
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
         {/* Header */}
         <div className='mb-8'>
           <div className='flex items-center justify-between mb-4'>
             <div className='flex items-center'>
-              <User className='h-8 w-8 text-[hsl(25,100%,53%)] mr-3' />
+              <User className='h-8 w-8 text-brand-700 mr-3' />
               <div>
                 <h1 className='text-3xl font-bold text-gray-900'>Gestion des Prestataires</h1>
                 <p className='text-gray-600 mt-1'>
@@ -112,7 +112,7 @@ function ProvidersPageContent() {
             <AuthorizedContent roles={[ROLES.CSM, ROLES.ADMIN]}>
               <Link
                 href='/dashboard/providers/new'
-                className='inline-flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors'
+                className='inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
               >
                 <Plus className='h-5 w-5 mr-2' />
                 Nouveau prestataire
@@ -126,13 +126,13 @@ function ProvidersPageContent() {
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
             {/* Recherche */}
             <div className='relative'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400' />
+              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500' />
               <input
                 type='text'
                 placeholder='Rechercher...'
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               />
             </div>
 
@@ -144,7 +144,7 @@ function ProvidersPageContent() {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className='px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             >
               <option value=''>Tous les statuts</option>
               <option value={USER_STATUSES.ACTIVE}>Actif</option>
@@ -161,7 +161,7 @@ function ProvidersPageContent() {
                 setCategoryFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className='px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             >
               <option value=''>Toutes les catégories</option>
               <option value='HEALTH'>Santé</option>
@@ -177,7 +177,7 @@ function ProvidersPageContent() {
                 setTypeFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className='px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             >
               <option value=''>Tous les types</option>
               <option value='INDIVIDUAL'>Individuel</option>
@@ -189,7 +189,7 @@ function ProvidersPageContent() {
         {/* Liste des providers */}
         {loading ? (
           <div className='bg-white rounded-lg shadow border border-gray-200 p-12 text-center'>
-            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
+            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto'></div>
             <p className='mt-4 text-gray-600'>Chargement des prestataires...</p>
           </div>
         ) : error ? (
@@ -197,14 +197,14 @@ function ProvidersPageContent() {
             <p className='text-red-600'>{error}</p>
             <button
               onClick={() => refetch()}
-              className='mt-4 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors'
+              className='mt-4 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
             >
               Réessayer
             </button>
           </div>
         ) : filteredProviders.length === 0 ? (
           <div className='bg-white rounded-lg shadow border border-gray-200 p-12 text-center'>
-            <User className='h-16 w-16 text-gray-400 mx-auto mb-4' />
+            <User className='h-16 w-16 text-gray-500 mx-auto mb-4' />
             <h3 className='text-lg font-medium text-gray-900 mb-2'>
               Aucun prestataire trouvé
             </h3>
@@ -216,7 +216,7 @@ function ProvidersPageContent() {
             <AuthorizedContent roles={[ROLES.CSM, ROLES.ADMIN]}>
               <Link
                 href='/dashboard/providers/new'
-                className='inline-flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors'
+                className='inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
               >
                 <Plus className='h-5 w-5 mr-2' />
                 Ajouter un prestataire
@@ -226,23 +226,24 @@ function ProvidersPageContent() {
         ) : (
           <>
             <div className='bg-white rounded-lg shadow border border-gray-200 overflow-hidden'>
-              <div className='overflow-x-auto'>
+              <div tabIndex={0} role='region' aria-labelledby='table-providers-1' className='overflow-x-auto'>
                 <table className='min-w-full divide-y divide-gray-200'>
+<caption id='table-providers-1' className='visually-hidden'>Liste des prestataires</caption>
                   <thead className='bg-gray-50'>
                     <tr>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                         Prestataire
                       </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                         Type / Catégorie
                       </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                         Contact
                       </th>
-                      <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                         Statut
                       </th>
-                      <th className='px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      <th scope='col' className='px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider'>
                         Actions
                       </th>
                     </tr>
@@ -254,7 +255,7 @@ function ProvidersPageContent() {
                         <tr key={provider.id || provider._id} className='hover:bg-gray-50'>
                           <td className='px-6 py-4 whitespace-nowrap'>
                             <div className='flex items-center'>
-                              <div className='flex-shrink-0 h-10 w-10 rounded-full bg-[hsl(25,100%,53%)] flex items-center justify-center text-white font-semibold'>
+                              <div className='flex-shrink-0 h-10 w-10 rounded-full bg-brand-600 flex items-center justify-center text-white font-semibold'>
                                 {getProviderName(provider)
                                   .split(' ')
                                   .map((n: string) => n.charAt(0))
@@ -276,7 +277,7 @@ function ProvidersPageContent() {
                           </td>
                           <td className='px-6 py-4 whitespace-nowrap'>
                             <div className='flex items-center text-sm text-gray-900'>
-                              {CategoryIcon && <CategoryIcon className='h-4 w-4 mr-2 text-gray-400' />}
+                              {CategoryIcon && <CategoryIcon className='h-4 w-4 mr-2 text-gray-500' />}
                               <div>
                                 <div className='font-medium'>
                                   {provider.providerInfo?.type === 'INDIVIDUAL' ? 'Individuel' : 'Institution'}
@@ -290,7 +291,7 @@ function ProvidersPageContent() {
                           <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
                             <div>{provider.email}</div>
                             {provider.phone && (
-                              <div className='text-xs text-gray-400'>{provider.phone}</div>
+                              <div className='text-xs text-gray-500'>{provider.phone}</div>
                             )}
                           </td>
                           <td className='px-6 py-4 whitespace-nowrap'>
@@ -305,7 +306,7 @@ function ProvidersPageContent() {
                           <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium'>
                             <Link
                               href={`/dashboard/providers/${provider.id || provider._id}`}
-                              className='text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,48%)] mr-4'
+                              className='text-brand-700 hover:text-brand-800 mr-4'
                             >
                               Voir
                             </Link>

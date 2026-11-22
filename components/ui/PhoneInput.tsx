@@ -142,7 +142,7 @@ const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
             <button
               type="button"
               onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center gap-2 px-3 py-2 border border-r-0 border-input bg-background text-sm font-medium rounded-l-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="flex items-center gap-2 px-3 py-2 border border-r-0 border-input bg-background text-sm font-medium rounded-l-md hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <span className="text-lg">{selectedCountry.flag}</span>
               <span className="hidden sm:inline">{selectedCountry.code}</span>
@@ -173,7 +173,7 @@ const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
                   key={country.code}
                   type="button"
                   onClick={() => handleCountrySelect(country)}
-                  className="flex items-center gap-3 w-full px-3 py-2 text-left hover:bg-muted focus:bg-muted focus:outline-none"
+                  className="flex items-center gap-3 w-full px-3 py-2 text-left hover:bg-muted focus:bg-muted focus-visible:outline-none"
                 >
                   <span className="text-lg">{country.flag}</span>
                   <span className="font-medium">{country.code}</span>
