@@ -1,4 +1,5 @@
 import { auth } from '@/auth';
+import dbConnect from '@/lib/mongodb';
 ;
 
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
@@ -9,6 +10,8 @@ import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
+  // Connexion Mongoose ouverte avant tout modèle (sinon requête bloquée 10 s puis 500 après un redémarrage).
+  await dbConnect();
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -113,6 +116,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Connexion Mongoose ouverte avant tout modèle (sinon requête bloquée 10 s puis 500 après un redémarrage).
+  await dbConnect();
   return handleApiRoute(request, async () => {
     const session = await auth();
     if (!session?.user?.id) {
