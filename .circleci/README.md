@@ -1,31 +1,23 @@
 # CircleCI
 
-CircleCI sert uniquement à valider le code : installation, lint, TypeScript, tests, couverture et build.
+CircleCI valide le code **et** déploie les trois environnements sur le serveur (Docker Compose, via `scripts/server/ci-deploy.sh`). Parcours complet, protection des branches et configuration à faire une fois : [`docs/exploitation/ci-cd.md`](../docs/exploitation/ci-cd.md).
 
-Le déploiement runtime n'est plus géré par CircleCI. Il est opéré sur le serveur avec Docker Compose et Portainer :
+## Fichiers
 
-```bash
-pnpm deploy:dev
-pnpm deploy:rct
-pnpm deploy:prod
-```
-
-## Workflows
-
-- `ci-cd` : un seul workflow. Toutes les branches sauf `main` : `tests` (lint, types, tests + couverture), `build`, `e2e`. Ensuite, selon la branche : déploiement dev, rct (avec validation) ou prod. Détail complet : `docs/ci-cd.md`.
+| Fichier | Rôle |
+| --- | --- |
+| `config.yml` | Workflow `ci-cd` : `tests` (lint, types, tests + couverture), `build`, `e2e` sur `dev` ; contrôles de promotion et déploiements dev, rct, prod |
+| `deploy.yml` | Pipeline `deploy` : redéploie une version choisie dans l'écran Deploys |
+| `rollback.yml` | Pipeline `rollback` : redéploie une version précédente, sans validation |
 
 ## Artifacts
 
-CircleCI publie :
-
-- `test-results`
-- `playwright-report`
+- `test-results` (JUnit, onglet Tests)
 - `coverage`
-- `.next`
+- `playwright-report`
 
 ## Dépannage
 
-Si le pipeline ne démarre pas, vérifier que CircleCI a accès au repository et que `.circleci/config.yml` est valide.
-
-Si les tests MongoDB échouent, vérifier que Docker est disponible dans le job et que le port `27018` n'est pas déjà utilisé.
-
+- Le pipeline ne démarre pas : vérifier que CircleCI a accès au dépôt et que `config.yml` est valide (`circleci config validate`).
+- Les tests MongoDB échouent : vérifier que le conteneur MongoDB du job a démarré (étape « Attente de MongoDB »).
+- Un job de promotion (`promotion-depuis-dev`, `promotion-depuis-rct`) échoue : la PR a été fusionnée autrement qu'en « Create a merge commit », ou le code diffère du commit testé.

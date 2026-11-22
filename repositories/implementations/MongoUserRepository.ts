@@ -41,7 +41,7 @@ export class MongoUserRepository implements IUserRepository {
 
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   // Pas de @Cacheable sur ce dépôt : les documents contiennent le hash du mot de passe et les
-  // secrets 2FA, qui ne doivent pas être copiés dans Redis (voir docs/cache-redis.md).
+  // secrets 2FA, qui ne doivent pas être copiés dans Redis (voir docs/architecture/cache-redis.md).
   async findById(id: string): Promise<User | null> {
     try {
       const collection = await this.getCollection();
