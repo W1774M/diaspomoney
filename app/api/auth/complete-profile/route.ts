@@ -5,6 +5,7 @@ import { CompleteProfileSchema, type CompleteProfileInput } from '@/lib/validati
 import { getUserRepository } from '@/repositories';
 import { getMongoClient } from '@/lib/database/mongodb';
 import { NextRequest } from 'next/server';
+import { invalidateAppCache } from '@/lib/cache/redis';
 
 /**
  * POST /api/auth/complete-profile - Compléter le profil utilisateur
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
       { email },
       { $set: updateData }
     );
+    await invalidateAppCache('UserRepository'); // écriture hors dépôt : vider le cache
 
     if (result.matchedCount === 0) {
       logger.error({ email }, 'User not found for profile completion');

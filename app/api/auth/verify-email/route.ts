@@ -12,6 +12,7 @@ import User from '@/models/User';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { invalidateAppCache } from '@/lib/cache/redis';
 
 export async function POST(request: NextRequest) {
   try {
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
     }
 
     await (User as any).findByIdAndUpdate(decoded.userId, updateData);
+    await invalidateAppCache('UserRepository'); // écriture hors dépôt : vider le cache
 
     // Enregistrer les métriques
     monitoringManager.recordMetric({

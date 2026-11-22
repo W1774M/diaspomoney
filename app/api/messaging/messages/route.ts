@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
 import dbConnect from '@/lib/mongodb';
+import { invalidateAppCache } from '@/lib/cache/redis';
 ;
 
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
@@ -87,6 +88,7 @@ export async function GET(request: NextRequest) {
         readAt: new Date(),
       },
     );
+    await invalidateAppCache('ConversationRepository'); // écriture hors dépôt : vider le cache
 
     // Réinitialiser le compteur de messages non lus
     // NOTE: Since we retrieved with .lean(), update with model
@@ -94,6 +96,7 @@ export async function GET(request: NextRequest) {
       { _id: new mongoose.Types.ObjectId(conversationId) },
       { $set: { [`unreadCount.${userId}`]: 0 } },
     );
+    await invalidateAppCache('ConversationRepository'); // écriture hors dépôt : vider le cache
 
     return NextResponse.json({
       success: true,

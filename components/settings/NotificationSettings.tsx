@@ -77,11 +77,6 @@ function NotificationSettingsComponent({ data, setData, onSave, saving }: Notifi
         description: "Rappels liés aux réservations/rendez-vous",
       },
       {
-        type: "LOGIN_SUCCESS",
-        label: "Connexion réussie",
-        description: "Email de sécurité après connexion",
-      },
-      {
         type: "WELCOME_EMAIL",
         label: "Bienvenue",
         description: "Email de bienvenue lors de la création du compte",
