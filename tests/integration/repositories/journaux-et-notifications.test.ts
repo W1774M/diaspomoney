@@ -46,7 +46,7 @@ describe('MongoAuditLogRepository', () => {
     expect((await repo.searchAuditLogs({ dateFrom: ago(DAY), dateTo: new Date() } as never)).total).toBe(3);
     expect((await repo.searchAuditLogs({ dateTo: ago(DAY) } as never)).total).toBe(1);
 
-    const page2 = await repo.searchAuditLogs({} as never, { limit: 2, offset: 2 });
+    const page2 = await repo.searchAuditLogs({} as never, { limit: 2, offset: 2, page: 2 });
     expect(page2.data).toHaveLength(2);
     expect(page2.pagination).toMatchObject({ page: 2, limit: 2, pages: 2, total: 4, hasNext: false, hasPrev: true });
   });
@@ -56,8 +56,8 @@ describe('MongoAuditLogRepository', () => {
     expect((await repo.findByUserId('u1')).total).toBe(2);
     expect((await repo.findByAction('PAYMENT')).total).toBe(1);
     expect((await repo.findByCategory('AUTHENTICATION')).total).toBe(3);
-    expect((await repo.findBySeverity('LOW', { limit: 1 })).pagination).toMatchObject({ total: 2, hasNext: true });
-    expect((await repo.findWithPagination({}, { sort: { timestamp: 1 }, limit: 1 })).data[0]!.action).toBe('PAYMENT');
+    expect((await repo.findBySeverity('LOW', { limit: 1, page: 1 })).pagination).toMatchObject({ total: 2, hasNext: true });
+    expect((await repo.findWithPagination({}, { sort: { timestamp: 1 }, limit: 1, page: 1 })).data[0]!.action).toBe('PAYMENT');
   });
 
   it('calcule les statistiques de la période', async () => {
@@ -146,7 +146,7 @@ describe('MongoNotificationRepository', () => {
 
   it('pagine en respectant la taille de page demandée', async () => {
     for (let i = 0; i < 5; i++) await repo.create(notif({ subject: `n${i}` }));
-    const byOffset = await repo.findWithPagination({}, { limit: 2, offset: 2, sort: { createdAt: 1 } });
+    const byOffset = await repo.findWithPagination({}, { limit: 2, offset: 2, page: 2, sort: { createdAt: 1 } });
     expect(byOffset.data.map((n) => n.subject)).toEqual(['n2', 'n3']);
     expect(byOffset.pagination).toMatchObject({ limit: 2, pages: 3, hasNext: true, hasPrev: true });
 
