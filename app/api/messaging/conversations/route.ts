@@ -1,12 +1,14 @@
 import { auth } from '@/auth';
-
-;
-
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
 import { CreateConversationSchema, type CreateConversationInput } from '@/lib/validations/conversation.schema';
+import {
+  canUsersMessage,
+  isPersonToPersonConversation,
+} from '@/lib/messaging/conversation-policy';
 import dbConnect from '@/lib/mongodb';
 import Conversation from '@/models/Conversation';
 import Message from '@/models/Message';
+import User from '@/models/User';
 import mongoose from 'mongoose';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -21,6 +23,7 @@ export async function GET(_request: NextRequest) {
     await dbConnect();
 
     const userId = session.user.id;
+    const sessionRoles = ((session.user as any).roles || []) as string[];
 
     // Récupérer toutes les conversations où l'utilisateur est participant
     const conversations = await (Conversation as any)
@@ -35,12 +38,29 @@ export async function GET(_request: NextRequest) {
     // Transformer les conversations pour l'UI
     const uiConversations = await Promise.all(
       conversations.map(async (conv: any) => {
+        // Messagerie interne = échanges entre personnes uniquement
+        // (jamais de notification système ni de ticket support ici).
+        if (!isPersonToPersonConversation(conv)) return null;
+
+        // Participant supprimé : populate renvoie null
+        const participants = (conv.participants || []).filter(Boolean);
+
         // Trouver l'autre participant
-        const otherParticipant = conv.participants.find(
+        const otherParticipant = participants.find(
           (p: any) => p._id.toString() !== userId,
         );
 
         if (!otherParticipant) return null;
+
+        // Paire de rôles autorisée (ex. client ↔ prestataire, prestataire ↔ support)
+        const self = participants.find(
+          (p: any) => p._id.toString() === userId,
+        );
+        const selfRoles =
+          Array.isArray(self?.roles) && self.roles.length > 0
+            ? self.roles
+            : sessionRoles;
+        if (!canUsersMessage(selfRoles, otherParticipant.roles)) return null;
 
         // Récupérer le dernier message
         const lastMessage = await (Message as any)
@@ -126,6 +146,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'ID du participant requis' },
         { status: 400 },
+      );
+    }
+
+    if (participantId === userId) {
+      return NextResponse.json(
+        { error: 'Impossible de démarrer une conversation avec vous-même' },
+        { status: 400 },
+      );
+    }
+
+    // Vérifier que les deux personnes peuvent échanger (paires de rôles autorisées)
+    const [currentUser, recipient] = await Promise.all([
+      (User as any).findById(userId).select('roles status').lean(),
+      (User as any).findById(participantId).select('roles status').lean(),
+    ]);
+
+    if (!recipient) {
+      return NextResponse.json(
+        { error: 'Destinataire introuvable' },
+        { status: 404 },
+      );
+    }
+
+    const currentRoles =
+      Array.isArray(currentUser?.roles) && currentUser.roles.length > 0
+        ? currentUser.roles
+        : ((session.user as any).roles || []);
+
+    if (!canUsersMessage(currentRoles, recipient.roles)) {
+      return NextResponse.json(
+        {
+          error:
+            'Vous ne pouvez pas écrire à cet utilisateur depuis la messagerie interne',
+        },
+        { status: 403 },
       );
     }
 

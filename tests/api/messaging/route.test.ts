@@ -158,6 +158,19 @@ vi.mock('@/models/Message', () => {
   };
 });
 
+// Mock de User model (vérification des paires de rôles)
+const { mockUserFindById } = vi.hoisted(() => ({ mockUserFindById: vi.fn() }));
+
+vi.mock('@/models/User', () => ({
+  default: {
+    findById: (id: string) => ({
+      select: () => ({
+        lean: () => Promise.resolve(mockUserFindById(id)),
+      }),
+    }),
+  },
+}));
+
 // Mock de mongoose
 vi.mock('mongoose', () => ({
   default: {
@@ -187,9 +200,10 @@ describe('GET /api/messaging/conversations', () => {
     const mockConversations = [
       {
         _id: { toString: () => 'conv1' },
+        type: 'user',
         participants: [
-          { _id: { toString: () => 'user123' }, name: 'User 1' },
-          { _id: { toString: () => 'user456' }, name: 'User 2' },
+          { _id: { toString: () => 'user123' }, name: 'User 1', roles: ['CUSTOMER'] },
+          { _id: { toString: () => 'user456' }, name: 'User 2', roles: ['PROVIDER'] },
         ],
         lastMessageAt: new Date(),
       },
@@ -214,7 +228,56 @@ describe('GET /api/messaging/conversations', () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.conversations).toBeDefined();
+    expect(data.conversations).toHaveLength(1);
+    expect(data.conversations[0].participant.id).toBe('user456');
+  });
+
+  it('ne liste que les conversations entre personnes aux rôles compatibles', async () => {
+    const mockConversations = [
+      {
+        // client ↔ client : paire non autorisée
+        _id: { toString: () => 'conv-cc' },
+        type: 'user',
+        participants: [
+          { _id: { toString: () => 'user123' }, name: 'Moi', roles: ['CUSTOMER'] },
+          { _id: { toString: () => 'user789' }, name: 'Autre client', roles: ['CUSTOMER'] },
+        ],
+      },
+      {
+        // interlocuteur supprimé (populate → null)
+        _id: { toString: () => 'conv-deleted' },
+        type: 'user',
+        participants: [
+          { _id: { toString: () => 'user123' }, name: 'Moi', roles: ['CUSTOMER'] },
+          null,
+        ],
+      },
+      {
+        // client ↔ support : autorisé
+        _id: { toString: () => 'conv-support' },
+        type: 'user',
+        participants: [
+          { _id: { toString: () => 'user123' }, name: 'Moi', roles: ['CUSTOMER'] },
+          { _id: { toString: () => 'admin1' }, name: 'Support', roles: ['ADMIN'] },
+        ],
+      },
+    ];
+
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user123', roles: ['CUSTOMER'] },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+    mockConversationFind.mockReturnValueOnce(mockConversations);
+    mockMessageFindOne.mockReturnValue(null);
+    mockMessageCountDocuments.mockReturnValue(0);
+
+    const request = new NextRequest('http://localhost:3000/api/messaging/conversations');
+    const response = await GET_CONVERSATIONS(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.conversations.map((c: any) => c.id)).toEqual(['conv-support']);
   });
 
   it('devrait retourner 401 si non authentifié', async () => {
@@ -233,6 +296,68 @@ describe('GET /api/messaging/conversations', () => {
 describe('POST /api/messaging/conversations', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Par défaut : client (user123) ↔ prestataire (user456)
+    mockUserFindById.mockImplementation((id: string) =>
+      id === 'user123'
+        ? { _id: 'user123', roles: ['CUSTOMER'] }
+        : id === 'user456'
+          ? { _id: 'user456', roles: ['PROVIDER'] }
+          : id === 'user789'
+            ? { _id: 'user789', roles: ['CUSTOMER'] }
+            : null,
+    );
+  });
+
+  it('refuse (403) une conversation entre deux rôles non autorisés', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+
+    const request = new NextRequest('http://localhost:3000/api/messaging/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participantId: 'user789' }),
+    });
+
+    const response = await POST_CONVERSATIONS(request);
+    expect(response.status).toBe(403);
+    expect(mockConversationSave).not.toHaveBeenCalled();
+  });
+
+  it('retourne 404 si le destinataire est introuvable', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+
+    const request = new NextRequest('http://localhost:3000/api/messaging/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participantId: 'ghost' }),
+    });
+
+    const response = await POST_CONVERSATIONS(request);
+    expect(response.status).toBe(404);
+  });
+
+  it('refuse (400) une conversation avec soi-même', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user123' },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+
+    const request = new NextRequest('http://localhost:3000/api/messaging/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participantId: 'user123' }),
+    });
+
+    const response = await POST_CONVERSATIONS(request);
+    expect(response.status).toBe(400);
   });
 
   it('devrait créer une conversation avec succès', async () => {
