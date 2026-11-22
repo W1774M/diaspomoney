@@ -299,7 +299,7 @@ function PresenceCountriesContent() {
                   {editing ? (
                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                       <select
-                        aria-label="Préposition"
+                        aria-label={`Préposition pour ${country.name}`}
                         value={editValues.preposition}
                         onChange={(e) =>
                           setEditValues((v) => ({
@@ -316,7 +316,7 @@ function PresenceCountriesContent() {
                         ))}
                       </select>
                       <input
-                        aria-label="Nom affiché"
+                        aria-label={`Nom affiché pour ${country.name}`}
                         value={editValues.name}
                         onChange={(e) => setEditValues((v) => ({ ...v, name: e.target.value }))}
                         className={`${inputClass} max-w-xs`}
