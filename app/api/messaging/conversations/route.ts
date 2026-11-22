@@ -2,7 +2,7 @@ import { auth } from '@/auth';
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
 import { CreateConversationSchema, type CreateConversationInput } from '@/lib/validations/conversation.schema';
 import {
-  canUsersMessage,
+  canPartiesMessage,
   isPersonToPersonConversation,
 } from '@/lib/messaging/conversation-policy';
 import dbConnect from '@/lib/mongodb';
@@ -32,7 +32,7 @@ export async function GET(_request: NextRequest) {
         type: 'user',
       } as any)
       .sort({ lastMessageAt: -1 })
-      .populate('participants', 'name email avatar roles')
+      .populate('participants', 'name email avatar roles csmPortfolioProviderIds')
       .lean();
 
     // Transformer les conversations pour l'UI
@@ -53,6 +53,7 @@ export async function GET(_request: NextRequest) {
         if (!otherParticipant) return null;
 
         // Paire de rôles autorisée (ex. client ↔ prestataire, prestataire ↔ support)
+        // et lien métier (CSM ↔ prestataire de son portefeuille)
         const self = participants.find(
           (p: any) => p._id.toString() === userId,
         );
@@ -60,7 +61,19 @@ export async function GET(_request: NextRequest) {
           Array.isArray(self?.roles) && self.roles.length > 0
             ? self.roles
             : sessionRoles;
-        if (!canUsersMessage(selfRoles, otherParticipant.roles)) return null;
+        const allowed = canPartiesMessage(
+          {
+            id: userId,
+            roles: selfRoles,
+            csmPortfolioProviderIds: self?.csmPortfolioProviderIds,
+          },
+          {
+            id: otherParticipant._id.toString(),
+            roles: otherParticipant.roles,
+            csmPortfolioProviderIds: otherParticipant.csmPortfolioProviderIds,
+          },
+        );
+        if (!allowed) return null;
 
         // Récupérer le dernier message
         const lastMessage = await (Message as any)
@@ -156,10 +169,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier que les deux personnes peuvent échanger (paires de rôles autorisées)
+    // Vérifier que les deux personnes peuvent échanger (paires de rôles autorisées,
+    // CSM ↔ prestataire limité au portefeuille du CSM)
+    const fields = 'roles status csmPortfolioProviderIds';
     const [currentUser, recipient] = await Promise.all([
-      (User as any).findById(userId).select('roles status').lean(),
-      (User as any).findById(participantId).select('roles status').lean(),
+      (User as any).findById(userId).select(fields).lean(),
+      (User as any).findById(participantId).select(fields).lean(),
     ]);
 
     if (!recipient) {
@@ -174,7 +189,20 @@ export async function POST(request: NextRequest) {
         ? currentUser.roles
         : ((session.user as any).roles || []);
 
-    if (!canUsersMessage(currentRoles, recipient.roles)) {
+    const allowed = canPartiesMessage(
+      {
+        id: userId,
+        roles: currentRoles,
+        csmPortfolioProviderIds: currentUser?.csmPortfolioProviderIds,
+      },
+      {
+        id: participantId,
+        roles: recipient.roles,
+        csmPortfolioProviderIds: recipient.csmPortfolioProviderIds,
+      },
+    );
+
+    if (!allowed) {
       return NextResponse.json(
         {
           error:

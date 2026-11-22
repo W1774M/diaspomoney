@@ -15,7 +15,7 @@ import { Performance } from '@/lib/decorators/performance.decorator';
 import { Validate } from '@/lib/decorators/validate.decorator';
 import { logger } from '@/lib/logger';
 import {
-  canUsersMessage,
+  canPartiesMessage,
   isPersonToPersonConversation,
 } from '@/lib/messaging/conversation-policy';
 import { z } from 'zod';
@@ -128,11 +128,25 @@ export class MessagingService {
             otherParticipantId.toString(),
           );
 
-          // Participant supprimé ou paire de rôles non autorisée
+          // Participant supprimé, paire de rôles non autorisée ou
+          // prestataire hors du portefeuille du CSM
           if (
             !otherUser ||
             (currentUser &&
-              !canUsersMessage(currentUser.roles, otherUser.roles))
+              !canPartiesMessage(
+                {
+                  id: userId,
+                  roles: currentUser.roles,
+                  csmPortfolioProviderIds: (currentUser as any)
+                    .csmPortfolioProviderIds,
+                },
+                {
+                  id: otherParticipantId.toString(),
+                  roles: otherUser.roles,
+                  csmPortfolioProviderIds: (otherUser as any)
+                    .csmPortfolioProviderIds,
+                },
+              ))
           ) {
             return null as any;
           }

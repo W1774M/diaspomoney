@@ -280,6 +280,43 @@ describe('GET /api/messaging/conversations', () => {
     expect(data.conversations.map((c: any) => c.id)).toEqual(['conv-support']);
   });
 
+  it('CSM : masque les conversations avec un prestataire sorti du portefeuille', async () => {
+    const csm = {
+      _id: { toString: () => 'csm1' },
+      name: 'CSM',
+      roles: ['CSM'],
+      csmPortfolioProviderIds: ['p1'],
+    };
+    const mockConversations = [
+      {
+        _id: { toString: () => 'conv-p1' },
+        type: 'user',
+        participants: [csm, { _id: { toString: () => 'p1' }, name: 'Suivi', roles: ['PROVIDER'] }],
+      },
+      {
+        _id: { toString: () => 'conv-p2' },
+        type: 'user',
+        participants: [csm, { _id: { toString: () => 'p2' }, name: 'Hors portefeuille', roles: ['PROVIDER'] }],
+      },
+    ];
+
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'csm1', roles: ['CSM'] },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+    mockConversationFind.mockReturnValueOnce(mockConversations);
+    mockMessageFindOne.mockReturnValue(null);
+    mockMessageCountDocuments.mockReturnValue(0);
+
+    const request = new NextRequest('http://localhost:3000/api/messaging/conversations');
+    const response = await GET_CONVERSATIONS(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.conversations.map((c: any) => c.id)).toEqual(['conv-p1']);
+  });
+
   it('devrait retourner 401 si non authentifié', async () => {
     const { auth } = await import('@/auth');
     vi.mocked(auth).mockResolvedValueOnce(null);
@@ -304,8 +341,49 @@ describe('POST /api/messaging/conversations', () => {
           ? { _id: 'user456', roles: ['PROVIDER'] }
           : id === 'user789'
             ? { _id: 'user789', roles: ['CUSTOMER'] }
-            : null,
+            : id === 'csm1'
+              ? { _id: 'csm1', roles: ['CSM'], csmPortfolioProviderIds: ['user456'] }
+              : id === 'provider999'
+                ? { _id: 'provider999', roles: ['PROVIDER'] }
+                : null,
     );
+  });
+
+  it('autorise un CSM à écrire à un prestataire de son portefeuille', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'csm1', roles: ['CSM'] },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+    mockConversationFindOne.mockReturnValueOnce(null);
+    mockConversationSave.mockReturnValueOnce({ _id: { toString: () => 'conv-csm' } } as any);
+
+    const request = new NextRequest('http://localhost:3000/api/messaging/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participantId: 'user456' }),
+    });
+
+    const response = await POST_CONVERSATIONS(request);
+    expect(response.status).toBe(200);
+  });
+
+  it('refuse (403) un CSM vers un prestataire hors de son portefeuille', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'csm1', roles: ['CSM'] },
+      expires: new Date(Date.now() + 3600000).toISOString(),
+    } as any);
+
+    const request = new NextRequest('http://localhost:3000/api/messaging/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participantId: 'provider999' }),
+    });
+
+    const response = await POST_CONVERSATIONS(request);
+    expect(response.status).toBe(403);
+    expect(mockConversationSave).not.toHaveBeenCalled();
   });
 
   it('refuse (403) une conversation entre deux rôles non autorisés', async () => {

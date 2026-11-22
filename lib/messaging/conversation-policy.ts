@@ -9,7 +9,8 @@
  * - client / bénéficiaire ↔ prestataire
  * - client ↔ bénéficiaire
  * - client / bénéficiaire / prestataire ↔ support (ADMIN, SUPERADMIN)
- * - CSM ↔ prestataires (portefeuille CSM) et clients / bénéficiaires
+ * - CSM ↔ prestataires de son portefeuille (csmPortfolioProviderIds,
+ *   voir canPartiesMessage) et clients / bénéficiaires
  * - équipe interne (ADMIN, SUPERADMIN, CSM) entre elle
  *
  * Non autorisé : client ↔ client, prestataire ↔ prestataire,
@@ -88,6 +89,40 @@ export function canUsersMessage(
   const a = normalizeMessagingRoles(rolesA);
   const b = normalizeMessagingRoles(rolesB);
   return a.some(ra => b.some(rb => isPairAllowed(ra, rb)));
+}
+
+/** Personne côté messagerie : identifiant, rôles et lien métier éventuel. */
+export interface MessagingParty {
+  id: string;
+  roles?: ReadonlyArray<string | null | undefined> | null;
+  /** Prestataires suivis par un CSM (champ utilisateur csmPortfolioProviderIds). */
+  csmPortfolioProviderIds?: ReadonlyArray<string | null | undefined> | null;
+}
+
+function inPortfolio(csm: MessagingParty, providerId: string): boolean {
+  return (csm.csmPortfolioProviderIds || []).some(
+    id => id != null && String(id) === providerId,
+  );
+}
+
+/**
+ * Comme canUsersMessage, en tenant compte du lien métier :
+ * un CSM n'échange avec un prestataire que si celui-ci est dans son
+ * portefeuille (csmPortfolioProviderIds). Les autres paires restent au niveau
+ * des rôles. Pour un utilisateur multi-rôles, il suffit qu'un couple de rôles
+ * soit autorisé et, le cas échéant, que son lien métier soit vérifié.
+ */
+export function canPartiesMessage(a: MessagingParty, b: MessagingParty): boolean {
+  const rolesA = normalizeMessagingRoles(a.roles);
+  const rolesB = normalizeMessagingRoles(b.roles);
+  return rolesA.some(ra =>
+    rolesB.some(rb => {
+      if (!isPairAllowed(ra, rb)) return false;
+      if (ra === 'CSM' && rb === 'PROVIDER') return inPortfolio(a, b.id);
+      if (ra === 'PROVIDER' && rb === 'CSM') return inPortfolio(b, a.id);
+      return true;
+    }),
+  );
 }
 
 /** Rôles internes (support / équipe). */
