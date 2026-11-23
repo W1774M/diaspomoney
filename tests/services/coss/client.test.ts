@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { CossCtor } = vi.hoisted(() => ({
   CossCtor: vi.fn(function Coss(this: Record<string, unknown>) {
-    this.ok = true;
+    this['ok'] = true;
   }),
 }));
 
