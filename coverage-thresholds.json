@@ -1,7 +1,7 @@
 {
   "_comment": "Cliquet de couverture globale : ne jamais baisser ces valeurs. Les relever à chaque lot de tests (objectif 90 puis 95).",
-  "lines": 43,
-  "statements": 43,
+  "lines": 44,
+  "statements": 44,
   "functions": 34,
-  "branches": 33
+  "branches": 34
 }
