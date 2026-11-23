@@ -131,6 +131,8 @@ MONGO_EXPRESS_DOMAIN=mongo.example.com
 GRAFANA_PASSWORD=CHANGE_ME
 ```
 
+Les domaines `MONGO_EXPRESS_DOMAIN`, `PORTAINER_DOMAIN`, `TRAEFIK_DASHBOARD_DOMAIN` et `MONITORING_DOMAIN` servent aussi aux liens de la page super admin **Outils & accès** (`/dashboard/superadmin/outils`) : les conteneurs applicatifs les lisent via `env_file`. Un lien non renseigné s'affiche « Non configuré » ; on peut forcer n'importe quel lien avec `ADMIN_TOOL_<CLÉ>_URL` (ex. `ADMIN_TOOL_SENTRY_URL`).
+
 Pour `TRAEFIK_DASHBOARD_AUTH`, générer une valeur htpasswd :
 
 ```bash

@@ -41,6 +41,7 @@ import {
   Stethoscope,
   Ticket,
   User,
+  UserPlus,
   Users,
   Video,
   Wrench,
@@ -502,6 +503,14 @@ function buildNavigationSections(
     });
 
     adminGestionItems.push({
+      name: 'Candidatures prestataires',
+      key: 'provider-applications',
+      href: '/dashboard/admin/candidatures',
+      icon: UserPlus,
+      show: true,
+    });
+
+    adminGestionItems.push({
       name: 'Gestion de service',
       key: 'services',
       href: '/dashboard/services',
@@ -536,6 +545,13 @@ function buildNavigationSections(
       key: "superadmin-health",
       href: "/dashboard/superadmin",
       icon: Activity,
+      show: true,
+    });
+    superAdminItems.push({
+      name: 'Outils & accès',
+      key: 'superadmin-tools',
+      href: '/dashboard/superadmin/outils',
+      icon: Wrench,
       show: true,
     });
   }
