@@ -94,7 +94,8 @@ export async function createCheckoutSession(
         source: 'diaspomoney',
         created_at: new Date().toISOString(),
       },
-      expires_at: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // Expire dans 7 jours
+      // Stripe : expires_at entre 30 min et 24 h après création (défaut 24 h).
+      expires_at: Math.floor(Date.now() / 1000) + 23 * 60 * 60,
     });
 
     if (!session.url) {

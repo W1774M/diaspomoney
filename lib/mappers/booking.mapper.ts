@@ -103,6 +103,7 @@ function mapStatus(status: string | undefined): Booking['status'] {
   if (!status) return BOOKING_STATUSES.PENDING;
   
   const statusMap: Record<string, Booking['status']> = {
+    draft: BOOKING_STATUSES.DRAFT,
     pending: BOOKING_STATUSES.PENDING,
     confirmed: BOOKING_STATUSES.CONFIRMED,
     in_progress: BOOKING_STATUSES.CONFIRMED, // Migration: IN_PROGRESS -> CONFIRMED

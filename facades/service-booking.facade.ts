@@ -350,7 +350,7 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
           const clientNotified = await dispatchFacadeNotification({
             recipient: clientEmail,
             type: 'SERVICE_BOOKING_CONFIRMED',
-            template: 'service-booking-confirmed',
+            template: 'service_booking_confirmed',
             payload: {
               title: 'Réservation confirmée - Récapitulatif de commande',
               message: summaryMessage,
@@ -385,7 +385,7 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
           await dispatchFacadeNotification({
             recipient: data.beneficiaryInfo.email,
             type: 'SERVICE_BOOKING_CONFIRMED',
-            template: 'service-booking-confirmed',
+            template: 'service_booking_confirmed',
             payload: {
               title: 'Réservation confirmée pour vous',
               message: `Une réservation a été effectuée en votre nom pour le service: ${data.selectedService.label}.\n\n${appointmentInfo}\n\nVous serez recontacté rapidement pour le suivi.`,

@@ -33,6 +33,11 @@ const TEXTS: Record<string, TemplateText> = {
       'Bonne nouvelle : votre réservation est confirmée. Retrouvez la date, l’heure et le prestataire dans votre espace DiaspoMoney, rubrique « Mes réservations ».',
     variables: [],
   },
+  service_booking_confirmed: {
+    subject: 'Réservation confirmée — {{serviceLabel}}',
+    content: '{{message}}\n\nRéférence : {{reservationNumber}}',
+    variables: ['message', 'serviceLabel', 'reservationNumber'],
+  },
   booking_status_updated: {
     subject: 'Réservation {{reservationNumber}} : nouveau statut',
     content:
@@ -169,7 +174,8 @@ export const ADDITIONAL_TEMPLATE_NAMES = Object.keys(TEXTS);
 
 /** Construit le modèle complet attendu par le service de notification, ou null. */
 export function getAdditionalTemplate(name: string, locale: string): NotificationTemplate | null {
-  const text = TEXTS[name];
+  // Accepte aussi les anciens noms à tirets (ex. service-booking-confirmed).
+  const text = TEXTS[name] ?? TEXTS[name.replace(/-/g, '_')];
   if (!text) return null;
   const now = new Date();
   return {
