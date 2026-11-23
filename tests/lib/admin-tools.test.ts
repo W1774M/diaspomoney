@@ -36,6 +36,21 @@ describe('buildAdminToolLinks', () => {
     expect(tools['mongo-express']?.url).toBe('https://db.example.com/db/diaspomoney');
   });
 
+  it('pointe Sentry sur les issues du projet et de l’environnement', () => {
+    const tools = byKey({
+      SENTRY_ORG: 'mon-org',
+      SENTRY_DSN: 'https://abc123@o4500000000000000.ingest.us.sentry.io/4511122233344455',
+      SENTRY_ENVIRONMENT: 'production',
+    });
+    expect(tools['sentry']?.url).toBe(
+      'https://mon-org.sentry.io/issues/?project=4511122233344455&environment=production',
+    );
+    expect(tools['sentry']?.url).not.toContain('abc123');
+
+    expect(byKey({ SENTRY_ORG: 'mon-org' })['sentry']?.url).toBe('https://mon-org.sentry.io/issues/');
+    expect(byKey({ SENTRY_DSN: 'https://k@o1.ingest.sentry.io/2' })['sentry']?.url).toBeNull();
+  });
+
   it('ouvre Stripe en mode test sauf avec une clé live', () => {
     expect(byKey({ STRIPE_SECRET_KEY: 'sk_test_x' })['stripe']?.url).toContain('/test/');
     expect(byKey({ STRIPE_SECRET_KEY: 'sk_live_x' })['stripe']?.url).toBe('https://dashboard.stripe.com/');

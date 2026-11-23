@@ -3,7 +3,7 @@
  *
  * Les domaines d'infra viennent du `.env` du serveur (chargé par `env_file` dans
  * docker-compose.yml) : MONGO_EXPRESS_DOMAIN, PORTAINER_DOMAIN, TRAEFIK_DASHBOARD_DOMAIN,
- * MONITORING_DOMAIN. Ils ne sont lus que côté serveur, par /api/admin/tools, et ne
+ * MONITORING_DOMAIN, SENTRY_ORG (+ SENTRY_DSN pour l'ID du projet). Ils ne sont lus que côté serveur, par /api/admin/tools, et ne
  * partent donc jamais dans le bundle client. Chaque lien peut être forcé avec
  * ADMIN_TOOL_<CLÉ>_URL (ex. ADMIN_TOOL_SENTRY_URL).
  */
@@ -46,6 +46,26 @@ function domainUrl(domain: string | undefined, path = ''): string | null {
   if (!value) return null;
   const base = /^https?:\/\//i.test(value) ? value : `https://${value}`;
   return `${base.replace(/\/+$/, '')}${path}`;
+}
+
+/**
+ * Issues Sentry du projet, filtrées sur l'environnement de l'instance.
+ * L'organisation vient de SENTRY_ORG ; l'ID du projet est le dernier segment du DSN
+ * (https://<clé>@o<id>.ingest.sentry.io/<projectId>).
+ */
+function sentryUrl(env: Env): string | null {
+  const org = clean(env['SENTRY_ORG']);
+  if (!org) return null;
+
+  const params = new URLSearchParams();
+  const dsn = clean(env['SENTRY_DSN']);
+  const projectId = dsn?.match(/\/(\d+)\/?$/)?.[1];
+  if (projectId) params.set('project', projectId);
+  const environment = clean(env['SENTRY_ENVIRONMENT']);
+  if (environment) params.set('environment', environment);
+
+  const query = params.toString();
+  return `https://${encodeURIComponent(org)}.sentry.io/issues/${query ? `?${query}` : ''}`;
 }
 
 function override(env: Env, key: string): string | undefined {
@@ -116,9 +136,10 @@ export function buildAdminToolLinks(env: Env): AdminToolLink[] {
     {
       key: 'sentry',
       name: 'Sentry',
-      description: 'Erreurs et performances en production.',
+      description: 'Erreurs et performances, filtrées sur l’environnement de cette instance.',
       category: 'services',
-      url: 'https://sentry.io/issues/',
+      url: sentryUrl(env),
+      envVar: 'SENTRY_ORG',
     },
     {
       key: 'stripe',
