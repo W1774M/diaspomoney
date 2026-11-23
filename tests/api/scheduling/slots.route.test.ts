@@ -46,6 +46,11 @@ describe('GET /api/scheduling/slots', () => {
     expect(res.status).toBe(400);
   });
 
+  it('répond 400 si date invalide', async () => {
+    const res = await GET(new NextRequest('http://localhost/api/scheduling/slots?date=24-11-2026'));
+    expect(res.status).toBe(400);
+  });
+
   it('liste les créneaux du jour', async () => {
     const res = await GET(new NextRequest('http://localhost/api/scheduling/slots?date=2026-11-24'));
     const body = await res.json();
@@ -53,5 +58,21 @@ describe('GET /api/scheduling/slots', () => {
     expect(body.slots).toHaveLength(1);
     expect(body.slots[0].time).toBe('09:00');
     expect(listSlots).toHaveBeenCalledWith('2026-11-24');
+  });
+
+  it('répond 500 si listHealthSlotsForDate échoue', async () => {
+    listSlots.mockRejectedValue(new Error('boom'));
+    const res = await GET(new NextRequest('http://localhost/api/scheduling/slots?date=2026-11-24'));
+    const body = await res.json();
+    expect(res.status).toBe(500);
+    expect(body.error).toBe('boom');
+  });
+
+  it('répond 500 avec message générique si rejet non-Error', async () => {
+    listSlots.mockRejectedValue('oops');
+    const res = await GET(new NextRequest('http://localhost/api/scheduling/slots?date=2026-11-24'));
+    const body = await res.json();
+    expect(res.status).toBe(500);
+    expect(body.error).toBe('Erreur slots');
   });
 });
