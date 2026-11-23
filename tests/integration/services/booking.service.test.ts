@@ -61,6 +61,18 @@ describe('bookingService (intégration)', () => {
     ).rejects.toThrow(/Catalog service not found/);
   });
 
+  it('accepte un brouillon track-progress sans entrée catalogue (serviceId draft)', async () => {
+    const created = await bookingService.createBooking({
+      ...bookingData(),
+      providerId: 'admin-draft',
+      serviceId: 'draft',
+      metadata: { isDraft: true, currentStep: 1 },
+    });
+
+    expect(created.status).toBe('DRAFT');
+    expect(created.serviceId).toBe('draft');
+  });
+
   it('refuse une réservation sur une offre inactive', async () => {
     await db().collection('services').updateOne({ id: SERVICE_ID }, { $set: { isActive: false } });
     await expect(bookingService.createBooking(bookingData())).rejects.toThrow();
