@@ -7,6 +7,8 @@ import { getUserRepository } from '@/repositories';
 import { getMongoClient } from '@/lib/mongodb';
 import { NextRequest } from 'next/server';
 import { invalidateAppCache } from '@/lib/cache/redis';
+import { ROLES } from '@/lib/constants';
+import { mergeSelfServiceProviderInfo } from '@/lib/users/provider-info-self-edit';
 
 /**
  * GET /api/users/me - Récupérer le profil de l'utilisateur authentifié
@@ -120,9 +122,36 @@ export async function PUT(request: NextRequest) {
       };
     }
 
-    // Mettre à jour les informations de prestataire
+    const userRepository = getUserRepository();
+    const existingUser = await userRepository.findByEmail(email);
+    if (!existingUser) {
+      throw ApiErrors.NOT_FOUND;
+    }
+
+    // providerInfo : réservé aux prestataires ; champs de confiance (isVerified,
+    // rating, reviewCount, recommended) ne peuvent pas être écrasés en self-service.
     if (userData.providerInfo) {
-      updateData['providerInfo'] = userData.providerInfo;
+      const roles = (existingUser.roles || []).map(String);
+      const canEditProviderInfo =
+        roles.includes(ROLES.PROVIDER) ||
+        roles.includes(ROLES.ADMIN) ||
+        roles.includes(ROLES.SUPERADMIN);
+
+      if (!canEditProviderInfo) {
+        throw ApiErrors.FORBIDDEN;
+      }
+
+      const existingProviderInfo =
+        existingUser.providerInfo &&
+        typeof existingUser.providerInfo === 'object' &&
+        !Array.isArray(existingUser.providerInfo)
+          ? (existingUser.providerInfo as Record<string, unknown>)
+          : undefined;
+
+      updateData['providerInfo'] = mergeSelfServiceProviderInfo(
+        existingProviderInfo,
+        userData.providerInfo as Record<string, unknown>,
+      );
     }
 
     const result = await users.updateOne({ email }, { $set: updateData });
@@ -133,7 +162,6 @@ export async function PUT(request: NextRequest) {
     }
 
     // Récupérer l'utilisateur mis à jour
-    const userRepository = getUserRepository();
     const userDoc = await userRepository.findByEmail(email);
     if (!userDoc) {
       throw ApiErrors.NOT_FOUND;
