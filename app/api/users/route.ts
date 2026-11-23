@@ -35,6 +35,10 @@ type CreateUserInput = z.infer<typeof CreateUserSchema>;
  */
 export async function GET(request: NextRequest) {
   return handleApiRoute(request, async () => {
+    // Liste des utilisateurs (e-mails, rôles, statuts) : réservée à l'équipe interne.
+    // CSM inclus pour les statistiques du tableau de bord.
+    await requireApiRoles([ROLES.ADMIN, ROLES.SUPERADMIN, ROLES.CSM]);
+
     const { searchParams } = new URL(request.url);
 
     // Validation des paramètres de requête

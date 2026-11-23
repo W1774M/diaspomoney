@@ -88,7 +88,50 @@ vi.mock('@/lib/api/error-handler', () => ({
 describe('GET /api/users', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuth.mockResolvedValue(sessionWithRoles(['ADMIN']));
   });
+
+  it('retourne 401 sans session et ne lit rien', async () => {
+    mockAuth.mockResolvedValue(null);
+    const { userFacade } = await import('@/facades');
+
+    const response = await GET(new NextRequest('http://localhost:3000/api/users'));
+
+    expect(response.status).toBe(401);
+    expect(userFacade.getUsers).not.toHaveBeenCalled();
+  });
+
+  it.each([['CUSTOMER'], ['PROVIDER'], ['BENEFICIARY']])(
+    'retourne 403 pour une session %s',
+    async role => {
+      mockAuth.mockResolvedValue(sessionWithRoles([role]));
+      const { userFacade } = await import('@/facades');
+
+      const response = await GET(new NextRequest('http://localhost:3000/api/users'));
+
+      expect(response.status).toBe(403);
+      expect(userFacade.getUsers).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([['ADMIN'], ['SUPERADMIN'], ['CSM']])(
+    'autorise une session %s',
+    async role => {
+      mockAuth.mockResolvedValue(sessionWithRoles([role]));
+      const { userFacade } = await import('@/facades');
+      vi.mocked(userFacade.getUsers).mockResolvedValue({
+        success: true,
+        data: [],
+        total: 0,
+        pagination: { page: 1, limit: 20, total: 0 },
+      });
+
+      const response = await GET(new NextRequest('http://localhost:3000/api/users'));
+
+      expect(response.status).toBe(200);
+      expect(userFacade.getUsers).toHaveBeenCalled();
+    },
+  );
 
   it('devrait retourner une liste paginée d\'utilisateurs', async () => {
     const mockUsers = [
