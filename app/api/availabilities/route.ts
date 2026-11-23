@@ -1,6 +1,4 @@
 /**
-;
-
  * API Route - Availability Rules
  * Endpoints pour gérer les règles de disponibilité
  * Utilise AvailabilityRuleRepository (Repository Pattern) et handleApiRoute (Error Handling Pattern)

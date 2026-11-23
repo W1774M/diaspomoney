@@ -126,7 +126,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '📅 Calendrier',
             key: 'calendar-btp',
             icon: Calendar,
-            show: false,
+            show: true,
             values: [
               {
                 name: 'Mes disponibilités',
@@ -165,7 +165,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '📅 Calendrier',
             key: 'calendar-education',
             icon: Calendar,
-            show: false,
+            show: true,
             values: [
               {
                 name: 'Mes disponibilités',
@@ -204,7 +204,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '📅 Calendrier',
             key: 'calendar-default',
             icon: Calendar,
-            show: false,
+            show: true,
             values: [
               {
                 name: 'Mes disponibilités',
@@ -246,6 +246,21 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
         case 'HEALTH':
           // Santé - INSTITUTION
           items.push({
+            name: '📅 Calendrier',
+            key: 'calendar-institution-health',
+            icon: Calendar,
+            show: true,
+            values: [
+              {
+                name: 'Mes disponibilités',
+                key: 'availabilities',
+                href: '/dashboard/availabilities',
+                icon: Clock,
+                show: true,
+              },
+            ],
+          });
+          items.push({
             name: '🏥 Institution',
             key: 'institution-health',
             icon: Building,
@@ -285,6 +300,21 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
         case 'BTP':
           // BTP - INSTITUTION
           items.push({
+            name: '📅 Calendrier',
+            key: 'calendar-institution-btp',
+            icon: Calendar,
+            show: true,
+            values: [
+              {
+                name: 'Mes disponibilités',
+                key: 'availabilities',
+                href: '/dashboard/availabilities',
+                icon: Clock,
+                show: true,
+              },
+            ],
+          });
+          items.push({
             name: '🏗️ Institution',
             key: 'institution-btp',
             icon: Building,
@@ -317,6 +347,21 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
         case 'EDUCATION':
           // Éducation - INSTITUTION
           items.push({
+            name: '📅 Calendrier',
+            key: 'calendar-institution-education',
+            icon: Calendar,
+            show: true,
+            values: [
+              {
+                name: 'Mes disponibilités',
+                key: 'availabilities',
+                href: '/dashboard/availabilities',
+                icon: Clock,
+                show: true,
+              },
+            ],
+          });
+          items.push({
             name: '🎓 Institution',
             key: 'institution-education',
             icon: Building,
@@ -348,6 +393,21 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
           break;
         default:
           // INSTITUTION sans catégorie spécifique - menu par défaut
+          items.push({
+            name: '📅 Calendrier',
+            key: 'calendar-institution-default',
+            icon: Calendar,
+            show: true,
+            values: [
+              {
+                name: 'Mes disponibilités',
+                key: 'availabilities',
+                href: '/dashboard/availabilities',
+                icon: Clock,
+                show: true,
+              },
+            ],
+          });
           items.push({
             name: '🏢 Institution',
             key: 'institution-default',
