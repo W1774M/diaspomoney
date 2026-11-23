@@ -4,10 +4,12 @@ import { AuthorizedRoute } from '@/components/auth';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import { useNotificationManager } from '@/components/ui/Notification';
 import { useAuth } from '@/hooks';
+import { hasExplicitRole } from '@/lib/auth/explicit-role';
 import { ROLES } from '@/lib/constants';
 import { isPlaceholderEmail } from '@/lib/csm/provider-proposal';
+import Link from 'next/link';
 import { UserPlus, RefreshCcw, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 type ProviderLite = {
   id?: string;
@@ -419,10 +421,50 @@ function CSMPorfolioPageContent() {
   );
 }
 
+/**
+ * AuthorizedRoute laisse passer un ADMIN / SUPERADMIN (accès à tout), mais le
+ * portefeuille est propre à chaque CSM et l'API exige le rôle CSM : sans ce
+ * rôle explicite, on explique au lieu d'appeler l'API (qui répondrait 403).
+ */
+function CSMPortfolioGate({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  if (hasExplicitRole(user, ROLES.CSM)) return <>{children}</>;
+
+  return (
+    <div className='max-w-2xl rounded-lg border border-gray-200 bg-white p-6 shadow-sm'>
+      <h1 className='text-xl font-semibold text-gray-900'>Portefeuille CSM</h1>
+      <p className='mt-2 text-sm text-gray-600'>
+        Chaque CSM gère son propre portefeuille de prestataires : cette page n&apos;est
+        disponible qu&apos;avec un compte ayant le rôle CSM.
+      </p>
+      <p className='mt-2 text-sm text-gray-600'>
+        Les prestataires ajoutés par les CSM sans compte apparaissent dans les candidatures
+        prestataires, avec un lien vers leur compte en attente.
+      </p>
+      <div className='mt-4 flex flex-wrap gap-2'>
+        <Link
+          href='/dashboard/admin/candidatures'
+          className='inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm'
+        >
+          Candidatures prestataires
+        </Link>
+        <Link
+          href='/dashboard/providers'
+          className='inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm'
+        >
+          Prestataires
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default function CSMPorfolioPage() {
   return (
     <AuthorizedRoute roles={[ROLES.CSM]} redirectTo='/dashboard'>
-      <CSMPorfolioPageContent />
+      <CSMPortfolioGate>
+        <CSMPorfolioPageContent />
+      </CSMPortfolioGate>
     </AuthorizedRoute>
   );
 }
