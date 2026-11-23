@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiErrors } from '@/lib/api/error-handler';
 import { ROLES } from '@/lib/constants';
 
-const { requireApiRoles, find, findOne, create, sort, lean } = vi.hoisted(() => {
+const { requireApiRoles, find, findOne, create, lean } = vi.hoisted(() => {
   const lean = vi.fn();
   const sort = vi.fn(() => ({ lean }));
   const find = vi.fn(() => ({ sort }));
@@ -15,7 +15,6 @@ const { requireApiRoles, find, findOne, create, sort, lean } = vi.hoisted(() => 
     find,
     findOne: vi.fn(),
     create: vi.fn(),
-    sort,
     lean,
   };
 });
