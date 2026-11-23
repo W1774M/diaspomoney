@@ -10,6 +10,7 @@ import {
   type ProviderApplicationStatus,
 } from '@/lib/provider-applications';
 import { Download, Mail, Phone, RefreshCcw, Search, UserPlus } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const inputClass =
@@ -46,9 +47,17 @@ function csvCell(value: string): string {
 }
 
 function exportCsv(applications: ProviderApplication[]) {
-  const header = ['Nom', 'Email', 'Téléphone', 'Statut', 'Note', 'Reçue le'];
+  const header = ['Nom', 'Email', 'Téléphone', 'Statut', 'Note', 'Reçue le', 'Origine'];
   const rows = applications.map((a) =>
-    [a.name, a.email, a.phone, PROVIDER_APPLICATION_STATUS_LABELS[a.status], a.note, a.submittedAt ?? '']
+    [
+      a.name,
+      a.email,
+      a.phone,
+      PROVIDER_APPLICATION_STATUS_LABELS[a.status],
+      a.note,
+      a.submittedAt ?? '',
+      a.source === 'csm' ? `CSM${a.proposedBy ? ` (${a.proposedBy})` : ''}` : 'Formulaire',
+    ]
       .map(csvCell)
       .join(';'),
   );
@@ -268,13 +277,34 @@ function CandidaturesContent() {
               <tbody className="divide-y divide-gray-200">
                 {filtered.map((a) => (
                   <tr key={a.id} className="align-top">
-                    <td className="px-4 py-3 font-medium text-gray-900">{a.name || '—'}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-900">{a.name || '—'}</div>
+                      {a.source === 'csm' && (
+                        <div className="mt-1 flex flex-col gap-1 text-xs">
+                          <span className="inline-flex w-fit rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-purple-800">
+                            Proposée par {a.proposedBy || 'un CSM'}
+                          </span>
+                          {a.providerUserId && (
+                            <Link
+                              href={`/dashboard/users/${a.providerUserId}`}
+                              className="text-brand-700 hover:underline"
+                            >
+                              Fiche du compte en attente
+                            </Link>
+                          )}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1">
-                        <a href={`mailto:${a.email}`} className="inline-flex items-center gap-1 text-brand-700 hover:underline">
-                          <Mail className="h-3.5 w-3.5" aria-hidden />
-                          {a.email}
-                        </a>
+                        {a.email ? (
+                          <a href={`mailto:${a.email}`} className="inline-flex items-center gap-1 text-brand-700 hover:underline">
+                            <Mail className="h-3.5 w-3.5" aria-hidden />
+                            {a.email}
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-500">E-mail à obtenir</span>
+                        )}
                         {a.phone && (
                           <a href={`tel:${a.phone.replace(/\s+/g, '')}`} className="inline-flex items-center gap-1 text-gray-700 hover:underline">
                             <Phone className="h-3.5 w-3.5" aria-hidden />
