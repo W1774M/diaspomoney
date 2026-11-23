@@ -99,6 +99,22 @@ describe('scheduling-health-poc', () => {
     await expect(ensureHealthPocEventTypeId()).rejects.toThrow(/quota|host/);
   });
 
+  it('utilise COSS_HEALTH_HOST_UID et liste plate des event types', async () => {
+    process.env['COSS_HEALTH_HOST_UID'] = 'custom_host';
+    hostsGet.mockResolvedValue({ data: { uid: 'custom_host' } });
+    eventTypesList.mockResolvedValue({
+      data: [{ id: 'ev_flat', title: 'Consultation santé POC' }],
+    });
+    expect(await ensureHealthPocEventTypeId()).toBe('ev_flat');
+  });
+
+  it('échoue si création event type impossible', async () => {
+    hostsGet.mockResolvedValue({ data: { uid: 'diaspomoney_health_poc' } });
+    eventTypesList.mockResolvedValue({ data: { data: [] } });
+    eventTypesCreate.mockResolvedValue({ error: { message: 'et fail' } });
+    await expect(ensureHealthPocEventTypeId()).rejects.toThrow(/et fail|event type/);
+  });
+
   it('listHealthSlotsForDate filtre le jour Paris et mappe time', async () => {
     process.env['COSS_HEALTH_EVENT_TYPE_ID'] = 'ev_1';
     slotsList.mockResolvedValue({
@@ -132,17 +148,31 @@ describe('scheduling-health-poc', () => {
     await expect(listHealthSlotsForDate('2026-11-24')).rejects.toThrow(/rate limit/);
   });
 
+  it('listHealthSlotsForDate accepte une liste plate', async () => {
+    process.env['COSS_HEALTH_EVENT_TYPE_ID'] = 'ev_1';
+    slotsList.mockResolvedValue({
+      data: [
+        {
+          start: '2026-11-24T08:00:00.000Z',
+          end: '2026-11-24T08:30:00.000Z',
+        },
+      ],
+    });
+    const slots = await listHealthSlotsForDate('2026-11-24');
+    expect(slots).toHaveLength(1);
+  });
+
   it('createHealthCossBooking renvoie id ou null', async () => {
     process.env['COSS_HEALTH_EVENT_TYPE_ID'] = 'ev_1';
     const ok = await createHealthCossBooking({
       startIso: '2026-11-24T08:00:00.000Z',
-      attendee: { uid: 'u1', name: 'Ada', email: 'ada@example.com' },
+      attendee: { uid: 'u1', name: 'Ada', email: 'ada@example.com', timeZone: 'Africa/Dakar' },
     });
     expect(ok).toEqual({ id: 'bk_1' });
     expect(bookingsCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         event_type: 'ev_1',
-        attendee: expect.objectContaining({ time_zone: 'Europe/Paris' }),
+        attendee: expect.objectContaining({ time_zone: 'Africa/Dakar' }),
       }),
     );
 
