@@ -70,6 +70,7 @@ export default function PrivacyPolicyPage() {
                 <li>Superviser les prestations</li>
                 <li>Respecter les obligations légales (KYC/AML)</li>
                 <li>Améliorer la plateforme</li>
+                <li>Assister les utilisateurs et traiter leurs demandes d’assistance</li>
               </ul>
             </section>
 
@@ -104,6 +105,16 @@ export default function PrivacyPolicyPage() {
                       </td>
                       <td className="border border-gray-200 px-4 py-2">
                         Article 6.1.f RGPD (intérêt légitime)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-200 px-4 py-2">
+                        Assistance aux utilisateurs (traitement des demandes, résolution des
+                        incidents)
+                      </td>
+                      <td className="border border-gray-200 px-4 py-2">
+                        Article 6.1.b RGPD (exécution du contrat) et 6.1.f (intérêt légitime :
+                        sécurité et bon fonctionnement du service)
                       </td>
                     </tr>
                     <tr>
@@ -201,6 +212,18 @@ export default function PrivacyPolicyPage() {
               <p className="text-gray-700 mb-4">
                 Des mesures techniques et organisationnelles sont mises en place : chiffrement,
                 pare-feu, contrôle d’accès…
+              </p>
+              <p className="text-gray-700 mb-4">
+                <strong>Accès du support à votre compte.</strong> Pour traiter une demande
+                d’assistance ou corriger un incident, un administrateur habilité de DiaspoMoney peut
+                consulter votre compte tel que vous le voyez. Cette consultation se fait en lecture
+                seule : aucune opération, aucun paiement et aucune modification ne peuvent être
+                effectués en votre nom. Elle est limitée à 30 minutes et réservée à un nombre
+                restreint d’administrateurs. Chaque consultation est enregistrée : son auteur, sa
+                date, sa durée et son motif. Le support peut aussi suspendre un compte, par exemple
+                en cas de suspicion de fraude, ou vous envoyer un lien pour changer votre mot de
+                passe. Ces actions sont enregistrées de la même façon. Vous pouvez demander la liste
+                des consultations de votre compte à l’adresse indiquée à la section 11.
               </p>
             </section>
 
