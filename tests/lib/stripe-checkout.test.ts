@@ -89,8 +89,8 @@ describe('createCheckoutSession', () => {
     expect(arg.customer_email).toBe(baseParams.customerEmail);
     expect(arg.line_items[0]!.price_data.unit_amount).toBe(11000);
     expect(arg.line_items[0]!.price_data.currency).toBe('eur');
-    expect(arg.metadata.bookingId).toBe(baseParams.bookingId);
-    expect(arg.metadata.source).toBe('diaspomoney');
+    expect(arg.metadata['bookingId']).toBe(baseParams.bookingId);
+    expect(arg.metadata['source']).toBe('diaspomoney');
 
     const min = before + 22 * 60 * 60;
     const max = after + 24 * 60 * 60 - 1;
