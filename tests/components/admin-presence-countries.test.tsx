@@ -47,7 +47,9 @@ beforeEach(() => {
 
 async function renderPage() {
   render(<PresenceCountriesPage />);
-  await screen.findByText('Présent au Cameroun');
+  // Premier rendu coûteux à froid (Intl.DisplayNames + tri des ~250 pays) :
+  // le délai par défaut de 1 s ne suffit pas toujours sur CircleCI.
+  await screen.findByText('Présent au Cameroun', undefined, { timeout: 5000 });
 }
 
 describe('Admin — pays de présence', () => {
@@ -111,7 +113,7 @@ describe('Admin — pays de présence', () => {
   it('affiche l’erreur renvoyée par l’API', async () => {
     countries = [];
     await act(async () => render(<PresenceCountriesPage />));
-    await screen.findByText(/Aucun pays/);
+    await screen.findByText(/Aucun pays/, undefined, { timeout: 5000 });
     fireEvent.change(screen.getByLabelText('Pays'), { target: { value: 'CM' } });
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Ajouter' })));
     expect(notify.addError).toHaveBeenCalledWith('Ce pays est déjà dans la liste');
