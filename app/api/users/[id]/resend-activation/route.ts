@@ -52,11 +52,12 @@ export async function POST(
     log.debug({ targetUserId, decodedUserId }, 'Processing resend activation');
 
     // Vérifier les permissions (seuls ADMIN et SUPERADMIN peuvent renvoyer le lien d'activation)
+    // Rôles lus sans cache (getUserProfile est mis en cache 10 min)
     const currentUserId = session.user.id;
-    const currentUser = await userService.getUserProfile(currentUserId);
+    const currentUser = await userService.getAuthorizationContext(currentUserId);
     const isAdmin =
-      currentUser.roles?.includes(ROLES.ADMIN) ||
-      currentUser.roles?.includes(ROLES.SUPERADMIN);
+      currentUser.roles.includes(ROLES.ADMIN) ||
+      currentUser.roles.includes(ROLES.SUPERADMIN);
 
     if (!isAdmin) {
       log.warn(

@@ -5,12 +5,16 @@ import { NextRequest } from 'next/server';
 const h = vi.hoisted(() => ({
   auth: vi.fn(),
   getUserProfile: vi.fn(),
+  getAuthorizationContext: vi.fn(),
   sendAccountActivationEmail: vi.fn(),
 }));
 
 vi.mock('@/auth', () => ({ auth: h.auth }));
 vi.mock('@/services/user/user.service', () => ({
-  userService: { getUserProfile: h.getUserProfile },
+  userService: {
+    getUserProfile: h.getUserProfile,
+    getAuthorizationContext: h.getAuthorizationContext,
+  },
 }));
 vi.mock('@/lib/email/resend', () => ({
   sendAccountActivationEmail: h.sendAccountActivationEmail,
@@ -28,15 +32,21 @@ beforeEach(() => {
   vi.clearAllMocks();
   process.env['JWT_SECRET'] = 'test-secret';
   h.auth.mockResolvedValue({ user: { id: 'admin1' } });
+  h.getAuthorizationContext.mockResolvedValue({
+    id: 'admin1',
+    roles: ['ADMIN'],
+    status: 'ACTIVE',
+  });
 });
 
 describe('POST /api/users/[id]/resend-activation', () => {
   it('refuse d’activer un compte proposé par un CSM sans e-mail réel', async () => {
-    h.getUserProfile.mockImplementation(async (id: string) =>
-      id === 'admin1'
-        ? { id, roles: ['ADMIN'] }
-        : { id, status: 'PENDING', email: 'prestataire-abc@a-completer.invalid', name: 'Sow' },
-    );
+    h.getUserProfile.mockResolvedValue({
+      id: 'prov1',
+      status: 'PENDING',
+      email: 'prestataire-abc@a-completer.invalid',
+      name: 'Sow',
+    });
 
     const res = await call('prov1');
     const data = await res.json();
@@ -47,11 +57,12 @@ describe('POST /api/users/[id]/resend-activation', () => {
   });
 
   it('envoie le lien une fois l’e-mail réel renseigné', async () => {
-    h.getUserProfile.mockImplementation(async (id: string) =>
-      id === 'admin1'
-        ? { id, roles: ['ADMIN'] }
-        : { id, status: 'PENDING', email: 'sow@exemple.sn', name: 'Sow' },
-    );
+    h.getUserProfile.mockResolvedValue({
+      id: 'prov1',
+      status: 'PENDING',
+      email: 'sow@exemple.sn',
+      name: 'Sow',
+    });
 
     const res = await call('prov1');
 
@@ -61,5 +72,17 @@ describe('POST /api/users/[id]/resend-activation', () => {
       'Sow',
       expect.stringContaining('/activate-account?token='),
     );
+  });
+
+  it('refuse un admin rétrogradé (rôles lus sans cache)', async () => {
+    h.getAuthorizationContext.mockResolvedValue({
+      id: 'admin1',
+      roles: ['CUSTOMER'],
+      status: 'ACTIVE',
+    });
+
+    const res = await call('prov1');
+    expect(res.status).toBe(403);
+    expect(h.getUserProfile).not.toHaveBeenCalled();
   });
 });

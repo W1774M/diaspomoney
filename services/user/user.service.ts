@@ -365,6 +365,26 @@ export class UserService {
     }
   }
 
+  /**
+   * Rôles / statut lus directement en base — sans cache.
+   * À utiliser pour les contrôles d'autorisation : getUserProfile est mis en
+   * cache 10 min, ce qui laisserait un admin rétrogradé garder ses droits.
+   */
+  @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
+  async getAuthorizationContext(
+    userId: string,
+  ): Promise<{ id: string; roles: string[]; status: string }> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new Error('Utilisateur non trouvé');
+    }
+    return {
+      id: user._id?.toString() ?? user.id ?? userId,
+      roles: (user.roles || []).map(String),
+      status: String(user.status ?? USER_STATUSES.PENDING),
+    };
+  }
+
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
   @Validate({
     rules: [
