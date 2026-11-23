@@ -283,6 +283,57 @@ export class ServiceBookingFacade
         };
       }
 
+      // POC coss Scheduling : confirmer le créneau après paiement + booking local
+      if (
+        data.serviceType === 'HEALTH' &&
+        data.appointmentDate &&
+        data.appointmentTime
+      ) {
+        try {
+          const { isCossSchedulingConfigured } = await import('@/lib/coss/client');
+          if (isCossSchedulingConfigured()) {
+            const { createHealthCossBooking, parisLocalToIso } = await import(
+              '@/lib/coss/scheduling-health-poc'
+            );
+            const startIso =
+              (data.metadata?.['cossSlotStart'] as string | undefined) ||
+              parisLocalToIso(data.appointmentDate, data.appointmentTime);
+            const cossBooking = await createHealthCossBooking({
+              startIso,
+              attendee: {
+                uid: requesterId,
+                name: `${data.clientInfo.firstName} ${data.clientInfo.lastName}`.trim(),
+                email: data.clientInfo.email,
+                timeZone: 'Europe/Paris',
+              },
+            });
+            if (cossBooking?.id) {
+              await bookingService.updateBooking(
+                bookingResult.booking.id ||
+                  (bookingResult.booking as { _id?: { toString(): string } })._id?.toString() ||
+                  '',
+                {
+                  metadata: {
+                    ...(bookingResult.booking.metadata || {}),
+                    cossBookingId: cossBooking.id,
+                    cossSlotStart: startIso,
+                  },
+                } as never,
+              );
+              logger.info(
+                { cossBookingId: cossBooking.id, bookingId: bookingResult.booking.id },
+                'coss scheduling booking linked',
+              );
+            }
+          }
+        } catch (cossError) {
+          logger.warn(
+            { error: cossError, bookingId: bookingResult.booking.id },
+            'coss scheduling booking skipped after local success',
+          );
+        }
+      }
+
       // Fonction helper pour calculer l'heure de fin
       const calculateEndTime = (startTime: string, durationMinutes: number): string => {
         const [hours, minutes] = startTime.split(':').map(Number);

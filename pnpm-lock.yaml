@@ -54,6 +54,9 @@ importers:
       clsx:
         specifier: ^2.0.0
         version: 2.1.1
+      coss:
+        specifier: ^0.13.0
+        version: 0.13.0(@opentelemetry/api@1.9.0)(nodemailer@7.0.11)
       country-flag-icons:
         specifier: ^1.6.15
         version: 1.6.15
@@ -2541,6 +2544,27 @@ packages:
 
   core-js@3.47.0:
     resolution: {integrity: sha512-c3Q2VVkGAUyupsjRnaNX6u8Dq2vAdzm9iuPj5FW0fRxzlxgq9Q39MDq10IvmQSpLgHQNyQzQmOo6bgGHmH3NNg==}
+
+  coss@0.13.0:
+    resolution: {integrity: sha512-oFvkq9tBmL/e0bc/oTfgN5hfVyDuVOxvpYpgv7S8on2CkKiyL7PpAqj/ceyLYYMDwU9SsTPwn4oiMBH1la+RFQ==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@auth/core': '>=0.37.0'
+      '@opentelemetry/api': ^1.0.0
+      '@react-email/render': ^1.0.0 || ^2.0.0
+      better-auth: '>=1.0.0'
+      nodemailer: '>=6.9.0'
+    peerDependenciesMeta:
+      '@auth/core':
+        optional: true
+      '@opentelemetry/api':
+        optional: true
+      '@react-email/render':
+        optional: true
+      better-auth:
+        optional: true
+      nodemailer:
+        optional: true
 
   country-flag-icons@1.6.15:
     resolution: {integrity: sha512-92HoA8l6DluEidku8tKBftjuFRj4Rv3zDW1lXxCuNnqAxhUSkvso9gM/Afj4F5BnK+wneHIe3ydI+s+4NA29/Q==}
@@ -8030,6 +8054,11 @@ snapshots:
 
   core-js@3.47.0:
     optional: true
+
+  coss@0.13.0(@opentelemetry/api@1.9.0)(nodemailer@7.0.11):
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.0
+      nodemailer: 7.0.11
 
   country-flag-icons@1.6.15: {}
 
