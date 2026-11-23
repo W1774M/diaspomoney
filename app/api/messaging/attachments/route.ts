@@ -214,9 +214,10 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Supprimer le fichier
+    // Supprimer le fichier (url stockée en /uploads/... → chemin relatif sous public/)
     const { unlink } = await import('fs/promises');
-    const filepath = join(process.cwd(), 'public', attachment.url);
+    const relativeUrl = String(attachment.url || '').replace(/^\//, '');
+    const filepath = join(process.cwd(), 'public', relativeUrl);
     if (existsSync(filepath)) {
       await unlink(filepath);
     }
