@@ -39,6 +39,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+/**
+ * Un providerId de réservation n'est pas toujours un utilisateur : il peut valoir
+ * un identifiant de service (« consultation-medical ») ou un marqueur (« admin-draft »).
+ * Seul un ObjectId désigne un prestataire à notifier.
+ */
+function isProviderUserId(value: unknown): value is string {
+  return typeof value === 'string' && /^[a-f\d]{24}$/i.test(value);
+}
+
 function isProgressHistoryEntry(value: unknown): value is BookingProgressHistoryEntry {
   return isRecord(value);
 }
@@ -210,7 +219,8 @@ export class BookingService {
         paramIndex: 0,
         schema: z.object({
           requesterId: z.string().min(1),
-          providerId: z.string().min(1),
+          // Chaîne vide = pas encore de prestataire assigné
+          providerId: z.string(),
           serviceId: z.string().min(1),
         }).passthrough(),
         paramName: 'data',
@@ -224,7 +234,7 @@ export class BookingService {
   async createBooking(data: BookingData): Promise<Booking> {
     try {
       // Validation
-      if (!data.requesterId || !data.providerId || !data.serviceId) {
+      if (!data.requesterId || typeof data.providerId !== 'string' || !data.serviceId) {
         throw new Error('Données de réservation incomplètes');
       }
 
@@ -266,6 +276,12 @@ export class BookingService {
         recipient: data.recipient,
         metadata: data.metadata,
       } as Partial<Booking>);
+
+      // Réservation sans prestataire (ex. assistant de services) : rien à notifier,
+      // l'assignation se fera plus tard via assign-provider.
+      if (!isProviderUserId(booking.providerId)) {
+        return booking;
+      }
 
       // Notification provider (in-app): mission assignée
       try {
@@ -607,7 +623,7 @@ export class BookingService {
 
           // Notification au prestataire si assigné
           const providerId = (updatedBooking as any).providerId || (existingBooking as any).providerId;
-          if (providerId) {
+          if (isProviderUserId(providerId)) {
             const providerName =
               (updatedBooking.metadata?.['providerName'] as string | undefined) ||
               (existingBooking.metadata?.['providerName'] as string | undefined) ||
@@ -782,7 +798,7 @@ export class BookingService {
         const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
         const bookingsUrl = `${baseUrl}/dashboard/bookings`;
         const providerId = (updatedBooking as any).providerId || (existingBooking as any).providerId;
-        if (providerId) {
+        if (isProviderUserId(providerId)) {
           const providerName =
             (updatedBooking.metadata?.['providerName'] as string | undefined) ||
             (data.metadata?.['providerName'] as string | undefined) ||

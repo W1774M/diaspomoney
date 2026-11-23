@@ -204,7 +204,9 @@ export class ServiceBookingFacade
       
       const bookingData: BookingFacadeData = {
         requesterId, // ID de l'utilisateur connecté ou guest ID pour les utilisateurs non connectés
-        providerId: data.selectedService.serviceId, // À adapter selon votre modèle de providers
+        // Aucun prestataire n'est choisi dans l'assistant : l'admin l'assigne ensuite
+        // (assign-provider). Chaîne vide = non assigné, comme après une désassignation.
+        providerId: '',
         serviceId: data.selectedService.serviceId,
         serviceType: this.mapServiceTypeToBookingType(data.serviceType),
         appointmentDate: data.appointmentDate
