@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ROLES } from '@/lib/constants';
 
-const { mockAuth, find, findOne, create, lean, sort } = vi.hoisted(() => {
+const { mockAuth, find, findOne, create, lean } = vi.hoisted(() => {
   const lean = vi.fn();
   const sort = vi.fn(() => ({ lean }));
   const find = vi.fn(() => ({ sort }));
@@ -15,7 +15,6 @@ const { mockAuth, find, findOne, create, lean, sort } = vi.hoisted(() => {
     findOne: vi.fn(),
     create: vi.fn(),
     lean,
-    sort,
   };
 });
 

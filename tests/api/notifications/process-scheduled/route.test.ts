@@ -5,15 +5,13 @@ import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
 
-const { find, sort, limit, toArray, deliver } = vi.hoisted(() => {
+const { find, toArray, deliver } = vi.hoisted(() => {
   const toArray = vi.fn();
   const limit = vi.fn(() => ({ toArray }));
   const sort = vi.fn(() => ({ limit }));
   const find = vi.fn(() => ({ sort }));
   return {
     find,
-    sort,
-    limit,
     toArray,
     deliver: vi.fn(),
   };
@@ -44,37 +42,31 @@ function post(headers: Record<string, string> = {}, qs = '') {
 }
 
 describe('POST /api/notifications/process-scheduled', () => {
-  const prevSecret = process.env['NOTIFICATIONS_CRON_SECRET'];
-  const prevEnv = process.env['NODE_ENV'];
-
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env['NOTIFICATIONS_CRON_SECRET'];
-    process.env['NODE_ENV'] = 'test';
+    vi.stubEnv('NOTIFICATIONS_CRON_SECRET', '');
+    vi.stubEnv('NODE_ENV', 'test');
     toArray.mockResolvedValue([]);
     deliver.mockResolvedValue(true);
   });
 
   afterEach(() => {
-    if (prevSecret === undefined) delete process.env['NOTIFICATIONS_CRON_SECRET'];
-    else process.env['NOTIFICATIONS_CRON_SECRET'] = prevSecret;
-    if (prevEnv === undefined) delete process.env['NODE_ENV'];
-    else process.env['NODE_ENV'] = prevEnv;
+    vi.unstubAllEnvs();
   });
 
   it('en prod refuse sans secret configuré', async () => {
-    process.env['NODE_ENV'] = 'production';
-    delete process.env['NOTIFICATIONS_CRON_SECRET'];
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NOTIFICATIONS_CRON_SECRET', '');
     expect((await post()).status).toBe(403);
   });
 
   it('refuse un Bearer incorrect', async () => {
-    process.env['NOTIFICATIONS_CRON_SECRET'] = 'cron-secret';
+    vi.stubEnv('NOTIFICATIONS_CRON_SECRET', 'cron-secret');
     expect((await post({ authorization: 'Bearer wrong' })).status).toBe(401);
   });
 
   it('délivre les notifications dues', async () => {
-    process.env['NOTIFICATIONS_CRON_SECRET'] = 'cron-secret';
+    vi.stubEnv('NOTIFICATIONS_CRON_SECRET', 'cron-secret');
     const id1 = new ObjectId();
     const id2 = new ObjectId();
     toArray.mockResolvedValue([{ _id: id1 }, { _id: id2 }]);
@@ -99,7 +91,7 @@ describe('POST /api/notifications/process-scheduled', () => {
   });
 
   it('compte failed si deliver throw', async () => {
-    process.env['NOTIFICATIONS_CRON_SECRET'] = 'cron-secret';
+    vi.stubEnv('NOTIFICATIONS_CRON_SECRET', 'cron-secret');
     toArray.mockResolvedValue([{ _id: new ObjectId() }]);
     deliver.mockRejectedValue(new Error('smtp'));
 

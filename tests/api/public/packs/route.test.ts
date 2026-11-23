@@ -4,12 +4,12 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { find, lean, sort, select } = vi.hoisted(() => {
+const { find, lean } = vi.hoisted(() => {
   const lean = vi.fn();
   const select = vi.fn(() => ({ lean }));
   const sort = vi.fn(() => ({ select }));
   const find = vi.fn(() => ({ sort }));
-  return { find, lean, sort, select };
+  return { find, lean };
 });
 
 vi.mock('@/lib/mongodb', () => ({ default: vi.fn(async () => undefined) }));
