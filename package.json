@@ -64,6 +64,7 @@
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
+    "coss": "^0.13.0",
     "country-flag-icons": "^1.6.15",
     "framer-motion": "^12.23.24",
     "html2canvas": "^1.4.1",
