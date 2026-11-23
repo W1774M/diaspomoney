@@ -4,6 +4,7 @@ import {
 } from '@/components/features/providers';
 import NotificationContainer from "@/components/ui/Notification";
 import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
+import { ImpersonationBanner } from '@/components/support/ImpersonationBanner';
 import { EventSystemProvider } from '@/app/providers/EventSystemProvider';
 import '@/styles/globals.css';
 import 'react-international-phone/style.css';
@@ -97,6 +98,8 @@ export default function RootLayout({
         />
         <EventSystemProvider>
           <AuthProvider>
+            {/* consultation du support en cours (lecture seule) : toujours visible */}
+            <ImpersonationBanner />
             <AppointmentProvider>
               <ConfirmProvider>
                 <DefaultTemplate>{children}</DefaultTemplate>
