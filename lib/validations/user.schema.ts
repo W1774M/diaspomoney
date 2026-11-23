@@ -3,6 +3,7 @@
  */
 
 import { z } from 'zod';
+import { UserRole, UserStatus } from '@/lib/types/user.types';
 
 /**
  * Schéma pour créer un utilisateur
@@ -19,8 +20,9 @@ export const CreateUserSchema = z
     company: z.string().optional(),
     address: z.string().optional(),
     country: z.string().optional(),
-    roles: z.array(z.string()).optional(),
-    status: z.string().optional(),
+    // Liste fermée : aucune valeur hors UserRole / UserStatus n'est acceptée.
+    roles: z.array(z.nativeEnum(UserRole)).optional(),
+    status: z.nativeEnum(UserStatus).optional(),
     specialty: z.string().optional(),
     recommended: z.boolean().optional(),
     clientNotes: z.string().optional(),

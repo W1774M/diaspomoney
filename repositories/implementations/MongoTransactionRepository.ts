@@ -501,7 +501,8 @@ export class MongoTransactionRepository implements ITransactionRepository {
       if (options.offset) {
         builder.offset(options.offset);
       }
-      if (options.page && options.limit) {
+      // Un décalage explicite prime : page() le remettrait à (page - 1) × limit
+      if (options.page && options.limit && !options.offset) {
         builder.page(options.page, options.limit);
       }
       if (options.sort) {
