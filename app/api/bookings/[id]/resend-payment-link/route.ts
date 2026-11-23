@@ -5,7 +5,7 @@
  */
 
 import { auth } from '@/auth';
-import { handleApiRoute } from '@/lib/api/error-handler';
+import { ApiError, ApiErrors, handleApiRoute } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
 import { bookingService } from '@/services/booking/booking.service';
 import { ROLES } from '@/lib/constants';
@@ -24,7 +24,7 @@ export async function POST(
     const session = await auth();
     if (!session?.user?.id) {
       log.warn({ msg: 'Unauthorized access attempt' });
-      return { error: 'Non autorisé' };
+      throw ApiErrors.UNAUTHORIZED;
     }
 
     // Vérifier que l'utilisateur est administrateur
@@ -32,7 +32,7 @@ export async function POST(
     const isAdmin = userRoles.includes(ROLES.ADMIN) || userRoles.includes(ROLES.SUPERADMIN);
     if (!isAdmin) {
       log.warn({ userId: session.user.id, roles: userRoles }, 'Access denied: not admin');
-      return { error: 'Accès refusé. Seuls les administrateurs peuvent renvoyer le lien de paiement.' };
+      throw ApiErrors.FORBIDDEN;
     }
 
     // Gérer params qui peut être une Promise dans Next.js 15+
@@ -42,13 +42,13 @@ export async function POST(
       bookingId = resolvedParams.id;
     } catch (paramError) {
       log.error({ error: paramError, msg: 'Error resolving params' });
-      return { error: 'Erreur lors de la résolution des paramètres' };
+      throw new ApiError(400, 'Erreur lors de la résolution des paramètres');
     }
 
     // Vérifier que l'ID est un ObjectId valide
     if (!mongoose.Types.ObjectId.isValid(bookingId)) {
       log.warn({ bookingId }, 'Invalid booking ID format');
-      return { error: 'ID de réservation invalide' };
+      throw new ApiError(400, 'ID de réservation invalide');
     }
 
     log.info({ bookingId, userId: session.user.id }, 'Resending payment link');
@@ -57,7 +57,7 @@ export async function POST(
     const booking = await bookingService.getBookingById(bookingId);
     if (!booking) {
       log.warn({ bookingId }, 'Booking not found');
-      return { error: 'Réservation non trouvée' };
+      throw ApiErrors.NOT_FOUND;
     }
 
     const metadata = booking.metadata || {};
@@ -70,7 +70,7 @@ export async function POST(
 
     if (!clientEmail) {
       log.warn({ bookingId }, 'Client email not found in booking metadata');
-      return { error: 'L\'email du client n\'est pas disponible pour cette réservation' };
+      throw new ApiError(400, "L'email du client n'est pas disponible pour cette réservation");
     }
 
     // Convertir le montant en nombre si c'est une string
@@ -81,12 +81,12 @@ export async function POST(
       amountInEuros = totalAmount;
     } else {
       log.warn({ bookingId }, 'Total amount not found in booking metadata');
-      return { error: 'Le montant de la commande n\'est pas défini' };
+      throw new ApiError(400, "Le montant de la commande n'est pas défini");
     }
 
     if (isNaN(amountInEuros) || amountInEuros <= 0) {
       log.warn({ bookingId, amountInEuros }, 'Invalid amount');
-      return { error: 'Le montant de la commande est invalide' };
+      throw new ApiError(400, 'Le montant de la commande est invalide');
     }
 
     try {

@@ -5,7 +5,7 @@
  */
 
 import { auth } from '@/auth';
-import { handleApiRoute } from '@/lib/api/error-handler';
+import { ApiError, ApiErrors, handleApiRoute } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
 import { getStripeInstance } from '@/lib/stripe-config';
 import { ROLES } from '@/lib/constants';
@@ -22,7 +22,7 @@ export async function GET(
     const session = await auth();
     if (!session?.user?.id) {
       log.warn({ msg: 'Unauthorized access attempt' });
-      return { error: 'Non autorisé' };
+      throw ApiErrors.UNAUTHORIZED;
     }
 
     // Vérifier que l'utilisateur est administrateur
@@ -30,7 +30,7 @@ export async function GET(
     const isAdmin = userRoles.includes(ROLES.ADMIN) || userRoles.includes(ROLES.SUPERADMIN);
     if (!isAdmin) {
       log.warn({ userId: session.user.id, roles: userRoles }, 'Access denied: not admin');
-      return { error: 'Accès refusé. Seuls les administrateurs peuvent accéder aux détails Stripe.' };
+      throw ApiErrors.FORBIDDEN;
     }
 
     // Gérer params qui peut être une Promise dans Next.js 15+
@@ -40,12 +40,12 @@ export async function GET(
       paymentIntentId = resolvedParams.id;
     } catch (paramError) {
       log.error({ error: paramError, msg: 'Error resolving params' });
-      return { error: 'Erreur lors de la résolution des paramètres' };
+      throw new ApiError(400, 'Erreur lors de la résolution des paramètres');
     }
 
     if (!paymentIntentId || !paymentIntentId.startsWith('pi_')) {
       log.warn({ paymentIntentId }, 'Invalid payment intent ID format');
-      return { error: 'ID de PaymentIntent invalide' };
+      throw new ApiError(400, 'ID de PaymentIntent invalide');
     }
 
     log.info({ paymentIntentId, userId: session.user.id }, 'Fetching Stripe payment intent details');
@@ -122,7 +122,7 @@ export async function GET(
       });
 
       if (error.type === 'StripeInvalidRequestError') {
-        return { error: 'PaymentIntent non trouvé' };
+        throw ApiErrors.NOT_FOUND;
       }
 
       throw error;

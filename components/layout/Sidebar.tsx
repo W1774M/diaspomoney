@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useAuthorization } from '@/hooks/auth/useAuthorization';
+import { hasExplicitRole } from '@/lib/auth/explicit-role';
 import imageLoader from '@/lib/image-loader';
 import { ROLES } from '@/lib/constants';
 import {
@@ -559,8 +560,12 @@ function buildNavigationSections(
   // ----------------------------
   // GESTION CSM : uniquement CSM
   // ----------------------------
+  // Le portefeuille est propre à chaque CSM (csmPortfolioProviderIds) et l'API
+  // exige le rôle CSM : on exige donc le rôle explicite, alors que
+  // isAuthorizedCSM est vrai aussi pour un ADMIN / SUPERADMIN (qui obtenait
+  // un 403 sur /api/csm/portfolio/providers).
   const csmGestionItems: NavigationItem[] = [];
-  if (isAuthorizedCSM) {
+  if (isAuthorizedCSM && hasExplicitRole(user, ROLES.CSM)) {
     csmGestionItems.push({
       name: 'Mon portefeuille',
       key: 'csm-portfolio',

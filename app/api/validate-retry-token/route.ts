@@ -13,8 +13,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const expiresMs = Number(expires);
+    if (!Number.isFinite(expiresMs)) {
+      return NextResponse.json(
+        { error: "Date d'expiration invalide" },
+        { status: 400 },
+      );
+    }
+
     // Vérifier si le token n'a pas expiré
-    const expiresAt = new Date(parseInt(expires));
+    const expiresAt = new Date(expiresMs);
     const now = new Date();
 
     if (now > expiresAt) {
