@@ -67,6 +67,8 @@ describe('PDFGeneratorService.generateInvoicePDF', () => {
     const out = written();
     for (const expected of [
       'FACTURE', 'N° FAC-2026-0001',
+      // émetteur légal réel (lib/legal/company.ts)
+      'VALEUR ETHIC CONSEIL (SARL)', "42 rue d'Achères", '78600 Maisons-Laffitte, France', 'SIRET 500 085 709 00029',
       'Facturé à:', 'Awa Diallo', 'awa@test.fr', '1 rue X\n75010 Paris\nFrance',
       'Prestataire:', 'Dr Bah', 'bah@test.fr', 'Dakar\nSénégal',
       "Date d'émission: 22/11/2026", "Date d'échéance: 22/12/2026", 'Statut: Payée',
@@ -76,6 +78,9 @@ describe('PDFGeneratorService.generateInvoicePDF', () => {
     ]) {
       expect(out).toContain(expected);
     }
+    // plus aucune coordonnée fictive
+    expect(out).not.toContain("123 Rue de l'Innovation");
+    expect(out).not.toContain('123 456 789');
     expect(h.findById).toHaveBeenCalledWith('p1');
   });
 

@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
+import { LEGAL_ENTITY, formatEffectiveDate, legalIdentity } from '@/lib/legal/company';
 import Link from 'next/link';
 
 export const metadata: Metadata = pageMetadata({
@@ -19,7 +20,7 @@ export default function TermsAndConditionsPage() {
           
           <div className="prose prose-lg max-w-none">
             <p className="text-gray-600 mb-6">
-              En vigueur à compter du : [Date à insérer]
+              En vigueur à compter du : {formatEffectiveDate()}
             </p>
             
             <section className="mb-8">
@@ -29,8 +30,17 @@ export default function TermsAndConditionsPage() {
               <p className="text-gray-700 mb-4">
                 Les présentes Conditions Générales d’Utilisation (CGU) définissent les modalités et
                 conditions d’accès et d’utilisation de la plateforme <strong>DIASPOMONEY.FR</strong>,
-                propriété de la société DIASPOMONEY, tiers de confiance dans le transfert de
-                prestations vers l’Afrique (santé, éducation, immobilier).
+                tiers de confiance dans le transfert de prestations vers l’Afrique (santé, éducation,
+                immobilier).
+              </p>
+              <p className="text-gray-700 mb-4">
+                La plateforme est éditée par <strong>{LEGAL_ENTITY.name}</strong> ({legalIdentity()}),
+                pour le compte de la société {LEGAL_ENTITY.successor}. Les termes « DiaspoMoney » et
+                « la plateforme » désignent ci-après l’éditeur et le service qu’il exploite. Voir les{' '}
+                <Link href="/legal-notice" className="text-brand-700 hover:underline">
+                  mentions légales
+                </Link>
+                .
               </p>
             </section>
 

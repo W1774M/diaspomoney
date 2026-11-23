@@ -170,6 +170,11 @@ const FooterComponent = ({ className = '' }: { className?: string }) => {
           <nav aria-label='Informations légales'>
             <ul className='flex flex-wrap justify-center gap-x-6 gap-y-2 md:justify-end' role='list'>
               <li>
+                <Link href='/legal-notice' className={linkClass}>
+                  Mentions légales
+                </Link>
+              </li>
+              <li>
                 <Link href='/terms-and-conditions' className={linkClass}>
                   Conditions d&apos;utilisation
                 </Link>

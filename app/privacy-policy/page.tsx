@@ -1,5 +1,11 @@
 import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
+import {
+  DATA_PROTECTION_CONTACT,
+  LEGAL_ENTITY,
+  formatEffectiveDate,
+  formatLegalAddress,
+} from '@/lib/legal/company';
 import Link from 'next/link';
 
 export const metadata: Metadata = pageMetadata({
@@ -19,7 +25,7 @@ export default function PrivacyPolicyPage() {
 
           <div className="prose prose-lg max-w-none">
             <p className="text-gray-600 mb-6">
-              En vigueur à compter du : [Date à insérer]
+              En vigueur à compter du : {formatEffectiveDate()}
             </p>
 
             <section className="mb-8">
@@ -43,8 +49,16 @@ export default function PrivacyPolicyPage() {
                 1. Identité du Responsable de Traitement
               </h2>
               <p className="text-gray-700 mb-4">
-                Le traitement est assuré par : <strong>DIASPOMONEY</strong>, (adresse), (email de
-                contact).
+                Le responsable du traitement est <strong>{LEGAL_ENTITY.name}</strong>,{' '}
+                {LEGAL_ENTITY.legalForm} immatriculée sous le numéro SIREN {LEGAL_ENTITY.siren}, dont
+                le siège est situé {formatLegalAddress()}, qui exploite la plateforme{' '}
+                {LEGAL_ENTITY.brand} pour le compte de la société {LEGAL_ENTITY.successor}.
+              </p>
+              <p className="text-gray-700 mb-4">
+                Contact :{' '}
+                <a href={`mailto:${LEGAL_ENTITY.email}`} className="text-brand-700 hover:underline">
+                  {LEGAL_ENTITY.email}
+                </a>
               </p>
             </section>
 
@@ -233,9 +247,25 @@ export default function PrivacyPolicyPage() {
                 Pour toute question relative à vos données personnelles :
               </p>
               <ul className="list-disc space-y-2 pl-6 text-gray-700 mb-4">
-                <li>Email : (Email du DPO) – Objet : « Données personnelles »</li>
-                <li>Adresse postale : (Adresse du DPO) – envoi recommandé</li>
+                <li>
+                  E-mail :{' '}
+                  <a
+                    href={`mailto:${DATA_PROTECTION_CONTACT.email}`}
+                    className="text-brand-700 hover:underline"
+                  >
+                    {DATA_PROTECTION_CONTACT.email}
+                  </a>{' '}
+                  – Objet : « {DATA_PROTECTION_CONTACT.subject} »
+                </li>
+                <li>
+                  Courrier : {LEGAL_ENTITY.name}, {formatLegalAddress()} – envoi recommandé
+                </li>
               </ul>
+              <p className="text-gray-700 mb-4">
+                Aucun délégué à la protection des données (DPO) n’est désigné à ce jour : les
+                demandes sont traitées directement par le responsable du traitement, dans un délai
+                d’un mois.
+              </p>
             </section>
           </div>
 
