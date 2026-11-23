@@ -102,3 +102,19 @@ describe('/api/admin/provider-applications', () => {
     expect((await patch(ID, { status: 'accepted' })).status).toBe(404);
   });
 });
+
+describe('toProviderApplication : origine', () => {
+  it('distingue les propositions CSM des demandes du formulaire', async () => {
+    const { toProviderApplication } = await import('@/lib/provider-applications');
+    expect(toProviderApplication({ _id: 'a1', name: 'Awa' })).toMatchObject({ source: 'roadmap' });
+    expect(
+      toProviderApplication({
+        _id: 'a2',
+        name: 'Sow',
+        source: 'csm',
+        csmName: 'Camille',
+        providerUserId: { toString: () => 'prov1' },
+      }),
+    ).toMatchObject({ source: 'csm', proposedBy: 'Camille', providerUserId: 'prov1' });
+  });
+});

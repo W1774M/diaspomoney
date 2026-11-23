@@ -155,6 +155,13 @@ const TEXTS: Record<string, TemplateText> = {
       'Votre projet {{projectType}} « {{projectName}} » est créé. Fin prévue : {{expectedEndDate}}. Vous suivrez son avancement dans votre espace DiaspoMoney.',
     variables: ['projectName', 'projectType', 'expectedEndDate'],
   },
+  // ---------------------------------------------------------------- Admin (propositions CSM)
+  admin_csm_provider_proposed: {
+    subject: 'Prestataire à valider : {{providerName}}',
+    content:
+      '{{csmName}} a ajouté un prestataire sans compte à son portefeuille : {{providerName}} (contact : {{contact}}). {{missingLine}} Suivi dans Candidatures prestataires ; fiche : {{providerUrl}}',
+    variables: ['providerName', 'csmName', 'contact', 'missingLine', 'providerUrl'],
+  },
 };
 
 /** Noms des modèles fournis ici. */

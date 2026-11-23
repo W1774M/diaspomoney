@@ -26,6 +26,16 @@ export interface ProviderApplication {
   note: string;
   submittedAt: string | null;
   updatedAt: string | null;
+  /**
+   * Origine : formulaire « Devenir prestataire » (roadmap, par défaut) ou
+   * prestataire sans compte ajouté par un CSM à son portefeuille
+   * (services/csm/propose-provider.use-case.ts).
+   */
+  source: 'roadmap' | 'csm';
+  /** Nom du CSM qui a proposé le prestataire. */
+  proposedBy?: string;
+  /** Compte prestataire (en attente) créé pour cette proposition. */
+  providerUserId?: string;
 }
 
 export const ProviderApplicationUpdateSchema = z
@@ -62,5 +72,10 @@ export function toProviderApplication(doc: Record<string, unknown>): ProviderApp
     note: typeof doc['note'] === 'string' ? doc['note'] : '',
     submittedAt: toIso(doc['submittedAt'] ?? doc['createdAt']),
     updatedAt: toIso(doc['updatedAt']),
+    source: doc['source'] === 'csm' ? 'csm' : 'roadmap',
+    ...(typeof doc['csmName'] === 'string' && doc['csmName']
+      ? { proposedBy: doc['csmName'] }
+      : {}),
+    ...(doc['providerUserId'] ? { providerUserId: String(doc['providerUserId']) } : {}),
   };
 }
