@@ -30,8 +30,8 @@ function usedTemplateNames(): string[] {
     for (const file of sourceFiles(path.join(ROOT, dir))) {
       const source = readFileSync(file, 'utf8');
       for (const match of source.matchAll(/\btemplate:\s*([\s\S]{0,200}?),\s*\n/g)) {
-        for (const name of match[1]!.matchAll(/['"]([a-z]+(?:_[a-z]+)+|welcome)['"]/g)) {
-          names.add(name[1]!);
+        for (const name of match[1]!.matchAll(/['"]([a-z]+(?:[_-][a-z]+)+|welcome)['"]/g)) {
+          names.add(name[1]!.replace(/-/g, '_'));
         }
       }
     }
