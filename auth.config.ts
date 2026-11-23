@@ -12,6 +12,7 @@
 
 import { authEvents } from '@/lib/events';
 import { childLogger } from '@/lib/logger';
+import { isImpersonationActive, toImpersonationInfo } from '@/lib/support/impersonation-policy';
 import { getUserRepository } from '@/repositories';
 import * as Sentry from '@sentry/nextjs';
 import bcrypt from 'bcryptjs';
@@ -19,6 +20,9 @@ import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import FacebookProvider from 'next-auth/providers/facebook';
 import GoogleProvider from 'next-auth/providers/google';
+
+/** Fréquence de relecture du statut du compte pendant une session (suspension par le support). */
+export const STATUS_RECHECK_MS = 5 * 60 * 1000;
 
 export const authConfig: NextAuthOptions = {
   providers: [
@@ -366,10 +370,14 @@ export const authConfig: NextAuthOptions = {
       token,
       user,
       account,
+      trigger,
+      session,
     }: {
       token: any;
       user: any;
       account: any;
+      trigger?: string;
+      session?: unknown;
     }) {
       const log = childLogger({
         component: 'NextAuth',
@@ -479,6 +487,38 @@ export const authConfig: NextAuthOptions = {
           }
         }
 
+        // Compte suspendu ou désactivé depuis la connexion : la session se ferme.
+        // Statut relu en base au plus toutes les STATUS_RECHECK_MS (pas à chaque requête).
+        if (user) {
+          token.statusCheckedAt = Date.now();
+        } else if (
+          token.userId &&
+          (typeof token.statusCheckedAt !== 'number' ||
+            Date.now() - token.statusCheckedAt > STATUS_RECHECK_MS)
+        ) {
+          try {
+            const current = await getUserRepository().findById(String(token.userId));
+            const status = String((current as any)?.status ?? '').toUpperCase();
+            if (status === 'SUSPENDED' || status === 'INACTIVE') {
+              log.warn({ userId: token.userId, status }, 'Session closed: account no longer active');
+              return {};
+            }
+            token.statusCheckedAt = Date.now();
+          } catch (error) {
+            log.warn({ error, userId: token.userId }, 'Account status check failed');
+          }
+        }
+
+        // Consultation du support (« voir en tant que ») : démarrage, fin, expiration.
+        // Une connexion (user présent) repart toujours d'une session sans consultation.
+        // Service chargé à la demande : seulement quand une consultation est en jeu.
+        if (user) {
+          delete token.impersonation;
+        } else if (token.impersonation || trigger === 'update') {
+          const { applyImpersonationToToken } = await import('@/lib/support/support.service');
+          token = await applyImpersonationToToken(token, trigger, session);
+        }
+
         log.debug(
           {
             userId: token?.userId,
@@ -559,6 +599,18 @@ export const authConfig: NextAuthOptions = {
           (session.user as any).roles = Array.isArray(token.roles)
             ? token.roles
             : [token.roles];
+        }
+
+        // Consultation du support : toute l'application voit l'utilisateur consulté.
+        // L'admin reste dans token.userId ; le proxy bloque toute écriture (lecture seule).
+        if (isImpersonationActive(token.impersonation)) {
+          const imp = token.impersonation;
+          session.user.id = imp.targetId;
+          session.user.email = imp.targetEmail;
+          session.user.name = imp.targetName;
+          session.user.roles = imp.targetRoles;
+          delete session.user.image;
+          session.impersonation = toImpersonationInfo(imp);
         }
 
         // Ajouter les informations du provider

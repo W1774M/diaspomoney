@@ -25,6 +25,7 @@ import { useEffect, useState } from 'react';
 import { useNotificationManager } from '@/components/ui/Notification';
 import { USER_STATUSES } from '@/lib/constants';
 import { isPlaceholderEmail } from '@/lib/csm/provider-proposal';
+import { SupportPanel } from '@/components/support/SupportPanel';
 
 /**
  * Contenu de la page de détail d'un utilisateur
@@ -651,26 +652,8 @@ function UserDetailPageContent() {
             </div>
           </div>
 
-          {/* Statistiques */}
-          <div className='bg-white rounded-lg shadow border border-gray-200 p-6'>
-            <h2 className='text-lg font-semibold text-gray-900 mb-4'>
-              Statistiques
-            </h2>
-            <div className='space-y-3'>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-gray-600'>Factures</span>
-                <span className='text-lg font-bold text-gray-900'>0</span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-gray-600'>Tâches</span>
-                <span className='text-lg font-bold text-gray-900'>0</span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-gray-600'>Projets</span>
-                <span className='text-lg font-bold text-gray-900'>0</span>
-              </div>
-            </div>
-          </div>
+          {/* Support : volumes réels, actions ciblées, consultation en lecture seule */}
+          <SupportPanel userId={userId} onChanged={() => fetchUser(userId)} />
         </div>
       </div>
     </>
