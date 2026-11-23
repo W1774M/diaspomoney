@@ -96,7 +96,7 @@ export const UpdateUserSchema = z.object({
   marketingConsent: z.boolean().optional(),
   kycConsent: z.boolean().optional(),
   specialty: z.string().optional(),
-  status: z.string().optional(),
+  status: z.nativeEnum(UserStatus).optional(),
   recommended: z.boolean().optional(),
   clientNotes: z.string().optional(),
   preferences: z.object({
@@ -108,7 +108,7 @@ export const UpdateUserSchema = z.object({
     notificationEmailByType: z.record(z.boolean()).optional(),
   }).optional(),
   providerInfo: z.any().optional(),
-  roles: z.array(z.string()).optional(),
+  roles: z.array(z.nativeEnum(UserRole)).optional(),
   country: z.string().optional(),
 });
 

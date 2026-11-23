@@ -12,7 +12,7 @@
 
 import { auth } from '@/auth';
 import { ObjectId } from 'mongodb';
-import { validateBody } from '@/lib/api/error-handler';
+import { ApiError, validateBody } from '@/lib/api/error-handler';
 import { childLogger } from '@/lib/logger';
 import { ROLES } from '@/lib/constants';
 import { UpdateUserSchema } from '@/lib/validations/user.schema';
@@ -126,48 +126,68 @@ export async function PUT(
     const decodedUserId = decodeURIComponent(targetUserId);
     log.debug({ targetUserId, decodedUserId }, 'Processing user update');
 
-    // Lire le body une seule fois
+    // Lire le body une seule fois, puis le valider (roles et status limités aux valeurs connues)
     const body = await request.json();
-    
-    // Vérifier les permissions (seuls ADMIN et SUPERADMIN peuvent modifier d'autres utilisateurs)
+    const data = validateBody(body, UpdateUserSchema);
+
+    // Permissions. Elles s'appliquent aussi quand on modifie son propre compte :
+    // sans cela, n'importe quel utilisateur connecté pouvait se donner le rôle SUPERADMIN.
     const currentUserId = session.user.id;
+    const isSelf = currentUserId === decodedUserId;
+    const currentUser = await userService.getUserProfile(currentUserId);
+    const callerRoles = (currentUser.roles || []).map(String);
+    const isSuperAdmin = callerRoles.includes(ROLES.SUPERADMIN);
+    const isAdmin = isSuperAdmin || callerRoles.includes(ROLES.ADMIN);
 
-    if (currentUserId !== targetUserId) {
-      // Vérifier si l'utilisateur actuel est ADMIN ou SUPERADMIN
-      const currentUser = await userService.getUserProfile(currentUserId);
-      const isAdmin =
-        currentUser.roles?.includes(ROLES.ADMIN) ||
-        currentUser.roles?.includes(ROLES.SUPERADMIN);
-      const isSuperAdmin = currentUser.roles?.includes(ROLES.SUPERADMIN);
+    const forbid = (error: string, reason: string) => {
+      log.warn({ currentUserId, targetUserId: decodedUserId, reason }, 'User update forbidden');
+      return NextResponse.json({ error }, { status: 403 });
+    };
 
-      if (!isAdmin) {
-        log.warn(
-          { currentUserId, targetUserId, msg: 'Insufficient permissions' },
-          'User attempted to update another user without admin rights',
-        );
-        return NextResponse.json(
-          { error: 'Permissions insuffisantes' },
-          { status: 403 },
+    if (!isSelf && !isAdmin) {
+      return forbid('Permissions insuffisantes', 'not_admin');
+    }
+
+    // Champs réservés aux administrateurs (le formulaire d'édition est réservé aux admins)
+    if (!isAdmin && (data.recommended !== undefined || data.clientNotes !== undefined)) {
+      return forbid('Permissions insuffisantes', 'admin_only_field');
+    }
+
+    // Le formulaire d'édition renvoie toujours les rôles et le statut actuels :
+    // on ne contrôle que ce qui change réellement.
+    if (data.roles !== undefined || data.status !== undefined) {
+      const target = isSelf ? currentUser : await userService.getUserProfile(decodedUserId);
+      const targetRoles = (target.roles || []).map(String);
+      const newRoles: string[] = data.roles ?? targetRoles;
+
+      const rolesChanged =
+        newRoles.length !== targetRoles.length ||
+        newRoles.some(role => !targetRoles.includes(role));
+      const statusChanged = data.status !== undefined && data.status !== String(target.status);
+
+      if ((rolesChanged || statusChanged) && !isAdmin) {
+        return forbid(
+          'Seul un administrateur peut modifier les rôles ou le statut',
+          'privileged_field',
         );
       }
-      
-      // Protection : un admin ne peut pas attribuer le rôle SUPERADMIN
-      // Vérifier si les rôles sont modifiés et contiennent SUPERADMIN
-      if (body.roles && Array.isArray(body.roles) && body.roles.includes(ROLES.SUPERADMIN) && !isSuperAdmin) {
-        log.warn(
-          { currentUserId, targetUserId, msg: 'Admin attempted to assign SUPERADMIN role' },
-          'Admin attempted to assign SUPERADMIN role',
+
+      if (!isSuperAdmin) {
+        const adminRolesChanged = [ROLES.ADMIN, ROLES.SUPERADMIN].some(
+          role => newRoles.includes(role) !== targetRoles.includes(role),
         );
-        return NextResponse.json(
-          { error: 'Seuls les super administrateurs peuvent attribuer le rôle SUPERADMIN' },
-          { status: 403 },
-        );
+        const touchesSuperAdmin =
+          targetRoles.includes(ROLES.SUPERADMIN) && (rolesChanged || statusChanged);
+
+        if (adminRolesChanged || touchesSuperAdmin) {
+          return forbid(
+            'Seul un SUPERADMIN peut attribuer ou retirer les rôles ADMIN et SUPERADMIN, ou modifier un SUPERADMIN',
+            'admin_role_change',
+          );
+        }
       }
     }
-    
-    // Validation avec Zod
-    const data = validateBody(body, UpdateUserSchema);
-    
+
     const userId = decodedUserId;
 
     log.debug({ userId, fields: Object.keys(data) }, 'Updating user');
@@ -218,6 +238,14 @@ export async function PUT(
       { error, userId, msg: 'Error updating user' },
       'Error updating user',
     );
+
+    // Erreurs de validation Zod (validateBody) : renvoyer leur statut (400), pas 500
+    if (error instanceof ApiError) {
+      return NextResponse.json(
+        { error: error.message, ...(error.details ? { details: error.details } : {}) },
+        { status: error.statusCode },
+      );
+    }
 
     if (error.message === 'Utilisateur non trouvé') {
       return NextResponse.json(
