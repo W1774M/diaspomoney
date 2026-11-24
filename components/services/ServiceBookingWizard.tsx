@@ -58,6 +58,55 @@ export function ServiceBookingWizard({
   // États pour le code promotionnel
   const [promotionCode, setPromotionCode] = useState('');
 
+  // POC coss : créneaux santé
+  const [cossSlots, setCossSlots] = useState<Array<{ start: string; end: string; time: string }>>([]);
+  const [cossSlotsLoading, setCossSlotsLoading] = useState(false);
+  const [cossSlotsError, setCossSlotsError] = useState<string | null>(null);
+  const [selectedSlotStart, setSelectedSlotStart] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (state.serviceType !== SPECIALITY_TYPES.HEALTH || !state.availability.selectedDate) {
+      setCossSlots([]);
+      setCossSlotsError(null);
+      return;
+    }
+
+    let cancelled = false;
+    const date = state.availability.selectedDate;
+    setCossSlotsLoading(true);
+    setCossSlotsError(null);
+
+    fetch(`/api/scheduling/slots?date=${encodeURIComponent(date)}`)
+      .then(async (res) => {
+        const body = await res.json();
+        if (!res.ok || !body.success) {
+          throw new Error(body.error || 'Impossible de charger les créneaux');
+        }
+        return body.slots as Array<{ start: string; end: string; time: string }>;
+      })
+      .then((slots) => {
+        if (cancelled) return;
+        setCossSlots(slots);
+        setSelectedSlotStart(null);
+        setState((prev) => ({
+          ...prev,
+          availability: { ...prev.availability, selectedTime: null },
+        }));
+      })
+      .catch((err: Error) => {
+        if (cancelled) return;
+        setCossSlots([]);
+        setCossSlotsError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setCossSlotsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [state.serviceType, state.availability.selectedDate]);
+
   useEffect(() => {
     if (!initialClinic) return;
 
@@ -181,7 +230,12 @@ export function ServiceBookingWizard({
         );
         // Les disponibilités ne sont requises que pour le type HEALTH
         if (state.serviceType === SPECIALITY_TYPES.HEALTH) {
-          return baseValidation && !!state.availability.selectedDate && !!state.availability.selectedTime;
+          return (
+            baseValidation &&
+            !!state.availability.selectedDate &&
+            !!state.availability.selectedTime &&
+            !!selectedSlotStart
+          );
         }
         return baseValidation;
       }
@@ -403,8 +457,8 @@ export function ServiceBookingWizard({
     
     // Les disponibilités ne sont requises que pour le type HEALTH
     if (state.serviceType === SPECIALITY_TYPES.HEALTH) {
-      if (!state.availability.selectedDate || !state.availability.selectedTime) {
-        notificationManager.addWarning("Veuillez sélectionner une date et une heure de disponibilité");
+      if (!state.availability.selectedDate || !state.availability.selectedTime || !selectedSlotStart) {
+        notificationManager.addWarning("Veuillez sélectionner une date et un créneau de disponibilité");
         return;
       }
     }
@@ -457,6 +511,7 @@ export function ServiceBookingWizard({
             discountAmount: discountAmount,
             discountPercentage: promotionCodeData.percentage,
           }),
+          ...(selectedSlotStart && { cossSlotStart: selectedSlotStart }),
         },
       };
 
@@ -1073,30 +1128,49 @@ export function ServiceBookingWizard({
                     </div>
                     <div>
                       <label htmlFor="availability-time" className="block text-sm font-medium mb-2">
-                        Heure *
+                        Créneau *
                       </label>
-                      <input
+                      <select
                         id="availability-time"
-                        type="time"
-                        value={state.availability.selectedTime || ""}
-                        onChange={(e) =>
+                        value={selectedSlotStart || ""}
+                        disabled={cossSlotsLoading || !!cossSlotsError || cossSlots.length === 0}
+                        onChange={(e) => {
+                          const start = e.target.value;
+                          const slot = cossSlots.find((s) => s.start === start);
+                          setSelectedSlotStart(start || null);
                           setState((prev) => ({
                             ...prev,
                             availability: {
                               ...prev.availability,
-                              selectedTime: e.target.value,
+                              selectedTime: slot?.time || null,
                             },
-                          }))
-                        }
+                          }));
+                        }}
                         className="w-full px-4 py-2 border rounded-lg"
                         required
-                        aria-label="Heure de disponibilité"
-                      />
+                        aria-label="Créneau de disponibilité"
+                      >
+                        <option value="">
+                          {cossSlotsLoading
+                            ? "Chargement…"
+                            : cossSlots.length === 0
+                              ? "Aucun créneau"
+                              : "Choisir un créneau"}
+                        </option>
+                        {cossSlots.map((slot) => (
+                          <option key={slot.start} value={slot.start}>
+                            {slot.time}
+                          </option>
+                        ))}
+                      </select>
+                      {cossSlotsError && (
+                        <p className="mt-2 text-sm text-red-600">{cossSlotsError}</p>
+                      )}
                     </div>
                   </div>
                   <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                     <p className="text-sm text-brand-800">
-                      💡 Vous pouvez également utiliser un outil externe comme Calendly pour la sélection des disponibilités
+                      Créneaux fournis par coss Scheduling (sandbox POC santé).
                     </p>
                   </div>
                 </div>

@@ -1,5 +1,11 @@
 import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
+import {
+  DATA_PROTECTION_CONTACT,
+  LEGAL_ENTITY,
+  formatEffectiveDate,
+  formatLegalAddress,
+} from '@/lib/legal/company';
 import Link from 'next/link';
 
 export const metadata: Metadata = pageMetadata({
@@ -19,7 +25,7 @@ export default function PrivacyPolicyPage() {
 
           <div className="prose prose-lg max-w-none">
             <p className="text-gray-600 mb-6">
-              En vigueur à compter du : [Date à insérer]
+              En vigueur à compter du : {formatEffectiveDate()}
             </p>
 
             <section className="mb-8">
@@ -43,8 +49,16 @@ export default function PrivacyPolicyPage() {
                 1. Identité du Responsable de Traitement
               </h2>
               <p className="text-gray-700 mb-4">
-                Le traitement est assuré par : <strong>DIASPOMONEY</strong>, (adresse), (email de
-                contact).
+                Le responsable du traitement est <strong>{LEGAL_ENTITY.name}</strong>,{' '}
+                {LEGAL_ENTITY.legalForm} immatriculée sous le numéro SIREN {LEGAL_ENTITY.siren}, dont
+                le siège est situé {formatLegalAddress()}, qui exploite la plateforme{' '}
+                {LEGAL_ENTITY.brand} pour le compte de la société {LEGAL_ENTITY.successor}.
+              </p>
+              <p className="text-gray-700 mb-4">
+                Contact :{' '}
+                <a href={`mailto:${LEGAL_ENTITY.email}`} className="text-brand-700 hover:underline">
+                  {LEGAL_ENTITY.email}
+                </a>
               </p>
             </section>
 
@@ -70,6 +84,7 @@ export default function PrivacyPolicyPage() {
                 <li>Superviser les prestations</li>
                 <li>Respecter les obligations légales (KYC/AML)</li>
                 <li>Améliorer la plateforme</li>
+                <li>Assister les utilisateurs et traiter leurs demandes d’assistance</li>
               </ul>
             </section>
 
@@ -104,6 +119,16 @@ export default function PrivacyPolicyPage() {
                       </td>
                       <td className="border border-gray-200 px-4 py-2">
                         Article 6.1.f RGPD (intérêt légitime)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="border border-gray-200 px-4 py-2">
+                        Assistance aux utilisateurs (traitement des demandes, résolution des
+                        incidents)
+                      </td>
+                      <td className="border border-gray-200 px-4 py-2">
+                        Article 6.1.b RGPD (exécution du contrat) et 6.1.f (intérêt légitime :
+                        sécurité et bon fonctionnement du service)
                       </td>
                     </tr>
                     <tr>
@@ -202,6 +227,18 @@ export default function PrivacyPolicyPage() {
                 Des mesures techniques et organisationnelles sont mises en place : chiffrement,
                 pare-feu, contrôle d’accès…
               </p>
+              <p className="text-gray-700 mb-4">
+                <strong>Accès du support à votre compte.</strong> Pour traiter une demande
+                d’assistance ou corriger un incident, un administrateur habilité de DiaspoMoney peut
+                consulter votre compte tel que vous le voyez. Cette consultation se fait en lecture
+                seule : aucune opération, aucun paiement et aucune modification ne peuvent être
+                effectués en votre nom. Elle est limitée à 30 minutes et réservée à un nombre
+                restreint d’administrateurs. Chaque consultation est enregistrée : son auteur, sa
+                date, sa durée et son motif. Le support peut aussi suspendre un compte, par exemple
+                en cas de suspicion de fraude, ou vous envoyer un lien pour changer votre mot de
+                passe. Ces actions sont enregistrées de la même façon. Vous pouvez demander la liste
+                des consultations de votre compte à l’adresse indiquée à la section 11.
+              </p>
             </section>
 
             <section className="mb-8">
@@ -210,9 +247,25 @@ export default function PrivacyPolicyPage() {
                 Pour toute question relative à vos données personnelles :
               </p>
               <ul className="list-disc space-y-2 pl-6 text-gray-700 mb-4">
-                <li>Email : (Email du DPO) – Objet : « Données personnelles »</li>
-                <li>Adresse postale : (Adresse du DPO) – envoi recommandé</li>
+                <li>
+                  E-mail :{' '}
+                  <a
+                    href={`mailto:${DATA_PROTECTION_CONTACT.email}`}
+                    className="text-brand-700 hover:underline"
+                  >
+                    {DATA_PROTECTION_CONTACT.email}
+                  </a>{' '}
+                  – Objet : « {DATA_PROTECTION_CONTACT.subject} »
+                </li>
+                <li>
+                  Courrier : {LEGAL_ENTITY.name}, {formatLegalAddress()} – envoi recommandé
+                </li>
               </ul>
+              <p className="text-gray-700 mb-4">
+                Aucun délégué à la protection des données (DPO) n’est désigné à ce jour : les
+                demandes sont traitées directement par le responsable du traitement, dans un délai
+                d’un mois.
+              </p>
             </section>
           </div>
 

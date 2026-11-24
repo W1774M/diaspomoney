@@ -191,4 +191,42 @@ describe('POST /api/stripe/webhook', () => {
     expect(res.status).toBe(200);
     expect(mockConfirm).not.toHaveBeenCalled();
   });
+
+  it('reste 200 si confirmBookingPayment échoue', async () => {
+    mockVerify.mockReturnValue({
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: 'pi_bad',
+          amount: 1000,
+          currency: 'eur',
+          metadata: { bookingId: '69429b5327a945897d990327' },
+        },
+      },
+    });
+    mockConfirm.mockResolvedValue({ success: false, error: 'booking missing' });
+
+    const res = await POST(makeWebhookRequest());
+    expect(res.status).toBe(200);
+    expect(mockConfirm).toHaveBeenCalled();
+  });
+
+  it('ignore un event Stripe inconnu', async () => {
+    mockVerify.mockReturnValue({
+      type: 'customer.created',
+      data: { object: { id: 'cus_x' } },
+    });
+
+    const res = await POST(makeWebhookRequest());
+    expect(res.status).toBe(200);
+    expect(mockConfirm).not.toHaveBeenCalled();
+  });
+
+  it('répond 400 sur erreur inattendue hors signature', async () => {
+    mockVerify.mockImplementation(() => {
+      throw new Error('unexpected parse error');
+    });
+    const res = await POST(makeWebhookRequest());
+    expect(res.status).toBe(400);
+  });
 });

@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
+import { LEGAL_ENTITY, legalIdentity } from '@/lib/legal/company';
 import Link from 'next/link';
 
 export const metadata: Metadata = pageMetadata({
@@ -23,6 +24,14 @@ export default function TermsOfSalePage() {
               <p className="text-gray-700 mb-4">
                 Les présentes CGV s’appliquent à toute commande passée via la plateforme par un client
                 pour la réalisation d’une prestation par un prestataire référencé.
+              </p>
+              <p className="text-gray-700 mb-4">
+                La plateforme DiaspoMoney est exploitée par <strong>{LEGAL_ENTITY.name}</strong> (
+                {legalIdentity()}), pour le compte de la société {LEGAL_ENTITY.successor}. Contact :{' '}
+                <a href={`mailto:${LEGAL_ENTITY.email}`} className="text-brand-700 hover:underline">
+                  {LEGAL_ENTITY.email}
+                </a>
+                .
               </p>
             </section>
 

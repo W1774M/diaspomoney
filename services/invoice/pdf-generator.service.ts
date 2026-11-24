@@ -138,9 +138,12 @@ export class PDFGeneratorService {
         .text(DIASPOMONEY_BRANDING.company.tagline, { align: 'left' })
         .fillColor(DIASPOMONEY_BRANDING.colors.text)
         .fontSize(9)
-        .text(`${DIASPOMONEY_BRANDING.company.email}`, { align: 'left' })
+        // Émetteur légal de la facture (voir lib/legal/company.ts)
+        .text(`${DIASPOMONEY_BRANDING.company.legalName} (${DIASPOMONEY_BRANDING.company.legalForm})`, { align: 'left' })
         .text(`${DIASPOMONEY_BRANDING.company.address}`, { align: 'left' })
         .text(`${DIASPOMONEY_BRANDING.company.postalCode} ${DIASPOMONEY_BRANDING.company.city}, ${DIASPOMONEY_BRANDING.company.country}`, { align: 'left' })
+        .text(`SIRET ${DIASPOMONEY_BRANDING.company.siret}`, { align: 'left' })
+        .text(`${DIASPOMONEY_BRANDING.company.email}`, { align: 'left' })
         .moveDown(1);
 
       // Informations du client

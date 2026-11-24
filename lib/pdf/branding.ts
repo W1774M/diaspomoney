@@ -3,6 +3,8 @@
  * Centralise les couleurs, logos et informations de branding
  */
 
+import { LEGAL_ENTITY } from '@/lib/legal/company';
+
 export const DIASPOMONEY_BRANDING = {
   // Couleurs principales
   colors: {
@@ -16,19 +18,21 @@ export const DIASPOMONEY_BRANDING = {
     success: '#059669',
   },
   
-  // Informations de l'entreprise
+  // Informations de l'entreprise : voir lib/legal/company.ts (source unique)
   company: {
-    name: 'DiaspoMoney',
+    name: LEGAL_ENTITY.brand,
     tagline: 'Plateforme de services pour la diaspora',
-    email: 'contact@diaspomoney.fr',
-    website: 'https://diaspomoney.fr',
-    address: '123 Rue de l\'Innovation',
-    city: 'Paris',
-    postalCode: '75001',
-    country: 'France',
-    phone: '+33 1 23 45 67 89',
-    siret: '123 456 789 00012',
-    vatNumber: 'FR12 345678901',
+    legalName: LEGAL_ENTITY.name,
+    legalForm: LEGAL_ENTITY.legalForm,
+    email: LEGAL_ENTITY.email,
+    website: LEGAL_ENTITY.website,
+    address: LEGAL_ENTITY.address.street,
+    city: LEGAL_ENTITY.address.city,
+    postalCode: LEGAL_ENTITY.address.postalCode,
+    country: LEGAL_ENTITY.address.country,
+    siren: LEGAL_ENTITY.siren,
+    siret: LEGAL_ENTITY.siret,
+    vatNumber: LEGAL_ENTITY.vatNumber,
   },
   
   // Chemin du logo (relatif à public/)

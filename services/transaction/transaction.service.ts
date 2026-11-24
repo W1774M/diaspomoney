@@ -73,17 +73,23 @@ export class TransactionService {
   @InvalidateCache('TransactionService:*')
   async createTransaction(data: TransactionData): Promise<Transaction> {
     try {
+      // Checkout invité (POST /api/services/book) : requesterId = guest-*
+      // — pas de compte User, donc pas de getUserProfile.
+      const isGuestPayer = data.payerId.startsWith('guest-');
+      const isGuestBeneficiary = data.beneficiaryId.startsWith('guest-');
 
-      // Vérifier que le payeur existe et est actif
-      const payer = await userService.getUserProfile(data.payerId);
-      if (!payer || !payer.isActive) {
-        throw new Error('Payeur non trouvé ou inactif');
+      if (!isGuestPayer) {
+        const payer = await userService.getUserProfile(data.payerId);
+        if (!payer || !payer.isActive) {
+          throw new Error('Payeur non trouvé ou inactif');
+        }
       }
 
-      // Vérifier que le bénéficiaire existe et est actif
-      const beneficiary = await userService.getUserProfile(data.beneficiaryId);
-      if (!beneficiary || !beneficiary.isActive) {
-        throw new Error('Bénéficiaire non trouvé ou inactif');
+      if (!isGuestBeneficiary) {
+        const beneficiary = await userService.getUserProfile(data.beneficiaryId);
+        if (!beneficiary || !beneficiary.isActive) {
+          throw new Error('Bénéficiaire non trouvé ou inactif');
+        }
       }
 
       // Calcul des frais et du montant total
