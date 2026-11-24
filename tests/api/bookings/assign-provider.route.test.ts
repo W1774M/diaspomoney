@@ -170,6 +170,43 @@ describe('POST /api/bookings/[id]/assign-provider', () => {
     expect((await res.json()).success).toBe(true);
   });
 
+  it('attribue un prestataire enregistré', async () => {
+    const providerId = '507f1f77bcf86cd799439099';
+    findById.mockResolvedValue({
+      id: providerId,
+      name: 'Dr House',
+      email: 'house@example.com',
+    });
+    const res = await post(BOOKING_ID, {
+      mode: 'registered',
+      providerId,
+      sharedElements: { clientInfo: true, appointmentInfo: true },
+    });
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(updateBooking).toHaveBeenCalledWith(
+      BOOKING_ID,
+      expect.objectContaining({
+        providerId,
+        metadata: expect.objectContaining({
+          assignedProviderType: 'REGISTERED',
+          assignedProviderId: providerId,
+        }),
+      }),
+    );
+  });
+
+  it('n’envoie pas d’email externe si sendEmail=false', async () => {
+    const res = await post(BOOKING_ID, {
+      mode: 'external',
+      providerEmail: 'externe@example.com',
+      sendEmail: false,
+    });
+    expect(res.status).toBe(200);
+    expect(sendExternalProviderAssignmentEmail).not.toHaveBeenCalled();
+  });
+
   it('répond 404 si le prestataire enregistré est introuvable', async () => {
     findById.mockResolvedValue(null);
     const res = await post(BOOKING_ID, {
