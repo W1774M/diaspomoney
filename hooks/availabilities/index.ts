@@ -3,4 +3,4 @@
  */
 
 export * from './useAvailabilities';
-
+export * from './useSchedules';
