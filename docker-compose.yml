@@ -221,6 +221,10 @@ services:
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD:-pk_live_placeholder}
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD:-pk_live_placeholder}
       STRIPE_WEBHOOK_SECRET_PROD: ${STRIPE_WEBHOOK_SECRET_PROD}
+      # Plannings coss : clé de production propre, comme Stripe. Sans COSS_API_KEY_PROD,
+      # la prod n'hérite jamais de la clé de test du .env commun (plannings « non configurés »).
+      COSS_API_KEY: ${COSS_API_KEY_PROD:-}
+      COSS_HEALTH_EVENT_TYPE_ID: ${COSS_HEALTH_EVENT_TYPE_ID_PROD:-}
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik
