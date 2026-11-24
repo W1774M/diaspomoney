@@ -168,6 +168,45 @@ describe('useAuth', () => {
     expect(result.current.user).toBeDefined();
   });
 
+  it('devrait propager providerInfo pour la navigation prestataire', async () => {
+    mockGetCachedAuth.mockReturnValue(null);
+    mockGetAuthPromise.mockReturnValue(null);
+
+    const mockUser = {
+      id: 'provider123',
+      email: 'provider@example.com',
+      name: 'Bill Provider',
+      roles: [ROLES.CUSTOMER, ROLES.PROVIDER],
+      status: USER_STATUSES.ACTIVE,
+      avatar: { image: '', name: 'Bill Provider' },
+      oauth: {},
+      phone: '',
+      company: '',
+      address: '',
+      providerInfo: {
+        type: 'INDIVIDUAL',
+        category: 'HEALTH',
+      },
+    };
+
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ user: mockUser }),
+    } as Response);
+
+    const { result } = renderHook(() => useAuth());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    }, { timeout: 3000 });
+
+    expect(result.current.user?.providerInfo).toEqual({
+      type: 'INDIVIDUAL',
+      category: 'HEALTH',
+    });
+    expect(result.current.isProvider()).toBe(true);
+  });
+
   it('devrait gérer le timeout (5 secondes)', async () => {
     mockGetCachedAuth.mockReturnValue(null);
     mockGetAuthPromise.mockReturnValue(null);

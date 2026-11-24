@@ -70,6 +70,45 @@ const logger = childLogger({ component: 'Sidebar' });
 /**
  * Construit les sections de navigation organisées
  */
+function buildDefaultProviderCalendarItem(): NavigationItem {
+  return {
+    name: '📅 Calendrier',
+    key: 'calendar-default',
+    icon: Calendar,
+    show: true,
+    values: [
+      {
+        name: 'Mes disponibilités',
+        key: 'availabilities',
+        href: '/dashboard/availabilities',
+        icon: Clock,
+        show: true,
+      },
+      {
+        name: 'Planning des missions',
+        key: 'mission-planning',
+        href: '/dashboard/calendar/missions',
+        icon: Calendar,
+        show: true,
+      },
+      {
+        name: 'Réservations clients',
+        key: 'client-bookings',
+        href: '/dashboard/calendar/bookings',
+        icon: ShoppingCart,
+        show: true,
+      },
+      {
+        name: 'Rappels importants',
+        key: 'reminders',
+        href: '/dashboard/calendar/reminders',
+        icon: Bell,
+        show: true,
+      },
+    ],
+  };
+}
+
 function buildProviderToolsItems(user?: any): NavigationItem[] {
   const items: NavigationItem[] = [];
 
@@ -200,42 +239,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
           break;
         default:
           // INDIVIDUAL sans catégorie spécifique - menu par défaut
-          items.push({
-            name: '📅 Calendrier',
-            key: 'calendar-default',
-            icon: Calendar,
-            show: true,
-            values: [
-              {
-                name: 'Mes disponibilités',
-                key: 'availabilities',
-                href: '/dashboard/availabilities',
-                icon: Clock,
-                show: true,
-              },
-              {
-                name: 'Planning des missions',
-                key: 'mission-planning',
-                href: '/dashboard/calendar/missions',
-                icon: Calendar,
-                show: true,
-              },
-              {
-                name: 'Réservations clients',
-                key: 'client-bookings',
-                href: '/dashboard/calendar/bookings',
-                icon: ShoppingCart,
-                show: true,
-              },
-              {
-                name: 'Rappels importants',
-                key: 'reminders',
-                href: '/dashboard/calendar/reminders',
-                icon: Bell,
-                show: true,
-              },
-            ],
-          });
+          items.push(buildDefaultProviderCalendarItem());
           break;
       }
       break;
@@ -435,6 +439,9 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
       break;
     }
     default:
+      // Prestataire sans providerInfo.type (profil incomplet / données absentes) :
+      // afficher quand même le calendrier et les disponibilités.
+      items.push(buildDefaultProviderCalendarItem());
       break;
   }
 
