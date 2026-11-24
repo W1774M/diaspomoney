@@ -123,7 +123,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
         case 'HEALTH':
           // Santé - INDIVIDUAL
           items.push({
-            name: '📅 Calendrier',
+            name: 'Calendrier',
             key: 'calendar-health',
             icon: Calendar,
             show: true,
