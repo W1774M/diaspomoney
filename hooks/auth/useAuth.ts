@@ -19,6 +19,13 @@ import { useSignOut } from './useSignOut';
 import { ROLES, USER_STATUSES } from '@/lib/constants';
 import { authEvents } from '@/lib/events';
 
+/** Sous-ensemble de providerInfo requis par la navigation prestataire (disponibilités, etc.). */
+export interface AuthProviderInfo {
+  type?: string;
+  category?: string;
+  [key: string]: unknown;
+}
+
 interface User {
   phone: string;
   company: string;
@@ -35,6 +42,26 @@ interface User {
   oauth?: {
     google?: { linked?: boolean; providerAccountId?: string };
     facebook?: { linked?: boolean; providerAccountId?: string };
+  };
+  providerInfo?: AuthProviderInfo;
+}
+
+function mapToAuthUser(me: Record<string, any>): User {
+  const name = (me['name'] as string) || '';
+  return {
+    id: me['id'] as string,
+    email: me['email'] as string,
+    name,
+    roles: (me['roles'] as string[]) || [ROLES.CUSTOMER],
+    status: (me['status'] as string) || USER_STATUSES.ACTIVE,
+    avatar: (me['avatar'] as User['avatar']) || { image: '', name },
+    oauth: (me['oauth'] as User['oauth']) || {},
+    phone: (me['phone'] as string) || '',
+    company: (me['company'] as string) || '',
+    address: (me['address'] as string) || '',
+    ...(me['providerInfo'] && typeof me['providerInfo'] === 'object'
+      ? { providerInfo: me['providerInfo'] as AuthProviderInfo }
+      : {}),
   };
 }
 
@@ -60,18 +87,7 @@ export function useAuth() {
     const cached = getCachedAuth();
     if (cached && cached.user) {
       const me = cached.user;
-      setUser({
-        id: me.id,
-        email: me.email,
-        name: me.name,
-        roles: me.roles || [ROLES.CUSTOMER],
-        status: me.status || USER_STATUSES.ACTIVE,
-        avatar: me.avatar || { image: '', name: me.name },
-        oauth: me.oauth || {},
-        phone: me.phone || '',
-        company: me.company || '',
-        address: me.address || '',
-      });
+      setUser(mapToAuthUser(me));
       setIsAuthenticated((me.status || USER_STATUSES.ACTIVE) === USER_STATUSES.ACTIVE);
       setIsLoading(false);
       return;
@@ -84,18 +100,7 @@ export function useAuth() {
         .then(data => {
           if (data && data.user) {
             const me = data.user;
-            setUser({
-              id: me.id,
-              email: me.email,
-              name: me.name,
-              roles: me.roles || ['CUSTOMER'],
-              status: me.status || 'ACTIVE',
-              avatar: me.avatar || { image: '', name: me.name },
-              oauth: me.oauth || {},
-              phone: me.phone || '',
-              company: me.company || '',
-              address: me.address || '',
-            });
+            setUser(mapToAuthUser(me));
             setIsAuthenticated((me.status || USER_STATUSES.ACTIVE) === USER_STATUSES.ACTIVE);
           } else {
             setUser(null);
@@ -151,18 +156,7 @@ export function useAuth() {
           // Mettre en cache
           setCachedAuth(data.user);
           const me = data.user;
-          setUser({
-            id: me.id,
-            email: me.email,
-            name: me.name,
-            roles: me.roles || ['CUSTOMER'],
-            status: me.status || 'ACTIVE',
-            avatar: me.avatar || { image: '', name: me.name },
-            oauth: me.oauth || {},
-            phone: me.phone || '',
-            company: me.company || '',
-            address: me.address || '',
-          });
+          setUser(mapToAuthUser(me));
           setIsAuthenticated((me.status || USER_STATUSES.ACTIVE) === USER_STATUSES.ACTIVE);
           return data;
         } else {
@@ -214,18 +208,7 @@ export function useAuth() {
       // Mettre en cache
       setCachedAuth(data.user);
       const me = data.user as any;
-      setUser({
-        id: me.id,
-        email: me.email,
-        name: me.name,
-        roles: me.roles || [ROLES.CUSTOMER],
-        status: me.status || USER_STATUSES.ACTIVE,
-        avatar: me.avatar || { image: '', name: me.name },
-        oauth: me.oauth || {},
-        phone: me.phone || '',
-        company: me.company || '',
-        address: me.address || '',
-      });
+      setUser(mapToAuthUser(me));
       setIsAuthenticated((me.status || USER_STATUSES.ACTIVE) === USER_STATUSES.ACTIVE);
     } catch (_error) {
       // Logging silencieux côté client - les erreurs sont gérées par le state
