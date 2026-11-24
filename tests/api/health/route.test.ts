@@ -9,7 +9,14 @@ const h = vi.hoisted(() => ({
   pingRedis: vi.fn(),
   getMetrics: vi.fn(() => []),
   getStats: vi.fn(() => ({ activeAlerts: 0 })),
-  getAlerts: vi.fn(() => []),
+  getAlerts: vi.fn(
+    (): Array<{
+      id: string;
+      severity: string;
+      message: string;
+      timestamp: Date;
+    }> => [],
+  ),
   fetch: vi.fn(),
   connection: {
     readyState: 1,
