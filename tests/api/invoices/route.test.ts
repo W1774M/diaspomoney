@@ -614,6 +614,51 @@ describe('GET /api/invoices/[id]/download', () => {
     expect(response.status).toBe(401);
     expect(data.error).toBe('Non autorisé');
   });
+
+  it('refuse le téléchargement à un non-propriétaire', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'autre', roles: ['CUSTOMER'] },
+    } as any);
+
+    const { invoiceService } = await import('@/services/invoice/invoice.service');
+    vi.mocked(invoiceService.getInvoiceById).mockResolvedValue({
+      id: 'inv123',
+      userId: 'user123',
+      invoiceNumber: 'INV-001',
+    } as any);
+
+    const response = await GET_DOWNLOAD(
+      new NextRequest('http://localhost:3000/api/invoices/inv123/download'),
+      { params: { id: 'inv123' } },
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it('répond 500 si la génération PDF échoue', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'user123', roles: ['CUSTOMER'] },
+    } as any);
+
+    const { invoiceService } = await import('@/services/invoice/invoice.service');
+    vi.mocked(invoiceService.getInvoiceById).mockResolvedValue({
+      id: 'inv123',
+      userId: 'user123',
+      invoiceNumber: 'INV-001',
+    } as any);
+
+    const { pdfGeneratorService } = await import('@/services/invoice/pdf-generator.service');
+    vi.mocked(pdfGeneratorService.generateInvoicePDF).mockRejectedValue(
+      new Error('pdf boom'),
+    );
+
+    const response = await GET_DOWNLOAD(
+      new NextRequest('http://localhost:3000/api/invoices/inv123/download'),
+      { params: { id: 'inv123' } },
+    );
+    expect(response.status).toBe(500);
+  });
 });
 
 describe('POST /api/invoices/[id]/send-email', () => {
@@ -665,6 +710,53 @@ describe('POST /api/invoices/[id]/send-email', () => {
 
     expect(response.status).toBe(401);
     expect(data.error).toBe('Non autorisé');
+  });
+
+  it('refuse l’envoi à un non-propriétaire', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'autre', roles: ['CUSTOMER'] },
+    } as any);
+
+    const { invoiceService } = await import('@/services/invoice/invoice.service');
+    vi.mocked(invoiceService.getInvoiceById).mockResolvedValue({
+      id: 'inv123',
+      userId: 'user123',
+      invoiceNumber: 'FAC-1',
+      amount: 10,
+    } as any);
+
+    const response = await POST_SEND_EMAIL(
+      new NextRequest('http://localhost:3000/api/invoices/inv123/send-email', {
+        method: 'POST',
+      }),
+      { params: { id: 'inv123' } },
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it('répond 404 si l’utilisateur n’a pas d’email', async () => {
+    const { auth } = await import('@/auth');
+    vi.mocked(auth).mockResolvedValue({
+      user: { id: 'user123', roles: ['CUSTOMER'] },
+    } as any);
+
+    const { invoiceService } = await import('@/services/invoice/invoice.service');
+    vi.mocked(invoiceService.getInvoiceById).mockResolvedValue({
+      id: 'inv123',
+      userId: 'user123',
+      invoiceNumber: 'FAC-1',
+      amount: 10,
+    } as any);
+    mockFindUserById.mockResolvedValueOnce({ id: 'user123', email: null });
+
+    const response = await POST_SEND_EMAIL(
+      new NextRequest('http://localhost:3000/api/invoices/inv123/send-email', {
+        method: 'POST',
+      }),
+      { params: { id: 'inv123' } },
+    );
+    expect(response.status).toBe(404);
   });
 });
 
