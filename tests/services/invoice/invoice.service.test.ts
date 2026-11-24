@@ -13,7 +13,6 @@ const {
   draft,
   send,
   markPaid,
-  toCreatePayload,
 } = vi.hoisted(() => {
   const toCreatePayload = vi.fn(() => ({
     userId: 'u1',
@@ -38,7 +37,6 @@ const {
     draft,
     send,
     markPaid,
-    toCreatePayload,
   };
 });
 
