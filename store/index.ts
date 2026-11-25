@@ -66,11 +66,19 @@ export const useAppStore = create<AppStore>()(
           if (!action?.type) return;
           const currentState = get();
 
-          // Extract the slice name from action type (e.g., "AUTH/LOGIN_START" -> "auth")
-          const typeParts = action.type.split("/");
-          if (!typeParts[0]) return;
-          const sliceName =
-            typeParts[0].toLowerCase() as keyof typeof rootReducer;
+          // "INVOICE/SET_LOADING" -> invoices, "NOTIFICATION/ADD" -> notifications.
+          // The action prefix is singular; several slices are plural.
+          const sliceByPrefix: Record<string, keyof typeof rootReducer> = {
+            auth: "auth",
+            notification: "notifications",
+            theme: "theme",
+            user: "user",
+            appointment: "appointments",
+            provider: "providers",
+            invoice: "invoices",
+          };
+          const sliceName = sliceByPrefix[action.type.split("/")[0]?.toLowerCase() ?? ""];
+          if (!sliceName) return;
 
           if (rootReducer[sliceName]) {
             // Get current slice state
@@ -151,13 +159,7 @@ export const useAppStore = create<AppStore>()(
 // ============================================================================
 
 // Auth selectors
-export const useAuth = () =>
-  useAppStore(state => ({
-    isLoading: state.auth.isLoading,
-    error: state.auth.error,
-    user: state.auth.user,
-    isAuthenticated: state.auth.isAuthenticated,
-  }));
+export const useAuth = () => useAppStore(state => state.auth);
 
 export const useAuthLoading = () => useAppStore(state => state.auth.isLoading);
 export const useAuthError = () => useAppStore(state => state.auth.error);

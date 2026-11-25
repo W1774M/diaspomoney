@@ -2,7 +2,7 @@
  * Hook personnalisé pour gérer la validation des étapes
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { logger } from '@/lib/logger';
 import { useNotificationManager } from '@/components/ui/Notification';
 import type { BookingResponse } from '@/lib/mappers/booking.mapper';
@@ -22,6 +22,7 @@ export function useBookingStepValidation({
 }: UseBookingStepValidationProps) {
   const notificationManager = useNotificationManager();
   const [validatingStep, setValidatingStep] = useState<number | null>(null);
+  const validatingRef = useRef(false);
   const [resendingPaymentLink, setResendingPaymentLink] = useState(false);
   const [showValidateStepDialog, setShowValidateStepDialog] = useState(false);
   const [stepToValidate, setStepToValidate] = useState<number | null>(null);
@@ -40,7 +41,8 @@ export function useBookingStepValidation({
   };
 
   const handleValidateStep = async () => {
-    if (!booking || !stepToValidate) return;
+    if (!booking || !stepToValidate || validatingRef.current) return;
+    validatingRef.current = true;
 
     const stepName = stepNames[stepToValidate] || `Étape ${stepToValidate}`;
     logger.info({ bookingId, step: stepToValidate }, `Admin validating step: ${stepName}`);
@@ -59,7 +61,12 @@ export function useBookingStepValidation({
 
       if (!response.ok) {
         const errorMessage = result.error || 'Erreur lors de la validation de l\'étape';
-        logger.error({ bookingId, step: stepToValidate, error: errorMessage }, 'Failed to validate step');
+        const refused = response.status === 400 && result.code === 'STEP_VALIDATION_ERROR';
+        if (refused) {
+          logger.warn({ bookingId, step: stepToValidate, error: errorMessage }, 'Validation d\'étape refusée');
+        } else {
+          logger.error({ bookingId, step: stepToValidate, error: errorMessage }, 'Failed to validate step');
+        }
         notificationManager.addError(errorMessage);
         return;
       }
@@ -85,6 +92,7 @@ export function useBookingStepValidation({
       logger.error({ error: err, bookingId, step: stepToValidate }, 'Error validating step');
       notificationManager.addError(`Erreur lors de la validation : ${errorMessage}`);
     } finally {
+      validatingRef.current = false;
       setValidatingStep(null);
     }
   };

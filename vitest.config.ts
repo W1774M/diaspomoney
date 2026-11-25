@@ -22,6 +22,8 @@ export default defineConfig({
       'tests/hooks/**/*.test.tsx',
       'tests/lib/**/*.test.ts',
       'tests/lib/**/*.test.tsx',
+      'tests/store/**/*.test.ts',
+      'tests/store/**/*.test.tsx',
     ],
     exclude: [
       '**/node_modules/**',

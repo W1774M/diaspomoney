@@ -1,4 +1,5 @@
 import { auth } from '@/auth';
+import { ExpectedDomainError } from '@/lib/errors/expected-domain-error';
 import { childLogger } from '@/lib/logger';
 import { bookingService } from '@/services/booking/booking.service';
 import { HTTP_STATUS_CODES } from '@/lib/constants';
@@ -109,6 +110,20 @@ export async function POST(
       bookingId = resolvedParams.id;
     } catch {
       bookingId = 'unknown';
+    }
+
+    if (error instanceof ExpectedDomainError) {
+      log.warn({ bookingId, errorMessage: error.message }, 'Validation d\'étape refusée');
+      if (error.message === 'Réservation non trouvée') {
+        return NextResponse.json(
+          { error: 'Réservation non trouvée' },
+          { status: 404 },
+        );
+      }
+      return NextResponse.json(
+        { error: error.message, code: 'STEP_VALIDATION_ERROR' },
+        { status: 400 },
+      );
     }
 
     // Extraire les détails de l'erreur de manière sécurisée

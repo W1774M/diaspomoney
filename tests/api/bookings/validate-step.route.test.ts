@@ -55,6 +55,21 @@ describe('POST /api/bookings/[id]/validate-step', () => {
     expect((await post({ step: 99 })).status).toBe(400);
   });
 
+  it('répond 400 sans en faire une panne quand l’étape est déjà complétée', async () => {
+    const { ExpectedDomainError } = await import('@/lib/errors/expected-domain-error');
+    validateStep.mockRejectedValue(
+      new ExpectedDomainError("L'étape 3 est déjà complétée. Vous pouvez valider l'étape suivante (4)."),
+    );
+
+    const res = await post({ step: 3 });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.code).toBe('STEP_VALIDATION_ERROR');
+    expect(body.error).toContain('déjà complétée');
+    expect(body.error).toContain('4');
+  });
+
   it('valide l’étape pour un admin', async () => {
     const res = await post({ step: 2 });
     const body = await res.json();

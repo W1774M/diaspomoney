@@ -18,6 +18,7 @@ import { getBookingRepository, type Booking, type BookingFilters } from '@/repos
 import type { PaginatedFindResult } from '@/lib/types';
 import type { BookingData, BookingServiceFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
+import { ExpectedDomainError } from '@/lib/errors/expected-domain-error';
 import { z } from 'zod';
 import { EmailDispatch } from '@/domain/comms';
 import { createCheckoutSession } from '@/lib/stripe-checkout';
@@ -1407,7 +1408,7 @@ export class BookingService {
       // Récupérer la réservation
       const booking = await this.bookingRepository.findById(id);
       if (!booking) {
-        throw new Error('Réservation non trouvée');
+        throw new ExpectedDomainError('Réservation non trouvée');
       }
 
       const metadata: Record<string, unknown> = booking.metadata || {};
@@ -1429,7 +1430,7 @@ export class BookingService {
       if (maxCompletedStep > step) {
         const requestedStepName = stepNames[step] || `Étape ${step}`;
         const maxStepName = stepNames[maxCompletedStep] || `Étape ${maxCompletedStep}`;
-        throw new Error(
+        throw new ExpectedDomainError(
           `L'étape ${step} (${requestedStepName}) est déjà complétée. ` +
           `L'étape ${maxCompletedStep} (${maxStepName}) ayant été validée, toutes les étapes précédentes sont considérées comme complétées.`,
         );
@@ -1445,9 +1446,9 @@ export class BookingService {
         if (step === currentStep) {
           // L'étape actuelle est complétée, on peut passer à l'étape suivante
           // Mais on ne peut pas re-valider la même étape
-          throw new Error(`L'étape ${step} est déjà complétée. Vous pouvez valider l'étape suivante (${step + 1}).`);
+          throw new ExpectedDomainError(`L'étape ${step} est déjà complétée. Vous pouvez valider l'étape suivante (${step + 1}).`);
         } else {
-          throw new Error(`L'étape ${step} est déjà complétée.`);
+          throw new ExpectedDomainError(`L'étape ${step} est déjà complétée.`);
         }
       }
 
@@ -1467,7 +1468,7 @@ export class BookingService {
           const missingStepsNames = missingSteps
             .map((s) => `${s} (${stepNames[s] || `Étape ${s}`})`)
             .join(', ');
-          throw new Error(
+          throw new ExpectedDomainError(
             `Impossible de valider l'étape ${step} (${requestedStepName}) : ` +
             `les étapes précédentes doivent être complétées en premier. ` +
             `Étapes manquantes : ${missingStepsNames}. ` +
@@ -1481,7 +1482,7 @@ export class BookingService {
       if (step < currentStep) {
         const currentStepName = stepNames[currentStep] || `Étape ${currentStep}`;
         const requestedStepName = stepNames[step] || `Étape ${step}`;
-        throw new Error(
+        throw new ExpectedDomainError(
           `Impossible de valider l'étape ${step} (${requestedStepName}) : elle est déjà passée. ` +
           `La réservation est actuellement à l'étape ${currentStep} (${currentStepName}). ` +
           `Vous pouvez uniquement valider l'étape actuelle (${currentStep}) ou l'étape suivante (${currentStep + 1}).`,
@@ -1490,7 +1491,7 @@ export class BookingService {
 
       // Vérifier que l'étape n'est pas trop loin dans le futur (max 1 étape d'avance)
       if (step > currentStep + 1) {
-        throw new Error(`Vous ne pouvez valider que l'étape actuelle (${currentStep}) ou l'étape suivante (${currentStep + 1}). L'étape ${step} ne peut pas être validée directement.`);
+        throw new ExpectedDomainError(`Vous ne pouvez valider que l'étape actuelle (${currentStep}) ou l'étape suivante (${currentStep + 1}). L'étape ${step} ne peut pas être validée directement.`);
       }
 
       // Construire le nom complet de l'étape
@@ -1834,6 +1835,14 @@ export class BookingService {
 
       return updatedBooking;
     } catch (error) {
+      if (error instanceof ExpectedDomainError) {
+        logger.warn(
+          { id, step, errorMessage: error.message },
+          'Validation d\'étape refusée',
+        );
+        throw error;
+      }
+
       // Extraire les détails de l'erreur de manière sécurisée pour le logging
       let errorMessage = 'Erreur inconnue';
       let errorStack: string | undefined;

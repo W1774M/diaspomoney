@@ -205,11 +205,11 @@ export const useInvoiceActions = () => {
       [dispatch],
     ),
     setLoading: useCallback(
-      (loading: boolean) => dispatch(providerActions.setLoading(loading)),
+      (loading: boolean) => dispatch(invoiceActions.setLoading(loading)),
       [dispatch],
     ),
     setError: useCallback(
-      (error: string | null) => dispatch(providerActions.setError(error)),
+      (error: string | null) => dispatch(invoiceActions.setError(error)),
       [dispatch],
     ),
   };
