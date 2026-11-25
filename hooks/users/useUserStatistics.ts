@@ -12,8 +12,6 @@ export interface UserStatistics {
   totalUsers: number;
   usersToday: number;
   previousMonthUsers: number;
-  restRequests: number;
-  authRequests: number;
 }
 
 export interface UseUserStatisticsReturn {

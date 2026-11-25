@@ -73,8 +73,6 @@ function UsersPage() {
       return {
         totalUsers: apiStatistics.totalUsers,
         usersToday: apiStatistics.usersToday,
-        restRequests: apiStatistics.restRequests,
-        authRequests: apiStatistics.authRequests,
         previousMonthUsers: apiStatistics.previousMonthUsers,
       };
     }
@@ -104,8 +102,6 @@ function UsersPage() {
     return {
       totalUsers: users.length,
       usersToday,
-      restRequests: 0, // Sera remplacé par les données API
-      authRequests: 0, // Sera remplacé par les données API
       previousMonthUsers,
     };
   }, [users, apiStatistics, statsLoading]);
@@ -264,8 +260,6 @@ function UsersPage() {
       <UsersStatsCards
         totalUsers={stats.totalUsers}
         usersToday={stats.usersToday}
-        restRequests={stats.restRequests}
-        authRequests={stats.authRequests}
         previousMonthUsers={stats.previousMonthUsers}
       />
 
