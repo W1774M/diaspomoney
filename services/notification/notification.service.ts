@@ -76,6 +76,8 @@ export class NotificationService {
 
   private async resolveUserFromRecipient(recipient: string) {
     try {
+      if (recipient.startsWith('guest-')) return null;
+
       const { getUserRepository } = await import('@/repositories');
       const userRepository = getUserRepository();
 
@@ -260,6 +262,9 @@ export class NotificationService {
           locale: data.locale,
           priority: data.priority,
           originalData: data.data,
+          ...(typeof data.recipientEmail === 'string' && this.isEmail(data.recipientEmail)
+            ? { recipientEmail: data.recipientEmail }
+            : {}),
         },
         createdAt: new Date(),  
         updatedAt: new Date(),
@@ -976,8 +981,10 @@ export class NotificationService {
               );
               break;
             }
-            await this.sendEmail(notification);
-            sentAtLeastOne = true;
+            const emailDelivery = await this.sendEmail(notification);
+            if (emailDelivery === 'sent') {
+              sentAtLeastOne = true;
+            }
             break;
           case 'SMS':
             await this.sendSMS(notification);
@@ -1046,21 +1053,29 @@ export class NotificationService {
    * Envoyer un email via Resend
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  private async sendEmail(notification: Notification): Promise<void> {
+  private async sendEmail(notification: Notification): Promise<'sent' | 'skipped'> {
     try {
-      // Récupérer l'email de l'utilisateur si recipient est un ID
-      let recipientEmail = notification.recipient;
-      
-      // Vérifier si recipient est un email valide ou un ID
-      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notification.recipient);
-      
-      if (!isEmail) {
-        // C'est probablement un ID utilisateur, récupérer l'email
+      const explicitEmail = notification.metadata?.['recipientEmail'];
+      let recipientEmail =
+        typeof explicitEmail === 'string' && this.isEmail(explicitEmail)
+          ? explicitEmail
+          : notification.recipient;
+
+      if (!this.isEmail(recipientEmail)) {
+        // Un invité (guest-*) n'a pas de compte : ne pas le chercher comme un utilisateur.
+        if (notification.recipient.startsWith('guest-')) {
+          this.log.warn(
+            { recipient: notification.recipient, notificationId: notification.id },
+            'Invité sans adresse e-mail, canal ignoré',
+          );
+          return 'skipped';
+        }
+
         try {
           const { getUserRepository } = await import('@/repositories');
           const userRepository = getUserRepository();
           const user = await userRepository.findById(notification.recipient);
-          
+
           if (user && user.email) {
             recipientEmail = user.email;
             this.log.debug(
@@ -1111,6 +1126,7 @@ export class NotificationService {
       } else {
         throw new Error('Failed to send email via Resend');
       }
+      return 'sent';
     } catch (error) {
       this.log.error(
         {

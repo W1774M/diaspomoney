@@ -188,6 +188,26 @@ describe('canaux', () => {
     expect(repo.updateStatus.mock.calls[0]![2].failureReason).toBe("Erreur lors de l'envoi via EMAIL: Failed to send email via Resend");
   });
 
+  it('envoie l’e-mail d’un invité à l’adresse fournie, sans chercher un utilisateur', async () => {
+    const n = await send({
+      recipient: 'guest-tnpris-mwvsdo2o',
+      recipientEmail: 'ada@example.com',
+    });
+    expect(users.findById).not.toHaveBeenCalled();
+    expect(h.sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: 'ada@example.com' }));
+    expect(n.metadata?.['recipientEmail']).toBe('ada@example.com');
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(statuses()).toEqual(['SENT']);
+  });
+
+  it('ignore l’e-mail d’un invité sans adresse et n’ouvre pas d’erreur Sentry', async () => {
+    await send({ recipient: 'guest-tnpris-mwvsdo2o' });
+    expect(users.findById).not.toHaveBeenCalled();
+    expect(h.sendEmail).not.toHaveBeenCalled();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(statuses()).toEqual(['EXPIRED']);
+  });
+
   it('échoue l’e-mail si l’identifiant destinataire n’a pas d’adresse', async () => {
     await send({ recipient: 'u1' });
     expect(statuses()).toEqual(['FAILED', 'EXPIRED']);

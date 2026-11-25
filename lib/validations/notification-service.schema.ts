@@ -23,6 +23,7 @@ export const SendNotificationSchema = z.object({
   priority: z.enum(['HIGH', 'MEDIUM', 'LOW', 'URGENT']).optional(),
   data: z.record(z.unknown()).optional(),
   userId: z.string().optional(),
+  recipientEmail: z.string().optional(),
 });
 
 /**
