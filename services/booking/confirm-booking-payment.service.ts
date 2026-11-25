@@ -14,7 +14,7 @@ import { bookingEvents, paymentEvents } from '@/lib/events';
 import { childLogger } from '@/lib/logger';
 import { bookingService } from '@/services/booking/booking.service';
 import { emailService } from '@/services/email/email.service';
-import { invoiceService } from '@/services/invoice/invoice.service';
+import { issueInvoiceForPaidBooking } from '@/services/booking/booking-invoice';
 import {
   paymentService,
   type VerifyPaymentProofOptions,
@@ -361,49 +361,27 @@ export class ConfirmBookingPaymentService {
     raw: unknown,
   ): Promise<{ invoice: { id: string; invoiceNumber: string }; created: boolean } | null> {
     const paymentKey = proof.paymentIntentId || input.proofId;
-    const amount = proof.amount ?? booking.expectedAmount ?? input.expectedAmount;
-    const userId = booking.clientId;
-    if (!paymentKey || amount == null || !userId) {
-      this.log.warn(
-        { bookingId: booking.id, hasAmount: amount != null, hasUser: Boolean(userId) },
-        'Invoice not issued: missing payment key, amount or client',
-      );
-      return null;
-    }
-
-    const rawBooking = (raw || {}) as {
-      providerId?: unknown;
-      metadata?: Record<string, unknown>;
-    };
-    const providerIdRaw =
-      rawBooking.providerId ?? rawBooking.metadata?.['providerId'];
-    const providerId = providerIdRaw ? String(providerIdRaw) : undefined;
-
     try {
-      const { invoice, created } = await invoiceService.issuePaidInvoiceForPayment({
-        paymentIntentId: paymentKey,
-        userId,
-        amount,
-        currency: (
-          proof.currency ||
-          booking.expectedCurrency ||
-          input.expectedCurrency ||
-          'EUR'
-        ).toUpperCase(),
-        description: booking.serviceLabel || 'Service DiaspoMoney',
-        bookingId: booking.id,
-        providerId,
-        metadata: {
-          source: 'confirm-booking-payment',
-          ...(booking.reservationNumber
-            ? { reservationNumber: booking.reservationNumber }
-            : {}),
-          ...(proof.checkoutSessionId
-            ? { checkoutSessionId: proof.checkoutSessionId }
-            : {}),
-        },
+      const result = await issueInvoiceForPaidBooking({
+        booking,
+        raw,
+        paymentKey,
+        amount: proof.amount ?? booking.expectedAmount ?? input.expectedAmount,
+        currency: proof.currency || booking.expectedCurrency || input.expectedCurrency,
+        checkoutSessionId: proof.checkoutSessionId,
+        source: 'confirm-booking-payment',
       });
-      return { invoice: { id: invoice.id, invoiceNumber: invoice.invoiceNumber }, created };
+      if (result.status === 'skipped') {
+        this.log.warn(
+          { bookingId: booking.id, reason: result.reason },
+          'Invoice not issued: missing payment key, amount or client',
+        );
+        return null;
+      }
+      return {
+        invoice: { id: result.invoiceId, invoiceNumber: result.invoiceNumber },
+        created: result.created,
+      };
     } catch (error) {
       this.log.error(
         { error, bookingId: booking.id, paymentIntentId: paymentKey },
