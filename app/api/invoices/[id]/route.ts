@@ -266,3 +266,59 @@ export async function PUT(
     );
   }
 }
+
+/**
+ * DELETE : suppression d'une facture, réservée aux administrateurs et aux BROUILLONS.
+ * Une facture émise (en attente, payée, en retard, annulée) a un numéro dans la suite
+ * chronologique : elle ne se supprime pas, elle s'annule (statut CANCELLED via PUT).
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } | Promise<{ id: string }> },
+) {
+  const reqId = request.headers.get('x-request-id') || undefined;
+  const log = childLogger({ requestId: reqId, route: 'api/invoices/[id]' });
+
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    const isAdmin =
+      session.user.roles?.includes('ADMIN') ||
+      session.user.roles?.includes('SUPERADMIN');
+    if (!isAdmin) {
+      log.warn({ userId: session.user.id, msg: 'Unauthorized delete attempt (non-admin)' });
+      return NextResponse.json({ error: 'Accès non autorisé - Admin uniquement' }, { status: 403 });
+    }
+
+    const { id: invoiceId } = await Promise.resolve(params);
+    if (!mongoose.Types.ObjectId.isValid(invoiceId)) {
+      return NextResponse.json({ error: 'ID de facture invalide' }, { status: 400 });
+    }
+
+    const invoice = await invoiceService.getInvoiceById(invoiceId);
+    if (invoice.status !== 'DRAFT') {
+      return NextResponse.json(
+        {
+          error:
+            'Seul un brouillon peut être supprimé. Une facture émise garde son numéro : annulez-la plutôt.',
+          code: 'INVOICE_NOT_DRAFT',
+        },
+        { status: 409 },
+      );
+    }
+
+    await invoiceService.deleteInvoice(invoiceId);
+    await invalidateAppCache('InvoiceRepository');
+    log.info({ userId: session.user.id, invoiceId }, 'Brouillon de facture supprimé');
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('non trouvée')) {
+      return NextResponse.json({ error: 'Facture non trouvée' }, { status: 404 });
+    }
+    log.error({ error }, 'Erreur lors de la suppression de la facture');
+    return NextResponse.json({ error: 'Erreur lors de la suppression de la facture' }, { status: 500 });
+  }
+}

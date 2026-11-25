@@ -5,8 +5,9 @@ import React from "react";
 
 interface InvoiceActionsProps {
   onView: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  // Absents : bouton masqué
+  onEdit?: () => void;
+  onDelete?: () => void;
   onDownload: () => void;
 }
 
@@ -26,13 +27,15 @@ const InvoiceActions = React.memo<InvoiceActionsProps>(function InvoiceActions({
         <Eye className="h-4 w-4" />
       </button>
 
-      <button
-        onClick={onEdit}
-        className="p-2 text-gray-500 hover:text-yellow-600 transition-colors"
-        title="Modifier"
-      >
-        <Edit className="h-4 w-4" />
-      </button>
+      {onEdit && (
+        <button
+          onClick={onEdit}
+          className="p-2 text-gray-500 hover:text-yellow-600 transition-colors"
+          title="Modifier"
+        >
+          <Edit className="h-4 w-4" />
+        </button>
+      )}
 
       <button
         onClick={onDownload}
@@ -42,13 +45,15 @@ const InvoiceActions = React.memo<InvoiceActionsProps>(function InvoiceActions({
         <Download className="h-4 w-4" />
       </button>
 
-      <button
-        onClick={onDelete}
-        className="p-2 text-gray-500 hover:text-red-600 transition-colors"
-        title="Supprimer"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
+      {onDelete && (
+        <button
+          onClick={onDelete}
+          className="p-2 text-gray-500 hover:text-red-600 transition-colors"
+          title="Supprimer"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 });

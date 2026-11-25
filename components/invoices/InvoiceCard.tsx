@@ -82,8 +82,9 @@ const InvoiceCard = React.memo<InvoiceCardProps>(function InvoiceCard({
 
         <InvoiceActions
           onView={() => onView(invoice._id)}
-          onEdit={() => onEdit(invoice._id)}
-          onDelete={() => onDelete(invoice._id)}
+          {...(onEdit ? { onEdit: () => onEdit(invoice._id) } : {})}
+          // Une facture émise garde son numéro : seul un brouillon se supprime
+          {...(onDelete && invoice.status === 'DRAFT' ? { onDelete: () => onDelete(invoice._id) } : {})}
           onDownload={() => onDownload(invoice._id)}
         />
       </div>
