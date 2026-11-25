@@ -106,6 +106,7 @@ vi.mock('@/auth', () => ({
 // Mock de Sentry
 vi.mock('@sentry/nextjs', () => ({
   captureException: vi.fn(),
+  setUser: vi.fn(),
   captureMessage: vi.fn(),
   // utilisé par proxy.ts
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
