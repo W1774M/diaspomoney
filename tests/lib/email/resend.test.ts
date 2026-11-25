@@ -40,7 +40,7 @@ async function load(apiKey: string | null = 're_test'): Promise<ResendModule> {
 }
 
 const payload = () => h.send.mock.calls.at(-1)?.[0] as Record<string, any>;
-const typeTag = () => payload().tags.find((t: { name: string }) => t.name === 'type')?.value;
+const typeTag = () => payload()['tags'].find((t: { name: string }) => t.name === 'type')?.value;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -97,7 +97,7 @@ describe('sendEmail', () => {
         { name: 'long', value: 'x'.repeat(80) },
       ],
     });
-    expect(payload().tags).toEqual([
+    expect(payload()['tags']).toEqual([
       { name: 'r_servation_n_1', value: 'awa_diallo_test_fr' },
       { name: 'long', value: 'x'.repeat(50) },
     ]);
