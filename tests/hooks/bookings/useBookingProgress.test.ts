@@ -41,6 +41,21 @@ describe('useBookingProgress', () => {
     expect(p.nextStepToValidate).toBe(3);
   });
 
+  it('propose l’étape 4 quand l’étape 3 est déjà complétée, paiement en attente compris', () => {
+    const p = progress(
+      booking({
+        currentStep: 3,
+        progressHistory: [
+          { step: 1, completed: true },
+          { step: 2, completed: true },
+          { step: 3, completed: true, data: { paymentPending: true } },
+        ],
+      }),
+    );
+    expect(p.stepStatuses[3]!.isCompleted).toBe(true);
+    expect(p.nextStepToValidate).toBe(4);
+  });
+
   it('signale un paiement en attente à l’étape 3', () => {
     const p = progress(
       booking({
