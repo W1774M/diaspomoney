@@ -23,6 +23,9 @@ import type {
   PaginationOptions,
 } from '@/lib/types';
 
+/** Durée de conservation par défaut d'un journal d'audit (7 ans), en jours. */
+export const DEFAULT_AUDIT_RETENTION_DAYS = 2555;
+
 export class MongoAuditLogRepository implements IAuditLogRepository {
   private readonly collectionName = 'audit_logs';
   private readonly log = childLogger({
@@ -110,6 +113,12 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
         _id: mongoId,
         id: auditLogId,
         timestamp: data.timestamp || now,
+        // Toujours une durée de conservation : sans elle, la purge supprimait l'entrée
+        // dès la nuit suivante (cas des entrées du décorateur @Audit).
+        retentionPeriod:
+          typeof data.retentionPeriod === 'number' && data.retentionPeriod > 0
+            ? data.retentionPeriod
+            : DEFAULT_AUDIT_RETENTION_DAYS,
         createdAt: now,
         updatedAt: now,
       };
@@ -552,18 +561,31 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
       const collection = await this.getCollection();
       const now = new Date();
 
-      // Trouver les logs dont la période de rétention est expirée
+      // Trouver les logs dont la période de rétention est expirée.
+      // Durée absente : durée par défaut (et non « expiré ») ; date absente : createdAt.
+      // Sans date du tout, l'entrée est conservée. Un calcul à null passerait pour une
+      // date passée (MongoDB classe null avant toute date) et l'entrée serait supprimée.
       const query = {
         $expr: {
-          $lt: [
+          $and: [
+            { $eq: [{ $type: { $ifNull: ['$timestamp', '$createdAt'] } }, 'date'] },
             {
-              $add: [
-                '$timestamp',
-                { $multiply: ['$retentionPeriod', 24 * 60 * 60 * 1000] },
+              $lt: [
+                {
+                  $add: [
+                    { $ifNull: ['$timestamp', '$createdAt'] },
+                    {
+                      $multiply: [
+                        { $ifNull: ['$retentionPeriod', DEFAULT_AUDIT_RETENTION_DAYS] },
+                        24 * 60 * 60 * 1000,
+                      ],
+                    },
+                  ],
+                },
+                // Comparer à une date : MongoDB classe toujours les nombres avant les dates
+                now,
               ],
             },
-            // Comparer à une date : MongoDB classe toujours les nombres avant les dates
-            now,
           ],
         },
       };
@@ -693,7 +715,7 @@ export class MongoAuditLogRepository implements IAuditLogRepository {
       outcome: doc.outcome || 'SUCCESS',
       riskScore: doc.riskScore || 0,
       complianceFlags: doc.complianceFlags || [],
-      retentionPeriod: doc.retentionPeriod || 2555,
+      retentionPeriod: doc.retentionPeriod || DEFAULT_AUDIT_RETENTION_DAYS,
     };
   }
 }
