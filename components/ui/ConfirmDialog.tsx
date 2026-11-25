@@ -89,6 +89,7 @@ export default function ConfirmDialog({
   const Icon = style.icon;
 
   const handleConfirm = async () => {
+    if (isLoading) return;
     await onConfirm();
   };
 

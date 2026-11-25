@@ -7,6 +7,7 @@
 
 import { logger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
+import { ExpectedDomainError } from '@/lib/errors/expected-domain-error';
 import type { LogDecoratorOptions } from '@/lib/types';
 
 /**
@@ -110,6 +111,17 @@ export function Log(options: LogDecoratorOptions = {}) {
         return result;
       } catch (error: any) {
         const executionTime = Date.now() - startTime;
+
+        if (error instanceof ExpectedDomainError) {
+          logger.warn({
+            type: 'method_rejected',
+            class: className,
+            method: methodName,
+            executionTime: logExecutionTime ? executionTime : undefined,
+            error: { name: error.name, message: error.message },
+          }, `${className}.${methodName} rejeté: ${error.message}`);
+          throw error;
+        }
 
         // Logger l'erreur
         logger.error({
