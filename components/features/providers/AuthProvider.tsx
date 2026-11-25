@@ -1,7 +1,18 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
-import { ReactNode } from "react";
+import * as Sentry from "@sentry/nextjs";
+import { SessionProvider, useSession } from "next-auth/react";
+import { ReactNode, useEffect } from "react";
+
+/** Rattache les erreurs Sentry du navigateur à l'utilisateur (identifiant interne seul). */
+function SentryUser() {
+  const { data } = useSession();
+  const userId = (data?.user as { id?: string } | undefined)?.id;
+  useEffect(() => {
+    Sentry.setUser(userId ? { id: String(userId) } : null);
+  }, [userId]);
+  return null;
+}
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -20,6 +31,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Ne pas passer baseUrl - NextAuth utilisera NEXTAUTH_URL pour les callbacks OAuth uniquement
       // Les redirections internes sont toujours relatives grâce au callback redirect()
     >
+      <SentryUser />
       {children}
     </SessionProvider>
   );
