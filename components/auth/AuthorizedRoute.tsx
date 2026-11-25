@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useAuthorization, type AuthorizationOptions } from '@/hooks/auth/useAuthorization';
 import { ROLES } from '@/lib/constants';
+import { isSuperAdmin } from '@/lib/auth/explicit-role';
 
 export interface AuthorizedRouteProps extends AuthorizationOptions {
   children: ReactNode;
@@ -162,9 +163,8 @@ export function AdminRoute({ children, ...props }: Omit<AuthorizedRouteProps, 'r
 }
 
 /**
- * Route Super Admin :
- * - rôle explicite SUPERADMIN
- * - ou compat legacy: ADMIN + plusieurs rôles (ancien "Super Admin")
+ * Route Super Admin : rôle SUPERADMIN explicite uniquement (voir lib/auth/explicit-role.ts).
+ * Un ADMIN, même avec d'autres rôles, n'y a pas accès : les API super-admin le refusent.
  */
 export function SuperAdminRoute({
   children,
@@ -175,10 +175,8 @@ export function SuperAdminRoute({
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
 
-  const userRoles = user?.roles || [];
-  const isExplicit = userRoles.includes(ROLES.SUPERADMIN);
-  const isLegacy = userRoles.includes(ROLES.ADMIN) && userRoles.length > 1;
-  const isAllowed = isExplicit || isLegacy;
+  // Même règle que le menu et les API super-admin : rôle SUPERADMIN explicite
+  const isAllowed = isSuperAdmin(user);
 
   useEffect(() => {
     if (isLoading) return;

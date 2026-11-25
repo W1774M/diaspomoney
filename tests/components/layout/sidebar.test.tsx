@@ -134,19 +134,36 @@ describe('Sidebar', () => {
     await waitFor(() => expect(screen.getByText('9+')).toBeInTheDocument());
   });
 
-  it('donne à l’admin la gestion, les outils super-admin, et cache le chat support', async () => {
+  it('donne à l’admin la gestion, sans les outils super-admin, et cache le chat support', async () => {
     session(person([ROLES.ADMIN]));
     renderBar();
 
     expect(screen.getByRole('link', { name: 'Commandes' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Utilisateurs' })).toHaveAttribute('href', '/dashboard/users');
-    expect(screen.getByRole('link', { name: 'Santé & métriques' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Outils & accès' })).toBeInTheDocument();
+    // Super-admin : rôle SUPERADMIN explicite, comme les pages et /api/admin/tools
+    expect(screen.queryByRole('link', { name: 'Santé & métriques' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Outils & accès' })).not.toBeInTheDocument();
     expect(screen.queryByText('OUTILS CSM')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Messagerie Interne' }));
     expect(screen.queryByRole('link', { name: 'Chat avec support' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Tableau de bord' })).toHaveAttribute('aria-current', 'page');
     await waitFor(() => expect(screen.getByText('3')).toBeInTheDocument());
+  });
+
+  it.each([
+    ['un admin avec d’autres rôles (ancienne règle)', [ROLES.ADMIN, ROLES.CUSTOMER, ROLES.PROVIDER]],
+  ] as const)('refuse les outils super-admin à %s', (_label, roles) => {
+    session(person([...roles]));
+    renderBar();
+    expect(screen.getByRole('link', { name: 'Utilisateurs' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Outils & accès' })).not.toBeInTheDocument();
+  });
+
+  it('montre les outils super-admin au rôle SUPERADMIN explicite', () => {
+    session(person([ROLES.SUPERADMIN]));
+    renderBar();
+    expect(screen.getByRole('link', { name: 'Santé & métriques' })).toHaveAttribute('href', '/dashboard/superadmin');
+    expect(screen.getByRole('link', { name: 'Outils & accès' })).toHaveAttribute('href', '/dashboard/superadmin/outils');
   });
 
   it('réserve le portefeuille au rôle CSM porté par le compte', () => {
@@ -185,31 +202,22 @@ describe('Sidebar', () => {
     renderBar();
     expect(screen.getByRole('button', { name: '📅 Calendrier' })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('link', { name: 'Mes disponibilités' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '🏥 Institution' })).toHaveAttribute('aria-expanded', 'false');
   });
 
+  // Les pages /dashboard/institution/* n'existent pas encore : aucun lien ne doit y mener (404)
   it.each([
-    ['HEALTH', '/dashboard/institution/doctors', '🏥 Institution', 'Mes médecins'],
-    ['BTP', '/dashboard/institution/freelancers', '🏗️ Institution', 'Mes indépendants'],
-    ['EDUCATION', '/dashboard/institution/teachers', '🎓 Institution', 'Mes professeurs'],
-  ] as const)('ouvre le menu institution %s sur sa page', (category, path, menu, link) => {
-    nav.pathname = path;
-    session(person([ROLES.PROVIDER], { providerInfo: { type: 'INSTITUTION', category } }));
+    ['HEALTH', '🏥 Institution'],
+    ['BTP', '🏗️ Institution'],
+    ['EDUCATION', '🎓 Institution'],
+    [undefined, '🏢 Institution'],
+  ] as const)('ne propose aucun lien vers des pages institution inexistantes (%s)', (category, menu) => {
+    nav.pathname = '/dashboard/availabilities';
+    session(person([ROLES.PROVIDER], { providerInfo: { type: 'INSTITUTION', ...(category ? { category } : {}) } }));
     renderBar();
-    expect(screen.getByRole('button', { name: menu })).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('link', { name: link })).toHaveAttribute('href', path);
-  });
-
-  it('ouvre le menu d’une institution sans catégorie, et le replie au clic', () => {
-    nav.pathname = '/dashboard';
-    session(person([ROLES.PROVIDER], { providerInfo: { type: 'INSTITUTION' } }));
-    renderBar();
-    const menu = screen.getByRole('button', { name: '🏢 Institution' });
-    expect(menu).toHaveAttribute('aria-expanded', 'false');
-    fireEvent.click(menu);
-    expect(screen.getByRole('link', { name: 'Mes équipes' })).toHaveAttribute('href', '/dashboard/institution/teams');
-    fireEvent.click(menu);
-    expect(screen.queryByRole('link', { name: 'Mes équipes' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '📅 Calendrier' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: menu })).not.toBeInTheDocument();
+    const hrefs = screen.queryAllByRole('link').map((a) => a.getAttribute('href') ?? '');
+    expect(hrefs.filter((h) => h.startsWith('/dashboard/institution'))).toEqual([]);
   });
 
   it('garde un calendrier pour un prestataire sans type de profil', () => {
