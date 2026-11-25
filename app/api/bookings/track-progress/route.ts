@@ -78,7 +78,9 @@ export async function POST(request: NextRequest) {
       };
 
       const requesterId = generateClientId(clientInfo?.email);
-      const draftProviderId = 'admin-draft'; // ID spécial pour les drafts
+      // Brouillon : aucun prestataire (vide = « non attribuée », voir lib/bookings/provider-id.ts).
+      // L'ancien marqueur « admin-draft » s'affichait comme un prestataire enregistré.
+      const draftProviderId = '';
 
       // Préparer les métadonnées de progression
       const existingProgressHistory = metadata['progressHistory'] || [];
