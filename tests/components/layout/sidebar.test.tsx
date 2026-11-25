@@ -179,28 +179,37 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: 'Rappels importants' })).toBeInTheDocument();
   });
 
-  it('garde le menu interne d’une institution masqué et montre seulement son calendrier', () => {
-    const hidden = ['Mes médecins', 'Mes indépendants', 'Mes professeurs', 'Mes équipes'] as const;
-    const cases = [
-      { category: 'HEALTH', absent: 'Mes médecins' },
-      { category: 'BTP', absent: 'Mes indépendants' },
-      { category: 'EDUCATION', absent: 'Mes professeurs' },
-      { category: undefined, absent: 'Mes équipes' },
-    ] as const;
+  it('ouvre le calendrier d’une institution sur une page de disponibilités', () => {
+    nav.pathname = '/dashboard/availabilities';
+    session(person([ROLES.PROVIDER], { providerInfo: { type: 'INSTITUTION', category: 'HEALTH' } }));
+    renderBar();
+    expect(screen.getByRole('button', { name: '📅 Calendrier' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: 'Mes disponibilités' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '🏥 Institution' })).toHaveAttribute('aria-expanded', 'false');
+  });
 
-    for (const item of cases) {
-      session(person([ROLES.PROVIDER], {
-        providerInfo: item.category
-          ? { type: 'INSTITUTION', category: item.category }
-          : { type: 'INSTITUTION' },
-      }));
-      const view = renderBar();
-      expect(screen.getByRole('button', { name: '📅 Calendrier' })).toHaveAttribute('aria-expanded', 'false');
-      for (const label of hidden) {
-        expect(screen.queryByRole('link', { name: label })).not.toBeInTheDocument();
-      }
-      view.unmount();
-    }
+  it.each([
+    ['HEALTH', '/dashboard/institution/doctors', '🏥 Institution', 'Mes médecins'],
+    ['BTP', '/dashboard/institution/freelancers', '🏗️ Institution', 'Mes indépendants'],
+    ['EDUCATION', '/dashboard/institution/teachers', '🎓 Institution', 'Mes professeurs'],
+  ] as const)('ouvre le menu institution %s sur sa page', (category, path, menu, link) => {
+    nav.pathname = path;
+    session(person([ROLES.PROVIDER], { providerInfo: { type: 'INSTITUTION', category } }));
+    renderBar();
+    expect(screen.getByRole('button', { name: menu })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: link })).toHaveAttribute('href', path);
+  });
+
+  it('ouvre le menu d’une institution sans catégorie, et le replie au clic', () => {
+    nav.pathname = '/dashboard';
+    session(person([ROLES.PROVIDER], { providerInfo: { type: 'INSTITUTION' } }));
+    renderBar();
+    const menu = screen.getByRole('button', { name: '🏢 Institution' });
+    expect(menu).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(menu);
+    expect(screen.getByRole('link', { name: 'Mes équipes' })).toHaveAttribute('href', '/dashboard/institution/teams');
+    fireEvent.click(menu);
+    expect(screen.queryByRole('link', { name: 'Mes équipes' })).not.toBeInTheDocument();
   });
 
   it('garde un calendrier pour un prestataire sans type de profil', () => {
