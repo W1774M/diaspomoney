@@ -106,6 +106,27 @@ describe('StatisticsService.getPersonalStatistics', () => {
     expect(b.averageBasketValue).toBe(153 / 4);
   });
 
+  it('économies : rien d’inventé sans remise (avant : 10 % des dépenses)', async () => {
+    const { savings } = await svc().getPersonalStatistics('u1');
+    // La seule remise du jeu de base porte sur une réservation PENDING (non payée)
+    expect(savings).toMatchObject({ total: 0, breakdown: [], projections: { monthly: 0, annual: 0 } });
+  });
+
+  it('économies : somme des remises des réservations payées de l’année', async () => {
+    bookings.mockResolvedValueOnce(page([
+      { status: 'FINISHED', metadata: { discountAmount: 10 }, createdAt: '2026-02-01T10:00:00Z' },
+      { status: 'CONFIRMED', metadata: { discountAmount: '5,50 €' }, createdAt: '2026-11-01T10:00:00Z' },
+      { status: 'FINISHED', metadata: { discountAmount: 20 }, createdAt: '2025-12-31T10:00:00Z' }, // année précédente
+      { status: 'CANCELLED', metadata: { discountAmount: 99 }, createdAt: '2026-06-01T10:00:00Z' }, // non payée
+      { status: 'FINISHED', metadata: { discountAmount: 'n/a' }, createdAt: '2026-06-01T10:00:00Z' },
+    ]));
+    const { savings } = await svc().getPersonalStatistics('u1');
+    expect(savings.total).toBe(15.5);
+    expect(savings.breakdown).toEqual([expect.objectContaining({ type: 'discount', amount: 15.5, description: 'Réductions et codes promo' })]);
+    // 11 mois écoulés au 22 novembre
+    expect(savings.projections).toEqual({ monthly: 1.41, annual: 15.5 });
+  });
+
   it('lit les budgets en texte et retombe sur 1 000 € par défaut', async () => {
     findById.mockResolvedValueOnce({ id: 'u1', monthlyBudget: '250', annualBudget: '2000' });
     expect((await svc().getPersonalStatistics('u1')).budget).toMatchObject({ monthly: { budget: 250 }, annual: { budget: 2000 } });

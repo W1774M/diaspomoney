@@ -30,7 +30,9 @@ const SuperAdminStatsComponent = React.memo<SuperAdminStatsProps>(
     return (
       <div className='space-y-6'>
         {/* Cartes de statistiques principales */}
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+        {/* Pas de carte « Coûts d'exploitation » : aucun coût n'est enregistré, le chiffre
+            affiché (10 % des revenus) était inventé. */}
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
           <DashboardStatCard
             title='Paiements encaissés'
             value={loading ? '...' : stats.totalPayments}
@@ -42,12 +44,6 @@ const SuperAdminStatsComponent = React.memo<SuperAdminStatsProps>(
             value={loading ? '...' : `${stats.totalRevenue.toFixed(2)} €`}
             icon={DollarSign}
             color='green'
-          />
-          <DashboardStatCard
-            title="Coûts d'exploitation"
-            value={loading ? '...' : `${stats.operatingCosts.toFixed(2)} €`}
-            icon={CreditCard}
-            color='red'
           />
         </div>
 
