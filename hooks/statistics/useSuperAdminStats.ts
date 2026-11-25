@@ -7,7 +7,6 @@ export interface SuperAdminStats {
   /** Paiements encaissés (transactions + réservations au paiement confirmé) */
   totalPayments: number;
   totalRevenue: number;
-  operatingCosts: number;
   loading: boolean;
   overview?: {
     totalUsers: number;
@@ -62,7 +61,6 @@ export function useSuperAdminStats({ enabled }: UseSuperAdminStatsParams) {
       return {
         totalPayments: 0,
         totalRevenue: 0,
-        operatingCosts: 0,
         loading: true,
       };
     }
@@ -74,7 +72,6 @@ export function useSuperAdminStats({ enabled }: UseSuperAdminStatsParams) {
     return {
       totalPayments: overview.totalPayments ?? 0,
       totalRevenue: overview.totalRevenue,
-      operatingCosts: overview.totalRevenue * 0.1, // Estimation: 10% des revenus
       loading: false,
       overview,
       charts: platformStats.charts,
