@@ -268,7 +268,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '🏥 Institution',
             key: 'institution-health',
             icon: Building,
-            show: false,
+            show: true,
             values: [
               {
                 name: 'Mes médecins',
@@ -322,7 +322,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '🏗️ Institution',
             key: 'institution-btp',
             icon: Building,
-            show: false,
+            show: true,
             values: [
               {
                 name: 'Mes indépendants',
@@ -369,7 +369,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '🎓 Institution',
             key: 'institution-education',
             icon: Building,
-            show: false,
+            show: true,
             values: [
               {
                 name: 'Mes professeurs',
@@ -416,7 +416,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '🏢 Institution',
             key: 'institution-default',
             icon: Building,
-            show: false,
+            show: true,
             values: [
               {
                 name: 'Mes équipes',
@@ -1237,6 +1237,10 @@ export default function Sidebar() {
       expandedKeys.add('calendar-btp');
       expandedKeys.add('calendar-education');
       expandedKeys.add('calendar-default');
+      expandedKeys.add('calendar-institution-health');
+      expandedKeys.add('calendar-institution-btp');
+      expandedKeys.add('calendar-institution-education');
+      expandedKeys.add('calendar-institution-default');
     }
     
     // Institution (providers INSTITUTION)
