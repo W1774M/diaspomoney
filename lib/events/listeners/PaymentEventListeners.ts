@@ -4,10 +4,46 @@
  */
 
 import { paymentEvents, PaymentSucceededEvent } from '@/lib/events';
+import { LEGAL_ENTITY } from '@/lib/legal/company';
 import { logger } from '@/lib/logger';
+import type { Transaction } from '@/lib/types';
+import { getServiceTypeLabel } from '@/lib/utils/booking.utils';
+import { getTransactionRepository } from '@/repositories';
 import { notificationService } from '@/services/notification/notification.service';
-import { transactionService } from '@/services/transaction/transaction.service';
 import * as Sentry from '@sentry/nextjs';
+import { ObjectId } from 'mongodb';
+
+/**
+ * Transaction d'un événement de paiement. Selon l'émetteur, l'identifiant est celui de la
+ * transaction en base ou celui de l'intention de paiement Stripe (pi_…).
+ */
+export async function findEventTransaction(id: string): Promise<Transaction | null> {
+  if (!id) return null;
+  const repository = getTransactionRepository();
+  try {
+    if (ObjectId.isValid(id)) {
+      const byId = await repository.findById(id);
+      if (byId) return byId;
+    }
+    return await repository.findByPaymentIntentId(id);
+  } catch (error) {
+    logger.warn({ error, transactionId: id }, '[PaymentEventListeners] Transaction introuvable');
+    return null;
+  }
+}
+
+/** Nom du service payé, pour le message : description de la transaction, sinon son domaine. */
+function serviceNameOf(transaction: Transaction | null): string {
+  const description = transaction?.description?.trim();
+  if (description) return description;
+  if (transaction?.serviceType) return getServiceTypeLabel(transaction.serviceType as never);
+  return 'votre service';
+}
+
+const formatDate = (date: Date) =>
+  new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
+
+const supportEmail = () => process.env['EMAIL_CONTACT'] || LEGAL_ENTITY.email;
 
 /**
  * Initialiser tous les listeners de paiement
@@ -21,7 +57,8 @@ export function setupPaymentEventListeners() {
     );
 
     try {
-      // 1. Envoyer une notification de confirmation
+      // 1. Envoyer une notification de confirmation (toutes les variables du modèle)
+      const transaction = await findEventTransaction(data.transactionId);
       await notificationService.sendNotification({
         recipient: data.userId,
         type: 'PAYMENT_SUCCESS',
@@ -31,6 +68,8 @@ export function setupPaymentEventListeners() {
           amount: data.amount,
           currency: data.currency,
           provider: data.provider,
+          serviceName: serviceNameOf(transaction),
+          transactionDate: formatDate(data.timestamp ?? new Date()),
         },
         channels: [
           { type: 'EMAIL', enabled: true, priority: 'HIGH' },
@@ -71,20 +110,27 @@ export function setupPaymentEventListeners() {
     );
 
     try {
-      // Récupérer userId depuis la transaction en base de données (Repository Pattern)
-      const userId =
-        (await transactionService.getUserIdFromTransaction(
-          data.transactionId,
-        )) || 'unknown';
+      // Payeur, montant et devise viennent de la transaction (id en base ou intention Stripe)
+      const transaction = await findEventTransaction(data.transactionId);
+      if (!transaction?.payerId) {
+        logger.warn(
+          { transactionId: data.transactionId },
+          '[PaymentEventListeners] Échec de paiement sans transaction connue : pas de notification',
+        );
+        return;
+      }
 
       // Envoyer une notification d'échec
       await notificationService.sendNotification({
-        recipient: userId,
+        recipient: transaction.payerId,
         type: 'PAYMENT_FAILED',
         template: 'payment_failed',
         data: {
           transactionId: data.transactionId,
-          error: data.error,
+          amount: transaction.amount,
+          currency: transaction.currency,
+          reason: data.error || 'paiement refusé',
+          supportEmail: supportEmail(),
         },
         channels: [
           { type: 'EMAIL', enabled: true, priority: 'MEDIUM' },
@@ -116,20 +162,25 @@ export function setupPaymentEventListeners() {
     );
 
     try {
-      // Récupérer userId depuis la transaction en base de données (Repository Pattern)
-      const userId =
-        (await transactionService.getUserIdFromTransaction(
-          data.transactionId,
-        )) || 'unknown';
+      // Payeur et devise viennent de la transaction (id en base ou intention Stripe)
+      const transaction = await findEventTransaction(data.transactionId);
+      if (!transaction?.payerId) {
+        logger.warn(
+          { transactionId: data.transactionId },
+          '[PaymentEventListeners] Remboursement sans transaction connue : pas de notification',
+        );
+        return;
+      }
 
       // Envoyer une notification de remboursement
       await notificationService.sendNotification({
-        recipient: userId,
+        recipient: transaction.payerId,
         type: 'PAYMENT_REFUNDED',
         template: 'payment_refunded',
         data: {
           transactionId: data.transactionId,
           amount: data.amount,
+          currency: transaction.currency,
         },
         channels: [
           { type: 'EMAIL', enabled: true, priority: 'HIGH' },
