@@ -55,7 +55,16 @@ ENV NEXT_PUBLIC_HOME_DIALOG_IMAGE_SRC=${NEXT_PUBLIC_HOME_DIALOG_IMAGE_SRC}
 ENV NEXT_PUBLIC_HOME_DIALOG_IMAGE_HREF=${NEXT_PUBLIC_HOME_DIALOG_IMAGE_HREF}
 ENV NEXT_PUBLIC_HOME_DIALOG_IMAGE_ALT=${NEXT_PUBLIC_HOME_DIALOG_IMAGE_ALT}
 
-RUN pnpm run build
+# Source maps envoyées à Sentry pendant le build (voir next.config.mjs et docs/exploitation/sentry.md).
+# Organisation, projet, adresse : publics. Le jeton passe par un secret BuildKit : lisible
+# seulement pendant ce RUN, jamais écrit dans une couche de l'image. Sans jeton : build normal.
+ARG SENTRY_ORG
+ARG SENTRY_PROJECT
+ARG SENTRY_URL
+RUN --mount=type=secret,id=sentry_auth_token,required=false \
+    SENTRY_ORG="$SENTRY_ORG" SENTRY_PROJECT="$SENTRY_PROJECT" SENTRY_URL="$SENTRY_URL" \
+    SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
+    pnpm run build
 
 ###############################
 # STAGE 2: Runner

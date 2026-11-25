@@ -1,4 +1,5 @@
 import { createRequire } from 'module';
+import { withSentryConfig } from '@sentry/nextjs';
 const require = createRequire(import.meta.url);
 // Use webpack from Next.js's bundled version (webpack is not a direct dependency)
 const webpack = require('next/dist/compiled/webpack/webpack-lib');
@@ -234,4 +235,38 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+/**
+ * Source maps envoyées à Sentry au build, pour des piles d'erreurs lisibles (voir
+ * docs/exploitation/sentry.md). Actif seulement avec SENTRY_AUTH_TOKEN, SENTRY_ORG et
+ * SENTRY_PROJECT : sinon (poste local, CI des tests), la configuration est inchangée.
+ * Uniquement l'envoi : aucune instrumentation automatique ajoutée, les source maps sont
+ * supprimées après l'envoi (jamais servies), et les fichiers sont reconnus par leur
+ * identifiant de débogage (pas de « release » à gérer).
+ */
+const sentryUpload = Boolean(
+  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT,
+);
+
+export default sentryUpload
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      ...(process.env.SENTRY_URL ? { sentryUrl: process.env.SENTRY_URL } : {}),
+      silent: false,
+      telemetry: false,
+      // Échec d'envoi (jeton expiré, Sentry injoignable) : simple avertissement. Le
+      // déploiement ne doit jamais être bloqué par les source maps.
+      errorHandler: (err) => {
+        console.warn(`[sentry] source maps non envoyées : ${err.message}`);
+      },
+      release: { create: false },
+      sourcemaps: { deleteSourcemapsAfterUpload: true },
+      widenClientFileUpload: false,
+      autoInstrumentServerFunctions: false,
+      autoInstrumentMiddleware: false,
+      autoInstrumentAppDirectory: false,
+      automaticVercelMonitors: false,
+      reactComponentAnnotation: { enabled: false },
+    })
+  : nextConfig;

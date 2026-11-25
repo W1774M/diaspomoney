@@ -69,7 +69,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Jeton Sentry (source maps) : secret de build, jamais dans l'image ni ses couches
+      secrets:
+        - sentry_auth_token
       args:
+        SENTRY_ORG: ${SENTRY_ORG:-}
+        SENTRY_PROJECT: ${SENTRY_PROJECT:-}
+        SENTRY_URL: ${SENTRY_URL:-}
         ENV: dev
         NODE_ENV: production
         NEXTAUTH_URL: https://dev.diaspomoney.fr
@@ -123,7 +129,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Jeton Sentry (source maps) : secret de build, jamais dans l'image ni ses couches
+      secrets:
+        - sentry_auth_token
       args:
+        SENTRY_ORG: ${SENTRY_ORG:-}
+        SENTRY_PROJECT: ${SENTRY_PROJECT:-}
+        SENTRY_URL: ${SENTRY_URL:-}
         ENV: rct
         NODE_ENV: production
         NEXTAUTH_URL: https://rct.diaspomoney.fr
@@ -177,7 +189,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Jeton Sentry (source maps) : secret de build, jamais dans l'image ni ses couches
+      secrets:
+        - sentry_auth_token
       args:
+        SENTRY_ORG: ${SENTRY_ORG:-}
+        SENTRY_PROJECT: ${SENTRY_PROJECT:-}
+        SENTRY_URL: ${SENTRY_URL:-}
         ENV: prod
         NODE_ENV: production
         NEXTAUTH_URL: https://diaspomoney.fr
@@ -293,6 +311,12 @@ services:
       - traefik.http.routers.mongo-express.tls=true
       - traefik.http.routers.mongo-express.tls.certresolver=le
       - traefik.http.services.mongo-express.loadbalancer.server.port=8081
+
+# Secrets de build (voir docs/exploitation/sentry.md). Variable absente ou vide : le build
+# se fait sans envoi des source maps.
+secrets:
+  sentry_auth_token:
+    environment: SENTRY_AUTH_TOKEN
 
 networks:
   app:
