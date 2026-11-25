@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks';
 import { Clock, Mail, MessageSquare, Phone, Send } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { LEGAL_ENTITY } from '@/lib/legal/company';
 
 export default function SupportPage() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -24,12 +25,36 @@ export default function SupportPage() {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setIsSubmitting(true);
+    setSubmitError(null);
 
-    // Simuler l'envoi du formulaire
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Envoi réel : message dans la conversation support (lue par l'équipe, réponse dans
+    // la messagerie). Avant, l'envoi était simulé et rien n'arrivait au support.
+    try {
+      const text = [
+        `[${formData.category} · priorité ${formData.priority}] ${formData.subject}`.trim(),
+        '',
+        formData.message,
+      ].join('\n');
+      const response = await fetch('/api/messaging/support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || "Votre message n'a pas pu être envoyé. Réessayez.");
+      }
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Votre message n'a pas pu être envoyé. Réessayez.");
+      setIsSubmitting(false);
+      return;
+    }
 
     setIsSubmitting(false);
     setSubmitted(true);
@@ -88,10 +113,10 @@ export default function SupportPage() {
             Réponse sous 24-48 heures
           </p>
           <a
-            href='mailto:support@diaspomoney.fr'
+            href={`mailto:${LEGAL_ENTITY.email}`}
             className='text-brand-700 hover:underline font-medium'
           >
-            support@diaspomoney.fr
+            {LEGAL_ENTITY.email}
           </a>
         </div>
 
@@ -132,9 +157,17 @@ export default function SupportPage() {
         {submitted && (
           <div className='mb-6 p-4 bg-green-50 border border-green-200 rounded-md'>
             <p className='text-green-800'>
-              ✅ Votre message a été envoyé avec succès. Nous vous répondrons
-              dans les plus brefs délais.
+              ✅ Votre message a été envoyé au support. La réponse arrivera dans{' '}
+              <a href='/dashboard/messaging/support' className='underline font-medium'>
+                votre conversation avec le support
+              </a>
+              .
             </p>
+          </div>
+        )}
+        {submitError && (
+          <div role='alert' className='mb-6 p-4 bg-red-50 border border-red-200 rounded-md'>
+            <p className='text-red-800'>{submitError}</p>
           </div>
         )}
 
