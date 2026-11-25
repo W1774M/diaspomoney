@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/auth/useAuth';
 import { useSignOut } from '@/hooks/auth/useSignOut';
 import imageLoader from '@/lib/image-loader';
 import { ROLES } from '@/lib/constants';
+import { isSuperAdmin } from '@/lib/auth/explicit-role';
 import type { UINotification } from '@/lib/types';
 import { Bell, ChevronDown, Mail, MessageSquare, Menu } from 'lucide-react';
 import Image from 'next/image';
@@ -153,8 +154,7 @@ export default function DashboardHeader({ className = '' }: { className?: string
 
   const getSecondaryRole = () => {
     if (!user?.roles || user.roles.length === 0) return '';
-    if (user.roles.includes(ROLES.ADMIN) && user.roles.length > 1)
-      return 'Super Admin';
+    if (isSuperAdmin(user)) return 'Super Admin';
     if (user.roles.length > 1) {
       const roles = user.roles.filter(r => r !== ROLES.ADMIN);
       return roles.join(', ') || '';

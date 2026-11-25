@@ -12,7 +12,7 @@
 
 import React from 'react';
 import { useAuth } from '@/hooks/auth/useAuth';
-import { ROLES } from '@/lib/constants';
+import { isSuperAdmin as isExplicitSuperAdmin } from '@/lib/auth/explicit-role';
 import { usePathname } from 'next/navigation';
 import {
   useCustomerStats,
@@ -48,10 +48,7 @@ const RoleSpecificStats = React.memo<RoleSpecificStatsProps>(function RoleSpecif
   const isAdminDashboard = pathname?.includes('/dashboard/admin') || pathname?.includes('/dashboard/superadmin');
 
   // Déterminer si l'utilisateur est super admin
-  const userRoles = user?.roles || [];
-  const hasAdmin = userRoles.includes(ROLES.ADMIN);
-  const hasMultipleRoles = userRoles.length > 1;
-  const isSuperAdmin = userRoles.includes(ROLES.SUPERADMIN) || (isAdmin() && hasAdmin && hasMultipleRoles);
+  const isSuperAdmin = isExplicitSuperAdmin(user);
 
   // Récupérer les statistiques selon le rôle
   const customerStats = useCustomerStats({

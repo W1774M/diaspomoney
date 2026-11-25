@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/hooks/auth/useAuth';
 import { useAuthorization } from '@/hooks/auth/useAuthorization';
-import { hasExplicitRole } from '@/lib/auth/explicit-role';
+import { hasExplicitRole, isSuperAdmin } from '@/lib/auth/explicit-role';
 import imageLoader from '@/lib/image-loader';
 import { ROLES } from '@/lib/constants';
 import {
@@ -268,7 +268,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '🏥 Institution',
             key: 'institution-health',
             icon: Building,
-            show: false,
+            show: false, // pages /dashboard/institution/* pas encore construites (liens en 404)
             values: [
               {
                 name: 'Mes médecins',
@@ -322,7 +322,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '🏗️ Institution',
             key: 'institution-btp',
             icon: Building,
-            show: false,
+            show: false, // pages /dashboard/institution/* pas encore construites (liens en 404)
             values: [
               {
                 name: 'Mes indépendants',
@@ -369,7 +369,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '🎓 Institution',
             key: 'institution-education',
             icon: Building,
-            show: false,
+            show: false, // pages /dashboard/institution/* pas encore construites (liens en 404)
             values: [
               {
                 name: 'Mes professeurs',
@@ -416,7 +416,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '🏢 Institution',
             key: 'institution-default',
             icon: Building,
-            show: false,
+            show: false, // pages /dashboard/institution/* pas encore construites (liens en 404)
             values: [
               {
                 name: 'Mes équipes',
@@ -1167,7 +1167,8 @@ export default function Sidebar() {
   const { isAuthorized: isAuthorizedCSM } = useAuthorization({ roles: [ROLES.CSM] });
   const { isAuthorized: isAuthorizedProvider } = useAuthorization({ roles: [ROLES.PROVIDER] });
   const { isAuthorized: isAuthorizedCustomer } = useAuthorization({ roles: [ROLES.CUSTOMER] });
-  const { isAuthorized: isAuthorizedSuperAdmin } = useAuthorization({ roles: [ROLES.SUPERADMIN] });
+  // Super admin : rôle SUPERADMIN explicite, comme les pages et les API super-admin
+  const isAuthorizedSuperAdmin = isSuperAdmin(user);
 
   const [isDashboardsExpanded, setIsDashboardsExpanded] = useState(false);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(false);
@@ -1237,6 +1238,10 @@ export default function Sidebar() {
       expandedKeys.add('calendar-btp');
       expandedKeys.add('calendar-education');
       expandedKeys.add('calendar-default');
+      expandedKeys.add('calendar-institution-health');
+      expandedKeys.add('calendar-institution-btp');
+      expandedKeys.add('calendar-institution-education');
+      expandedKeys.add('calendar-institution-default');
     }
     
     // Institution (providers INSTITUTION)
