@@ -370,7 +370,7 @@ describe('AuthorizedRoute', () => {
       });
     });
 
-    it('devrait autoriser un utilisateur legacy (ADMIN + plusieurs rôles)', async () => {
+    it('refuse un admin qui a d’autres rôles (l’ancienne règle n’existe plus)', async () => {
       mockUseAuth.mockReturnValue({
         isAuthenticated: true,
         isLoading: false,
@@ -384,7 +384,7 @@ describe('AuthorizedRoute', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Contenu super admin')).toBeInTheDocument();
+        expect(screen.queryByText('Contenu super admin')).not.toBeInTheDocument();
       });
     });
 

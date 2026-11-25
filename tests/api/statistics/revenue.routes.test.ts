@@ -77,6 +77,15 @@ describe('statistiques : revenus sur les paiements réels', () => {
     expect(months[months.length - 2]).toMatchObject({ revenue: 12, transactions: 6 });
   });
 
+  it.each([
+    ['un admin seul', ['ADMIN']],
+    ['un admin avec d’autres rôles (ancienne règle)', ['ADMIN', 'CUSTOMER', 'PROVIDER']],
+  ])('statistiques plateforme refusées à %s : rôle SUPERADMIN explicite requis', async (_label, roles) => {
+    mockAuth.mockResolvedValue({ user: { id: 'a', roles } });
+    const res = await getPlatform(new NextRequest('http://localhost/api/statistics/platform'));
+    expect(res.status).toBe(403);
+  });
+
   it('admin : revenus plateforme et paiements du mois', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'a', roles: ['ADMIN'] } });
 
