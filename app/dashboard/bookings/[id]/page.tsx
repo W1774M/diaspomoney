@@ -32,6 +32,7 @@ import { useBookingEdit } from '@/hooks/bookings/useBookingEdit';
 import AssignProviderModal from '@/components/bookings/AssignProviderModal';
 import DownloadSummaryModal from '@/components/bookings/DownloadSummaryModal';
 import { useNotificationManager } from '@/components/ui/Notification';
+import { isProviderUserId } from '@/lib/bookings/provider-id';
 
 /**
  * Contenu de la page de détail d'une réservation
@@ -441,7 +442,7 @@ function BookingDetailPageContent() {
         isOpen={isAssignProviderOpen}
         onClose={() => setIsAssignProviderOpen(false)}
         bookingId={bookingId}
-        currentProviderId={booking.providerId}
+        currentProviderId={isProviderUserId(booking.providerId) ? booking.providerId : ''}
         {...(booking.metadata?.['assignedProviderType'] === 'EXTERNAL' &&
         booking.metadata?.['assignedProviderEmail']
           ? { currentAssignedProviderEmail: booking.metadata['assignedProviderEmail'] as string }

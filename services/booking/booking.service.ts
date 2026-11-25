@@ -25,6 +25,7 @@ import { createCheckoutSession } from '@/lib/stripe-checkout';
 import { sendPaymentLinkEmail } from '@/lib/email/resend';
 import { notificationService } from '@/services/notification/notification.service';
 import { cleanUrl } from '@/lib/utils';
+import { isProviderUserId } from '@/lib/bookings/provider-id';
 
 interface BookingProgressHistoryEntry {
   step?: number;
@@ -38,15 +39,6 @@ interface PricedOption {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
-}
-
-/**
- * Un providerId de réservation n'est pas toujours un utilisateur : il peut valoir
- * un identifiant de service (« consultation-medical ») ou un marqueur (« admin-draft »).
- * Seul un ObjectId désigne un prestataire à notifier.
- */
-function isProviderUserId(value: unknown): value is string {
-  return typeof value === 'string' && /^[a-f\d]{24}$/i.test(value);
 }
 
 function isProgressHistoryEntry(value: unknown): value is BookingProgressHistoryEntry {

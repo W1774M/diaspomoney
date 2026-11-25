@@ -6,6 +6,8 @@ import { BOOKING_STATUSES } from '@/lib/constants';
 import { useUser } from '@/hooks/users/useUser';
 import { useBookingSharedElements } from '@/hooks/bookings/useBookingSharedElements';
 import type { BookingResponse } from '@/lib/mappers/booking.mapper';
+// Un identifiant de service ou « admin-draft » n'est pas un prestataire : « Non attribué »
+import { isProviderUserId } from '@/lib/bookings/provider-id';
 
 interface BookingInfoSidebarProps {
   booking: BookingResponse;
@@ -101,7 +103,7 @@ export default function BookingInfoSidebar({
               <p className="font-semibold break-words">{assignedProviderName || 'Prestataire externe'}</p>
               <p className="break-words">{assignedProviderEmail || '—'}</p>
             </div>
-          ) : booking.providerId ? (
+          ) : isProviderUserId(booking.providerId) ? (
             <div className="text-sm text-gray-900">
               <p className="font-semibold break-words">{assignedProviderName || 'Prestataire enregistré'}</p>
               <p className="font-mono text-xs break-all">{booking.providerId}</p>
