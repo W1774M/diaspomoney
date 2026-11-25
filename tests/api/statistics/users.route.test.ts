@@ -62,8 +62,9 @@ describe('GET /api/statistics/users', () => {
     expect(body.statistics.totalUsers).toBe(4);
     expect(body.statistics.usersToday).toBe(2);
     expect(body.statistics.previousMonthUsers).toBe(1);
-    expect(body.statistics.restRequests).toBe(45);
-    expect(body.statistics.authRequests).toBe(9);
+    // Plus d'estimations de trafic (utilisateurs actifs × 15 / × 3) : ce n'étaient pas des mesures
+    expect(body.statistics).not.toHaveProperty('restRequests');
+    expect(body.statistics).not.toHaveProperty('authRequests');
     expect(findAll).toHaveBeenCalledWith({});
   });
 

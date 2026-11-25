@@ -24,6 +24,9 @@ const {
   testEmailService: vi.fn(),
 }));
 
+const mockAuth = vi.hoisted(() => vi.fn());
+vi.mock('@/auth', () => ({ auth: mockAuth }));
+
 vi.mock('@/services/email/email.service', () => ({
   emailService: {
     sendWelcomeEmail,
@@ -52,6 +55,7 @@ function post(body: unknown) {
 describe('/api/email/test', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuth.mockResolvedValue({ user: { id: 'admin-1', roles: ['ADMIN'] } });
     sendWelcomeEmail.mockResolvedValue(true);
     sendPasswordResetEmail.mockResolvedValue(true);
     sendPaymentConfirmationEmail.mockResolvedValue(true);
@@ -105,5 +109,38 @@ describe('/api/email/test', () => {
       }),
     );
     expect((await broken).status).toBe(500);
+  });
+});
+
+/**
+ * Accès : la route était ouverte à tous. N'importe qui pouvait faire envoyer, depuis
+ * l'adresse DiaspoMoney, un e-mail au contenu HTML libre vers n'importe quelle adresse.
+ */
+describe('/api/email/test — réservé aux administrateurs', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sendCustomEmail.mockResolvedValue(true);
+  });
+
+  const custom = { type: 'custom', email: 'victime@exemple.fr', data: { subject: 'Votre compte', html: '<a href="https://piege">ici</a>' } };
+
+  it('refuse un visiteur non connecté (401) sans rien envoyer', async () => {
+    mockAuth.mockResolvedValue(null);
+    expect((await post(custom)).status).toBe(401);
+    expect((await GET()).status).toBe(401);
+    expect(sendCustomEmail).not.toHaveBeenCalled();
+  });
+
+  it.each([['CUSTOMER'], ['PROVIDER'], ['CSM']])('refuse le rôle %s (403) sans rien envoyer', async (role) => {
+    mockAuth.mockResolvedValue({ user: { id: 'u1', roles: [role] } });
+    expect((await post(custom)).status).toBe(403);
+    expect((await GET()).status).toBe(403);
+    expect(sendCustomEmail).not.toHaveBeenCalled();
+  });
+
+  it.each([['ADMIN'], ['SUPERADMIN']])('autorise %s', async (role) => {
+    mockAuth.mockResolvedValue({ user: { id: 'a1', roles: [role] } });
+    expect((await post(custom)).status).toBe(200);
+    expect(sendCustomEmail).toHaveBeenCalledTimes(1);
   });
 });
