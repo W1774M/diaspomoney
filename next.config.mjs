@@ -247,8 +247,8 @@ const sentryUpload = Boolean(
   process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT,
 );
 
-export default sentryUpload
-  ? withSentryConfig(nextConfig, {
+const withSentry = (config) => {
+  const wrapped = withSentryConfig(config, {
       org: process.env.SENTRY_ORG,
       project: process.env.SENTRY_PROJECT,
       authToken: process.env.SENTRY_AUTH_TOKEN,
@@ -268,5 +268,17 @@ export default sentryUpload
       autoInstrumentAppDirectory: false,
       automaticVercelMonitors: false,
       reactComponentAnnotation: { enabled: false },
-    })
-  : nextConfig;
+  });
+  // Sentry n'est initialisé que côté serveur (instrumentation.ts) : pas de source maps pour
+  // le navigateur, inutiles et les plus coûteuses en mémoire au build.
+  const sentryWebpack = wrapped.webpack;
+  wrapped.webpack = (webpackConfig, context) => {
+    const out = sentryWebpack ? sentryWebpack(webpackConfig, context) : webpackConfig;
+    if (!context.isServer) out.devtool = false;
+    return out;
+  };
+  wrapped.productionBrowserSourceMaps = false;
+  return wrapped;
+};
+
+export default sentryUpload ? withSentry(nextConfig) : nextConfig;

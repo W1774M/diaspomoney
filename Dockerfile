@@ -62,6 +62,7 @@ ARG SENTRY_ORG
 ARG SENTRY_PROJECT
 ARG SENTRY_URL
 RUN --mount=type=secret,id=sentry_auth_token,required=false \
+    NODE_OPTIONS="--max-old-space-size=4096" \
     SENTRY_ORG="$SENTRY_ORG" SENTRY_PROJECT="$SENTRY_PROJECT" SENTRY_URL="$SENTRY_URL" \
     SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
     pnpm run build
