@@ -635,7 +635,7 @@ export class EmailService {
 // Instance singleton du service email
 export const emailService = new EmailService({
   from: 'DiaspoMoney <noreply@diaspomoney.fr>',
-  replyTo: 'support@diaspomoney.fr',
+  replyTo: 'contact@diaspomoney.fr',
   enabled: !!process.env['RESEND_API_KEY'],
 });
 

@@ -24,7 +24,7 @@ vi.mock('@/lib/email/resend', () => h.resend);
 
 import { EmailService, emailService, testEmailService } from '@/services/email/email.service';
 
-const config = { from: 'DiaspoMoney <noreply@diaspomoney.fr>', replyTo: 'support@diaspomoney.fr', enabled: true };
+const config = { from: 'DiaspoMoney <noreply@diaspomoney.fr>', replyTo: 'contact@diaspomoney.fr', enabled: true };
 const r = h.resend;
 
 beforeEach(() => {

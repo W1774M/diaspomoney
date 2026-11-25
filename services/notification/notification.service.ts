@@ -352,7 +352,7 @@ export class NotificationService {
         data: {
           userName,
           appName: 'DiaspoMoney',
-          supportEmail: 'support@diaspomoney.fr',
+          supportEmail: 'contact@diaspomoney.fr',
         },
         channels: [{ type: 'EMAIL', enabled: true, priority: 'MEDIUM' }],
         locale,
@@ -392,7 +392,7 @@ export class NotificationService {
             timeStyle: 'short',
             timeZone: 'Europe/Paris',
           }),
-          supportEmail: 'support@diaspomoney.fr',
+          supportEmail: 'contact@diaspomoney.fr',
         },
         channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
         locale,
@@ -466,7 +466,7 @@ export class NotificationService {
           amount,
           currency,
           reason,
-          supportEmail: 'support@diaspomoney.fr',
+          supportEmail: 'contact@diaspomoney.fr',
         },
         channels: [
           { type: 'EMAIL', enabled: true, priority: 'HIGH' },
