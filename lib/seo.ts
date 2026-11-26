@@ -5,7 +5,19 @@ import type { Metadata } from 'next';
 
 export const SITE_URL = (process.env['NEXT_PUBLIC_APP_URL'] || 'https://diaspomoney.fr').replace(/\/$/, '');
 export const SITE_NAME = 'DiaspoMoney';
-const OG_IMAGE = { url: '/img/og.png', width: 1200, height: 630, alt: 'DiaspoMoney' };
+/**
+ * Balise google-site-verification (Search Console, méthode « Balise HTML »).
+ * Le jeton est public : il figure dans le HTML de chaque page. GOOGLE_SITE_VERIFICATION
+ * doit être présent au build, car les métadonnées racine sont générées à ce moment-là.
+ */
+export function googleSiteVerification(
+  env: Record<string, string | undefined> = process.env,
+): Metadata['verification'] {
+  const token = env['GOOGLE_SITE_VERIFICATION']?.trim();
+  return token ? { google: token } : undefined;
+}
+
+const OG_IMAGE ={ url: '/img/og.png', width: 1200, height: 630, alt: 'DiaspoMoney' };
 
 /** URL absolue d'un chemin ; la racine garde sa barre finale (https://diaspomoney.fr/). */
 export function absoluteUrl(path: string): string {

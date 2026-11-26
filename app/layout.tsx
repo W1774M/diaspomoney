@@ -13,7 +13,7 @@ import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { CookieConsent } from '@/components/consent/CookieConsent';
 import { CONSENT_DEFAULT_SCRIPT } from '@/lib/consent';
-import { serializeJsonLd, siteJsonLd } from '@/lib/seo';
+import { googleSiteVerification, serializeJsonLd, siteJsonLd } from '@/lib/seo';
 
 // Polices hébergées dans le projet (paquets @fontsource-variable, sous-ensemble latin) :
 // next/font/google les téléchargeait à chaque build, et un build échouait dès que
@@ -69,6 +69,7 @@ export const metadata: Metadata = {
       'Réservez et payez des services pour vos proches en Afrique. Paiement sécurisé, prestataires vérifiés.',
   },
   manifest: '/manifest.webmanifest',
+  verification: googleSiteVerification(),
   robots: {
     index: true,
     follow: true,

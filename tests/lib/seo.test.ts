@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { absoluteUrl, pageMetadata, serializeJsonLd, SITE_URL, siteJsonLd } from '@/lib/seo';
+import {
+  absoluteUrl,
+  googleSiteVerification,
+  pageMetadata,
+  serializeJsonLd,
+  SITE_URL,
+  siteJsonLd,
+} from '@/lib/seo';
 
 describe('lib/seo', () => {
   it('n’a jamais de barre finale dans l’URL de base', () => {
@@ -17,6 +24,14 @@ describe('lib/seo', () => {
     expect(metadata.alternates?.canonical).toBe(`${SITE_URL}/about`);
     expect(metadata.openGraph?.url).toBe(`${SITE_URL}/about`);
     expect(metadata.title).toBe('À propos');
+  });
+
+  it('émet la balise google-site-verification seulement si le jeton est fourni', () => {
+    expect(googleSiteVerification({ GOOGLE_SITE_VERIFICATION: ' abc123 ' })).toEqual({
+      google: 'abc123',
+    });
+    expect(googleSiteVerification({ GOOGLE_SITE_VERIFICATION: '  ' })).toBeUndefined();
+    expect(googleSiteVerification({})).toBeUndefined();
   });
 
   it('empêche le JSON-LD de fermer la balise script', () => {
