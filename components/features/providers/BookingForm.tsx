@@ -1689,19 +1689,15 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
             </h4>
 
             {(() => {
-              let basePrice = 0;
-              if (watchedValues['consultationMode'] === 'video') {
-                const consultationService = provider['services']?.find(
-                  (service: any) => service.name === 'Consultation',
-                );
-                basePrice =
-                  consultationService?.price || provider['price'] || 0;
-              } else {
-                basePrice =
-                  watchedValues['selectedService']?.price ||
-                  provider['price'] ||
-                  0;
-              }
+              const consultationService = provider['services']?.find(
+                (service: any) => service.name === 'Consultation',
+              );
+              const basePrice =
+                watchedValues['consultationMode'] === 'video'
+                  ? consultationService?.price || provider['price'] || 0
+                  : watchedValues['selectedService']?.price ||
+                    provider['price'] ||
+                    0;
               const totalPrice = calculatePriceWithCommission(basePrice);
               const amountInCents = Math.round(totalPrice * 100);
               return (
@@ -1803,21 +1799,15 @@ export function BookingForm({ provider, onClose, onSubmit }: BookingFormProps) {
                 <span className='text-brand-700'>
                   {(() => {
                     // Calculer le prix de base selon le mode de consultation
-                    let basePrice = 0;
-                    if (watchedValues['consultationMode'] === 'video') {
-                      // Pour les consultations vidéo, utiliser le prix du service "Consultation"
-                      const consultationService = provider['services']?.find(
-                        (service: any) => service.name === 'Consultation',
-                      );
-                      basePrice =
-                        consultationService?.price || provider['price'] || 0;
-                    } else {
-                      // Pour les autres cas, utiliser le service sélectionné ou le prix du provider
-                      basePrice =
-                        watchedValues['selectedService']?.price ||
-                        provider['price'] ||
-                        0;
-                    }
+                    const consultationService = provider['services']?.find(
+                      (service: any) => service.name === 'Consultation',
+                    );
+                    const basePrice =
+                      watchedValues['consultationMode'] === 'video'
+                        ? consultationService?.price || provider['price'] || 0
+                        : watchedValues['selectedService']?.price ||
+                          provider['price'] ||
+                          0;
                     return calculatePriceWithCommission(basePrice);
                   })()}
                   €

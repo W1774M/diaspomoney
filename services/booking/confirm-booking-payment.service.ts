@@ -130,7 +130,7 @@ export class ConfirmBookingPaymentService {
       };
     }
 
-    let bookingDomain: Booking | null = null;
+    let bookingDomain: Booking | null;
     let reservationNumber: string | undefined;
     let emailSent = false;
     let eventsEmitted = false;

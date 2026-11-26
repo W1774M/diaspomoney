@@ -263,8 +263,8 @@ export class SecurityManager {
       }
 
       return decoded;
-    } catch (_error) {
-      throw new Error('Token invalide');
+    } catch (error) {
+      throw new Error('Token invalide', { cause: error });
     }
   }
 

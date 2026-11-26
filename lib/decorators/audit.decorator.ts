@@ -77,7 +77,7 @@ export function Audit(options: AuditDecoratorOptions) {
       const startTime = Date.now();
 
       let result: any;
-      let error: any = null;
+      let error: any;
       // success variable is used in the audit log creation below
 
       try {
@@ -176,7 +176,7 @@ export function Audit(options: AuditDecoratorOptions) {
         const executionTime = Date.now() - startTime;
 
         // Récupérer la session pour l'audit d'erreur
-        let session: any = null;
+        let session: any;
         try {
           session = await auth();
         } catch {
