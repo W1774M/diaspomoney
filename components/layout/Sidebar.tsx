@@ -268,7 +268,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '🏥 Institution',
             key: 'institution-health',
             icon: Building,
-            show: false, // pages /dashboard/institution/* pas encore construites (liens en 404)
+            show: false, // écrans /dashboard/institution/* encore vides (annuaire sans données) : menu masqué
             values: [
               {
                 name: 'Mes médecins',
@@ -322,7 +322,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '🏗️ Institution',
             key: 'institution-btp',
             icon: Building,
-            show: false, // pages /dashboard/institution/* pas encore construites (liens en 404)
+            show: false, // écrans /dashboard/institution/* encore vides (annuaire sans données) : menu masqué
             values: [
               {
                 name: 'Mes indépendants',
@@ -369,7 +369,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '🎓 Institution',
             key: 'institution-education',
             icon: Building,
-            show: false, // pages /dashboard/institution/* pas encore construites (liens en 404)
+            show: false, // écrans /dashboard/institution/* encore vides (annuaire sans données) : menu masqué
             values: [
               {
                 name: 'Mes professeurs',
@@ -416,7 +416,7 @@ function buildProviderToolsItems(user?: any): NavigationItem[] {
             name: '🏢 Institution',
             key: 'institution-default',
             icon: Building,
-            show: false, // pages /dashboard/institution/* pas encore construites (liens en 404)
+            show: false, // écrans /dashboard/institution/* encore vides (annuaire sans données) : menu masqué
             values: [
               {
                 name: 'Mes équipes',
