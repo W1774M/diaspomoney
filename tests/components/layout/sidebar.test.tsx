@@ -183,6 +183,7 @@ describe('Sidebar', () => {
     renderBar();
     expect(screen.getByText('OUTILS PRESTATAIRE')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Institution/ })).not.toBeInTheDocument();
   });
 
   it('propose le calendrier par défaut sans catégorie, et le replie au clic', () => {
@@ -210,20 +211,43 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: 'Mes disponibilités' })).toBeInTheDocument();
   });
 
-  // Menu Institution masqué (show: false) : les écrans /dashboard/institution/* sont encore des annuaires vides
   it.each([
-    ['HEALTH', '🏥 Institution'],
-    ['BTP', '🏗️ Institution'],
-    ['EDUCATION', '🎓 Institution'],
-    [undefined, '🏢 Institution'],
-  ] as const)('ne propose aucun lien vers le menu institution masqué (%s)', (category, menu) => {
-    nav.pathname = '/dashboard/availabilities';
+    ['HEALTH', '🏥 Institution', '/dashboard/institution/doctors', [
+      ['Mes médecins', '/dashboard/institution/doctors'],
+      ['Mes infirmiers', '/dashboard/institution/nurses'],
+      ['Mes patients', '/dashboard/institution/patients'],
+      ['Mes rendez-vous', '/dashboard/institution/appointments'],
+    ]],
+    ['BTP', '🏗️ Institution', '/dashboard/institution/freelancers', [
+      ['Mes indépendants', '/dashboard/institution/freelancers'],
+      ['Mes clients', '/dashboard/institution/clients'],
+      ['Mes missions', '/dashboard/institution/missions'],
+    ]],
+    ['EDUCATION', '🎓 Institution', '/dashboard/institution/teachers', [
+      ['Mes professeurs', '/dashboard/institution/teachers'],
+      ['Mes élèves', '/dashboard/institution/students'],
+      ['Mes classes', '/dashboard/institution/classes'],
+    ]],
+    [undefined, '🏢 Institution', '/dashboard/institution/teams', [
+      ['Mes équipes', '/dashboard/institution/teams'],
+      ['Mes clients', '/dashboard/institution/clients'],
+    ]],
+  ] as const)('affiche le menu institution %s et ouvre ses écrans', (category, menu, path, links) => {
+    nav.pathname = '/dashboard';
     session(person([ROLES.PROVIDER], { providerInfo: { type: 'INSTITUTION', ...(category ? { category } : {}) } }));
     renderBar();
-    expect(screen.getByRole('button', { name: '📅 Calendrier' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: menu })).not.toBeInTheDocument();
-    const hrefs = screen.queryAllByRole('link').map((a) => a.getAttribute('href') ?? '');
-    expect(hrefs.filter((h) => h.startsWith('/dashboard/institution'))).toEqual([]);
+    const button = screen.getByRole('button', { name: menu });
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(button);
+    for (const [label, href] of links) {
+      expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', href);
+    }
+    cleanup();
+
+    nav.pathname = path;
+    renderBar();
+    expect(screen.getByRole('button', { name: menu })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: links[0][0] })).toHaveAttribute('aria-current', 'page');
   });
 
   it('garde un calendrier pour un prestataire sans type de profil', () => {
