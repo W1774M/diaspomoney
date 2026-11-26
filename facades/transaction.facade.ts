@@ -34,7 +34,7 @@ const CreateTransactionFacadeSchema = z
     serviceId: z.string().optional(),
     serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION']).optional(),
     sendNotification: z.boolean().optional(),
-    metadata: z.record(z.any()).optional(),
+    metadata: z.record(z.string(), z.any()).optional(),
     status: z.string().optional(),
   })
   .passthrough();

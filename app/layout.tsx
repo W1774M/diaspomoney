@@ -2,7 +2,9 @@ import {
   AppointmentProvider,
   AuthProvider,
 } from '@/components/features/providers';
-// import NotificationContainer from "@/components/ui/Notification";
+import NotificationContainer from "@/components/ui/Notification";
+import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
+import { ImpersonationBanner } from '@/components/support/ImpersonationBanner';
 import { EventSystemProvider } from '@/app/providers/EventSystemProvider';
 import '@/styles/globals.css';
 import 'react-international-phone/style.css';
@@ -11,23 +13,19 @@ import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { CookieConsent } from '@/components/consent/CookieConsent';
 import { CONSENT_DEFAULT_SCRIPT } from '@/lib/consent';
-import { serializeJsonLd, siteJsonLd } from '@/lib/seo';
+import { googleSiteVerification, serializeJsonLd, siteJsonLd } from '@/lib/seo';
 
 // Polices hébergées dans le projet (paquets @fontsource-variable, sous-ensemble latin) :
 // next/font/google les téléchargeait à chaque build, et un build échouait dès que
 // Google Fonts répondait de travers (CI comme images Docker du serveur).
-const geistSans = localFont({
+// Texte courant : Inter. Titres : Plus Jakarta Sans (classe font-display).
+const inter = localFont({
   src: '../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2',
-  variable: '--font-geist-sans',
+  variable: '--font-inter',
   weight: '100 900',
   display: 'swap',
-});
-
-const geistMono = localFont({
-  src: '../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2',
-  variable: '--font-geist-mono',
-  weight: '100 900',
-  display: 'swap',
+  // métriques de repli ajustées : pas de saut de mise en page au chargement
+  adjustFontFallback: 'Arial',
 });
 
 const plusJakartaSans = localFont({
@@ -35,6 +33,7 @@ const plusJakartaSans = localFont({
   variable: '--font-plus-jakarta-sans',
   weight: '200 800',
   display: 'swap',
+  adjustFontFallback: 'Arial',
 });
 
 const baseUrl =
@@ -70,6 +69,7 @@ export const metadata: Metadata = {
       'Réservez et payez des services pour vos proches en Afrique. Paiement sécurisé, prestataires vérifiés.',
   },
   manifest: '/manifest.webmanifest',
+  verification: googleSiteVerification(),
   robots: {
     index: true,
     follow: true,
@@ -84,11 +84,13 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
+        {/* Suit la taille de texte réglée dans le système (Chrome/Edge 146+, ignoré ailleurs) */}
+        <meta name='text-scale' content='scale' />
         {/* Consent Mode v2 : tout refusé par défaut, avant tout tag Google. */}
         <script dangerouslySetInnerHTML={{ __html: CONSENT_DEFAULT_SCRIPT }} />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${plusJakartaSans.variable} antialiased`}
+        className={`${inter.variable} ${plusJakartaSans.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
         <script
@@ -97,9 +99,15 @@ export default function RootLayout({
         />
         <EventSystemProvider>
           <AuthProvider>
+            {/* consultation du support en cours (lecture seule) : toujours visible */}
+            <ImpersonationBanner />
             <AppointmentProvider>
-              <DefaultTemplate>{children}</DefaultTemplate>
+              <ConfirmProvider>
+                <DefaultTemplate>{children}</DefaultTemplate>
+              </ConfirmProvider>
               <CookieConsent />
+              {/* zone unique des notifications (toasts) de toute l'app */}
+              <NotificationContainer />
             </AppointmentProvider>
           </AuthProvider>
         </EventSystemProvider>

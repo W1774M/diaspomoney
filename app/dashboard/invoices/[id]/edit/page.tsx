@@ -215,7 +215,7 @@ function EditInvoicePageContent() {
   if (invoiceLoading || usersLoading) {
     return (
       <div className='text-center py-12'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto'></div>
         <p className='mt-4 text-gray-600'>Chargement...</p>
       </div>
     );
@@ -250,7 +250,7 @@ function EditInvoicePageContent() {
         <div className='flex items-center mb-4'>
           <Link
             href={`/dashboard/invoices/${invoiceId}`}
-            className='flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)] mr-4'
+            className='flex items-center text-brand-700 hover:text-brand-800 mr-4'
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Retour à la facture
@@ -279,30 +279,30 @@ function EditInvoicePageContent() {
           </h2>
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-invoice-number' className='block text-sm font-medium text-gray-700 mb-2'>
                 Numéro de facture
               </label>
-              <input
+              <input id='edit-invoice-number'
                 type='text'
                 value={formData.invoiceNumber}
                 onChange={e =>
                   handleInputChange('invoiceNumber', e.target.value)
                 }
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 placeholder='FACT-2024-001'
                 required
               />
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-customer-id' className='block text-sm font-medium text-gray-700 mb-2'>
                 Client
               </label>
-              <select
+              <select id='edit-customer-id'
                 title='Client'
                 value={formData.customerId}
                 onChange={e => handleInputChange('customerId', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 required
                 disabled={usersLoading}
               >
@@ -316,14 +316,14 @@ function EditInvoicePageContent() {
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-provider-id' className='block text-sm font-medium text-gray-700 mb-2'>
                 Prestataire
               </label>
-              <select
+              <select id='edit-provider-id'
                 title='Prestataire'
                 value={formData.providerId}
                 onChange={e => handleInputChange('providerId', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 disabled={usersLoading}
               >
                 <option value=''>Sélectionner un prestataire</option>
@@ -336,14 +336,14 @@ function EditInvoicePageContent() {
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-currency' className='block text-sm font-medium text-gray-700 mb-2'>
                 Devise
               </label>
-              <select
+              <select id='edit-currency'
                 title='Devise'
                 value={formData.currency}
                 onChange={e => handleInputChange('currency', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               >
                 <option value='EUR'>EUR (€)</option>
                 <option value='USD'>USD ($)</option>
@@ -352,16 +352,16 @@ function EditInvoicePageContent() {
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-status' className='block text-sm font-medium text-gray-700 mb-2'>
                 Statut
               </label>
-              <select
+              <select id='edit-status'
                 title='Statut'
                 value={formData.status}
                 onChange={e =>
                   handleInputChange('status', e.target.value as InvoiceStatus)
                 }
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               >
                 {INVOICE_STATUSES.map(status => (
                   <option key={status} value={status}>
@@ -372,57 +372,57 @@ function EditInvoicePageContent() {
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-issue-date' className='block text-sm font-medium text-gray-700 mb-2'>
                 Date d&apos;émission
               </label>
-              <input
+              <input id='edit-issue-date'
                 type='date'
                 title="Date d'émission"
                 value={formData.issueDate}
                 onChange={e => handleInputChange('issueDate', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 required
               />
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-due-date' className='block text-sm font-medium text-gray-700 mb-2'>
                 Date d&apos;échéance
               </label>
-              <input
+              <input id='edit-due-date'
                 type='date'
                 title="Date d'échéance"
                 value={formData.dueDate}
                 onChange={e => handleInputChange('dueDate', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                 required
               />
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='edit-paid-date' className='block text-sm font-medium text-gray-700 mb-2'>
                 Date de paiement
               </label>
-              <input
+              <input id='edit-paid-date'
                 type='date'
                 title='Date de paiement'
                 value={formData.paidDate}
                 onChange={e => handleInputChange('paidDate', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               />
             </div>
           </div>
 
           <div className='mt-4'>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
+            <label htmlFor='edit-notes' className='block text-sm font-medium text-gray-700 mb-2'>
               Notes
             </label>
-            <textarea
+            <textarea id='edit-notes'
               title='Notes'
               value={formData.notes}
               onChange={e => handleInputChange('notes', e.target.value)}
               rows={3}
-              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               placeholder='Notes additionnelles...'
             />
           </div>
@@ -435,7 +435,7 @@ function EditInvoicePageContent() {
             <button
               type='button'
               onClick={addItem}
-              className='flex items-center px-3 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors'
+              className='flex items-center px-3 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
             >
               <Plus className='h-4 w-4 mr-2' />
               Ajouter un article
@@ -450,27 +450,27 @@ function EditInvoicePageContent() {
               >
                 <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
                   <div className='md:col-span-2'>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor={`edit-description-${index}`} className='block text-sm font-medium text-gray-700 mb-2'>
                       Description
                     </label>
-                    <input
+                    <input id={`edit-description-${index}`}
                       type='text'
                       title='Description'
                       value={item.description}
                       onChange={e =>
                         handleItemChange(index, 'description', e.target.value)
                       }
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       placeholder="Description de l'article"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor={`edit-quantity-${index}`} className='block text-sm font-medium text-gray-700 mb-2'>
                       Quantité
                     </label>
-                    <input
+                    <input id={`edit-quantity-${index}`}
                       type='number'
                       min='1'
                       title='Quantité'
@@ -482,16 +482,16 @@ function EditInvoicePageContent() {
                           parseInt(e.target.value) || 1,
                         )
                       }
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       required
                     />
                   </div>
 
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor={`edit-unit-price-${index}`} className='block text-sm font-medium text-gray-700 mb-2'>
                       Prix unitaire
                     </label>
-                    <input
+                    <input id={`edit-unit-price-${index}`}
                       type='number'
                       min='0'
                       step='0.01'
@@ -504,7 +504,7 @@ function EditInvoicePageContent() {
                           parseFloat(e.target.value) || 0,
                         )
                       }
-                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
                       required
                     />
                   </div>
@@ -564,7 +564,7 @@ function EditInvoicePageContent() {
           <button
             type='submit'
             disabled={saving}
-            className='px-6 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+            className='px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
           >
             {saving ? 'Sauvegarde...' : 'Sauvegarder'}
           </button>

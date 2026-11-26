@@ -1,8 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useAuth } from '@/hooks';
 import { ROLES } from '@/lib/constants';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { LayoutDashboard } from 'lucide-react';
 import { useMemo } from 'react';
 
@@ -70,7 +71,6 @@ function getAvailableDashboards(userRoles: string[] = []): Array<{ name: string;
  */
 export default function DashboardSwitcher() {
   const { user } = useAuth();
-  const router = useRouter();
   const pathname = usePathname();
 
   const availableDashboards = useMemo(() => {
@@ -94,17 +94,17 @@ export default function DashboardSwitcher() {
         {availableDashboards.map((dashboard) => {
           const isActive = pathname?.startsWith(dashboard.href);
           return (
-            <button
+            <Link
               key={dashboard.href}
-              onClick={() => router.push(dashboard.href)}
+              href={dashboard.href}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-[hsl(25,100%,53%)] text-white'
+                  ? 'bg-brand-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
               {dashboard.name}
-            </button>
+            </Link>
           );
         })}
       </div>

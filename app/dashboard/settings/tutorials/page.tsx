@@ -103,8 +103,8 @@ export default function TutorialsPage() {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
+      <div className='min-h-dvh flex items-center justify-center'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600'></div>
       </div>
     );
   }
@@ -118,7 +118,7 @@ export default function TutorialsPage() {
       {/* Header */}
       <div>
         <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
-          <Video className='h-8 w-8 mr-3 text-[hsl(25,100%,53%)]' />
+          <Video className='h-8 w-8 mr-3 text-brand-700' />
           Tutoriels vidéo
         </h1>
         <p className='text-gray-600 mt-2'>
@@ -133,7 +133,7 @@ export default function TutorialsPage() {
           onClick={() => setSelectedCategory(null)}
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             !selectedCategory
-              ? 'bg-[hsl(25,100%,53%)] text-white'
+              ? 'bg-brand-600 text-white'
               : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
           }`}
         >
@@ -145,7 +145,7 @@ export default function TutorialsPage() {
             onClick={() => setSelectedCategory(category)}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               selectedCategory === category
-                ? 'bg-[hsl(25,100%,53%)] text-white'
+                ? 'bg-brand-600 text-white'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
             }`}
           >
@@ -164,7 +164,7 @@ export default function TutorialsPage() {
             {/* Thumbnail */}
             <div className='relative aspect-video bg-gray-200'>
               <div className='absolute inset-0 flex items-center justify-center bg-gray-300'>
-                <Video className='h-16 w-16 text-gray-400' />
+                <Video className='h-16 w-16 text-gray-500' />
               </div>
               <button
                 onClick={() => handlePlay(tutorial)}
@@ -172,7 +172,7 @@ export default function TutorialsPage() {
                 className='absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 hover:bg-opacity-40 transition-opacity group'
               >
                 <div className='bg-white rounded-full p-4 group-hover:scale-110 transition-transform'>
-                  <Play className='h-8 w-8 text-[hsl(25,100%,53%)] ml-1' />
+                  <Play className='h-8 w-8 text-brand-700 ml-1' />
                 </div>
               </button>
               <div className='absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded flex items-center'>
@@ -184,7 +184,7 @@ export default function TutorialsPage() {
             {/* Content */}
             <div className='p-4'>
               <div className='flex items-center justify-between mb-2'>
-                <span className='text-xs font-medium text-[hsl(25,100%,53%)] bg-[hsl(25,100%,53%)]/10 px-2 py-1 rounded'>
+                <span className='text-xs font-medium text-brand-700 bg-brand-500/10 px-2 py-1 rounded'>
                   {tutorial.category}
                 </span>
               </div>
@@ -202,7 +202,7 @@ export default function TutorialsPage() {
       {/* Empty State */}
       {filteredTutorials.length === 0 && (
         <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center'>
-          <Video className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+          <Video className='h-12 w-12 text-gray-500 mx-auto mb-4' />
           <h3 className='text-lg font-medium text-gray-900 mb-2'>
             Aucun tutoriel trouvé
           </h3>
@@ -213,9 +213,9 @@ export default function TutorialsPage() {
       )}
 
       {/* Documentation Link */}
-      <div className='bg-[hsl(25,100%,53%)]/10 border border-[hsl(25,100%,53%)]/20 rounded-lg p-6'>
+      <div className='bg-brand-500/10 border border-brand-500/20 rounded-lg p-6'>
         <div className='flex items-start'>
-          <BookOpen className='h-6 w-6 text-[hsl(25,100%,53%)] mr-3 mt-1' />
+          <BookOpen className='h-6 w-6 text-brand-700 mr-3 mt-1' />
           <div>
             <h3 className='text-lg font-semibold text-gray-900 mb-2'>
               Besoin de plus d'informations ?
@@ -226,7 +226,7 @@ export default function TutorialsPage() {
             </p>
             <a
               href='/dashboard/settings/documentation'
-              className='inline-flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-md hover:bg-[hsl(25,100%,48%)] transition-colors'
+              className='inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors'
             >
               Voir la documentation
             </a>

@@ -47,7 +47,7 @@ const InvoicesTable = React.memo<InvoicesTableProps>(function InvoicesTable({
   if (invoices.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="text-gray-400 mb-4">
+        <div className="text-gray-500 mb-4">
           <svg
             className="w-12 h-12 mx-auto"
             fill="none"
@@ -79,8 +79,8 @@ const InvoicesTable = React.memo<InvoicesTableProps>(function InvoicesTable({
           key={invoice._id}
           invoice={invoice}
           onView={onView}
-          onEdit={onEdit}
-          onDelete={onDelete}
+          {...(onEdit ? { onEdit } : {})}
+          {...(onDelete ? { onDelete } : {})}
           onDownload={onDownload}
         />
       ))}

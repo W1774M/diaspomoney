@@ -4,22 +4,18 @@
  */
 "use client";
 
-import { Users, FileText, Lock, TrendingUp } from "lucide-react";
+import { Users, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 
 interface UsersStatsCardsProps {
   totalUsers: number;
   usersToday?: number;
-  restRequests?: number;
-  authRequests?: number;
   previousMonthUsers?: number;
 }
 
 export default function UsersStatsCards({
   totalUsers,
   usersToday = 0,
-  restRequests = 0,
-  authRequests = 0,
   previousMonthUsers = 0,
 }: UsersStatsCardsProps) {
   const percentageChange = useMemo(() => {
@@ -28,6 +24,8 @@ export default function UsersStatsCards({
     return Math.round(change * 10) / 10; // Arrondir à 1 décimale
   }, [totalUsers, previousMonthUsers]);
 
+  // Pas de cartes « REST Requests » / « Auth Requests » : c'étaient des estimations
+  // (utilisateurs actifs × 15 et × 3), pas des mesures.
   const stats = [
     {
       label: "Total Users",
@@ -35,7 +33,7 @@ export default function UsersStatsCards({
       icon: Users,
       change: percentageChange > 0 ? `+${percentageChange}%` : `${percentageChange}%`,
       changeLabel: "from last month",
-      iconColor: "text-blue-500",
+      iconColor: "text-brand-700",
       bgColor: "bg-blue-50",
     },
     {
@@ -47,28 +45,10 @@ export default function UsersStatsCards({
       iconColor: "text-green-500",
       bgColor: "bg-green-50",
     },
-    {
-      label: "REST Requests",
-      value: restRequests.toLocaleString('fr-FR'),
-      icon: FileText,
-      change: null,
-      changeLabel: null,
-      iconColor: "text-purple-500",
-      bgColor: "bg-purple-50",
-    },
-    {
-      label: "Auth Requests",
-      value: authRequests.toLocaleString('fr-FR'),
-      icon: Lock,
-      change: null,
-      changeLabel: null,
-      iconColor: "text-orange-500",
-      bgColor: "bg-orange-50",
-    },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
       {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (

@@ -8,6 +8,7 @@
 import { logger } from '@/lib/logger';
 import { getAuditLogRepository } from '@/repositories';
 import * as Sentry from '@sentry/nextjs';
+import { ExpectedDomainError } from '@/lib/errors/expected-domain-error';
 import type { AuditDecoratorOptions } from '@/lib/types';
 import { auth } from '@/auth';
 
@@ -76,7 +77,7 @@ export function Audit(options: AuditDecoratorOptions) {
       const startTime = Date.now();
 
       let result: any;
-      let error: any = null;
+      let error: any;
       // success variable is used in the audit log creation below
 
       try {
@@ -175,7 +176,7 @@ export function Audit(options: AuditDecoratorOptions) {
         const executionTime = Date.now() - startTime;
 
         // Récupérer la session pour l'audit d'erreur
-        let session: any = null;
+        let session: any;
         try {
           session = await auth();
         } catch {
@@ -218,7 +219,22 @@ export function Audit(options: AuditDecoratorOptions) {
           );
         }
 
-        if (log) {
+        const expected = error instanceof ExpectedDomainError;
+
+        if (log && expected) {
+          logger.warn(
+            {
+              type: 'audit_rejected',
+              class: className,
+              method: methodName,
+              eventType,
+              userId,
+              error: error.message,
+              executionTime,
+            },
+            `Audit refusé: ${eventType} - ${className}.${methodName}`,
+          );
+        } else if (log) {
           logger.error(
             {
               type: 'audit_error',
@@ -233,19 +249,21 @@ export function Audit(options: AuditDecoratorOptions) {
           );
         }
 
-        Sentry.captureException(error, {
-          tags: {
-            component: 'AuditDecorator',
-            action: 'methodExecution',
-            eventType,
-          },
-          extra: {
-            className,
-            methodName,
-            userId,
-            executionTime,
-          },
-        });
+        if (!expected) {
+          Sentry.captureException(error, {
+            tags: {
+              component: 'AuditDecorator',
+              action: 'methodExecution',
+              eventType,
+            },
+            extra: {
+              className,
+              methodName,
+              userId,
+              executionTime,
+            },
+          });
+        }
 
         throw error;
       }

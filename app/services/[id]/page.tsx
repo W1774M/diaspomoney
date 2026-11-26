@@ -1,11 +1,12 @@
+'use client';
+import Link from 'next/link';
 /**
  * Page de détails d'un service
  * Utilise les types, constantes et schémas centralisés
  */
 
-'use client';
 
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { ServiceBookingWizard } from '@/components/services/ServiceBookingWizard';
 import { SPECIALITY_TYPES } from '@/lib/constants';
@@ -44,7 +45,7 @@ const SERVICE_TYPE_CONFIG: Record<string, { icon: React.ReactNode; label: string
   [SPECIALITY_TYPES.EDUCATION]: {
     icon: <GraduationCap className="w-8 h-8" />,
     label: 'Éducation',
-    color: 'text-blue-500',
+    color: 'text-brand-700',
   },
   [SPECIALITY_TYPES.BTP]: {
     icon: <Home className="w-8 h-8" />,
@@ -70,7 +71,6 @@ const mapIdToServiceType = (id: string): ServiceType | null => {
 };
 
 export default function ServiceDetailPage() {
-  const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const serviceId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -124,7 +124,7 @@ export default function ServiceDetailPage() {
 
   if (!serviceType) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-dvh flex items-center justify-center bg-gray-50">
         <div className="text-center max-w-md mx-auto px-4">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Shield className="w-8 h-8 text-red-600" />
@@ -135,13 +135,13 @@ export default function ServiceDetailPage() {
           <p className="text-gray-600 mb-6">
             Le type de service "{serviceId}" n'est pas reconnu.
           </p>
-          <button
-            onClick={() => router.push('/#services')}
-            className="bg-[hsl(25,100%,53%)] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition"
-            type="button"
+          <Link
+            href={'/#services'}
+            className="bg-brand-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-brand-700 transition"
+            
           >
             Retour aux services
-          </button>
+          </Link>
         </div>
       </div>
     );
@@ -154,13 +154,13 @@ export default function ServiceDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-dvh bg-gray-50">
       {showBookingWizard ? (
         <div className="py-8">
           <div className="container mx-auto px-4">
             <button
               onClick={() => setShowBookingWizard(false)}
-              className="flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,48%)] mb-6 transition"
+              className="flex items-center text-brand-700 hover:text-brand-800 mb-6 transition"
               type="button"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
@@ -183,14 +183,14 @@ export default function ServiceDetailPage() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Header avec bouton retour */}
             <div className="mb-6">
-              <button
-                onClick={() => router.push('/#services')}
-                className="flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,48%)] transition"
-                type="button"
+              <Link
+                href={'/#services'}
+                className="flex items-center text-brand-700 hover:text-brand-800 transition"
+                
               >
                 <ArrowLeft className="w-5 h-5 mr-2" />
                 Retour aux services
-              </button>
+              </Link>
             </div>
 
             {/* Carte principale du service */}
@@ -216,7 +216,7 @@ export default function ServiceDetailPage() {
                   </p>
                   {selectedClinic && (
                     <div className="mb-4 rounded-xl border border-orange-200 bg-orange-50 p-4">
-                      <p className="text-sm font-semibold text-[hsl(25,100%,40%)]">
+                      <p className="text-sm font-semibold text-brand-800">
                         Clinique sélectionnée
                       </p>
                       <p className="mt-1 font-bold text-gray-900">{selectedClinic.name}</p>
@@ -242,7 +242,7 @@ export default function ServiceDetailPage() {
                 <div className="flex items-center justify-end">
                   <button
                     onClick={() => setShowBookingWizard(true)}
-                    className="flex items-center gap-2 bg-[hsl(25,100%,53%)] text-white px-8 py-4 rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition shadow-lg"
+                    className="flex items-center gap-2 bg-brand-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-brand-700 transition shadow-lg"
                     type="button"
                   >
                     <Calendar className="w-5 h-5" />
@@ -294,7 +294,7 @@ export default function ServiceDetailPage() {
                 </h3>
                 <ol className="space-y-3">
                   <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-[hsl(25,100%,53%)] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                    <span className="flex-shrink-0 w-6 h-6 bg-brand-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
                       1
                     </span>
                     <span className="text-gray-700">
@@ -302,7 +302,7 @@ export default function ServiceDetailPage() {
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-[hsl(25,100%,53%)] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                    <span className="flex-shrink-0 w-6 h-6 bg-brand-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
                       2
                     </span>
                     <span className="text-gray-700">
@@ -310,7 +310,7 @@ export default function ServiceDetailPage() {
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-[hsl(25,100%,53%)] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                    <span className="flex-shrink-0 w-6 h-6 bg-brand-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
                       3
                     </span>
                     <span className="text-gray-700">
@@ -318,7 +318,7 @@ export default function ServiceDetailPage() {
                     </span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-[hsl(25,100%,53%)] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                    <span className="flex-shrink-0 w-6 h-6 bg-brand-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
                       4
                     </span>
                     <span className="text-gray-700">
@@ -381,7 +381,7 @@ export default function ServiceDetailPage() {
                         <button
                           type="button"
                           onClick={() => setShowBookingWizard(true)}
-                          className="text-sm font-medium text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,48%)]"
+                          className="text-sm font-medium text-brand-700 hover:text-brand-800"
                         >
                           Commencer la réservation →
                         </button>
@@ -392,7 +392,7 @@ export default function ServiceDetailPage() {
               </div>
             )}
 
-            <div className="bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(41,86%,46%)] rounded-lg shadow-lg p-8 text-white mb-8">
+            <div className="bg-gradient-to-r from-brand-600 to-amber-700 rounded-lg shadow-lg p-8 text-white mb-8">
               <div className="flex items-start gap-4">
                 <Shield className="w-12 h-12 flex-shrink-0" />
                 <div>

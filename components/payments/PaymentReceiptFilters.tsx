@@ -20,13 +20,13 @@ export function PaymentReceiptFilters({
         <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
           {/* Recherche */}
           <div className='relative'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500' />
             <input
               type='text'
               placeholder='Rechercher...'
               value={searchTerm}
               onChange={e => onSearchChange(e.target.value)}
-              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             />
           </div>
 
@@ -35,7 +35,7 @@ export function PaymentReceiptFilters({
             <select
               value={statusFilter}
               onChange={e => onStatusFilterChange(e.target.value)}
-              className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               aria-label='Filtrer par statut'
             >
               <option value='all'>Tous les statuts</option>
@@ -53,7 +53,7 @@ export function PaymentReceiptFilters({
               onChange={e =>
                 onSortByChange(e.target.value as 'date' | 'amount' | 'service')
               }
-              className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
               aria-label='Trier par'
             >
               <option value='date'>Trier par date</option>
@@ -68,7 +68,7 @@ export function PaymentReceiptFilters({
               onClick={() =>
                 onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc')
               }
-              className='w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             >
               {sortOrder === 'asc' ? (
                 <SortAsc className='h-4 w-4 mr-2' />

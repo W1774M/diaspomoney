@@ -12,6 +12,7 @@ import { ROLES, USER_STATUSES } from '@/lib/constants';
 import { userService } from '@/services/user/user.service';
 import { NextRequest, NextResponse } from 'next/server';
 import { getPublicBaseUrl } from '@/lib/api/public-url';
+import { isPlaceholderEmail } from '@/lib/csm/provider-proposal';
 
 /**
  * POST /api/users/[id]/resend-activation - Renvoyer le lien d'activation
@@ -51,11 +52,12 @@ export async function POST(
     log.debug({ targetUserId, decodedUserId }, 'Processing resend activation');
 
     // Vérifier les permissions (seuls ADMIN et SUPERADMIN peuvent renvoyer le lien d'activation)
+    // Rôles lus sans cache (getUserProfile est mis en cache 10 min)
     const currentUserId = session.user.id;
-    const currentUser = await userService.getUserProfile(currentUserId);
+    const currentUser = await userService.getAuthorizationContext(currentUserId);
     const isAdmin =
-      currentUser.roles?.includes(ROLES.ADMIN) ||
-      currentUser.roles?.includes(ROLES.SUPERADMIN);
+      currentUser.roles.includes(ROLES.ADMIN) ||
+      currentUser.roles.includes(ROLES.SUPERADMIN);
 
     if (!isAdmin) {
       log.warn(
@@ -87,6 +89,18 @@ export async function POST(
       );
       return NextResponse.json(
         { error: 'Le compte de cet utilisateur est déjà activé ou n\'est pas en attente d\'activation' },
+        { status: 400 },
+      );
+    }
+
+    // Compte proposé par un CSM sans e-mail : adresse technique à remplacer
+    if (isPlaceholderEmail(targetUser.email)) {
+      log.warn({ decodedUserId }, 'Activation refused: placeholder email');
+      return NextResponse.json(
+        {
+          error:
+            "Ce compte n'a pas encore d'adresse e-mail réelle. Contactez le prestataire, renseignez son e-mail dans la fiche, puis envoyez le lien d'activation.",
+        },
         { status: 400 },
       );
     }

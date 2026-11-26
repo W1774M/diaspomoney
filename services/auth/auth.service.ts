@@ -19,7 +19,6 @@ import { Validate } from '@/lib/decorators/validate.decorator';
 import { RateLimit } from '@/lib/decorators/rate-limit.decorator';
 import { Audit } from '@/lib/decorators/audit.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
-import { sendPasswordResetEmail } from '@/lib/email/resend';
 import { childLogger } from '@/lib/logger';
 import { RegisterSchema, LoginSchema } from '@/lib/validations/auth.schema';
 import dbConnect from '@/lib/mongodb';
@@ -565,7 +564,7 @@ class AuthService {
             userAgent: options?.userAgent || 'unknown',
           },
         );
-        throw new Error('Un compte avec cet email existe déjà');
+        throw new Error('Un compte avec cet email existe déjà', { cause: error });
       }
       
       log.error(
@@ -641,7 +640,7 @@ class AuthService {
         { error, msg: 'Error refreshing token' },
         'Token refresh error',
       );
-      throw new Error('Token de rafraîchissement invalide');
+      throw new Error('Token de rafraîchissement invalide', { cause: error });
     }
   }
 
@@ -747,7 +746,7 @@ class AuthService {
         { error, msg: 'Error verifying token' },
         'Token verification error',
       );
-      throw new Error('Token invalide');
+      throw new Error('Token invalide', { cause: error });
     }
   }
 
@@ -946,171 +945,6 @@ class AuthService {
         '2FA verification error',
       );
       Sentry.captureException(error);
-      return false;
-    }
-  }
-
-  /**
-   * Demande de réinitialisation du mot de passe
-   */
-  @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger l'email
-  @Validate({
-    rules: [
-      {
-        paramIndex: 0,
-        schema: z.string().email('Email invalide'),
-        paramName: 'email',
-      },
-    ],
-  })
-  async requestPasswordReset(email: string): Promise<boolean> {
-    const log = childLogger({ route: 'AuthService:requestPasswordReset' });
-    try {
-      // Utiliser le repository pour trouver l'utilisateur
-      const user = await this.userRepository.findOne({
-        email: email.toLowerCase(),
-      });
-
-      if (!user) {
-        // Ne pas révéler si l'email existe ou non
-        log.warn(
-          { email: email.toLowerCase() },
-          'Password reset requested for non-existent email',
-        );
-        return false;
-      }
-
-      // Générer le token de reset
-      const resetToken = jwt.sign(
-        {
-          userId: user.id,
-          type: 'password_reset',
-        },
-        process.env['JWT_SECRET']!,
-        { expiresIn: '1h' },
-      );
-
-      // Construire l'URL de réinitialisation
-      const { cleanUrl } = await import('@/lib/utils');
-      const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
-      const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
-
-      // Envoyer l'email de reset (seulement si Resend est configuré)
-      if (process.env['RESEND_API_KEY']) {
-        const userName = user.name || `${user.firstName} ${user.lastName}`;
-        const emailSent = await sendPasswordResetEmail(
-          user.email,
-          userName,
-          resetUrl,
-        );
-
-        if (emailSent) {
-          log.info(
-            { email: user.email, userId: user.id },
-            'Password reset email sent successfully',
-          );
-        } else {
-          log.warn(
-            { email: user.email, userId: user.id },
-            'Failed to send password reset email',
-          );
-          // Ne pas faire échouer la demande si l'email échoue
-          // L'utilisateur peut toujours demander un nouveau reset
-        }
-      } else {
-        log.info(
-          { userId: user.id },
-          'Password reset token generated (email service not configured)',
-        );
-      }
-
-      return true;
-    } catch (error) {
-      log.error(
-        { error, msg: 'Error requesting password reset' },
-        'Password reset request error',
-      );
-      return false;
-    }
-  }
-
-  /**
-   * Réinitialisation du mot de passe
-   */
-  @Log({ level: 'info', logArgs: false, logExecutionTime: true }) // Ne pas logger le token ni le mot de passe
-  @Validate({
-    rules: [
-      {
-        paramIndex: 0,
-        schema: z.string().min(1, 'Token is required'),
-        paramName: 'token',
-      },
-      {
-        paramIndex: 1,
-        schema: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
-        paramName: 'newPassword',
-      },
-    ],
-  })
-  @InvalidateCache('AuthService:*') // Invalider le cache après réinitialisation
-  async resetPassword(token: string, newPassword: string): Promise<boolean> {
-    const log = childLogger({ route: 'AuthService:resetPassword' });
-    try {
-      // Vérifier le token
-      const decoded = jwt.verify(token, process.env['JWT_SECRET']!) as any;
-      if (decoded.type !== 'password_reset') {
-        log.warn({ msg: 'Invalid password reset token type' });
-        return false;
-      }
-
-      // Validation du nouveau mot de passe
-      if (newPassword.length < 8) {
-        log.warn(
-          { userId: decoded.userId },
-          'Password reset failed: password too short',
-        );
-        return false;
-      }
-
-      // Hacher le nouveau mot de passe
-      const hashedPassword = await bcrypt.hash(newPassword, 12);
-
-      // Mettre à jour le mot de passe via le repository
-      const updated = await this.userRepository.updatePassword(
-        decoded.userId,
-        hashedPassword,
-        true, // Mettre à jour passwordChangedAt
-      );
-
-      if (!updated) {
-        log.warn(
-          { userId: decoded.userId },
-          'Password reset failed: user not found',
-        );
-        return false;
-      }
-
-      // Enregistrer l'audit log de réinitialisation de mot de passe
-      await auditLogging.createAuditLog(
-        'PASSWORD_RESET_SUCCESS',
-        'AUTH_SYSTEM',
-        {},
-        {
-          userId: decoded.userId,
-          category: 'AUTHENTICATION',
-          severity: 'MEDIUM',
-          outcome: 'SUCCESS',
-        },
-      );
-
-      log.info({ userId: decoded.userId }, 'Password reset successfully');
-
-      return true;
-    } catch (error) {
-      log.error(
-        { error, msg: 'Error resetting password' },
-        'Password reset error',
-      );
       return false;
     }
   }

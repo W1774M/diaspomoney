@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/ConfirmProvider';
+import { useNotificationManager } from '@/components/ui/Notification';
 import imageLoader from '@/lib/image-loader';
 import { UIAttachment } from '@/lib/types';
 import { AuthorizedRoute } from '@/components/auth';
@@ -20,6 +22,8 @@ import { useCallback, useEffect, useState } from 'react';
  * Contenu de la page Pièces jointes
  */
 function AttachmentsPageContent() {
+  const confirmer = useConfirm();
+  const notifier = useNotificationManager();
   const [attachments, setAttachments] = useState<UIAttachment[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'image' | 'document'>(
@@ -97,7 +101,7 @@ function AttachmentsPageContent() {
   };
 
   const handleDelete = async (attachmentId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette pièce jointe ?')) {
+    if (!(await confirmer({ message: 'Êtes-vous sûr de vouloir supprimer cette pièce jointe ?', variant: 'danger' }))) {
       return;
     }
 
@@ -114,18 +118,18 @@ function AttachmentsPageContent() {
       if (data.success) {
         setAttachments(prev => prev.filter(a => a.id !== attachmentId));
       } else {
-        alert('Erreur lors de la suppression');
+        notifier.addError('Erreur lors de la suppression');
       }
     } catch (error) {
       console.error('Error deleting attachment:', error);
-      alert('Erreur lors de la suppression');
+      notifier.addError('Erreur lors de la suppression');
     }
   };
 
   if (loading) {
     return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
+      <div className='min-h-dvh flex items-center justify-center'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600'></div>
       </div>
     );
   }
@@ -135,7 +139,7 @@ function AttachmentsPageContent() {
       {/* Header */}
       <div>
         <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
-          <Paperclip className='h-8 w-8 mr-3 text-[hsl(25,100%,53%)]' />
+          <Paperclip className='h-8 w-8 mr-3 text-brand-700' />
           Pièces jointes
         </h1>
         <p className='text-gray-600 mt-2'>
@@ -147,13 +151,13 @@ function AttachmentsPageContent() {
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
         <div className='flex items-center space-x-4'>
           <div className='flex-1 relative'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400' />
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500' />
             <input
               type='text'
               placeholder='Rechercher une pièce jointe...'
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             />
           </div>
           <div className='flex items-center space-x-2'>
@@ -164,7 +168,7 @@ function AttachmentsPageContent() {
               onChange={e =>
                 setFilterType(e.target.value as 'all' | 'image' | 'document')
               }
-              className='px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='px-4 py-2 border border-gray-300 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             >
               <option value='all'>Tous les types</option>
               <option value='image'>Images</option>
@@ -178,7 +182,7 @@ function AttachmentsPageContent() {
       <div className='bg-white rounded-lg shadow-sm border border-gray-200'>
         {filteredAttachments.length === 0 ? (
           <div className='p-12 text-center'>
-            <Paperclip className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+            <Paperclip className='h-12 w-12 text-gray-500 mx-auto mb-4' />
             <h3 className='text-lg font-medium text-gray-900 mb-2'>
               Aucune pièce jointe
             </h3>
@@ -212,7 +216,7 @@ function AttachmentsPageContent() {
                     </div>
                   ) : (
                     <div className='w-full h-48 mb-4 rounded-lg bg-gray-100 flex items-center justify-center'>
-                      <FileIcon className='h-16 w-16 text-gray-400' />
+                      <FileIcon className='h-16 w-16 text-gray-500' />
                     </div>
                   )}
 
@@ -233,7 +237,7 @@ function AttachmentsPageContent() {
                     <div className='flex items-center space-x-2 pt-2 border-t border-gray-200'>
                       <button
                         onClick={() => handleDownload(attachment)}
-                        className='flex-1 flex items-center justify-center px-3 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors text-sm'
+                        className='flex-1 flex items-center justify-center px-3 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm'
                       >
                         <Download className='h-4 w-4 mr-2' />
                         Télécharger

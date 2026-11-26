@@ -1,5 +1,6 @@
 'use client';
 
+import { useNotificationManager } from '@/components/ui/Notification';
 import { SPECIALITY_TYPES } from '@/lib/constants';
 import type { Service } from '@/hooks/services';
 import { MarkdownDescriptionField } from '@/components/common/MarkdownDescriptionField';
@@ -27,6 +28,7 @@ export default function PackFormModal({
   onCancel,
   isSubmitting,
 }: PackFormModalProps) {
+  const notifier = useNotificationManager();
   const [formData, setFormData] = useState({
     label: pack?.label || '',
     description: pack?.description || '',
@@ -57,11 +59,11 @@ export default function PackFormModal({
     e.preventDefault();
 
     if (!formData.label.trim()) {
-      alert('Le nom du pack est requis');
+      notifier.addWarning('Le nom du pack est requis');
       return;
     }
     if (!formData.serviceIds.length) {
-      alert('Sélectionnez au moins un service');
+      notifier.addWarning('Sélectionnez au moins un service');
       return;
     }
 
@@ -84,7 +86,7 @@ export default function PackFormModal({
             </h2>
             <button
               onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-500 hover:text-gray-600 transition-colors"
               type="button"
               title="Fermer"
               aria-label="Fermer le formulaire"
@@ -96,14 +98,14 @@ export default function PackFormModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor='pack-form-modal-label' className="block text-sm font-medium text-gray-700 mb-2">
               Nom du pack <span className="text-red-500">*</span>
             </label>
-            <input
+            <input id='pack-form-modal-label'
               type="text"
               value={formData.label}
               onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
               placeholder="ex: Pack Santé"
               required
               maxLength={120}
@@ -121,15 +123,15 @@ export default function PackFormModal({
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor='pack-form-modal-category' className="block text-sm font-medium text-gray-700 mb-2">
               Catégorie <span className="text-red-500">*</span>
             </label>
-            <select
+            <select id='pack-form-modal-category'
               value={formData.category}
               onChange={(e) =>
                 setFormData({ ...formData, category: e.target.value, serviceIds: [] })
               }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
               required
               title="Catégorie du pack"
             >
@@ -143,22 +145,22 @@ export default function PackFormModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <p id='pack-form-modal-services' className="block text-sm font-medium text-gray-700 mb-2">
               Services inclus <span className="text-red-500">*</span>
-            </label>
+            </p>
             {availableServices.length === 0 ? (
               <p className="text-sm text-gray-500">
                 Aucun service disponible dans cette catégorie.
               </p>
             ) : (
-              <div className="border border-gray-200 rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
+              <div role='group' aria-labelledby='pack-form-modal-services' className="border border-gray-200 rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
                 {availableServices.map((s) => (
                   <label key={s.id} className="flex items-start gap-3 p-2 rounded hover:bg-gray-50">
                     <input
                       type="checkbox"
                       checked={formData.serviceIds.includes(s.id)}
                       onChange={() => toggleService(s.id)}
-                      className="mt-1 h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
+                      className="mt-1 h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded"
                     />
                     <div>
                       <div className="text-sm font-medium text-gray-900">{s.label}</div>
@@ -176,7 +178,7 @@ export default function PackFormModal({
               id="isActivePack"
               checked={formData.isActive}
               onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
+              className="h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded"
             />
             <label htmlFor="isActivePack" className="ml-2 block text-sm text-gray-700">
               Pack actif (visible)
@@ -195,7 +197,7 @@ export default function PackFormModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSubmitting ? (
                 <>

@@ -101,10 +101,10 @@ function ResetPasswordContent() {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <CardTitle className="text-2xl font-extrabold text-blue-800 tracking-tight text-center">
+            <CardTitle className="text-2xl font-extrabold text-brand-800 tracking-tight text-center">
               Mot de passe mis à jour !
             </CardTitle>
-            <CardDescription className="text-blue-600 text-base text-center">
+            <CardDescription className="text-brand-700 text-base text-center">
               Votre mot de passe a été réinitialisé avec succès
             </CardDescription>
           </CardHeader>
@@ -116,7 +116,7 @@ function ResetPasswordContent() {
               </p>
               <Link
                 href="/login"
-                className="inline-flex items-center text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200"
+                className="inline-flex items-center text-brand-700 hover:text-brand-800 font-semibold transition-colors duration-200"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Aller à la connexion
@@ -157,7 +157,7 @@ function ResetPasswordContent() {
               </p>
               <Link
                 href="/forgot-password"
-                className="inline-flex items-center text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200"
+                className="inline-flex items-center text-brand-700 hover:text-brand-800 font-semibold transition-colors duration-200"
               >
                 Demander un nouveau lien
               </Link>
@@ -182,10 +182,10 @@ function ResetPasswordContent() {
             placeholder="blur"
             blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
           />
-          <CardTitle className="text-2xl font-extrabold text-blue-800 tracking-tight text-center">
+          <CardTitle className="text-2xl font-extrabold text-brand-800 tracking-tight text-center">
             Nouveau mot de passe
           </CardTitle>
-          <CardDescription className="text-blue-600 text-base text-center">
+          <CardDescription className="text-brand-700 text-base text-center">
             Définissez votre nouveau mot de passe
           </CardDescription>
         </CardHeader>
@@ -198,24 +198,24 @@ function ResetPasswordContent() {
             >
               <FormLabel
                 htmlFor="password"
-                className="text-blue-900 font-semibold"
+                className="text-brand-900 font-semibold"
               >
                 Nouveau mot de passe
               </FormLabel>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                 <Input
                   autoComplete="new-password"
                   id="password"
                   type={showPassword ? "text" : "password"}
                   {...register("password")}
                   placeholder="••••••••"
-                  className="rounded-xl focus:ring-2 focus:ring-blue-400 pl-10 pr-10"
+                  className="rounded-xl focus-visible:ring-2 focus-visible:ring-brand-600 pl-10 pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600"
                 >
                   {showPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -232,24 +232,24 @@ function ResetPasswordContent() {
             >
               <FormLabel
                 htmlFor="confirmPassword"
-                className="text-blue-900 font-semibold"
+                className="text-brand-900 font-semibold"
               >
                 Confirmer le mot de passe
               </FormLabel>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                 <Input
                   autoComplete="new-password"
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   {...register("confirmPassword")}
                   placeholder="••••••••"
-                  className="rounded-xl focus:ring-2 focus:ring-blue-400 pl-10 pr-10"
+                  className="rounded-xl focus-visible:ring-2 focus-visible:ring-brand-600 pl-10 pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600"
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="w-5 h-5" />
@@ -266,7 +266,7 @@ function ResetPasswordContent() {
             )}
             <Button
               type="submit"
-              className="w-full mt-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-bold text-lg shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 cursor-pointer"
+              className="w-full mt-6 py-3 rounded-xl bg-gradient-to-r from-brand-600 via-brand-700 to-brand-800 text-white font-bold text-lg shadow-lg hover:from-brand-700 hover:to-brand-800 transition-all duration-200 cursor-pointer"
               disabled={isLoading}
             >
               {isLoading ? "Mise à jour..." : "Mettre à jour le mot de passe"}
@@ -276,7 +276,7 @@ function ResetPasswordContent() {
         <CardFooter className="flex flex-col items-center gap-2 pb-8">
           <Link
             href="/login"
-            className="inline-flex items-center text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200"
+            className="inline-flex items-center text-brand-700 hover:text-brand-800 font-semibold transition-colors duration-200"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Retour à la connexion

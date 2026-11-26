@@ -134,8 +134,8 @@ export function PhotoTestimonialsSection() {
           <span
             className="inline-block px-4 py-1.5 rounded-full text-white text-sm font-medium"
             style={{
-              backgroundColor: '#F97015',
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              backgroundColor: 'var(--brand-600)',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
             }}
           >
             Témoignages en images
@@ -147,16 +147,16 @@ export function PhotoTestimonialsSection() {
           <h2
             className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
             style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
               color: '#1C1917',
             }}
           >
-            Notre parcours en <span style={{ color: '#F97015' }}>images</span>
+            Notre parcours en <span className='text-brand-600'>images</span>
           </h2>
           <p
             className="text-lg text-gray-600 max-w-2xl mx-auto"
             style={{
-              fontFamily: 'Plus Jakarta Sans, sans-serif',
+              fontFamily: 'var(--font-plus-jakarta-sans), sans-serif',
             }}
           >
             Découvrez en images comment DiaspoMoney connecte la diaspora aux soins de leurs proches.
@@ -176,7 +176,7 @@ export function PhotoTestimonialsSection() {
                 type="button"
                 onClick={() => step(-1)}
                 disabled={current === 0}
-                className="pointer-events-auto touch-manipulation w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97015]"
+                className="pointer-events-auto touch-manipulation w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
                 aria-label="Diapositive précédente"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -188,7 +188,7 @@ export function PhotoTestimonialsSection() {
                 type="button"
                 onClick={() => step(1)}
                 disabled={current === slideCount - 1}
-                className="pointer-events-auto touch-manipulation w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97015]"
+                className="pointer-events-auto touch-manipulation w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
                 aria-label="Diapositive suivante"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -203,7 +203,7 @@ export function PhotoTestimonialsSection() {
             tabIndex={0}
             role="group"
             aria-label="Diapositives"
-            className="flex overflow-x-auto snap-x snap-mandatory overscroll-x-contain touch-manipulation scrollbar-hide rounded-2xl border border-gray-200 shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F97015]"
+            className="flex overflow-x-auto snap-x snap-mandatory overscroll-x-contain touch-manipulation scrollbar-hide rounded-2xl border border-gray-200 shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
           >
             {slides.map((slideItems, slideIdx) => (
               <div
@@ -247,11 +247,11 @@ export function PhotoTestimonialsSection() {
                   aria-label={`Aller à la diapositive ${index + 1}`}
                   aria-current={index === current ? 'true' : undefined}
                   onClick={() => scrollToSlide(index)}
-                  className="group flex h-6 min-w-6 items-center justify-center rounded-full px-1 touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#F97015]"
+                  className="group flex h-6 min-w-6 items-center justify-center rounded-full px-1 touch-manipulation focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-600"
                 >
                   <span
                     className={`block h-2 rounded-full transition-[width,background-color] duration-300 ${
-                      index === current ? 'w-8 bg-[#F97015]' : 'w-2 bg-gray-400 group-hover:bg-gray-500'
+                      index === current ? 'w-8 bg-brand-600' : 'w-2 bg-gray-400 group-hover:bg-gray-500'
                     }`}
                   />
                 </button>

@@ -16,7 +16,7 @@ const BeneficiariesTable = React.memo<BeneficiariesTableProps>(
     if (loading) {
       return (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-[hsl(25,100%,53%)]" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand-700" />
           <span className="ml-2 text-gray-600">
             Chargement des bénéficiaires...
           </span>
@@ -33,7 +33,7 @@ const BeneficiariesTable = React.memo<BeneficiariesTableProps>(
             <p className="text-gray-500 mb-4">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="bg-[hsl(25,100%,53%)] text-white px-4 py-2 rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors"
+              className="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition-colors"
             >
               Réessayer
             </button>
@@ -45,7 +45,7 @@ const BeneficiariesTable = React.memo<BeneficiariesTableProps>(
     if (beneficiaries.length === 0) {
       return (
         <div className="text-center py-12">
-          <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <User className="h-12 w-12 text-gray-500 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
             Aucun bénéficiaire
           </h3>

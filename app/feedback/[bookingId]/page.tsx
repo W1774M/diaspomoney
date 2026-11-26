@@ -100,9 +100,9 @@ export default function FeedbackPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-dvh bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)] mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Chargement...</p>
         </div>
       </div>
@@ -111,7 +111,7 @@ export default function FeedbackPage() {
 
   if (error && !booking) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-dvh bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Erreur</h1>
@@ -123,7 +123,7 @@ export default function FeedbackPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-dvh bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
           <div className="text-green-500 mb-4 flex justify-center">
             <CheckCircle className="w-16 h-16" />
@@ -138,11 +138,11 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-dvh bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,90%,48%)] px-6 py-8 text-center">
+          <div className="bg-gradient-to-r from-brand-600 to-brand-700 px-6 py-8 text-center">
             <h1 className="text-3xl font-bold text-white mb-2">Votre avis nous intéresse</h1>
             <p className="text-white/90">Partagez votre expérience avec nous</p>
           </div>
@@ -219,7 +219,7 @@ export default function FeedbackPage() {
                   rows={4}
                   value={diaspomoneyComment}
                   onChange={(e) => setDiaspomoneyComment(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   placeholder="Partagez votre expérience avec la plateforme DiaspoMoney, le service client, la facilité d'utilisation..."
                 />
               </div>
@@ -266,7 +266,7 @@ export default function FeedbackPage() {
                   rows={4}
                   value={serviceComment}
                   onChange={(e) => setServiceComment(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   placeholder="Partagez votre expérience avec le prestataire, la qualité du service, la ponctualité..."
                 />
               </div>
@@ -276,7 +276,7 @@ export default function FeedbackPage() {
             <button
               type="submit"
               disabled={submitting || (diaspomoneyRating === 0 && serviceRating === 0)}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <>

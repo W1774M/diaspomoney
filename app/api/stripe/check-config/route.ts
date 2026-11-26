@@ -1,13 +1,18 @@
 /**
  * Route API de diagnostic pour vérifier la configuration Stripe
- * GET /api/stripe/check-config
+ * GET /api/stripe/check-config — réservée aux admins (expose préfixes de clés)
  */
 
 import { NextResponse } from 'next/server';
+import { requireApiRoles } from '@/lib/api/auth';
+import { ApiError } from '@/lib/api/error-handler';
+import { ROLES } from '@/lib/constants';
 import { isStripeConfigured, getStripeMode, getStripeInstance } from '@/lib/stripe-config';
 
 export async function GET() {
   try {
+    await requireApiRoles([ROLES.ADMIN, ROLES.SUPERADMIN]);
+
     // Utiliser les variables d'environnement standard (pas _PROD)
     const secretKey = process.env['STRIPE_SECRET_KEY'];
     const publishableKey = process.env['NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'];
@@ -17,19 +22,19 @@ export async function GET() {
         defined: !!secretKey,
         format: secretKey ? (secretKey.startsWith('sk_test_') || secretKey.startsWith('sk_live_')) : false,
         mode: secretKey ? getStripeMode(secretKey) : null,
-        prefix: secretKey ? `${secretKey.substring(0, 10)  }...` : null,
+        prefix: secretKey ? `${secretKey.substring(0, 10)}...` : null,
         length: secretKey?.length || 0,
       },
       publishableKey: {
         defined: !!publishableKey,
         format: publishableKey ? (publishableKey.startsWith('pk_test_') || publishableKey.startsWith('pk_live_')) : false,
         mode: publishableKey ? (publishableKey.startsWith('pk_test_') ? 'test' : 'live') : null,
-        prefix: publishableKey ? `${publishableKey.substring(0, 10)  }...` : null,
+        prefix: publishableKey ? `${publishableKey.substring(0, 10)}...` : null,
         length: publishableKey?.length || 0,
         usingNextPublic: !!process.env['NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'],
       },
       configured: isStripeConfigured(),
-      modesMatch: secretKey && publishableKey 
+      modesMatch: secretKey && publishableKey
         ? getStripeMode(secretKey) === (publishableKey.startsWith('pk_test_') ? 'test' : 'live')
         : null,
     };
@@ -42,7 +47,7 @@ export async function GET() {
         await stripe.paymentIntents.list({ limit: 1 });
         connectionTest = {
           success: true,
-          message: 'Connexion à l\'API Stripe réussie',
+          message: "Connexion à l'API Stripe réussie",
         };
       } catch (error: any) {
         connectionTest = {
@@ -60,6 +65,12 @@ export async function GET() {
       recommendations: getRecommendations(config),
     });
   } catch (error: any) {
+    if (error instanceof ApiError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: error.statusCode },
+      );
+    }
     return NextResponse.json(
       {
         success: false,
@@ -74,7 +85,7 @@ function getRecommendations(config: any): string[] {
   const recommendations: string[] = [];
 
   if (!config.secretKey.defined) {
-    recommendations.push('❌ STRIPE_SECRET_KEY n\'est pas définie. Ajoutez-la dans .env.local');
+    recommendations.push("❌ STRIPE_SECRET_KEY n'est pas définie. Ajoutez-la dans .env.local");
   } else if (!config.secretKey.format) {
     recommendations.push('⚠️ STRIPE_SECRET_KEY n\'a pas le bon format. Doit commencer par sk_test_ ou sk_live_');
   } else if (config.secretKey.mode === 'live') {
@@ -107,4 +118,3 @@ function getRecommendations(config: any): string[] {
 
   return recommendations;
 }
-

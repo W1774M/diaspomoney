@@ -1,12 +1,13 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/ConfirmProvider';
+import { useNotificationManager } from '@/components/ui/Notification';
 import { useAuth } from '@/hooks/auth/useAuth';
 import type { SecuritySettingsProps } from '@/lib/types';
 import {
   CheckCircle,
   Eye,
   EyeOff,
-  Facebook,
   Globe,
   Lock,
   Save,
@@ -16,6 +17,14 @@ import {
 import { signIn } from 'next-auth/react';
 import React, { useCallback, useState } from 'react';
 import { Button } from '../ui';
+
+function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M14 8h3V4h-3c-2.8 0-5 2.2-5 5v2H6v4h3v9h4v-9h3.2l.8-4H13V9c0-.6.4-1 1-1z" />
+    </svg>
+  );
+}
 
 // Configuration des fournisseurs OAuth
 const oauthProviders = [
@@ -30,7 +39,7 @@ const oauthProviders = [
   {
     id: 'facebook',
     name: 'Facebook',
-    icon: Facebook,
+    icon: FacebookIcon,
     color: 'blue',
     signInUrl: 'https://www.facebook.com/settings',
     description: 'Connectez-vous avec votre compte Facebook',
@@ -39,6 +48,8 @@ const oauthProviders = [
 
 const SecuritySettings = React.memo<SecuritySettingsProps>(
   function SecuritySettings({ data, setData, onSave, saving }) {
+  const confirmer = useConfirm();
+  const notifier = useNotificationManager();
     const { user } = useAuth();
     const [showPasswords, setShowPasswords] = useState({
       current: false,
@@ -92,7 +103,7 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
         await signIn(providerId, { callbackUrl: '/dashboard/settings' });
       } catch (error) {
         console.error(`Erreur lors de la liaison ${providerId}:`, error);
-        alert(`Erreur lors de la liaison avec ${providerId}`);
+        notifier.addError(`Erreur lors de la liaison avec ${providerId}`);
       } finally {
         setLinkingProvider(null);
       }
@@ -111,20 +122,16 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
       );
 
       if (!hasPassword && willHaveLinkedAccounts.length === 0) {
-        alert(
-          '⚠️ Impossible de dissocier ce compte !\n\n' +
+        notifier.addWarning('⚠️ Impossible de dissocier ce compte !\n\n' +
             'Vous devez avoir au moins un mot de passe actif ou un autre compte social lié ' +
             "pour pouvoir vous connecter. Veuillez d'abord :\n" +
             '• Définir un mot de passe dans la section "Mot de passe" ci-dessus, ou\n' +
-            '• Lier un autre compte social',
-        );
+            '• Lier un autre compte social');
         return;
       }
 
       if (
-        !confirm(
-          `Êtes-vous sûr de vouloir dissocier votre compte ${provider?.name} ?`,
-        )
+        !(await confirmer({ message: `Êtes-vous sûr de vouloir dissocier votre compte ${provider?.name} ?`, variant: 'danger' }))
       ) {
         return;
       }
@@ -141,7 +148,7 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
         });
 
         if (response.ok) {
-          alert(`Compte ${provider?.name} dissocié avec succès !`);
+          notifier.addSuccess(`Compte ${provider?.name} dissocié avec succès !`);
           window.location.reload();
         } else {
           const errorData = await response.json();
@@ -149,7 +156,7 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
         }
       } catch (error) {
         console.error(`Erreur lors de la dissociation ${providerId}:`, error);
-        alert(`Erreur lors de la dissociation du compte ${provider?.name}`);
+        notifier.addError(`Erreur lors de la dissociation du compte ${provider?.name}`);
       } finally {
         setUnlinkingProvider(null);
       }
@@ -160,7 +167,7 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
       return (
         <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
           <div className='text-center py-8'>
-            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto mb-4'></div>
+            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto mb-4'></div>
             <p className='text-gray-500'>
               Chargement des paramètres de sécurité...
             </p>
@@ -183,24 +190,24 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
         <form onSubmit={handleSubmit} className='space-y-6'>
           <div className='space-y-4'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='security-settings-current-password' className='block text-sm font-medium text-gray-700 mb-2'>
                 Mot de passe actuel
               </label>
               <div className='relative'>
-                <Lock className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                <input
+                <Lock className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500' />
+                <input id='security-settings-current-password'
                   type={showPasswords.current ? 'text' : 'password'}
                   value={data.currentPassword}
                   onChange={e =>
                     handleChange('currentPassword', e.target.value)
                   }
-                  className='w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  className='w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                   placeholder='Votre mot de passe actuel'
                 />
                 <button
                   type='button'
                   onClick={() => togglePasswordVisibility('current')}
-                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600'
                 >
                   {showPasswords.current ? (
                     <EyeOff className='h-4 w-4' />
@@ -212,22 +219,22 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='security-settings-new-password' className='block text-sm font-medium text-gray-700 mb-2'>
                 Nouveau mot de passe
               </label>
               <div className='relative'>
-                <Lock className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                <input
+                <Lock className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500' />
+                <input id='security-settings-new-password'
                   type={showPasswords.new ? 'text' : 'password'}
                   value={data.newPassword}
                   onChange={e => handleChange('newPassword', e.target.value)}
-                  className='w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  className='w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                   placeholder='Nouveau mot de passe'
                 />
                 <button
                   type='button'
                   onClick={() => togglePasswordVisibility('new')}
-                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600'
                 >
                   {showPasswords.new ? (
                     <EyeOff className='h-4 w-4' />
@@ -239,24 +246,24 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='security-settings-confirm-password' className='block text-sm font-medium text-gray-700 mb-2'>
                 Confirmer le nouveau mot de passe
               </label>
               <div className='relative'>
-                <Lock className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                <input
+                <Lock className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500' />
+                <input id='security-settings-confirm-password'
                   type={showPasswords.confirm ? 'text' : 'password'}
                   value={data.confirmPassword}
                   onChange={e =>
                     handleChange('confirmPassword', e.target.value)
                   }
-                  className='w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  className='w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                   placeholder='Confirmer le nouveau mot de passe'
                 />
                 <button
                   type='button'
                   onClick={() => togglePasswordVisibility('confirm')}
-                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+                  className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-600'
                 >
                   {showPasswords.confirm ? (
                     <EyeOff className='h-4 w-4' />
@@ -279,7 +286,7 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
                 </p>
               </div>
               <div className='flex items-center'>
-                <Shield className='h-5 w-5 text-gray-400 mr-3' />
+                <Shield className='h-5 w-5 text-gray-500 mr-3' />
                 <label className='relative inline-flex items-center cursor-pointer'>
                   <input
                     title='Authentification à deux facteurs'
@@ -291,7 +298,7 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
                     }
                     className='sr-only peer'
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus-visible:outline-none peer-focus-visible:ring-4 peer-focus-visible:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-600"></div>
                 </label>
               </div>
             </div>
@@ -301,7 +308,7 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
             <button
               type='submit'
               disabled={saving}
-              className='flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50'
+              className='flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50'
             >
               <Save className='h-4 w-4 mr-2' />
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
@@ -313,7 +320,7 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
         <div className='mt-8 pt-8 border-t border-gray-200'>
           {/* Indicateur des moyens d'authentification */}
           <div className='mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
-            <div className='flex items-center space-x-2 text-sm text-blue-800'>
+            <div className='flex items-center space-x-2 text-sm text-brand-800'>
               <Shield className='h-4 w-4' />
               <span className='font-medium'>
                 Moyens d'authentification actifs :
@@ -394,7 +401,7 @@ const SecuritySettings = React.memo<SecuritySettingsProps>(
                         onClick={() => handleLinkProvider(provider.id)}
                         disabled={isLinking || saving}
                         size='sm'
-                        className='bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)] text-white'
+                        className='bg-brand-600 hover:bg-brand-700 text-white'
                       >
                         {isLinking ? (
                           'Connexion...'

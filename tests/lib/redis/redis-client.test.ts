@@ -58,7 +58,11 @@ describe('RedisClient : construction et connexion', () => {
   it('applique les valeurs par défaut', () => {
     expect(raw.options).toEqual({
       host: 'h', port: 1234, password: '', db: 0, maxRetriesPerRequest: 3, lazyConnect: true, keepAlive: 30000, family: 4, enableReadyCheck: true,
+      retryStrategy: expect.any(Function),
     });
+    // Reconnexions linéaires plafonnées à 2 s (ioredis 6 attendrait jusqu'à 5 s + jitter).
+    const retry = (raw.options as { retryStrategy: (n: number) => number }).retryStrategy;
+    expect([1, 2, 10, 100].map(retry)).toEqual([50, 100, 500, 2000]);
     const custom = new RedisClient({ host: 'x', port: 1, password: 'p', db: 2, maxRetriesPerRequest: 1, lazyConnect: false, keepAlive: 5, family: 6 });
     expect(custom.getClient()).toMatchObject({ options: { password: 'p', db: 2, maxRetriesPerRequest: 1, lazyConnect: false, keepAlive: 5, family: 6 } });
   });

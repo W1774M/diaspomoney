@@ -1,6 +1,7 @@
 import { auth } from '@/auth';
 import dbConnect from '@/lib/mongodb';
 import { invalidateAppCache } from '@/lib/cache/redis';
+import { isImpersonatedSession } from '@/lib/support/impersonation-policy';
 ;
 
 import { handleApiRoute, validateBody } from '@/lib/api/error-handler';
@@ -76,27 +77,30 @@ export async function GET(request: NextRequest) {
       read: msg.read,
     }));
 
-    // Marquer les messages comme lus
-    await Message.updateMany(
-      {
-        conversationId: new mongoose.Types.ObjectId(conversationId),
-        senderId: { $ne: new mongoose.Types.ObjectId(userId) },
-        read: false,
-      },
-      {
-        read: true,
-        readAt: new Date(),
-      },
-    );
-    await invalidateAppCache('ConversationRepository'); // écriture hors dépôt : vider le cache
+    // Consultation du support (lecture seule) : ne rien marquer comme lu à la place de l'utilisateur
+    if (!isImpersonatedSession(session)) {
+      // Marquer les messages comme lus
+      await Message.updateMany(
+        {
+          conversationId,
+          senderId: { $ne: userId },
+          read: false,
+        },
+        {
+          read: true,
+          readAt: new Date(),
+        },
+      );
+      await invalidateAppCache('ConversationRepository'); // écriture hors dépôt : vider le cache
 
-    // Réinitialiser le compteur de messages non lus
-    // NOTE: Since we retrieved with .lean(), update with model
-    await (Conversation as any).updateOne(
-      { _id: new mongoose.Types.ObjectId(conversationId) },
-      { $set: { [`unreadCount.${userId}`]: 0 } },
-    );
-    await invalidateAppCache('ConversationRepository'); // écriture hors dépôt : vider le cache
+      // Réinitialiser le compteur de messages non lus
+      // NOTE: Since we retrieved with .lean(), update with model
+      await (Conversation as any).updateOne(
+        { _id: new mongoose.Types.ObjectId(conversationId) },
+        { $set: { [`unreadCount.${userId}`]: 0 } },
+      );
+      await invalidateAppCache('ConversationRepository'); // écriture hors dépôt : vider le cache
+    }
 
     return NextResponse.json({
       success: true,
@@ -105,7 +109,7 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         total: await Message.countDocuments({
-          conversationId: new mongoose.Types.ObjectId(conversationId),
+          conversationId,
         }),
       },
     });

@@ -378,6 +378,103 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
     }
   }
 
+  /** Index unique sur paymentIntentId, créé une fois par processus. */
+  private paymentIndexReady: Promise<void> | null = null;
+
+  private ensurePaymentIntentIndex(
+    collection: Awaited<ReturnType<MongoInvoiceRepository['getCollection']>>,
+  ): Promise<void> {
+    if (!this.paymentIndexReady) {
+      this.paymentIndexReady = collection
+        .createIndex(
+          { paymentIntentId: 1 },
+          {
+            name: 'uniq_paymentIntentId',
+            unique: true,
+            partialFilterExpression: { paymentIntentId: { $type: 'string' } },
+          },
+        )
+        .then(() => undefined)
+        .catch((error: unknown) => {
+          // On réessaiera au prochain appel ; l'upsert reste idempotent
+          // hors concurrence stricte.
+          this.paymentIndexReady = null;
+          this.log.warn({ error }, 'Could not ensure paymentIntentId index');
+        });
+    }
+    return this.paymentIndexReady;
+  }
+
+  @InvalidateCache('InvoiceRepository:*')
+  async findOrCreateForPayment(
+    paymentIntentId: string,
+    data: Partial<Invoice>,
+  ): Promise<{ invoice: Invoice; created: boolean }> {
+    if (!paymentIntentId) {
+      throw new Error('paymentIntentId is required');
+    }
+    const collection = await this.getCollection();
+    await this.ensurePaymentIntentIndex(collection);
+
+    const existing = await collection.findOne({ paymentIntentId });
+    if (existing) {
+      return { invoice: this.mapToInvoice(existing), created: false };
+    }
+
+    const now = new Date();
+    const { id: _ignoredId, _id: _ignored_Id, ...rest } = data as Partial<Invoice> & {
+      _id?: unknown;
+    };
+    const invoiceNumber = rest.invoiceNumber || (await this.generateInvoiceNumber());
+
+    try {
+      // Upsert atomique : si webhook et confirmation arrivent ensemble,
+      // un seul document est inséré ($setOnInsert), l'autre le retrouve.
+      const result = await collection.findOneAndUpdate(
+        { paymentIntentId },
+        {
+          $setOnInsert: {
+            ...rest,
+            invoiceNumber,
+            paymentIntentId,
+            createdAt: now,
+            updatedAt: now,
+          },
+        },
+        { upsert: true, returnDocument: 'after', includeResultMetadata: true },
+      );
+      const doc = result.value;
+      if (!doc) {
+        throw new Error('Failed to create invoice for payment');
+      }
+      const created = Boolean(result.lastErrorObject?.['upserted']);
+      if (created) {
+        this.log.info(
+          { invoiceNumber, paymentIntentId },
+          'Invoice created for payment',
+        );
+      }
+      return { invoice: this.mapToInvoice(doc), created };
+    } catch (error) {
+      // Course perdue contre l'index unique : la facture existe déjà.
+      if ((error as { code?: number }).code === 11000) {
+        const winner = await collection.findOne({ paymentIntentId });
+        if (winner) {
+          return { invoice: this.mapToInvoice(winner), created: false };
+        }
+      }
+      this.log.error({ error, paymentIntentId }, 'Error in findOrCreateForPayment');
+      Sentry.captureException(error as Error, {
+        tags: {
+          component: 'MongoInvoiceRepository',
+          action: 'findOrCreateForPayment',
+        },
+        extra: { paymentIntentId },
+      });
+      throw error;
+    }
+  }
+
   @Log({ level: 'debug', logArgs: true, logExecutionTime: true })
   @Cacheable(300, { prefix: 'InvoiceRepository:findInvoicesWithFilters' }) // Cache 5 minutes
   async findInvoicesWithFilters(
@@ -463,7 +560,8 @@ export class MongoInvoiceRepository implements IInvoiceRepository {
       if (options.offset) {
         builder.offset(options.offset);
       }
-      if (options.page && options.limit) {
+      // Un décalage explicite prime : page() le remettrait à (page - 1) × limit
+      if (options.page && options.limit && !options.offset) {
         builder.page(options.page, options.limit);
       }
       if (options.sort) {

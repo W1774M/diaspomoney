@@ -61,6 +61,11 @@ export interface NotificationData {
    * (utile quand recipient est un email).
    */
   userId?: string;
+  /**
+   * Adresse réelle quand `recipient` n'est pas un e-mail
+   * (compte invité `guest-*`, qui n'existe pas dans les utilisateurs).
+   */
+  recipientEmail?: string;
   scheduledAt?: Date;
   expiresAt?: Date;
 }

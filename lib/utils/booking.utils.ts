@@ -22,30 +22,22 @@ export function getServiceTypeLabel(type: SpecialityType): string {
 }
 
 /**
- * Formate le numéro de réservation
+ * Numéro de réservation à afficher.
+ * Le numéro enregistré est affiché tel quel : c'est celui des e-mails et du support (le
+ * reformater en changeait le contenu, ex. « RES-2026-0007 » devenait « RES-2026-11-0007 »).
+ * À défaut, un numéro est dérivé de la date et de l'identifiant.
  */
 export function formatReservationNumber(
   reservationNumber: string | undefined,
   createdAt: Date,
   bookingId: string,
 ): string {
+  if (reservationNumber?.trim()) {
+    return reservationNumber.trim();
+  }
   const year = createdAt.getFullYear();
   const month = String(createdAt.getMonth() + 1).padStart(2, '0');
-
-  if (!reservationNumber) {
-    return `RES-${year}-${month}-${bookingId.slice(-4)}`;
-  }
-
-  if (reservationNumber.startsWith('RES-')) {
-    const parts = reservationNumber.split('-');
-    if (parts.length >= 3) {
-      const yearFromNumber = parts[1];
-      const sequence = parts[2] || bookingId.slice(-4);
-      return `RES-${yearFromNumber}-${month}-${sequence}`;
-    }
-  }
-
-  return `RES-${year}-${month}-${reservationNumber}`;
+  return `RES-${year}-${month}-${bookingId.slice(-4).toUpperCase()}`;
 }
 
 /**

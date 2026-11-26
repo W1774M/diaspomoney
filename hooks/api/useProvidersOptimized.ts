@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { parseProvidersResponse } from "../providers-response";
 
 export interface Provider {
   _id: string;
@@ -107,10 +108,11 @@ export const useProvidersOptimized = (filters: ProviderFilters = {}): UseProvide
       const data = await response.json();
       
       if (data.success) {
-        const providersData = data.providers || [];
+        const parsed = parseProvidersResponse<Provider>(data);
+        const providersData = parsed.providers;
         setProviders(providersData);
-        setTotal(data.total || 0);
-        setHasResults(data.hasResults || providersData.length > 0);
+        setTotal(parsed.total);
+        setHasResults(Boolean(data.hasResults) || providersData.length > 0);
         
         // Mettre en cache
         cache.set(filtersKey, {

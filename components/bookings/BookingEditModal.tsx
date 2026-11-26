@@ -169,7 +169,7 @@ export default function BookingEditModal({
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-gray-500 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Fermer"
           >
             <X className="w-5 h-5" />
@@ -184,42 +184,42 @@ export default function BookingEditModal({
               <h4 className="text-lg font-semibold text-gray-900 mb-4">Informations client</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='booking-edit-modal-client-first-name' className="block text-sm font-medium text-gray-700 mb-1">
                     Prénom
                   </label>
-                  <input
+                  <input id='booking-edit-modal-client-first-name'
                     type="text"
                     value={editData.clientFirstName || ''}
                     onChange={(e) =>
                       setEditData((prev) => ({ ...prev, clientFirstName: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='booking-edit-modal-client-last-name' className="block text-sm font-medium text-gray-700 mb-1">
                     Nom
                   </label>
-                  <input
+                  <input id='booking-edit-modal-client-last-name'
                     type="text"
                     value={editData.clientLastName || ''}
                     onChange={(e) =>
                       setEditData((prev) => ({ ...prev, clientLastName: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='booking-edit-modal-client-email' className="block text-sm font-medium text-gray-700 mb-1">
                     Email
                   </label>
-                  <input
+                  <input id='booking-edit-modal-client-email'
                     type="email"
                     value={editData.clientEmail || ''}
                     onChange={(e) =>
                       setEditData((prev) => ({ ...prev, clientEmail: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -233,7 +233,7 @@ export default function BookingEditModal({
                       setEditData((prev) => ({ ...prev, clientPhone: phone }))
                     }
                     className="w-full"
-                    inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -244,29 +244,29 @@ export default function BookingEditModal({
               <h4 className="text-lg font-semibold text-gray-900 mb-4">Informations bénéficiaire</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='booking-edit-modal-beneficiary-first-name' className="block text-sm font-medium text-gray-700 mb-1">
                     Prénom
                   </label>
-                  <input
+                  <input id='booking-edit-modal-beneficiary-first-name'
                     type="text"
                     value={editData.beneficiaryFirstName || ''}
                     onChange={(e) =>
                       setEditData((prev) => ({ ...prev, beneficiaryFirstName: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='booking-edit-modal-beneficiary-last-name' className="block text-sm font-medium text-gray-700 mb-1">
                     Nom
                   </label>
-                  <input
+                  <input id='booking-edit-modal-beneficiary-last-name'
                     type="text"
                     value={editData.beneficiaryLastName || ''}
                     onChange={(e) =>
                       setEditData((prev) => ({ ...prev, beneficiaryLastName: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -280,20 +280,20 @@ export default function BookingEditModal({
                       setEditData((prev) => ({ ...prev, beneficiaryPhone: phone }))
                     }
                     className="w-full"
-                    inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='booking-edit-modal-beneficiary-email' className="block text-sm font-medium text-gray-700 mb-1">
                     Email
                   </label>
-                  <input
+                  <input id='booking-edit-modal-beneficiary-email'
                     type="email"
                     value={editData.beneficiaryEmail || ''}
                     onChange={(e) =>
                       setEditData((prev) => ({ ...prev, beneficiaryEmail: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -304,19 +304,19 @@ export default function BookingEditModal({
               <h4 className="text-lg font-semibold text-gray-900 mb-4">Service</h4>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='booking-edit-modal-service-id' className="block text-sm font-medium text-gray-700 mb-1">
                     Service <span className="text-red-500">*</span>
                   </label>
                   {servicesLoading ? (
                     <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                      <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
                       <span className="text-sm text-gray-500">Chargement des services...</span>
                     </div>
                   ) : (
-                    <select
+                    <select id='booking-edit-modal-service-id'
                       value={editData.serviceId || ''}
                       onChange={(e) => handleServiceChange(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                       required
                     >
                       <option value="">Sélectionner un service</option>
@@ -331,10 +331,10 @@ export default function BookingEditModal({
                 {selectedService && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor='booking-edit-modal-service-price' className="block text-sm font-medium text-gray-700 mb-1">
                         Prix (€)
                       </label>
-                      <input
+                      <input id='booking-edit-modal-service-price'
                         type="number"
                         step="0.01"
                         min="0"
@@ -348,10 +348,10 @@ export default function BookingEditModal({
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor='booking-edit-modal-service-description' className="block text-sm font-medium text-gray-700 mb-1">
                         Description
                       </label>
-                      <textarea
+                      <textarea id='booking-edit-modal-service-description'
                         value={editData.serviceDescription || selectedService.description || ''}
                         disabled
                         rows={3}
@@ -374,7 +374,7 @@ export default function BookingEditModal({
                   </p>
                 ) : optionsLoading ? (
                   <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
                     <span className="text-sm text-gray-500">Chargement des options...</span>
                   </div>
                 ) : availableOptions.length === 0 ? (
@@ -428,10 +428,10 @@ export default function BookingEditModal({
 
                     {/* Sélecteur pour ajouter une nouvelle option */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor='booking-edit-modal-champ' className="block text-sm font-medium text-gray-700 mb-1">
                         Ajouter une option
                       </label>
-                      <select
+                      <select id='booking-edit-modal-champ'
                         value=""
                         onChange={(e) => {
                           if (e.target.value) {
@@ -439,7 +439,7 @@ export default function BookingEditModal({
                             e.target.value = '';
                           }
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                       >
                         <option value="">
                           {editData.additionalOptions && editData.additionalOptions.length > 0
@@ -480,10 +480,10 @@ export default function BookingEditModal({
               <h4 className="text-lg font-semibold text-gray-900 mb-4">Rendez-vous</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='booking-edit-modal-champ-2' className="block text-sm font-medium text-gray-700 mb-1">
                     Date
                   </label>
-                  <input
+                  <input id='booking-edit-modal-champ-2'
                     type="date"
                     value={
                       editData.appointmentDate
@@ -498,20 +498,20 @@ export default function BookingEditModal({
                         appointmentDate: e.target.value ? new Date(e.target.value) : null,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='booking-edit-modal-timeslot' className="block text-sm font-medium text-gray-700 mb-1">
                     Heure
                   </label>
-                  <input
+                  <input id='booking-edit-modal-timeslot'
                     type="time"
                     value={editData.timeslot || ''}
                     onChange={(e) =>
                       setEditData((prev) => ({ ...prev, timeslot: e.target.value }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -521,7 +521,7 @@ export default function BookingEditModal({
             {!isPaymentCompleted && (
               <section>
                 <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-[hsl(25,100%,53%)]" />
+                  <Tag className="w-5 h-5 text-brand-700" />
                   Code promotionnel
                 </h4>
                 <div className="space-y-2">
@@ -532,13 +532,13 @@ export default function BookingEditModal({
                         value={editData.promotionCode || ''}
                         onChange={(e) => handlePromoCodeChange(e.target.value)}
                         placeholder="Entrez un code promotionnel"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent uppercase"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent uppercase"
                         disabled={isValidatingPromoCode}
                       />
                     </div>
                     {isValidatingPromoCode && (
                       <div className="flex items-center px-4">
-                        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                        <Loader2 className="w-5 h-5 animate-spin text-gray-500" />
                       </div>
                     )}
                   </div>
@@ -592,7 +592,7 @@ export default function BookingEditModal({
           <button
             onClick={onSave}
             disabled={isSaving}
-            className="px-4 py-2 text-sm font-medium text-white bg-[hsl(25,100%,53%)] rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isSaving ? (
               <>

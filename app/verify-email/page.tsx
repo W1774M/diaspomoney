@@ -10,13 +10,12 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 
 function VerifyEmailContent() {
   const { addNotification } = useNotificationStore();
-  const router = useRouter();
   const [isResending, setIsResending] = useState(false);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<
@@ -110,11 +109,11 @@ function VerifyEmailContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8 px-4">
+    <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8 px-4">
       <div className="w-full max-w-2xl mx-auto">
         <div className="backdrop-blur-md bg-white/70 border-0 shadow-xl rounded-3xl overflow-hidden">
           {/* Header */}
-          <div className="relative bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white p-8 text-center">
+          <div className="relative bg-gradient-to-r from-brand-600 to-amber-700 text-white p-8 text-center">
             <div className="absolute inset-0 opacity-30" style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3Cpattern id='grid' width='10' height='10' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 10 0 L 0 0 0 10' fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100' height='100' fill='url(%23grid)'/%3E%3C/svg%3E")`,
             }}></div>
@@ -198,8 +197,8 @@ function VerifyEmailContent() {
             {status === "verified" && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm text-blue-800">
+                  <CheckCircle className="w-5 h-5 text-brand-700 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-brand-800">
                     <p className="font-medium mb-1">Votre compte est maintenant actif !</p>
                     <ol className="list-decimal list-inside space-y-1 text-xs">
                       <li>Vous pouvez vous connecter à votre espace DiaspoMoney</li>
@@ -230,7 +229,7 @@ function VerifyEmailContent() {
                       id="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 bg-gray-50 transition-all duration-300"
+                      className="w-full p-3 border-2 border-gray-200 rounded-xl focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-brand-600 bg-gray-50 transition-all duration-300"
                       placeholder="votre.email@exemple.com"
                       required
                     />
@@ -239,7 +238,7 @@ function VerifyEmailContent() {
                   <button
                     type="submit"
                     disabled={isResending}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[hsl(23,100%,53%)] to-[hsl(41,86%,46%)] text-white font-bold shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-brand-600 to-amber-700 text-white font-bold shadow-lg hover:from-brand-700 hover:to-brand-800 transition-all duration-200 transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isResending ? (
                       <>
@@ -260,17 +259,17 @@ function VerifyEmailContent() {
             {/* Actions principales */}
             {status === "verified" && (
               <div className="space-y-4">
-                <button
-                  onClick={() => router.push("/dashboard")}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white font-bold text-lg shadow-lg hover:from-blue-700 hover:to-indigo-800 transition-all duration-200 transform hover:-translate-y-1"
+                <Link
+                  href={"/dashboard"}
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-brand-600 via-brand-700 to-brand-800 text-white font-bold text-lg shadow-lg hover:from-brand-700 hover:to-brand-800 transition-all duration-200 transform hover:-translate-y-1"
                 >
                   Accéder à mon compte
-                </button>
+                </Link>
                 
                 <div className="text-center">
                   <Link
                     href="/login"
-                    className="text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center gap-2"
+                    className="text-brand-700 hover:text-brand-800 font-medium flex items-center justify-center gap-2"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     Retour à la connexion
@@ -288,19 +287,19 @@ function VerifyEmailContent() {
                   <div className="space-y-2">
                     <Link
                       href="/support"
-                      className="block text-blue-600 hover:underline font-medium"
+                      className="block text-brand-700 hover:underline font-medium"
                     >
                       🆘 Contacter le support
                     </Link>
                     <Link
                       href="/hotline"
-                      className="block text-blue-600 hover:underline font-medium"
+                      className="block text-brand-700 hover:underline font-medium"
                     >
                       📞 Appeler la hotline
                     </Link>
                     <Link
                       href="/login"
-                      className="block text-blue-600 hover:underline font-medium"
+                      className="block text-brand-700 hover:underline font-medium"
                     >
                       🔙 Retour à la connexion
                     </Link>
@@ -318,7 +317,7 @@ function VerifyEmailContent() {
 export default function VerifyEmailPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center px-4">
+      <div className="min-h-dvh bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 flex items-center justify-center px-4">
         <div className="w-full max-w-md">
           <Card className="shadow-xl border-0 backdrop-blur-sm bg-white/80">
             <CardHeader className="text-center pb-4">

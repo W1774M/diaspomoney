@@ -5,7 +5,7 @@
 
 import { expect, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 // S'assurer que document.body existe pour les tests React
 if (typeof document !== 'undefined') {
@@ -29,6 +29,30 @@ if (typeof document !== 'undefined') {
     const root = document.createElement('div');
     root.id = 'root';
     document.body.appendChild(root);
+  }
+}
+
+if (typeof globalThis.localStorage === 'undefined' || typeof globalThis.localStorage.setItem !== 'function') {
+  const store = new Map<string, string>();
+  const memory = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, String(value));
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => {
+      store.clear();
+    },
+    key: (index: number) => Array.from(store.keys())[index] ?? null,
+    get length() {
+      return store.size;
+    },
+  };
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: memory });
+  if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'localStorage', { configurable: true, value: memory });
   }
 }
 
@@ -82,6 +106,7 @@ vi.mock('@/auth', () => ({
 // Mock de Sentry
 vi.mock('@sentry/nextjs', () => ({
   captureException: vi.fn(),
+  setUser: vi.fn(),
   captureMessage: vi.fn(),
   // utilisé par proxy.ts
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },

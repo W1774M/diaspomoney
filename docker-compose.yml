@@ -186,6 +186,8 @@ services:
         NEXT_PUBLIC_APP_URL: https://diaspomoney.fr
         NEXT_PUBLIC_API_URL: https://diaspomoney.fr/api
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD:-pk_live_placeholder}
+        # Balise Search Console (méthode « Balise HTML »), prod uniquement
+        GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
         NEXT_PUBLIC_HOME_DIALOG_ENABLED: ${NEXT_PUBLIC_HOME_DIALOG_ENABLED:-false}
         NEXT_PUBLIC_HOME_DIALOG_TITLE: ${NEXT_PUBLIC_HOME_DIALOG_TITLE:-Information importante}
         NEXT_PUBLIC_HOME_DIALOG_MESSAGE: ${NEXT_PUBLIC_HOME_DIALOG_MESSAGE:-}
@@ -221,6 +223,10 @@ services:
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD:-pk_live_placeholder}
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_PROD:-pk_live_placeholder}
       STRIPE_WEBHOOK_SECRET_PROD: ${STRIPE_WEBHOOK_SECRET_PROD}
+      # Plannings coss : clé de production propre, comme Stripe. Sans COSS_API_KEY_PROD,
+      # la prod n'hérite jamais de la clé de test du .env commun (plannings « non configurés »).
+      COSS_API_KEY: ${COSS_API_KEY_PROD:-}
+      COSS_HEALTH_EVENT_TYPE_ID: ${COSS_HEALTH_EVENT_TYPE_ID_PROD:-}
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik

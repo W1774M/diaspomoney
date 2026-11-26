@@ -17,6 +17,7 @@ import type { z } from 'zod';
 import type { UserFilters, UserStatus } from '@/lib/types';
 import { LANGUAGES, TIMEZONES, USER_STATUSES, ROLES } from '@/lib/constants';
 import { NextRequest } from 'next/server';
+import { requireApiRoles } from '@/lib/api/auth';
 import { getPublicBaseUrl } from '@/lib/api/public-url';
 
 type CreateUserInput = z.infer<typeof CreateUserSchema>;
@@ -105,10 +106,27 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   return handleApiRoute(request, async () => {
+    // Seuls les administrateurs créent des comptes ici.
+    // L'inscription publique passe par /api/auth/register.
+    const session = await requireApiRoles([ROLES.ADMIN, ROLES.SUPERADMIN]);
+
     const body = await request.json();
 
-    // Validation avec Zod
+    // Validation avec Zod (roles et status limités aux valeurs connues)
     const data: CreateUserInput = validateBody(body, CreateUserSchema);
+
+    // Seul un SUPERADMIN peut attribuer les rôles ADMIN ou SUPERADMIN.
+    const requestedRoles: string[] = data.roles ?? [];
+    const grantsAdminRole = requestedRoles.some(
+      role => role === ROLES.ADMIN || role === ROLES.SUPERADMIN,
+    );
+    if (grantsAdminRole && !session.roles.includes(ROLES.SUPERADMIN)) {
+      throw new ApiError(
+        403,
+        'Seul un SUPERADMIN peut attribuer les rôles ADMIN ou SUPERADMIN',
+        'FORBIDDEN_ROLE_ASSIGNMENT',
+      );
+    }
 
     // Importer userFacade
     const { userFacade } = await import('@/facades');
@@ -211,8 +229,8 @@ export async function POST(request: NextRequest) {
       firstName: firstName,
       lastName: lastName,
       ...(data.phone?.trim() && { phone: data.phone.trim() }),
-      roles: data.roles || [ROLES.CUSTOMER],
-      status: extendedData.status || USER_STATUSES.PENDING, // Toujours PENDING pour activation via email
+      roles: data.roles?.length ? data.roles : [ROLES.CUSTOMER],
+      status: data.status || USER_STATUSES.PENDING, // Toujours PENDING pour activation via email
       ...(extendedData.kycData && { kycData: extendedData.kycData }),
       sendWelcomeNotification: false, // On enverra un email d'activation personnalisé
       metadata: {

@@ -1,5 +1,6 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/ConfirmProvider';
 /**
  * Page de détail d'une spécialité
  * Implémente les design patterns :
@@ -16,6 +17,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function SpecialityDetailPage() {
+  const confirmer = useConfirm();
   const params = useParams();
   const specialityId = (params?.id as string) || null;
   const router = useRouter();
@@ -39,7 +41,7 @@ export default function SpecialityDetailPage() {
   const handleDelete = async () => {
     if (!specialityId || !speciality) return;
 
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette spécialité ?')) {
+    if ((await confirmer({ message: 'Êtes-vous sûr de vouloir supprimer cette spécialité ?', variant: 'danger' }))) {
       await deleteSpeciality(specialityId).then(() => {
         router.push('/dashboard/specialities');
       });
@@ -59,7 +61,7 @@ export default function SpecialityDetailPage() {
   if (isLoading || loading) {
     return (
       <div className='text-center py-12'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto'></div>
         <p className='mt-4 text-gray-600'>Chargement de la spécialité...</p>
       </div>
     );
@@ -68,7 +70,7 @@ export default function SpecialityDetailPage() {
   if (error || !speciality) {
     return (
       <div className='text-center py-12'>
-        <Building className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+        <Building className='h-12 w-12 text-gray-500 mx-auto mb-4' />
         <h2 className='text-xl font-semibold text-gray-900 mb-2'>
           {error || 'Spécialité non trouvée'}
         </h2>
@@ -77,7 +79,7 @@ export default function SpecialityDetailPage() {
         </p>
         <Link
           href='/dashboard/specialities'
-          className='inline-flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)]'
+          className='inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700'
         >
           <ArrowLeft className='h-4 w-4 mr-2' />
           Retour à la liste
@@ -93,7 +95,7 @@ export default function SpecialityDetailPage() {
         <div className='flex items-center justify-between mb-4'>
           <Link
             href='/dashboard/specialities'
-            className='flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+            className='flex items-center text-brand-700 hover:text-brand-800'
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Retour à la liste
@@ -103,7 +105,7 @@ export default function SpecialityDetailPage() {
           <div className='flex space-x-2'>
             <Link
               href={`/dashboard/specialities/${speciality._id}/edit`}
-              className='flex items-center px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors'
+              className='flex items-center px-3 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-600 transition-colors'
             >
               <Edit className='h-4 w-4 mr-2' />
               Modifier
@@ -202,7 +204,7 @@ export default function SpecialityDetailPage() {
               <div className='space-y-3'>
                 <Link
                   href={`/dashboard/specialities/${speciality._id}/edit`}
-                  className='flex items-center w-full px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors'
+                  className='flex items-center w-full px-3 py-2 text-sm text-brand-700 hover:bg-indigo-50 rounded-lg transition-colors'
                 >
                   <Edit className='h-4 w-4 mr-2' />
                   Modifier la spécialité

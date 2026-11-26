@@ -15,8 +15,7 @@ import { childLogger } from '@/lib/logger';
 import { ROLES } from '@/lib/constants';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import PromotionCode, { type PromotionCodeDocument } from '@/models/PromotionCode';
-import type { FilterQuery } from 'mongoose';
+import PromotionCode, { type PromotionCodeStatus } from '@/models/PromotionCode';
 import { z } from 'zod';
 
 const log = childLogger({ route: 'api/promotion-codes' });
@@ -52,9 +51,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
-    const query: FilterQuery<PromotionCodeDocument> = {};
+    const query: { status?: PromotionCodeStatus } = {};
 
-    if (status) {
+    if (status === 'valid' || status === 'expired' || status === 'invalid') {
       query.status = status;
     }
 
@@ -139,6 +138,10 @@ export async function POST(request: NextRequest) {
         { error: 'La date de fin doit être postérieure à la date de début' },
         { status: 400 },
       );
+    }
+
+    if (!label) {
+      throw new Error('Impossible de générer un code unique');
     }
 
     const code = await PromotionCode.create({

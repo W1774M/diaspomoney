@@ -15,6 +15,7 @@
 import { Cacheable, InvalidateCache } from '@/lib/decorators/cache.decorator';
 import { Log } from '@/lib/decorators/log.decorator';
 import { Performance } from '@/lib/decorators/performance.decorator';
+import { isCacheEnabled } from '@/lib/cache/redis';
 import { childLogger } from '@/lib/logger';
 import { monitoringManager } from '@/lib/monitoring/advanced-monitoring';
 import { redis } from '@/lib/redis/redis-client';
@@ -760,6 +761,9 @@ export class AuditLoggingSystem {
    */
   @Log({ level: 'debug', logArgs: false, logExecutionTime: false })
   private async cacheAuditLog(auditLog: AuditLog): Promise<void> {
+    // Le cache applicatif est coupé en test et tant que CACHE_REDIS_ENABLED n'est pas posé.
+    // Sans ce garde, chaque journal ouvre une connexion Redis et attend son échec.
+    if (!isCacheEnabled()) return;
     try {
       const cacheKey = `audit:${auditLog.id}`;
       await redis.set(cacheKey, JSON.stringify(auditLog), 3600);

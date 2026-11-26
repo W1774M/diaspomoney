@@ -13,11 +13,11 @@ export const CreateTransactionSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   currency: z.string().length(3, 'Currency must be 3 characters'),
   serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION'], {
-    errorMap: () => ({ message: 'Service type must be one of: HEALTH, BTP, EDUCATION' }),
+    error: 'Service type must be one of: HEALTH, BTP, EDUCATION',
   }),
   serviceId: z.string().min(1, 'Service ID is required'),
   description: z.string().min(1, 'Description is required').max(500),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**

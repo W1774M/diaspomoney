@@ -16,6 +16,7 @@ const ROUTES: Array<{ path: string; changeFrequency: 'weekly' | 'monthly' | 'yea
   { path: '/terms-and-conditions', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/terms-of-sale', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/privacy-policy', changeFrequency: 'yearly', priority: 0.3 },
+  { path: '/legal-notice', changeFrequency: 'yearly', priority: 0.3 },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

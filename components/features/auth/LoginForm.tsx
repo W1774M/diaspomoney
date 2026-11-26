@@ -2,15 +2,7 @@
 
 import {
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
   Form,
-  FormField,
-  FormLabel,
   Input,
 } from '@/components/ui';
 import { useNotificationManager } from '@/components/ui/Notification';
@@ -117,294 +109,70 @@ export function LoginForm() {
   };
 
   return (
-    <div className='w-full max-w-md mx-auto'>
-      <Card>
-        <CardHeader>
-          <CardTitle>Connexion</CardTitle>
-          <CardDescription>
-            Connectez-vous à votre compte pour accéder à vos services
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form onSubmit={handleSubmit(onSubmit as SubmitHandler<FieldValues>)}>
-            <FormField
-              {...(errors['email']?.message && {
-                error: errors['email']?.message as string,
-              })}
-            >
-              <FormLabel
-                htmlFor='email'
-                className='text-blue-900 font-semibold'
-              >
-                Email
-              </FormLabel>
-              <Input
-                autoComplete="username" spellCheck={false} required
-                id='email'
-                type='email'
-                {...register('email')}
-                placeholder='exemple@email.com'
-              />
-            </FormField>
-            <FormField
-              {...(errors['password']?.message && {
-                error: errors['password']?.message as string,
-              })}
-            >
-              <FormLabel
-                htmlFor='password'
-                className='text-blue-900 font-semibold'
-              >
-                Mot de passe
-              </FormLabel>
+    <div className='w-full'>
+          <Form
+            noValidate
+            aria-labelledby='login-title'
+            onSubmit={handleSubmit(onSubmit as SubmitHandler<FieldValues>)}
+          >
+            <Input
+              id='email'
+              type='email'
+              label='Adresse e-mail'
+              autoComplete='username'
+              inputMode='email'
+              autoCapitalize='none'
+              autoCorrect='off'
+              spellCheck={false}
+              enterKeyHint='next'
+              required
+              error={errors['email']?.message as string | undefined}
+              {...register('email')}
+            />
+            <div className='flex flex-col gap-1.5'>
+              <div className='flex items-baseline justify-between gap-4'>
+                <label htmlFor='password' className='text-sm font-medium text-foreground'>
+                  Mot de passe
+                  <span aria-hidden='true' className='ms-0.5 text-destructive'>*</span>
+                </label>
+                <Link
+                  href='/forgot-password'
+                  className='text-sm font-medium text-brand-700 underline-offset-4 hover:text-brand-800 hover:underline'
+                >
+                  Mot de passe oublié ?
+                </Link>
+              </div>
               <div className='relative'>
                 <Input
                   id='password'
                   type={showPassword ? 'text' : 'password'}
-                  {...register('password')}
-                  placeholder='••••••••'
                   autoComplete='current-password'
+                  enterKeyHint='go'
+                  required
+                  className='pe-12'
+                  aria-describedby={errors['password']?.message ? 'password-error' : undefined}
+                  aria-invalid={errors['password']?.message ? true : undefined}
+                  {...register('password')}
                 />
                 <button
                   type='button'
-                  tabIndex={-1}
-                  aria-label={
-                    showPassword
-                      ? 'Masquer le mot de passe'
-                      : 'Afficher le mot de passe'
-                  }
+                  aria-pressed={showPassword}
+                  aria-label='Afficher le mot de passe'
                   onClick={() => setShowPassword(v => !v)}
-                  className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 focus:outline-none bg-none border-none p-0 m-0 leading-none'
+                  className='absolute end-1 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 >
-                  {showPassword ? (
-                    <EyeOff className='w-5 h-5' />
-                  ) : (
-                    <Eye className='w-5 h-5' />
-                  )}
+                  {showPassword ? <EyeOff className='size-5' /> : <Eye className='size-5' />}
                 </button>
               </div>
-            </FormField>
-            <div className='text-right'>
-              <Link
-                href='/forgot-password'
-                className='text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200'
-              >
-                Mot de passe oublié ?
-              </Link>
+              {errors['password']?.message && (
+                <p id='password-error' className='text-sm font-medium text-destructive'>
+                  {errors['password']?.message as string}
+                </p>
+              )}
             </div>
 
-            {/* Boutons de test pour les différents statuts */}
-            {/* 
-            <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
-              <p className="text-xs text-gray-600 mb-2 font-medium">
-                🧪 Test des statuts de compte :
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const form = document.querySelector("form");
-                    if (form) {
-                      const emailInput = form.querySelector(
-                        "#email"
-                      ) as HTMLInputElement;
-                      const passwordInput = form.querySelector(
-                        "#password"
-                      ) as HTMLInputElement;
-                      if (emailInput && passwordInput) {
-                        emailInput.value = "customer@diaspomoney.com";
-                        passwordInput.value = "password123";
-                      }
-                    }
-                  }}
-                  className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
-                >
-                  Compte Actif
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const form = document.querySelector("form");
-                    if (form) {
-                      const emailInput = form.querySelector(
-                        "#email"
-                      ) as HTMLInputElement;
-                      const passwordInput = form.querySelector(
-                        "#password"
-                      ) as HTMLInputElement;
-                      if (emailInput && passwordInput) {
-                        emailInput.value = "customer.inactive@diaspomoney.com";
-                        passwordInput.value = "password123";
-                      }
-                    }
-                  }}
-                  className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
-                >
-                  Compte Inactif
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const form = document.querySelector("form");
-                    if (form) {
-                      const emailInput = form.querySelector(
-                        "#email"
-                      ) as HTMLInputElement;
-                      const passwordInput = form.querySelector(
-                        "#password"
-                      ) as HTMLInputElement;
-                      if (emailInput && passwordInput) {
-                        emailInput.value = "customer.pending@diaspomoney.com";
-                        passwordInput.value = "password123";
-                      }
-                    }
-                  }}
-                  className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                >
-                  En Attente
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const form = document.querySelector("form");
-                    if (form) {
-                      const emailInput = form.querySelector(
-                        "#email"
-                      ) as HTMLInputElement;
-                      const passwordInput = form.querySelector(
-                        "#password"
-                      ) as HTMLInputElement;
-                      if (emailInput && passwordInput) {
-                        emailInput.value = "customer.suspended@diaspomoney.com";
-                        passwordInput.value = "password123";
-                      }
-                    }
-                  }}
-                  className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
-                >
-                  Suspendu
-                </button>
-              </div>
-            </div> */}
-
-            {/* {error && (
-              <div
-                className={`mt-2 p-3 border rounded-md ${
-                  error === "COMPTE_INACTIF"
-                    ? "bg-yellow-50 border-yellow-200"
-                    : error === "COMPTE_EN_ATTENTE"
-                      ? "bg-blue-50 border-blue-200"
-                      : error === "COMPTE_SUSPENDU"
-                        ? "bg-red-50 border-red-200"
-                        : "bg-red-50 border-red-200"
-                }`}
-              >
-                <div className="flex items-start gap-2">
-                  {error === "COMPTE_INACTIF" && (
-                    <Mail className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                  )}
-                  {error === "COMPTE_EN_ATTENTE" && (
-                    <Clock className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  )}
-                  {error === "COMPTE_SUSPENDU" && (
-                    <XCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                  )}
-                  {error !== "COMPTE_INACTIF" &&
-                    error !== "COMPTE_EN_ATTENTE" &&
-                    error !== "COMPTE_SUSPENDU" && (
-                      <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                    )}
-                  <div className="flex-1">
-                    <p
-                      className={`text-sm ${
-                        error === "COMPTE_INACTIF"
-                          ? "text-yellow-700"
-                          : error === "COMPTE_EN_ATTENTE"
-                            ? "text-blue-700"
-                            : error === "COMPTE_SUSPENDU"
-                              ? "text-red-600"
-                              : "text-red-600"
-                      }`}
-                    >
-                      {error === "COMPTE_INACTIF" && "Compte inactif"}
-                      {error === "COMPTE_EN_ATTENTE" &&
-                        "Compte en attente de vérification"}
-                      {error === "COMPTE_SUSPENDU" && "Compte suspendu"}
-                      {error !== "COMPTE_INACTIF" &&
-                        error !== "COMPTE_EN_ATTENTE" &&
-                        error !== "COMPTE_SUSPENDU" &&
-                        error}
-                      {error === "COMPTE_INACTIF" && (
-                        <span className="block mt-2 space-y-1">
-                          <a
-                            href="/verify-email"
-                            className="text-blue-600 hover:underline font-medium block"
-                          >
-                            📧 Renvoyer l'email de vérification
-                          </a>
-                          <a
-                            href="/support"
-                            className="text-blue-600 hover:underline font-medium block"
-                          >
-                            🆘 Besoin d'aide ? Contactez le support
-                          </a>
-                        </span>
-                      )}
-                      {error === "COMPTE_EN_ATTENTE" && (
-                        <span className="block mt-2 space-y-1">
-                          <a
-                            href="/support"
-                            className="text-blue-600 hover:underline font-medium block"
-                          >
-                            🆘 Contacter le support pour accélérer la
-                            vérification
-                          </a>
-                          <a
-                            href="/hotline"
-                            className="text-blue-600 hover:underline font-medium block"
-                          >
-                            📞 Appeler la hotline
-                          </a>
-                        </span>
-                      )}
-                      {error === "COMPTE_SUSPENDU" && (
-                        <span className="block mt-2 space-y-1">
-                          <a
-                            href="/support"
-                            className="text-blue-600 hover:underline font-medium block"
-                          >
-                            🆘 Contacter le support pour plus d'informations
-                          </a>
-                          <a
-                            href="/hotline"
-                            className="text-blue-600 hover:underline font-medium block"
-                          >
-                            📞 Appeler la hotline d'urgence
-                          </a>
-                        </span>
-                      )}
-                      {error.includes("Aucun compte trouvé") && (
-                        <span className="block mt-1">
-                          <a
-                            href="/register"
-                            className="text-blue-600 hover:underline font-medium"
-                          >
-                            Cliquez ici pour vous inscrire
-                          </a>
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )} */}
-
-            <Button
-              type='submit'
-              className='w-full bg-blue-400 hover:bg-blue-600 cursor-pointer mt-4'
-              disabled={isLoggingIn}
-            >
-              {isLoggingIn ? 'Connexion en cours...' : 'Se connecter'}
+            <Button type='submit' size='lg' className='mt-2 w-full' loading={isLoggingIn} loadingText='Connexion en cours…'>
+              Se connecter
             </Button>
 
             {/* Test buttons for different account statuses */}
@@ -493,19 +261,15 @@ export function LoginForm() {
               </div>
             )}
           </Form>
-        </CardContent>
-        <CardFooter className='flex justify-center'>
-          <p className='text-sm text-muted-foreground'>
+          <p className='mt-6 text-center text-sm text-muted-foreground'>
             Pas encore de compte ?{' '}
-            <a
+            <Link
               href='/register'
-              className='font-semibold text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,45%)] transition-colors duration-200'
+              className='font-semibold text-brand-700 underline-offset-4 hover:text-brand-800 hover:underline'
             >
-              S&apos;inscrire
-            </a>
+              Créer un compte
+            </Link>
           </p>
-        </CardFooter>
-      </Card>
     </div>
   );
 }

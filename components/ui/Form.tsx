@@ -31,9 +31,13 @@ interface FormFieldProps extends ComponentPropsWithoutRef<"div"> {
 const FormField = forwardRef<HTMLDivElement, FormFieldProps>(
   ({ className, error, children, ...props }, ref) => {
     return (
-      <div ref={ref} className={cn("space-y-2", className)} {...props}>
+      <div ref={ref} className={cn("flex flex-col gap-1.5", className)} {...props}>
         {children}
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm font-medium text-destructive">
+            {error}
+          </p>
+        )}
       </div>
     );
   },
@@ -48,7 +52,7 @@ const FormLabel = forwardRef<
     <label
       ref={ref}
       className={cn(
-        "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+        "text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
         className,
       )}
       {...props}

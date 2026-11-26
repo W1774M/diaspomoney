@@ -346,17 +346,12 @@ const UserSchema = new Schema<User>(userDefinition, {
 });
 
 // Hash du mot de passe avant sauvegarde
-UserSchema.pre('save', async function (next) {
+UserSchema.pre('save', async function () {
   const self = this as any;
-  if (!self.isModified('password') || !self.password) return next();
+  if (!self.isModified('password') || !self.password) return;
 
-  try {
-    const salt = await bcrypt.genSalt(12);
-    self.password = await bcrypt.hash(self.password, salt);
-    next();
-  } catch (error) {
-    next(error as Error);
-  }
+  const salt = await bcrypt.genSalt(12);
+  self.password = await bcrypt.hash(self.password, salt);
 });
 
 // Méthode pour comparer les mots de passe

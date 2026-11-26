@@ -67,30 +67,10 @@ export async function GET(request: NextRequest) {
     // Total d'utilisateurs
     const totalUsers = allUsers.length;
 
-    // Pour les requêtes REST et Auth, on utilise des valeurs estimées basées sur les logs
-    // TODO: Intégrer avec un système de monitoring/analytics pour obtenir les vraies valeurs
-    // Pour l'instant, on peut estimer basé sur le nombre d'utilisateurs actifs
-    const activeUsers = allUsers.filter((u: any) => {
-      const status = u.status || u.isActive;
-      return status === 'ACTIVE' || status === true;
-    }).length;
-
-    // Estimation : chaque utilisateur actif fait environ 10-20 requêtes REST par jour
-    // et 2-5 requêtes d'authentification par jour
-    const estimatedDailyRestRequests = activeUsers * 15; // Estimation moyenne
-    const estimatedDailyAuthRequests = activeUsers * 3; // Estimation moyenne
-
-    // Pour obtenir les valeurs du jour, on peut utiliser les métriques de monitoring si disponibles
-    // Sinon, on retourne les estimations
-    const restRequests = estimatedDailyRestRequests;
-    const authRequests = estimatedDailyAuthRequests;
-
     const statistics = {
       totalUsers,
       usersToday,
       previousMonthUsers,
-      restRequests,
-      authRequests,
     };
 
     log.info(

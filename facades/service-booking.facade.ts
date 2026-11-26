@@ -204,7 +204,9 @@ export class ServiceBookingFacade
       
       const bookingData: BookingFacadeData = {
         requesterId, // ID de l'utilisateur connecté ou guest ID pour les utilisateurs non connectés
-        providerId: data.selectedService.serviceId, // À adapter selon votre modèle de providers
+        // Aucun prestataire n'est choisi dans l'assistant : l'admin l'assigne ensuite
+        // (assign-provider). Chaîne vide = non assigné, comme après une désassignation.
+        providerId: '',
         serviceId: data.selectedService.serviceId,
         serviceType: this.mapServiceTypeToBookingType(data.serviceType),
         appointmentDate: data.appointmentDate
@@ -220,7 +222,7 @@ export class ServiceBookingFacade
           ...(data.metadata || {}),
           serviceCategory: data.selectedService.category,
           serviceLabel: data.selectedService.label,
-          // Convertir les nombres en strings pour respecter z.record(z.string())
+          // Convertir les nombres en strings pour respecter z.record(z.string(), z.string())
           basePrice: String(basePrice),
           optionsPrice: String(optionsPrice),
           totalAmount: String(totalAmount),
@@ -279,6 +281,57 @@ export class ServiceBookingFacade
           success: false,
           error: bookingResult.error || 'Échec de la création de la réservation',
         };
+      }
+
+      // POC coss Scheduling : confirmer le créneau après paiement + booking local
+      if (
+        data.serviceType === 'HEALTH' &&
+        data.appointmentDate &&
+        data.appointmentTime
+      ) {
+        try {
+          const { isCossSchedulingConfigured } = await import('@/lib/coss/client');
+          if (isCossSchedulingConfigured()) {
+            const { createHealthCossBooking, parisLocalToIso } = await import(
+              '@/lib/coss/scheduling-health-poc'
+            );
+            const startIso =
+              (data.metadata?.['cossSlotStart'] as string | undefined) ||
+              parisLocalToIso(data.appointmentDate, data.appointmentTime);
+            const cossBooking = await createHealthCossBooking({
+              startIso,
+              attendee: {
+                uid: requesterId,
+                name: `${data.clientInfo.firstName} ${data.clientInfo.lastName}`.trim(),
+                email: data.clientInfo.email,
+                timeZone: 'Europe/Paris',
+              },
+            });
+            if (cossBooking?.id) {
+              await bookingService.updateBooking(
+                bookingResult.booking.id ||
+                  (bookingResult.booking as { _id?: { toString(): string } })._id?.toString() ||
+                  '',
+                {
+                  metadata: {
+                    ...(bookingResult.booking.metadata || {}),
+                    cossBookingId: cossBooking.id,
+                    cossSlotStart: startIso,
+                  },
+                } as never,
+              );
+              logger.info(
+                { cossBookingId: cossBooking.id, bookingId: bookingResult.booking.id },
+                'coss scheduling booking linked',
+              );
+            }
+          }
+        } catch (cossError) {
+          logger.warn(
+            { error: cossError, bookingId: bookingResult.booking.id },
+            'coss scheduling booking skipped after local success',
+          );
+        }
       }
 
       // Fonction helper pour calculer l'heure de fin
@@ -348,7 +401,7 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
           const clientNotified = await dispatchFacadeNotification({
             recipient: clientEmail,
             type: 'SERVICE_BOOKING_CONFIRMED',
-            template: 'service-booking-confirmed',
+            template: 'service_booking_confirmed',
             payload: {
               title: 'Réservation confirmée - Récapitulatif de commande',
               message: summaryMessage,
@@ -383,7 +436,7 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
           await dispatchFacadeNotification({
             recipient: data.beneficiaryInfo.email,
             type: 'SERVICE_BOOKING_CONFIRMED',
-            template: 'service-booking-confirmed',
+            template: 'service_booking_confirmed',
             payload: {
               title: 'Réservation confirmée pour vous',
               message: `Une réservation a été effectuée en votre nom pour le service: ${data.selectedService.label}.\n\n${appointmentInfo}\n\nVous serez recontacté rapidement pour le suivi.`,
@@ -848,7 +901,7 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
               { booking, paymentError },
               'Cannot update booking: ID is missing',
             );
-            throw new Error('Booking ID is missing, cannot update booking');
+            throw new Error('Booking ID is missing, cannot update booking', { cause: paymentError });
           }
           
           await bookingService.updateBooking(bookingId, {

@@ -16,7 +16,7 @@ export async function register() {
         dsn,
         environment: process.env['SENTRY_ENVIRONMENT'] ?? 'development',
         tracesSampleRate: 0,
-        sendDefaultPii: false,
+        dataCollection: { userInfo: false },
       });
     }
 

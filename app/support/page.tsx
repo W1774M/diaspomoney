@@ -14,96 +14,87 @@ import {
   User,
 } from "lucide-react";
 import { PhoneInput } from "react-international-phone";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LEGAL_ENTITY } from "@/lib/legal/company";
+import {
+  SupportContactSchema,
+  supportFieldErrors,
+  type SupportContactField,
+} from "@/lib/support/contact-request";
 
 export default function SupportPage() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userPhone, setUserPhone] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<SupportContactField, string>>>({});
   const { addNotification } = useNotificationStore();
+
+  /** Attributs d'accessibilité d'un champ : erreur annoncée et liée au champ. */
+  const errorProps = (field: SupportContactField) =>
+    fieldErrors[field]
+      ? { "aria-invalid": true as const, "aria-describedby": `support-${field}-error` }
+      : {};
+  const fieldError = (field: SupportContactField) =>
+    fieldErrors[field] ? (
+      <p id={`support-${field}-error`} className="mt-1 text-sm text-red-700">
+        {fieldErrors[field]}
+      </p>
+    ) : null;
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (isSubmitting) return;
 
-    const formData = new FormData(e.currentTarget);
-    // Ajouter le téléphone depuis l'état contrôlé
-    if (userPhone) {
-      formData.set('userPhone', userPhone);
-    }
-    const data = Object.fromEntries(formData);
+    const form = e.currentTarget;
+    const data: Record<string, unknown> = Object.fromEntries(new FormData(form));
+    if (userPhone && userPhone.replace(/\D/g, "").length > 4) data["userPhone"] = userPhone;
 
-    // Validation
-    if (!validateSupportForm(data)) {
+    // Validation locale (mêmes règles que le serveur) : erreurs sous les champs
+    const parsed = SupportContactSchema.safeParse(data);
+    if (!parsed.success) {
+      const errors = supportFieldErrors(parsed.error);
+      setFieldErrors(errors);
+      const first = Object.keys(errors)[0];
+      if (first) document.getElementById(`support-${first}`)?.focus();
       return;
     }
+    setFieldErrors({});
 
     try {
       setIsSubmitting(true);
-
-      // Simuler l'envoi
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch("/api/support/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (body.fieldErrors) setFieldErrors(body.fieldErrors);
+        throw new Error(body.error || "Erreur lors de l'envoi. Veuillez réessayer.");
+      }
 
       addNotification({
         type: "success",
-        message: "Demande envoyée avec succès ! Nous vous répondrons sous 24h.",
-        duration: 5000,
+        message: "Demande envoyée ! Nous vous répondrons par e-mail sous 24 h.",
+        duration: 6000,
       });
-
-      e.currentTarget.reset();
-      setUserPhone(""); // Réinitialiser le téléphone
-    } catch (_error) {
+      form.reset();
+      setUserPhone("");
+    } catch (error) {
       addNotification({
         type: "error",
-        message: "Erreur lors de l'envoi. Veuillez réessayer.",
-        duration: 5000,
+        message: error instanceof Error ? error.message : "Erreur lors de l'envoi. Veuillez réessayer.",
+        duration: 8000,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const validateSupportForm = (data: any) => {
-    const required = ["urgency", "category", "userEmail", "message"];
-
-    for (const field of required) {
-      if (!data[field] || data[field].trim() === "") {
-        addNotification({
-          type: "error",
-          message: "Veuillez remplir tous les champs obligatoires.",
-          duration: 4000,
-        });
-        return false;
-      }
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.userEmail)) {
-      addNotification({
-        type: "error",
-        message: "Veuillez entrer une adresse email valide.",
-        duration: 4000,
-      });
-      return false;
-    }
-
-    return true;
-  };
-
+  // Le chat passe par la messagerie support de l'espace client (connexion demandée si besoin)
   const openChat = () => {
-    addNotification({
-      type: "info",
-      message: "Connexion au chat DiaspoMoney...",
-      duration: 2000,
-    });
-
-    setTimeout(() => {
-      addNotification({
-        type: "success",
-        message: "Chat en direct activé ! Un conseiller va vous répondre.",
-        duration: 4000,
-      });
-    }, 1500);
+    router.push("/dashboard/messaging/support");
   };
 
   const callPhone = () => {
@@ -115,14 +106,14 @@ export default function SupportPage() {
     const body =
       "Bonjour,\n\nJe vous contacte concernant :\n\n[Décrivez votre demande]\n\nCordialement,";
     window.open(
-      `mailto:support@diaspomoney.fr?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+      `mailto:${LEGAL_ENTITY.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
     );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
+    <div className="min-h-dvh bg-gradient-to-br from-gray-50 via-white to-blue-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-[hsl(25,100%,53%)] via-[hsl(25,100%,45%)] to-[hsl(25,100%,35%)] text-white py-16 relative overflow-hidden">
+      <section className="bg-gradient-to-br from-brand-600 via-brand-700 to-brand-800 text-white py-16 relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center">
@@ -240,7 +231,7 @@ export default function SupportPage() {
                 onClick={callPhone}
                 className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 cursor-pointer transition-all"
               >
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg flex items-center justify-center text-white">
+                <div className="w-12 h-12 bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg flex items-center justify-center text-white">
                   <Phone className="w-6 h-6" />
                 </div>
                 <div className="flex-1">
@@ -260,13 +251,13 @@ export default function SupportPage() {
                 onClick={openEmail}
                 className="flex items-center gap-4 p-4 rounded-xl hover:bg-gray-50 cursor-pointer transition-all"
               >
-                <div className="w-12 h-12 bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,45%)] rounded-lg flex items-center justify-center text-white">
+                <div className="w-12 h-12 bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg flex items-center justify-center text-white">
                   <Mail className="w-6 h-6" />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900">Support Email</h3>
                   <p className="text-sm text-gray-600">
-                    support@diaspomoney.fr • Réponse garantie sous 24h
+                    {LEGAL_ENTITY.email} • Réponse sous 24 h
                   </p>
                 </div>
                 <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
@@ -306,15 +297,21 @@ export default function SupportPage() {
             </div>
 
             <div className="p-6">
-              <form onSubmit={handleFormSubmit} className="space-y-4">
+              <form onSubmit={handleFormSubmit} className="space-y-4" noValidate>
+                {/* Piège à robots : invisible et ignoré par les humains */}
+                <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+                  <label htmlFor="support-website">Ne pas remplir</label>
+                  <input id="support-website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+                </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor='support-urgency' className="block text-sm font-semibold text-gray-700 mb-2">
                     Niveau d'urgence
                   </label>
-                  <select
+                  <select id='support-urgency'
+                    {...errorProps("urgency")}
                     title="Niveau d'urgence"
                     name="urgency"
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-[hsl(25,100%,53%)] focus:ring-2 focus:ring-[hsl(25,100%,53%)]/20 transition-all"
+                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/20 transition-all"
                     required
                   >
                     <option value="">Sélectionnez...</option>
@@ -322,16 +319,18 @@ export default function SupportPage() {
                     <option value="medium">🟡 Urgente (24h)</option>
                     <option value="high">🔴 Critique (2h)</option>
                   </select>
+                  {fieldError("urgency")}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor='support-category' className="block text-sm font-semibold text-gray-700 mb-2">
                     Catégorie
                   </label>
-                  <select
+                  <select id='support-category'
+                    {...errorProps("category")}
                     title="Catégorie"
                     name="category"
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-[hsl(25,100%,53%)] focus:ring-2 focus:ring-[hsl(25,100%,53%)]/20 transition-all"
+                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/20 transition-all"
                     required
                   >
                     <option value="">Choisir une catégorie...</option>
@@ -351,19 +350,23 @@ export default function SupportPage() {
                     <option value="partnership">🤝 Devenir partenaire</option>
                     <option value="other">📝 Autre demande</option>
                   </select>
+                  {fieldError("category")}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor='support-userEmail' className="block text-sm font-semibold text-gray-700 mb-2">
                     Votre email
                   </label>
-                  <input
+                  <input id='support-userEmail'
+                    {...errorProps("userEmail")}
+                    autoComplete="email"
                     type="email"
                     name="userEmail"
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-[hsl(25,100%,53%)] focus:ring-2 focus:ring-[hsl(25,100%,53%)]/20 transition-all"
+                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/20 transition-all"
                     placeholder="votre.email@exemple.com"
                     required
                   />
+                  {fieldError("userEmail")}
                 </div>
 
                 <div>
@@ -375,27 +378,29 @@ export default function SupportPage() {
                     value={userPhone}
                     onChange={(phone) => setUserPhone(phone)}
                     className="w-full"
-                    inputClassName="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-[hsl(25,100%,53%)] focus:ring-2 focus:ring-[hsl(25,100%,53%)]/20 transition-all"
+                    inputClassName="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/20 transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor='support-message' className="block text-sm font-semibold text-gray-700 mb-2">
                     Description détaillée
                   </label>
-                  <textarea
+                  <textarea id='support-message'
+                    {...errorProps("message")}
                     name="message"
                     rows={4}
-                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-[hsl(25,100%,53%)] focus:ring-2 focus:ring-[hsl(25,100%,53%)]/20 transition-all resize-vertical"
+                    className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/20 transition-all resize-vertical"
                     placeholder="Décrivez votre demande en détail. Plus vous êtes précis, plus nous pourrons vous aider efficacement..."
                     required
                   />
+                  {fieldError("message")}
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,45%)] text-white py-3 px-6 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full bg-gradient-to-r from-brand-600 to-brand-700 text-white py-3 px-6 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <>
@@ -427,7 +432,7 @@ export default function SupportPage() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center">
             {/* France */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg border-t-4 border-blue-600 hover:shadow-xl transition-all">
+            <div className="bg-white rounded-2xl p-6 shadow-lg border-t-4 border-brand-600 hover:shadow-xl transition-all">
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-2xl">🇫🇷</span>
                 <div>
@@ -441,7 +446,7 @@ export default function SupportPage() {
               </div>
               <div className="space-y-3 text-sm text-gray-700">
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-[hsl(25,100%,53%)] mt-0.5 flex-shrink-0" />
+                  <MapPin className="w-4 h-4 text-brand-700 mt-0.5 flex-shrink-0" />
                   <span>
                     Seine Innopolis, 72 Rue de la République
                     <br />
@@ -449,15 +454,15 @@ export default function SupportPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                  <Phone className="w-4 h-4 text-brand-700 flex-shrink-0" />
                   <span>+33 (0) 6 51 27 65 70 • +33 (0) 7 58 32 05 74</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                  <Mail className="w-4 h-4 text-brand-700 flex-shrink-0" />
                   <span>contact@diaspomoney.fr</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                  <Clock className="w-4 h-4 text-brand-700 flex-shrink-0" />
                   <span>Lun-Ven: 9h-18h • Sam: 10h-16h</span>
                 </div>
               </div>
@@ -476,7 +481,7 @@ export default function SupportPage() {
               </div>
               <div className="space-y-3 text-sm text-gray-700">
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-[hsl(25,100%,53%)] mt-0.5 flex-shrink-0" />
+                  <MapPin className="w-4 h-4 text-brand-700 mt-0.5 flex-shrink-0" />
                   <span>
                     Centre-ville, Douala
                     <br />
@@ -484,15 +489,15 @@ export default function SupportPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                  <Phone className="w-4 h-4 text-brand-700 flex-shrink-0" />
                   <span>Contact local disponible</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                  <Mail className="w-4 h-4 text-brand-700 flex-shrink-0" />
                   <span>douala@diaspomoney.fr</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                  <User className="w-4 h-4 text-brand-700 flex-shrink-0" />
                   <span>1% contribution au PIB national</span>
                 </div>
               </div>
@@ -511,26 +516,26 @@ export default function SupportPage() {
               </div>
               <div className="space-y-3 text-sm text-gray-700">
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-[hsl(25,100%,53%)] mt-0.5 flex-shrink-0" />
+                  <MapPin className="w-4 h-4 text-brand-700 mt-0.5 flex-shrink-0" />
                   <span>Centre-ville, Dakar<br />Plateau des affaires</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                  <Phone className="w-4 h-4 text-brand-700 flex-shrink-0" />
                   <span>Contact local disponible</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                  <Mail className="w-4 h-4 text-brand-700 flex-shrink-0" />
                   <span>dakar@diaspomoney.fr</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                  <User className="w-4 h-4 text-brand-700 flex-shrink-0" />
                   <span>9,4% contribution au PIB national</span>
                 </div>
               </div>
             </div> */}
 
         {/* Côte d'Ivoire */}
-        {/* <div className="bg-white rounded-2xl p-6 shadow-lg border-t-4 border-[hsl(25,100%,53%)] hover:shadow-xl transition-all">
+        {/* <div className="bg-white rounded-2xl p-6 shadow-lg border-t-4 border-brand-600 hover:shadow-xl transition-all">
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-2xl">🇨🇮</span>
                 <div>
@@ -544,7 +549,7 @@ export default function SupportPage() {
               </div>
               <div className="space-y-3 text-sm text-gray-700">
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-[hsl(25,100%,53%)] mt-0.5 flex-shrink-0" />
+                  <MapPin className="w-4 h-4 text-brand-700 mt-0.5 flex-shrink-0" />
                   <span>
                     Plateau, Abidjan
                     <br />
@@ -552,15 +557,15 @@ export default function SupportPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                  <Phone className="w-4 h-4 text-brand-700 flex-shrink-0" />
                   <span>Contact local disponible</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                  <Mail className="w-4 h-4 text-brand-700 flex-shrink-0" />
                   <span>abidjan@diaspomoney.fr</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-[hsl(25,100%,53%)] flex-shrink-0" />
+                  <User className="w-4 h-4 text-brand-700 flex-shrink-0" />
                   <span>5,4% contribution au PIB national</span>
                 </div>
               </div>
@@ -582,17 +587,17 @@ export default function SupportPage() {
               <input
                 type="text"
                 placeholder="Tapez votre question..."
-                className="w-full p-4 pl-12 border-2 border-gray-300 rounded-lg focus:border-[hsl(25,100%,53%)] focus:ring-2 focus:ring-[hsl(25,100%,53%)]/20 transition-all"
+                className="w-full p-4 pl-12 border-2 border-gray-300 rounded-lg focus:border-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/20 transition-all"
               />
-              <HelpCircle className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <HelpCircle className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div
                 onClick={() => (window.location.href = "/faq#inscription")}
-                className="text-center p-6 border-2 border-gray-300 rounded-lg hover:border-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,53%)]/5 cursor-pointer transition-all"
+                className="text-center p-6 border-2 border-gray-300 rounded-lg hover:border-brand-600 hover:bg-brand-500/5 cursor-pointer transition-all"
               >
-                <User className="w-8 h-8 text-[hsl(25,100%,53%)] mx-auto mb-3" />
+                <User className="w-8 h-8 text-brand-700 mx-auto mb-3" />
                 <h3 className="font-semibold text-gray-900 mb-1">
                   Inscription
                 </h3>
@@ -601,27 +606,27 @@ export default function SupportPage() {
 
               <div
                 onClick={() => (window.location.href = "/faq#services")}
-                className="text-center p-6 border-2 border-gray-300 rounded-lg hover:border-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,53%)]/5 cursor-pointer transition-all"
+                className="text-center p-6 border-2 border-gray-300 rounded-lg hover:border-brand-600 hover:bg-brand-500/5 cursor-pointer transition-all"
               >
-                <HelpCircle className="w-8 h-8 text-[hsl(25,100%,53%)] mx-auto mb-3" />
+                <HelpCircle className="w-8 h-8 text-brand-700 mx-auto mb-3" />
                 <h3 className="font-semibold text-gray-900 mb-1">Services</h3>
                 <p className="text-sm text-gray-600">Commander & suivre</p>
               </div>
 
               <div
                 onClick={() => (window.location.href = "/faq#paiements")}
-                className="text-center p-6 border-2 border-gray-300 rounded-lg hover:border-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,53%)]/5 cursor-pointer transition-all"
+                className="text-center p-6 border-2 border-gray-300 rounded-lg hover:border-brand-600 hover:bg-brand-500/5 cursor-pointer transition-all"
               >
-                <CheckCircle className="w-8 h-8 text-[hsl(25,100%,53%)] mx-auto mb-3" />
+                <CheckCircle className="w-8 h-8 text-brand-700 mx-auto mb-3" />
                 <h3 className="font-semibold text-gray-900 mb-1">Paiements</h3>
                 <p className="text-sm text-gray-600">Moyens & sécurité</p>
               </div>
 
               <div
                 onClick={() => (window.location.href = "/faq#prestataires")}
-                className="text-center p-6 border-2 border-gray-300 rounded-lg hover:border-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,53%)]/5 cursor-pointer transition-all"
+                className="text-center p-6 border-2 border-gray-300 rounded-lg hover:border-brand-600 hover:bg-brand-500/5 cursor-pointer transition-all"
               >
-                <User className="w-8 h-8 text-[hsl(25,100%,53%)] mx-auto mb-3" />
+                <User className="w-8 h-8 text-brand-700 mx-auto mb-3" />
                 <h3 className="font-semibold text-gray-900 mb-1">
                   Prestataires
                 </h3>
@@ -635,7 +640,7 @@ export default function SupportPage() {
       {/* Chat Widget */}
       <div
         onClick={openChat}
-        className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,45%)] rounded-full flex items-center justify-center text-white cursor-pointer shadow-xl hover:scale-110 transition-all z-50"
+        className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-brand-600 to-brand-700 rounded-full flex items-center justify-center text-white cursor-pointer shadow-xl hover:scale-110 transition-all z-50"
         title="Chat en direct avec DiaspoMoney"
       >
         <MessageCircle className="w-6 h-6" />

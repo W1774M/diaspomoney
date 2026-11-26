@@ -18,12 +18,14 @@ import { getBookingRepository, type Booking, type BookingFilters } from '@/repos
 import type { PaginatedFindResult } from '@/lib/types';
 import type { BookingData, BookingServiceFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
+import { ExpectedDomainError, captureUnexpected } from '@/lib/errors/expected-domain-error';
 import { z } from 'zod';
 import { EmailDispatch } from '@/domain/comms';
 import { createCheckoutSession } from '@/lib/stripe-checkout';
 import { sendPaymentLinkEmail } from '@/lib/email/resend';
 import { notificationService } from '@/services/notification/notification.service';
 import { cleanUrl } from '@/lib/utils';
+import { isProviderUserId } from '@/lib/bookings/provider-id';
 
 interface BookingProgressHistoryEntry {
   step?: number;
@@ -188,13 +190,13 @@ export class BookingService {
       const booking = await this.bookingRepository.findById(id);
 
       if (!booking) {
-        throw new Error('Réservation non trouvée');
+        throw new ExpectedDomainError('Réservation non trouvée');
       }
 
       return booking;
     } catch (error) {
       logger.error({ error, id }, 'Erreur getBookingById');
-      Sentry.captureException(error);
+      captureUnexpected(error);
       throw error;
     }
   }
@@ -210,7 +212,8 @@ export class BookingService {
         paramIndex: 0,
         schema: z.object({
           requesterId: z.string().min(1),
-          providerId: z.string().min(1),
+          // Chaîne vide = pas encore de prestataire assigné
+          providerId: z.string(),
           serviceId: z.string().min(1),
         }).passthrough(),
         paramName: 'data',
@@ -224,34 +227,39 @@ export class BookingService {
   async createBooking(data: BookingData): Promise<Booking> {
     try {
       // Validation
-      if (!data.requesterId || !data.providerId || !data.serviceId) {
+      if (!data.requesterId || typeof data.providerId !== 'string' || !data.serviceId) {
         throw new Error('Données de réservation incomplètes');
       }
 
-      // Invariants Catalog (domaine) — offre bookable (forced)
-      const { getServiceRepository } = await import('@/repositories');
-      const { CatalogService } = await import('@/domain/catalog');
-      const catalogItem = await getServiceRepository().findByCustomId(
-        data.serviceId,
-      );
-      if (!catalogItem) {
-        throw new Error(`Catalog service not found: ${data.serviceId}`);
+      // track-progress crée un brouillon avant le choix du service (serviceId = « draft »).
+      const isProgressDraft = data.serviceId === 'draft';
+
+      if (!isProgressDraft) {
+        // Invariants Catalog (domaine) — offre bookable (forced)
+        const { getServiceRepository } = await import('@/repositories');
+        const { CatalogService } = await import('@/domain/catalog');
+        const catalogItem = await getServiceRepository().findByCustomId(
+          data.serviceId,
+        );
+        if (!catalogItem) {
+          throw new Error(`Catalog service not found: ${data.serviceId}`);
+        }
+        CatalogService.create({
+          id: String(catalogItem.id || data.serviceId),
+          name: String(
+            (catalogItem as { label?: string; name?: string }).label ||
+              (catalogItem as { name?: string }).name ||
+              data.serviceId,
+          ),
+          category: String(
+            (catalogItem as { category?: string }).category ||
+              data.serviceType ||
+              'HEALTH',
+          ),
+          price: Number((catalogItem as { price?: number }).price ?? 0),
+          isActive: (catalogItem as { isActive?: boolean }).isActive !== false,
+        }).assertBookable();
       }
-      CatalogService.create({
-        id: String(catalogItem.id || data.serviceId),
-        name: String(
-          (catalogItem as { label?: string; name?: string }).label ||
-            (catalogItem as { name?: string }).name ||
-            data.serviceId,
-        ),
-        category: String(
-          (catalogItem as { category?: string }).category ||
-            data.serviceType ||
-            'HEALTH',
-        ),
-        price: Number((catalogItem as { price?: number }).price ?? 0),
-        isActive: (catalogItem as { isActive?: boolean }).isActive !== false,
-      }).assertBookable();
 
       // Créer la réservation via le repository
       const booking = await this.bookingRepository.create({
@@ -259,13 +267,19 @@ export class BookingService {
         providerId: data.providerId,
         serviceId: data.serviceId,
         serviceType: data.serviceType,
-        status: BOOKING_STATUSES.PENDING,
+        status: isProgressDraft ? BOOKING_STATUSES.DRAFT : BOOKING_STATUSES.PENDING,
         appointmentDate: data.appointmentDate,
         timeslot: data.timeslot,
         consultationMode: data.consultationMode,
         recipient: data.recipient,
         metadata: data.metadata,
       } as Partial<Booking>);
+
+      // Réservation sans prestataire (ex. assistant de services) : rien à notifier,
+      // l'assignation se fera plus tard via assign-provider.
+      if (!isProviderUserId(booking.providerId)) {
+        return booking;
+      }
 
       // Notification provider (in-app): mission assignée
       try {
@@ -424,7 +438,7 @@ export class BookingService {
       const existingBooking = await this.bookingRepository.findById(id);
       if (!existingBooking) {
         logger.warn({ bookingId: id }, 'Booking not found before update');
-        throw new Error('Réservation non trouvée');
+        throw new ExpectedDomainError('Réservation non trouvée');
       }
 
       logger.debug(
@@ -511,7 +525,7 @@ export class BookingService {
             },
             'Booking not found after update - document may have been deleted',
           );
-          throw new Error('Réservation non trouvée');
+          throw new ExpectedDomainError('Réservation non trouvée');
         }
         
         // Le booking existe toujours, retourner la version récupérée
@@ -607,7 +621,7 @@ export class BookingService {
 
           // Notification au prestataire si assigné
           const providerId = (updatedBooking as any).providerId || (existingBooking as any).providerId;
-          if (providerId) {
+          if (isProviderUserId(providerId)) {
             const providerName =
               (updatedBooking.metadata?.['providerName'] as string | undefined) ||
               (existingBooking.metadata?.['providerName'] as string | undefined) ||
@@ -782,7 +796,7 @@ export class BookingService {
         const baseUrl = cleanUrl(process.env['NEXT_PUBLIC_APP_URL']);
         const bookingsUrl = `${baseUrl}/dashboard/bookings`;
         const providerId = (updatedBooking as any).providerId || (existingBooking as any).providerId;
-        if (providerId) {
+        if (isProviderUserId(providerId)) {
           const providerName =
             (updatedBooking.metadata?.['providerName'] as string | undefined) ||
             (data.metadata?.['providerName'] as string | undefined) ||
@@ -873,7 +887,7 @@ export class BookingService {
       return updatedBooking;
     } catch (error) {
       logger.error({ error, id, updateData: data }, 'Erreur updateBooking');
-      Sentry.captureException(error, {
+      captureUnexpected(error, {
         tags: { component: 'BookingService', method: 'updateBooking' },
         extra: { bookingId: id, updateData: data },
       });
@@ -895,7 +909,7 @@ export class BookingService {
     try {
       const existing = await this.bookingRepository.findById(id);
       if (!existing) {
-        throw new Error('Réservation non trouvée');
+        throw new ExpectedDomainError('Réservation non trouvée');
       }
 
       // Transitions validées via domaine (anti-corruption status)
@@ -914,7 +928,7 @@ export class BookingService {
       return await this.bookingRepository.updateStatus(id, status);
     } catch (error) {
       logger.error({ error, id, status }, 'Erreur updateBookingStatus');
-      Sentry.captureException(error);
+      captureUnexpected(error);
       throw error;
     }
   }
@@ -938,7 +952,7 @@ export class BookingService {
       // Vérifier que la réservation existe
       const booking = await this.bookingRepository.findById(id);
       if (!booking) {
-        throw new Error('Réservation non trouvée');
+        throw new ExpectedDomainError('Réservation non trouvée');
       }
 
       // Vérifier que la réservation peut être annulée
@@ -1064,7 +1078,7 @@ export class BookingService {
       return cancelledBooking;
     } catch (error) {
       logger.error({ error, id }, 'Erreur cancelBooking');
-      Sentry.captureException(error);
+      captureUnexpected(error);
       throw error;
     }
   }
@@ -1136,7 +1150,7 @@ export class BookingService {
       // 1. Récupérer la réservation
       const booking = await this.bookingRepository.findById(id);
       if (!booking) {
-        throw new Error('Réservation non trouvée');
+        throw new ExpectedDomainError('Réservation non trouvée');
       }
 
       // 2. Récupérer le paymentIntentId depuis les métadonnées
@@ -1272,7 +1286,7 @@ export class BookingService {
       return result;
     } catch (error) {
       logger.error({ error, id }, 'Erreur deleteBookingCompletely');
-      Sentry.captureException(error);
+      captureUnexpected(error);
       throw error;
     }
   }
@@ -1386,7 +1400,7 @@ export class BookingService {
       // Récupérer la réservation
       const booking = await this.bookingRepository.findById(id);
       if (!booking) {
-        throw new Error('Réservation non trouvée');
+        throw new ExpectedDomainError('Réservation non trouvée');
       }
 
       const metadata: Record<string, unknown> = booking.metadata || {};
@@ -1408,7 +1422,7 @@ export class BookingService {
       if (maxCompletedStep > step) {
         const requestedStepName = stepNames[step] || `Étape ${step}`;
         const maxStepName = stepNames[maxCompletedStep] || `Étape ${maxCompletedStep}`;
-        throw new Error(
+        throw new ExpectedDomainError(
           `L'étape ${step} (${requestedStepName}) est déjà complétée. ` +
           `L'étape ${maxCompletedStep} (${maxStepName}) ayant été validée, toutes les étapes précédentes sont considérées comme complétées.`,
         );
@@ -1424,9 +1438,9 @@ export class BookingService {
         if (step === currentStep) {
           // L'étape actuelle est complétée, on peut passer à l'étape suivante
           // Mais on ne peut pas re-valider la même étape
-          throw new Error(`L'étape ${step} est déjà complétée. Vous pouvez valider l'étape suivante (${step + 1}).`);
+          throw new ExpectedDomainError(`L'étape ${step} est déjà complétée. Vous pouvez valider l'étape suivante (${step + 1}).`);
         } else {
-          throw new Error(`L'étape ${step} est déjà complétée.`);
+          throw new ExpectedDomainError(`L'étape ${step} est déjà complétée.`);
         }
       }
 
@@ -1446,7 +1460,7 @@ export class BookingService {
           const missingStepsNames = missingSteps
             .map((s) => `${s} (${stepNames[s] || `Étape ${s}`})`)
             .join(', ');
-          throw new Error(
+          throw new ExpectedDomainError(
             `Impossible de valider l'étape ${step} (${requestedStepName}) : ` +
             `les étapes précédentes doivent être complétées en premier. ` +
             `Étapes manquantes : ${missingStepsNames}. ` +
@@ -1460,7 +1474,7 @@ export class BookingService {
       if (step < currentStep) {
         const currentStepName = stepNames[currentStep] || `Étape ${currentStep}`;
         const requestedStepName = stepNames[step] || `Étape ${step}`;
-        throw new Error(
+        throw new ExpectedDomainError(
           `Impossible de valider l'étape ${step} (${requestedStepName}) : elle est déjà passée. ` +
           `La réservation est actuellement à l'étape ${currentStep} (${currentStepName}). ` +
           `Vous pouvez uniquement valider l'étape actuelle (${currentStep}) ou l'étape suivante (${currentStep + 1}).`,
@@ -1469,7 +1483,7 @@ export class BookingService {
 
       // Vérifier que l'étape n'est pas trop loin dans le futur (max 1 étape d'avance)
       if (step > currentStep + 1) {
-        throw new Error(`Vous ne pouvez valider que l'étape actuelle (${currentStep}) ou l'étape suivante (${currentStep + 1}). L'étape ${step} ne peut pas être validée directement.`);
+        throw new ExpectedDomainError(`Vous ne pouvez valider que l'étape actuelle (${currentStep}) ou l'étape suivante (${currentStep + 1}). L'étape ${step} ne peut pas être validée directement.`);
       }
 
       // Construire le nom complet de l'étape
@@ -1813,6 +1827,14 @@ export class BookingService {
 
       return updatedBooking;
     } catch (error) {
+      if (error instanceof ExpectedDomainError) {
+        logger.warn(
+          { id, step, errorMessage: error.message },
+          'Validation d\'étape refusée',
+        );
+        throw error;
+      }
+
       // Extraire les détails de l'erreur de manière sécurisée pour le logging
       let errorMessage = 'Erreur inconnue';
       let errorStack: string | undefined;

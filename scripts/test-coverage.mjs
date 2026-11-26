@@ -34,8 +34,9 @@ for (const [name, config] of [
 }
 
 console.log('\n▶ Couverture globale (fusion des trois suites)');
+// `run` est obligatoire : sans lui, Vitest démarre en watch hors CI et refuse la fusion.
 run([
-  '--config', 'vitest.config.ts', `--merge-reports=${REPORTS}`, '--coverage',
+  'run', '--config', 'vitest.config.ts', `--merge-reports=${REPORTS}`, '--coverage',
   '--coverage.reporter=text-summary', '--coverage.reporter=json-summary', '--coverage.reporter=html',
   ...['lines', 'statements', 'functions', 'branches'].map((k) => `--coverage.thresholds.${k}=${thresholds[k]}`),
 ]);

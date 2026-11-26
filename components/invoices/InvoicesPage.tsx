@@ -157,8 +157,8 @@ const InvoicesPage = React.memo(function InvoicesPage() {
         invoices={filteredInvoices}
         loading={loading}
         onView={handleView}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
+        // Modifier et supprimer sont réservés aux admins (l'API refuse les autres)
+        {...(isAdmin() ? { onEdit: handleEdit, onDelete: handleDelete } : {})}
         onDownload={handleDownload}
       />
     </div>

@@ -25,7 +25,7 @@ const CreateNotificationFacadeSchema = z.object({
   recipient: z.string().min(1, 'Recipient is required'),
   type: z.string().min(1, 'Notification type is required'),
   template: z.string().min(1, 'Template is required'),
-  data: z.record(z.any()),
+  data: z.record(z.string(), z.any()),
   channels: z.array(
     z.object({
       type: z.string(),

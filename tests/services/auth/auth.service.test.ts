@@ -298,46 +298,14 @@ describe('double authentification', () => {
   });
 });
 
+
 describe('réinitialisation du mot de passe', () => {
-  it('envoie le lien de réinitialisation quand Resend est configuré', async () => {
-    vi.stubEnv('RESEND_API_KEY', 're_test');
-    expect(await authService.requestPasswordReset('Awa@Test.fr')).toBe(true);
-    const [to, name, url] = h.sendPasswordResetEmail.mock.calls[0]!;
-    expect([to, name]).toEqual(['awa@test.fr', 'Awa Diallo']);
-    const token = new URL(url).searchParams.get('token')!;
-    expect(url).toMatch(/^https:\/\/app\.test\/reset-password\?token=/);
-    expect(jwt.verify(token, SECRET)).toMatchObject({ userId: 'u1', type: 'password_reset' });
-
-    h.sendPasswordResetEmail.mockResolvedValueOnce(false);
-    r.findOne.mockResolvedValueOnce(user({ name: '' }));
-    expect(await authService.requestPasswordReset('awa@test.fr')).toBe(true);
-    expect(h.sendPasswordResetEmail.mock.calls[1]![1]).toBe('Awa Diallo');
-  });
-
-  it('ne révèle rien pour un e-mail inconnu, et n’envoie rien sans Resend', async () => {
-    r.findOne.mockResolvedValueOnce(null);
-    expect(await authService.requestPasswordReset('inconnu@test.fr')).toBe(false);
-    expect(await authService.requestPasswordReset('awa@test.fr')).toBe(true);
-    expect(h.sendPasswordResetEmail).not.toHaveBeenCalled();
-    r.findOne.mockRejectedValueOnce(new Error('mongo HS'));
-    expect(await authService.requestPasswordReset('awa@test.fr')).toBe(false);
-  });
-
-  it('change le mot de passe avec un jeton de réinitialisation valide', async () => {
-    const token = jwt.sign({ userId: 'u1', type: 'password_reset' }, SECRET);
-    expect(await authService.resetPassword(token, 'Nouveau-123')).toBe(true);
-    const [id, hash, changedAt] = r.updatePassword.mock.calls[0]!;
-    expect([id, changedAt]).toEqual(['u1', true]);
-    expect(hash).toMatch(/^\$2[aby]\$12\$/);
-    expect(h.createAuditLog).toHaveBeenCalledWith('PASSWORD_RESET_SUCCESS', 'AUTH_SYSTEM', {}, expect.objectContaining({ userId: 'u1' }));
-  });
-
-  it('refuse un autre type de jeton, un jeton invalide ou un compte introuvable', async () => {
-    const activation = jwt.sign({ userId: 'u1', type: 'account_activation' }, SECRET);
-    expect(await authService.resetPassword(activation, 'Nouveau-123')).toBe(false);
-    expect(await authService.resetPassword('pas-un-jwt', 'Nouveau-123')).toBe(false);
-    r.updatePassword.mockResolvedValueOnce(false);
-    expect(await authService.resetPassword(jwt.sign({ userId: 'u9', type: 'password_reset' }, SECRET), 'Nouveau-123')).toBe(false);
-    await expect(authService.resetPassword('t', 'court')).rejects.toThrow();
+  // L'ancien mécanisme (lien JWT, illisible par /reset-password) est retiré. La
+  // réinitialisation passe par lib/auth/password-reset.ts et les routes
+  // /api/auth/forgot-password et /api/auth/reset-password (jeton aléatoire, empreinte en base).
+  it('le service n’expose plus l’ancien mécanisme', () => {
+    const service = authService as unknown as Record<string, unknown>;
+    expect(service['requestPasswordReset']).toBeUndefined();
+    expect(service['resetPassword']).toBeUndefined();
   });
 });

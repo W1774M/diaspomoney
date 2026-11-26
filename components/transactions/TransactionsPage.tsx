@@ -101,7 +101,7 @@ const TransactionsPage = function TransactionsPage() {
                 {filteredTransactions.length}
               </p>
             </div>
-            <ArrowLeftRight className='h-8 w-8 text-blue-500' />
+            <ArrowLeftRight className='h-8 w-8 text-brand-700' />
           </div>
         </div>
         <div className='bg-white p-4 rounded-lg shadow-sm border border-gray-200'>
@@ -119,13 +119,13 @@ const TransactionsPage = function TransactionsPage() {
           <div className='flex items-center justify-between'>
             <div>
               <p className='text-sm text-gray-600'>Remboursements</p>
-              <p className='text-2xl font-bold text-blue-600'>
+              <p className='text-2xl font-bold text-brand-700'>
                 {filteredTransactions.filter(
                   t => filterStatus === 'all' || t.status === filterStatus,
                 ).length}
               </p>
             </div>
-            <TrendingDown className='h-8 w-8 text-blue-500' />
+            <TrendingDown className='h-8 w-8 text-brand-700' />
           </div>
         </div>
       </div>
@@ -134,13 +134,13 @@ const TransactionsPage = function TransactionsPage() {
       <div className='bg-white p-4 rounded-lg shadow-sm border border-gray-200'>
         <div className='flex flex-col md:flex-row gap-4'>
           <div className='flex-1 relative'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400' />
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500' />
             <input
               type='text'
               placeholder='Rechercher une transaction...'
               value={searchTerm}
               onChange={e => updateFilter('searchTerm', e.target.value)}
-              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             />
           </div>
           <select
@@ -152,7 +152,7 @@ const TransactionsPage = function TransactionsPage() {
                 e.target.value === 'all' ? 'all' : (e.target.value as TransactionStatus),
               )
             }
-            className='px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+            className='px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
           >
             <option value='all'>Tous les statuts</option>
             <option value={TransactionStatus.COMPLETED}>Complétées</option>
@@ -187,11 +187,11 @@ const TransactionsPage = function TransactionsPage() {
       {/* Transactions List */}
       {loading ? (
         <div className='flex items-center justify-center py-12'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]'></div>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600'></div>
         </div>
       ) : filteredTransactions.length === 0 ? (
         <div className='text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200'>
-          <ArrowLeftRight className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+          <ArrowLeftRight className='h-12 w-12 text-gray-500 mx-auto mb-4' />
           <h3 className='text-lg font-medium text-gray-900 mb-2'>
             Aucune transaction
           </h3>
@@ -199,26 +199,27 @@ const TransactionsPage = function TransactionsPage() {
         </div>
       ) : (
         <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
-          <div className='overflow-x-auto'>
+          <div tabIndex={0} role='region' aria-labelledby='table-transactionspage-1' className='overflow-x-auto'>
             <table className='min-w-full divide-y divide-gray-200'>
+<caption id='table-transactionspage-1' className='visually-hidden'>Historique des transactions</caption>
               <thead className='bg-gray-50'>
                 <tr>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                     Transaction
                   </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                     Description
                   </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                     Montant
                   </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                     Méthode
                   </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                     Statut
                   </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                  <th scope='col' className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                     Date
                   </th>
                 </tr>

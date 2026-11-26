@@ -238,6 +238,53 @@ describe('GET /api/complaints', () => {
     const instance = mockComplaintQueryBuilderSpy.mock.results[0]?.value;
     expect(instance?.page).toHaveBeenCalled();
   });
+
+  describe('périmètre selon le rôle', () => {
+    async function getAs(roles: string[], query = '') {
+      const { auth } = await import('@/auth');
+      vi.mocked(auth).mockResolvedValueOnce({
+        user: { id: 'user123', roles },
+        expires: new Date(Date.now() + 3600000).toISOString(),
+      } as never);
+      vi.mocked(mockComplaintRepository.findComplaintsWithFilters).mockResolvedValueOnce({
+        data: [],
+        total: 0,
+      });
+      const response = await GET(
+        new NextRequest(`http://localhost:3000/api/complaints${query}`),
+      );
+      return {
+        response,
+        instance: mockComplaintQueryBuilderSpy.mock.results[0]?.value,
+      };
+    }
+
+    it.each([['ADMIN'], ['SUPERADMIN']])(
+      '%s voit toutes les réclamations (aucun filtre utilisateur)',
+      async (role) => {
+        const { response, instance } = await getAs([role]);
+        expect(response.status).toBe(200);
+        expect(instance?.byUser).not.toHaveBeenCalled();
+      },
+    );
+
+    it('un ADMIN qui est aussi CSM n’est pas limité au portefeuille', async () => {
+      const { instance } = await getAs(['CUSTOMER', 'ADMIN', 'CSM']);
+      expect(instance?.byUser).not.toHaveBeenCalled();
+      expect((instance as { whereIn?: unknown })?.whereIn).toBeUndefined();
+    });
+
+    it('un ADMIN peut filtrer sur un utilisateur', async () => {
+      const { instance } = await getAs(['ADMIN'], '?userId=other');
+      expect(instance?.byUser).toHaveBeenCalledWith('other');
+    });
+
+    it('un CUSTOMER ne peut pas lire les réclamations d’un autre via userId', async () => {
+      const { instance } = await getAs(['CUSTOMER'], '?userId=other');
+      expect(instance?.byUser).toHaveBeenCalledWith('user123');
+      expect(instance?.byUser).not.toHaveBeenCalledWith('other');
+    });
+  });
 });
 
 describe('POST /api/complaints', () => {

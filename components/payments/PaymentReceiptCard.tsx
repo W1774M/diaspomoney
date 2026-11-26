@@ -62,8 +62,8 @@ export function PaymentReceiptCard({
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className='flex items-center space-x-4'>
-        <div className='flex items-center justify-center w-12 h-12 bg-[hsl(25,100%,53%)]/10 rounded-lg'>
-          <FileText className='h-6 w-6 text-[hsl(25,100%,53%)]' />
+        <div className='flex items-center justify-center w-12 h-12 bg-brand-500/10 rounded-lg'>
+          <FileText className='h-6 w-6 text-brand-700' />
         </div>
         <div className='flex-1'>
           <div className='flex items-center space-x-3 mb-1'>
@@ -101,14 +101,14 @@ export function PaymentReceiptCard({
         <div className='flex items-center space-x-2'>
           <button
             onClick={handleView}
-            className='p-2 text-gray-400 hover:text-[hsl(25,100%,53%)] transition-colors'
+            className='p-2 text-gray-500 hover:text-brand-800 transition-colors'
             title='Voir le reçu'
           >
             <Eye className='h-4 w-4' />
           </button>
           <button
             onClick={handleDownload}
-            className='p-2 text-gray-400 hover:text-[hsl(25,100%,53%)] transition-colors'
+            className='p-2 text-gray-500 hover:text-brand-800 transition-colors'
             title='Télécharger le reçu'
           >
             <Download className='h-4 w-4' />

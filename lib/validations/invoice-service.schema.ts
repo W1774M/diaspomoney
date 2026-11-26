@@ -37,7 +37,7 @@ export const CreateInvoiceServiceSchema = z.object({
   items: z.array(InvoiceItemSchema).min(1, 'At least one item is required'),
   billingAddress: BillingAddressSchema,
   dueDate: z.date().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
   transactionId: z.string().optional(),
   bookingId: z.string().optional(),
   providerId: z.string().optional(),
@@ -53,7 +53,7 @@ export const UpdateInvoiceServiceSchema = z.object({
   tax: z.number().nonnegative('Tax cannot be negative').optional(),
   dueDate: z.date().optional(),
   billingAddress: BillingAddressSchema,
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**

@@ -12,7 +12,7 @@ const SettingsHeader = React.memo<SettingsHeaderProps>(function SettingsHeader({
     <div className="mb-8">
       <div className="flex items-center space-x-4">
         <div className="p-3 bg-blue-100 rounded-full">
-          <User className="h-8 w-8 text-blue-600" />
+          <User className="h-8 w-8 text-brand-700" />
         </div>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Paramètres</h1>

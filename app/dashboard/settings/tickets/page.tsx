@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 /**
  * Page Tickets Support
  * Affiche les réclamations, statut des tickets et historique des échanges
@@ -90,7 +91,7 @@ function SupportTicketsPageContent() {
       case 'medium':
         return 'text-orange-600';
       case 'low':
-        return 'text-blue-600';
+        return 'text-brand-700';
       default:
         return 'text-gray-600';
     }
@@ -120,13 +121,13 @@ function SupportTicketsPageContent() {
             Gérez vos tickets de support et suivez leur statut
           </p>
         </div>
-        <button
-          onClick={() => router.push('/dashboard/messaging/support')}
-          className='flex items-center gap-2 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-md hover:bg-[hsl(25,100%,48%)] transition-colors'
+        <Link
+          href={'/dashboard/messaging/support'}
+          className='flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors'
         >
           <Plus className='h-4 w-4' />
           Nouveau ticket
-        </button>
+        </Link>
       </div>
 
       {/* Stats */}
@@ -139,18 +140,18 @@ function SupportTicketsPageContent() {
                 {tickets.length}
               </p>
             </div>
-            <Ticket className='h-8 w-8 text-blue-500' />
+            <Ticket className='h-8 w-8 text-brand-700' />
           </div>
         </div>
         <div className='bg-white p-4 rounded-lg shadow-sm border border-gray-200'>
           <div className='flex items-center justify-between'>
             <div>
               <p className='text-sm text-gray-600'>Ouverts</p>
-              <p className='text-2xl font-bold text-blue-600'>
+              <p className='text-2xl font-bold text-brand-700'>
                 {tickets.filter(t => t.status === 'open').length}
               </p>
             </div>
-            <Clock className='h-8 w-8 text-blue-500' />
+            <Clock className='h-8 w-8 text-brand-700' />
           </div>
         </div>
         <div className='bg-white p-4 rounded-lg shadow-sm border border-gray-200'>
@@ -181,13 +182,13 @@ function SupportTicketsPageContent() {
       <div className='bg-white p-4 rounded-lg shadow-sm border border-gray-200'>
         <div className='flex flex-col md:flex-row gap-4'>
           <div className='flex-1 relative'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400' />
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500' />
             <input
               type='text'
               placeholder='Rechercher un ticket...'
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
             />
           </div>
           <select
@@ -203,7 +204,7 @@ function SupportTicketsPageContent() {
                   | 'resolved',
               )
             }
-            className='px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent'
+            className='px-4 py-2 border border-gray-300 rounded-md focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent'
           >
             <option value='all'>Tous les statuts</option>
             <option value='open'>Ouverts</option>
@@ -217,23 +218,23 @@ function SupportTicketsPageContent() {
       {/* Tickets List */}
       {loading ? (
         <div className='flex items-center justify-center py-12'>
-          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]'></div>
+          <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600'></div>
         </div>
       ) : filteredTickets.length === 0 ? (
         <div className='text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200'>
-          <Ticket className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+          <Ticket className='h-12 w-12 text-gray-500 mx-auto mb-4' />
           <h3 className='text-lg font-medium text-gray-900 mb-2'>
             Aucun ticket
           </h3>
           <p className='text-gray-600 mb-4'>
             Vous n&apos;avez pas encore créé de ticket de support
           </p>
-          <button
-            onClick={() => router.push('/dashboard/messaging/support')}
-            className='px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-md hover:bg-[hsl(25,100%,48%)] transition-colors'
+          <Link
+            href={'/dashboard/messaging/support'}
+            className='px-4 py-2 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors'
           >
             Créer un ticket
-          </button>
+          </Link>
         </div>
       ) : (
         <div className='space-y-4'>

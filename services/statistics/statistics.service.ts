@@ -25,6 +25,20 @@ import { TransactionStatus } from '@/lib/types/transaction.types';
 import { CURRENCIES, TRANSACTION_STATUSES, USER_STATUSES, BOOKING_STATUSES } from '@/lib/constants';
 import { ObjectId } from 'mongodb';
 
+const roundCents = (value: number) => Math.round(value * 100) / 100;
+
+/** Remise appliquée à une réservation (metadata.discountAmount, nombre ou texte « 5,00 € »). */
+export function bookingDiscount(booking: StatisticsBooking): number {
+  const raw = (booking as { metadata?: Record<string, unknown> }).metadata?.['discountAmount'];
+  const value =
+    typeof raw === 'number'
+      ? raw
+      : typeof raw === 'string'
+        ? parseFloat(raw.replace(/[^\d.,]/g, '').replace(',', '.'))
+        : 0;
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
 /**
  * Service de statistiques
  * Implémente le Service Layer Pattern avec Dependency Injection
@@ -403,14 +417,12 @@ export class StatisticsService {
         });
       }
 
-      // Économies (exemple: 10% de réduction sur les services)
-      const totalSpent = annualSpent;
-      const estimatedSavings = totalSpent * 0.1; // 10% d'économies estimées
-
       // Calculer les statistiques de bookings
       const totalBookings = allBookings.length;
+      // Active : ni terminée ni annulée (les annulées étaient comptées ici)
       const activeBookings = allBookings.filter(
-        (b: StatisticsBooking) => b.status !== BOOKING_STATUSES.FINISHED,
+        (b: StatisticsBooking) =>
+          b.status !== BOOKING_STATUSES.FINISHED && b.status !== BOOKING_STATUSES.CANCELLED,
       ).length;
       const completedBookings = allBookings.filter(
         (b: StatisticsBooking) => b.status === BOOKING_STATUSES.FINISHED,
@@ -487,6 +499,15 @@ export class StatisticsService {
         ? totalSpentFromBookings / paidBookingsCount
         : 0;
 
+      // Économies réelles : remises (codes promo) des commandes payées de l'année.
+      // (Remplace une estimation inventée de 10 % des dépenses.)
+      const yearSavings = roundCents(
+        paidBookings
+          .filter((b: StatisticsBooking) => new Date(b.createdAt) >= startOfYear)
+          .reduce((sum: number, b: StatisticsBooking) => sum + bookingDiscount(b), 0),
+      );
+      const monthsElapsed = now.getMonth() + 1;
+
       // Log pour debug
       logger.debug(
         {
@@ -536,20 +557,24 @@ export class StatisticsService {
           byMonth: [],
         },
         savings: {
-          total: estimatedSavings,
+          total: yearSavings,
           currency: CURRENCIES.EUR.code,
-          breakdown: [
-            {
-              type: 'discount' as const,
-              amount: estimatedSavings,
-              description: 'Réductions et promotions',
-              date: now,
-            },
-          ],
+          breakdown:
+            yearSavings > 0
+              ? [
+                  {
+                    type: 'discount' as const,
+                    amount: yearSavings,
+                    description: 'Réductions et codes promo',
+                    date: now,
+                  },
+                ]
+              : [],
           byMonth: [],
           projections: {
-            monthly: estimatedSavings / 12,
-            annual: estimatedSavings,
+            // moyenne mensuelle constatée depuis janvier, pas une estimation
+            monthly: roundCents(yearSavings / monthsElapsed),
+            annual: yearSavings,
           },
         },
         providers: {

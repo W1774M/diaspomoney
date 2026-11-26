@@ -38,30 +38,30 @@ const UsersFilters = React.memo<UsersFiltersProps>(function UsersFilters({
     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor='users-filters-search-term' className="block text-sm font-medium text-gray-700 mb-1">
             Rechercher
           </label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <input id='users-filters-search-term'
               type="text"
               placeholder="Nom, email, entreprise..."
               value={searchTerm}
               onChange={handleSearchChange}
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor='users-filters-champ' className="block text-sm font-medium text-gray-700 mb-1">
             Rôle
           </label>
-          <select
+          <select id='users-filters-champ'
             title="Rôle"
             value={roleFilter as string}
             onChange={handleRoleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
           >
             <option value="ALL">Tous les rôles</option>
             <option value={ROLES.ADMIN}>Administrateur</option>
@@ -72,14 +72,14 @@ const UsersFilters = React.memo<UsersFiltersProps>(function UsersFilters({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor='users-filters-champ-2' className="block text-sm font-medium text-gray-700 mb-1">
             Statut
           </label>
-          <select
+          <select id='users-filters-champ-2'
             title="Statut"
             value={statusFilter as string}
             onChange={handleStatusChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
           >
             <option value="ALL">Tous les statuts</option>
             <option value={USER_STATUSES.ACTIVE}>Actif</option>

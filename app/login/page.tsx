@@ -61,10 +61,10 @@ export default function LoginPage() {
   if (isLoading || isChecking) {
     return (
       <div
-        className='min-h-screen flex items-center justify-center'
+        className='min-h-dvh flex items-center justify-center'
         suppressHydrationWarning
       >
-        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-[hsl(25,100%,53%)]'></div>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600'></div>
       </div>
     );
   }
@@ -80,10 +80,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50'>
-      <div className='flex flex-col lg:flex-row min-h-screen'>
+    <div className='min-h-dvh bg-gradient-to-br from-gray-50 via-white to-blue-50'>
+      <div className='flex flex-col lg:flex-row min-h-dvh'>
         {/* Sidebar avec branding - Hidden on mobile, visible on lg+ */}
-        <div className='hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[hsl(25,100%,53%)] via-[hsl(25,100%,45%)] to-[hsl(25,100%,35%)] relative overflow-hidden'>
+        <div className='hidden lg:flex lg:w-1/2 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-800 relative overflow-hidden'>
           {/* Pattern de fond */}
           <div className='absolute inset-0 bg-black/10'></div>
           <div className='absolute top-0 left-0 w-full h-full'>
@@ -192,7 +192,7 @@ export default function LoginPage() {
           <div className='w-full max-w-md'>
             {/* Header mobile */}
             <div className='lg:hidden text-center mb-6'>
-              <div className='inline-block bg-gradient-to-br from-[hsl(25,100%,53%)] to-[hsl(25,100%,45%)] rounded-2xl p-4 mb-4 shadow-lg'>
+              <div className='inline-block bg-gradient-to-br from-brand-600 to-brand-700 rounded-2xl p-4 mb-4 shadow-lg'>
                 <Image
                   src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
                   alt='DiaspoMoney'
@@ -215,10 +215,10 @@ export default function LoginPage() {
 
             <div className='bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sm:p-8'>
               <div className='text-center mb-6'>
-                <div className='inline-flex items-center justify-center w-14 h-14 bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,45%)] rounded-full mb-3 shadow-lg'>
+                <div className='inline-flex items-center justify-center w-14 h-14 bg-gradient-to-r from-brand-600 to-brand-700 rounded-full mb-3 shadow-lg'>
                   <User className='w-7 h-7 text-white' />
                 </div>
-                <h2 className='text-xl sm:text-2xl font-bold text-gray-900 mb-1'>
+                <h2 id='login-title' className='text-xl sm:text-2xl font-bold text-gray-900 mb-1'>
                   Connexion
                 </h2>
                 <p className='text-gray-600 text-sm'>
@@ -236,7 +236,7 @@ export default function LoginPage() {
                     <div className='w-full border-t border-gray-200' />
                   </div>
                   <div className='relative flex justify-center text-xs sm:text-sm'>
-                    <span className='px-3 bg-white text-gray-500 font-medium'>
+                    <span className='px-3 bg-white text-gray-600 font-medium'>
                       Ou continuer avec
                     </span>
                   </div>
@@ -254,19 +254,19 @@ export default function LoginPage() {
                 <div className='flex flex-wrap justify-center gap-4 text-xs sm:text-sm'>
                   <Link
                     href='/hotline'
-                    className='text-gray-500 hover:text-[hsl(25,100%,53%)] transition-colors duration-200 font-medium'
+                    className='inline-flex min-h-6 items-center text-gray-600 underline-offset-4 hover:text-brand-700 hover:underline font-medium'
                   >
                     Aide
                   </Link>
                   <Link
                     href='/support'
-                    className='text-gray-500 hover:text-[hsl(25,100%,53%)] transition-colors duration-200 font-medium'
+                    className='inline-flex min-h-6 items-center text-gray-600 underline-offset-4 hover:text-brand-700 hover:underline font-medium'
                   >
                     Support
                   </Link>
                   <Link
-                    href='/privacy'
-                    className='text-gray-500 hover:text-[hsl(25,100%,53%)] transition-colors duration-200 font-medium'
+                    href='/privacy-policy'
+                    className='inline-flex min-h-6 items-center text-gray-600 underline-offset-4 hover:text-brand-700 hover:underline font-medium'
                   >
                     Confidentialité
                   </Link>
@@ -277,19 +277,19 @@ export default function LoginPage() {
             {/* Mobile stats */}
             <div className='lg:hidden mt-8 grid grid-cols-3 gap-3'>
               <div className='text-center bg-white rounded-xl shadow-md p-3 border border-gray-100'>
-                <div className='text-lg font-bold text-[hsl(25,100%,53%)]'>
+                <div className='text-lg font-bold text-brand-700'>
                   10K+
                 </div>
                 <div className='text-gray-600 text-xs'>Utilisateurs</div>
               </div>
               <div className='text-center bg-white rounded-xl shadow-md p-3 border border-gray-100'>
-                <div className='text-lg font-bold text-[hsl(25,100%,53%)]'>
+                <div className='text-lg font-bold text-brand-700'>
                   1K+
                 </div>
                 <div className='text-gray-600 text-xs'>Prestataires</div>
               </div>
               <div className='text-center bg-white rounded-xl shadow-md p-3 border border-gray-100'>
-                <div className='text-lg font-bold text-[hsl(25,100%,53%)]'>
+                <div className='text-lg font-bold text-brand-700'>
                   50K+
                 </div>
                 <div className='text-gray-600 text-xs'>Transactions</div>

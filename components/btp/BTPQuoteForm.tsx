@@ -1,8 +1,9 @@
+'use client';
+import { useNotificationManager } from '@/components/ui/Notification';
 /**
  * BTP Quote Form - DiaspoMoney
  * Formulaire de demande de devis BTP
  */
-'use client';
 import { Button } from '@/components/ui/Button';
 import {
   Card,
@@ -19,13 +20,7 @@ import type {
 } from '@/lib/types/components.types';
 import { Badge, Building2, Calculator, Mail, Phone } from 'lucide-react';
 import React, { useState } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/Select';
+import { Select } from '../ui/Select';
 import { Separator } from '../ui/Separator';
 import { Textarea } from '../ui/Textarea';
 import { ProviderType } from '@/lib/types';
@@ -38,6 +33,7 @@ const isValidPhone = (phone: string) =>
   phone.trim() === '' || /^[+]?[0-9\s-]+$/.test(phone.trim());
 
 export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
+  const notifier = useNotificationManager();
   const [formData, setFormData] = useState<QuoteFormData>({
     projectType: '',
     area: '',
@@ -214,7 +210,7 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
         throw new Error(data.error || "Erreur lors de l'envoi de la demande");
       }
 
-      alert('Votre demande de devis a été envoyée avec succès !');
+      notifier.addSuccess('Votre demande de devis a été envoyée avec succès !');
       setFormData({
         projectType: '',
         area: '',
@@ -238,11 +234,9 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
     } catch (error) {
        
       console.error('Erreur envoi devis:', error);
-      alert(
-        error instanceof Error
+      notifier.addError(error instanceof Error
           ? error.message
-          : "Erreur lors de l'envoi de la demande",
-      );
+          : "Erreur lors de l'envoi de la demande");
     } finally {
       setIsSubmitting(false);
     }
@@ -267,7 +261,7 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
       {/* Header */}
       <div className='text-center space-y-2'>
         <h1 className='text-3xl font-bold flex items-center justify-center gap-2'>
-          <Building2 className='h-8 w-8 text-blue-600' />
+          <Building2 className='h-8 w-8 text-brand-700' />
           Demande de Devis BTP
         </h1>
         <p className='text-gray-600'>
@@ -290,10 +284,10 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
               <form onSubmit={handleSubmit} className='space-y-6' noValidate>
                 {/* Type de projet */}
                 <div className='space-y-2'>
-                  <label className='text-sm font-medium'>
+                  <label htmlFor='btpquote-form-project-type' className='text-sm font-medium'>
                     Type de projet *
                   </label>
-                  <Select
+                  <Select id='btpquote-form-project-type'
                     value={formData.projectType}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                       setFormData(prev => ({
@@ -302,17 +296,11 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                       }))
                     }
                   >
-                    <SelectTrigger>
-                      <SelectValue>Sélectionnez le type de projet</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projectTypes.map(type => (
-                        <SelectItem key={type.value}>
-                          <div>{type.label}</div>
-                        </SelectItem>
+                    <option value=''>Sélectionnez le type de projet</option>
+                                          {projectTypes.map(type => (
+                        <option key={type.value} value={type.value}>{type.label}</option>
                       ))}
-                    </SelectContent>
-                  </Select>
+                                      </Select>
                   {formErrors['projectType'] && (
                     <p className='text-red-500 text-xs'>
                       {formErrors['projectType']}
@@ -323,10 +311,10 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                 {/* Surface et budget */}
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div className='space-y-2'>
-                    <label className='text-sm font-medium'>
+                    <label htmlFor='btpquote-form-area' className='text-sm font-medium'>
                       Surface (m²) *
                     </label>
-                    <Input
+                    <Input id='btpquote-form-area'
                       type='number'
                       min={1}
                       placeholder='Ex: 120'
@@ -348,10 +336,10 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                     )}
                   </div>
                   <div className='space-y-2'>
-                    <label className='text-sm font-medium'>
+                    <label htmlFor='btpquote-form-budget' className='text-sm font-medium'>
                       Budget estimé (XOF)
                     </label>
-                    <Input
+                    <Input id='btpquote-form-budget'
                       type='number'
                       min={0}
                       placeholder='Ex: 50000000'
@@ -378,7 +366,7 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                         <Button
                           key={feature.value}
                           onClick={() => handleFeatureToggle(feature.value)}
-                          className={`p-2 rounded-md border text-sm transition-colors outline-none focus:ring-2 focus:ring-blue-400 ${
+                          className={`p-2 rounded-md border text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-600 ${
                             formData.features.includes(feature.value)
                               ? 'bg-blue-50 border-blue-200 text-blue-700'
                               : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
@@ -397,8 +385,8 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                 {/* Localisation */}
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                   <div className='space-y-2'>
-                    <label className='text-sm font-medium'>Ville *</label>
-                    <Input
+                    <label htmlFor='btpquote-form-city' className='text-sm font-medium'>Ville *</label>
+                    <Input id='btpquote-form-city'
                       placeholder='Ex: Dakar'
                       value={formData.location.city}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -413,8 +401,8 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                     )}
                   </div>
                   <div className='space-y-2'>
-                    <label className='text-sm font-medium'>Pays *</label>
-                    <Select
+                    <label htmlFor='btpquote-form-country' className='text-sm font-medium'>Pays *</label>
+                    <Select id='btpquote-form-country'
                       value={formData.location.country}
                       onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                         setFormData(prev => ({
@@ -426,17 +414,13 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                         }))
                       }
                     >
-                      <SelectTrigger>
-                        <SelectValue>Sélectionnez le pays</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem>Sénégal</SelectItem>
-                        <SelectItem>Côte d&apos;Ivoire</SelectItem>
-                        <SelectItem>Cameroun</SelectItem>
-                        <SelectItem>Burkina Faso</SelectItem>
-                        <SelectItem>Mali</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value=''>Sélectionnez le pays</option>
+                                              <option value='Sénégal'>Sénégal</option>
+                        <option value='Côte d’Ivoire'>Côte d&apos;Ivoire</option>
+                        <option value='Cameroun'>Cameroun</option>
+                        <option value='Burkina Faso'>Burkina Faso</option>
+                        <option value='Mali'>Mali</option>
+                                          </Select>
                     {formErrors['country'] && (
                       <p className='text-red-500 text-xs'>
                         {formErrors['country']}
@@ -447,8 +431,8 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
 
                 {/* Délai */}
                 <div className='space-y-2'>
-                  <label className='text-sm font-medium'>Délai souhaité</label>
-                  <Select
+                  <label htmlFor='btpquote-form-timeline' className='text-sm font-medium'>Délai souhaité</label>
+                  <Select id='btpquote-form-timeline'
                     value={formData.timeline}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                       setFormData(prev => ({
@@ -457,24 +441,20 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                       }))
                     }
                   >
-                    <SelectTrigger>
-                      <SelectValue>Sélectionnez le délai</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem>1-3 mois</SelectItem>
-                      <SelectItem>3-6 mois</SelectItem>
-                      <SelectItem>6-12 mois</SelectItem>
-                      <SelectItem>Plus de 12 mois</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value=''>Sélectionnez le délai</option>
+                                          <option value='1-3 mois'>1-3 mois</option>
+                      <option value='3-6 mois'>3-6 mois</option>
+                      <option value='6-12 mois'>6-12 mois</option>
+                      <option value='Plus de 12 mois'>Plus de 12 mois</option>
+                                      </Select>
                 </div>
 
                 {/* Description */}
                 <div className='space-y-2'>
-                  <label className='text-sm font-medium'>
+                  <label htmlFor='btpquote-form-description' className='text-sm font-medium'>
                     Description du projet
                   </label>
-                  <Textarea
+                  <Textarea id='btpquote-form-description'
                     placeholder='Décrivez votre projet en détail...'
                     value={formData.description}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
@@ -486,10 +466,10 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
 
                 {/* Urgence */}
                 <div className='space-y-2'>
-                  <label className='text-sm font-medium'>
+                  <label htmlFor='btpquote-form-urgency' className='text-sm font-medium'>
                     Niveau d&apos;urgence
                   </label>
-                  <Select
+                  <Select id='btpquote-form-urgency'
                     value={formData.urgency}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                       setFormData(prev => ({
@@ -498,17 +478,11 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                       }))
                     }
                   >
-                    <SelectTrigger>
-                      <SelectValue>
-                        Sélectionnez le niveau d&apos;urgence
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem>Faible</SelectItem>
-                      <SelectItem>Moyenne</SelectItem>
-                      <SelectItem>Élevée</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value=''>Sélectionnez le niveau d&apos;urgence</option>
+                                          <option value='Faible'>Faible</option>
+                      <option value='Moyenne'>Moyenne</option>
+                      <option value='Élevée'>Élevée</option>
+                                      </Select>
                 </div>
 
                 {/* Informations de contact */}
@@ -519,10 +493,10 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                   </h3>
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>
+                      <label htmlFor='btpquote-form-name' className='text-sm font-medium'>
                         Nom complet *
                       </label>
-                      <Input
+                      <Input id='btpquote-form-name'
                         placeholder='Votre nom'
                         value={formData.contact.name}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -537,8 +511,8 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                       )}
                     </div>
                     <div className='space-y-2'>
-                      <label className='text-sm font-medium'>Email *</label>
-                      <Input
+                      <label htmlFor='btpquote-form-email' className='text-sm font-medium'>Email *</label>
+                      <Input id='btpquote-form-email'
                         type='email'
                         placeholder='votre@email.com'
                         value={formData.contact.email}
@@ -567,7 +541,7 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
                         setFormErrors(errs => ({ ...errs, phone: '' }));
                       }}
                       className="w-full"
-                      inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                     />
                     {formErrors['phone'] && (
                       <p className='text-red-500 text-xs'>
@@ -615,7 +589,7 @@ export default function BTPQuoteForm({ provider }: BTPQuoteFormProps) {
               </CardHeader>
               <CardContent>
                 <div className='text-center space-y-2'>
-                  <div className='text-3xl font-bold text-blue-600'>
+                  <div className='text-3xl font-bold text-brand-700'>
                     {estimatedCost.toLocaleString()} XOF
                   </div>
                   <p className='text-sm text-gray-600'>

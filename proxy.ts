@@ -1,27 +1,31 @@
 import { logger } from '@sentry/nextjs';
 import { getNextAuthSecret } from '@/lib/auth/next-auth-secret';
 import { handleStagingAccess } from '@/lib/staging-access';
+import {
+  IMPERSONATION_READ_ONLY_MESSAGE,
+  isAllowedDuringImpersonation,
+  isImpersonationActive,
+} from '@/lib/support/impersonation-policy';
 import { getToken } from 'next-auth/jwt';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-async function hasValidSession(request: NextRequest): Promise<boolean> {
+async function readSessionToken(request: NextRequest): Promise<Record<string, unknown> | null> {
   const secret = getNextAuthSecret();
 
   if (!secret) {
-    return false;
+    return null;
   }
 
   try {
-    const token = await getToken({
-      req: request,
-      secret,
-    });
-
-    return Boolean(token);
+    return (await getToken({ req: request, secret })) as Record<string, unknown> | null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+async function hasValidSession(request: NextRequest): Promise<boolean> {
+  return Boolean(await readSessionToken(request));
 }
 
 function buildLoginRedirect(request: NextRequest): NextResponse {
@@ -123,6 +127,23 @@ export default async function proxy(request: NextRequest) {
       pathname,
     });
     return NextResponse.json({ error: 'Unsupported content type' }, { status: 415 });
+  }
+
+  // ---- CONSULTATION DU SUPPORT (« voir en tant que ») : LECTURE SEULE ----
+  // Toute requête d'écriture (API, actions serveur) est refusée tant que la consultation dure,
+  // sauf celles de NextAuth qui permettent d'en sortir (voir lib/support/impersonation-policy.ts).
+  if (!isAllowedDuringImpersonation(request.method, pathname)) {
+    const token = await readSessionToken(request);
+    if (isImpersonationActive(token?.['impersonation'])) {
+      logger.warn('[MIDDLEWARE] Write blocked during support impersonation', {
+        method: request.method,
+        pathname,
+      });
+      return NextResponse.json(
+        { success: false, error: IMPERSONATION_READ_ONLY_MESSAGE, code: 'IMPERSONATION_READ_ONLY' },
+        { status: 403 },
+      );
+    }
   }
 
   // Check if this is a protected path

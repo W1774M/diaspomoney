@@ -54,7 +54,7 @@ export function Performance(options: PerformanceDecoratorOptions = {}) {
       const startHrTime = process.hrtime.bigint();
 
       let result: any;
-      let error: any = null;
+      let error: any;
 
       try {
         // Exécuter la méthode originale

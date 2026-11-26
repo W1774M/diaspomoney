@@ -10,7 +10,7 @@ export const metadata: Metadata = pageMetadata({
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-dvh bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">
@@ -85,8 +85,8 @@ export default function AboutPage() {
               <p className="text-gray-700 mb-4">
                 Pour toute question, suggestion ou demande d&apos;information, n&apos;hésitez pas à
                 nous contacter à{' '}
-                <Link href="mailto:support@diaspomoney.fr" className="text-[hsl(25,100%,53%)] hover:underline">
-                  support@diaspomoney.fr
+                <Link href="mailto:contact@diaspomoney.fr" className="text-brand-700 hover:underline">
+                  contact@diaspomoney.fr
                 </Link>
               </p>
             </section>
@@ -95,7 +95,7 @@ export default function AboutPage() {
           <div className="mt-8 pt-8 border-t border-gray-200">
             <Link
               href="/"
-              className="text-[hsl(25,100%,53%)] hover:underline font-medium"
+              className="text-brand-700 hover:underline font-medium"
             >
               ← Retour à l&apos;accueil
             </Link>

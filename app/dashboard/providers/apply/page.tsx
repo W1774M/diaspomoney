@@ -69,8 +69,8 @@ export default function ProviderApplyPage() {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">
         <div className="flex items-center space-x-3 mb-4">
-          <div className="p-3 bg-[hsl(25,100%,53%)]/10 rounded-lg">
-            <Building className="h-8 w-8 text-[hsl(25,100%,53%)]" />
+          <div className="p-3 bg-brand-500/10 rounded-lg">
+            <Building className="h-8 w-8 text-brand-700" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Devenir prestataire</h1>
@@ -83,7 +83,7 @@ export default function ProviderApplyPage() {
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Clock className="h-5 w-5 mr-2 text-blue-600" />
+            <Clock className="h-5 w-5 mr-2 text-brand-700" />
             Statut de votre candidature
           </CardTitle>
         </CardHeader>
@@ -93,7 +93,7 @@ export default function ProviderApplyPage() {
               <p className="text-lg font-medium text-gray-900">En attente de candidature</p>
               <p className="text-gray-600">Vous n'avez pas encore soumis de candidature pour devenir prestataire.</p>
             </div>
-            <div className="flex items-center text-blue-600">
+            <div className="flex items-center text-brand-700">
               <Clock className="h-5 w-5 mr-2" />
               <span className="font-medium">Non candidaté</span>
             </div>
@@ -139,7 +139,7 @@ export default function ProviderApplyPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <MapPin className="h-5 w-5 mr-2 text-blue-500" />
+              <MapPin className="h-5 w-5 mr-2 text-brand-700" />
               Zones d'intervention
             </CardTitle>
           </CardHeader>
@@ -203,7 +203,7 @@ export default function ProviderApplyPage() {
         <CardContent>
           <div className="space-y-4">
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-[hsl(25,100%,53%)] text-white rounded-full flex items-center justify-center text-sm font-medium mr-4">
+              <div className="w-8 h-8 bg-brand-600 text-white rounded-full flex items-center justify-center text-sm font-medium mr-4">
                 1
               </div>
               <div>
@@ -247,7 +247,7 @@ export default function ProviderApplyPage() {
         <Button
           onClick={handleApply}
           disabled={isSubmitting}
-          className="bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,100%,53%)]/90 px-8 py-3"
+          className="bg-brand-600 hover:bg-brand-700/90 px-8 py-3"
         >
           {isSubmitting ? (
             <>

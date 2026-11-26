@@ -418,7 +418,7 @@ export const useLogin = () => {
 
     // Forcer la mise à jour du contexte NextAuth pour que useSession/AuthGuard
     // détectent immédiatement la session sans rechargement manuel.
-    let sessionSynced = false;
+    let sessionSynced: boolean;
     for (let i = 0; i < 3; i++) {
       try {
         const refreshed = await refreshSession?.();

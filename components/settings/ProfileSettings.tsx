@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/ConfirmProvider';
+import { useNotificationManager } from '@/components/ui/Notification';
 import { useAuth } from '@/hooks';
 import imageLoader from '@/lib/image-loader';
 import type { ProfileSettingsProps } from '@/lib/types';
@@ -21,6 +23,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const ProfileSettings = React.memo<ProfileSettingsProps>(
   function ProfileSettings({ data, setData, onSave, saving }) {
+  const confirmer = useConfirm();
+  const notifier = useNotificationManager();
     const { user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -65,7 +69,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
 
         // Vérifier le type de fichier
         if (!file.type.startsWith('image/')) {
-          alert('Le fichier doit être une image (JPG, PNG, GIF, etc.)');
+          notifier.addWarning('Le fichier doit être une image (JPG, PNG, GIF, etc.)');
           
           return;
         }
@@ -73,7 +77,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
         // Vérifier la taille (max 5MB)
         const maxSize = 5 * 1024 * 1024; // 5MB
         if (file.size > maxSize) {
-          alert('Le fichier est trop volumineux (maximum 5MB)');
+          notifier.addWarning('Le fichier est trop volumineux (maximum 5MB)');
           return;
         }
 
@@ -146,12 +150,12 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
           setUploadingAvatar(false);
         }
       },
-      [],
+      [notifier],
     );
 
     const handleAvatarDelete = useCallback(async () => {
       if (
-        !confirm('Êtes-vous sûr de vouloir supprimer votre photo de profil ?')
+        !(await confirmer({ message: 'Êtes-vous sûr de vouloir supprimer votre photo de profil ?', variant: 'danger' }))
       ) {
         return;
       }
@@ -186,11 +190,11 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
         const errorMessage = error instanceof Error
           ? error.message
           : 'Erreur lors de la suppression de la photo de profil';
-        alert(errorMessage);
+        notifier.addError(errorMessage);
       } finally {
         setDeletingAvatar(false);
       }
-    }, []);
+    }, [confirmer, notifier]);
 
     return (
       <div className='space-y-6'>
@@ -225,7 +229,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
                 </div>
               ) : (
                 <div className='w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300'>
-                  <User className='h-12 w-12 text-gray-400' />
+                  <User className='h-12 w-12 text-gray-500' />
                 </div>
               )}
             </div>
@@ -245,7 +249,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
                   type='button'
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingAvatar || saving}
-                  className='flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                  className='flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   {uploadingAvatar ? (
                     <>
@@ -315,55 +319,55 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
           <form onSubmit={handleSubmit} className='space-y-6'>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='profile-settings-name' className='block text-sm font-medium text-gray-700 mb-2'>
                   Nom complet *
                 </label>
                 <div className='relative'>
-                  <User className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                  <input
+                  <User className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500' />
+                  <input id='profile-settings-name'
                     type='text'
                     value={data.name}
                     onChange={e => handleChange('name', e.target.value)}
                     required
-                    className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]'
+                    className='w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                     placeholder='Votre nom complet'
                   />
                 </div>
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='profile-settings-first-name' className='block text-sm font-medium text-gray-700 mb-2'>
                   Prénom
                 </label>
-                <input
+                <input id='profile-settings-first-name'
                   type='text'
                   value={data.firstName}
                   onChange={e => handleChange('firstName', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                   placeholder='Votre prénom'
                 />
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='profile-settings-last-name' className='block text-sm font-medium text-gray-700 mb-2'>
                   Nom de famille
                 </label>
-                <input
+                <input id='profile-settings-last-name'
                   type='text'
                   value={data.lastName}
                   onChange={e => handleChange('lastName', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                   placeholder='Votre nom de famille'
                 />
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='profile-settings-email' className='block text-sm font-medium text-gray-700 mb-2'>
                   Email
                 </label>
                 <div className='relative'>
-                  <Mail className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                  <input
+                  <Mail className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500' />
+                  <input id='profile-settings-email'
                     type='email'
                     value={data.email}
                     disabled
@@ -386,36 +390,36 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
                   value={data.phone || ""}
                   onChange={(phone) => handleChange('phone', phone)}
                   className="w-full"
-                  inputClassName="w-full pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]"
+                  inputClassName="w-full pr-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
                 />
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='profile-settings-date-of-birth' className='block text-sm font-medium text-gray-700 mb-2'>
                   <Calendar className='h-4 w-4 inline mr-1' />
                   Date de naissance
                 </label>
-                <input
+                <input id='profile-settings-date-of-birth'
                   type='date'
                   value={data.dateOfBirth}
                   onChange={e => handleChange('dateOfBirth', e.target.value)}
                   aria-label='Date de naissance'
                   title='Date de naissance'
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                 />
               </div>
             </div>
 
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='profile-settings-address' className='block text-sm font-medium text-gray-700 mb-2'>
                 <MapPin className='h-4 w-4 inline mr-1' />
                 Adresse
               </label>
-              <textarea
+              <textarea id='profile-settings-address'
                 value={data.address}
                 onChange={e => handleChange('address', e.target.value)}
                 rows={3}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                 placeholder='Votre adresse complète'
               />
             </div>
@@ -424,7 +428,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
               <button
                 type='submit'
                 disabled={saving}
-                className='flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50'
+                className='flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50'
               >
                 <Save className='h-4 w-4 mr-2' />
                 {saving ? 'Sauvegarde...' : 'Sauvegarder'}
@@ -447,28 +451,28 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
           <form onSubmit={handleSubmit} className='space-y-6'>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='profile-settings-company' className='block text-sm font-medium text-gray-700 mb-2'>
                   <Building className='h-4 w-4 inline mr-1' />
                   Entreprise
                 </label>
-                <input
+                <input id='profile-settings-company'
                   type='text'
                   value={data.company}
                   onChange={e => handleChange('company', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                   placeholder='Nom de votre entreprise'
                 />
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='profile-settings-specialty' className='block text-sm font-medium text-gray-700 mb-2'>
                   Spécialité
                 </label>
-                <input
+                <input id='profile-settings-specialty'
                   type='text'
                   value={data.specialty}
                   onChange={e => handleChange('specialty', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                   placeholder='Votre spécialité professionnelle'
                 />
               </div>
@@ -478,7 +482,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
               <button
                 type='submit'
                 disabled={saving}
-                className='flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50'
+                className='flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50'
               >
                 <Save className='h-4 w-4 mr-2' />
                 {saving ? 'Sauvegarde...' : 'Sauvegarder'}
@@ -501,42 +505,42 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
           <form onSubmit={handleSubmit} className='space-y-6'>
             <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='profile-settings-country-of-residence' className='block text-sm font-medium text-gray-700 mb-2'>
                   Pays de résidence
                 </label>
-                <input
+                <input id='profile-settings-country-of-residence'
                   type='text'
                   value={data.countryOfResidence}
                   onChange={e =>
                     handleChange('countryOfResidence', e.target.value)
                   }
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                   placeholder='France'
                 />
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='profile-settings-target-country' className='block text-sm font-medium text-gray-700 mb-2'>
                   Pays cible
                 </label>
-                <input
+                <input id='profile-settings-target-country'
                   type='text'
                   value={data.targetCountry}
                   onChange={e => handleChange('targetCountry', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                   placeholder='Pays souhaité'
                 />
               </div>
 
               <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
+                <label htmlFor='profile-settings-target-city' className='block text-sm font-medium text-gray-700 mb-2'>
                   Ville cible
                 </label>
-                <input
+                <input id='profile-settings-target-city'
                   type='text'
                   value={data.targetCity}
                   onChange={e => handleChange('targetCity', e.target.value)}
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]'
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                   placeholder='Ville souhaitée'
                 />
               </div>
@@ -546,7 +550,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
               <button
                 type='submit'
                 disabled={saving}
-                className='flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50'
+                className='flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50'
               >
                 <Save className='h-4 w-4 mr-2' />
                 {saving ? 'Sauvegarde...' : 'Sauvegarder'}
@@ -566,15 +570,15 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
 
           <form onSubmit={handleSubmit} className='space-y-6'>
             <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
+              <label htmlFor='profile-settings-monthly-budget' className='block text-sm font-medium text-gray-700 mb-2'>
                 <Wallet className='h-4 w-4 inline mr-1' />
                 Budget mensuel
               </label>
-              <input
+              <input id='profile-settings-monthly-budget'
                 type='text'
                 value={data.monthlyBudget}
                 onChange={e => handleChange('monthlyBudget', e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(25,100%,53%)]'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-600'
                 placeholder='Ex: 500-1000€'
               />
             </div>
@@ -583,7 +587,7 @@ const ProfileSettings = React.memo<ProfileSettingsProps>(
               <button
                 type='submit'
                 disabled={saving}
-                className='flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50'
+                className='flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50'
               >
                 <Save className='h-4 w-4 mr-2' />
                 {saving ? 'Sauvegarde...' : 'Sauvegarder'}

@@ -117,7 +117,7 @@ export default function BeneficiarySelector({
         </h3>
         <button
           onClick={() => setShowAddForm(true)}
-          className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,48%)] flex items-center text-sm"
+          className="text-brand-700 hover:text-brand-800 flex items-center text-sm"
         >
           <UserPlus className="h-4 w-4 mr-1" />
           Ajouter un nouveau
@@ -127,7 +127,7 @@ export default function BeneficiarySelector({
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-[hsl(25,100%,53%)]" />
+          <Loader2 className="h-6 w-6 animate-spin text-brand-700" />
           <span className="ml-2 text-sm text-gray-600">Chargement...</span>
         </div>
       )}
@@ -145,7 +145,7 @@ export default function BeneficiarySelector({
                 onClick={() => beneficiaryId && handleBeneficiaryToggle(beneficiaryId)}
                 className={`p-4 border rounded-lg cursor-pointer transition-colors ${
                   isSelected
-                    ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,53%)]/5"
+                    ? "border-brand-600 bg-brand-500/5"
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
@@ -153,7 +153,7 @@ export default function BeneficiarySelector({
                   <div
                     className={`w-5 h-5 rounded border-2 flex items-center justify-center mr-3 ${
                       isSelected
-                        ? "border-[hsl(25,100%,53%)] bg-[hsl(25,100%,53%)]"
+                        ? "border-brand-600 bg-brand-600"
                         : "border-gray-300"
                     }`}
                   >
@@ -162,7 +162,7 @@ export default function BeneficiarySelector({
 
                   <div className="flex-1">
                     <div className="flex items-center">
-                      <User className="h-5 w-5 text-gray-400 mr-2" />
+                      <User className="h-5 w-5 text-gray-500 mr-2" />
                       <span className="font-medium text-gray-900">
                         {beneficiary.name}
                       </span>
@@ -200,13 +200,13 @@ export default function BeneficiarySelector({
       {/* Empty State */}
       {!loading && beneficiaries.length === 0 && (
         <div className="text-center py-8">
-          <User className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+          <User className="h-8 w-8 text-gray-500 mx-auto mb-2" />
           <p className="text-sm text-gray-500 mb-4">
             Aucun bénéficiaire trouvé
           </p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,48%)] text-sm"
+            className="text-brand-700 hover:text-brand-800 text-sm"
           >
             Ajouter votre premier bénéficiaire
           </button>
@@ -230,74 +230,74 @@ export default function BeneficiarySelector({
             >
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='beneficiary-selector-name' className="block text-sm font-medium text-gray-700 mb-1">
                     Nom complet *
                   </label>
-                  <input
+                  <input id='beneficiary-selector-name'
                     type="text"
                     name="name"
                     required
                     placeholder="Prénom Nom"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='beneficiary-selector-address' className="block text-sm font-medium text-gray-700 mb-1">
                     Adresse *
                   </label>
-                  <input
+                  <input id='beneficiary-selector-address'
                     type="text"
                     name="address"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor='beneficiary-selector-city' className="block text-sm font-medium text-gray-700 mb-1">
                       Ville *
                     </label>
-                    <input
+                    <input id='beneficiary-selector-city'
                       type="text"
                       name="city"
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor='beneficiary-selector-postal-code' className="block text-sm font-medium text-gray-700 mb-1">
                       Code postal
                     </label>
-                    <input
+                    <input id='beneficiary-selector-postal-code'
                       type="text"
                       name="postalCode"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='beneficiary-selector-country' className="block text-sm font-medium text-gray-700 mb-1">
                     Pays *
                   </label>
-                  <input
+                  <input id='beneficiary-selector-country'
                     type="text"
                     name="country"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='beneficiary-selector-email' className="block text-sm font-medium text-gray-700 mb-1">
                     Email
                   </label>
-                  <input
+                  <input id='beneficiary-selector-email'
                     type="email"
                     name="email"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
 
@@ -310,18 +310,18 @@ export default function BeneficiarySelector({
                     value={phone}
                     onChange={(phoneValue) => setPhone(phoneValue)}
                     className="w-full"
-                    inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    inputClassName="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor='beneficiary-selector-relationship' className="block text-sm font-medium text-gray-700 mb-1">
                     Relation *
                   </label>
-                  <select
+                  <select id='beneficiary-selector-relationship'
                     name="relationship"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent"
                   >
                     <option value="">Sélectionner une relation</option>
                     <option value="Époux/Épouse">Époux/Épouse</option>
@@ -345,7 +345,7 @@ export default function BeneficiarySelector({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                  className="flex-1 px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {isSubmitting ? (
                     <>

@@ -5,12 +5,14 @@ import { useAuth } from '@/hooks/auth/useAuth';
 import { useSignOut } from '@/hooks/auth/useSignOut';
 import imageLoader from '@/lib/image-loader';
 import { ROLES } from '@/lib/constants';
+import { isSuperAdmin } from '@/lib/auth/explicit-role';
 import type { UINotification } from '@/lib/types';
 import { Bell, ChevronDown, Mail, MessageSquare, Menu } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { useDisclosure } from '@/hooks/_shared/useDisclosure';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { childLogger } from '@/lib/logger';
 
@@ -21,8 +23,11 @@ export default function DashboardHeader({ className = '' }: { className?: string
   const { signOut, isSigningOut } = useSignOut();
   const router = useRouter();
   const { open: openSidebar } = useSidebar();
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
+  const userMenu = useDisclosure();
+  const notificationMenu = useDisclosure();
+  const isNotificationMenuOpen = notificationMenu.open;
+  const setIsNotificationMenuOpen = notificationMenu.setOpen;
+  const setIsUserMenuOpen = userMenu.setOpen;
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<UINotification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
@@ -52,9 +57,18 @@ export default function DashboardHeader({ className = '' }: { className?: string
     if (!isAuthenticated) return;
 
     fetchUnreadCount();
-    // Rafraîchir toutes les 30 secondes
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
+    // Rafraîchir toutes les 30 s, seulement quand l'onglet est visible
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchUnreadCount();
+    }, 30000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchUnreadCount();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [isAuthenticated, fetchUnreadCount]);
 
   // Charger les notifications quand le menu s'ouvre
@@ -140,8 +154,7 @@ export default function DashboardHeader({ className = '' }: { className?: string
 
   const getSecondaryRole = () => {
     if (!user?.roles || user.roles.length === 0) return '';
-    if (user.roles.includes(ROLES.ADMIN) && user.roles.length > 1)
-      return 'Super Admin';
+    if (isSuperAdmin(user)) return 'Super Admin';
     if (user.roles.length > 1) {
       const roles = user.roles.filter(r => r !== ROLES.ADMIN);
       return roles.join(', ') || '';
@@ -188,18 +201,19 @@ export default function DashboardHeader({ className = '' }: { className?: string
   }
 
   return (
-    <header className={`bg-black shadow-sm border-b border-gray-800 ${className}`}>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+    <header className={`bg-black border-b border-gray-800 ${className}`}>
+      <div className='px-4 sm:px-6 lg:px-8'>
         <div className='flex justify-between items-center h-16'>
           {/* Logo et bouton hamburger */}
           <div className='flex items-center space-x-3'>
             {/* Bouton hamburger pour mobile/tablette */}
             <button
               onClick={openSidebar}
-              className='lg:hidden p-2 text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800 rounded-md transition-colors'
-              aria-label='Ouvrir le menu'
+              type='button'
+              className='lg:hidden inline-flex size-11 items-center justify-center text-white hover:text-brand-400 hover:bg-gray-800 rounded-md transition-colors'
+              aria-label='Ouvrir le menu de navigation'
             >
-              <Menu className='h-6 w-6' />
+              <Menu aria-hidden='true' className='h-6 w-6' />
             </button>
             <Link href='/' className='flex-shrink-0 flex items-center space-x-2'>
               <Logo
@@ -207,8 +221,8 @@ export default function DashboardHeader({ className = '' }: { className?: string
                 src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
                 width={640}
                 height={320}
-                alt='Diaspomoney'
-                className='h-20 w-auto'
+                alt='DiaspoMoney, accueil'
+                className='h-12 w-auto'
               />
             </Link>
           </div>
@@ -218,24 +232,25 @@ export default function DashboardHeader({ className = '' }: { className?: string
             {/* Bouton Transférer un service */}
             <Link
               href='/#services'
-              className='hidden md:inline-flex items-center px-6 py-2.5 text-sm font-medium text-white rounded-full bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,48%)] hover:from-[hsl(25,100%,50%)] hover:to-[hsl(25,100%,45%)] transition-all shadow-lg hover:shadow-xl'
+              className='hidden md:inline-flex min-h-11 items-center px-5 text-sm font-semibold text-white rounded-full bg-brand-600 hover:bg-brand-700 transition-colors'
             >
               Transférer un service
             </Link>
 
             {/* Icône de notifications */}
-            <div className='relative'>
+            <div className='relative' ref={notificationMenu.containerRef}>
               <button
-                onClick={() => {
-                  setIsNotificationMenuOpen(!isNotificationMenuOpen);
-                  setIsUserMenuOpen(false);
-                }}
-                className='relative p-2 text-white hover:text-[hsl(25,100%,53%)] hover:bg-gray-800 rounded-md transition-colors'
-                aria-label='Notifications'
+                {...notificationMenu.triggerProps}
+                className='relative inline-flex size-11 items-center justify-center text-white hover:text-brand-400 hover:bg-gray-800 rounded-md transition-colors'
+                aria-label={
+                  unreadCount > 0
+                    ? `Notifications, ${unreadCount} non ${unreadCount === 1 ? 'lue' : 'lues'}`
+                    : 'Notifications'
+                }
               >
-                <Bell className='h-5 w-5' />
+                <Bell aria-hidden='true' className='h-5 w-5' />
                 {unreadCount > 0 && (
-                  <span className='absolute top-0 right-0 flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-[hsl(25,100%,53%)] rounded-full'>
+                  <span aria-hidden='true' className='absolute top-0.5 right-0.5 flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-brand-600 rounded-full'>
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -244,16 +259,11 @@ export default function DashboardHeader({ className = '' }: { className?: string
               {/* Dropdown des notifications */}
               {isNotificationMenuOpen && (
                 <>
-                  {/* Overlay pour fermer en cliquant à l'extérieur sur mobile */}
-                  <div
-                    className='fixed inset-0 z-40 sm:hidden'
-                    onClick={() => setIsNotificationMenuOpen(false)}
-                  />
-                  <div className='fixed sm:absolute right-4 sm:right-0 top-20 sm:top-auto sm:mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-gray-900 rounded-md shadow-lg border border-gray-800 py-2 z-50 max-h-[calc(100vh-7rem)] sm:max-h-96 overflow-y-auto'>
+                  <div {...notificationMenu.panelProps} className='fixed sm:absolute right-4 sm:right-0 top-20 sm:top-auto sm:mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-gray-900 rounded-md shadow-lg border border-gray-800 py-2 z-50 max-h-[calc(100dvh-7rem)] sm:max-h-96 overflow-y-auto'>
                     <div className='px-3 sm:px-4 py-2 border-b border-gray-800 flex justify-between items-center gap-2'>
-                      <h3 className='text-sm font-semibold text-white flex-shrink-0'>
+                      <h2 className='text-sm font-semibold text-white flex-shrink-0'>
                         Notifications
-                      </h3>
+                      </h2>
                       {unreadCount > 0 && (
                         <span className='text-xs text-gray-300 whitespace-nowrap flex-shrink-0'>
                           {unreadCount} non {unreadCount === 1 ? 'lue' : 'lues'}
@@ -263,18 +273,21 @@ export default function DashboardHeader({ className = '' }: { className?: string
 
                   {loadingNotifications ? (
                     <div className='px-3 sm:px-4 py-8 text-center'>
-                      <div className='animate-spin rounded-full h-6 w-6 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
+                      <div role='status' className='animate-spin rounded-full h-6 w-6 border-b-2 border-brand-400 mx-auto'>
+                        <span className='visually-hidden'>Chargement des notifications</span>
+                      </div>
                     </div>
                   ) : notifications.length === 0 ? (
                     <div className='px-3 sm:px-4 py-8 text-center text-sm text-gray-400'>
                       Aucune notification
                     </div>
                   ) : (
-                    <div className='divide-y divide-gray-800'>
+                    <ul className='divide-y divide-gray-800' role='list'>
                       {notifications.slice(0, 5).map(notification => (
-                        <div
-                          key={notification.id}
-                          className={`px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-gray-800 transition-colors cursor-pointer ${
+                        <li key={notification.id}>
+                        <button
+                          type='button'
+                          className={`block w-full text-start px-3 sm:px-4 py-2.5 sm:py-3 hover:bg-gray-800 transition-colors ${
                             !notification.read ? 'bg-gray-800' : ''
                           }`}
                           onClick={() => {
@@ -285,48 +298,51 @@ export default function DashboardHeader({ className = '' }: { className?: string
                             setIsNotificationMenuOpen(false);
                           }}
                         >
-                          <div className='flex items-start justify-between gap-2'>
-                            <div className='flex-1 min-w-0'>
-                              <div className='flex items-start gap-2 mb-1'>
-                                <h4
-                                  className={`text-xs sm:text-sm font-medium break-words flex-1 min-w-0 ${
+                          <span className='flex items-start justify-between gap-2'>
+                            <span className='flex-1 min-w-0'>
+                              <span className='flex items-start gap-2 mb-1'>
+                                <span
+                                  className={`text-sm font-medium break-words flex-1 min-w-0 ${
                                     !notification.read
                                       ? 'text-white'
                                       : 'text-gray-300'
                                   }`}
                                 >
                                   {notification.subject}
-                                </h4>
+                                </span>
                                 {!notification.read && (
-                                  <span className='h-1.5 w-1.5 bg-[hsl(25,100%,53%)] rounded-full flex-shrink-0 mt-1.5'></span>
+                                  <span className='h-2 w-2 bg-brand-400 rounded-full flex-shrink-0 mt-1.5'>
+                                    <span className='visually-hidden'>Non lue</span>
+                                  </span>
                                 )}
-                              </div>
-                              <p className='text-xs text-gray-400 line-clamp-2 mb-2 break-words overflow-hidden'>
+                              </span>
+                              <span className='block text-xs text-gray-300 line-clamp-2 mb-2 break-words overflow-hidden'>
                                 {notification.content}
-                              </p>
-                              <div className='flex items-center flex-wrap gap-2 sm:gap-3 text-xs text-gray-500'>
+                              </span>
+                              <span className='flex items-center flex-wrap gap-2 sm:gap-3 text-xs text-gray-400'>
                                 <span className='whitespace-nowrap flex-shrink-0'>
                                   {formatDate(notification.createdAt)}
                                 </span>
-                                <div className='flex items-center gap-1 flex-shrink-0'>
+                                <span className='flex items-center gap-1 flex-shrink-0'>
                                   {notification.channels
                                     .slice(0, 2)
                                     .map((channel, idx) => (
-                                      <div
+                                      <span
                                         key={idx}
                                         className='text-gray-400 flex-shrink-0'
-                                        title={channel.type}
+                                        aria-hidden='true'
                                       >
                                         {getChannelIcon(channel.type)}
-                                      </div>
+                                      </span>
                                     ))}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                                </span>
+                              </span>
+                            </span>
+                          </span>
+                        </button>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   )}
 
                   {notifications.length > 0 && (
@@ -334,7 +350,7 @@ export default function DashboardHeader({ className = '' }: { className?: string
                       <Link
                         href='/dashboard/notifications'
                         onClick={() => setIsNotificationMenuOpen(false)}
-                        className='block text-center text-xs sm:text-sm text-[hsl(25,100%,53%)] hover:text-[hsl(25,100%,58%)] transition-colors font-medium'
+                        className='block text-center text-sm text-brand-400 hover:text-brand-300 hover:underline transition-colors font-medium'
                       >
                         Voir toutes les notifications
                       </Link>
@@ -346,20 +362,18 @@ export default function DashboardHeader({ className = '' }: { className?: string
             </div>
 
             {/* Profil utilisateur */}
-            <div className='relative'>
+            <div className='relative' ref={userMenu.containerRef}>
               <button
-                onClick={() => {
-                  setIsUserMenuOpen(!isUserMenuOpen);
-                  setIsNotificationMenuOpen(false);
-                }}
+                {...userMenu.triggerProps}
+                aria-label={`Mon compte : ${user.name || user.email || 'utilisateur'}`}
                 className='flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-gray-800 transition-colors border-l border-gray-700 pl-4'
               >
                 {/* Avatar */}
-                <div className='w-10 h-10 bg-[hsl(25,100%,53%)] rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden'>
+                <span className='w-10 h-10 bg-brand-600 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden'>
                   {avatarUrl && !avatarError ? (
                     <Image
                       src={avatarUrl}
-                      alt={user.name || 'User'}
+                      alt=''
                       width={40}
                       height={40}
                       className='rounded-full object-cover'
@@ -371,34 +385,35 @@ export default function DashboardHeader({ className = '' }: { className?: string
                       }}
                     />
                   ) : (
-                    <span className='text-sm font-semibold text-white'>
+                    <span aria-hidden='true' className='text-sm font-semibold text-white'>
                       {getInitials()}
                     </span>
                   )}
-                </div>
+                </span>
 
                 {/* Informations utilisateur */}
-                <div className='hidden md:block text-left'>
-                  <p className='text-sm font-semibold text-white'>
+                <span className='hidden md:block text-left'>
+                  <span className='block text-sm font-semibold text-white'>
                     {getPrimaryRole()}
-                  </p>
+                  </span>
                   {getSecondaryRole() && (
-                    <p className='text-xs text-gray-300'>
+                    <span className='block text-xs text-gray-300'>
                       {getSecondaryRole()}
-                    </p>
+                    </span>
                   )}
-                </div>
+                </span>
 
                 <ChevronDown
+                  aria-hidden='true'
                   className={`h-4 w-4 text-white transition-transform ${
-                    isUserMenuOpen ? 'rotate-180' : ''
+                    userMenu.open ? 'rotate-180' : ''
                   }`}
                 />
               </button>
 
               {/* Dropdown menu utilisateur */}
-              {isUserMenuOpen && (
-                <div className='absolute right-0 mt-2 w-56 bg-gray-900 rounded-md shadow-lg border border-gray-800 py-1 z-50'>
+              {userMenu.open && (
+                <div {...userMenu.panelProps} className='absolute right-0 mt-2 w-56 bg-gray-900 rounded-md shadow-lg border border-gray-800 py-1 z-50'>
                   <div className='px-4 py-3 border-b border-gray-800'>
                     <p className='text-sm font-medium text-white'>
                       {user?.name || 'Utilisateur'}
@@ -409,28 +424,29 @@ export default function DashboardHeader({ className = '' }: { className?: string
                   </div>
                   <Link
                     href='/dashboard/settings'
-                    className='block px-4 py-2 text-sm text-white hover:bg-gray-800 hover:text-[hsl(25,100%,53%)]'
+                    className='block px-4 py-2.5 text-sm text-white hover:bg-gray-800 hover:text-brand-400'
                     onClick={() => setIsUserMenuOpen(false)}
                   >
                     Paramètres
                   </Link>
                   <Link
                     href='/dashboard'
-                    className='block px-4 py-2 text-sm text-white hover:bg-gray-800 hover:text-[hsl(25,100%,53%)]'
+                    className='block px-4 py-2.5 text-sm text-white hover:bg-gray-800 hover:text-brand-400'
                     onClick={() => setIsUserMenuOpen(false)}
                   >
-                    Dashboard
+                    Tableau de bord
                   </Link>
                   <div className='border-t border-gray-800 my-1' />
                   <button
+                    type='button'
                     onClick={() => {
                       setIsUserMenuOpen(false);
                       signOut();
                     }}
                     disabled={isSigningOut}
-                    className='block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-800 hover:text-[hsl(25,100%,53%)] disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-800 hover:text-brand-400 disabled:opacity-50 disabled:cursor-not-allowed'
                   >
-                    {isSigningOut ? 'Déconnexion...' : 'Déconnexion'}
+                    {isSigningOut ? 'Déconnexion…' : 'Se déconnecter'}
                   </button>
                 </div>
               )}

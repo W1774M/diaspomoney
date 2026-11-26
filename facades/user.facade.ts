@@ -49,7 +49,7 @@ const CreateUserFacadeSchema = z.object({
   // Mot de passe choisi à l'inscription (haché avant enregistrement, jamais stocké en clair)
   password: z.string().min(8).optional(),
   // Profil complémentaire (pays, ville, préférences, société…) enregistré à plat sur l'utilisateur
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**

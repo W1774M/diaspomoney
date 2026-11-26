@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
+import { LEGAL_ENTITY, formatEffectiveDate, legalIdentity } from '@/lib/legal/company';
 import Link from 'next/link';
 
 export const metadata: Metadata = pageMetadata({
@@ -10,7 +11,7 @@ export const metadata: Metadata = pageMetadata({
 
 export default function TermsAndConditionsPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-dvh bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">
@@ -19,7 +20,7 @@ export default function TermsAndConditionsPage() {
           
           <div className="prose prose-lg max-w-none">
             <p className="text-gray-600 mb-6">
-              En vigueur à compter du : [Date à insérer]
+              En vigueur à compter du : {formatEffectiveDate()}
             </p>
             
             <section className="mb-8">
@@ -29,8 +30,17 @@ export default function TermsAndConditionsPage() {
               <p className="text-gray-700 mb-4">
                 Les présentes Conditions Générales d’Utilisation (CGU) définissent les modalités et
                 conditions d’accès et d’utilisation de la plateforme <strong>DIASPOMONEY.FR</strong>,
-                propriété de la société DIASPOMONEY, tiers de confiance dans le transfert de
-                prestations vers l’Afrique (santé, éducation, immobilier).
+                tiers de confiance dans le transfert de prestations vers l’Afrique (santé, éducation,
+                immobilier).
+              </p>
+              <p className="text-gray-700 mb-4">
+                La plateforme est éditée par <strong>{LEGAL_ENTITY.name}</strong> ({legalIdentity()}),
+                pour le compte de la société {LEGAL_ENTITY.successor}. Les termes « DiaspoMoney » et
+                « la plateforme » désignent ci-après l’éditeur et le service qu’il exploite. Voir les{' '}
+                <Link href="/legal-notice" className="text-brand-700 hover:underline">
+                  mentions légales
+                </Link>
+                .
               </p>
             </section>
 
@@ -162,7 +172,7 @@ export default function TermsAndConditionsPage() {
           <div className="mt-8 pt-8 border-t border-gray-200">
             <Link
               href="/"
-              className="text-[hsl(25,100%,53%)] hover:underline font-medium"
+              className="text-brand-700 hover:underline font-medium"
             >
               ← Retour à l&apos;accueil
             </Link>

@@ -46,7 +46,7 @@ export default function NewPayPalPage() {
   };
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-dvh bg-gray-50'>
       {/* Header */}
       <div className='bg-white shadow-sm border-b border-gray-200'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
@@ -80,39 +80,39 @@ export default function NewPayPalPage() {
                 <div className='space-y-4'>
                   {/* Email */}
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='new-email' className='block text-sm font-medium text-gray-700 mb-2'>
                       Adresse email PayPal *
                     </label>
                     <div className='relative'>
-                      <input
+                      <input id='new-email'
                         type='email'
                         value={formData.email}
                         onChange={e =>
                           handleInputChange('email', e.target.value)
                         }
-                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent pr-12'
+                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent pr-12'
                         placeholder='votre-email@example.com'
                         required
                       />
                       <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
-                        <Mail className='h-5 w-5 text-gray-400' />
+                        <Mail className='h-5 w-5 text-gray-500' />
                       </div>
                     </div>
                   </div>
 
                   {/* Mot de passe */}
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label htmlFor='new-password' className='block text-sm font-medium text-gray-700 mb-2'>
                       Mot de passe PayPal *
                     </label>
                     <div className='relative'>
-                      <input
+                      <input id='new-password'
                         type={showPassword ? 'text' : 'password'}
                         value={formData.password}
                         onChange={e =>
                           handleInputChange('password', e.target.value)
                         }
-                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[hsl(25,100%,53%)] focus:border-transparent pr-12'
+                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus-visible:ring-2 focus-visible:ring-brand-600 focus:border-transparent pr-12'
                         placeholder='Votre mot de passe PayPal'
                         required
                       />
@@ -122,9 +122,9 @@ export default function NewPayPalPage() {
                         className='absolute inset-y-0 right-0 flex items-center pr-3'
                       >
                         {showPassword ? (
-                          <EyeOff className='h-5 w-5 text-gray-400' />
+                          <EyeOff className='h-5 w-5 text-gray-500' />
                         ) : (
-                          <Eye className='h-5 w-5 text-gray-400' />
+                          <Eye className='h-5 w-5 text-gray-500' />
                         )}
                       </button>
                     </div>
@@ -143,7 +143,7 @@ export default function NewPayPalPage() {
                       onChange={e =>
                         handleInputChange('isDefault', e.target.checked)
                       }
-                      className='h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded'
+                      className='h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded'
                     />
                     <label
                       htmlFor='isDefault'
@@ -156,7 +156,7 @@ export default function NewPayPalPage() {
               </div>
 
               {/* Aperçu PayPal */}
-              <div className='bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white'>
+              <div className='bg-gradient-to-r from-brand-600 to-brand-700 rounded-lg p-6 text-white'>
                 <div className='flex items-center justify-between mb-4'>
                   <CreditCard className='h-8 w-8' />
                   <span className='text-sm opacity-75'>PayPal</span>
@@ -187,12 +187,12 @@ export default function NewPayPalPage() {
               {/* Sécurité */}
               <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
                 <div className='flex items-start'>
-                  <Shield className='h-5 w-5 text-blue-600 mt-0.5 mr-3' />
+                  <Shield className='h-5 w-5 text-brand-700 mt-0.5 mr-3' />
                   <div>
-                    <h3 className='text-sm font-medium text-blue-900'>
+                    <h3 className='text-sm font-medium text-brand-900'>
                       Sécurité garantie
                     </h3>
-                    <p className='text-sm text-blue-700 mt-1'>
+                    <p className='text-sm text-brand-800 mt-1'>
                       Vos informations PayPal sont chiffrées et sécurisées. Nous
                       utilisons les mêmes standards de sécurité que PayPal.
                     </p>
@@ -211,7 +211,7 @@ export default function NewPayPalPage() {
                 <button
                   type='submit'
                   disabled={saving || !formData.email || !formData.password}
-                  className='px-6 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                  className='px-6 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   {saving ? 'Ajout en cours...' : 'Ajouter PayPal'}
                 </button>

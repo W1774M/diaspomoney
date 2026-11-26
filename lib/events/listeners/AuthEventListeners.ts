@@ -8,6 +8,19 @@ import { logger } from '@/lib/logger';
 import { notificationService } from '@/services/notification/notification.service';
 import { bookingService } from '@/services/booking/booking.service';
 import * as Sentry from '@sentry/nextjs';
+import { getUserRepository } from '@/repositories';
+
+/** Nom affiché dans l'e-mail de bienvenue : prénom, sinon nom, sinon début de l'e-mail. */
+export async function welcomeName(userId: string, email: string): Promise<string> {
+  try {
+    const user = await getUserRepository().findById(userId);
+    const name = user?.firstName?.trim() || user?.name?.trim();
+    if (name) return name;
+  } catch {
+    // le nom n'est qu'un confort : l'e-mail part quand même
+  }
+  return email.split('@')[0] || 'et bienvenue';
+}
 
 /**
  * Initialiser tous les listeners d'authentification
@@ -103,8 +116,11 @@ export function setupAuthEventListeners() {
           recipient: data.userId,
           type: 'WELCOME',
           template: 'welcome',
+          // Variables du modèle : {{userName}} et {{appName}}
           data: {
             email: data.email,
+            userName: await welcomeName(data.userId, data.email),
+            appName: 'DiaspoMoney',
           },
           channels: [{ type: 'EMAIL', enabled: true, priority: 'HIGH' }],
           locale: 'fr',

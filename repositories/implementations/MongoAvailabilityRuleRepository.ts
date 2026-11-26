@@ -92,6 +92,10 @@ export class MongoAvailabilityRuleRepository
   @Cacheable(300, { prefix: 'AvailabilityRuleRepository:findById' })
   async findById(id: string): Promise<AvailabilityRule | null> {
     try {
+      if (!ObjectId.isValid(id)) {
+        this.log.debug({ ruleId: id }, 'Availability rule id invalid');
+        return null;
+      }
       const collection = await this.getCollection();
       const rule = await collection.findOne({ _id: new ObjectId(id) });
       const result = rule ? this.mapToAvailabilityRule(rule) : null;

@@ -40,7 +40,7 @@ export async function createCheckoutSession(
     } catch (stripeError) {
       const errorMessage = stripeError instanceof Error ? stripeError.message : 'Erreur de configuration Stripe';
       log.error({ error: errorMessage, stripeError }, 'Stripe instance initialization failed');
-      throw new Error(`Configuration Stripe invalide: ${errorMessage}. Vérifiez que STRIPE_SECRET_KEY est correctement configurée.`);
+      throw new Error(`Configuration Stripe invalide: ${errorMessage}. Vérifiez que STRIPE_SECRET_KEY est correctement configurée.`, { cause: stripeError });
     }
     const {
       amount,
@@ -68,7 +68,7 @@ export async function createCheckoutSession(
     
     // Créer la session Checkout
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
+      allowed_payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
@@ -94,7 +94,8 @@ export async function createCheckoutSession(
         source: 'diaspomoney',
         created_at: new Date().toISOString(),
       },
-      expires_at: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // Expire dans 7 jours
+      // Stripe : expires_at entre 30 min et 24 h après création (défaut 24 h).
+      expires_at: Math.floor(Date.now() / 1000) + 23 * 60 * 60,
     });
 
     if (!session.url) {

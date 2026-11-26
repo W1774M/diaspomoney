@@ -141,6 +141,8 @@ export class BeneficiaryFacade {
           template: 'beneficiary_created',
           payload: {
             beneficiaryName: `${data.firstName} ${data.lastName}`,
+            firstName: data.firstName,
+            lastName: data.lastName,
             relationship: data.relationship,
             beneficiaryId,
           },
@@ -156,6 +158,8 @@ export class BeneficiaryFacade {
           template: 'beneficiary_created',
           payload: {
             beneficiaryName: `${data.firstName} ${data.lastName}`,
+            firstName: data.firstName,
+            lastName: data.lastName,
             relationship: data.relationship,
             beneficiaryId,
           },

@@ -24,7 +24,7 @@ export const emailFooter = `
         <p class="footer-section-title">Contact</p>
         <ul class="footer-list">
           <li><a href="https://diaspomoney.fr/hotline" style="color: #64748b; text-decoration: none;">Hotline</a></li>
-          <li><a href="mailto:support@diaspomoney.fr" style="color: #2563eb; text-decoration: none;">support@diaspomoney.fr</a></li>
+          <li><a href="mailto:contact@diaspomoney.fr" style="color: #2563eb; text-decoration: none;">contact@diaspomoney.fr</a></li>
         </ul>
       </div>
     </div>

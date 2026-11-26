@@ -113,15 +113,15 @@ function ProviderDetailPageContent() {
 
   if (loading) {
     return (
-      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]'></div>
+      <div className='min-h-dvh bg-gray-50 flex items-center justify-center'>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600'></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className='min-h-screen bg-gray-50'>
+      <div className='min-h-dvh bg-gray-50'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
           <div className='bg-white rounded-lg shadow border border-gray-200 p-12 text-center'>
             <XCircle className='h-16 w-16 text-red-400 mx-auto mb-4' />
@@ -129,7 +129,7 @@ function ProviderDetailPageContent() {
             <p className='text-gray-500 mb-4'>{error}</p>
             <Link
               href='/dashboard/providers'
-              className='inline-flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors'
+              className='inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
             >
               Retour à la liste
             </Link>
@@ -141,10 +141,10 @@ function ProviderDetailPageContent() {
 
   if (!provider) {
     return (
-      <div className='min-h-screen bg-gray-50'>
+      <div className='min-h-dvh bg-gray-50'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
           <div className='bg-white rounded-lg shadow border border-gray-200 p-12 text-center'>
-            <UserIcon className='h-16 w-16 text-gray-400 mx-auto mb-4' />
+            <UserIcon className='h-16 w-16 text-gray-500 mx-auto mb-4' />
             <h3 className='text-lg font-medium text-gray-900 mb-2'>
               Prestataire non trouvé
             </h3>
@@ -153,7 +153,7 @@ function ProviderDetailPageContent() {
             </p>
             <Link
               href='/dashboard/providers'
-              className='inline-flex items-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors'
+              className='inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
             >
               Retour à la liste
             </Link>
@@ -173,7 +173,7 @@ function ProviderDetailPageContent() {
     .slice(0, 2) || 'P';
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-dvh bg-gray-50'>
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
         {/* Header */}
         <div className='mb-8'>
@@ -185,7 +185,7 @@ function ProviderDetailPageContent() {
           </Link>
           <div className='flex items-center justify-between'>
             <div className='flex items-center'>
-              <div className='flex-shrink-0 h-16 w-16 rounded-full bg-[hsl(25,100%,53%)] flex items-center justify-center text-white font-bold text-2xl mr-4'>
+              <div className='flex-shrink-0 h-16 w-16 rounded-full bg-brand-600 flex items-center justify-center text-white font-bold text-2xl mr-4'>
                 {initials}
               </div>
               <div>
@@ -212,7 +212,7 @@ function ProviderDetailPageContent() {
               <h2 className='text-xl font-semibold text-gray-900 mb-4'>Informations générales</h2>
               <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div className='flex items-start'>
-                  <Mail className='h-5 w-5 text-gray-400 mr-3 mt-0.5' />
+                  <Mail className='h-5 w-5 text-gray-500 mr-3 mt-0.5' />
                   <div>
                     <p className='text-sm text-gray-500'>Email</p>
                     <p className='text-sm font-medium text-gray-900'>{provider.email}</p>
@@ -226,7 +226,7 @@ function ProviderDetailPageContent() {
                 </div>
                 {provider.phone && (
                   <div className='flex items-start'>
-                    <Phone className='h-5 w-5 text-gray-400 mr-3 mt-0.5' />
+                    <Phone className='h-5 w-5 text-gray-500 mr-3 mt-0.5' />
                     <div>
                       <p className='text-sm text-gray-500'>Téléphone</p>
                       <p className='text-sm font-medium text-gray-900'>{provider.phone}</p>
@@ -235,7 +235,7 @@ function ProviderDetailPageContent() {
                 )}
                 {provider.address && (
                   <div className='flex items-start'>
-                    <MapPin className='h-5 w-5 text-gray-400 mr-3 mt-0.5' />
+                    <MapPin className='h-5 w-5 text-gray-500 mr-3 mt-0.5' />
                     <div>
                       <p className='text-sm text-gray-500'>Adresse</p>
                       <p className='text-sm font-medium text-gray-900'>{provider.address}</p>
@@ -249,7 +249,7 @@ function ProviderDetailPageContent() {
                 )}
                 {provider.company && (
                   <div className='flex items-start'>
-                    <Building className='h-5 w-5 text-gray-400 mr-3 mt-0.5' />
+                    <Building className='h-5 w-5 text-gray-500 mr-3 mt-0.5' />
                     <div>
                       <p className='text-sm text-gray-500'>Entreprise</p>
                       <p className='text-sm font-medium text-gray-900'>{provider.company}</p>
@@ -272,7 +272,7 @@ function ProviderDetailPageContent() {
                 <div>
                   <p className='text-sm text-gray-500 mb-1'>Catégorie</p>
                   <div className='flex items-center'>
-                    {CategoryIcon && <CategoryIcon className='h-4 w-4 text-gray-400 mr-2' />}
+                    {CategoryIcon && <CategoryIcon className='h-4 w-4 text-gray-500 mr-2' />}
                     <p className='text-sm font-medium text-gray-900'>
                       {provider.providerInfo?.category || 'Non spécifié'}
                     </p>
@@ -376,7 +376,7 @@ function ProviderDetailPageContent() {
                 </div>
                 {provider.createdAt && (
                   <div className='flex items-start'>
-                    <Calendar className='h-5 w-5 text-gray-400 mr-3 mt-0.5' />
+                    <Calendar className='h-5 w-5 text-gray-500 mr-3 mt-0.5' />
                     <div>
                       <p className='text-sm text-gray-500'>Date d'inscription</p>
                       <p className='text-sm font-medium text-gray-900'>
@@ -416,7 +416,7 @@ function ProviderDetailPageContent() {
                 </Link>
                 <AuthorizedContent roles={[ROLES.CSM, ROLES.ADMIN]}>
                   <button
-                    className='block w-full text-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,100%,48%)] transition-colors text-sm font-medium'
+                    className='block w-full text-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium'
                   >
                     Modifier
                   </button>

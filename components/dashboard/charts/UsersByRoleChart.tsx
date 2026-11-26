@@ -48,7 +48,7 @@ export default function UsersByRoleChart({ data }: UsersByRoleChartProps) {
             dataKey="value"
           >
             {chartData.map((_entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length] ?? '#3b82f6'} />
             ))}
           </Pie>
           <Tooltip />

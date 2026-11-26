@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
+import { LEGAL_ENTITY, legalIdentity } from '@/lib/legal/company';
 import Link from 'next/link';
 
 export const metadata: Metadata = pageMetadata({
@@ -10,7 +11,7 @@ export const metadata: Metadata = pageMetadata({
 
 export default function TermsOfSalePage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-dvh bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="bg-white rounded-lg shadow-sm p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">
@@ -23,6 +24,14 @@ export default function TermsOfSalePage() {
               <p className="text-gray-700 mb-4">
                 Les présentes CGV s’appliquent à toute commande passée via la plateforme par un client
                 pour la réalisation d’une prestation par un prestataire référencé.
+              </p>
+              <p className="text-gray-700 mb-4">
+                La plateforme DiaspoMoney est exploitée par <strong>{LEGAL_ENTITY.name}</strong> (
+                {legalIdentity()}), pour le compte de la société {LEGAL_ENTITY.successor}. Contact :{' '}
+                <a href={`mailto:${LEGAL_ENTITY.email}`} className="text-brand-700 hover:underline">
+                  {LEGAL_ENTITY.email}
+                </a>
+                .
               </p>
             </section>
 
@@ -137,7 +146,7 @@ export default function TermsOfSalePage() {
           <div className="mt-8 pt-8 border-t border-gray-200">
             <Link
               href="/"
-              className="text-[hsl(25,100%,53%)] hover:underline font-medium"
+              className="text-brand-700 hover:underline font-medium"
             >
               ← Retour à l&apos;accueil
             </Link>

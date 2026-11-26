@@ -24,7 +24,7 @@ const InvoiceCard = React.memo<InvoiceCardProps>(function InvoiceCard({
         <div className="flex-1">
           <div className="flex items-center space-x-3 mb-2">
             <div className="p-2 bg-blue-100 rounded-lg">
-              <FileText className="h-5 w-5 text-blue-600" />
+              <FileText className="h-5 w-5 text-brand-700" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
@@ -82,8 +82,9 @@ const InvoiceCard = React.memo<InvoiceCardProps>(function InvoiceCard({
 
         <InvoiceActions
           onView={() => onView(invoice._id)}
-          onEdit={() => onEdit(invoice._id)}
-          onDelete={() => onDelete(invoice._id)}
+          {...(onEdit ? { onEdit: () => onEdit(invoice._id) } : {})}
+          // Une facture émise garde son numéro : seul un brouillon se supprime
+          {...(onDelete && invoice.status === 'DRAFT' ? { onDelete: () => onDelete(invoice._id) } : {})}
           onDownload={() => onDownload(invoice._id)}
         />
       </div>

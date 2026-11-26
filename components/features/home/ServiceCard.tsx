@@ -17,7 +17,7 @@ export function ServiceCard({
       onClick={onClick}
     >
       <div className="mr-4">
-        <span className="text-blue-600 text-2xl">{icon}</span>
+        <span className="text-brand-700 text-2xl">{icon}</span>
       </div>
       <div>
         <h4 className="font-semibold">{title}</h4>

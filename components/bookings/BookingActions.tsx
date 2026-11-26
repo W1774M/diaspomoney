@@ -84,7 +84,7 @@ export default function BookingActions({
           {onEdit && (
             <button
               onClick={onEdit}
-              className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors text-xs sm:text-sm font-medium"
+              className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-xs sm:text-sm font-medium"
               title="Éditer la réservation"
             >
               <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -148,7 +148,7 @@ export default function BookingActions({
             <button
               onClick={onDownloadSummary}
               disabled={downloadingSummary}
-              className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-600 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               title="Télécharger le résumé de la commande (PDF)"
             >
               <Download className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -163,7 +163,7 @@ export default function BookingActions({
           <button
             onClick={onGenerateInvoice}
             disabled={generatingInvoice}
-            className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             title="Générer une facture PDF professionnelle"
           >
             <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -207,7 +207,7 @@ export default function BookingActions({
               <button
                 onClick={onMarkAsFinished}
                 disabled={isUpdating}
-                className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-600 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Marquer la commande comme terminée"
               >
                 <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -261,7 +261,7 @@ export default function BookingActions({
             <button
               onClick={onDownloadSummary}
               disabled={downloadingSummary}
-              className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-600 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               title="Télécharger le résumé de la commande (PDF)"
             >
               <Download className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -276,7 +276,7 @@ export default function BookingActions({
           <button
             onClick={onGenerateInvoice}
             disabled={generatingInvoice}
-            className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             title="Générer une facture PDF professionnelle"
           >
             <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -294,7 +294,7 @@ export default function BookingActions({
               <button
                 onClick={onMarkAsFinished}
                 disabled={isUpdating}
-                className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-600 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Marquer la commande comme terminée"
               >
                 <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />

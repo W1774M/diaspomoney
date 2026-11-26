@@ -303,7 +303,7 @@ describe('AuthorizedRoute', () => {
   });
 
   describe('Bouton de retour', () => {
-    it('devrait afficher un bouton de retour au tableau de bord', () => {
+    it('devrait afficher un lien de retour au tableau de bord', () => {
       mockUseAuth.mockReturnValue({
         isAuthenticated: true,
         isLoading: false,
@@ -320,11 +320,9 @@ describe('AuthorizedRoute', () => {
         </AuthorizedRoute>
       );
 
-      const button = screen.getByText('Retour au tableau de bord');
-      expect(button).toBeInTheDocument();
-
-      button.click();
-      expect(mockPush).toHaveBeenCalledWith('/dashboard');
+      // navigation = vrai lien (ouvrable dans un nouvel onglet, annoncé comme lien)
+      const link = screen.getByRole('link', { name: 'Retour au tableau de bord' });
+      expect(link).toHaveAttribute('href', '/dashboard');
     });
   });
 
@@ -372,7 +370,7 @@ describe('AuthorizedRoute', () => {
       });
     });
 
-    it('devrait autoriser un utilisateur legacy (ADMIN + plusieurs rôles)', async () => {
+    it('refuse un admin qui a d’autres rôles (l’ancienne règle n’existe plus)', async () => {
       mockUseAuth.mockReturnValue({
         isAuthenticated: true,
         isLoading: false,
@@ -386,7 +384,7 @@ describe('AuthorizedRoute', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Contenu super admin')).toBeInTheDocument();
+        expect(screen.queryByText('Contenu super admin')).not.toBeInTheDocument();
       });
     });
 

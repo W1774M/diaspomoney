@@ -61,9 +61,9 @@ export default function ConfirmDialog({
   const variantStyles = {
     default: {
       icon: AlertCircle,
-      iconColor: 'text-blue-600',
+      iconColor: 'text-brand-700',
       iconBg: 'bg-blue-100',
-      confirmButton: 'bg-blue-600 hover:bg-blue-700 text-white',
+      confirmButton: 'bg-brand-600 hover:bg-brand-700 text-white',
     },
     danger: {
       icon: AlertTriangle,
@@ -89,6 +89,7 @@ export default function ConfirmDialog({
   const Icon = style.icon;
 
   const handleConfirm = async () => {
+    if (isLoading) return;
     await onConfirm();
   };
 
@@ -125,7 +126,7 @@ export default function ConfirmDialog({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-gray-500 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Fermer"
           >
             <X className="w-5 h-5" />

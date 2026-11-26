@@ -48,7 +48,7 @@ const SERVICE_OFFERS: ServiceOffer[] = [
     ],
     cta: "Payer les frais de scolarité",
     Icon: GraduationCap,
-    iconClassName: "text-blue-500",
+    iconClassName: "text-brand-700",
   },
   {
     id: "immo",
@@ -101,7 +101,7 @@ export function OffersSection() {
                 <h3 className="text-xl font-bold mb-2">{title}</h3>
                 <p className="text-gray-600 mb-4 md:min-h-12">{description}</p>
                 <div className="mb-4">
-                  <span className="text-2xl font-bold text-[hsl(25,100%,53%)]">{price}</span>
+                  <span className="text-2xl font-bold text-brand-700">{price}</span>
                   <p className="text-sm text-gray-500 mt-1">{delivery}</p>
                 </div>
                 <ul className="space-y-2 mb-6">
@@ -117,7 +117,7 @@ export function OffersSection() {
                 </ul>
                 <Link
                   href={`/services/${id}`}
-                  className="mt-auto block w-full text-center bg-[hsl(25,100%,53%)] text-white py-3 rounded-lg font-semibold hover:bg-[hsl(25,100%,48%)] transition"
+                  className="mt-auto block w-full text-center bg-brand-600 text-white py-3 rounded-lg font-semibold hover:bg-brand-700 transition"
                 >
                   {cta}
                 </Link>

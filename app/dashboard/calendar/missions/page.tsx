@@ -20,12 +20,12 @@ function MissionPlanningPageContent() {
 
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-dvh bg-gray-50'>
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
         {/* Header */}
         <div className='mb-8'>
           <div className='flex items-center mb-4'>
-            <Calendar className='h-8 w-8 text-[hsl(25,100%,53%)] mr-3' />
+            <Calendar className='h-8 w-8 text-brand-700 mr-3' />
             <h1 className='text-3xl font-bold text-gray-900'>Planning des missions</h1>
           </div>
           <p className='text-gray-600'>
@@ -36,7 +36,7 @@ function MissionPlanningPageContent() {
         {/* Content */}
         <div className='bg-white rounded-lg shadow border border-gray-200 p-6'>
           <div className='text-center py-12'>
-            <Calendar className='h-16 w-16 text-gray-400 mx-auto mb-4' />
+            <Calendar className='h-16 w-16 text-gray-500 mx-auto mb-4' />
             <h3 className='text-lg font-medium text-gray-900 mb-2'>
               Planning des missions
             </h3>

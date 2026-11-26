@@ -188,10 +188,74 @@ describe('canaux', () => {
     expect(repo.updateStatus.mock.calls[0]![2].failureReason).toBe("Erreur lors de l'envoi via EMAIL: Failed to send email via Resend");
   });
 
-  it('échoue l’e-mail si l’identifiant destinataire n’a pas d’adresse', async () => {
+  it('envoie l’e-mail d’un invité à l’adresse fournie, sans chercher un utilisateur', async () => {
+    const n = await send({
+      recipient: 'guest-tnpris-mwvsdo2o',
+      recipientEmail: 'ada@example.com',
+    });
+    expect(users.findById).not.toHaveBeenCalled();
+    expect(h.sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: 'ada@example.com' }));
+    expect(n.metadata?.['recipientEmail']).toBe('ada@example.com');
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(statuses()).toEqual(['SENT']);
+  });
+
+  it('ignore l’e-mail d’un invité sans adresse et n’ouvre pas d’erreur Sentry', async () => {
+    await send({ recipient: 'guest-tnpris-mwvsdo2o' });
+    expect(users.findById).not.toHaveBeenCalled();
+    expect(h.sendEmail).not.toHaveBeenCalled();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(statuses()).toEqual(['EXPIRED']);
+  });
+
+  it('envoie l’e-mail à l’adresse de l’utilisateur désigné par son identifiant', async () => {
+    users.findById.mockResolvedValue({ id: 'u1', email: 'ada@example.com' });
     await send({ recipient: 'u1' });
+    expect(users.findById).toHaveBeenLastCalledWith('u1');
+    expect(h.sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: 'ada@example.com' }));
+    expect(statuses()).toEqual(['SENT']);
+  });
+
+  it('ignore l’e-mail d’un identifiant inconnu sans ouvrir d’erreur Sentry', async () => {
+    await send({ recipient: 'service-paiements' });
+    expect(users.findById).toHaveBeenCalledWith('service-paiements');
+    expect(h.sendEmail).not.toHaveBeenCalled();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(statuses()).toEqual(['EXPIRED']);
+  });
+
+  it('ignore l’e-mail d’un utilisateur sans adresse sans ouvrir d’erreur Sentry', async () => {
+    users.findById.mockResolvedValue({ id: 'u1', email: '' });
+    await send({ recipient: 'u1' });
+    expect(h.sendEmail).not.toHaveBeenCalled();
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(statuses()).toEqual(['EXPIRED']);
+  });
+
+  it('remonte dans Sentry une erreur de lecture de l’utilisateur', async () => {
+    users.findById.mockRejectedValue(new Error('mongo HS'));
+    await send({ recipient: 'u1' });
+    expect(h.sendEmail).not.toHaveBeenCalled();
+    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
     expect(statuses()).toEqual(['FAILED', 'EXPIRED']);
     expect(repo.updateStatus.mock.calls[0]![2].failureReason).toContain('Failed to resolve user email: u1');
+  });
+
+  it('ignore le canal in-app d’un invité : la notification n’est pas envoyée', async () => {
+    await send({ recipient: 'guest-tnpris-mwvsdo2o', channels: ch('IN_APP') });
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(statuses()).toEqual(['EXPIRED']);
+  });
+
+  it('envoie l’e-mail d’un invité et ignore son canal in-app', async () => {
+    await send({
+      recipient: 'guest-tnpris-mwvsdo2o',
+      recipientEmail: 'ada@example.com',
+      channels: ch('EMAIL', 'IN_APP'),
+    });
+    expect(h.sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: 'ada@example.com' }));
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+    expect(statuses()).toEqual(['SENT']);
   });
 
   it('remonte une panne d’enregistrement du statut in-app', async () => {

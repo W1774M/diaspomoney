@@ -18,10 +18,10 @@ import { Suspense } from 'react';
 
 export default function RegisterPage() {
   return (
-    <div className='min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50'>
-      <div className='flex flex-col lg:flex-row min-h-screen'>
+    <div className='min-h-dvh bg-gradient-to-br from-gray-50 via-white to-blue-50'>
+      <div className='flex flex-col lg:flex-row min-h-dvh'>
         {/* Sidebar réduite - 40% au lieu de 50% */}
-        <div className='hidden lg:flex lg:w-2/5 bg-gradient-to-br from-[hsl(25,100%,53%)] via-[hsl(25,100%,45%)] to-[hsl(25,100%,35%)] relative overflow-hidden'>
+        <div className='hidden lg:flex lg:w-2/5 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-800 relative overflow-hidden'>
           {/* Pattern de fond simplifié */}
           <div className='absolute inset-0 bg-black/10'></div>
           <div className='absolute top-0 left-0 w-full h-full'>
@@ -91,7 +91,7 @@ export default function RegisterPage() {
           <div className='w-full max-w-lg'>
             {/* Header mobile */}
             <div className='lg:hidden text-center mb-8'>
-              <div className='inline-block bg-gradient-to-br from-[hsl(25,100%,53%)] to-[hsl(25,100%,45%)] rounded-2xl p-3 mb-4 shadow-lg'>
+              <div className='inline-block bg-gradient-to-br from-brand-600 to-brand-700 rounded-2xl p-3 mb-4 shadow-lg'>
                 <Image
                   src='/img/diaspo/Logo_Diaspo_Horizontal_enrichi.webp'
                   alt='DiaspoMoney'
@@ -114,7 +114,7 @@ export default function RegisterPage() {
 
             <div className='bg-white rounded-2xl shadow-xl border border-gray-100 p-8 sm:p-10'>
               <div className='text-center mb-8'>
-                <div className='inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-[hsl(25,100%,53%)] to-[hsl(25,100%,45%)] rounded-full mb-3 shadow-lg'>
+                <div className='inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-brand-600 to-brand-700 rounded-full mb-3 shadow-lg'>
                   <CheckCircle className='w-6 h-6 text-white' />
                 </div>
                 <h2 className='text-2xl font-bold text-gray-900 mb-2'>
@@ -155,19 +155,19 @@ export default function RegisterPage() {
                 <div className='flex flex-wrap justify-center gap-4 text-xs sm:text-sm'>
                   <Link
                     href='/hotline'
-                    className='text-gray-500 hover:text-[hsl(25,100%,53%)] transition-colors duration-200 font-medium'
+                    className='text-gray-500 hover:text-brand-800 transition-colors duration-200 font-medium'
                   >
                     Aide
                   </Link>
                   <Link
                     href='/support'
-                    className='text-gray-500 hover:text-[hsl(25,100%,53%)] transition-colors duration-200 font-medium'
+                    className='text-gray-500 hover:text-brand-800 transition-colors duration-200 font-medium'
                   >
                     Support
                   </Link>
                   <Link
                     href='/privacy'
-                    className='text-gray-500 hover:text-[hsl(25,100%,53%)] transition-colors duration-200 font-medium'
+                    className='text-gray-500 hover:text-brand-800 transition-colors duration-200 font-medium'
                   >
                     Confidentialité
                   </Link>

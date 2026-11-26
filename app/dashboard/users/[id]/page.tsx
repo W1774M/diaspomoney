@@ -24,6 +24,8 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useNotificationManager } from '@/components/ui/Notification';
 import { USER_STATUSES } from '@/lib/constants';
+import { isPlaceholderEmail } from '@/lib/csm/provider-proposal';
+import { SupportPanel } from '@/components/support/SupportPanel';
 
 /**
  * Contenu de la page de détail d'un utilisateur
@@ -73,7 +75,7 @@ function UserDetailPageContent() {
   if (loading) {
     return (
       <div className='text-center py-12'>
-        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto'></div>
         <p className='mt-4 text-gray-600'>
           Chargement de l&apos;utilisateur...
         </p>
@@ -81,13 +83,24 @@ function UserDetailPageContent() {
     );
   }
 
+  // Proposition d'un CSM (prestataire ajouté sans compte), voir lib/csm/provider-proposal.ts
+  const csmProposal = (user as any)?.csmProposal as
+    | {
+        csmName?: string;
+        proposedAt?: string;
+        notes?: string;
+        missingInfo?: string[];
+      }
+    | undefined;
+  const emailToComplete = isPlaceholderEmail(user?.email);
+
   if (error || !user) {
     return (
       <div className='text-center py-12'>
         <p className='text-gray-600'>{error || 'Utilisateur non trouvé'}</p>
         <Link
           href='/dashboard/users'
-          className='mt-4 inline-flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+          className='mt-4 inline-flex items-center text-brand-700 hover:text-brand-800'
         >
           <ArrowLeft className='h-4 w-4 mr-2' />
           Retour aux utilisateurs
@@ -103,7 +116,7 @@ function UserDetailPageContent() {
         <div className='flex items-center mb-4'>
           <Link
             href='/dashboard/users'
-            className='flex items-center text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+            className='flex items-center text-brand-700 hover:text-brand-800'
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Retour aux utilisateurs
@@ -125,6 +138,32 @@ function UserDetailPageContent() {
           </span>
         </div>
       </div>
+
+      {csmProposal && user.status === USER_STATUSES.PENDING && (
+        <div className='mb-6 rounded-lg border border-yellow-300 bg-yellow-50 p-4'>
+          <h2 className='text-sm font-semibold text-yellow-900'>
+            Prestataire proposé par {csmProposal.csmName || 'un CSM'}
+            {csmProposal.proposedAt &&
+              ` le ${new Date(csmProposal.proposedAt).toLocaleDateString('fr-FR')}`}{' '}
+            : à valider
+          </h2>
+          {csmProposal.missingInfo && csmProposal.missingInfo.length > 0 && (
+            <p className='mt-1 text-sm text-yellow-900'>
+              Informations manquantes : {csmProposal.missingInfo.join(', ')}.
+            </p>
+          )}
+          {csmProposal.notes && (
+            <p className='mt-1 text-sm text-yellow-900 whitespace-pre-wrap'>
+              Note du CSM : {csmProposal.notes}
+            </p>
+          )}
+          <p className='mt-2 text-sm text-yellow-800'>
+            {emailToComplete
+              ? "Pas encore d'e-mail réel : contactez le prestataire, renseignez son e-mail via « Modifier l'utilisateur », puis envoyez le lien d'activation."
+              : "Vérifiez les informations (« Modifier l'utilisateur ») puis envoyez le lien d'activation. Si elles sont insuffisantes, contactez le prestataire."}
+          </p>
+        </div>
+      )}
 
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
         {/* Informations principales */}
@@ -275,7 +314,7 @@ function UserDetailPageContent() {
                     {((user.providerInfo as any)?.specialties || user.specialties || []).map((specialty: string, index: number) => (
                       <span
                         key={index}
-                        className='inline-flex items-center px-3 py-1 rounded-full text-sm bg-[hsl(25,100%,53%)]/10 text-[hsl(25,100%,53%)]'
+                        className='inline-flex items-center px-3 py-1 rounded-full text-sm bg-brand-500/10 text-brand-700'
                       >
                         {specialty}
                       </span>
@@ -541,7 +580,7 @@ function UserDetailPageContent() {
             <div className='space-y-2'>
               <Link
                 href={`/dashboard/users/${user._id}/edit`}
-                className='w-full flex items-center justify-center px-4 py-2 bg-[hsl(25,100%,53%)] text-white rounded-lg hover:bg-[hsl(25,90%,48%)] transition-colors'
+                className='w-full flex items-center justify-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
               >
                 <Edit className='h-4 w-4 mr-2' />
                 Modifier l'utilisateur
@@ -549,17 +588,22 @@ function UserDetailPageContent() {
               {user.status === USER_STATUSES.PENDING && (
                 <button
                   onClick={handleResendActivation}
-                  disabled={isResending}
+                  disabled={isResending || emailToComplete}
+                  title={
+                    emailToComplete
+                      ? "Renseignez d'abord l'e-mail réel du prestataire"
+                      : undefined
+                  }
                   className='w-full flex items-center justify-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   <Send className='h-4 w-4 mr-2' />
                   {isResending ? 'Envoi...' : 'Renvoyer le lien d\'activation'}
                 </button>
               )}
-              {user.email && (
+              {user.email && !emailToComplete && (
                 <a
                   href={`mailto:${user.email}`}
-                  className='w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+                  className='w-full flex items-center justify-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors'
                 >
                   <Mail className='h-4 w-4 mr-2' />
                   Envoyer un email
@@ -608,26 +652,8 @@ function UserDetailPageContent() {
             </div>
           </div>
 
-          {/* Statistiques */}
-          <div className='bg-white rounded-lg shadow border border-gray-200 p-6'>
-            <h2 className='text-lg font-semibold text-gray-900 mb-4'>
-              Statistiques
-            </h2>
-            <div className='space-y-3'>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-gray-600'>Factures</span>
-                <span className='text-lg font-bold text-gray-900'>0</span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-gray-600'>Tâches</span>
-                <span className='text-lg font-bold text-gray-900'>0</span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-sm text-gray-600'>Projets</span>
-                <span className='text-lg font-bold text-gray-900'>0</span>
-              </div>
-            </div>
-          </div>
+          {/* Support : volumes réels, actions ciblées, consultation en lecture seule */}
+          <SupportPanel userId={userId} onChanged={() => fetchUser(userId)} />
         </div>
       </div>
     </>

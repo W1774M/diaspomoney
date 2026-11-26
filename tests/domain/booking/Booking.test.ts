@@ -35,6 +35,65 @@ describe('Booking aggregate', () => {
     );
   });
 
+  it('markPaymentConfirmed avance à l’étape 3 sans validation admin', () => {
+    const booking = Booking.fromPersistence({
+      id: 'b1',
+      reservationNumber: 'RES-1',
+      requesterId: 'user1',
+      status: 'PENDING',
+      metadata: {
+        totalAmount: 50,
+        clientEmail: 'a@b.com',
+        currentStep: 2,
+        stepName: 'Étape 2 : Sélection du service',
+        progressHistory: [
+          { step: 1, completed: true, stepName: 'Étape 1 : Informations client' },
+          { step: 2, completed: true, stepName: 'Étape 2 : Sélection du service' },
+        ],
+      },
+    });
+
+    booking.markPaymentConfirmed(confirmedProof);
+
+    const meta = booking.toApplicationUpdate().metadata;
+    expect(meta['currentStep']).toBe(3);
+    expect(meta['stepName']).toBe('Étape 3 : Paiement');
+    expect(meta['paymentPending']).toBe(false);
+
+    const history = meta['progressHistory'] as Array<{
+      step: number;
+      completed: boolean;
+      validatedByPayment?: boolean;
+      data?: { paymentConfirmed?: boolean };
+    }>;
+    expect(history.find((h) => h.step === 3)).toMatchObject({
+      completed: true,
+      validatedByPayment: true,
+      data: { paymentConfirmed: true, paymentPending: false },
+    });
+    expect(history.filter((h) => h.step <= 3).every((h) => h.completed)).toBe(
+      true,
+    );
+  });
+
+  it('markPaymentConfirmed ne recule pas si déjà à l’étape 4', () => {
+    const booking = Booking.fromPersistence({
+      id: 'b1',
+      status: 'PENDING',
+      metadata: {
+        currentStep: 4,
+        stepName: 'Étape 4 : Confirmation',
+        progressHistory: [{ step: 4, completed: true }],
+      },
+    });
+
+    booking.markPaymentConfirmed(confirmedProof);
+
+    const meta = booking.toApplicationUpdate().metadata;
+    expect(meta['currentStep']).toBe(4);
+    expect(meta['stepName']).toBe('Étape 4 : Confirmation');
+  });
+
   it('refuse la confirmation sur booking cancelled', () => {
     const booking = Booking.fromPersistence({
       id: 'b1',

@@ -28,12 +28,15 @@ export async function POST(request: NextRequest) {
     // S'assurer que la connexion à la base de données est établie
     await dbConnect();
 
-    // Trouver l'utilisateur
+    // Trouver l'utilisateur — réponse générique si inconnu (anti-énumération)
     const user = await (User as any).findOne({ email: email.toLowerCase() });
     if (!user) {
       return NextResponse.json(
-        { error: 'Aucun compte trouvé avec cette adresse email' },
-        { status: 404 },
+        {
+          success: true,
+          message: 'Si un compte existe pour cet email, un lien de vérification a été envoyé',
+        },
+        { status: 200 },
       );
     }
 

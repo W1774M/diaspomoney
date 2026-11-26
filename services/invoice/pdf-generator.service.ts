@@ -97,6 +97,8 @@ export class PDFGeneratorService {
       // Créer le document PDF
       const doc = new PDFDocument({
         size: 'A4',
+        // Pages gardées en mémoire : le pied de page est ajouté sur chacune à la fin
+        bufferPages: true,
         margins: {
           top: 50,
           bottom: 80, // Plus d'espace pour le footer avec branding
@@ -136,9 +138,12 @@ export class PDFGeneratorService {
         .text(DIASPOMONEY_BRANDING.company.tagline, { align: 'left' })
         .fillColor(DIASPOMONEY_BRANDING.colors.text)
         .fontSize(9)
-        .text(`${DIASPOMONEY_BRANDING.company.email}`, { align: 'left' })
+        // Émetteur légal de la facture (voir lib/legal/company.ts)
+        .text(`${DIASPOMONEY_BRANDING.company.legalName} (${DIASPOMONEY_BRANDING.company.legalForm})`, { align: 'left' })
         .text(`${DIASPOMONEY_BRANDING.company.address}`, { align: 'left' })
         .text(`${DIASPOMONEY_BRANDING.company.postalCode} ${DIASPOMONEY_BRANDING.company.city}, ${DIASPOMONEY_BRANDING.company.country}`, { align: 'left' })
+        .text(`SIRET ${DIASPOMONEY_BRANDING.company.siret}`, { align: 'left' })
+        .text(`${DIASPOMONEY_BRANDING.company.email}`, { align: 'left' })
         .moveDown(1);
 
       // Informations du client
@@ -230,30 +235,37 @@ export class PDFGeneratorService {
       const tableStartX = 50;
       const tableWidth = 500;
 
-      // En-tête du tableau
-      doc
-        .fontSize(10)
-        .font('Helvetica-Bold')
-        .text('Description', tableStartX, tableTop, { width: 250 })
-        .text('Qté', tableStartX + 250, tableTop, { width: 50, align: 'right' })
-        .text('Prix unit.', tableStartX + 300, tableTop, {
-          width: 80,
-          align: 'right',
-        })
-        .text('Total', tableStartX + 380, tableTop, {
-          width: 120,
-          align: 'right',
-        });
-
-      // Ligne de séparation
-      doc
-        .moveTo(tableStartX, tableTop + 20)
-        .lineTo(tableStartX + tableWidth, tableTop + 20)
-        .stroke();
+      // En-tête du tableau (répété en haut de chaque nouvelle page)
+      const drawTableHeader = (y: number) => {
+        doc
+          .fontSize(10)
+          .font('Helvetica-Bold')
+          .text('Description', tableStartX, y, { width: 250 })
+          .text('Qté', tableStartX + 250, y, { width: 50, align: 'right' })
+          .text('Prix unit.', tableStartX + 300, y, {
+            width: 80,
+            align: 'right',
+          })
+          .text('Total', tableStartX + 380, y, {
+            width: 120,
+            align: 'right',
+          });
+        doc
+          .moveTo(tableStartX, y + 20)
+          .lineTo(tableStartX + tableWidth, y + 20)
+          .stroke();
+        return y + 30;
+      };
+      // Bas utilisable de la page : au-delà, PDFKit ouvrirait une page par cellule écrite
+      const pageBottom = () => doc.page.height - doc.page.margins.bottom;
 
       // Articles
-      let currentY = tableTop + 30;
+      let currentY = drawTableHeader(tableTop);
       invoice.items.forEach(item => {
+        if (currentY + itemHeight > pageBottom()) {
+          doc.addPage();
+          currentY = drawTableHeader(doc.page.margins.top);
+        }
         doc
           .fontSize(9)
           .font('Helvetica')
@@ -278,7 +290,11 @@ export class PDFGeneratorService {
         currentY += itemHeight;
       });
 
-      // Totaux
+      // Totaux (sur une nouvelle page s'ils ne tiennent plus)
+      if (currentY + 80 > pageBottom()) {
+        doc.addPage();
+        currentY = doc.page.margins.top;
+      }
       const totalsY = currentY + 10;
       doc
         .moveTo(tableStartX + 300, totalsY)
@@ -334,14 +350,15 @@ export class PDFGeneratorService {
           { width: 120, align: 'right' },
         );
 
-      // Notes
+      // Notes et remerciement sur toute la largeur (le curseur était resté dans la
+      // dernière colonne des totaux)
       if (invoice.metadata?.['notes']) {
         doc.moveDown(2);
         doc
           .fontSize(10)
           .font('Helvetica')
-          .text('Notes:', { align: 'left' })
-          .text(invoice.metadata['notes'], { align: 'left' });
+          .text('Notes:', tableStartX, doc.y, { align: 'left', width: tableWidth })
+          .text(invoice.metadata['notes'], { align: 'left', width: tableWidth });
       }
 
       // Ajouter un message de remerciement avec branding
@@ -350,20 +367,22 @@ export class PDFGeneratorService {
         .fontSize(10)
         .font('Helvetica')
         .fillColor(DIASPOMONEY_BRANDING.colors.primary)
-        .text('Merci pour votre confiance !', { align: 'center' })
+        .text('Merci pour votre confiance !', tableStartX, doc.y, { align: 'center', width: tableWidth })
         .fillColor(DIASPOMONEY_BRANDING.colors.text);
 
-      // Ajouter le footer sur chaque page
-      let pageCount = 0;
-      doc.on('pageAdded', () => {
-        pageCount++;
+      // Pied de page sur chaque page, une fois tout le contenu écrit. (Un écouteur
+      // « pageAdded » posé ici n'était jamais appelé : le contenu était déjà écrit.)
+      const range = doc.bufferedPageRange();
+      for (let i = range.start; i < range.start + range.count; i++) {
+        doc.switchToPage(i);
         const page = doc.page;
         const footerY = page.height - 50;
-        
-        // Sauvegarder l'état actuel
+        // Le pied de page est sous la marge basse : la lever le temps de l'écrire,
+        // sinon PDFKit ouvrirait une nouvelle page.
+        const bottomMargin = page.margins.bottom;
+        page.margins.bottom = 0;
+
         doc.save();
-        
-        // Footer avec branding
         doc
           .fontSize(8)
           .font('Helvetica')
@@ -387,9 +406,9 @@ export class PDFGeneratorService {
             },
           );
         
-        // Restaurer l'état
         doc.restore();
-      });
+        page.margins.bottom = bottomMargin;
+      }
 
       // Finaliser le PDF et collecter le buffer
       return new Promise<Buffer>((resolve, reject) => {

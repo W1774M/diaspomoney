@@ -131,7 +131,7 @@ export default function UsersTableModern({
     return (
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="p-8 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)]"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
           <p className="mt-4 text-gray-600">Chargement des utilisateurs...</p>
         </div>
       </div>
@@ -141,7 +141,7 @@ export default function UsersTableModern({
   if (rows.length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-        <div className="text-gray-400 mb-4">
+        <div className="text-gray-500 mb-4">
           <svg
             className="w-12 h-12 mx-auto"
             fill="none"
@@ -169,11 +169,12 @@ export default function UsersTableModern({
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div tabIndex={0} role='region' aria-labelledby='table-userstablemodern-1' className="overflow-x-auto">
         <table className="w-full">
+<caption id='table-userstablemodern-1' className='visually-hidden'>Liste des utilisateurs</caption>
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-4 py-3 text-left">
+              <th scope='col' className="px-4 py-3 text-left">
                 <input
                   type="checkbox"
                   checked={allSelected}
@@ -181,25 +182,25 @@ export default function UsersTableModern({
                     if (input) input.indeterminate = someSelected;
                   }}
                   onChange={(e) => handleSelectAll(e.target.checked)}
-                  className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
+                  className="h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded"
                 />
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th scope='col' className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 EMAIL ADDRESS
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden md:table-cell">
+              <th scope='col' className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden md:table-cell">
                 PROVIDER
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:table-cell">
+              <th scope='col' className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:table-cell">
                 CREATED
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:table-cell">
+              <th scope='col' className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:table-cell">
                 LAST SIGN IN
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden xl:table-cell">
+              <th scope='col' className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden xl:table-cell">
                 USER UID
               </th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <th scope='col' className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                 ACTIONS
               </th>
             </tr>
@@ -215,7 +216,7 @@ export default function UsersTableModern({
                     type="checkbox"
                     checked={selectedRows.has(row.id)}
                     onChange={(e) => handleSelectRow(row.id, e.target.checked)}
-                    className="h-4 w-4 text-[hsl(25,100%,53%)] focus:ring-[hsl(25,100%,53%)] border-gray-300 rounded"
+                    className="h-4 w-4 text-brand-700 focus-visible:ring-brand-600 border-gray-300 rounded"
                   />
                 </td>
                 <td className="px-4 py-3">
@@ -248,7 +249,7 @@ export default function UsersTableModern({
                   <div className="relative inline-block actions-menu">
                     <button
                       onClick={() => handleToggleActionsMenu(row.id)}
-                      className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                      className="p-1 text-gray-500 hover:text-gray-600 transition-colors"
                       aria-label="Actions"
                     >
                       <MoreVertical className="h-5 w-5" />

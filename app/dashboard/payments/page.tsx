@@ -1,5 +1,6 @@
 'use client';
 
+import { useConfirm } from '@/components/ui/ConfirmProvider';
 /**
  * Page de gestion des moyens de paiement
  * Implémente les design patterns :
@@ -25,6 +26,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export default function PaymentsPage() {
+  const confirmer = useConfirm();
   const { isAuthenticated } = useAuth();
   const {
     paymentMethods,
@@ -73,15 +75,13 @@ export default function PaymentsPage() {
     id: string,
   ) => {
     if (
-      !confirm(
-        `Êtes-vous sûr de vouloir supprimer cette ${
+      !(await confirmer({ message: `Êtes-vous sûr de vouloir supprimer cette ${
           type === 'address'
             ? 'adresse'
             : type === 'card'
             ? 'carte'
             : 'compte PayPal'
-        } ?`,
-      )
+        } ?`, variant: 'danger' }))
     ) {
       return;
     }
@@ -103,7 +103,7 @@ export default function PaymentsPage() {
   };
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-dvh bg-gray-50'>
       {/* Header */}
       <div className='bg-white shadow-sm border-b border-gray-200'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
@@ -137,7 +137,7 @@ export default function PaymentsPage() {
               </p>
             </div>
             <div className='text-right'>
-              <p className='text-3xl font-bold text-[hsl(25,100%,53%)]'>
+              <p className='text-3xl font-bold text-brand-700'>
                 {loading
                   ? '...'
                   : balance
@@ -156,7 +156,7 @@ export default function PaymentsPage() {
               onClick={() => setActiveTab('cards')}
               className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                 activeTab === 'cards'
-                  ? 'text-[hsl(25,100%,53%)] bg-[hsl(25,100%,53%)]/10'
+                  ? 'text-brand-700 bg-brand-500/10'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -167,7 +167,7 @@ export default function PaymentsPage() {
               onClick={() => setActiveTab('paypal')}
               className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                 activeTab === 'paypal'
-                  ? 'text-[hsl(25,100%,53%)] bg-[hsl(25,100%,53%)]/10'
+                  ? 'text-brand-700 bg-brand-500/10'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -178,7 +178,7 @@ export default function PaymentsPage() {
               onClick={() => setActiveTab('addresses')}
               className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                 activeTab === 'addresses'
-                  ? 'text-[hsl(25,100%,53%)] bg-[hsl(25,100%,53%)]/10'
+                  ? 'text-brand-700 bg-brand-500/10'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -200,7 +200,7 @@ export default function PaymentsPage() {
                   </h2>
                   <Link
                     href='/dashboard/payments/cards/new'
-                    className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)]'
+                    className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700'
                   >
                     <Plus className='h-4 w-4 mr-2' />
                     Ajouter une carte
@@ -209,7 +209,7 @@ export default function PaymentsPage() {
 
                 {loading ? (
                   <div className='text-center py-8'>
-                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
+                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto'></div>
                   </div>
                 ) : (
                   <>
@@ -254,21 +254,21 @@ export default function PaymentsPage() {
                                   onClick={() =>
                                     handleSetDefault('card', method.id)
                                   }
-                                  className='text-sm text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+                                  className='text-sm text-brand-700 hover:text-brand-800'
                                 >
                                   Définir par défaut
                                 </button>
                               )}
                               <Link
                                 href={`/dashboard/payments/cards/${method.id}/edit`}
-                                className='text-gray-400 hover:text-gray-600'
+                                className='text-gray-500 hover:text-gray-600'
                               >
                                 <Edit className='h-4 w-4' />
                               </Link>
                               <button
                                 title='Supprimer la carte'
                                 onClick={() => handleDelete('card', method.id)}
-                                className='text-gray-400 hover:text-red-600'
+                                className='text-gray-500 hover:text-red-600'
                               >
                                 <Trash2 className='h-4 w-4' />
                               </button>
@@ -280,7 +280,7 @@ export default function PaymentsPage() {
                     {paymentMethods.filter(method => method.type === 'card')
                       .length === 0 && (
                       <div className='text-center py-8'>
-                        <CreditCard className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+                        <CreditCard className='h-12 w-12 text-gray-500 mx-auto mb-4' />
                         <h3 className='text-lg font-medium text-gray-900 mb-2'>
                           Aucune carte bancaire
                         </h3>
@@ -290,7 +290,7 @@ export default function PaymentsPage() {
                         </p>
                         <Link
                           href='/dashboard/payments/cards/new'
-                          className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)]'
+                          className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700'
                         >
                           <Plus className='h-4 w-4 mr-2' />
                           Ajouter une carte
@@ -313,7 +313,7 @@ export default function PaymentsPage() {
                   </h2>
                   <Link
                     href='/dashboard/payments/paypal/new'
-                    className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)]'
+                    className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700'
                   >
                     <Plus className='h-4 w-4 mr-2' />
                     Ajouter PayPal
@@ -322,7 +322,7 @@ export default function PaymentsPage() {
 
                 {loading ? (
                   <div className='text-center py-8'>
-                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
+                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto'></div>
                   </div>
                 ) : (
                   <>
@@ -336,7 +336,7 @@ export default function PaymentsPage() {
                           >
                             <div className='flex items-center space-x-4'>
                               <div className='flex items-center justify-center w-12 h-8 bg-blue-100 rounded'>
-                                <CreditCard className='h-5 w-5 text-blue-600' />
+                                <CreditCard className='h-5 w-5 text-brand-700' />
                               </div>
                               <div>
                                 <div className='flex items-center space-x-2'>
@@ -367,14 +367,14 @@ export default function PaymentsPage() {
                                   onClick={() =>
                                     handleSetDefault('paypal', method.id)
                                   }
-                                  className='text-sm text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+                                  className='text-sm text-brand-700 hover:text-brand-800'
                                 >
                                   Définir par défaut
                                 </button>
                               )}
                               <Link
                                 href={`/dashboard/payments/paypal/${method.id}/edit`}
-                                className='text-gray-400 hover:text-gray-600'
+                                className='text-gray-500 hover:text-gray-600'
                               >
                                 <Edit className='h-4 w-4' />
                               </Link>
@@ -383,7 +383,7 @@ export default function PaymentsPage() {
                                 onClick={() =>
                                   handleDelete('paypal', method.id)
                                 }
-                                className='text-gray-400 hover:text-red-600'
+                                className='text-gray-500 hover:text-red-600'
                               >
                                 <Trash2 className='h-4 w-4' />
                               </button>
@@ -395,7 +395,7 @@ export default function PaymentsPage() {
                     {paymentMethods.filter(method => method.type === 'paypal')
                       .length === 0 && (
                       <div className='text-center py-8'>
-                        <CreditCard className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+                        <CreditCard className='h-12 w-12 text-gray-500 mx-auto mb-4' />
                         <h3 className='text-lg font-medium text-gray-900 mb-2'>
                           Aucun compte PayPal
                         </h3>
@@ -405,7 +405,7 @@ export default function PaymentsPage() {
                         </p>
                         <Link
                           href='/dashboard/payments/paypal/new'
-                          className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)]'
+                          className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700'
                         >
                           <Plus className='h-4 w-4 mr-2' />
                           Ajouter PayPal
@@ -428,7 +428,7 @@ export default function PaymentsPage() {
                   </h2>
                   <Link
                     href='/dashboard/payments/addresses/new'
-                    className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)]'
+                    className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700'
                   >
                     <Plus className='h-4 w-4 mr-2' />
                     Ajouter une adresse
@@ -437,7 +437,7 @@ export default function PaymentsPage() {
 
                 {loading ? (
                   <div className='text-center py-8'>
-                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(25,100%,53%)] mx-auto'></div>
+                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto'></div>
                   </div>
                 ) : (
                   <>
@@ -481,14 +481,14 @@ export default function PaymentsPage() {
                                 onClick={() =>
                                   handleSetDefault('address', address.id)
                                 }
-                                className='text-sm text-[hsl(25,100%,53%)] hover:text-[hsl(25,90%,48%)]'
+                                className='text-sm text-brand-700 hover:text-brand-800'
                               >
                                 Définir par défaut
                               </button>
                             )}
                             <Link
                               href={`/dashboard/payments/addresses/${address.id}/edit`}
-                              className='text-gray-400 hover:text-gray-600'
+                              className='text-gray-500 hover:text-gray-600'
                             >
                               <Edit className='h-4 w-4' />
                             </Link>
@@ -497,7 +497,7 @@ export default function PaymentsPage() {
                               onClick={() =>
                                 handleDelete('address', address.id)
                               }
-                              className='text-gray-400 hover:text-red-600'
+                              className='text-gray-500 hover:text-red-600'
                             >
                               <Trash2 className='h-4 w-4' />
                             </button>
@@ -508,7 +508,7 @@ export default function PaymentsPage() {
 
                     {billingAddresses.length === 0 && (
                       <div className='text-center py-8'>
-                        <MapPin className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+                        <MapPin className='h-12 w-12 text-gray-500 mx-auto mb-4' />
                         <h3 className='text-lg font-medium text-gray-900 mb-2'>
                           Aucune adresse de facturation
                         </h3>
@@ -517,7 +517,7 @@ export default function PaymentsPage() {
                         </p>
                         <Link
                           href='/dashboard/payments/addresses/new'
-                          className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[hsl(25,100%,53%)] hover:bg-[hsl(25,90%,48%)]'
+                          className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700'
                         >
                           <Plus className='h-4 w-4 mr-2' />
                           Ajouter une adresse
@@ -534,12 +534,12 @@ export default function PaymentsPage() {
         {/* Security Notice */}
         <div className='mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4'>
           <div className='flex items-start'>
-            <Lock className='h-5 w-5 text-blue-600 mt-0.5 mr-3' />
+            <Lock className='h-5 w-5 text-brand-700 mt-0.5 mr-3' />
             <div>
-              <h3 className='text-sm font-medium text-blue-900'>
+              <h3 className='text-sm font-medium text-brand-900'>
                 Sécurité des paiements
               </h3>
-              <p className='text-sm text-blue-700 mt-1'>
+              <p className='text-sm text-brand-800 mt-1'>
                 Toutes vos informations de paiement sont chiffrées et
                 sécurisées. Nous utilisons les dernières technologies de
                 sécurité pour protéger vos données.

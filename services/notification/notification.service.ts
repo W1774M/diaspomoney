@@ -76,6 +76,8 @@ export class NotificationService {
 
   private async resolveUserFromRecipient(recipient: string) {
     try {
+      if (recipient.startsWith('guest-')) return null;
+
       const { getUserRepository } = await import('@/repositories');
       const userRepository = getUserRepository();
 
@@ -260,6 +262,9 @@ export class NotificationService {
           locale: data.locale,
           priority: data.priority,
           originalData: data.data,
+          ...(typeof data.recipientEmail === 'string' && this.isEmail(data.recipientEmail)
+            ? { recipientEmail: data.recipientEmail }
+            : {}),
         },
         createdAt: new Date(),  
         updatedAt: new Date(),
@@ -347,7 +352,7 @@ export class NotificationService {
         data: {
           userName,
           appName: 'DiaspoMoney',
-          supportEmail: 'support@diaspomoney.fr',
+          supportEmail: 'contact@diaspomoney.fr',
         },
         channels: [{ type: 'EMAIL', enabled: true, priority: 'MEDIUM' }],
         locale,
@@ -387,7 +392,7 @@ export class NotificationService {
             timeStyle: 'short',
             timeZone: 'Europe/Paris',
           }),
-          supportEmail: 'support@diaspomoney.fr',
+          supportEmail: 'contact@diaspomoney.fr',
         },
         channels: [{ type: 'IN_APP', enabled: true, priority: 'MEDIUM' }],
         locale,
@@ -461,7 +466,7 @@ export class NotificationService {
           amount,
           currency,
           reason,
-          supportEmail: 'support@diaspomoney.fr',
+          supportEmail: 'contact@diaspomoney.fr',
         },
         channels: [
           { type: 'EMAIL', enabled: true, priority: 'HIGH' },
@@ -976,8 +981,10 @@ export class NotificationService {
               );
               break;
             }
-            await this.sendEmail(notification);
-            sentAtLeastOne = true;
+            const emailDelivery = await this.sendEmail(notification);
+            if (emailDelivery === 'sent') {
+              sentAtLeastOne = true;
+            }
             break;
           case 'SMS':
             await this.sendSMS(notification);
@@ -992,8 +999,9 @@ export class NotificationService {
             sentAtLeastOne = true;
             break;
           case 'IN_APP':
-            await this.sendInApp(notification);
-            sentAtLeastOne = true;
+            if ((await this.sendInApp(notification)) === 'sent') {
+              sentAtLeastOne = true;
+            }
             break;
         }
       } catch (error) {
@@ -1046,41 +1054,48 @@ export class NotificationService {
    * Envoyer un email via Resend
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  private async sendEmail(notification: Notification): Promise<void> {
+  private async sendEmail(notification: Notification): Promise<'sent' | 'skipped'> {
     try {
-      // Récupérer l'email de l'utilisateur si recipient est un ID
-      let recipientEmail = notification.recipient;
-      
-      // Vérifier si recipient est un email valide ou un ID
-      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notification.recipient);
-      
-      if (!isEmail) {
-        // C'est probablement un ID utilisateur, récupérer l'email
-        try {
-          const { getUserRepository } = await import('@/repositories');
-          const userRepository = getUserRepository();
-          const user = await userRepository.findById(notification.recipient);
-          
-          if (user && user.email) {
-            recipientEmail = user.email;
-            this.log.debug(
-              { userId: notification.recipient, email: recipientEmail },
-              'Resolved user email from userId',
-            );
-          } else {
-            this.log.warn(
-              { recipient: notification.recipient },
-              'User not found or has no email, cannot send email',
-            );
-            throw new Error(`User not found or has no email: ${notification.recipient}`);
-          }
-        } catch (userError) {
-          this.log.error(
-            { error: userError, recipient: notification.recipient },
-            'Error fetching user email',
+      const explicitEmail = notification.metadata?.['recipientEmail'];
+      let recipientEmail =
+        typeof explicitEmail === 'string' && this.isEmail(explicitEmail)
+          ? explicitEmail
+          : notification.recipient;
+
+      if (!this.isEmail(recipientEmail)) {
+        // Un invité (guest-*) n'a pas de compte : ne pas le chercher comme un utilisateur.
+        if (notification.recipient.startsWith('guest-')) {
+          this.log.warn(
+            { recipient: notification.recipient, notificationId: notification.id },
+            'Invité sans adresse e-mail, canal ignoré',
           );
-          throw new Error(`Failed to resolve user email: ${notification.recipient}`);
+          return 'skipped';
         }
+
+        // Sinon, le destinataire doit être un identifiant d'utilisateur. Une erreur de lecture
+        // de la base remonte (et part dans Sentry) ; un utilisateur introuvable ou sans adresse
+        // n'est pas une panne : le canal est ignoré avec un avertissement.
+        const { getUserRepository } = await import('@/repositories');
+        let user: Awaited<ReturnType<ReturnType<typeof getUserRepository>['findById']>>;
+        try {
+          user = await getUserRepository().findById(notification.recipient);
+        } catch (userError) {
+          throw new Error(`Failed to resolve user email: ${notification.recipient}`, { cause: userError });
+        }
+
+        if (!user?.email) {
+          this.log.warn(
+            { recipient: notification.recipient, notificationId: notification.id },
+            'Utilisateur introuvable ou sans adresse e-mail, canal ignoré',
+          );
+          return 'skipped';
+        }
+
+        recipientEmail = user.email;
+        this.log.debug(
+          { userId: notification.recipient, email: recipientEmail },
+          'Resolved user email from userId',
+        );
       }
       
       const emailSent = await sendEmail({
@@ -1111,6 +1126,7 @@ export class NotificationService {
       } else {
         throw new Error('Failed to send email via Resend');
       }
+      return 'sent';
     } catch (error) {
       this.log.error(
         {
@@ -1232,7 +1248,16 @@ export class NotificationService {
    * La notification est déjà sauvegardée en base de données
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  private async sendInApp(notification: Notification): Promise<void> {
+  private async sendInApp(notification: Notification): Promise<'sent' | 'skipped'> {
+    // Un invité (guest-*) n'a pas de compte : personne ne verrait la notification in-app.
+    if (notification.recipient.startsWith('guest-')) {
+      this.log.warn(
+        { recipient: notification.recipient, notificationId: notification.id },
+        'Invité sans compte, canal in-app ignoré',
+      );
+      return 'skipped';
+    }
+
     try {
       // La notification est déjà sauvegardée en base de données via sendNotification
       // On marque simplement comme envoyée
@@ -1247,6 +1272,7 @@ export class NotificationService {
         },
         'In-app notification saved',
       );
+      return 'sent';
     } catch (error) {
       this.log.error(
         { error, notificationId: notification.id },

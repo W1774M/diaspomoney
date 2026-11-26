@@ -199,7 +199,7 @@ ${bookingsUrl}
 Cordialement,
 L'équipe DiaspoMoney
 
-Pour toute question, contactez-nous à support@diaspomoney.fr
+Pour toute question, contactez-nous à contact@diaspomoney.fr
 
 --
 DiaspoMoney

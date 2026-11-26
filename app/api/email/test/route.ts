@@ -1,9 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { isSupportAgent } from '@/lib/support/impersonation-policy';
 import { emailService, testEmailService } from '@/services/email/email.service';
 
+/**
+ * Envoi d'e-mails d'essai : réservé aux administrateurs. Ouverte à tous, cette route
+ * laissait n'importe qui envoyer, depuis l'adresse DiaspoMoney, un e-mail au sujet et au
+ * contenu HTML libres vers n'importe quelle adresse (relais d'hameçonnage).
+ */
+async function requireAdmin(): Promise<NextResponse | null> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+  }
+  if (!isSupportAgent(session.user.roles)) {
+    return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
-    const { type, email, data } = await request.json();
+    const { type, email, data = {} } = await request.json();
 
     // Vérifier que l'email est fourni
     if (!email) {
@@ -103,6 +123,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     // Obtenir les statistiques de la queue
     const stats = emailService.getQueueStats();

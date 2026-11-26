@@ -311,13 +311,12 @@ export async function POST(request: NextRequest) {
       clientEmailContent,
     );
 
+    // Ne pas renvoyer le token / URL de retry au client : le lien est dans l'email uniquement.
     return NextResponse.json(
       {
         success: true,
         message: "Emails d'erreur de paiement envoyés avec succès",
-        retryToken: token,
         expiresAt: expiresAt.toISOString(),
-        retryUrl: retryUrl,
       },
       { status: 200 },
     );

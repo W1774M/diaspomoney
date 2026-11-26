@@ -28,6 +28,8 @@ test.describe('Accueil', () => {
 
   test('le lien d’évitement mène au contenu principal', async ({ page }) => {
     await page.goto('/');
+    // WebKit envoie sinon le premier Tab vers le bouton du bandeau.
+    await page.mouse.move(8, 400);
     await page.keyboard.press('Tab');
 
     const skipLink = page.getByRole('link', { name: 'Aller au contenu' });
@@ -70,7 +72,7 @@ test.describe('Cliniques partenaires (mouvement réduit)', () => {
 
     const section = page.getByRole('region', { name: 'Cliniques partenaires' });
     await section.getByRole('button', { name: 'CLINIQUE SAINT PETERSBOURG' }).first().click();
-    await page.getByRole('button', { name: 'Choisir cette clinique' }).click();
+    await page.getByRole('link', { name: 'Choisir cette clinique' }).click();
 
     await expect(page).toHaveURL(/\/services\/health\?clinic=clinique-saint-petersbourg/);
   });

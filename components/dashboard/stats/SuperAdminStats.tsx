@@ -3,7 +3,6 @@
 import React from 'react';
 import {
   Activity,
-  Server,
   DollarSign,
   CreditCard,
   Users,
@@ -31,36 +30,20 @@ const SuperAdminStatsComponent = React.memo<SuperAdminStatsProps>(
     return (
       <div className='space-y-6'>
         {/* Cartes de statistiques principales */}
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6'>
+        {/* Pas de carte « Coûts d'exploitation » : aucun coût n'est enregistré, le chiffre
+            affiché (10 % des revenus) était inventé. */}
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
           <DashboardStatCard
-            title='Santé plateforme'
-            value={loading ? '...' : `${stats.platformHealth}%`}
+            title='Paiements encaissés'
+            value={loading ? '...' : stats.totalPayments}
             icon={Activity}
-            color='green'
-          />
-          <DashboardStatCard
-            title='Uptime système'
-            value={loading ? '...' : `${stats.systemUptime}%`}
-            icon={Server}
             color='blue'
-          />
-          <DashboardStatCard
-            title='Performance serveurs'
-            value={loading ? '...' : `${stats.serverPerformance}%`}
-            icon={Activity}
-            color='orange'
           />
           <DashboardStatCard
             title='Revenus totaux'
             value={loading ? '...' : `${stats.totalRevenue.toFixed(2)} €`}
             icon={DollarSign}
             color='green'
-          />
-          <DashboardStatCard
-            title="Coûts d'exploitation"
-            value={loading ? '...' : `${stats.operatingCosts.toFixed(2)} €`}
-            icon={CreditCard}
-            color='red'
           />
         </div>
 

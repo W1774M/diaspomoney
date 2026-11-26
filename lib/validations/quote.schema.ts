@@ -49,7 +49,7 @@ const AcademicInfoSchema = z.object({
 export const CreateQuoteSchema = z
   .object({
     type: z.enum(['BTP', 'EDUCATION'], {
-      errorMap: () => ({ message: 'Quote type must be either "BTP" or "EDUCATION"' }),
+      error: 'Quote type must be either "BTP" or "EDUCATION"',
     }),
     // Champs communs
     budget: z.number().positive('Budget must be positive').optional(),
@@ -105,7 +105,7 @@ export const UpdateQuoteSchema = z.object({
   timeline: z.string().max(200).optional(),
   description: z.string().max(2000).optional(),
   urgency: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**

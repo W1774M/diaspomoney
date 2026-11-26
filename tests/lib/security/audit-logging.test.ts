@@ -11,6 +11,7 @@ const h = vi.hoisted(() => {
     repo: { create: vi.fn(), searchAuditLogs: vi.fn(), getAuditStats: vi.fn() },
     redisSet: vi.fn(),
     recordMetric: vi.fn(),
+    cacheEnabled: vi.fn(() => true),
   };
 });
 
@@ -19,6 +20,7 @@ vi.mock('@/lib/decorators/log.decorator', () => ({ Log: h.passThrough }));
 vi.mock('@/lib/decorators/performance.decorator', () => ({ Performance: h.passThrough }));
 vi.mock('@/repositories', () => ({ getAuditLogRepository: () => h.repo }));
 vi.mock('@/lib/redis/redis-client', () => ({ redis: { set: h.redisSet } }));
+vi.mock('@/lib/cache/redis', () => ({ isCacheEnabled: () => h.cacheEnabled() }));
 vi.mock('@/lib/monitoring/advanced-monitoring', () => ({ monitoringManager: { recordMetric: h.recordMetric } }));
 
 import { AuditLoggingSystem, auditLogging, type AuditLog } from '@/lib/security/audit-logging';
@@ -31,6 +33,7 @@ beforeEach(() => {
   h.repo.create.mockResolvedValue(undefined);
   h.repo.searchAuditLogs.mockResolvedValue(page());
   h.redisSet.mockResolvedValue(true);
+  h.cacheEnabled.mockReturnValue(true);
 });
 
 describe('AuditLoggingSystem.createAuditLog', () => {
@@ -54,6 +57,13 @@ describe('AuditLoggingSystem.createAuditLog', () => {
       name: 'audit_logs_created', type: 'counter', labels: { action: 'PROFILE_VIEWED', resource: 'USER', severity: 'LOW', category: 'SYSTEM', outcome: 'SUCCESS' },
     }));
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
+  });
+
+  it('ne contacte pas Redis quand le cache est coupé', async () => {
+    h.cacheEnabled.mockReturnValue(false);
+    const log = await auditLogging.createAuditLog('PROFILE_VIEWED', 'USER');
+    expect(h.repo.create).toHaveBeenCalledWith(log);
+    expect(h.redisSet).not.toHaveBeenCalled();
   });
 
   it('reprend les options fournies', async () => {

@@ -133,12 +133,12 @@ export async function PUT(
     const currentUserId = session.user.id;
 
     if (currentUserId !== targetUserId) {
-      // Vérifier si l'utilisateur actuel est ADMIN ou SUPERADMIN
-      const currentUser = await userService.getUserProfile(currentUserId);
+      // Rôles lus sans cache : un admin rétrogradé ne doit pas garder ses droits 10 min
+      const currentUser = await userService.getAuthorizationContext(currentUserId);
       const isAdmin =
-        currentUser.roles?.includes(ROLES.ADMIN) ||
-        currentUser.roles?.includes(ROLES.SUPERADMIN);
-      const isSuperAdmin = currentUser.roles?.includes(ROLES.SUPERADMIN);
+        currentUser.roles.includes(ROLES.ADMIN) ||
+        currentUser.roles.includes(ROLES.SUPERADMIN);
+      const isSuperAdmin = currentUser.roles.includes(ROLES.SUPERADMIN);
 
       if (!isAdmin) {
         log.warn(
@@ -272,11 +272,12 @@ export async function DELETE(
     }
 
     // Vérifier les permissions (seuls ADMIN et SUPERADMIN peuvent supprimer des utilisateurs)
+    // Rôles lus sans cache (getUserProfile est mis en cache 10 min)
     const currentUserId = session.user.id;
-    const currentUser = await userService.getUserProfile(currentUserId);
+    const currentUser = await userService.getAuthorizationContext(currentUserId);
     const isAdmin =
-      currentUser.roles?.includes(ROLES.ADMIN) ||
-      currentUser.roles?.includes(ROLES.SUPERADMIN);
+      currentUser.roles.includes(ROLES.ADMIN) ||
+      currentUser.roles.includes(ROLES.SUPERADMIN);
 
     if (!isAdmin) {
       log.warn(

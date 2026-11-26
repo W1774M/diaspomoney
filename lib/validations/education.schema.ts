@@ -22,7 +22,7 @@ export const CreateEducationServiceSchema = z.object({
     EDUCATION_LEVELS.DOCTORATE,
     EDUCATION_LEVELS.PROFESSIONAL,
   ] as [string, ...string[]], {
-    errorMap: () => ({ message: 'Invalid education level' }),
+    error: 'Invalid education level',
   }),
   program: z.string().max(200).optional(),
   duration: z.string().max(100).optional(),
@@ -48,7 +48,7 @@ export const CreateEducationServiceSchema = z.object({
       online: z.boolean().optional(),
     })
     .optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -91,7 +91,7 @@ export const UpdateEducationServiceSchema = z.object({
       online: z.boolean().optional(),
     })
     .optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**

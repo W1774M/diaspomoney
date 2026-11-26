@@ -16,7 +16,7 @@ const ServicesStats = React.memo<ServicesStatsProps>(function ServicesStats({
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
         <div className="flex items-center">
           <div className="p-2 bg-blue-100 rounded-lg">
-            <Users className="h-6 w-6 text-blue-600" />
+            <Users className="h-6 w-6 text-brand-700" />
           </div>
           <div className="ml-3">
             <p className="text-sm font-medium text-gray-600">
