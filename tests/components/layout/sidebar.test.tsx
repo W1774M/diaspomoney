@@ -196,21 +196,27 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: 'Rappels importants' })).toBeInTheDocument();
   });
 
-  it('ouvre le calendrier d’une institution sur une page de disponibilités', () => {
-    nav.pathname = '/dashboard/availabilities';
-    session(person([ROLES.PROVIDER], { providerInfo: { type: 'INSTITUTION', category: 'HEALTH' } }));
+  // Clés calendar-institution-* ouvertes automatiquement (#143), pour chaque catégorie
+  it.each([
+    ['HEALTH', '/dashboard/availabilities'],
+    ['BTP', '/dashboard/missions'],
+    ['EDUCATION', '/dashboard/students'],
+    [undefined, '/dashboard/calendar'],
+  ] as const)('ouvre le calendrier d’une institution %s sur %s', (category, path) => {
+    nav.pathname = path;
+    session(person([ROLES.PROVIDER], { providerInfo: { type: 'INSTITUTION', ...(category ? { category } : {}) } }));
     renderBar();
     expect(screen.getByRole('button', { name: '📅 Calendrier' })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('link', { name: 'Mes disponibilités' })).toBeInTheDocument();
   });
 
-  // Les pages /dashboard/institution/* n'existent pas encore : aucun lien ne doit y mener (404)
+  // Menu Institution masqué (show: false) : les écrans /dashboard/institution/* sont encore des annuaires vides
   it.each([
     ['HEALTH', '🏥 Institution'],
     ['BTP', '🏗️ Institution'],
     ['EDUCATION', '🎓 Institution'],
     [undefined, '🏢 Institution'],
-  ] as const)('ne propose aucun lien vers des pages institution inexistantes (%s)', (category, menu) => {
+  ] as const)('ne propose aucun lien vers le menu institution masqué (%s)', (category, menu) => {
     nav.pathname = '/dashboard/availabilities';
     session(person([ROLES.PROVIDER], { providerInfo: { type: 'INSTITUTION', ...(category ? { category } : {}) } }));
     renderBar();
