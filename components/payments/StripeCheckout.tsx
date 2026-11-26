@@ -91,7 +91,8 @@ export function StripeCheckout(props: StripeCheckoutProps) {
     
     // Timeout de 30 secondes pour éviter que ça tourne indéfiniment
     const timeoutId = setTimeout(() => {
-      if (!cancelled && !clientSecret && !error) {
+      // Le délai est annulé dès que la requête aboutit (finally) : s'il expire, rien n'est arrivé.
+      if (!cancelled) {
         controller.abort();
         const timeoutError = "Le paiement prend trop de temps à s'initialiser. Veuillez réessayer.";
         logger.error({ timeout: true }, "Payment intent creation timeout");
@@ -197,7 +198,9 @@ export function StripeCheckout(props: StripeCheckoutProps) {
       controller.abort();
       clearTimeout(timeoutId);
     };
-  }, [amountInMinorUnit, currency, customerEmail, metadata, onError, clientSecret, error]);
+    // `error` n'est volontairement pas une dépendance : un échec relançait l'effet, qui effaçait
+    // l'erreur et rappelait /api/payments/create-intent, en boucle.
+  }, [amountInMinorUnit, currency, customerEmail, metadata, onError, clientSecret]);
 
   // Tous les hooks doivent être appelés avant les returns conditionnels
   // Utiliser useMemo pour éviter de recréer les options à chaque render
