@@ -68,7 +68,6 @@
     "country-flag-icons": "^1.6.20",
     "framer-motion": "^14.14.0",
     "html2canvas": "^1.4.1",
-    "http-proxy-middleware": "^4.2.2",
     "ioredis": "^6.1.0",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
