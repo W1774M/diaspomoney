@@ -10,7 +10,7 @@
 import { childLogger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
 import Redis from 'ioredis';
-import { redisConnectionFromEnv } from './redis-connection';
+import { redisConnectionFromEnv, redisRetryDelay } from './redis-connection';
 
 const log = childLogger({ component: 'RedisClient' });
 
@@ -43,6 +43,7 @@ export class RedisClient {
       keepAlive: config.keepAlive ?? 30000,
       family: config.family === 6 ? 6 : 4,
       enableReadyCheck: true,
+      retryStrategy: redisRetryDelay,
     });
 
     // Hook up events
