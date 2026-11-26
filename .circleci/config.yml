@@ -17,21 +17,21 @@ version: 2.1
 #
 # Notes :
 # - Ne pas redéfinir PATH dans `environment:` : CircleCI n'y développe ni `~` ni `$PATH`.
-# - Next 16 exige Node >= 20.9 : image cimg/node:20.19 (Node 20, comme le Dockerfile).
+# - Node 24 (LTS), comme le Dockerfile : Vitest 5 exige Node >= 22.12 (Map.groupBy absent en Node 20).
 # - pnpm-lock.yaml est versionné : la CI installe exactement les versions de la prod.
 # =====================================================================================
 
 executors:
   node:
     docker:
-      - image: cimg/node:20.19
+      - image: cimg/node:24.19
     environment:
       NEXT_TELEMETRY_DISABLED: "1"
 
   # Node + MongoDB de test sur le port attendu par tests/setup.mongo.ts (127.0.0.1:27018).
   node-mongo:
     docker:
-      - image: cimg/node:20.19-browsers
+      - image: cimg/node:24.19-browsers
       - image: mongo:7
         command: ["mongod", "--port", "27018", "--bind_ip_all"]
     environment:
