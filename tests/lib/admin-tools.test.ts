@@ -56,15 +56,30 @@ describe('buildAdminToolLinks', () => {
     expect(byKey({ STRIPE_SECRET_KEY: 'sk_live_x' })['stripe']?.url).toBe('https://dashboard.stripe.com/');
   });
 
+  it('donne accès à coss (Cal.com) et indique sandbox ou live', () => {
+    expect(byKey({})['coss']).toMatchObject({
+      category: 'services',
+      url: 'https://coss.com',
+      name: 'coss — Cal.com (non configuré)',
+    });
+    expect(byKey({ COSS_API_KEY: 'coss_test_x' })['coss']?.name).toBe('coss — Cal.com (sandbox)');
+    expect(byKey({ COSS_API_KEY: 'coss_live_x' })['coss']?.name).toBe('coss — Cal.com (live)');
+    expect(byKey({ ADMIN_TOOL_COSS_URL: 'https://app.coss.com/scheduling' })['coss']?.url).toBe(
+      'https://app.coss.com/scheduling',
+    );
+  });
+
   it('ne divulgue aucun secret du .env', () => {
     const serialized = JSON.stringify(
       buildAdminToolLinks({
         MONGO_EXPRESS_DOMAIN: 'mongo.diaspomoney.fr',
         MONGO_EXPRESS_PASSWORD: 'super-secret',
         STRIPE_SECRET_KEY: 'sk_live_secret',
+        COSS_API_KEY: 'coss_live_secret',
       }),
     );
     expect(serialized).not.toContain('super-secret');
     expect(serialized).not.toContain('sk_live_secret');
+    expect(serialized).not.toContain('coss_live_secret');
   });
 });
