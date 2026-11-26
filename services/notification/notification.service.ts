@@ -999,8 +999,9 @@ export class NotificationService {
             sentAtLeastOne = true;
             break;
           case 'IN_APP':
-            await this.sendInApp(notification);
-            sentAtLeastOne = true;
+            if ((await this.sendInApp(notification)) === 'sent') {
+              sentAtLeastOne = true;
+            }
             break;
         }
       } catch (error) {
@@ -1071,31 +1072,30 @@ export class NotificationService {
           return 'skipped';
         }
 
+        // Sinon, le destinataire doit être un identifiant d'utilisateur. Une erreur de lecture
+        // de la base remonte (et part dans Sentry) ; un utilisateur introuvable ou sans adresse
+        // n'est pas une panne : le canal est ignoré avec un avertissement.
+        const { getUserRepository } = await import('@/repositories');
+        let user: Awaited<ReturnType<ReturnType<typeof getUserRepository>['findById']>>;
         try {
-          const { getUserRepository } = await import('@/repositories');
-          const userRepository = getUserRepository();
-          const user = await userRepository.findById(notification.recipient);
-
-          if (user && user.email) {
-            recipientEmail = user.email;
-            this.log.debug(
-              { userId: notification.recipient, email: recipientEmail },
-              'Resolved user email from userId',
-            );
-          } else {
-            this.log.warn(
-              { recipient: notification.recipient },
-              'User not found or has no email, cannot send email',
-            );
-            throw new Error(`User not found or has no email: ${notification.recipient}`);
-          }
+          user = await getUserRepository().findById(notification.recipient);
         } catch (userError) {
-          this.log.error(
-            { error: userError, recipient: notification.recipient },
-            'Error fetching user email',
-          );
           throw new Error(`Failed to resolve user email: ${notification.recipient}`, { cause: userError });
         }
+
+        if (!user?.email) {
+          this.log.warn(
+            { recipient: notification.recipient, notificationId: notification.id },
+            'Utilisateur introuvable ou sans adresse e-mail, canal ignoré',
+          );
+          return 'skipped';
+        }
+
+        recipientEmail = user.email;
+        this.log.debug(
+          { userId: notification.recipient, email: recipientEmail },
+          'Resolved user email from userId',
+        );
       }
       
       const emailSent = await sendEmail({
@@ -1248,7 +1248,16 @@ export class NotificationService {
    * La notification est déjà sauvegardée en base de données
    */
   @Log({ level: 'info', logArgs: true, logExecutionTime: true })
-  private async sendInApp(notification: Notification): Promise<void> {
+  private async sendInApp(notification: Notification): Promise<'sent' | 'skipped'> {
+    // Un invité (guest-*) n'a pas de compte : personne ne verrait la notification in-app.
+    if (notification.recipient.startsWith('guest-')) {
+      this.log.warn(
+        { recipient: notification.recipient, notificationId: notification.id },
+        'Invité sans compte, canal in-app ignoré',
+      );
+      return 'skipped';
+    }
+
     try {
       // La notification est déjà sauvegardée en base de données via sendNotification
       // On marque simplement comme envoyée
@@ -1263,6 +1272,7 @@ export class NotificationService {
         },
         'In-app notification saved',
       );
+      return 'sent';
     } catch (error) {
       this.log.error(
         { error, notificationId: notification.id },
