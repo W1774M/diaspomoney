@@ -4,7 +4,8 @@
  * Les domaines d'infra viennent du `.env` du serveur (chargé par `env_file` dans
  * docker-compose.yml) : MONGO_EXPRESS_DOMAIN, PORTAINER_DOMAIN, TRAEFIK_DASHBOARD_DOMAIN,
  * MONITORING_DOMAIN, SENTRY_ORG (+ SENTRY_DSN pour l'ID du projet). Les préfixes de
- * STRIPE_SECRET_KEY et COSS_API_KEY distinguent test et live. Ils ne sont lus que côté serveur, par /api/admin/tools, et ne
+ * STRIPE_SECRET_KEY et COSS_API_KEY distinguent test et live. La propriété Search Console
+ * est GOOGLE_SEARCH_CONSOLE_PROPERTY, sinon l'origine de APP_URL. Ils ne sont lus que côté serveur, par /api/admin/tools, et ne
  * partent donc jamais dans le bundle client. Chaque lien peut être forcé avec
  * ADMIN_TOOL_<CLÉ>_URL (ex. ADMIN_TOOL_SENTRY_URL).
  */
@@ -80,6 +81,32 @@ function cossName(env: Env): string {
   const key = clean(env['COSS_API_KEY']);
   if (!key) return 'coss — Cal.com (non configuré)';
   return key.startsWith('coss_test_') ? 'coss — Cal.com (sandbox)' : 'coss — Cal.com (live)';
+}
+
+const SEARCH_CONSOLE_URL = 'https://search.google.com/search-console';
+
+/**
+ * Propriété Search Console de l'instance : GOOGLE_SEARCH_CONSOLE_PROPERTY tel quel
+ * (« sc-domain:diaspomoney.fr » pour une propriété de domaine), sinon la propriété
+ * « préfixe d'URL » de APP_URL (origine suivie de « / », format attendu par Google).
+ */
+export function searchConsoleProperty(env: Env): string | null {
+  const explicit = clean(env['GOOGLE_SEARCH_CONSOLE_PROPERTY']);
+  if (explicit) return explicit;
+  const appUrl = clean(env['APP_URL']) ?? clean(env['NEXT_PUBLIC_APP_URL']);
+  if (!appUrl) return null;
+  try {
+    return `${new URL(appUrl).origin}/`;
+  } catch {
+    return null;
+  }
+}
+
+function searchConsoleUrl(env: Env): string {
+  const property = searchConsoleProperty(env);
+  return property
+    ? `${SEARCH_CONSOLE_URL}?resource_id=${encodeURIComponent(property)}`
+    : SEARCH_CONSOLE_URL;
 }
 
 function override(env: Env, key: string): string | undefined {
@@ -169,6 +196,13 @@ export function buildAdminToolLinks(env: Env): AdminToolLink[] {
         'Plannings des prestataires et créneaux santé (API coss, équivalent de Cal.com).',
       category: 'services',
       url: COSS_DASHBOARD_URL,
+    },
+    {
+      key: 'search-console',
+      name: 'Google Search Console',
+      description: 'Indexation du site, requêtes Google, clics et erreurs d’exploration.',
+      category: 'services',
+      url: searchConsoleUrl(env),
     },
     {
       key: 'resend',

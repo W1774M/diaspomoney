@@ -69,6 +69,33 @@ describe('buildAdminToolLinks', () => {
     );
   });
 
+  it('ouvre Google Search Console sur la propriété de l’instance', () => {
+    const sc = (env: Record<string, string | undefined>) => byKey(env)['search-console'];
+
+    expect(sc({})).toMatchObject({
+      name: 'Google Search Console',
+      category: 'services',
+      url: 'https://search.google.com/search-console',
+    });
+    // Propriété « préfixe d'URL » déduite de APP_URL (origine + « / »).
+    expect(sc({ APP_URL: 'https://rct.diaspomoney.fr/api' })?.url).toBe(
+      'https://search.google.com/search-console?resource_id=https%3A%2F%2Frct.diaspomoney.fr%2F',
+    );
+    expect(sc({ NEXT_PUBLIC_APP_URL: 'https://diaspomoney.fr' })?.url).toContain(
+      'resource_id=https%3A%2F%2Fdiaspomoney.fr%2F',
+    );
+    // Propriété de domaine explicite, prioritaire sur APP_URL.
+    expect(
+      sc({ APP_URL: 'https://diaspomoney.fr', GOOGLE_SEARCH_CONSOLE_PROPERTY: 'sc-domain:diaspomoney.fr' })
+        ?.url,
+    ).toBe('https://search.google.com/search-console?resource_id=sc-domain%3Adiaspomoney.fr');
+    // APP_URL illisible : lien générique plutôt qu'une erreur.
+    expect(sc({ APP_URL: 'pas une url' })?.url).toBe('https://search.google.com/search-console');
+    expect(sc({ ADMIN_TOOL_SEARCH_CONSOLE_URL: 'https://example.com/sc' })?.url).toBe(
+      'https://example.com/sc',
+    );
+  });
+
   it('ne divulgue aucun secret du .env', () => {
     const serialized = JSON.stringify(
       buildAdminToolLinks({
