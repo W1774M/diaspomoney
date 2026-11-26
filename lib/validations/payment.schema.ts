@@ -20,13 +20,13 @@ export const CreatePaymentSchema = z.object({
   payerId: z.string().min(1).optional(),
   beneficiaryId: z.string().min(1).optional(),
   serviceType: z.enum(['HEALTH', 'BTP', 'EDUCATION'], {
-    errorMap: () => ({ message: 'Service type must be one of: HEALTH, BTP, EDUCATION' }),
+    error: 'Service type must be one of: HEALTH, BTP, EDUCATION',
   }),
   serviceId: z.string().min(1).default(DEFAULT_SERVICE_ID),
   description: z.string().min(1).max(500).optional(),
   createInvoice: z.boolean().optional(),
   sendNotification: z.boolean().optional(),
-  metadata: z.record(z.string()).optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
 });
 
 /**
@@ -36,7 +36,7 @@ export const CreatePaymentIntentSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   currency: z.string().length(3, 'Currency must be 3 characters').default(DEFAULT_CURRENCY),
   email: z.string().email('Invalid email format').optional(),
-  metadata: z.record(z.string()).optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
 });
 
 /**

@@ -38,7 +38,7 @@ const TrackProgressSchema = z.object({
     price: z.number(),
   }).optional(),
   paymentIntentId: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
   bookingId: z.string().optional(), // ID du booking draft si déjà créé
 });
 

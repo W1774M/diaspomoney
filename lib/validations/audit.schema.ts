@@ -15,7 +15,7 @@ export const CreateAuditLogSchema = z.object({
   resource: z.string().min(1, 'Resource is required').max(100),
   resourceId: z.string().min(1).optional(),
   method: z.string().max(10).optional(),
-  ipAddress: z.string().ip().optional().or(z.string().max(45).optional()),
+  ipAddress: z.string().max(45).optional(),
   userAgent: z.string().max(500).optional(),
   location: z
     .object({
@@ -29,9 +29,9 @@ export const CreateAuditLogSchema = z.object({
         .optional(),
     })
     .optional(),
-  details: z.record(z.unknown()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
   severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'], {
-    errorMap: () => ({ message: 'Invalid severity level' }),
+    error: 'Invalid severity level',
   }).default('LOW'),
   category: z.enum(
     [
@@ -47,7 +47,7 @@ export const CreateAuditLogSchema = z.object({
       'OTHER',
     ],
     {
-      errorMap: () => ({ message: 'Invalid audit category' }),
+      error: 'Invalid audit category',
     },
   ),
 });

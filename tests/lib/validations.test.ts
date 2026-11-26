@@ -10,7 +10,10 @@ import {
 } from '@/lib/validations';
 
 /** Messages d'erreur d'un résultat safeParse, par chemin. */
-const errors = (r: { success: boolean; error?: { issues: { path: (string | number)[]; message: string }[] } }) =>
+const errors = (r: {
+  success: boolean;
+  error?: { issues: { path: PropertyKey[]; message: string }[] } | undefined;
+}) =>
   Object.fromEntries((r.error?.issues ?? []).map((i) => [i.path.join('.'), i.message]));
 
 // Date fixe : les contrôles d'âge et d'expiration de carte en dépendent.

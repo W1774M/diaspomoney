@@ -564,7 +564,7 @@ class AuthService {
             userAgent: options?.userAgent || 'unknown',
           },
         );
-        throw new Error('Un compte avec cet email existe déjà');
+        throw new Error('Un compte avec cet email existe déjà', { cause: error });
       }
       
       log.error(
@@ -640,7 +640,7 @@ class AuthService {
         { error, msg: 'Error refreshing token' },
         'Token refresh error',
       );
-      throw new Error('Token de rafraîchissement invalide');
+      throw new Error('Token de rafraîchissement invalide', { cause: error });
     }
   }
 
@@ -746,7 +746,7 @@ class AuthService {
         { error, msg: 'Error verifying token' },
         'Token verification error',
       );
-      throw new Error('Token invalide');
+      throw new Error('Token invalide', { cause: error });
     }
   }
 

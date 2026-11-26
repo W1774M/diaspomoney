@@ -9,8 +9,8 @@
 
 import { childLogger } from '@/lib/logger';
 import * as Sentry from '@sentry/nextjs';
-import Redis, { RedisOptions } from 'ioredis';
-import { redisConnectionFromEnv } from './redis-connection';
+import Redis from 'ioredis';
+import { redisConnectionFromEnv, redisRetryDelay } from './redis-connection';
 
 const log = childLogger({ component: 'RedisClient' });
 
@@ -33,7 +33,7 @@ export class RedisClient {
   constructor(config: RedisConfig) {
     // ioredis only accepts actual RedisOptions – see https://github.com/luin/ioredis/blob/master/API.md
     // Remove unsupported options and duplicates, and handle events separately.
-    const options: RedisOptions = {
+    this.client = new Redis({
       host: config.host,
       port: config.port,
       password: config.password ?? '',
@@ -41,11 +41,10 @@ export class RedisClient {
       maxRetriesPerRequest: config.maxRetriesPerRequest ?? 3,
       lazyConnect: config.lazyConnect ?? true,
       keepAlive: config.keepAlive ?? 30000,
-      family: config.family ?? 4,
+      family: config.family === 6 ? 6 : 4,
       enableReadyCheck: true,
-    };
-
-    this.client = new Redis(options);
+      retryStrategy: redisRetryDelay,
+    });
 
     // Hook up events
     this.client.on('error', (error: unknown) => {

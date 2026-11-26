@@ -25,7 +25,7 @@ export default function ConditionalLayout({
   // Pour toutes les autres pages, utiliser le header et footer
   return (
     <div className='min-h-dvh flex flex-col'>
-      <a href='#contenu' className='skip-link'>
+      <a href='#contenu' className='skip-link' tabIndex={1}>
         Aller au contenu
       </a>
       <PublicHeader />

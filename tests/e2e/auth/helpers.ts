@@ -123,7 +123,7 @@ export async function loginAs(
     {
       name: 'next-auth.session-token',
       value: sessionToken,
-      url: 'http://localhost:3000',
+      url: process.env['E2E_BASE_URL'] || 'http://localhost:3000',
       httpOnly: true,
       sameSite: 'Lax',
       secure: false,

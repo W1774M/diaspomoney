@@ -11,7 +11,7 @@ import { z } from 'zod';
 const LegalBasisSchema = z.enum(
   ['CONSENT', 'CONTRACT', 'LEGAL_OBLIGATION', 'VITAL_INTERESTS', 'PUBLIC_TASK', 'LEGITIMATE_INTERESTS'],
   {
-    errorMap: () => ({ message: 'Invalid legal basis' }),
+    error: 'Invalid legal basis',
   },
 );
 
@@ -63,7 +63,7 @@ export const CreateDataProcessingRecordSchema = z.object({
 export const CreateDataSubjectRequestSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
   type: z.enum(['ACCESS', 'RECTIFICATION', 'ERASURE', 'PORTABILITY', 'RESTRICTION', 'OBJECTION'], {
-    errorMap: () => ({ message: 'Invalid request type' }),
+    error: 'Invalid request type',
   }),
   description: z.string().max(2000).optional(),
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'REJECTED']).default('PENDING'),

@@ -14,9 +14,9 @@ export const CreateConversationSchema = z.object({
     .min(2, 'At least 2 participants are required')
     .max(10, 'Maximum 10 participants allowed'),
   type: z.enum(['user', 'support'], {
-    errorMap: () => ({ message: 'Conversation type must be either "user" or "support"' }),
+    error: 'Conversation type must be either "user" or "support"',
   }),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -25,7 +25,7 @@ export const CreateConversationSchema = z.object({
 export const UpdateConversationSchema = z.object({
   lastMessage: z.string().optional(),
   lastMessageAt: z.string().datetime().optional().or(z.date().optional()),
-  unreadCount: z.record(z.number()).optional(),
+  unreadCount: z.record(z.string(), z.number()).optional(),
 });
 
 /**

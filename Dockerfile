@@ -1,7 +1,7 @@
 ###############################
 # STAGE 1: Builder
 ###############################
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Install system deps
 RUN apk add --no-cache python3 make g++ git libc6-compat
@@ -60,7 +60,7 @@ RUN pnpm run build
 ###############################
 # STAGE 2: Runner
 ###############################
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 RUN apk add --no-cache libc6-compat
 

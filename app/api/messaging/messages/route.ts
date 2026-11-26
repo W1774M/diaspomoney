@@ -82,8 +82,8 @@ export async function GET(request: NextRequest) {
       // Marquer les messages comme lus
       await Message.updateMany(
         {
-          conversationId: new mongoose.Types.ObjectId(conversationId),
-          senderId: { $ne: new mongoose.Types.ObjectId(userId) },
+          conversationId,
+          senderId: { $ne: userId },
           read: false,
         },
         {
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         total: await Message.countDocuments({
-          conversationId: new mongoose.Types.ObjectId(conversationId),
+          conversationId,
         }),
       },
     });

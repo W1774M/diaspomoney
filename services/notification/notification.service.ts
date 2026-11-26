@@ -1094,7 +1094,7 @@ export class NotificationService {
             { error: userError, recipient: notification.recipient },
             'Error fetching user email',
           );
-          throw new Error(`Failed to resolve user email: ${notification.recipient}`);
+          throw new Error(`Failed to resolve user email: ${notification.recipient}`, { cause: userError });
         }
       }
       

@@ -41,3 +41,13 @@ export function redisConnectionFromEnv(env: Record<string, string | undefined> =
     return fallback;
   }
 }
+
+/**
+ * Délai avant chaque tentative de reconnexion (ms) : 50, 100, 150… plafonné à 2 s.
+ *
+ * C'était le défaut d'ioredis 5. ioredis 6 est passé à une attente exponentielle
+ * (jusqu'à 5 s + jitter) : avec maxRetriesPerRequest à 3, une commande pouvait alors
+ * attendre une quinzaine de secondes quand Redis est injoignable, et bloquer la requête
+ * HTTP d'autant (inscription, transactions…).
+ */
+export const redisRetryDelay = (times: number): number => Math.min(times * 50, 2000);

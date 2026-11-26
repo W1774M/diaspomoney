@@ -145,7 +145,7 @@ export function useCreateUser() {
               user: { email: data.email },
             };
           }
-          throw new Error('Erreur lors de la lecture de la réponse du serveur');
+          throw new Error('Erreur lors de la lecture de la réponse du serveur', { cause: jsonError });
         }
 
         if (!result.success) {

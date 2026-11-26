@@ -23,17 +23,17 @@ export const SUPPORT_CATEGORIES = {
 const keys = <T extends object>(o: T) => Object.keys(o) as [keyof T & string, ...(keyof T & string)[]];
 
 export const SupportContactSchema = z.object({
-  urgency: z.enum(keys(SUPPORT_URGENCIES), { errorMap: () => ({ message: "Choisissez un niveau d'urgence." }) }),
-  category: z.enum(keys(SUPPORT_CATEGORIES), { errorMap: () => ({ message: 'Choisissez une catégorie.' }) }),
+  urgency: z.enum(keys(SUPPORT_URGENCIES), { error: "Choisissez un niveau d'urgence." }),
+  category: z.enum(keys(SUPPORT_CATEGORIES), { error: 'Choisissez une catégorie.' }),
   userEmail: z
-    .string({ required_error: 'Indiquez votre adresse e-mail.' })
+    .string({ error: 'Indiquez votre adresse e-mail.' })
     .trim()
     .min(1, 'Indiquez votre adresse e-mail.')
     .email('Adresse e-mail invalide, par exemple nom@exemple.fr.')
     .max(254),
   userPhone: z.string().trim().max(30).optional(),
   message: z
-    .string({ required_error: 'Décrivez votre demande.' })
+    .string({ error: 'Décrivez votre demande.' })
     .trim()
     .min(10, 'Décrivez votre demande en quelques mots (10 caractères au moins).')
     .max(5000, 'Message trop long (5 000 caractères au plus).'),

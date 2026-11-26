@@ -16,7 +16,7 @@ export const CreateServiceSchema = z.object({
     SPECIALITY_TYPES.EDUCATION,
     SPECIALITY_TYPES.BTP,
   ] as [string, ...string[]], {
-    errorMap: () => ({ message: 'La catégorie doit être HEALTH, EDUCATION ou BTP' }),
+    error: 'La catégorie doit être HEALTH, EDUCATION ou BTP',
   }),
   label: z.string().min(1, 'Le libellé est requis').max(200, 'Le libellé est trop long'),
   description: z.string().min(1, 'La description est requise').max(1000, 'La description est trop longue'),

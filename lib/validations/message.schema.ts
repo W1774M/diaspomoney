@@ -21,10 +21,10 @@ export const CreateMessageSchema = z.object({
     MESSAGE_TYPES.VIDEO,
     MESSAGE_TYPES.SYSTEM,
   ] as [string, ...string[]], {
-    errorMap: () => ({ message: 'Invalid message type' }),
+    error: 'Invalid message type',
   }).default(MESSAGE_TYPES.TEXT),
   attachments: z.array(z.string()).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -72,7 +72,7 @@ export const UploadAttachmentSchema = z.object({
   uploadedBy: z.string().min(1, 'Uploaded by is required'),
   conversationId: z.string().optional(),
   messageId: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type CreateMessageInput = z.infer<typeof CreateMessageSchema>;

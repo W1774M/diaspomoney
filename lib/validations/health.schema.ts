@@ -16,7 +16,7 @@ export const BookAppointmentSchema = z.object({
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)'),
   duration: z.number().positive('Duration must be positive'),
   type: z.enum(['IN_PERSON', 'TELEMEDICINE'], {
-    errorMap: () => ({ message: 'Type must be either IN_PERSON or TELEMEDICINE' }),
+    error: 'Type must be either IN_PERSON or TELEMEDICINE',
   }),
 });
 

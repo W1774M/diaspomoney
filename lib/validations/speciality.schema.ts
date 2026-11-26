@@ -20,12 +20,12 @@ export const CreateSpecialitySchema = z.object({
     SPECIALITY_TYPES.FINANCE,
     SPECIALITY_TYPES.TECHNOLOGY,
   ] as [string, ...string[]], {
-    errorMap: () => ({ message: 'Invalid speciality type' }),
+    error: 'Invalid speciality type',
   }),
   category: z.string().max(50).optional(),
   icon: z.string().max(50).optional(),
   isActive: z.boolean().default(true),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -47,7 +47,7 @@ export const UpdateSpecialitySchema = z.object({
   category: z.string().max(50).optional(),
   icon: z.string().max(50).optional(),
   isActive: z.boolean().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -64,10 +64,10 @@ export const CreateSpecialityFacadeSchema = z.object({
     SPECIALITY_TYPES.FINANCE,
     SPECIALITY_TYPES.TECHNOLOGY,
   ] as [string, ...string[]], {
-    errorMap: () => ({ message: 'Invalid speciality type' }),
+    error: 'Invalid speciality type',
   }),
   isActive: z.boolean().default(true),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**

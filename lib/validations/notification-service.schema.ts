@@ -21,7 +21,7 @@ export const SendNotificationSchema = z.object({
   ).min(1, 'At least one channel is required'),
   locale: z.string().optional(),
   priority: z.enum(['HIGH', 'MEDIUM', 'LOW', 'URGENT']).optional(),
-  data: z.record(z.unknown()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
   userId: z.string().optional(),
   recipientEmail: z.string().optional(),
 });

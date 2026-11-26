@@ -33,7 +33,7 @@ export const CreateUserSchema = z
         notifications: z.boolean().optional(),
         emailNotifications: z.boolean().optional(),
         smsNotifications: z.boolean().optional(),
-        notificationEmailByType: z.record(z.boolean()).optional(),
+        notificationEmailByType: z.record(z.string(), z.boolean()).optional(),
       })
       .optional(),
     providerInfo: z
@@ -105,7 +105,7 @@ export const UpdateUserSchema = z.object({
     notifications: z.boolean().optional(),
     emailNotifications: z.boolean().optional(),
     smsNotifications: z.boolean().optional(),
-    notificationEmailByType: z.record(z.boolean()).optional(),
+    notificationEmailByType: z.record(z.string(), z.boolean()).optional(),
   }).optional(),
   providerInfo: z.any().optional(),
   roles: z.array(z.string()).optional(),
