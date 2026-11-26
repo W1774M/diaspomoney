@@ -14,7 +14,7 @@
  */
 
 import { childLogger } from '@/lib/logger';
-import { redisConnectionFromEnv } from '@/lib/redis/redis-connection';
+import { redisConnectionFromEnv, redisRetryDelay } from '@/lib/redis/redis-connection';
 import * as Sentry from '@sentry/nextjs';
 import Redis from 'ioredis';
 
@@ -41,7 +41,7 @@ const redis = new Redis({
   ...redisConnectionFromEnv(),
   maxRetriesPerRequest: 3,
   lazyConnect: true, // connexion ouverte au premier usage, seulement si le cache est activé
-  retryStrategy: (times: number) => Math.min(times * 50, 2000),
+  retryStrategy: redisRetryDelay,
   enableOfflineQueue: false, // Ne pas mettre en queue les commandes si déconnecté
   connectTimeout: 10000, // 10 secondes timeout
 });

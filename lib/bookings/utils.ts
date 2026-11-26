@@ -147,7 +147,7 @@ export function formatBookingTime(booking: BookingResponse): string {
  * Calcule le montant à partir de basePrice + optionsPrice - discountAmount si totalAmount n'existe pas
  */
 export function formatBookingAmount(booking: BookingResponse): string {
-  let amount = 0;
+  let amount: number;
   
   // Essayer d'abord totalAmount
   if (booking.metadata?.['totalAmount']) {

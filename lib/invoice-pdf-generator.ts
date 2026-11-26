@@ -84,7 +84,7 @@ function generateInvoiceHTML(data: InvoiceData): string {
   const serviceDescription = booking.metadata?.['serviceDescription'] || '';
 
   // Montants - Calculer à partir de basePrice + optionsPrice - discountAmount si totalAmount n'existe pas
-  let unitPrice = 0;
+  let unitPrice: number;
   if (booking.metadata?.['totalAmount']) {
     unitPrice =
       typeof booking.metadata['totalAmount'] === 'number'

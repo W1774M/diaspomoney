@@ -3,7 +3,8 @@
  *
  * Les domaines d'infra viennent du `.env` du serveur (chargé par `env_file` dans
  * docker-compose.yml) : MONGO_EXPRESS_DOMAIN, PORTAINER_DOMAIN, TRAEFIK_DASHBOARD_DOMAIN,
- * MONITORING_DOMAIN, SENTRY_ORG (+ SENTRY_DSN pour l'ID du projet). Ils ne sont lus que côté serveur, par /api/admin/tools, et ne
+ * MONITORING_DOMAIN, SENTRY_ORG (+ SENTRY_DSN pour l'ID du projet). Les préfixes de
+ * STRIPE_SECRET_KEY et COSS_API_KEY distinguent test et live. Ils ne sont lus que côté serveur, par /api/admin/tools, et ne
  * partent donc jamais dans le bundle client. Chaque lien peut être forcé avec
  * ADMIN_TOOL_<CLÉ>_URL (ex. ADMIN_TOOL_SENTRY_URL).
  */
@@ -66,6 +67,19 @@ function sentryUrl(env: Env): string | null {
 
   const query = params.toString();
   return `https://${encodeURIComponent(org)}.sentry.io/issues/${query ? `?${query}` : ''}`;
+}
+
+/** Le SDK ne documente pas d'URL de tableau de bord : ADMIN_TOOL_COSS_URL la précise. */
+const COSS_DASHBOARD_URL = 'https://coss.com';
+
+/**
+ * coss en sandbox (clé coss_test_, dev et rct) ou en live (prod, où docker-compose.yml
+ * substitue COSS_API_KEY_PROD à COSS_API_KEY). Seul le préfixe de la clé est lu.
+ */
+function cossName(env: Env): string {
+  const key = clean(env['COSS_API_KEY']);
+  if (!key) return 'coss — Cal.com (non configuré)';
+  return key.startsWith('coss_test_') ? 'coss — Cal.com (sandbox)' : 'coss — Cal.com (live)';
 }
 
 function override(env: Env, key: string): string | undefined {
@@ -147,6 +161,14 @@ export function buildAdminToolLinks(env: Env): AdminToolLink[] {
       description: 'Paiements, remboursements, webhooks.',
       category: 'services',
       url: stripeIsLive ? 'https://dashboard.stripe.com/' : 'https://dashboard.stripe.com/test/',
+    },
+    {
+      key: 'coss',
+      name: cossName(env),
+      description:
+        'Plannings des prestataires et créneaux santé (API coss, équivalent de Cal.com).',
+      category: 'services',
+      url: COSS_DASHBOARD_URL,
     },
     {
       key: 'resend',

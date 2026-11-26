@@ -55,6 +55,22 @@ describe('bookingService (intégration)', () => {
     expect(read.recipient?.firstName).toBe('Awa');
   });
 
+  it('crée une réservation sans prestataire (assistant de services), sans notifier personne comme prestataire', async () => {
+    const created = await bookingService.createBooking(bookingData(oid(), ''));
+    expect(created.status).toBe('PENDING');
+    expect(created.providerId).toBe('');
+
+    // Aucune notification adressée à un « prestataire » vide ou fictif
+    const notifs = await db().collection('notifications').find({}).toArray();
+    expect(notifs.map((n) => n['recipient'])).not.toContain('');
+    expect(notifs.some((n) => String(n['template'] ?? '').startsWith('provider_') || String(n['template'] ?? '').startsWith('csm_'))).toBe(false);
+
+    // Un changement de statut ne notifie pas non plus de prestataire
+    await bookingService.updateBooking(created.id!, { status: 'CONFIRMED' } as never);
+    const after = await db().collection('notifications').find({}).toArray();
+    expect(after.some((n) => String(n['template'] ?? '').startsWith('provider_'))).toBe(false);
+  });
+
   it('refuse une réservation sur une offre absente du catalogue', async () => {
     await expect(
       bookingService.createBooking({ ...bookingData(), serviceId: 'offre-inexistante' }),
@@ -64,7 +80,7 @@ describe('bookingService (intégration)', () => {
   it('accepte un brouillon track-progress sans entrée catalogue (serviceId draft)', async () => {
     const created = await bookingService.createBooking({
       ...bookingData(),
-      providerId: 'admin-draft',
+      providerId: '',
       serviceId: 'draft',
       metadata: { isDraft: true, currentStep: 1 },
     });

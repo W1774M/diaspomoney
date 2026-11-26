@@ -205,6 +205,7 @@ export class StripePaymentStrategy implements IPaymentStrategy {
         });
         throw new Error(
           `Erreur Stripe lors de la création du PaymentIntent: ${stripeError.message || 'Erreur inconnue'}`,
+          { cause: stripeError },
         );
       }
 

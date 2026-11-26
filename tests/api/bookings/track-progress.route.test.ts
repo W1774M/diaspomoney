@@ -63,7 +63,7 @@ describe('POST /api/bookings/track-progress', () => {
     expect(body.bookingId).toBe('draft-1');
     expect(createBooking).toHaveBeenCalledWith(
       expect.objectContaining({
-        providerId: 'admin-draft',
+        providerId: '', // brouillon : non attribué (plus de marqueur « admin-draft »)
         serviceId: 'draft',
         serviceType: 'HEALTH',
         requesterId: expect.stringMatching(/^guest-ada-/),
@@ -126,7 +126,7 @@ describe('POST /api/bookings/track-progress', () => {
     expect(createBooking).toHaveBeenCalledWith(
       expect.objectContaining({
         serviceId: 'svc-2',
-        providerId: 'admin-draft',
+        providerId: '', // brouillon : non attribué (plus de marqueur « admin-draft »)
       }),
     );
   });

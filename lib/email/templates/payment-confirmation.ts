@@ -209,7 +209,7 @@ export function paymentConfirmationTemplate(
                 <p>• Un reçu détaillé est disponible dans votre espace client</p>
               </div>
 
-              <p style="margin-top: 20px; color: #64748b; font-size: 14px;">Si vous avez des questions concernant ce paiement, n'hésitez pas à <a href="mailto:support@diaspomoney.fr" style="color: #2563eb;">contacter notre support</a>.</p>
+              <p style="margin-top: 20px; color: #64748b; font-size: 14px;">Si vous avez des questions concernant ce paiement, n'hésitez pas à <a href="mailto:contact@diaspomoney.fr" style="color: #2563eb;">contacter notre support</a>.</p>
             </div>
             ${emailFooter}
           </div>
@@ -234,7 +234,7 @@ Vous pouvez maintenant accéder à votre service. Un reçu détaillé est dispon
 Pour voir vos commandes, connectez-vous à votre dashboard :
 ${process.env['NEXT_PUBLIC_APP_URL'] || 'https://diaspomoney.fr'}/dashboard/bookings
 
-Si vous avez des questions concernant ce paiement, n'hésitez pas à contacter notre support à support@diaspomoney.fr.
+Si vous avez des questions concernant ce paiement, n'hésitez pas à contacter notre support à contact@diaspomoney.fr.
 
 --
 DiaspoMoney

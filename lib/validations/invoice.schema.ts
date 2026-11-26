@@ -41,7 +41,7 @@ export const CreateInvoiceSchema = z.object({
   providerId: z.string().optional(),
   issueDate: z.string().datetime().optional().or(z.date().optional()),
   notes: z.string().max(1000).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
   // Options de la facade
   sendEmail: z.boolean().optional(),
   sendNotification: z.boolean().optional(),
@@ -58,7 +58,7 @@ export const UpdateInvoiceSchema = z.object({
   tax: z.number().nonnegative('Tax cannot be negative').optional(),
   dueDate: z.string().datetime().optional().or(z.date().optional()),
   status: z.enum(['DRAFT', 'PENDING', 'PAID', 'OVERDUE', 'CANCELLED'], {
-    errorMap: () => ({ message: 'Invalid invoice status' }),
+    error: 'Invalid invoice status',
   }).optional(),
   invoiceNumber: z.string().optional(),
   issueDate: z.string().datetime().optional().or(z.date().optional()),

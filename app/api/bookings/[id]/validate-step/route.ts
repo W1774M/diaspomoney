@@ -72,9 +72,9 @@ export async function POST(
     const body = await request.json();
     const validationResult = ValidateStepSchema.safeParse(body);
     if (!validationResult.success) {
-      log.warn({ errors: validationResult.error.errors }, 'Invalid request body');
+      log.warn({ errors: validationResult.error.issues }, 'Invalid request body');
       return NextResponse.json(
-        { error: 'Données invalides', details: validationResult.error.errors },
+        { error: 'Données invalides', details: validationResult.error.issues },
         { status: 400 },
       );
     }

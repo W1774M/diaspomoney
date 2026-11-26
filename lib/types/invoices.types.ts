@@ -90,8 +90,9 @@ export interface InvoiceCardProps {
     }>;
   };
   onView: (id: string) => void;
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
+  // Absents : bouton masqué (non-admin, ou facture émise pour la suppression)
+  onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
   onDownload: (id: string) => void;
 }
 
@@ -112,8 +113,8 @@ export interface InvoicesTableProps {
   invoices: any[];
   loading: boolean;
   onView: (id: string) => void;
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
+  onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
   onDownload: (id: string) => void;
 }
 

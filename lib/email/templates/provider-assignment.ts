@@ -131,7 +131,7 @@ export function providerAssignmentTemplate(params: {
               }
 
               <p class="muted">
-                Si vous avez besoin d'informations complémentaires, répondez à cet email ou contactez-nous à <strong>support@diaspomoney.fr</strong>.
+                Si vous avez besoin d'informations complémentaires, répondez à cet email ou contactez-nous à <strong>contact@diaspomoney.fr</strong>.
               </p>
             </div>
             ${emailFooter}
@@ -161,7 +161,7 @@ Bénéficiaire :
 
 ${params.notes ? `Notes : ${params.notes}\n` : ''}
 
-Support : support@diaspomoney.fr
+Support : contact@diaspomoney.fr
     `.trim(),
   };
 }

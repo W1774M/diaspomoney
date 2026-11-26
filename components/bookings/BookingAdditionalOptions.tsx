@@ -19,7 +19,7 @@ export default function BookingAdditionalOptions({ booking }: BookingAdditionalO
     return null;
   }
 
-  let options: any[] = [];
+  let options: any[];
   try {
     const rawOptions = booking.metadata['additionalOptions'];
     options = typeof rawOptions === 'string' ? JSON.parse(rawOptions) : rawOptions;

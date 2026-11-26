@@ -5,7 +5,7 @@
 
 import { expect, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 // S'assurer que document.body existe pour les tests React
 if (typeof document !== 'undefined') {
@@ -106,6 +106,7 @@ vi.mock('@/auth', () => ({
 // Mock de Sentry
 vi.mock('@sentry/nextjs', () => ({
   captureException: vi.fn(),
+  setUser: vi.fn(),
   captureMessage: vi.fn(),
   // utilisé par proxy.ts
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },

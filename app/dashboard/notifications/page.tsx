@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactElement } from 'react';
 
 type NotificationCategory =
   | 'all'
@@ -489,7 +489,7 @@ function NotificationsList({
   filter: 'all' | 'unread' | 'read';
   markAsRead: (id: string) => void;
   formatDate: (dateString: string) => string;
-  getChannelIcon: (channelType: string) => JSX.Element;
+  getChannelIcon: (channelType: string) => ReactElement;
   getStatusColor: (status: string) => string;
   getPrimaryAction: (
     n: UINotification,

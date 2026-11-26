@@ -169,7 +169,8 @@ export class MongoUserRepository implements IUserRepository {
         throw new Error(
           duplicateField === 'email'
             ? 'Un compte avec cet email existe déjà'
-            : `Un compte avec ce ${duplicateField} existe déjà`
+            : `Un compte avec ce ${duplicateField} existe déjà`,
+          { cause: error },
         );
       }
       this.log.error({ error, email: data.email }, 'Error in create');
@@ -289,7 +290,8 @@ export class MongoUserRepository implements IUserRepository {
           throw new Error(
             duplicateField === 'email'
               ? 'Un compte avec cet email existe déjà'
-              : `Un compte avec ce ${duplicateField} existe déjà`
+              : `Un compte avec ce ${duplicateField} existe déjà`,
+            { cause: saveError },
           );
         }
         // Relancer les autres erreurs
@@ -312,7 +314,8 @@ export class MongoUserRepository implements IUserRepository {
         throw new Error(
           duplicateField === 'email'
             ? 'Un compte avec cet email existe déjà'
-            : `Un compte avec ce ${duplicateField} existe déjà`
+            : `Un compte avec ce ${duplicateField} existe déjà`,
+          { cause: error },
         );
       }
       this.log.error(

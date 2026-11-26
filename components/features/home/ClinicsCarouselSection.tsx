@@ -1,7 +1,6 @@
 'use client';
 
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { MapPin, Stethoscope, X } from 'lucide-react';
 import { HEALTH_CLINICS, type ClinicOption } from '@/lib/clinics';
@@ -34,7 +33,6 @@ function ClinicPrices({ clinic }: { clinic: ClinicOption }) {
 }
 
 export function ClinicsCarouselSection() {
-  const router = useRouter();
   const [selectedClinic, setSelectedClinic] = useState<ClinicOption | null>(null);
   const { countries, country, setCountry } = useHomeCountryFilter();
   const selectedCountry = country ? countries.find((c) => c.iso === country) : undefined;
@@ -44,9 +42,8 @@ export function ClinicsCarouselSection() {
     [country],
   );
 
-  const handleChooseClinic = (clinic: ClinicOption) => {
+  const rememberClinic = (clinic: ClinicOption) => {
     window.localStorage.setItem('diaspomoney.selectedClinic', JSON.stringify(clinic));
-    router.push(`/services/health?clinic=${encodeURIComponent(clinic.id)}`);
   };
 
   return (
@@ -255,13 +252,13 @@ export function ClinicsCarouselSection() {
                 >
                   Fermer
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleChooseClinic(selectedClinic)}
-                  className="rounded-lg bg-brand-600 px-5 py-3 font-semibold text-white hover:bg-brand-700"
+                <a
+                  href={`/services/health?clinic=${encodeURIComponent(selectedClinic.id)}`}
+                  onClick={() => rememberClinic(selectedClinic)}
+                  className="rounded-lg bg-brand-600 px-5 py-3 text-center font-semibold text-white hover:bg-brand-700"
                 >
                   Choisir cette clinique
-                </button>
+                </a>
               </div>
             </div>
           </div>

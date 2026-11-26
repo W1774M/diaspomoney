@@ -39,7 +39,7 @@ export const CreateBookingSchema = z.object({
     paymentMethodId: z.string().optional(),
     createInvoice: z.boolean().optional().default(true),
   }).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**
@@ -55,7 +55,7 @@ export const UpdateBookingSchema = z.object({
   appointmentDate: z.union([z.string(), z.date()]).optional(),
   timeslot: z.string().optional(),
   consultationMode: z.enum(['IN_PERSON', 'TELEMEDICINE', 'HYBRID']).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**

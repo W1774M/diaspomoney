@@ -533,7 +533,6 @@ export const API_ENDPOINTS = {
     REGISTER: '/api/auth/register',
     LOGOUT: '/api/auth/logout',
     REFRESH: '/api/auth/refresh',
-    PROFILE: '/api/auth/user-profile',
   },
   USERS: {
     BASE: '/api/users',

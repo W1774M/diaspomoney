@@ -39,6 +39,7 @@ export default [
   {
     ignores: [
       'node_modules/**',
+      '.claude/**',
       '.next/**',
       'out/**',
       'dist/**',

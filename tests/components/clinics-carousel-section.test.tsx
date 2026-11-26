@@ -39,6 +39,9 @@ describe('ClinicsCarouselSection', () => {
     expect(screen.getByText('Toutes les spécialités')).toBeInTheDocument();
     expect(screen.getByText('Médecin généraliste : 19€')).toBeInTheDocument();
     expect(screen.getByText('Médecin spécialiste : 29€')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Choisir cette clinique' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Choisir cette clinique' })).toHaveAttribute(
+      'href',
+      '/services/health?clinic=clinique-saint-petersbourg',
+    );
   });
 });

@@ -110,9 +110,11 @@ const nextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  // Configuration pour exclure certains packages de l'externalisation serveur
-  // Ces packages sont nécessaires pour OpenTelemetry et Sentry
-  serverExternalPackages: ['require-in-the-middle', 'import-in-the-middle'],
+  // Paquets chargés par Node au lieu d'être empaquetés par webpack :
+  // - require-in-the-middle, import-in-the-middle : OpenTelemetry et Sentry ;
+  // - pdfkit : depuis la 0.21, il lit ses polices via new URL(..., import.meta.url),
+  //   que webpack réécrit ; fs reçoit alors un URL qu'il refuse et le build échoue.
+  serverExternalPackages: ['require-in-the-middle', 'import-in-the-middle', 'pdfkit'],
 
   // Configuration Webpack pour les modules Node.js
   webpack: (config, { isServer }) => {

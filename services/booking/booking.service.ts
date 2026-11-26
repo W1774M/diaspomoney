@@ -18,13 +18,14 @@ import { getBookingRepository, type Booking, type BookingFilters } from '@/repos
 import type { PaginatedFindResult } from '@/lib/types';
 import type { BookingData, BookingServiceFilters } from '@/lib/types';
 import * as Sentry from '@sentry/nextjs';
-import { ExpectedDomainError } from '@/lib/errors/expected-domain-error';
+import { ExpectedDomainError, captureUnexpected } from '@/lib/errors/expected-domain-error';
 import { z } from 'zod';
 import { EmailDispatch } from '@/domain/comms';
 import { createCheckoutSession } from '@/lib/stripe-checkout';
 import { sendPaymentLinkEmail } from '@/lib/email/resend';
 import { notificationService } from '@/services/notification/notification.service';
 import { cleanUrl } from '@/lib/utils';
+import { isProviderUserId } from '@/lib/bookings/provider-id';
 
 interface BookingProgressHistoryEntry {
   step?: number;
@@ -38,15 +39,6 @@ interface PricedOption {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
-}
-
-/**
- * Un providerId de réservation n'est pas toujours un utilisateur : il peut valoir
- * un identifiant de service (« consultation-medical ») ou un marqueur (« admin-draft »).
- * Seul un ObjectId désigne un prestataire à notifier.
- */
-function isProviderUserId(value: unknown): value is string {
-  return typeof value === 'string' && /^[a-f\d]{24}$/i.test(value);
 }
 
 function isProgressHistoryEntry(value: unknown): value is BookingProgressHistoryEntry {
@@ -198,13 +190,13 @@ export class BookingService {
       const booking = await this.bookingRepository.findById(id);
 
       if (!booking) {
-        throw new Error('Réservation non trouvée');
+        throw new ExpectedDomainError('Réservation non trouvée');
       }
 
       return booking;
     } catch (error) {
       logger.error({ error, id }, 'Erreur getBookingById');
-      Sentry.captureException(error);
+      captureUnexpected(error);
       throw error;
     }
   }
@@ -446,7 +438,7 @@ export class BookingService {
       const existingBooking = await this.bookingRepository.findById(id);
       if (!existingBooking) {
         logger.warn({ bookingId: id }, 'Booking not found before update');
-        throw new Error('Réservation non trouvée');
+        throw new ExpectedDomainError('Réservation non trouvée');
       }
 
       logger.debug(
@@ -533,7 +525,7 @@ export class BookingService {
             },
             'Booking not found after update - document may have been deleted',
           );
-          throw new Error('Réservation non trouvée');
+          throw new ExpectedDomainError('Réservation non trouvée');
         }
         
         // Le booking existe toujours, retourner la version récupérée
@@ -895,7 +887,7 @@ export class BookingService {
       return updatedBooking;
     } catch (error) {
       logger.error({ error, id, updateData: data }, 'Erreur updateBooking');
-      Sentry.captureException(error, {
+      captureUnexpected(error, {
         tags: { component: 'BookingService', method: 'updateBooking' },
         extra: { bookingId: id, updateData: data },
       });
@@ -917,7 +909,7 @@ export class BookingService {
     try {
       const existing = await this.bookingRepository.findById(id);
       if (!existing) {
-        throw new Error('Réservation non trouvée');
+        throw new ExpectedDomainError('Réservation non trouvée');
       }
 
       // Transitions validées via domaine (anti-corruption status)
@@ -936,7 +928,7 @@ export class BookingService {
       return await this.bookingRepository.updateStatus(id, status);
     } catch (error) {
       logger.error({ error, id, status }, 'Erreur updateBookingStatus');
-      Sentry.captureException(error);
+      captureUnexpected(error);
       throw error;
     }
   }
@@ -960,7 +952,7 @@ export class BookingService {
       // Vérifier que la réservation existe
       const booking = await this.bookingRepository.findById(id);
       if (!booking) {
-        throw new Error('Réservation non trouvée');
+        throw new ExpectedDomainError('Réservation non trouvée');
       }
 
       // Vérifier que la réservation peut être annulée
@@ -1086,7 +1078,7 @@ export class BookingService {
       return cancelledBooking;
     } catch (error) {
       logger.error({ error, id }, 'Erreur cancelBooking');
-      Sentry.captureException(error);
+      captureUnexpected(error);
       throw error;
     }
   }
@@ -1158,7 +1150,7 @@ export class BookingService {
       // 1. Récupérer la réservation
       const booking = await this.bookingRepository.findById(id);
       if (!booking) {
-        throw new Error('Réservation non trouvée');
+        throw new ExpectedDomainError('Réservation non trouvée');
       }
 
       // 2. Récupérer le paymentIntentId depuis les métadonnées
@@ -1294,7 +1286,7 @@ export class BookingService {
       return result;
     } catch (error) {
       logger.error({ error, id }, 'Erreur deleteBookingCompletely');
-      Sentry.captureException(error);
+      captureUnexpected(error);
       throw error;
     }
   }

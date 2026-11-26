@@ -11,7 +11,7 @@ import { z } from 'zod';
 const KYCDocumentTypeSchema = z.enum(
   ['ID_CARD', 'PASSPORT', 'DRIVER_LICENSE', 'UTILITY_BILL', 'BANK_STATEMENT'],
   {
-    errorMap: () => ({ message: 'Invalid KYC document type' }),
+    error: 'Invalid KYC document type',
   },
 );
 
@@ -19,14 +19,14 @@ const KYCDocumentTypeSchema = z.enum(
  * Schéma pour le statut d'un document KYC
  */
 const KYCDocumentStatusSchema = z.enum(['PENDING', 'APPROVED', 'REJECTED'], {
-  errorMap: () => ({ message: 'Invalid KYC document status' }),
+  error: 'Invalid KYC document status',
 });
 
 /**
  * Schéma pour le statut KYC global
  */
 const KYCStatusSchema = z.enum(['PENDING', 'IN_REVIEW', 'APPROVED', 'REJECTED'], {
-  errorMap: () => ({ message: 'Invalid KYC status' }),
+  error: 'Invalid KYC status',
 });
 
 /**

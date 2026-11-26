@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
           }
         } catch (error) {
           logger.error({ error, customerId }, 'Error managing Stripe customer');
-          throw new Error('Erreur lors de la gestion du client Stripe');
+          throw new Error('Erreur lors de la gestion du client Stripe', { cause: error });
         }
 
         // Étape 2: Créer une méthode de paiement temporaire avec Stripe

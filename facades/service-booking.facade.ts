@@ -222,7 +222,7 @@ export class ServiceBookingFacade
           ...(data.metadata || {}),
           serviceCategory: data.selectedService.category,
           serviceLabel: data.selectedService.label,
-          // Convertir les nombres en strings pour respecter z.record(z.string())
+          // Convertir les nombres en strings pour respecter z.record(z.string(), z.string())
           basePrice: String(basePrice),
           optionsPrice: String(optionsPrice),
           totalAmount: String(totalAmount),
@@ -901,7 +901,7 @@ Votre réservation a été confirmée. Vous serez recontacté rapidement pour le
               { booking, paymentError },
               'Cannot update booking: ID is missing',
             );
-            throw new Error('Booking ID is missing, cannot update booking');
+            throw new Error('Booking ID is missing, cannot update booking', { cause: paymentError });
           }
           
           await bookingService.updateBooking(bookingId, {

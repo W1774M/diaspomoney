@@ -79,8 +79,8 @@ const InvoicesTable = React.memo<InvoicesTableProps>(function InvoicesTable({
           key={invoice._id}
           invoice={invoice}
           onView={onView}
-          onEdit={onEdit}
-          onDelete={onDelete}
+          {...(onEdit ? { onEdit } : {})}
+          {...(onDelete ? { onDelete } : {})}
           onDownload={onDownload}
         />
       ))}

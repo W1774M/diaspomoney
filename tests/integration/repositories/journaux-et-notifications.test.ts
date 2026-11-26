@@ -85,6 +85,27 @@ describe('MongoAuditLogRepository', () => {
     expect((await repo.findAll()).map((l) => l.action)).toEqual(['RECENT']);
   });
 
+  it('garde les entrées sans durée de conservation (décorateur @Audit) : 7 ans par défaut', async () => {
+    // Écrites comme le décorateur @Audit : ni retentionPeriod ni action
+    await repo.create({ eventType: 'USER_LOGIN', timestamp: new Date() } as never);
+    const raw = await collection('audit_logs');
+    const written = await raw.findOne({ eventType: 'USER_LOGIN' });
+    expect(written?.['retentionPeriod']).toBe(2555);
+    const audit = { id: written?.['id'] as string };
+
+    // Entrées déjà en base sans durée (écrites avant la correction), ou sans date
+    await raw.insertMany([
+      { id: 'ancien-sans-duree', eventType: 'USER_LOGIN', timestamp: ago(10 * DAY) },
+      { id: 'tres-ancien-sans-duree', eventType: 'USER_LOGIN', timestamp: ago(3000 * DAY) },
+      { id: 'sans-date', eventType: 'USER_LOGIN', retentionPeriod: 1 },
+      { id: 'date-de-creation-seule', eventType: 'USER_LOGIN', createdAt: ago(10 * DAY), retentionPeriod: 1 },
+    ]);
+
+    expect(await repo.deleteExpiredLogs()).toBe(2);
+    const kept = (await raw.find({}).toArray()).map((d) => d['id']).sort();
+    expect(kept).toEqual([audit.id, 'ancien-sans-duree', 'sans-date'].sort());
+  });
+
   it('signale un identifiant introuvable ou invalide', async () => {
     const missing = new ObjectId().toString();
     expect(await repo.update(missing, { action: 'Z' })).toBeNull();

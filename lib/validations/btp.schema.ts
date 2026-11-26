@@ -10,14 +10,14 @@ import { z } from 'zod';
  * Schéma pour le type de propriété
  */
 const PropertyTypeSchema = z.enum(['LAND', 'HOUSE', 'APARTMENT', 'COMMERCIAL', 'INDUSTRIAL'], {
-  errorMap: () => ({ message: 'Invalid property type' }),
+  error: 'Invalid property type',
 });
 
 /**
  * Schéma pour le statut de propriété
  */
 const PropertyStatusSchema = z.enum(['FOR_SALE', 'FOR_RENT', 'SOLD', 'RENTED', 'UNDER_CONSTRUCTION'], {
-  errorMap: () => ({ message: 'Invalid property status' }),
+  error: 'Invalid property status',
 });
 
 /**
@@ -68,7 +68,7 @@ export const CreatePropertySchema = z.object({
   features: z.array(z.string()).optional(),
   images: z.array(z.string()).optional(),
   documents: z.array(z.string()).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -90,7 +90,7 @@ export const CreateConstructionProjectSchema = z.object({
     BTP_CATEGORIES.MASONRY,
     BTP_CATEGORIES.LANDSCAPING,
   ] as [string, ...string[]], {
-    errorMap: () => ({ message: 'Invalid BTP category' }),
+    error: 'Invalid BTP category',
   }),
   location: LocationSchema,
   budget: z.number().positive('Budget must be positive').optional(),
@@ -109,7 +109,7 @@ export const CreateConstructionProjectSchema = z.object({
   endDate: z.string().datetime().optional().or(z.date().optional()),
   materials: z.array(z.string()).optional(),
   certifications: z.array(z.string()).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -142,7 +142,7 @@ export const UpdatePropertySchema = z.object({
   features: z.array(z.string()).optional(),
   images: z.array(z.string()).optional(),
   documents: z.array(z.string()).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**

@@ -14,96 +14,87 @@ import {
   User,
 } from "lucide-react";
 import { PhoneInput } from "react-international-phone";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LEGAL_ENTITY } from "@/lib/legal/company";
+import {
+  SupportContactSchema,
+  supportFieldErrors,
+  type SupportContactField,
+} from "@/lib/support/contact-request";
 
 export default function SupportPage() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userPhone, setUserPhone] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<SupportContactField, string>>>({});
   const { addNotification } = useNotificationStore();
+
+  /** Attributs d'accessibilité d'un champ : erreur annoncée et liée au champ. */
+  const errorProps = (field: SupportContactField) =>
+    fieldErrors[field]
+      ? { "aria-invalid": true as const, "aria-describedby": `support-${field}-error` }
+      : {};
+  const fieldError = (field: SupportContactField) =>
+    fieldErrors[field] ? (
+      <p id={`support-${field}-error`} className="mt-1 text-sm text-red-700">
+        {fieldErrors[field]}
+      </p>
+    ) : null;
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (isSubmitting) return;
 
-    const formData = new FormData(e.currentTarget);
-    // Ajouter le téléphone depuis l'état contrôlé
-    if (userPhone) {
-      formData.set('userPhone', userPhone);
-    }
-    const data = Object.fromEntries(formData);
+    const form = e.currentTarget;
+    const data: Record<string, unknown> = Object.fromEntries(new FormData(form));
+    if (userPhone && userPhone.replace(/\D/g, "").length > 4) data["userPhone"] = userPhone;
 
-    // Validation
-    if (!validateSupportForm(data)) {
+    // Validation locale (mêmes règles que le serveur) : erreurs sous les champs
+    const parsed = SupportContactSchema.safeParse(data);
+    if (!parsed.success) {
+      const errors = supportFieldErrors(parsed.error);
+      setFieldErrors(errors);
+      const first = Object.keys(errors)[0];
+      if (first) document.getElementById(`support-${first}`)?.focus();
       return;
     }
+    setFieldErrors({});
 
     try {
       setIsSubmitting(true);
-
-      // Simuler l'envoi
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch("/api/support/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (body.fieldErrors) setFieldErrors(body.fieldErrors);
+        throw new Error(body.error || "Erreur lors de l'envoi. Veuillez réessayer.");
+      }
 
       addNotification({
         type: "success",
-        message: "Demande envoyée avec succès ! Nous vous répondrons sous 24h.",
-        duration: 5000,
+        message: "Demande envoyée ! Nous vous répondrons par e-mail sous 24 h.",
+        duration: 6000,
       });
-
-      e.currentTarget.reset();
-      setUserPhone(""); // Réinitialiser le téléphone
-    } catch (_error) {
+      form.reset();
+      setUserPhone("");
+    } catch (error) {
       addNotification({
         type: "error",
-        message: "Erreur lors de l'envoi. Veuillez réessayer.",
-        duration: 5000,
+        message: error instanceof Error ? error.message : "Erreur lors de l'envoi. Veuillez réessayer.",
+        duration: 8000,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const validateSupportForm = (data: any) => {
-    const required = ["urgency", "category", "userEmail", "message"];
-
-    for (const field of required) {
-      if (!data[field] || data[field].trim() === "") {
-        addNotification({
-          type: "error",
-          message: "Veuillez remplir tous les champs obligatoires.",
-          duration: 4000,
-        });
-        return false;
-      }
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.userEmail)) {
-      addNotification({
-        type: "error",
-        message: "Veuillez entrer une adresse email valide.",
-        duration: 4000,
-      });
-      return false;
-    }
-
-    return true;
-  };
-
+  // Le chat passe par la messagerie support de l'espace client (connexion demandée si besoin)
   const openChat = () => {
-    addNotification({
-      type: "info",
-      message: "Connexion au chat DiaspoMoney...",
-      duration: 2000,
-    });
-
-    setTimeout(() => {
-      addNotification({
-        type: "success",
-        message: "Chat en direct activé ! Un conseiller va vous répondre.",
-        duration: 4000,
-      });
-    }, 1500);
+    router.push("/dashboard/messaging/support");
   };
 
   const callPhone = () => {
@@ -115,7 +106,7 @@ export default function SupportPage() {
     const body =
       "Bonjour,\n\nJe vous contacte concernant :\n\n[Décrivez votre demande]\n\nCordialement,";
     window.open(
-      `mailto:support@diaspomoney.fr?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+      `mailto:${LEGAL_ENTITY.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
     );
   };
 
@@ -266,7 +257,7 @@ export default function SupportPage() {
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900">Support Email</h3>
                   <p className="text-sm text-gray-600">
-                    support@diaspomoney.fr • Réponse garantie sous 24h
+                    {LEGAL_ENTITY.email} • Réponse sous 24 h
                   </p>
                 </div>
                 <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
@@ -306,12 +297,18 @@ export default function SupportPage() {
             </div>
 
             <div className="p-6">
-              <form onSubmit={handleFormSubmit} className="space-y-4">
+              <form onSubmit={handleFormSubmit} className="space-y-4" noValidate>
+                {/* Piège à robots : invisible et ignoré par les humains */}
+                <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+                  <label htmlFor="support-website">Ne pas remplir</label>
+                  <input id="support-website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+                </div>
                 <div>
                   <label htmlFor='support-urgency' className="block text-sm font-semibold text-gray-700 mb-2">
                     Niveau d'urgence
                   </label>
                   <select id='support-urgency'
+                    {...errorProps("urgency")}
                     title="Niveau d'urgence"
                     name="urgency"
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/20 transition-all"
@@ -322,6 +319,7 @@ export default function SupportPage() {
                     <option value="medium">🟡 Urgente (24h)</option>
                     <option value="high">🔴 Critique (2h)</option>
                   </select>
+                  {fieldError("urgency")}
                 </div>
 
                 <div>
@@ -329,6 +327,7 @@ export default function SupportPage() {
                     Catégorie
                   </label>
                   <select id='support-category'
+                    {...errorProps("category")}
                     title="Catégorie"
                     name="category"
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/20 transition-all"
@@ -351,19 +350,23 @@ export default function SupportPage() {
                     <option value="partnership">🤝 Devenir partenaire</option>
                     <option value="other">📝 Autre demande</option>
                   </select>
+                  {fieldError("category")}
                 </div>
 
                 <div>
-                  <label htmlFor='support-user-email' className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor='support-userEmail' className="block text-sm font-semibold text-gray-700 mb-2">
                     Votre email
                   </label>
-                  <input id='support-user-email'
+                  <input id='support-userEmail'
+                    {...errorProps("userEmail")}
+                    autoComplete="email"
                     type="email"
                     name="userEmail"
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/20 transition-all"
                     placeholder="votre.email@exemple.com"
                     required
                   />
+                  {fieldError("userEmail")}
                 </div>
 
                 <div>
@@ -384,12 +387,14 @@ export default function SupportPage() {
                     Description détaillée
                   </label>
                   <textarea id='support-message'
+                    {...errorProps("message")}
                     name="message"
                     rows={4}
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/20 transition-all resize-vertical"
                     placeholder="Décrivez votre demande en détail. Plus vous êtes précis, plus nous pourrons vous aider efficacement..."
                     required
                   />
+                  {fieldError("message")}
                 </div>
 
                 <button

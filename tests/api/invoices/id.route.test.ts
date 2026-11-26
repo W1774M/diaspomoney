@@ -7,7 +7,7 @@ import { ROLES } from '@/lib/constants';
 
 const INV_ID = '507f1f77bcf86cd799439011';
 
-const { mockAuth, getInvoiceById, updateInvoice, findById, findByIdAndUpdate, lean } =
+const { mockAuth, getInvoiceById, updateInvoice, deleteInvoice, findById, findByIdAndUpdate, lean } =
   vi.hoisted(() => {
     const lean = vi.fn();
     const findById = vi.fn(() => ({ lean }));
@@ -15,6 +15,7 @@ const { mockAuth, getInvoiceById, updateInvoice, findById, findByIdAndUpdate, le
       mockAuth: vi.fn(),
       getInvoiceById: vi.fn(),
       updateInvoice: vi.fn(),
+      deleteInvoice: vi.fn(),
       findById,
       findByIdAndUpdate: vi.fn(),
       lean,
@@ -23,7 +24,7 @@ const { mockAuth, getInvoiceById, updateInvoice, findById, findByIdAndUpdate, le
 
 vi.mock('@/auth', () => ({ auth: mockAuth }));
 vi.mock('@/services/invoice/invoice.service', () => ({
-  invoiceService: { getInvoiceById, updateInvoice },
+  invoiceService: { getInvoiceById, updateInvoice, deleteInvoice },
 }));
 vi.mock('@/lib/mongodb', () => ({ default: vi.fn(async () => undefined) }));
 vi.mock('@/models/Invoice', () => ({
@@ -39,7 +40,7 @@ vi.mock('@/lib/logger', () => ({
   }),
 }));
 
-import { PUT } from '@/app/api/invoices/[id]/route';
+import { DELETE, PUT } from '@/app/api/invoices/[id]/route';
 
 function put(body: unknown, id = INV_ID) {
   return PUT(
@@ -101,5 +102,53 @@ describe('PUT /api/invoices/[id]', () => {
   it('répond 404 si facture absente', async () => {
     updateInvoice.mockRejectedValue(new Error('Facture non trouvée'));
     expect((await put({ amount: 10 })).status).toBe(404);
+  });
+});
+
+/**
+ * DELETE /api/invoices/[id] : admin uniquement, brouillons seulement (une facture émise garde
+ * son numéro et s'annule). Avant, la route n'existait pas : le bouton « Supprimer » échouait.
+ */
+describe('DELETE /api/invoices/[id]', () => {
+  const del = async (id = INV_ID) => {
+    const res = await DELETE(new NextRequest(`http://localhost/api/invoices/${id}`, { method: 'DELETE' }), { params: { id } });
+    return { status: res.status, body: await res.json() };
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuth.mockResolvedValue({ user: { id: 'admin-1', roles: [ROLES.ADMIN] } });
+    getInvoiceById.mockResolvedValue({ id: INV_ID, status: 'DRAFT' });
+    deleteInvoice.mockResolvedValue(true);
+  });
+
+  it('supprime un brouillon (admin)', async () => {
+    expect(await del()).toEqual({ status: 200, body: { success: true } });
+    expect(deleteInvoice).toHaveBeenCalledWith(INV_ID);
+  });
+
+  it.each(['PENDING', 'PAID', 'OVERDUE', 'CANCELLED'])('refuse de supprimer une facture émise (%s)', async (status) => {
+    getInvoiceById.mockResolvedValue({ id: INV_ID, status });
+    const { status: code, body } = await del();
+    expect(code).toBe(409);
+    expect(body.code).toBe('INVOICE_NOT_DRAFT');
+    expect(deleteInvoice).not.toHaveBeenCalled();
+  });
+
+  it('401 sans session, 403 pour un non-admin, même propriétaire', async () => {
+    mockAuth.mockResolvedValueOnce(null);
+    expect((await del()).status).toBe(401);
+    mockAuth.mockResolvedValueOnce({ user: { id: 'client-1', roles: [ROLES.CUSTOMER] } });
+    expect((await del()).status).toBe(403);
+    expect(deleteInvoice).not.toHaveBeenCalled();
+  });
+
+  it('400 pour un identifiant invalide, 404 pour une facture absente, 500 sinon', async () => {
+    expect((await del('pas-un-id')).status).toBe(400);
+    getInvoiceById.mockRejectedValueOnce(new Error('Facture non trouvée'));
+    expect((await del()).status).toBe(404);
+    getInvoiceById.mockResolvedValue({ id: INV_ID, status: 'DRAFT' });
+    deleteInvoice.mockRejectedValueOnce(new Error('mongo HS'));
+    expect((await del()).status).toBe(500);
   });
 });

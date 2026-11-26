@@ -2,25 +2,15 @@
 
 
 import { Phone, Mail, MessageCircle, Clock, MapPin, User, AlertTriangle, CheckCircle, Star, Headphones, Zap, Shield, Users } from "lucide-react";
-import { useNotificationStore } from "@/store/notifications";
+import { useRouter } from "next/navigation";
+import { LEGAL_ENTITY } from "@/lib/legal/company";
 
 export default function HotlinePage() {
-  const { addNotification } = useNotificationStore();
+  const router = useRouter();
 
+  // Le chat passe par la messagerie support de l'espace client (connexion demandée si besoin)
   const openChat = () => {
-    addNotification({
-      type: "info",
-      message: "Connexion au chat DiaspoMoney...",
-      duration: 2000,
-    });
-    
-    setTimeout(() => {
-      addNotification({
-        type: "success",
-        message: "Chat en direct activé ! Un conseiller va vous répondre.",
-        duration: 4000,
-      });
-    }, 1500);
+    router.push("/dashboard/messaging/support");
   };
 
   const callPhone = () => {
@@ -30,7 +20,7 @@ export default function HotlinePage() {
   const openEmail = () => {
     const subject = "Demande de support DiaspoMoney";
     const body = "Bonjour,\n\nJe vous contacte concernant :\n\n[Décrivez votre demande]\n\nCordialement,";
-    window.open(`mailto:support@diaspomoney.fr?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+    window.open(`mailto:${LEGAL_ENTITY.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
   return (
@@ -220,7 +210,7 @@ export default function HotlinePage() {
             <div className="p-6">
               <div className="space-y-4">
                 <div className="text-center">
-                  <div className="text-lg font-bold text-brand-700 mb-2">support@diaspomoney.fr</div>
+                  <div className="text-lg font-bold text-brand-700 mb-2">{LEGAL_ENTITY.email}</div>
                   <p className="text-sm text-gray-600">Email principal</p>
                 </div>
                 

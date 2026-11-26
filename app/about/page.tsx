@@ -85,8 +85,8 @@ export default function AboutPage() {
               <p className="text-gray-700 mb-4">
                 Pour toute question, suggestion ou demande d&apos;information, n&apos;hésitez pas à
                 nous contacter à{' '}
-                <Link href="mailto:support@diaspomoney.fr" className="text-brand-700 hover:underline">
-                  support@diaspomoney.fr
+                <Link href="mailto:contact@diaspomoney.fr" className="text-brand-700 hover:underline">
+                  contact@diaspomoney.fr
                 </Link>
               </p>
             </section>
