@@ -49,9 +49,9 @@ export async function POST(
     const body = await request.json();
     const parsed = DownloadSummarySchema.safeParse(body);
     if (!parsed.success) {
-      log.warn({ errors: parsed.error.errors }, 'Invalid request body');
+      log.warn({ errors: parsed.error.issues }, 'Invalid request body');
       return NextResponse.json(
-        { error: 'Données invalides', details: parsed.error.errors },
+        { error: 'Données invalides', details: parsed.error.issues },
         { status: 400 },
       );
     }

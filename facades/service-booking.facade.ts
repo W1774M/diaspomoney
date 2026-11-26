@@ -222,7 +222,7 @@ export class ServiceBookingFacade
           ...(data.metadata || {}),
           serviceCategory: data.selectedService.category,
           serviceLabel: data.selectedService.label,
-          // Convertir les nombres en strings pour respecter z.record(z.string())
+          // Convertir les nombres en strings pour respecter z.record(z.string(), z.string())
           basePrice: String(basePrice),
           optionsPrice: String(optionsPrice),
           totalAmount: String(totalAmount),

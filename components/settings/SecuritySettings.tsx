@@ -8,7 +8,6 @@ import {
   CheckCircle,
   Eye,
   EyeOff,
-  Facebook,
   Globe,
   Lock,
   Save,
@@ -18,6 +17,14 @@ import {
 import { signIn } from 'next-auth/react';
 import React, { useCallback, useState } from 'react';
 import { Button } from '../ui';
+
+function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M14 8h3V4h-3c-2.8 0-5 2.2-5 5v2H6v4h3v9h4v-9h3.2l.8-4H13V9c0-.6.4-1 1-1z" />
+    </svg>
+  );
+}
 
 // Configuration des fournisseurs OAuth
 const oauthProviders = [
@@ -32,7 +39,7 @@ const oauthProviders = [
   {
     id: 'facebook',
     name: 'Facebook',
-    icon: Facebook,
+    icon: FacebookIcon,
     color: 'blue',
     signInUrl: 'https://www.facebook.com/settings',
     description: 'Connectez-vous avec votre compte Facebook',

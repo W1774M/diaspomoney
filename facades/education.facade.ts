@@ -22,7 +22,7 @@ export type { EducationFacadeData, EducationFacadeResult };
 
 const EducationFacadeSchema = z.object({
   operation: z.enum(['searchSchools', 'enrollStudent', 'payTuition', 'createInquiry']),
-  data: z.record(z.any()),
+  data: z.record(z.string(), z.any()),
   userId: z.string().optional(),
 });
 

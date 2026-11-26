@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.mjs";
 
 /* Cross-browser text size adjust support */
 html,
@@ -224,9 +223,9 @@ html,
   accent-color: hsl(25 100% 38%);
 }
 
-/* ---- Lien d'évitement : invisible jusqu'au premier Tab ---- */
+/* ---- Lien d'évitement : hors de l'écran jusqu'au focus (la boîte revient alors). ---- */
 .skip-link {
-  position: fixed;
+  position: absolute;
   top: 0.75rem;
   left: 0.75rem;
   z-index: 100;
@@ -235,11 +234,12 @@ html,
   background: #1c1917;
   color: #fff;
   font-weight: 600;
-  translate: 0 -200%;
+  transform: translateY(-150%);
 }
 
+.skip-link:focus,
 .skip-link:focus-visible {
-  translate: 0 0;
+  transform: none;
   outline: 2px solid hsl(25 100% 38%);
   outline-offset: 2px;
 }

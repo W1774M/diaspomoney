@@ -21,7 +21,7 @@ export const CreateBeneficiaryApiSchema = z.object({
     'FRIEND',
     'OTHER',
   ], {
-    errorMap: () => ({ message: 'La relation est obligatoire' }),
+    error: 'La relation est obligatoire',
   }),
   location: z.object({
     address: z.string().min(1, 'L\'adresse est requise'),

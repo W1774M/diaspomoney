@@ -51,7 +51,7 @@ export default function BookingsByStatusChart({ data }: BookingsByStatusChartPro
             dataKey="value"
           >
             {chartData.map((_entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length] ?? '#6b7280'} />
             ))}
           </Pie>
             <Tooltip />

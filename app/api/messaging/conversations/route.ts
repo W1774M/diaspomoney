@@ -75,8 +75,8 @@ export async function GET(_request: NextRequest) {
         const unreadCount =
           unreadCountMap[userId] ||
           (await Message.countDocuments({
-            conversationId: conv._id,
-            senderId: { $ne: new mongoose.Types.ObjectId(userId) },
+            conversationId: String(conv._id),
+            senderId: { $ne: userId },
             read: false,
           }));
 

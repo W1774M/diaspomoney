@@ -16,9 +16,7 @@ export const CreatePackSchema = z.object({
       ...string[],
     ],
     {
-      errorMap: () => ({
-        message: 'La catégorie doit être HEALTH, EDUCATION ou BTP',
-      }),
+      error: 'La catégorie doit être HEALTH, EDUCATION ou BTP',
     },
   ),
   serviceIds: z.array(z.string().min(1)).min(1, 'Sélectionnez au moins un service'),

@@ -15,7 +15,7 @@ export default function DashboardShell({
   return (
     <AuthGuard>
       <SidebarProvider>
-        <a href='#contenu' className='skip-link'>
+        <a href='#contenu' className='skip-link' tabIndex={1}>
           Aller au contenu
         </a>
         <div className='flex min-h-dvh flex-col bg-stone-50'>

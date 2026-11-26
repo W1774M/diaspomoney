@@ -5,7 +5,7 @@
 
 import { expect, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 
 // S'assurer que document.body existe pour les tests React
 if (typeof document !== 'undefined') {

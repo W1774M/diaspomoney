@@ -22,7 +22,7 @@ export type { BTPFacadeData, BTPFacadeResult };
 
 const BTPFacadeSchema = z.object({
   operation: z.enum(['searchProperties', 'searchContractors', 'createQuote', 'createProject']),
-  data: z.record(z.any()),
+  data: z.record(z.string(), z.any()),
   userId: z.string().optional(),
 });
 

@@ -76,7 +76,7 @@ export const ServiceBookingFacadeDataSchema = z.object({
   paymentIntentId: z.string().min(1, 'Le paymentIntentId est requis'),
   appointmentDate: z.string().optional(),
   appointmentTime: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 /**
